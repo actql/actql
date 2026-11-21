@@ -127,6 +127,7 @@ priv enum Evaluation {
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
+  ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
   ArrayConcat(ArrayConcatState)
@@ -423,7 +424,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.selection_root = None
   frame.selection_pending = false
   match frame.state {
-    TextFunction(state) => state.builder = None
+    TextFunction(state) | ArrayTextJoin(state, _) => state.builder = None
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -871,7 +872,8 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
-            if op == @lower.Split ||
+            if op == @lower.ArrayToString ||
+              op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
               op == @lower.Translate ||
@@ -899,7 +901,9 @@ fn advance_expression_frame_impl(
               }
               frame.stack.push(
                 TextArguments({
-                  kind: if op == @lower.Split {
+                  kind: if op == @lower.ArrayToString {
+                    TextArrayJoin
+                  } else if op == @lower.Split {
                     TextSplit
                   } else if op == @lower.Repeat {
                     TextRepeat
@@ -946,7 +950,8 @@ fn advance_expression_frame_impl(
               | TimestampAddition
               | TimestampSubtraction
               | ArrayConcat
-              | GenerateArray => Null
+              | GenerateArray
+              | ArrayToString => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1310,7 +1315,29 @@ fn advance_expression_frame_impl(
                 Ok(state) => state
                 Err(issue) => return Err(issue)
               }
-              frame.state = TextFunction(state)
+              if state.kind == TextArrayJoin && !state.null_result {
+                guard args.values[0] is Captured(@admitted.Array(items)) &&
+                  args.values[1] is Text(delimiter) else {
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                }
+                frame.state = ArrayTextJoin(state, {
+                  items,
+                  delimiter,
+                  null_text: match args.values.get(2) {
+                    Some(Text(text)) => Some(text)
+                    _ => None
+                  },
+                  index: 0,
+                  part: None,
+                  separator: false,
+                  seen: false,
+                })
+              } else {
+                frame.state = TextFunction(state)
+              }
             }
           }
           ArrayConcatArguments(args) => {
@@ -1935,6 +1962,7 @@ fn advance_expression_frame_impl(
               | Split
               | GenerateArray
               | ArrayConcat
+              | ArrayToString
               | Substring
               | LeftString
               | RightString
@@ -2184,20 +2212,23 @@ fn advance_expression_frame_impl(
         match advance_text_function(state, workspace) {
           Err(issue) => return Err(issue)
           Ok(None) => ()
-          Ok(Some(value)) => {
-            for root in state.roots {
-              if release(root) is Some(issue) {
-                return Err({
-                  kind: LogicalValue(issue),
-                  expression: state.expression,
-                })
-              }
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
             }
-            release_slots(workspace, state.reserved + state.allocated)
-            frame.current_root = state.output_root
-            frame.result_prepaid = state.output_root is Some(_)
-            frame.state = Return(value)
-          }
+        }
+      }
+      ArrayTextJoin(state, join) => {
+        frame.active = state.expression
+        match advance_array_text_join(state, join, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
         }
       }
       Membership(state) => {

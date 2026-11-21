@@ -671,6 +671,13 @@ const arrayConcatOriginal = {name: 'array-concat', format: 'sql',
   columns: [['joined', false, 2], ['duplicates', false, 3], ['absent', true, 1]]
     .map(([name, nullable, max_items]) => ({name, contract: {type: 'array', nullable, max_items,
       items: {type: 'number', nullable: false}}})), sourceReadCount: 0};
+const arrayToStringOriginal = {name: 'array-to-string', format: 'sql',
+  text: "SELECT ARRAY_TO_STRING(['a'], ',') AS joined, "
+    + "ARRAY_TO_STRING([NULL, '', NULL, 'x'], '|') AS skipped, "
+    + "ARRAY_TO_STRING([NULL, '', NULL, 'x'], '|', 'n') AS replaced",
+  expected: [{joined: 'a', skipped: '|x', replaced: 'n||n|x'}],
+  columns: ['joined', 'skipped', 'replaced'].map(name => ({name,
+    contract: {type: 'string', nullable: false}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -766,6 +773,7 @@ export const sourceFreeSuccesses = [
   dateCalendarOriginal,
   currentDateOriginal,
   arrayConcatOriginal,
+  arrayToStringOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

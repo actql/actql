@@ -697,6 +697,7 @@ pub fn boolean_pair(
     | Split
     | GenerateArray
     | ArrayConcat
+    | ArrayToString
     | Substring
     | LeftString
     | RightString

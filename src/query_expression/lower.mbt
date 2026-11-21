@@ -253,6 +253,7 @@ fn scalar_call(
     "DIV" => ("DIV", "integer_divide", 2, 2)
     "GENERATE_ARRAY" => ("GENERATE_ARRAY", "generate_array", 2, 3)
     "ARRAY_CONCAT" => ("ARRAY_CONCAT", "array_concat", 1, 2147483647)
+    "ARRAY_TO_STRING" => ("ARRAY_TO_STRING", "array_to_string", 2, 3)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "CBRT" => ("CBRT", "cbrt", 1, 1)
     "SIN" => ("SIN", "sin", 1, 1)

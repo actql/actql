@@ -5,7 +5,7 @@
     "fixed_compute_capacity": {
       "path": "spec/contracts/actql-fixed-compute-capacity.json",
       "pointer": "",
-      "cid": "sha256:0fb0ca872a69656df2ac167c50fa257332f5acc6fd17195ec4bf17044e03d157"
+      "cid": "sha256:cc504592b60c7db9e0059bedd4caa14940a3799fd1e4b53fbd28b93082fa8bdc"
     }
   },
   "scope": {

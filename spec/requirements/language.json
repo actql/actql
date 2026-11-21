@@ -3182,6 +3182,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.array-to-string",
+      "statement_sha256": "dfa254227baabb79efb84f29f1b7c10b488d7401f563b2d1ff4deaaae7ba2821",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.date-calendar-boundaries",
       "statement_sha256": "ebbbfa37b59681a0872e47fc9ac692914584da4639360f86865c71f3c130d986",
       "status": "pending",
@@ -11180,7 +11191,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "cc7eb367fb581cd7ddb621f995644ad305cbfb03c904f16c37b41f75e7537fd6",
+      "statement_sha256": "b7a496a0d4abf4a47bb34ec67098e043d896e8a44f400c961603e9abe0011923",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

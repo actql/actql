@@ -347,6 +347,22 @@ fn infer(
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)
     }
+    "array_to_string" => {
+      let item = primitive(t, StringType, false, source)
+      let hint = put(t, Sequence(item, None), false, source)
+      provide(t, values[0], hint, source)
+      let (base, nullable) = head(t, values[0], source)
+      guard t.entries[base].kind is Sequence(actual_item, _) &&
+        type_name(resolve_type(t, actual_item, source)) == "string" else {
+        fail(source, TypeMismatch("array of strings"))
+      }
+      let mut result_nullable = nullable
+      for i in 1..<node.children.length() {
+        let checked = require_type(t, nodes, node.children[i], "string")
+        result_nullable = result_nullable || checked.nullable
+      }
+      primitive(t, StringType, result_nullable, source)
+    }
     "array_concat" => {
       let mut maximum = Some(0L)
       for value in values {

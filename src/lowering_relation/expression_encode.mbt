@@ -400,6 +400,7 @@ fn emit_frames(
                   Split => "split"
                   GenerateArray => "generate_array"
                   ArrayConcat => "array_concat"
+                  ArrayToString => "array_to_string"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

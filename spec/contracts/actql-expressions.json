@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "531b45ff2eaed0756bdcc1403d9623752a7cca7eb8e4ef7ec951e7629ca0fa23",
+  "grammar_sha256": "9e598e95576eb12db1b82e4142e5ced6410d9b5d10a89c6c43b1d2e56f5c8b37",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5830,6 +5830,23 @@
               ],
               "properties": {
                 "generate_array": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_to_string"
+              ],
+              "properties": {
+                "array_to_string": {
                   "type": "array",
                   "minItems": 2,
                   "maxItems": 3,
@@ -12648,6 +12665,27 @@
               "properties": {
                 "op": {
                   "const": "generate_array"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_to_string"
                 },
                 "body": {
                   "type": "array",
@@ -25094,6 +25132,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "array_to_string"
+              ],
+              "properties": {
+                "array_to_string": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "byte_length"
               ],
               "properties": {
@@ -30985,6 +31040,27 @@
               "properties": {
                 "op": {
                   "const": "generate_array"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_to_string"
                 },
                 "body": {
                   "type": "array",
@@ -39403,6 +39479,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "array_to_string"
+              ],
+              "properties": {
+                "array_to_string": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "byte_length"
               ],
               "properties": {
@@ -45314,6 +45407,27 @@
               ],
               "properties": {
                 "op": {
+                  "const": "array_to_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "byte_length"
                 },
                 "body": {
@@ -47146,6 +47260,12 @@
       "value": "Evaluate all original operands left to right. A NULL array gives a NULL result after eager evaluation. Otherwise concatenate the admitted items in operand and item order, including repeated and NULL elements.",
       "bounds": "Sum authoritative operand max_items if all are known and the sum is representable. Use existing admitted value limits and caller-owned work and backing before construction.",
       "demand": "Retain original child failures, enclosing lazy demand, and cancellation. A partial array has no result identity."
+    },
+    "array_to_string": {
+      "signature": "An Array of String, a String delimiter, and an optional String NULL-element replacement. The result is String and is nullable when a supplied whole argument is nullable.",
+      "identity": "The closed source is {array_to_string:[array,delimiter,...]} and the closed machine form uses the same ordered body and operation name.",
+      "value": "Evaluate supplied operands eagerly in order. A NULL argument gives NULL. Omit NULL elements when replacement is omitted, otherwise use the supplied replacement. Insert the original delimiter only between retained or replaced elements. Empty output is an empty String.",
+      "backing": "Keep original operands during sizing and construction. Admit the full String extent before allocating the result. Preserve original Unicode scalars, existing budgets, cancellation and child failures."
     }
   },
   "regex_ast_contract": {

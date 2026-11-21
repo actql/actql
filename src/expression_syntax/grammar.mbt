@@ -157,6 +157,7 @@ fn expression_role(
     | "array"
     | "split"
     | "generate_array"
+    | "array_to_string"
     | "array_concat"
     | "vector_concat"
     | "current_timestamp"
@@ -203,7 +204,7 @@ fn arity(
     "instr" => size >= 2 && size <= 4
     "translate" => size == 3
     "split" => size == 1 || size == 2
-    "generate_array" => size == 2 || size == 3
+    "generate_array" | "array_to_string" => size == 2 || size == 3
     "lpad" | "rpad" => size == 2 || size == 3
     "and"
     | "or"

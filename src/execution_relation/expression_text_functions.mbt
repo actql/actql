@@ -23,6 +23,7 @@ priv enum TextFunctionKind {
   TextInstr
   TextReplace
   TextSplit
+  TextArrayJoin
   TextSubstring
   TextLeft
   TextRight
@@ -131,9 +132,11 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
+      Captured(@admitted.Array(_)) if kind == TextArrayJoin && i == 0 => ()
       Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
         ()
       Text(_) if kind != TextChr &&
+        (kind != TextArrayJoin || i != 0) &&
         (kind != TextFormatTimestamp || i != 0) &&
         (
           (
@@ -287,7 +290,9 @@ fn start_text_function(
   } else {
     0
   }
-  let reserved = (if kind == TextUtf8Truncate {
+  let reserved = (if kind == TextArrayJoin {
+      2 + (if null_result { 0 } else { ARRAY_TEXT_JOIN_SLOTS })
+    } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
       3
@@ -441,7 +446,9 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if is_normalization ||
+    reserved: if kind == TextArrayJoin {
+      values.length() * 3 + 1 + reserved
+    } else if is_normalization ||
       timestamp_pattern is Some(_) ||
       kind == TextLike {
       reserved
@@ -973,41 +980,12 @@ fn advance_text_function(
   }
   if state.position == end {
     if state.building {
-      guard state.builder is Some(builder) else {
-        return Err({ kind: Scalar(InvalidOperand), expression, })
-      }
-      // Exact native capacity makes finalization an ownership transfer, not a
-      // second full copy. JS uses the pinned builder's retained String.
-      let result = builder.to_string()
-      state.builder = None
-      if state.output_root is Some(root) {
-        root.root.measurement = Some({
-          wire_bytes: state.bytes,
-          weight: state.weight,
-        })
-      }
-      return Ok(Some(Text(result)))
+      return finish_measured_text_output(state).map(value => Some(value))
     }
-    // All output bytes were admitted before allocating the exact UTF-16
-    // buffer. Reservation belongs to this frame through the final result.
-    if state.output_root is Some(root) && root.root.text_capacity is Some(_) {
-      match
-        reserve_measured_text_buffer(root, workspace, state.units, state.bytes) {
-        Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
-        Ok(_) => ()
-      }
-      // Fixed Text frame/builder controls were already reserved on entry.
-      // UTF-16 payload units are not structural container entries.
-      state.allocated = 0
-    } else {
-      // Explicit finite/unmanaged callers retain their existing slot guard.
-      if !reserve_slots(workspace, state.units) {
-        return Err({ kind: WorkspaceLimit, expression, })
-      }
-      state.allocated = state.units
+    match begin_measured_text_output(state, workspace) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
-    state.builder = Some(StringBuilder(size_hint=state.units * 2))
-    state.building = true
     state.position = if state.kind == TextReverse {
       state.input.length()
     } else if state.kind == TextUtf8Truncate ||
@@ -1138,4 +1116,67 @@ fn trim_white_space(scalar : Char) -> Bool {
   code == 0x202f ||
   code == 0x205f ||
   code == 0x3000
+}
+
+///|
+fn begin_measured_text_output(
+  state : TextFunctionState,
+  workspace : RowWorkspace,
+) -> Result[Unit, EvalIssue] {
+  // The sizing pass fixes the complete UTF-16 buffer and wire extent.
+  if state.output_root is Some(root) && root.root.text_capacity is Some(_) {
+    match
+      reserve_measured_text_buffer(root, workspace, state.units, state.bytes) {
+      Err(issue) =>
+        return Err({ kind: LogicalValue(issue), expression: state.expression, })
+      Ok(_) => ()
+    }
+    state.allocated = 0
+  } else {
+    if !reserve_slots(workspace, state.units) {
+      return Err({ kind: WorkspaceLimit, expression: state.expression, })
+    }
+    state.allocated = state.units
+  }
+  state.builder = Some(StringBuilder(size_hint=state.units * 2))
+  state.building = true
+  Ok(())
+}
+
+///|
+fn finish_measured_text_output(
+  state : TextFunctionState,
+) -> Result[Value, EvalIssue] {
+  guard state.builder is Some(builder) else {
+    return Err({ kind: Scalar(InvalidOperand), expression: state.expression, })
+  }
+  // Native transfers the exactly sized buffer. JS returns the retained String.
+  let result = builder.to_string()
+  state.builder = None
+  if state.output_root is Some(root) {
+    root.root.measurement = Some({
+      wire_bytes: state.bytes,
+      weight: state.weight,
+    })
+  }
+  Ok(Text(result))
+}
+
+///|
+fn return_measured_text(
+  frame : ExpressionFrame,
+  state : TextFunctionState,
+  value : Value,
+) -> Result[Unit, EvalIssue] {
+  for root in state.roots {
+    match expression_event_release(root, state.expression) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  release_slots(frame.workspace, state.reserved + state.allocated)
+  frame.current_root = state.output_root
+  frame.result_prepaid = state.output_root is Some(_)
+  frame.state = Return(value)
+  Ok(())
 }

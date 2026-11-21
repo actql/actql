@@ -2542,6 +2542,20 @@ the complete backing and overlapping original operands before copying.
 Child failures, enclosing lazy demand and cancellation keep their existing
 meaning and a partial result remains private.
 
+### String array joining
+
+<!-- requirement-block: scalar-expressions.array-to-string -->
+The Common `array_to_string` expression MUST evaluate a String array and its
+String delimiter, then its optional String replacement, in original operand
+order. A supplied whole operand NULL gives a NULL result. Otherwise retain
+the original element order, replacing NULL elements with the optional value or
+omitting them when no replacement was supplied. Place the original delimiter
+only between emitted elements. Empty output is an empty String. The source
+and machine bodies retain the original two or three operands. Both passes
+retain the original operands and admit the complete result before constructing
+the immutable String. Preserve original scalar content, child failure, lazy
+demand and cancellation.
+
 ### Date day arithmetic and month boundaries
 
 <!-- requirement-block: scalar-expressions.date-calendar-boundaries -->
@@ -11661,7 +11675,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:07971bdc593b495623de6970671af86f19cc35cc873d102408515a6de78aa9f5
+../../spec/contracts/actql-aoa.json# sha256:71d79e4f240e6fe499d0a0fb6da4aa0254b9e392b5958c099bce77ee65f898f0
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11670,13 +11684,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:0c22840c25f95cccb039b0daba93f26bf87fff10097b33dfd6286bf396aac529
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:579062bd1623170c7e3a01e6f5dbe7fc753c8277c5dda11ad705aefec95f0a5d
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:35f280f4e6400ca565800c8524f61d7cb02ecc72090d52fc349e4a00f0818cad
+../../spec/contracts/actql-expressions.json# sha256:40000a7db5c20e0d8fe6f2055ff647760c455718d04885e1138274efc8c34f59
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:7c18b83700d0d3366f48f71de33a5f203ae9c62e982d9cba34a895f83a848ec4
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:2bc8687059261ca73892dae2e20b1b883fc856aeb9859e1e7b731e94737a5200
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:77031d8bd146f29554eb2fc4affd5a6e8365b478ea71219e39b3a3c45bc55ffe
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b13472cfd5e773078f88cc92327c0ca0fc6f0318d6c4a4a60a98af82ca41e482
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:ff1311e6d8e031cb30d1dfdd55d20f54dcd1f09d1a7663cc71e576bf9b33463f
+../../spec/contracts/actql-expressions.json#/laws sha256:a92674fdfd41bd01586a2e1cc4df618ef9eea31ff2ddff48429ab84867c610d3
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:50c160a3b82ff8f3ed262faddff5857ec8f60bc10bd61dd19d6d5a8ccc5feb4a
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:7e4e6cdd14365098d848d906012f2c5726aae83c913134fe8b8cb1a0815c1dd7
 ```
 
 <!-- stage-contract-pins:start -->
