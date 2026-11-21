@@ -70,9 +70,19 @@ task files and the providers they may use:
 
 ### OpenAI on Node
 
-Install `@actql/node` and `@actql/provider-ai-sdk` from the same release cohort.
-For a local candidate, install the original tarballs together in an empty
-project directory. Set `ACTQL_VERSION` to that cohort's exact version.
+This path requires `@actql/node` and `@actql/provider-ai-sdk` from the same
+[optional five-package cohort](../../release/README.md#optional-node-and-openai-provider-cohort).
+Check that both packages are available at the exact selected version before
+installing from npm. The historical release covers the four Node and SDK
+packages. Set `ACTQL_VERSION` to the selected cohort's exact version. When
+that five-package cohort is published, install its two public entries:
+
+```sh
+npm install --save-exact "@actql/node@${ACTQL_VERSION}" "@actql/provider-ai-sdk@${ACTQL_VERSION}"
+```
+
+For a local candidate, install the five original staged tarballs together in
+an empty project directory.
 
 ```sh
 npm install --save-exact \
