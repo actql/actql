@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b04c480619a75440650307f96210a7509acb734fb6c979a716a9c8a7f569c266",
+      "sha256": "869eec0243c3a3181bca9719220636ea4f13a36150f079fa86b68cd2a3671d75",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6489,14 +6489,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-          "parameters": [
-            "captured",
-            "definition"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
           "parameters": [
             "originals",
@@ -6628,87 +6620,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-          "parameters": [
-            "index",
-            "chain",
-            "preview",
-            "receipts",
-            "privateBinding",
-            "effectSources",
-            "recoveryResources",
-            "readOriginal",
-            "retainedIndex"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-          "parameters": [
-            "cid",
-            "includeNative"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
-          "parameters": [
-            "_plaintext",
-            "read"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
-          "parameters": [
-            "_plaintext",
-            "read"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
           "parameters": [],
           "async": false
@@ -6799,10 +6710,38 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
           "parameters": [
             "cid",
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -7080,22 +7019,6 @@
             "preparation"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
-          "parameters": [
-            "suppliedIndex",
-            "suppliedEvidence"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
-          "parameters": [
-            "cid",
-            "includeNative"
-          ],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
@@ -7495,7 +7418,6 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
@@ -7507,16 +7429,6 @@
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
             "openOriginalLocalPublicationStore/init:status/init:status",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/writeState/writeState",
@@ -7541,8 +7453,6 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -7596,7 +7506,11 @@
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#2",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#3",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#4"
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#4",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20"
           ],
           "exports": [
             "PublicationStoreError",
@@ -7795,7 +7709,7 @@
                 "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
                 "anchor": "return Object.freeze(verifiedBindings);"
               },
               {
@@ -8287,7 +8201,7 @@
                 "anchor": "const primary = readFailed ? readFailure : closeFailure;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
                 "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
               },
               {
@@ -10500,6 +10414,248 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-evidence-inspection.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8050315ba1e28e74273678bb6f4c2af6a7978eaa49869c3622e44f0e83386b71",
+      "exports": [
+        "createPublicationEvidence"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationEvidence",
+          "parameters": [
+            "configuration",
+            "contractControl",
+            "contractLimits",
+            "activeSemanticReaders",
+            "active",
+            "admitContract",
+            "parseContract",
+            "readContract",
+            "readSemanticOriginal",
+            "nativeContractRead",
+            "verifyDurableResultBinding",
+            "confirmCommittedIndex",
+            "readCommittedMetadataInventory",
+            "inspectPhysicalHolding",
+            "commitPhysicalHolding",
+            "confirmPrivateEvidence",
+            "readPrivateEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
+          "parameters": [
+            "captured",
+            "definition"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
+          "parameters": [
+            "index",
+            "chain",
+            "preview",
+            "receipts",
+            "privateBinding",
+            "effectSources",
+            "recoveryResources",
+            "readOriginal",
+            "retainedIndex"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+          "parameters": [
+            "_plaintext",
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
+          "parameters": [
+            "_plaintext",
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationEvidence/validateCommittedEvidence/validateCommittedEvidence",
+          "parameters": [
+            "suppliedIndex",
+            "suppliedEvidence"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationEvidence/verifyCommitEvidence/verifyCommitEvidence",
+          "parameters": [
+            "admitted",
+            "entry",
+            "suppliedEvidence",
+            "required",
+            "readOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationEvidence/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationEvidence",
+            "createPublicationEvidence/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
+            "createPublicationEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
+            "createPublicationEvidence/validateCommittedEvidence/validateCommittedEvidence",
+            "createPublicationEvidence/verifyCommitEvidence/verifyCommitEvidence",
+            "createPublicationEvidence/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence"
+          ],
+          "exports": [
+            "createPublicationEvidence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "This is stored-evidence inspection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "const inspectEffectfulStoredEvidence = async ({index, chain, preview,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "if (retainedIndex !== undefined && retainedIndex.contract !== index) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "activeSemanticReaders.add(validationReader);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "await commitPhysicalHolding(holding, []);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "fail('InvalidEffectfulCaptureRecord');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "activeSemanticReaders.delete(validationReader);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "const verifiedBindings = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-evidence-inspection.mts",
+                "anchor": "constructEffectfulPublication(recoveryResources, chain.capturedRun, contractControl,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effectful commit inspection consumes only its original private Index observation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Store typed validation retains semantic close custody while yielded"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-index-startup.mjs",

@@ -34,7 +34,7 @@ export function createDurableResultBindingVerifier<Contract extends PublicationC
   {parseContract, readSemanticOriginal, cidHex, verifyObject}: VerifyPorts<Contract>,
 ) {
   const verifyDurableResultBinding = async (
-    contract: Contract, readOriginal: ReadOriginal<Contract> = readSemanticOriginal,
+    contract: Contract, readOriginal: (cid: string, includeNative: false) => ReturnType<ReadOriginal<Contract>> = readSemanticOriginal,
     retainedBinding?: DurableResultBinding, readDemand?: IndexReadDemand<Contract>,
   ) => {
     if (contract.name !== 'durable_result_binding') {
