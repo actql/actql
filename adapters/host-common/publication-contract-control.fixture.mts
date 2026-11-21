@@ -15,7 +15,7 @@ type Schema = Readonly<{
   not?: Schema;
 }>;
 type Schemas = Readonly<Record<string, Schema | undefined>>;
-type Inspection = Readonly<{name: string; identityField: string; identity: unknown; wire: string}>;
+type Inspection = Readonly<{name: string; identityField: string; identity: string; wire: string}>;
 type CommitArgs = [
   runDefinition: Inspection, invocation: Inspection, definitions: readonly Inspection[],
   artifacts: readonly Inspection[], derivations: readonly Inspection[], orderings: readonly Inspection[],
@@ -253,7 +253,7 @@ export function createPublicationContractControlFixture() {
     const result = Object.freeze({
       name,
       identityField,
-      identity: value[identityField],
+      identity: value[identityField] as string,
       wire: canonicalJson(value),
     });
     tokens.set(result, value);
