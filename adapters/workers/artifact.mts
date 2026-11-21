@@ -43,6 +43,24 @@ export function checkWorkersArtifact(metafile: ArtifactGraph, source: string, al
   });
 }
 
+// Portable controls extracted from the reviewed runtime Core. These exact
+// emitted modules retain its Core bindings and introduce no Node dependencies.
+const runtimeCoreModules = [
+  'adapters/host-common/content-capture-control.mjs',
+  'adapters/host-common/content-generation-control.mjs',
+  'adapters/host-common/effect-application-control.mjs',
+  'adapters/host-common/ledger-usage.mjs',
+  'adapters/host-common/output-export-control.mjs',
+  'adapters/host-common/publication-progress-control.mjs',
+  'adapters/host-common/remote-bundle-control.mjs',
+  'adapters/host-common/remote-credential-control.mjs',
+  'adapters/host-common/remote-site-control.mjs',
+  'adapters/host-common/remote-standard-source-control.mjs',
+  'adapters/host-common/remote-transfer-control.mjs',
+  'adapters/host-common/runtime-tuple.mjs',
+  'adapters/host-common/site-control.mjs',
+];
+
 // Each source is explicitly reviewed: generated fixture/bridge contain the same
 // product Core; generated composition selects only Local; Local's JS contribution
 // delegates reads without Node I/O despite its historical directory name. The
@@ -127,6 +145,7 @@ export const conformanceModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  ...runtimeCoreModules,
   'adapters/host-common/dispatch-failure-observation.mjs',
   'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
@@ -179,6 +198,7 @@ export const hostModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  ...runtimeCoreModules,
   'adapters/host-common/dispatch-failure-observation.mjs',
   'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
