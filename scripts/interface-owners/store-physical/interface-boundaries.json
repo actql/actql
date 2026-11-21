@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0a555ddf6f0e3c4e4f472c5f69b4be62b5ce3ccce3b11b221ff36cd9f200e13b",
+      "sha256": "0966bc19975394d8fefb40e13e865b17ccda4830e6d47dfcd5e5aa90a276d8a0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6959,15 +6959,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
-          "parameters": [
-            "holdingCid",
-            "objectIndex",
-            "accept"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
           "parameters": [
             "cid"
@@ -7573,20 +7564,6 @@
             "wire"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectPhysicalHolding/inspectPhysicalHolding",
-          "parameters": [
-            "holdingCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
-          "parameters": [
-            "holdingCid"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
@@ -8619,11 +8596,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
           "parameters": [
             "key",
@@ -9284,7 +9256,6 @@
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
-            "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
@@ -9366,8 +9337,6 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
-            "openOriginalLocalPublicationStore/inspectPhysicalHolding/inspectPhysicalHolding",
-            "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
             "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
             "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/latestRecord/latestRecord",
@@ -9493,7 +9462,6 @@
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
@@ -14408,10 +14376,11 @@
     {
       "module": "adapters/store-local/physical-holding-record-reader.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "069d29cbf2c42397896cc2372d5f60386e33f87345f1cf320d3f3e1f6e971501",
+      "sha256": "1229c248758aa7dcd020f8916da8ee4ebf3f7bdcfd5672e8d641c1abeb67ab27",
       "exports": [
         "closedMetadataObjectExtent",
         "createPhysicalHoldingObjectVerifier",
+        "createPhysicalHoldingReaders",
         "createPhysicalHoldingRecordReader"
       ],
       "operations": [
@@ -14435,6 +14404,63 @@
             "record"
           ],
           "async": true
+        },
+        {
+          "name": "createPhysicalHoldingReaders",
+          "parameters": [
+            "active",
+            "cidHex",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "verifyPhysicalHoldingObjects",
+            "activePhysicalHoldingReaders",
+            "consumeObject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingReaders/consumePhysicalHolding/consumePhysicalHolding",
+          "parameters": [
+            "holdingCid",
+            "objectIndex",
+            "accept"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingReaders/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
+          "parameters": [
+            "record",
+            "objectIndex",
+            "accept"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingReaders/inspectPhysicalHolding/inspectPhysicalHolding",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingReaders/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingReaders/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingReaders/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createPhysicalHoldingRecordReader",
@@ -14512,12 +14538,20 @@
             "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding",
             "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
             "createPhysicalHoldingRecordReader/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
-            "createPhysicalHoldingRecordReader/readPhysicalHoldingAt/readPhysicalHoldingAt"
+            "createPhysicalHoldingRecordReader/readPhysicalHoldingAt/readPhysicalHoldingAt",
+            "createPhysicalHoldingReaders",
+            "createPhysicalHoldingReaders/consumePhysicalHolding/consumePhysicalHolding",
+            "createPhysicalHoldingReaders/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
+            "createPhysicalHoldingReaders/inspectPhysicalHolding/inspectPhysicalHolding",
+            "createPhysicalHoldingReaders/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
+            "createPhysicalHoldingReaders/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+            "createPhysicalHoldingReaders/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader"
           ],
           "exports": [
             "closedMetadataObjectExtent",
             "createPhysicalHoldingObjectVerifier",
-            "createPhysicalHoldingRecordReader"
+            "createPhysicalHoldingRecordReader",
+            "createPhysicalHoldingReaders"
           ],
           "attributes": {
             "responsibility": [
@@ -14530,6 +14564,10 @@
               {
                 "path": "adapters/store-local/physical-holding-record-reader.mts",
                 "anchor": "export function createPhysicalHoldingRecordReader("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "export function createPhysicalHoldingReaders("
               }
             ],
             "identity": [
@@ -14542,12 +14580,20 @@
               {
                 "path": "adapters/store-local/physical-holding-record-reader.mts",
                 "anchor": "const physical = await verifyObject(object.cid);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "const closed = retainPhysicalHoldingReader(record.holding_cid);"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-record-reader.mts",
                 "anchor": "bytes = await readBounded(path, configuration.maxObjectBytes,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-record-reader.mts",
+                "anchor": "await verifyPhysicalHoldingObjects(record);"
               }
             ],
             "failure": [
@@ -14582,6 +14628,10 @@
               {
                 "path": "adapters/store-local/lookup-raw-evidence.test.mjs",
                 "anchor": "lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical holding retirement waits for the exact active reader"
               }
             ]
           }

@@ -33,7 +33,8 @@ import {resolve} from 'node:path';
 import {Buffer as OriginalBuffer} from 'node:buffer';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
-import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingRecordReader}
+import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingReaders,
+  createPhysicalHoldingRecordReader}
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
 import {createPublicationMetadataInventory} from './publication-metadata-inventory.mjs';
@@ -5983,43 +5984,10 @@ async function openOriginalLocalPublicationStore(
     return await operation;
   };
 
-  const inspectPhysicalHolding = async holdingCid => {
-    active();
-    cidHex(holdingCid);
-    if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
-      return undefined;
-    }
-    const record = await readPhysicalHolding(holdingCid);
-    if (record === undefined) return undefined;
-    await verifyPhysicalHoldingObjects(record);
-    return record;
-  };
-
-  // Retirement validates ownership metadata, not payload usability. A
-  // missing or corrupt payload must remain unreadable but may still be
-  // retired by its exact owner. This is never a consumption/admission proof.
-  const inspectPhysicalHoldingForRetirement = async holdingCid => {
-    active();
-    cidHex(holdingCid);
-    return await readPhysicalHolding(holdingCid) ??
-      await readPhysicalHoldingDeletion(holdingCid);
-  };
-
-  const retainPhysicalHoldingReader = holdingCid => {
-    activePhysicalHoldingReaders.set(
-      holdingCid,
-      (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
-    );
-    let released = false;
-    return () => {
-      if (released) return;
-      released = true;
-      const remaining =
-        (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
-      if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
-      else activePhysicalHoldingReaders.set(holdingCid, remaining);
-    };
-  };
+  const {inspectPhysicalHolding, inspectPhysicalHoldingForRetirement,
+    retainPhysicalHoldingReader, consumeSelectedPhysicalHolding, consumePhysicalHolding} =
+    createPhysicalHoldingReaders(active, cidHex, readPhysicalHolding, readPhysicalHoldingDeletion,
+      verifyPhysicalHoldingObjects, activePhysicalHoldingReaders, consumeObject);
 
   const confirmPhysicalHoldingDirectory = async (record, adopt = true) => {
     try {
@@ -6071,29 +6039,6 @@ async function openOriginalLocalPublicationStore(
       activePhysicalRecordWriters.add(writer);
       throw failure;
     }
-  };
-
-  // Private selected metadata only. Public consumers still perform their
-  // original full inspection before application callbacks can receive bytes.
-  const consumeSelectedPhysicalHolding = async (record, objectIndex, accept) => {
-    const closed = retainPhysicalHoldingReader(record.holding_cid);
-    return await consumeObject(record.objects[objectIndex].cid, accept, closed);
-  };
-
-  const consumePhysicalHolding = async (
-    holdingCid,
-    objectIndex,
-    accept,
-  ) => {
-    active();
-    if (!quantity(objectIndex) || typeof accept !== 'function') {
-      fail('InvalidPublicationPhysicalHoldingRead');
-    }
-    const record = await inspectPhysicalHolding(holdingCid);
-    if (record === undefined || objectIndex >= record.objects.length) {
-      fail('PublicationPhysicalHoldingUnavailable');
-    }
-    return consumeSelectedPhysicalHolding(record, objectIndex, accept);
   };
 
   const ensurePhysicalHoldingDeletion = async record => {

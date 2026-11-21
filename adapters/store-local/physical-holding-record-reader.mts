@@ -1,4 +1,5 @@
 import {cidPattern, exactKeys, fail, quantity, readBounded} from './publication-store-io.mjs';
+import type {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 
 type HoldingBounds = Readonly<{maxObjects: number; maxObjectBytes: number}>;
 type HoldingReadDemand = NonNullable<Parameters<typeof readBounded>[5]> & {
@@ -138,4 +139,84 @@ export function createPhysicalHoldingObjectVerifier<Physical extends Readonly<{b
     }
     return verified;
   };
+}
+
+type ReadPhysicalHolding = (holdingCid: string) => Promise<SelectedPhysicalHoldingRecord | undefined>;
+type ConsumeObject = ReturnType<typeof createPublicationObjectConsumer>;
+type AcceptPiece = Parameters<ConsumeObject>[1];
+
+export function createPhysicalHoldingReaders(
+  active: () => unknown,
+  cidHex: (value: unknown) => string,
+  readPhysicalHolding: ReadPhysicalHolding,
+  readPhysicalHoldingDeletion: ReadPhysicalHolding,
+  verifyPhysicalHoldingObjects: (record: PhysicalHoldingRecord) => Promise<unknown>,
+  activePhysicalHoldingReaders: Map<string, number>,
+  consumeObject: ConsumeObject,
+) {
+  const inspectPhysicalHolding = async (holdingCid: string) => {
+    active();
+    cidHex(holdingCid);
+    if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+      return undefined;
+    }
+    const record = await readPhysicalHolding(holdingCid);
+    if (record === undefined) return undefined;
+    await verifyPhysicalHoldingObjects(record);
+    return record;
+  };
+
+  // Retirement validates ownership metadata, not payload usability. A
+  // missing or corrupt payload must remain unreadable but may still be
+  // retired by its exact owner. This is never a consumption/admission proof.
+  const inspectPhysicalHoldingForRetirement = async (holdingCid: string) => {
+    active();
+    cidHex(holdingCid);
+    return await readPhysicalHolding(holdingCid) ??
+      await readPhysicalHoldingDeletion(holdingCid);
+  };
+
+  const retainPhysicalHoldingReader = (holdingCid: string) => {
+    activePhysicalHoldingReaders.set(
+      holdingCid,
+      (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
+    );
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const remaining =
+        (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
+      if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
+      else activePhysicalHoldingReaders.set(holdingCid, remaining);
+    };
+  };
+
+  // Private selected metadata only. Public consumers still perform their
+  // original full inspection before application callbacks can receive bytes.
+  const consumeSelectedPhysicalHolding = async (
+    record: SelectedPhysicalHoldingRecord, objectIndex: number, accept: AcceptPiece,
+  ) => {
+    const closed = retainPhysicalHoldingReader(record.holding_cid);
+    return await consumeObject(record.objects[objectIndex].cid, accept, closed);
+  };
+
+  const consumePhysicalHolding = async (
+    holdingCid: string,
+    objectIndex: number,
+    accept: AcceptPiece,
+  ) => {
+    active();
+    if (!quantity(objectIndex) || typeof accept !== 'function') {
+      fail('InvalidPublicationPhysicalHoldingRead');
+    }
+    const record = await inspectPhysicalHolding(holdingCid);
+    if (record === undefined || objectIndex >= record.objects.length) {
+      fail('PublicationPhysicalHoldingUnavailable');
+    }
+    return consumeSelectedPhysicalHolding(record, objectIndex, accept);
+  };
+
+  return {inspectPhysicalHolding, inspectPhysicalHoldingForRetirement,
+    retainPhysicalHoldingReader, consumeSelectedPhysicalHolding, consumePhysicalHolding};
 }
