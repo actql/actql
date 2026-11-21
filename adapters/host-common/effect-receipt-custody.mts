@@ -29,13 +29,16 @@ export function retainIssuedEffectSetReceipt({set, members, ledger, preview}: {s
   return value;
 }
 
-export function issuedEffectSetReceiptWires(value: IssuedFields, ledger: unknown, preview: unknown) {
+export function issuedEffectSetReceiptWires(value: IssuedFields, ledger: unknown, preview: unknown): Readonly<{
+  setWire: string; memberWires: readonly string[];
+}> {
   const owner = issuedSets.get(value);
   if (owner?.ledger !== ledger || owner?.preview !== preview ||
       typeof value?.set?.wire !== 'string' ||
       !Array.isArray(value.members)) fail();
   return Object.freeze({
-    setWire: value.set!.wire,
-    memberWires: Object.freeze(value.members!.map(member => member.wire)),
+    setWire: value.set!.wire as string,
+    // The WeakMap only receives frozen copies of validated string wires.
+    memberWires: Object.freeze(value.members!.map(member => member.wire as string)),
   });
 }

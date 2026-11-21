@@ -11662,7 +11662,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -11716,7 +11716,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -11728,8 +11728,8 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function persistContracts(store, contracts, attempt, initialRecords) {"
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "async function persistContracts(store: Store, contracts: readonly Contract[], attempt?: Contract, initialRecords?: readonly Contract[]) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -11746,7 +11746,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "// MoonBit owns every contract body, identity, chain verdict and state"
               },
               {
@@ -11758,7 +11758,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "if (persisted.has(contract.identity)) continue;"
               },
               {
@@ -11766,7 +11766,7 @@
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;"
               },
               {
@@ -11774,8 +11774,8 @@
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function lookupOriginalCommit(primary, lookup) {"
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "async function lookupOriginalCommit(primary: unknown, lookup: () => Awaitable<StoredIndex | undefined>) {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -11784,7 +11784,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "import {issuedEffectSetReceiptWires} from './effect-receipt-custody.mjs';"
               },
               {
@@ -11796,7 +11796,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
               },
               {
@@ -11804,7 +11804,7 @@
                 "anchor": "const contractBounds = new WeakMap();"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "const cleanup = member(primary, 'cleanupHandle');"
               },
               {
@@ -11822,7 +11822,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "await store.putPublicationContract(contract.name, contract.wire);"
               },
               {
@@ -11860,7 +11860,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -11898,7 +11898,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "'publicationAttemptAction', 'publicationCancellationAction',"
               },
               {
@@ -11928,7 +11928,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "typeof value.name === 'string' && value.name.length !== 0 &&"
               },
               {
@@ -11940,7 +11940,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "if (selected.length === 0) return false;"
               },
               {
@@ -11966,7 +11966,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -11978,7 +11978,7 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "const batch = store.putPublicationContracts;"
               },
               {
@@ -12102,7 +12102,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -12156,7 +12156,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -12168,8 +12168,8 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function persistContracts(store, contracts, attempt, initialRecords) {"
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "async function persistContracts(store: Store, contracts: readonly Contract[], attempt?: Contract, initialRecords?: readonly Contract[]) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -12186,7 +12186,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "// MoonBit owns every contract body, identity, chain verdict and state"
               },
               {
@@ -12198,7 +12198,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "if (persisted.has(contract.identity)) continue;"
               },
               {
@@ -12206,7 +12206,7 @@
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;"
               },
               {
@@ -12214,8 +12214,8 @@
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function lookupOriginalCommit(primary, lookup) {"
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "async function lookupOriginalCommit(primary: unknown, lookup: () => Awaitable<StoredIndex | undefined>) {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -12224,7 +12224,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "import {issuedEffectSetReceiptWires} from './effect-receipt-custody.mjs';"
               },
               {
@@ -12236,7 +12236,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
               },
               {
@@ -12244,7 +12244,7 @@
                 "anchor": "const contractBounds = new WeakMap();"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "const cleanup = member(primary, 'cleanupHandle');"
               },
               {
@@ -12262,7 +12262,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "await store.putPublicationContract(contract.name, contract.wire);"
               },
               {
@@ -12300,7 +12300,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -12338,7 +12338,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "'publicationAttemptAction', 'publicationCancellationAction',"
               },
               {
@@ -12368,7 +12368,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "typeof value.name === 'string' && value.name.length !== 0 &&"
               },
               {
@@ -12380,7 +12380,7 @@
                 "anchor": "# Retained result execution boundary"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "if (selected.length === 0) return false;"
               },
               {
@@ -12406,7 +12406,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "export class RunPublicationError extends Error {"
               },
               {
@@ -12418,7 +12418,7 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-common/run-publication.mjs",
+                "path": "adapters/host-common/run-publication.mts",
                 "anchor": "const batch = store.putPublicationContracts;"
               },
               {

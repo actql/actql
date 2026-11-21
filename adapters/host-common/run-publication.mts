@@ -6,8 +6,171 @@ import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 
 import {issuedEffectSetReceiptWires} from './effect-receipt-custody.mjs';
 
+import type {publicationAction} from './publication-action.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type CommonObject = Extract<SynchronousRuntimeData, object>;
+type Contract = CommonObject & Readonly<{name: string; identityField: string; identity: string; wire: string}>;
+type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type Evidence = Readonly<{
+  runDefinition: Contract;
+  invocation: Contract;
+  definitions: readonly Contract[];
+  artifacts: readonly Contract[];
+  derivations: readonly Contract[];
+  orderings: readonly Contract[];
+  retentions: readonly Contract[];
+  durableBindings: readonly Contract[];
+  manifest: Contract;
+  receipt: Contract;
+  capturedRun: Contract;
+}>;
+type EffectChain = Omit<Evidence, 'receipt'> & Readonly<{computationReceipt: Contract}>;
+type Request = Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  publicationPolicyCid: string;
+  publicationTargetCid: string;
+  requestedAt: string;
+}>;
+type Attempt = Readonly<{
+  attemptId: string;
+  fenceCid: string;
+  externalIdempotencyKey: string | undefined;
+  startedAt: string;
+}>;
+type Clock = () => string;
+type RecordState = 'preparing' | 'committing' | 'cancelled' | 'succeeded' | 'publication_unknown';
+type RecordFacts = Readonly<{
+  state: RecordState;
+  observedAt: string;
+  publicIndexEntry: Contract | undefined;
+  failureCid: undefined;
+  cleanupOwnerCids: readonly string[];
+  uncommittedConfirmed: boolean;
+}>;
+type IndexKey = Readonly<Pick<Request, 'namespaceId' | 'authorityScopeCid'> & {runDefinitionCid: string}>;
+type IndexFacts = Readonly<Pick<Evidence, 'runDefinition' | 'invocation' | 'manifest' | 'receipt' | 'capturedRun' | 'durableBindings'> &
+  {request: Contract; attempt: Contract}>;
+type IndexEntry = Readonly<{public_index_entry_cid: string}>;
+type StoredIndex = Readonly<{index: Contract; attempt: Contract}>;
+type CommittedIndex = Readonly<{entry: IndexEntry; committed: boolean; idempotent: boolean}>;
+type CleanupStatus = Readonly<{pending: boolean; errors?: readonly unknown[]}>;
+type CleanupOwner = Readonly<{
+  status(): CleanupStatus;
+  retry?(): Awaitable<unknown>;
+  resolveConfirmed?(value: undefined): SynchronousRuntimeData;
+}>;
+type PublicationResult = Readonly<{
+  state: 'succeeded';
+  committed: boolean;
+  idempotent: boolean;
+  request: Contract;
+  attempt: Contract;
+  index: Contract;
+  cleanupPending?: boolean;
+  cleanupHandle?: CleanupOwner;
+}>;
+type Reconciliation = Readonly<{outcome: 'uncommitted'; publication?: undefined} |
+  {outcome: 'committed'; publication: PublicationResult}>;
+type ComputationLifetime = {transferred: boolean; retire(): undefined};
+type ConstructionResources = Readonly<{
+  constructCaptured(...args: never[]): SynchronousRuntimeData;
+  constructCapturedForPublication?(...args: never[]): SynchronousRuntimeData;
+}>;
+type ReceiptWires = ReturnType<typeof issuedEffectSetReceiptWires>;
+type EffectReceipts = ReceiptWires & Readonly<{finalWire: string}>;
+type EffectPreparation = {
+  chain: EffectChain;
+  preview: Contract;
+  receipts: EffectReceipts;
+  privateBinding: CommonObject;
+  effectSources: readonly CommonObject[];
+  recoveryResources?: ConstructionResources;
+};
+type Effectful = Readonly<{
+  chain: EffectChain; preview: Contract; receipts: EffectReceipts;
+  contracts: readonly Contract[]; sourceSchemaCids: readonly string[];
+  preparation: Readonly<EffectPreparation>;
+}>;
+type Control = Readonly<{
+  admit(name: string, wire: string, limits: Limits): Contract;
+  issuePublicationRequest(run: Contract, definitions: readonly Contract[], request: Request, limits: Limits): Contract;
+  issuePublicationAttempt(request: Contract, run: Contract, attempt: Attempt, limits: Limits): Contract;
+  issuePublicIndexEntry(facts: IndexFacts, now: string, limits: Limits): Contract;
+  issuePublicationRecord(attempt: Contract, previous: Contract | undefined, facts: RecordFacts, limits: Limits): Contract;
+  publicationAttemptAction(record: Contract | undefined, activeChecked: boolean, hasIndex: boolean): ReturnType<typeof publicationAction<'attempt'>>;
+  publicationCancellationAction(record: Contract | undefined): ReturnType<typeof publicationAction<'cancellation'>>;
+  publicationSetupAction(existingChecked: boolean, existingFound: boolean, existingEvidenceValidated: boolean,
+    existingFinalized: boolean, initialActiveChecked: boolean, contractsPersisted: boolean,
+    attemptCreated: boolean): ReturnType<typeof publicationAction<'setup'>>;
+  committedPublicationFinalizationAction(record: Contract | undefined): ReturnType<typeof publicationAction<'finalization'>>;
+  supersededPublicationFinalizationAction(record: Contract | undefined): ReturnType<typeof publicationAction<'finalization'>>;
+  publicationCommitFailureAction(reconciliationAttempted: boolean, reconciliationFailed: boolean, reconciled: boolean,
+    unknownAppendAttempted: boolean): ReturnType<typeof publicationAction<'commitFailure'>>;
+  publicationUnknownRetryAction(resolved: boolean, pending: boolean, retryAvailable: boolean,
+    attempted: boolean): ReturnType<typeof publicationAction<'unknownRetry'>>;
+  effectFreeChainValid(run: Contract, invocation: Contract, definitions: readonly Contract[], artifacts: readonly Contract[],
+    manifest: Contract, receipt: Contract, capturedRun: Contract, limits: Limits, signal?: AbortSignal): Awaitable<boolean>;
+  effectFreeCommitValid(run: Contract, invocation: Contract, definitions: readonly Contract[], artifacts: readonly Contract[],
+    derivations: readonly Contract[], orderings: readonly Contract[], retentions: readonly Contract[],
+    durableBindings: readonly Contract[], manifest: Contract, receipt: Contract, capturedRun: Contract,
+    request: Contract, attempt: Contract, index: Contract, limits: Limits): Awaitable<boolean>;
+  effectfulCommitValid?(chain: EffectChain, preview: Contract, receipts: EffectReceipts, request: Contract,
+    attempt: Contract, index: Contract, limits: Limits): boolean;
+}>;
+type EffectControl = Control & Readonly<{
+  issueEffectfulFinalRunReceipt(chain: EffectChain, preview: Contract, receipts: ReceiptWires, limits: Limits): Contract;
+  effectSetReceiptRunDisposition(preview: Contract, receipts: ReceiptWires, limits: Limits): number;
+  effectPrivateEvidenceBinding(preview: Contract, authorityCid: string): CommonObject;
+  capturedEffectSourceArtifactCid(source: CommonObject): string;
+}>;
+type Store = Readonly<{
+  putPublicationContract(name: string, wire: string): Awaitable<unknown>;
+  putPublicationContracts?(contracts: readonly Readonly<Pick<Contract, 'name' | 'wire'>>[]): Awaitable<unknown>;
+  putOriginalPublicationContracts?(contracts: readonly Contract[]): Awaitable<unknown>;
+  beginPublicationAttempt?(contracts: readonly Contract[], attempt: Contract): Awaitable<unknown>;
+  beginPublicationAttemptWithRecords?(contracts: readonly Contract[], attempt: Contract, records: readonly Contract[]): Awaitable<unknown>;
+  appendInitialPublicationRecords?(records: readonly Contract[]): Awaitable<unknown>;
+  createAttempt(wire: string): Awaitable<unknown>;
+  latestRecordContract(attemptCid: string): Awaitable<Contract | undefined>;
+  appendRecord(wire: string, facts: Readonly<{uncommittedConfirmed: boolean}>): Awaitable<unknown>;
+  commitIndex(wire: string, inventory: readonly string[], evidence: Evidence, index: Contract,
+    prepared: readonly object[]): Awaitable<CommittedIndex>;
+  inspectCommittedIndex(key: IndexKey): Awaitable<IndexEntry | undefined>;
+  confirmCommittedIndex(key: IndexKey): Awaitable<IndexEntry | undefined>;
+  readPublicationContract(cid: string, name: string): Awaitable<Contract>;
+  validateCommittedEvidence(index: Contract, evidence: Evidence): Awaitable<unknown>;
+  retireUncommittedPublication(cid: string): Awaitable<Readonly<{cleanup?: CleanupOwner}>>;
+  validateCommittedEffectfulEvidence?(preparation: Readonly<EffectPreparation & {index: Contract}>): Awaitable<unknown>;
+  commitEffectfulIndex?(preparation: Readonly<EffectPreparation & {index: Contract}>,
+    inventory: readonly string[]): Awaitable<CommittedIndex>;
+}>;
+type Options = Readonly<{
+  store: Store; control: Control; evidence: Evidence; request: Request; attempt: Attempt;
+  limits: Limits; now: Clock; signal: AbortSignal | undefined; preparedHandles?: readonly object[];
+}>;
+type EffectOptions = Omit<Options, 'store' | 'control' | 'evidence' | 'preparedHandles'> & Readonly<{
+  store: Store & {storeAuthorityCid: string}; control: EffectControl; chain: EffectChain; preview: Contract;
+  ledger: unknown; issuedSet: Parameters<typeof issuedEffectSetReceiptWires>[0];
+  effectSources: readonly CommonObject[]; sourceArtifacts: readonly Contract[];
+  recoveryResources?: ConstructionResources;
+}>;
+
 export class RunPublicationError extends Error {
-  constructor(code, cause) {
+  declare code: string;
+  declare primaryFailure: unknown;
+  declare cleanupPending?: boolean;
+  declare cleanupHandle?: CleanupOwner;
+  declare cleanupErrors?: readonly unknown[];
+  declare cleanupError?: unknown;
+  declare publicationState?: 'publication_unknown';
+  declare publicationResult?: PublicationResult;
+  declare reconciliationFailure?: unknown;
+  declare recordFailure?: unknown;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
     this.primaryFailure = cause;
@@ -16,10 +179,13 @@ export class RunPublicationError extends Error {
 
 // The original cold capture Read funds these synchronous Common validators.
 // This carrier grants no permission and never spans asynchronous Store I/O.
-function invokeEffectfulPublication(original) {
+function invokeEffectfulPublication(this: unknown, original: Readonly<{method: (...args: never[]) => SynchronousRuntimeData; args: readonly unknown[]}>) {
   return Reflect.apply(original.method, this, original.args);
 }
-export function constructEffectfulPublication(resources, captured, receiver, method, args, additionalContracts) {
+export function constructEffectfulPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+  resources: ConstructionResources, captured: Contract, receiver: unknown, method: (...args: Args) => Value,
+  args: Args, additionalContracts?: readonly Contract[],
+): Value {
   const full = resources?.constructCaptured;
   const publication = resources?.constructCapturedForPublication;
   if (typeof full !== 'function' ||
@@ -28,31 +194,31 @@ export function constructEffectfulPublication(resources, captured, receiver, met
   }
   if (typeof publication === 'function') {
     return Reflect.apply(publication, resources,
-      [captured, receiver, method, args, additionalContracts]);
+      [captured, receiver, method, args, additionalContracts]) as Value;
   }
   return Reflect.apply(full, resources,
-    [captured, receiver, invokeEffectfulPublication, {method, args}]);
+    [captured, receiver, invokeEffectfulPublication, {method, args}]) as Value;
 }
 
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
-const fail = (code, cause) => { throw new RunPublicationError(code, cause); };
-const exactKeys = (value, keys) => value !== null &&
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw new RunPublicationError(code, cause); };
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const member = (value, name) => {
+const member = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
-const contractShape = value => exactKeys(value,
+const contractShape = (value: Contract) => exactKeys(value,
   ['name', 'identityField', 'identity', 'wire']) &&
   typeof value.name === 'string' && value.name.length !== 0 &&
   typeof value.identityField === 'string' && value.identityField.length !== 0 &&
   cidPattern.test(value.identity) && typeof value.wire === 'string';
 
-function validateControl(control) {
+function validateControl(control: Control) {
   if (control === null || typeof control !== 'object' ||
       !['issuePublicationRequest', 'issuePublicationAttempt',
         'issuePublicIndexEntry', 'issuePublicationRecord',
@@ -62,19 +228,19 @@ function validateControl(control) {
         'supersededPublicationFinalizationAction',
         'publicationCommitFailureAction', 'publicationUnknownRetryAction',
         'effectFreeChainValid', 'effectFreeCommitValid', 'admit']
-        .every(name => typeof control[name] === 'function')) {
+        .every(name => typeof control[name as keyof Control] === 'function')) {
     fail('InvalidRunPublicationControl');
   }
 }
 
-function validateStore(store) {
+function validateStore(store: Store) {
   if (store === null || typeof store !== 'object' ||
       !['putPublicationContract', 'createAttempt', 'latestRecordContract',
         'appendRecord', 'commitIndex',
         'inspectCommittedIndex', 'confirmCommittedIndex',
         'readPublicationContract',
         'validateCommittedEvidence', 'retireUncommittedPublication']
-        .every(name => typeof store[name] === 'function') ||
+        .every(name => typeof store[name as keyof Store] === 'function') ||
       store.putPublicationContracts !== undefined &&
         typeof store.putPublicationContracts !== 'function' ||
       store.putOriginalPublicationContracts !== undefined &&
@@ -89,7 +255,7 @@ function validateStore(store) {
   }
 }
 
-function validateLimits(limits) {
+function validateLimits(limits: Limits) {
   if (!exactKeys(limits, ['maxWireBytes', 'maxNodes', 'maxDepth']) ||
       !Object.values(limits).every(value =>
         Number.isSafeInteger(value) && value > 0)) {
@@ -97,14 +263,14 @@ function validateLimits(limits) {
   }
 }
 
-function validateEvidence(evidence, effectful) {
+function validateEvidence(evidence: Evidence, effectful: Effectful | undefined) {
   const keys = ['runDefinition', 'invocation', 'definitions', 'artifacts',
     'derivations', 'orderings', 'retentions', 'durableBindings', 'manifest',
     'receipt', 'capturedRun'];
   if (!exactKeys(evidence, keys) ||
       !['definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
         'durableBindings']
-        .every(name => Array.isArray(evidence[name])) ||
+        .every(name => Array.isArray(evidence[name as keyof Evidence])) ||
       (effectful === undefined &&
         (evidence.definitions.length === 0 || evidence.artifacts.length === 0))) {
     fail('InvalidRunPublicationEvidence');
@@ -118,19 +284,19 @@ function validateEvidence(evidence, effectful) {
   return contracts;
 }
 
-function validateRequest(request) {
+function validateRequest(request: Request) {
   if (!exactKeys(request, ['namespaceId', 'authorityScopeCid',
     'publicationPolicyCid', 'publicationTargetCid', 'requestedAt']) ||
       typeof request.namespaceId !== 'string' || request.namespaceId.length === 0 ||
       !['authorityScopeCid', 'publicationPolicyCid', 'publicationTargetCid']
-        .every(name => cidPattern.test(request[name])) ||
+        .every(name => cidPattern.test(request[name as keyof Request])) ||
       typeof request.requestedAt !== 'string' ||
       request.requestedAt.length === 0) {
     fail('InvalidRunPublicationRequest');
   }
 }
 
-function validateAttempt(attempt) {
+function validateAttempt(attempt: Attempt) {
   if (!exactKeys(attempt, ['attemptId', 'fenceCid',
     'externalIdempotencyKey', 'startedAt']) ||
       typeof attempt.attemptId !== 'string' || attempt.attemptId.length === 0 ||
@@ -143,7 +309,7 @@ function validateAttempt(attempt) {
   }
 }
 
-function validateClock(now) {
+function validateClock(now: Clock) {
   if (typeof now !== 'function') fail('InvalidRunPublicationClock');
   return () => {
     const value = now();
@@ -154,7 +320,7 @@ function validateClock(now) {
   };
 }
 
-function commitEvidence(evidence) {
+function commitEvidence(evidence: Evidence) {
   return Object.freeze({
     runDefinition: evidence.runDefinition,
     invocation: evidence.invocation,
@@ -170,9 +336,9 @@ function commitEvidence(evidence) {
   });
 }
 
-async function persistContracts(store, contracts, attempt, initialRecords) {
-  const persisted = new Set();
-  const selected = [];
+async function persistContracts(store: Store, contracts: readonly Contract[], attempt?: Contract, initialRecords?: readonly Contract[]) {
+  const persisted = new Set<string>();
+  const selected: Contract[] = [];
   for (const contract of contracts) {
     if (persisted.has(contract.identity)) continue;
     selected.push(contract);
@@ -181,7 +347,7 @@ async function persistContracts(store, contracts, attempt, initialRecords) {
   const begin = initialRecords === undefined ? store.beginPublicationAttempt : store.beginPublicationAttemptWithRecords;
   if (attempt !== undefined && begin !== undefined) {
     try {
-      await Reflect.apply(begin, store, initialRecords === undefined
+      await Reflect.apply(begin as NonNullable<Store['beginPublicationAttemptWithRecords']>, store, initialRecords === undefined
         ? [Object.freeze(selected), attempt] : [Object.freeze(selected), attempt, initialRecords]);
     } catch (primary) {
       // Continue only after this original setup's native outcome is confirmed.
@@ -198,16 +364,16 @@ async function persistContracts(store, contracts, attempt, initialRecords) {
       const includesInitial = member(primary,'publicationStartKind') !== 'setup';
       if ([retry, status, read, latest].some(value => typeof value !== 'function')) throw primary;
       try {
-        await Reflect.apply(retry, cleanup, []);
-        if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+        await Reflect.apply(retry as () => Awaitable<unknown>, cleanup, []);
+        if (member(Reflect.apply(status as () => CleanupStatus, cleanup, []), 'pending') !== false) throw primary;
         for (const original of [...selected, attempt, ...(includesInitial ? initialRecords ?? [] : [])]) {
-          const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
+          const confirmed = await Reflect.apply(read as Store['readPublicationContract'], store, [original.identity, original.name]);
           if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
               confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
         }
         // A body alone is not the installed attempt/progress locator. The same
         // Store must successfully select that locator, even with no record yet.
-        const retained = await Reflect.apply(latest, store, [attempt.identity]);
+        const retained = await Reflect.apply(latest as Store['latestRecordContract'], store, [attempt.identity]);
         if (initialRecords !== undefined && includesInitial) {
           const next = initialRecords[initialRecords.length - 1];
           if (retained?.name !== next.name || retained.identity !== next.identity ||
@@ -237,7 +403,7 @@ async function persistContracts(store, contracts, attempt, initialRecords) {
   return false;
 }
 
-function requiredInventory(contracts, request, attempt) {
+function requiredInventory(contracts: readonly Contract[], request: Contract, attempt: Contract) {
   return [...new Set([
     ...contracts.map(contract => contract.identity),
     request.identity,
@@ -245,7 +411,7 @@ function requiredInventory(contracts, request, attempt) {
   ])];
 }
 
-function indexKey(request, evidence) {
+function indexKey(request: Request, evidence: Evidence) {
   return Object.freeze({
     namespaceId: request.namespaceId,
     authorityScopeCid: request.authorityScopeCid,
@@ -253,7 +419,7 @@ function indexKey(request, evidence) {
   });
 }
 
-async function admittedCommittedIndex(store, control, key) {
+async function admittedCommittedIndex(store: Store, control: Control, key: IndexKey) {
   const value = await store.confirmCommittedIndex(key);
   if (value === undefined) return undefined;
   if (!cidPattern.test(value.public_index_entry_cid)) {
@@ -265,7 +431,7 @@ async function admittedCommittedIndex(store, control, key) {
 }
 
 async function validateExistingCommit(
-  store, control, evidence, request, key, limits, effectful,
+  store: Store, control: Control, evidence: Evidence, request: Contract, key: IndexKey, limits: Limits, effectful?: Effectful,
 ) {
   const index = await admittedCommittedIndex(store, control, key);
   if (index === undefined) return undefined;
@@ -298,10 +464,10 @@ async function validateExistingCommit(
         limits,
       )
     : effectful.preparation.recoveryResources === undefined
-      ? control.effectfulCommitValid(effectful.chain, effectful.preview, effectful.receipts,
+      ? control.effectfulCommitValid!(effectful.chain, effectful.preview, effectful.receipts,
         storedRequest, storedAttempt, index, limits)
       : constructEffectfulPublication(effectful.preparation.recoveryResources, effectful.chain.capturedRun,
-        control, control.effectfulCommitValid, [effectful.chain, effectful.preview, effectful.receipts,
+        control, control.effectfulCommitValid!, [effectful.chain, effectful.preview, effectful.receipts,
           storedRequest, storedAttempt, index, limits]));
   if (valid !== true) {
     fail('RunPublicationCommitConflict');
@@ -310,8 +476,8 @@ async function validateExistingCommit(
 }
 
 async function appendState(
-  store, control, attempt, previous, state, observedAt, limits,
-  index, uncommittedConfirmed = false,
+  store: Store, control: Control, attempt: Contract, previous: Contract | undefined, state: RecordState,
+  observedAt: string, limits: Limits, index?: Contract, uncommittedConfirmed = false,
 ) {
   const record = control.issuePublicationRecord(attempt, previous, {
     state,
@@ -335,9 +501,9 @@ async function appendState(
     if (typeof retry !== 'function' || typeof status !== 'function' ||
         typeof observe !== 'function') throw primary;
     try {
-      await Reflect.apply(retry, cleanup, []);
-      if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
-      const confirmed = await Reflect.apply(observe, store, [attempt.identity]);
+      await Reflect.apply(retry as () => Awaitable<unknown>, cleanup, []);
+      if (member(Reflect.apply(status as () => CleanupStatus, cleanup, []), 'pending') !== false) throw primary;
+      const confirmed = await Reflect.apply(observe as Store['latestRecordContract'], store, [attempt.identity]);
       if (confirmed?.name !== record.name || confirmed.identity !== record.identity ||
           confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;
     } catch { throw primary; }
@@ -345,7 +511,7 @@ async function appendState(
   return record;
 }
 
-function initialPublicationStates(control, attempt, signal, now, limits) {
+function initialPublicationStates(control: Control, attempt: Contract, signal: AbortSignal | undefined, now: Clock, limits: Limits) {
   const preparing = control.issuePublicationRecord(attempt, undefined, {
     state:'preparing', observedAt:now(), publicIndexEntry:undefined,
     failureCid:undefined, cleanupOwnerCids:[], uncommittedConfirmed:false,
@@ -368,10 +534,11 @@ function initialPublicationStates(control, attempt, signal, now, limits) {
   return Object.freeze({records, next, cancelled, cancellation});
 }
 
-async function appendInitialStates(store, control, attempt, signal, now, limits, prepared) {
+async function appendInitialStates(store: Store, control: Control, attempt: Contract, signal: AbortSignal | undefined,
+  now: Clock, limits: Limits, prepared?: ReturnType<typeof initialPublicationStates>) {
   const append = member(store, 'appendInitialPublicationRecords');
   const {records, next, cancelled, cancellation} = prepared ?? initialPublicationStates(control, attempt, signal, now, limits);
-  try { await Reflect.apply(append, store, [records]); }
+  try { await Reflect.apply(append as NonNullable<Store['appendInitialPublicationRecords']>, store, [records]); }
   catch (primary) {
     if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
         member(primary, 'outcome') !== 'unknown') throw primary;
@@ -381,14 +548,14 @@ async function appendInitialStates(store, control, attempt, signal, now, limits,
     if (typeof retry !== 'function' || typeof status !== 'function' ||
         typeof read !== 'function' || typeof latest !== 'function') throw primary;
     try {
-      await Reflect.apply(retry, cleanup, []);
-      if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+      await Reflect.apply(retry as () => Awaitable<unknown>, cleanup, []);
+      if (member(Reflect.apply(status as () => CleanupStatus, cleanup, []), 'pending') !== false) throw primary;
       for (const original of records) {
-        const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
+        const confirmed = await Reflect.apply(read as Store['readPublicationContract'], store, [original.identity, original.name]);
         if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
             confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
       }
-      const confirmed = await Reflect.apply(latest, store, [attempt.identity]);
+      const confirmed = await Reflect.apply(latest as Store['latestRecordContract'], store, [attempt.identity]);
       if (confirmed?.name !== next.name || confirmed.identity !== next.identity ||
           confirmed.identityField !== next.identityField || confirmed.wire !== next.wire) throw primary;
     } catch { throw primary; }
@@ -398,7 +565,7 @@ async function appendInitialStates(store, control, attempt, signal, now, limits,
 }
 
 async function finishCommittedAttempt(
-  store, control, attempt, index, now, limits,
+  store: Store, control: Control, attempt: Contract, index: Contract, now: Clock, limits: Limits,
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.committedPublicationFinalizationAction(previous);
@@ -415,17 +582,17 @@ async function finishCommittedAttempt(
     // A competing append can win before the Store checks the transition,
     // rather than at its final link/CAS. Adopt only the same durable success.
     if (!['PublicationRecordConflict', 'InvalidPublicationRecordTransition']
-      .includes(error?.code) ||
+      .includes((error as {code?: string} | null | undefined)?.code!) ||
         control.committedPublicationFinalizationAction(current) !==
           'finished' ||
-        JSON.parse(current.wire).public_index_entry_cid !== index.identity) {
+        JSON.parse(current!.wire).public_index_entry_cid !== index.identity) {
       throw error;
     }
   }
 }
 
 async function finishSupersededAttempt(
-  store, control, attempt, now, limits,
+  store: Store, control: Control, attempt: Contract, now: Clock, limits: Limits,
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.supersededPublicationFinalizationAction(previous);
@@ -447,7 +614,7 @@ async function finishSupersededAttempt(
     );
   } catch (error) {
     const current = await store.latestRecordContract(attempt.identity);
-    if (error?.code !== 'PublicationRecordConflict' ||
+    if ((error as {code?: string} | null | undefined)?.code !== 'PublicationRecordConflict' ||
         control.supersededPublicationFinalizationAction(current) !==
           'superseded_confirmed') {
       throw error;
@@ -456,7 +623,7 @@ async function finishSupersededAttempt(
 }
 
 async function finishResolvedCommit(
-  store, control, currentAttempt, candidateIndex, index, now, limits,
+  store: Store, control: Control, currentAttempt: Contract, candidateIndex: Contract, index: Contract, now: Clock, limits: Limits,
 ) {
   const value = JSON.parse(index.wire);
   const winner = await store.readPublicationContract(
@@ -475,7 +642,7 @@ async function finishResolvedCommit(
   return Object.freeze({winner, cleanup: undefined});
 }
 
-function withPublicationCleanup(value, cleanup) {
+function withPublicationCleanup(value: PublicationResult, cleanup: CleanupOwner | undefined): PublicationResult {
   if (cleanup?.status().pending !== true) return Object.freeze(value);
   return Object.freeze({
     ...value,
@@ -485,7 +652,7 @@ function withPublicationCleanup(value, cleanup) {
 }
 
 async function requireActiveAttempt(
-  signal, store, control, attempt, now, limits,
+  signal: AbortSignal | undefined, store: Store, control: Control, attempt: Contract, now: Clock, limits: Limits,
 ) {
   try { signal?.throwIfAborted(); }
   catch (reason) {
@@ -508,12 +675,12 @@ async function requireActiveAttempt(
   }
 }
 
-function cleanupState(handle, required) {
+function cleanupState(handle: unknown, required: boolean) {
   if (!handle || typeof member(handle, 'status') !== 'function') {
     return {pending: required, errors: []};
   }
   try {
-    const value = handle.status();
+    const value = (handle as CleanupOwner).status();
     return value && typeof value.pending === 'boolean'
       ? {pending: value.pending,
         errors: Array.isArray(value.errors) ? [...value.errors] : []}
@@ -521,7 +688,7 @@ function cleanupState(handle, required) {
   } catch (error) { return {pending: true, errors: [error]}; }
 }
 
-function capturedComputationLifetime(control, capturedRun) {
+function capturedComputationLifetime(control: unknown, capturedRun: unknown): ComputationLifetime {
   const original = member(control, 'retireCapturedComputation');
   if (original !== undefined && typeof original !== 'function') {
     fail('InvalidCapturedComputationRetirement');
@@ -529,19 +696,19 @@ function capturedComputationLifetime(control, capturedRun) {
   let retired = false, retiring = false;
   return {
     transferred: false,
-    retire() {
+    retire(): undefined {
       if (retired) return;
       if (retiring) fail('CapturedComputationRetirementBusy');
       retiring = true;
       try {
-        if (original !== undefined) Reflect.apply(original, control, [capturedRun]);
+        if (original !== undefined) Reflect.apply(original as (value: unknown) => SynchronousRuntimeData, control, [capturedRun]);
         retired = true;
       } finally {retiring = false;}
     },
   };
 }
 
-async function lookupOriginalCommit(primary, lookup) {
+async function lookupOriginalCommit(primary: unknown, lookup: () => Awaitable<StoredIndex | undefined>) {
   // A native storage mutation can retain its original confirmation duty.
   // Reconciliation cannot read through that pending writer before its own
   // bounded cleanup runs. This is not another commit request or an ACK.
@@ -553,10 +720,10 @@ async function lookupOriginalCommit(primary, lookup) {
     if (typeof retry === 'function' && typeof status === 'function') {
       let pending = true;
       try {
-        if (member(Reflect.apply(status, cleanup, []), 'pending') === true) {
-          await Reflect.apply(retry, cleanup, []);
+        if (member(Reflect.apply(status as () => CleanupStatus, cleanup, []), 'pending') === true) {
+          await Reflect.apply(retry as () => Awaitable<unknown>, cleanup, []);
         }
-        pending = member(Reflect.apply(status, cleanup, []), 'pending') !== false;
+        pending = member(Reflect.apply(status as () => CleanupStatus, cleanup, []), 'pending') !== false;
       } catch {
         // Retain the primary and the same pending owner. Only the actual
         // lookup and existing complete commit validation may resolve it.
@@ -568,7 +735,8 @@ async function lookupOriginalCommit(primary, lookup) {
 }
 
 function uncertainFailure(
-  primary, reconciliation, recordFailure, control, reconcile, retireComputation,
+  primary: unknown, reconciliation: unknown, recordFailure: unknown, control: Control,
+  reconcile: ((upstream: unknown) => Awaitable<Reconciliation>) | undefined, retireComputation?: ComputationLifetime['retire'],
 ) {
   const failure = new RunPublicationError('RunPublicationUnknown', primary);
   failure.publicationState = 'publication_unknown';
@@ -577,9 +745,9 @@ function uncertainFailure(
   const upstreamRequired = member(primary, 'cleanupPending') === true;
   const upstream = upstreamRequired
     ? member(primary, 'cleanupHandle') : undefined;
-  const errors = [];
+  const errors: unknown[] = [];
   let resolved = false;
-  let result, flight, computationRetired = false;
+  let result: Reconciliation | undefined, flight: Promise<CleanupStatus> | undefined, computationRetired = false;
   const status = () => {
     const cleanup = cleanupState(upstream, upstreamRequired);
     return Object.freeze({
@@ -606,7 +774,7 @@ function uncertainFailure(
           );
           if (action === 'reconcile') {
             try {
-              result = await reconcile(upstream);
+              result = await reconcile!(upstream);
               resolved = true;
               failure.publicationResult = result.publication;
             } catch (error) {
@@ -617,7 +785,7 @@ function uncertainFailure(
           }
           if (action === 'retry_upstream_cleanup') {
             upstreamRetryAttempted = true;
-            try { await upstream.retry(); }
+            try { await (upstream as CleanupOwner).retry!(); }
             catch (error) { retainFirstAndLatestCleanupError(errors, error); }
             continue;
           }
@@ -650,7 +818,7 @@ function uncertainFailure(
 
 // Both Run kinds share one publication progression. Only their exact chain
 // admission and Store commit differ; retry and unknown handling do not.
-async function publishRun(options, effectful, computationLifetime) {
+async function publishRun(options: Options, effectful?: Effectful, computationLifetime?: ComputationLifetime): Promise<PublicationResult> {
   const keys = ['store', 'control', 'evidence', 'request', 'attempt', 'limits',
     'now', 'signal', ...(Object.hasOwn(options, 'preparedHandles') ? ['preparedHandles'] : [])];
   if (!exactKeys(options, keys)) fail('InvalidRunPublicationOptions');
@@ -678,20 +846,20 @@ async function publishRun(options, effectful, computationLifetime) {
     publicationRequest, evidence.runDefinition, attempt, limits,
   );
   const key = indexKey(request, evidence);
-  const validateCommit = index => effectful === undefined
+  const validateCommit = (index: Contract) => effectful === undefined
     ? store.validateCommittedEvidence(index, evidence)
-    : store.validateCommittedEffectfulEvidence({
+    : store.validateCommittedEffectfulEvidence!({
       ...effectful.preparation, index,
     });
   const lookupCommit = () => validateExistingCommit(
     store, control, evidence, publicationRequest, key, limits, effectful,
   );
   let existingChecked = false;
-  let existing;
+  let existing: StoredIndex | undefined;
   let existingEvidenceValidated = false;
   let existingFinalized = false;
   let initialActiveChecked = false;
-  let initialPublication;
+  let initialPublication: ReturnType<typeof initialPublicationStates> | undefined;
   let contractsPersisted = false;
   let attemptCreated = false;
   while (true) {
@@ -710,13 +878,13 @@ async function publishRun(options, effectful, computationLifetime) {
       continue;
     }
     if (action === 'validate_existing_evidence') {
-      await validateCommit(existing.index);
+      await validateCommit(existing!.index);
       existingEvidenceValidated = true;
       continue;
     }
     if (action === 'finalize_existing_commit') {
       await finishCommittedAttempt(
-        store, control, existing.attempt, existing.index, now, limits,
+        store, control, existing!.attempt, existing!.index, now, limits,
       );
       existingFinalized = true;
       continue;
@@ -727,8 +895,8 @@ async function publishRun(options, effectful, computationLifetime) {
         committed: false,
         idempotent: true,
         request: publicationRequest,
-        attempt: existing.attempt,
-        index: existing.index,
+        attempt: existing!.attempt,
+        index: existing!.index,
       });
     }
     if (action === 'check_initial_active') {
@@ -779,7 +947,7 @@ async function publishRun(options, effectful, computationLifetime) {
     initialPublication = undefined;
   }
   let activeChecked = false;
-  let index;
+  let index!: Contract;
   while (true) {
     const action = control.publicationAttemptAction(
       record, activeChecked, index !== undefined,
@@ -834,25 +1002,25 @@ async function publishRun(options, effectful, computationLifetime) {
     if (action === 'reject_terminal') fail('RunPublicationAttemptTerminal');
     fail('InvalidRunPublicationProgress');
   }
-  let committed;
+  let committed: CommittedIndex;
   try {
     const inventory = requiredInventory([
       ...contracts, ...(effectful?.contracts ?? []),
     ], publicationRequest, publicationAttempt);
     committed = effectful === undefined
       ? await store.commitIndex(
-        index.wire, inventory, commitEvidence(evidence), index, originalPreparedHandles,
+        index!.wire, inventory, commitEvidence(evidence), index!, originalPreparedHandles,
       )
-      : await store.commitEffectfulIndex({
+      : await store.commitEffectfulIndex!({
         ...effectful.preparation, index,
       }, [...new Set([...inventory, ...effectful.sourceSchemaCids])]);
   } catch (primary) {
     let reconciliationAttempted = false;
     let reconciliationFailed = false;
-    let reconciled;
-    let reconciliationFailure;
+    let reconciled: StoredIndex | undefined;
+    let reconciliationFailure: unknown;
     let unknownAppendAttempted = false;
-    let recordFailure;
+    let recordFailure: unknown;
     while (true) {
       const action = control.publicationCommitFailureAction(
         reconciliationAttempted,
@@ -881,11 +1049,11 @@ async function publishRun(options, effectful, computationLifetime) {
         continue;
       }
       if (action === 'return_unknown') {
-        const reconcile = async upstream => {
+        const reconcile = async (upstream: unknown): Promise<Reconciliation> => {
           const resolved = await lookupOriginalCommit(primary, lookupCommit);
           if (resolved === undefined) {
             if (typeof member(upstream, 'resolveConfirmed') === 'function') {
-              upstream.resolveConfirmed(undefined);
+              (upstream as CleanupOwner).resolveConfirmed!(undefined);
             }
             return Object.freeze({outcome: 'uncommitted'});
           }
@@ -894,7 +1062,7 @@ async function publishRun(options, effectful, computationLifetime) {
             store,
             control,
             publicationAttempt,
-            index,
+            index!,
             resolved.index,
             now,
             limits,
@@ -926,16 +1094,16 @@ async function publishRun(options, effectful, computationLifetime) {
         const cleanup = member(primary, 'cleanupHandle');
         if (member(primary, 'cleanupPending') === true &&
             typeof member(cleanup, 'resolveConfirmed') === 'function') {
-          cleanup.resolveConfirmed(undefined);
+          (cleanup as CleanupOwner).resolveConfirmed!(undefined);
         }
         throw primary;
       }
       if (action !== 'adopt_committed_index') {
         fail('InvalidRunPublicationCommitFailure');
       }
-      await validateCommit(reconciled.index);
+      await validateCommit(reconciled!.index);
       committed = Object.freeze({
-        entry: JSON.parse(reconciled.index.wire),
+        entry: JSON.parse(reconciled!.index.wire),
         committed: false,
         idempotent: true,
       });
@@ -946,15 +1114,15 @@ async function publishRun(options, effectful, computationLifetime) {
   // Retain our issued body for that exact acknowledged Index. Existing or
   // different winners still acquire their actual selected stored contract.
   const committedIndex = committed.committed === true &&
-      committed.entry.public_index_entry_cid === index.identity
-    ? index : await store.readPublicationContract(
+      committed.entry.public_index_entry_cid === index!.identity
+    ? index! : await store.readPublicationContract(
       committed.entry.public_index_entry_cid, 'public_index_entry',
     );
   const resolution = await finishResolvedCommit(
     store,
     control,
     publicationAttempt,
-    index,
+    index!,
     committedIndex,
     now,
     limits,
@@ -972,9 +1140,9 @@ async function publishRun(options, effectful, computationLifetime) {
 /// Persist and atomically publish one complete Effect-free Run chain.
 /// A repeated immutable request reconciles the existing commit without
 /// changing the internal Compute outcome.
-export async function publishEffectFreeRun(options) {
+export async function publishEffectFreeRun(options: Options) {
   const lifetime = capturedComputationLifetime(options?.control, options?.evidence?.capturedRun);
-  let primary, failed = false;
+  let primary: unknown, failed = false;
   try { return await publishRun(options, undefined, lifetime); }
   catch (error) {failed = true; primary = error; throw error;}
   finally {
@@ -995,7 +1163,7 @@ export async function publishEffectFreeRun(options) {
 // The caller must first establish each physical row outcome from the saved
 // response and issue the complete set through the common MoonBit owner.
 // This boundary only sequences final publication and never sends an Effect.
-export async function publishEffectfulRun(options) {
+export async function publishEffectfulRun(options: EffectOptions) {
   const keys = ['store', 'control', 'chain', 'preview', 'ledger', 'issuedSet',
     'effectSources', 'sourceArtifacts', 'request', 'attempt', 'limits', 'now', 'signal'];
   if (options != null && Object.hasOwn(options, 'recoveryResources')) keys.push('recoveryResources');
@@ -1076,7 +1244,7 @@ export async function publishEffectfulRun(options) {
   const privateBinding = control.effectPrivateEvidenceBinding(
     preview, store.storeAuthorityCid,
   );
-  const preparation = {chain, preview, receipts, privateBinding, effectSources};
+  const preparation: EffectPreparation = {chain, preview, receipts, privateBinding, effectSources};
   if (options.recoveryResources !== undefined) preparation.recoveryResources = options.recoveryResources;
   const effectful = Object.freeze({
     chain, preview, receipts,
