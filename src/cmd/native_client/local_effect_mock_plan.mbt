@@ -6,7 +6,7 @@ priv struct LocalNativeMockEffectPlan {
   _retained_prepared : @run_host.PreparedClientEffectComputation
   _retained_plan : @local_values.ClientInstalledEffectManagedPlan
   _retained_import_recipes : Array[Array[@execution.ExecutionCapacity]]
-  graph : @run_host.ClientInferPlanGraph
+  mut source_start : @local_host.NativeClientWorkFirstStart?
   mut scope : @run_host.ClientModelReadScope?
   mut source_started_at : String?
   mut source_completed_at : String?
@@ -14,10 +14,7 @@ priv struct LocalNativeMockEffectPlan {
   mut lookup : @run_host.ClientKeyedLookupInput?
   mut model_read : LocalNativeMockModelRead?
   mut model_output : @execution.CompletedOutput?
-  mut _retained_model_observation : (
-    @publication.RunEvidenceValue,
-    @publication.PublicationContract,
-  )?
+  mut direct_sources : LocalNativeMockEffectDirectSources?
   mut _retained_local_model_observation : @publication.CapturedEffectDependencyBody?
   mut _retained_local_model_dependencies : Array[(String, String, String)]?
   mut model_use : @infer.OutputUse?
@@ -28,6 +25,7 @@ priv struct LocalNativeMockEffectPlan {
   mut proposals : LocalNativeMockEffectProposals?
   mut preview : LocalNativeMockEffectPreview?
   mut computation : LocalNativeMockEffectComputation?
+  mut source_review : @local_host.NativeMockEffectReview?
   targets : Array[LocalNativeMockEffectTarget]
   keyed_reads : Array[@local_values.ClientInstalledKeyedSourceRead]
   sources : Array[@row_file.NativeRelationFileCapture]
@@ -37,6 +35,55 @@ priv struct LocalNativeMockEffectPlan {
   input_originals : Array[
     (@sourceviews.SourceAcquisition, @row_host.RowInputAcquisition),
   ]
+}
+
+///|
+fn LocalNativeMockEffectPlan::model_graph(
+  self : Self,
+) -> @run_host.ClientInferPlanGraph {
+  self.first._retained_models[0].graph
+}
+
+///|
+fn retain_native_mock_effect_plan(
+  first : LocalEffectFirstCompilation,
+  prepared : @run_host.PreparedClientEffectComputation,
+  plan : @local_values.ClientInstalledEffectManagedPlan,
+  capture_recipes : Array[Array[@execution.ExecutionCapacity]],
+) -> LocalNativeMockEffectPlan {
+  {
+    first,
+    _retained_prepared: prepared,
+    _retained_plan: plan,
+    _retained_import_recipes: capture_recipes,
+    source_start: None,
+    scope: None,
+    source_started_at: None,
+    source_completed_at: None,
+    prefix: None,
+    lookup: None,
+    model_read: None,
+    model_output: None,
+    direct_sources: None,
+    _retained_local_model_observation: None,
+    _retained_local_model_dependencies: None,
+    model_use: None,
+    effect_host: None,
+    effect_capture: None,
+    suffix: None,
+    suffix_failure: None,
+    proposals: None,
+    preview: None,
+    computation: None,
+    source_review: None,
+    targets: [],
+    keyed_reads: [],
+    sources: [],
+    source_failures: [],
+    source_reads: [],
+    captured_inputs: [],
+    input_originals: [],
+  }
 }
 
 ///|
@@ -371,12 +418,35 @@ fn native_mock_effect_managed_plan(
     bootstrap=Some((retained, execution)),
     publication=Some(publication),
   ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
-  let operations = native_mock_effect_operations(
+  native_mock_effect_source_plan(
     prepared,
+    first,
     mock,
+    contracts,
     limits.identity.wire,
     record_bytes,
     capture_recipes,
+    model=Some(model),
+    provider_factory=_ => [provider],
+  )
+}
+
+///|
+fn native_mock_effect_source_plan(
+  prepared : @run_host.PreparedClientEffectComputation,
+  first : LocalEffectFirstCompilation,
+  mock : LocalProjectMockDeclarations,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  wire : @execution.RowWireLimits,
+  record_bytes : Int,
+  capture_recipes : Array[Array[@execution.ExecutionCapacity]],
+  model? : @local_values.ClientInstalledEffectModelDemand? = None,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local_compute.ManagedProvider,
+  ],
+) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
+  let operations = native_mock_effect_operations(
+    prepared, mock, wire, record_bytes, capture_recipes,
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
@@ -408,9 +478,9 @@ fn native_mock_effect_managed_plan(
     Some(assets.fragment),
     assets.ordered,
     operations,
-    model=Some(model),
+    model~,
     runtime_admission=true,
-    provider_factory=_ => [provider],
+    provider_factory~,
   ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
 }
 
@@ -428,86 +498,84 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) &&
     business.request_run is None &&
     business.effect_model is None &&
-    first._retained_models.length() == 1 &&
-    business.model_work.length() == 1 &&
+    first._retained_models.length() == business.model_work.length() &&
+    (
+      first._retained_models.length() == 1 ||
+      (
+        first._retained_models.is_empty() &&
+        first.model_compiled is None &&
+        !first._retained_sources.is_empty()
+      )
+    ) &&
     self.original.project is Some(project) &&
     project.mock_declarations is Some(mock) else {
     stop("LocalOriginalEffectPlanUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
-    let selected = first._retained_models[0]
-    let limits = selected._retained_limits
-    let work = business.model_work[0]
-    let provider = @infer.composed_local_provider(
-      selected.graph.occurrence,
-      limits,
-      inputs => {
-        // This Native root reads its captured inputs through the original
-        // composed Source closure; unrelated external ports cannot replace it.
-        if !inputs.is_empty() || business.model_work.length() != 1 {
-          return Err(@infer.InvalidAdvance)
-        }
-        // The SAME command slot owns this original Work through its real
-        // cleanup ACK. Retained provider metadata must not independently pin
-        // the closed Work/Journal after that slot has retired.
-        business.model_work[0]
-        .borrow_opened_original_model()
-        .map_err(_ => @infer.InvalidAdvance)
-      },
-      _ => @compute_sdk.ComputeUnsupported,
-    )
     let capture_recipes = []
-    let plan = native_mock_effect_managed_plan(
-      prepared,
-      first,
-      mock,
-      self.installed_contracts,
-      provider,
-      work
-      .observation_capacity(
-        first.request,
-        first.model_compiled.unwrap(),
-        first.definition,
-        selected.graph,
+    let plan = if first._retained_models.is_empty() {
+      let file_limits = local_project_mock_file_limits()
+      native_mock_effect_source_plan(
+        prepared,
+        first,
+        mock,
+        self.installed_contracts,
+        {
+          max_columns: 100,
+          max_order_work: file_limits.max_work,
+          max_bytes: file_limits.page.max_bytes,
+          max_nodes: file_limits.page.max_nodes,
+          max_depth: file_limits.page.max_depth,
+        },
+        native_mock_effect_record_bytes(installation),
+        capture_recipes,
+        provider_factory=native_request_provider_factory,
       )
-      .unwrap_or_else(() => {
-        stop("LocalOriginalModelPublicationCapacityUnavailable")
-      }),
-      native_mock_effect_record_bytes(installation),
-      capture_recipes~,
-    )
-    let state : LocalNativeMockEffectPlan = {
-      first,
-      _retained_prepared: prepared,
-      _retained_plan: plan,
-      _retained_import_recipes: capture_recipes,
-      graph: selected.graph,
-      scope: None,
-      source_started_at: None,
-      source_completed_at: None,
-      prefix: None,
-      lookup: None,
-      model_read: None,
-      model_output: None,
-      _retained_model_observation: None,
-      _retained_local_model_observation: None,
-      _retained_local_model_dependencies: None,
-      model_use: None,
-      effect_host: None,
-      effect_capture: None,
-      suffix: None,
-      suffix_failure: None,
-      proposals: None,
-      preview: None,
-      computation: None,
-      targets: [],
-      keyed_reads: [],
-      sources: [],
-      source_failures: [],
-      source_reads: [],
-      captured_inputs: [],
-      input_originals: [],
+    } else {
+      let selected = first._retained_models[0]
+      let limits = selected._retained_limits
+      let work = business.model_work[0]
+      let provider = @infer.composed_local_provider(
+        selected.graph.occurrence,
+        limits,
+        inputs => {
+          // This Native root reads its captured inputs through the original
+          // composed Source closure; unrelated external ports cannot replace it.
+          if !inputs.is_empty() || business.model_work.length() != 1 {
+            return Err(@infer.InvalidAdvance)
+          }
+          // The SAME command slot owns this original Work through its real
+          // cleanup ACK. Retained provider metadata must not independently pin
+          // the closed Work/Journal after that slot has retired.
+          business.model_work[0]
+          .borrow_opened_original_model()
+          .map_err(_ => @infer.InvalidAdvance)
+        },
+        _ => @compute_sdk.ComputeUnsupported,
+      )
+      native_mock_effect_managed_plan(
+        prepared,
+        first,
+        mock,
+        self.installed_contracts,
+        provider,
+        work
+        .observation_capacity(
+          first.request,
+          first.model_compiled.unwrap(),
+          first.definition,
+          selected.graph,
+        )
+        .unwrap_or_else(() => {
+          stop("LocalOriginalModelPublicationCapacityUnavailable")
+        }),
+        native_mock_effect_record_bytes(installation),
+        capture_recipes~,
+      )
     }
+    let state = retain_native_mock_effect_plan(
+      first, prepared, plan, capture_recipes,
+    )
     business.effect_model = Some(state)
     // The original input borrow precedes Plan construction; return it before
     // Scope/census growth and final completion, never reconstruct that input.
@@ -517,19 +585,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     )
     |> ignore
     business.request_body = None
-    let scope = @local_values.prepare_request_effect_model_read_scope(
-      parent, input, plan,
-    ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable"))
-    state.scope = Some(scope)
+    if !first._retained_models.is_empty() {
+      state.scope = Some(
+        @local_values.prepare_request_effect_model_read_scope(
+          parent, input, plan,
+        ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable")),
+      )
+    }
     @local_values.complete_request_effect_preparation(parent, input, plan).unwrap_or_else(() => {
         stop("LocalOriginalEffectPlanUnavailable")
       },
     )
-    let run = @local_values.begin_request_effect_model_managed_run(
-      parent,
-      first.request,
-      scope,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
+    let run = (match state.scope {
+      Some(scope) =>
+        @local_values.begin_request_effect_model_managed_run(
+          parent,
+          first.request,
+          scope,
+        )
+      None =>
+        @local_values.begin_request_effect_managed_run(parent, first.request)
+    }).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
     business.request_run = Some(run)
     business.request_parent = None
     business.request_initial = None
@@ -548,42 +624,63 @@ fn native_mock_effect_import_construction(
   wire : @execution.RowWireLimits,
 ) -> (@execution.ExecutionCapacity, @execution.ExecutionCapacity) raise ClientStop {
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
-  guard @run_host.prepared_client_effect_infer_occurrence(prepared)
-    is Some(model) else {
-    return (empty, empty)
-  }
-  let unit = @run_host.client_infer_occurrence_coordinates(model).1
-  let program = @checked.effect_program_static_checked_computation(
-    @run_host.prepared_client_effect_computation_candidate(prepared),
+  let candidate = @run_host.prepared_client_effect_computation_candidate(
+    prepared,
   )
+  let program = @checked.effect_program_static_checked_computation(candidate)
+  let model = @run_host.prepared_client_effect_infer_occurrence(prepared)
+  let unit = match model {
+    Some(occurrence) =>
+      @run_host.client_infer_occurrence_coordinates(occurrence).1
+    None => {
+      let headers = @checked.effect_program_static_headers(candidate)
+      guard @syntax.effect_header_at(headers, 0) is Some(header) else {
+        return (empty, empty)
+      }
+      @syntax.effect_header_stage(header)
+    }
+  }
   let imports = @checked.unit_result_import_count(program, unit)
     .unwrap_or(0)
     .to_int64()
-  if imports == 0L {
+  if model is Some(_) && imports == 0L {
     return (empty, empty)
   }
   let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
     prepared, 1000000,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let units = @run_host.client_direct_acquisition_occurrence_count(direct).to_int64()
-  // SAME existing composed reader admission, not a new language ceiling.
-  if units < 1L || units > 2L {
+  if model is None && units == 0L {
+    return (empty, empty)
+  }
+  // The Model import route retains its existing composed reader admission.
+  if units < 1L || (model is Some(_) && units > 2L) {
     stop("LocalOriginalEffectCapacityUnavailable")
   }
   let mut results = 0L
   let stages = @checked.checked_stage_results(program)
-  for index in 0..<units.to_int() {
-    let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
-      direct, index,
-    ).unwrap()
-    let declarations = @stage_results.stage_at(stages, stage).unwrap_or_else(() => {
+  if model is None {
+    let declarations = @stage_results.stage_at(stages, unit).unwrap_or_else(() => {
       stop("LocalOriginalEffectCapacityUnavailable")
     })
-    results += @results.count(declarations).to_int64()
+    results = @results.count(declarations).to_int64()
+  } else {
+    for index in 0..<units.to_int() {
+      let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      ).unwrap()
+      let declarations = @stage_results.stage_at(stages, stage).unwrap_or_else(() => {
+        stop("LocalOriginalEffectCapacityUnavailable")
+      })
+      results += @results.count(declarations).to_int64()
+    }
   }
-  // The original Model Unit also declares its retained Model boundary Result.
-  // Effect members supply their own artifacts; reserve only missing originals.
-  let extra_results = native_mock_effect_extra_unit_results(prepared, unit).to_int64()
+  // The Model path additionally retains its independent boundary Result.
+  let extra_results = if model is Some(_) {
+    native_mock_effect_extra_unit_results(prepared, unit).to_int64()
+  } else {
+    0L
+  }
   results += extra_results
   // Per Result: Definition/Artifact/Derivation/Ordering. Per import: original
   // observation and derived Relation. Per producer: Invocation/full Manifest.
@@ -678,7 +775,12 @@ fn native_mock_effect_import_construction(
     1L,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   (
-    initial,
+    // Direct starts with the existing warm recipe and grows on actual bodies.
+    if model is Some(_) {
+      initial
+    } else {
+      empty
+    },
     @execution.execution_capacity(max_r, max_e).unwrap_or_else(() => {
       stop("LocalOriginalEffectCapacityUnavailable")
     }),

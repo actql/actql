@@ -199,10 +199,11 @@ pub fn restore_client_effect_run_normalization(
   if custody.journal_wire != @publication.run_evidence_value_json(journal) {
     return Err(SubstitutedJournal)
   }
-  // Independently frozen catalog/journal preimages are published alongside
-  // the issuer. Never construct a replacement journal during restoration.
-  if @publication.run_evidence_value_identity(journal) !=
-    client_effect_normalization_inventory_journal_cid(inventory) {
+  // Saved Source journal correspondence was checked at original material
+  // admission. Empty profiles also retain their independently frozen digest.
+  if client_effect_normalization_inventory_journal_cid(inventory)
+    is Some(expected) &&
+    @publication.run_evidence_value_identity(journal) != expected {
     return Err(SubstitutedJournal)
   }
   Ok(journal)
@@ -225,7 +226,7 @@ pub fn client_effect_normalization_materials_cid(
 /// Decode the published finite journal without invoking its original issuer.
 /// Applicability and provenance are separate: inventory plus the original
 /// Run's bound compiler profile are required before returning review custody.
-fn admit_completion_free_material_journal(
+fn admit_effect_normalization_material_journal(
   wire : String,
   inventory : ClientEffectNormalizationInventory,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
@@ -236,10 +237,40 @@ fn admit_completion_free_material_journal(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  if @publication.run_evidence_value_identity(journal) !=
-    client_effect_normalization_inventory_journal_cid(inventory) ||
-    wire != @publication.run_evidence_value_json(journal) {
+  if wire != @publication.run_evidence_value_json(journal) {
     return Err(SubstitutedJournal)
+  }
+  if client_effect_normalization_inventory_journal_cid(inventory)
+    is Some(expected) &&
+    @publication.run_evidence_value_identity(journal) != expected {
+    return Err(SubstitutedJournal)
+  }
+  if inventory is SourceCompletedUpdate(source) {
+    // The admitted journal owns its verified digest. Compare the complete
+    // canonical wire to the actual resolved Source occurrences without making
+    // a second journal or reissuing a digest from the saved input.
+    let matches = try {
+      let comparison = @encode.comparing_writer(wire, 1024, 32, 8)
+      match
+        emit_local_common_normalization_journal(
+          @checked.local_common_update_source_normalization_computation(source),
+          comparison,
+          identity=Some(@publication.run_evidence_value_identity(journal)),
+          rule_catalog_cid=Some(
+            client_effect_source_update_normalization_catalog_cid(),
+          ),
+        ) {
+        Err(_) => return Err(ForeignPreparation)
+        Ok(_) => ()
+      }
+      let (matches, _, _, _) = @encode.finish_comparison_usage(comparison)
+      matches
+    } catch {
+      _ => false
+    }
+    if !matches {
+      return Err(SubstitutedJournal)
+    }
   }
   Ok(journal)
 }

@@ -166,6 +166,18 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
   original : LocalCommandPreparationOriginal,
   capacity : @execution.ExecutionCapacity?,
 ) -> Bool {
+  self
+  .prepare_body_result(capacity)
+  .retain_mock_effect_proposal_issue(issue => {
+    original.retain_primary(CommandBusinessEffectProposals(issue))
+  })
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_body_result(
+  self : Self,
+  capacity : @execution.ExecutionCapacity?,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
   guard capacity is Some(body) &&
     @execution.checked_preparation_add_product(
       self.retained,
@@ -173,17 +185,14 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
       1L,
     )
     is Some(retained) else {
-    original.retain_primary(
-      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
-    )
-    return false
+    return Err(Managed(InsufficientCapacity))
   }
   let workspace = Int64::max(
     self.workspace,
     @execution.execution_capacity_execution_bytes(body) -
     @execution.execution_capacity_retained_bytes(body),
   )
-  self.resize(original, self.recipe, retained, workspace)
+  self.resize_result(self.recipe, retained, workspace)
 }
 
 ///|
@@ -209,6 +218,20 @@ fn LocalNativeMockEffectImportConstruction::resize(
   retained : Int64,
   workspace : Int64,
 ) -> Bool {
+  self
+  .resize_result(basis, retained, workspace)
+  .retain_mock_effect_proposal_issue(issue => {
+    original.retain_primary(CommandBusinessEffectProposals(issue))
+  })
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::resize_result(
+  self : Self,
+  basis : Array[@execution.ExecutionCapacity],
+  retained : Int64,
+  workspace : Int64,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
   let original_r = @execution.execution_capacity_retained_bytes(basis[0])
   let original_e = @execution.execution_capacity_execution_bytes(basis[0])
   guard @execution.checked_preparation_add_product(original_r, retained, 1L)
@@ -220,10 +243,7 @@ fn LocalNativeMockEffectImportConstruction::resize(
     )
     is Some(total_e) &&
     @execution.execution_capacity(total_r, total_e) is Some(fixed) else {
-    original.retain_primary(
-      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
-    )
-    return false
+    return Err(Managed(InsufficientCapacity))
   }
   let recipe = basis.copy()
   recipe[0] = fixed
@@ -233,14 +253,25 @@ fn LocalNativeMockEffectImportConstruction::resize(
     @local_values.grow_installed_effect_operation_input(self.operation, input)
   })
   match result {
-    Err(issue) => {
-      original.retain_primary(CommandBusinessEffectProposals(Managed(issue)))
-      false
-    }
+    Err(issue) => Err(Managed(issue))
     Ok(_) => {
       self.retained = retained
       self.workspace = workspace
-      true
+      Ok(())
+    }
+  }
+}
+
+///|
+fn Result::retain_mock_effect_proposal_issue(
+  self : Result[Unit, LocalNativeMockEffectProposalIssue],
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> Bool {
+  match self {
+    Ok(_) => true
+    Err(issue) => {
+      report(issue)
+      false
     }
   }
 }
@@ -255,17 +286,28 @@ fn LocalNativeMockEffectImportConstruction::prepare_row(
   wire : String,
   limits : @execution.RetainedRowDecodeLimits,
 ) -> Bool {
+  self
+  .prepare_row_result(wire, limits)
+  .retain_mock_effect_proposal_issue(issue => {
+    original.retain_primary(CommandBusinessEffectProposals(issue))
+  })
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_row_result(
+  self : Self,
+  wire : String,
+  limits : @execution.RetainedRowDecodeLimits,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
   guard @scalar.admit_utf8_length(wire, limits.max_bytes) is Ok(bytes) else {
-    original.retain_primary(
-      CommandBusinessEffectProposals(ManagedExport(Bridge(Wire(InputLimit)))),
-    )
-    return false
+    return Err(ManagedExport(Bridge(Wire(InputLimit))))
   }
-  self.prepare(
-    original,
-    Int::max(1, bytes),
-    Int::min(limits.max_nodes, Int::max(1, bytes)),
-    Int::min(limits.max_depth, Int::max(1, bytes)),
+  self.prepare_body_result(
+    native_mock_effect_dependency_body_capacity(
+      Int::max(1, bytes),
+      Int::min(limits.max_nodes, Int::max(1, bytes)),
+      Int::min(limits.max_depth, Int::max(1, bytes)),
+    ),
   )
 }
 

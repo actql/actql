@@ -173,8 +173,7 @@ fn LocalCommandPreparationOriginal::display_saved_waiting_run(
 }
 
 ///|
-// Fresh run reuses the SAME ModelWork's persisted Preview and waiting record.
-// This observer does not restore a second Store, approve or repeat the Model.
+// Fresh run reuses this command's persisted Preview and waiting record.
 fn LocalCommandPreparationOriginal::display_fresh_waiting_run(
   self : Self,
   settings : LocalHostSettings,
@@ -186,16 +185,38 @@ fn LocalCommandPreparationOriginal::display_fresh_waiting_run(
   guard local_waiting_effect_checkpoint(wire) is Some((id, cid)) else {
     return base
   }
-  guard self.business is Some(business) && business.model_work.length() == 1 else {
+  guard self.business is Some(business) else {
     stop("LocalEffectReviewDisplayUnavailable")
   }
-  let preview = local_host_result(
-    business.model_work[0].display_preview_in_original_read(
-      settings.connection,
-      id,
-      cid,
-    ),
-  )
+  let preview = if business.model_work.length() == 1 {
+    local_host_result(
+      business.model_work[0].display_preview_in_original_read(
+        settings.connection,
+        id,
+        cid,
+      ),
+    )
+  } else {
+    guard business.model_work.is_empty() &&
+      self.journal is Some(capture) &&
+      business.effect_model is Some(state) &&
+      state.source_start is Some(first) &&
+      state.source_review is Some(saved) else {
+      stop("LocalEffectReviewDisplayUnavailable")
+    }
+    local_host_result(
+      saved.display_preview_in_original_read(
+        capture,
+        first,
+        state.first.definition,
+        settings.principal,
+        () => !self.closing && !self.closed && !business.request_retiring,
+        settings.connection,
+        id,
+        cid,
+      ),
+    )
+  }
   local_waiting_preview_display(wire, preview).unwrap_or_else(() => {
     stop("LocalEffectReviewDisplayUnavailable")
   })
