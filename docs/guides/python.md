@@ -4,7 +4,54 @@ The `actql` package runs ActQL inside a Python application, with no server to
 run, and connects to a remote Host or ActQL Cloud with the same API. It
 mirrors the [Node client](node.md) with Python names: `snake_case` methods,
 typed dataclasses for states (`dataclasses.asdict()` when you need a dict),
-and both synchronous and `async` facades.
+and both synchronous and `async` facades. Use Python 3.11 or later.
+
+## Install a Linux Local candidate
+
+The [Python support matrix](../reference/status.md#python-backends-and-platforms)
+lists the Local profiles. The Linux development candidate targets x86-64 with
+glibc 2.28 or later and the
+[runtime's native dependencies](../../packages/python-local-runtime/README.md).
+The normal wheel acceptance ran on Ubuntu 24.04. Local startup refuses Linux
+arm64, musl, and other unsupported platforms. Install `actql-sdk` and use its
+Remote `Client.connect` where its dependencies are supported.
+
+Use the [Linux wheel archive](https://github.com/actql/actql/actions/runs/44944485617/artifacts/14724082691)
+for the verified development candidate. Check the three wheel digests against
+`cohort.json`. Set `COHORT` to the absolute path of the extracted `cohort`
+directory and `DEPENDENCY_WHEELHOUSE` to an offline wheelhouse with the
+third-party dependency wheels for your interpreter and platform. From a fresh
+directory, install the product through normal dependency resolution.
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip --isolated install --no-index --only-binary=:all: \
+    --find-links "$COHORT/wheels" --find-links "$DEPENDENCY_WHEELHOUSE" \
+    "actql==0.0.1"
+```
+
+Run this source-free example with `.venv/bin/python`.
+
+```python
+from actql import Client
+
+with Client.open(state_dir="linux-local-store") as client:
+    submission = client.new_submission()
+    run = client.start_source("SELECT 1 AS n", format="sql", submission_ref=submission)
+    assert run.wait()["status"] == "succeeded"
+    assert run.result("answer").all(max_rows=1) == [{"n": 1}]
+```
+
+The [Linux wheel acceptance](https://github.com/actql/actql/actions/runs/44944485617/job/136969012436)
+also exercised typed parameters, active cancellation and cancellation lookup,
+first close, and Saved reads from a separate process. The accepted Linux Local
+examples in this section use SQL without configured Sources. This wheelhouse
+contains an unpublished development cohort.
+
+## Install from a package index
+
+Use the usual dependency commands for packages available from your selected
+package index.
 
 ```sh
 uv add actql
@@ -12,17 +59,19 @@ uv add actql
 pip install actql
 ```
 
-Python 3.11 or later.
-
 ## A short query
 
-`actql.open()` gives you the shortest path: a local engine with its state in
-a directory, and `sql()` / `aql()` for one-off queries.
+These Source-backed examples use a configured Remote Host. The Host must
+support SQL and AQL against the `crm.accounts` Source, and your account must
+have permission to read that Source and its Results.
 
 ```python
-import actql
+import os
+from actql_sdk import Client
 
-with actql.open(state_dir=".actql") as db:
+with Client.connect(
+    endpoint=os.environ["ACTQL_ENDPOINT"], token=os.environ["ACTQL_TOKEN"]
+) as db:
     rows = db.sql(
         "SELECT id, name FROM crm.accounts WHERE owner = @owner",
         {"owner": "kim"},
@@ -38,11 +87,13 @@ with actql.open(state_dir=".actql") as db:
 argument is the parameters map. `all()` reads every row; `rows()` streams.
 Both run inside the `with` block — the handle is closed when it ends.
 
-The same `sql()` and `aql()` are available on a `connect()` client.
-
 Short queries read; a Program with an Effect goes through `start_source`.
 
 ## Connecting
+
+The Local connection example requires a configured project and a Local Host
+that supplies the selected Mock profile. For the Linux wheelhouse example,
+use `Client.open()` with a state directory as shown above.
 
 ```python
 client = actql.connect(
@@ -78,6 +129,10 @@ async with await actql.AsyncClient.connect(mode="local", installation=".actql") 
 
 ## Running a Program
 
+Use a connected Host that supports the Program's AQL, configured Sources and
+Effects, with an account authorized for those operations. Use `stop_before`
+only when that Host supports Checkpoints.
+
 ```python
 source = open("churn-risk.aql").read()
 execution = client.start_source(
@@ -111,6 +166,9 @@ type the rows, pass a `schema=`: a pydantic model, or any validator the
 Python SDK accepts; a row that does not match raises, nothing is coerced.
 
 ## Checkpoints
+
+These examples require a Host with Checkpoint review and resolution enabled
+and a signer authorized to resolve the Checkpoint.
 
 When policy defers a write, or you passed `stop_before="commit"`:
 
