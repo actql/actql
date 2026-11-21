@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
-import type {AnyNode, AssignmentExpression, IfStatement, Identifier, Property} from 'acorn';
+import type {AnyNode, AssignmentExpression, ConditionalExpression, Identifier, Property, VariableDeclarator} from 'acorn';
 
 type JournalView = {
   assertCurrent?(): void;
@@ -81,25 +81,25 @@ test('actual selected Host assignment awaits its original opening flight without
     node.right.type==='ConditionalExpression');
   assert.equal(assignments.length,1);
   const invoke=compileFunction(`return (async()=>{let journal;${source.slice(assignments[0].start,assignments[0].end)};return journal;})();`,
-    ['preparation','openClientRequestJournal','journalDirectory','journalOptions']) as
-    (preparation: object | undefined, open: (directory: string, options: object) => object,
-      directory: string, options: object) => Promise<unknown>;
-  const options={},journal={};let selected=0,ordinary=0;
-  const open=(directory: string,actual: object)=>{assert.equal(directory,'/original/requests');
-    assert.strictEqual(actual,options);ordinary++;return journal;};
+    ['preparation','openClientRequestJournal','journalDirectory','journalOptions','publicationOwnership']) as
+    (preparation: object | undefined, open: (directory: string, options: object, owner: object) => object,
+      directory: string, options: object, owner: object) => Promise<unknown>;
+  const options={},journal={},owner={};let selected=0,ordinary=0;
+  const open=(directory: string,actual: object,ownership: object)=>{assert.equal(directory,'/original/requests');
+    assert.strictEqual(actual,options);assert.strictEqual(ownership,owner);ordinary++;return journal;};
   let release: () => void;
   const preparation={openRequestJournal(directory: string,actual: object){assert.strictEqual(this,preparation);
     assert.equal(directory,'/original/requests');assert.strictEqual(actual,options);selected++;
     return new Promise(resolve=>{release=()=>resolve(journal);});}};
   let returned=false;
-  const pending=invoke(preparation,open,'/original/requests',options).then(value=>{returned=true;return value;});
+  const pending=invoke(preparation,open,'/original/requests',options,owner).then(value=>{returned=true;return value;});
   assert.equal(returned,false);
   assert.equal(selected,1);assert.equal(ordinary,0);
   release!();
   assert.strictEqual(await pending,journal);
-  assert.strictEqual(await invoke(undefined,open,'/original/requests',options),journal);
+  assert.strictEqual(await invoke(undefined,open,'/original/requests',options,owner),journal);
   assert.equal(ordinary,1);
-  await assert.rejects(invoke({},open,'/original/requests',options),TypeError);
+  await assert.rejects(invoke({},open,'/original/requests',options,owner),TypeError);
   assert.equal(ordinary,1);
 });
 
@@ -121,21 +121,23 @@ test('missing selected root-format port refuses without an unselected fallback',
 });
 
 test('actual root-format choice awaits the selected original and preserves the unprepared path',async()=>{
-  const choices=nodes.filter((node): node is IfStatement=>node.type==='IfStatement'&&
-    node.test.type==='BinaryExpression'&&
-    source.slice(node.start,node.end).includes('await preparation.admitRootFormat(root)'));
+  const choices=nodes.filter((node): node is VariableDeclarator & {init: ConditionalExpression}=>
+    node.type==='VariableDeclarator'&&(node.id as Identifier).name==='rootCreation'&&
+    node.init?.type==='ConditionalExpression'&&node.init.alternate.type==='AwaitExpression'&&
+    source.slice(node.init.alternate.start,node.init.alternate.end)==='await preparation.admitRootFormat(root)');
   assert.equal(choices.length,1);
-  const invoke=compileFunction(`return (async()=>{${source.slice(choices[0].start,choices[0].end)}})();`,
+  const invoke=compileFunction(`return (async()=>(${source.slice(choices[0].init.start,choices[0].init.end)}))();`,
     ['preparation','admitHostRootFormat','root']) as
-    (preparation: object | undefined, ordinary: (root: string) => void, root: string) => Promise<void>;
+    (preparation: object | undefined, ordinary: (root: string) => object, root: string) => Promise<unknown>;
   let selected=0,ordinary=0,release: () => void,done=false;
-  const old=(root: string)=>{assert.equal(root,'/original');ordinary++;};
+  const ordinaryResult={},selectedResult={};
+  const old=(root: string)=>{assert.equal(root,'/original');ordinary++;return ordinaryResult;};
   const preparation={admitRootFormat(root: string){assert.strictEqual(this,preparation);
-    assert.equal(root,'/original');selected++;return new Promise<void>(resolve=>{release=resolve;});}};
-  const flight=invoke(preparation,old,'/original').then(()=>{done=true;});
+    assert.equal(root,'/original');selected++;return new Promise<object>(resolve=>{release=()=>resolve(selectedResult);});}};
+  const flight=invoke(preparation,old,'/original').then(result=>{done=true;return result;});
   assert.equal(selected,1);assert.equal(ordinary,0);assert.equal(done,false);
-  release!();await flight;assert.equal(done,true);
-  await invoke(undefined,old,'/original');assert.equal(ordinary,1);
+  release!();assert.strictEqual(await flight,selectedResult);assert.equal(done,true);
+  assert.strictEqual(await invoke(undefined,old,'/original'),ordinaryResult);assert.equal(ordinary,1);
   await assert.rejects(invoke({},old,'/original'),TypeError);
   assert.equal(ordinary,1);
 });

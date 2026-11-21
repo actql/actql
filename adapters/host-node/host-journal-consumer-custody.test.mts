@@ -36,6 +36,9 @@ const make=compileFunction(`
   let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight,observedClose;
   let hostJournalAdmitRootFormat;
   let sourceManaged=input.source,sourceManagedClose=input.source?.close;
+  let computeManaged,computeManagedClose,computeManagedFlight,sourceInitializationServices;
+  let resultReadWorkspace,resultPublication,resultPublicationClose,resultPublicationFlight;
+  let hostInitialization,sourceInitializationSelection;
   let control={},controlClose=input.controlClose,originals=input.originals;
   let originalInstallation={},duty;
   const record={},adopted=true,host={};
@@ -73,8 +76,12 @@ test('actual Host awaits the Journal facility after subject retention and before
     .includes('preparation?.retainHostJournalPreparation('));
   const prepared=statements.findIndex(node=>node.type==='IfStatement'&&
     source.slice(node.start,node.end).includes('await preparation.prepareHostJournal()'));
-  const written=statements.findIndex(node=>node.type==='IfStatement'&&
-    source.slice(node.start,node.end).includes('await preparation.admitRootFormat(root)'));
+  const written=statements.findIndex(node=>node.type==='VariableDeclaration'&&
+    node.declarations.some(declaration=>(declaration.id as Identifier).name==='rootCreation'&&
+      declaration.init?.type==='ConditionalExpression'&&
+      declaration.init.alternate.type==='AwaitExpression'&&
+      source.slice(declaration.init.alternate.start,declaration.init.alternate.end)===
+        'await preparation.admitRootFormat(root)'));
   assert.ok(held>=0&&prepared>held&&written>prepared);
 });
 

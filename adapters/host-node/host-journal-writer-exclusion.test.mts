@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {existsSync, readFileSync} from 'node:fs';
+import {open as openFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {compileFunction} from 'node:vm';
@@ -13,7 +15,7 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from './client-request-journal.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 // @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
-import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 type CloseStatus = {pending: boolean};
@@ -31,6 +33,7 @@ type HostFixture = {
   openStore(): Promise<Store>;
   failInitialization(cause: unknown): Promise<Awaited<ReturnType<typeof retainInstalledHostInitializationFailure>>>;
   readonly journal: Journal;
+  readonly ownership: object;
   closeJournal(): Promise<void>;
   closeOwnership(): Promise<void>;
 };
@@ -71,6 +74,11 @@ assert(storeTry?.handler);
 const storeOptionsDeclaration = storeTry.block.body.find((statement): statement is Extract<AnyNode, {type: 'VariableDeclaration'}> =>
   statement.type === 'VariableDeclaration' &&
   statement.declarations.some(declaration => (declaration.id as Identifier).name === 'storeOptions'));
+const optionsFactory = nodes.filter((node): node is FunctionDeclaration =>
+  node.type === 'FunctionDeclaration' && node.id!.name === 'localPublicationStoreOptions');
+assert.equal(optionsFactory.length, 1);
+const {hostResultStorePolicy}: {hostResultStorePolicy: object} =
+  createRequire(import.meta.url)('./host-result-service-recipe.cjs');
 const openStoreBody = `${storeOptionsDeclaration === undefined ? '' :
   source.slice(storeOptionsDeclaration.start, storeOptionsDeclaration.end)}
   ${source.slice(stores[0].start, stores[0].end)};`;
@@ -86,6 +94,7 @@ const load = compileFunction(`
   let unselectedJournalAttempted=false, unselectedJournalFailure;
   const preparation=undefined, publicationDirectory=join(root,'publication');
   ${declarations.map(node => source.slice(node.start, node.end)).join('\n')}
+  ${source.slice(optionsFactory[0].start, optionsFactory[0].end)}
   return {async open(journalOptions){${body}},
     async openStore(){try{${openStoreBody}}${source.slice(storeTry.handler.start, storeTry.handler.end)}return store;},
     async failInitialization(cause){return retainInstalledHostInitializationFailure(cause,
@@ -98,14 +107,14 @@ const load = compileFunction(`
   'prepareLocalPublicationStoreOwnership', 'assertOriginalPreparedLocalPublicationStoreOwnership',
   'closePreparedLocalPublicationStoreOwnership', 'join', 'clientOperationError',
   'openLocalPublicationStore', 'control', 'storeAuthorityCid', 'localOutputLimits',
-  'effectInstallation', 'effectEvidenceKey', 'retainInstalledHostInitializationFailure']) as
+  'effectInstallation', 'effectEvidenceKey', 'retainInstalledHostInitializationFailure', 'hostResultStorePolicy']) as
   (root: string, directory: string, openJournal: typeof openClientRequestJournal,
     observeJournal: typeof observeOriginalClientRequestJournalCustody, prepareOwnership: unknown,
     assertOwnership: unknown, closeOwnership: unknown, joinPaths: typeof join,
     operationError: (code: string) => Error, openStore: OpenStore,
     control: ReturnType<typeof createPublicationContractControlFixture>, authorityCid: string,
     limits: {maxWireBytes: number}, effect: undefined, evidence: undefined,
-    retainFailure: typeof retainInstalledHostInitializationFailure) => HostFixture;
+    retainFailure: typeof retainInstalledHostInitializationFailure, storePolicy: object) => HostFixture;
 const storeOptions = (directory: string) => ({directory, storeAuthorityCid: 'sha256:' + 'a'.repeat(64),
   capacityBytes: 1024 * 1024, maxObjectBytes: 4096, maxObjects: 16,
   maxContractNodes: 128, maxContractDepth: 16});
@@ -118,7 +127,7 @@ async function fixture({openStore = openLocalPublicationStore}: {openStore?: Ope
     assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership,
     join, code => Object.assign(new Error(code), {code}), openStore,
     createPublicationContractControlFixture(), 'sha256:' + 'a'.repeat(64),
-    {maxWireBytes: 4096}, undefined, undefined, retainInstalledHostInitializationFailure);
+    {maxWireBytes: 4096}, undefined, undefined, retainInstalledHostInitializationFailure, hostResultStorePolicy);
   return {scratch, host, directory};
 }
 
@@ -161,14 +170,19 @@ test('ordinary Host adopts its exact pre-Journal owner and retains it through in
   try { await host.open({}); }
   finally { DatabaseSync.prototype.open = open; DatabaseSync.prototype.close = close; }
   const ownerPath = join(scratch.path, 'publication/owner/owner.json');
-  const original = readFileSync(ownerPath);
+  const original = JSON.parse(readFileSync(ownerPath, 'utf8'));
   let store: Store | undefined;
   try {
     store = await host.openStore();
-    assert.deepEqual(readFileSync(ownerPath), original);
+    const adoptedBytes = readFileSync(ownerPath);
+    const {leaseAnchor, ...adopted} = JSON.parse(adoptedBytes.toString('utf8'));
+    assert.deepEqual(adopted, original);
+    const receipt = captureOriginalLocalExecutionOwner(host.ownership);
+    assert.deepEqual(leaseAnchor, receipt?.anchor);
+    if (receipt !== undefined) assert.equal(receipt.token, original.token);
     await assert.rejects(host.closeJournal(), /OriginalWriterClosePending/u);
     await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
-    assert.deepEqual(readFileSync(ownerPath), original);
+    assert.deepEqual(readFileSync(ownerPath), adoptedBytes);
     await assert.rejects(host.closeOwnership());
     allowed = true;
     await host.closeJournal();
@@ -258,15 +272,17 @@ test('partial original Journal construction retains the same owner until constru
 
 test('actual Store-opening failure drains its already acquired Journal independently of the dependent child', async () => {
   const stagingFailure = new Error('OriginalStoreStagingSyncFailure');
-  let openings = 0;
+  let openings = 0, allowed = false, closes = 0;
   const {scratch, host} = await fixture({openStore(options, control, unused, bootstrap, original) {
     openings++;
     return openLocalPublicationStore(options, control, {async syncDirectory(directory: string) {
-      if (directory.endsWith('/staging')) throw stagingFailure;
+      if (!allowed && directory.endsWith('/staging')) throw stagingFailure;
+      const handle = await openFile(directory, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
     }}, bootstrap, original);
   }});
   const close = DatabaseSync.prototype.close;
-  let allowed = false, closes = 0;
   DatabaseSync.prototype.close = function (this: DatabaseSync, ...args: Parameters<DatabaseSync['close']>) {
     closes++;
     if (!allowed) throw new Error('SameJournalNativeClosePending');
@@ -284,12 +300,15 @@ test('actual Store-opening failure drains its already acquired Journal independe
     });
     assert.equal(closes, 0);
     retained = await host.failInitialization(openingFailure);
+    assert.strictEqual(retained.primaryFailure, stagingFailure);
     assert.equal(closes, 1, 'The same Journal must not wait behind the Store child it blocks');
     assert.equal(retained.cleanupHandle.status().pending, true);
     assert.equal(openingFailure!.cleanupHandle.status().pending, true);
     assert.equal(existsSync(join(scratch.path, 'publication/owner/owner.json')), true);
     allowed = true;
-    assert.equal((await retained.cleanupHandle.retry()).pending, false);
+    const drained = await retained.cleanupHandle.retry();
+    assert.equal(drained.pending, false, `Still held: ${drained.owners.join(', ')}; ${drained.errors
+      .map(issue => String((issue as {error?: unknown} | null)?.error ?? issue)).join('; ')}`);
     assert.equal(openingFailure!.cleanupHandle.status().pending, false);
     assert.equal(existsSync(join(scratch.path, 'publication/owner/owner.json')), false);
     assert.equal(openings, 1);
