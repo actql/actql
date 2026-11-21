@@ -205,7 +205,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/acquisition-planning.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/acquisition-planning.test.mts",
                 "anchor": "estimate scope, unit, provenance and quantities are admitted together"
               }
             ]
@@ -670,7 +670,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mts",
                 "anchor": "provider preflight freezes all transport settings before any start or settlement"
               }
             ]
@@ -2478,7 +2478,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mts",
                 "anchor": "capacity rejects invalid or overflowing envelopes before reservation"
               }
             ]
@@ -2737,7 +2737,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mts",
                 "anchor": "provider preflight freezes all transport settings"
               }
             ]
@@ -3705,7 +3705,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-capacity.test.mts",
                 "anchor": "bounded transport capacity is independent of cumulative rows and bytes"
               }
             ]

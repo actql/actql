@@ -2,9 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import type {Node} from 'acorn';
 import { computePhysicalCapacity, sourceTransportLimits } from '../physical-capacity.mjs';
+// @ts-expect-error TS7016 The existing Session re-export and provider preflight are still authored in JavaScript.
 import { provisionComputeDatabase, validateLimits } from '../session.mjs';
 import {runtimeField} from '../../../../host-common/compiler-binding.generated.mjs';
+
+type TransportLimits = Parameters<typeof computePhysicalCapacity>[0];
+type HostDeclaration = Node & {id?: {name: string}};
+type HostStatement = HostDeclaration & {declaration?: HostDeclaration};
 
 const limits = { memoryBytes: 1000, maxTransportBytes: 10, maxCells: 2,
   maxColumns: 3, maxParameters: 4, maxSqlBytes: 5, maxRows: 2, threads: 1 };
@@ -58,26 +64,26 @@ for (const broad of [false, true]) {
     const source = readFileSync(new URL('../host.mjs', import.meta.url), 'utf8');
     const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
     const name = broad ? 'runBroadHostQuery' : 'runHostNativeQuery';
-    const node = ast.body.map(value => value.declaration ?? value).find(value => value.id?.name === name);
+    const node = (ast.body as HostStatement[]).map(value => value.declaration ?? value).find(value => value.id?.name === name);
     assert.ok(node);
     const setup = {}, ledger = {}, grant = {}, primary = new Error('StoppedAtOriginalSession');
     const supplied = {...limits, maxTransportBytes: 10000000, maxRows: 10000,
       maxCells: 100000, maxChunkRows: 50};
-    let quotes = 0, reads = 0, quoted;
-    const window = original => {assert.equal(original, setup);return {_0: 100, _1: 100000};};
-    const moon = {[broad ? 'broadHostTransportWindow' : 'nativeHostTransportWindow']: window,
+    let quotes = 0, reads = 0, quoted: TransportLimits | undefined;
+    const window = (original: unknown) => {assert.equal(original, setup);return {_0: 100, _1: 100000};};
+    const moon: Record<string, (original: unknown) => unknown> = {[broad ? 'broadHostTransportWindow' : 'nativeHostTransportWindow']: window,
       [broad ? 'broadHostCapacity' : 'nativeHostCapacity']: original => {
         assert.equal(original, setup);return 3n;
       }};
-    const read = async (actualGrant, _prepare, actual) => {
+    const read = async (actualGrant: unknown, _prepare: unknown, actual: TransportLimits) => {
       reads++;
       assert.equal(actualGrant, grant);assert.equal(actual, quoted);
       assert.deepEqual(actual, {...supplied, maxChunkBytes: 100000});
       throw primary;
     };
     const ports = {loadRuntime: async () => moon, runtimeField, sourceTransportLimits,
-      checked: value => value,
-      computePhysicalCapacity(actual) {quotes++;quoted = actual;return computePhysicalCapacity(actual);},
+      checked: (value: unknown) => value,
+      computePhysicalCapacity(actual: TransportLimits) {quotes++;quoted = actual;return computePhysicalCapacity(actual);},
       [broad ? 'runBroadQuery' : 'runNativeQuery']: read};
     const run = new Function('ports', `const {${Object.keys(ports).join(',')}}=ports;return (${source.slice(node.start, node.end)});`)(ports);
     const execute = () => broad
@@ -137,11 +143,11 @@ test('provider preflight freezes all transport settings before any start or sett
   source.threads = 0;
   assert.equal(fixed.threads, 1);
   assert.equal(Object.isFrozen(fixed), true);
-  const events = [];
+  const events: unknown[] = [];
   for (const invalid of [{ threads: 0 }, { maxRows: -1 }, { cancelWaitMs: -1 }]) {
     await assert.rejects(provisionComputeDatabase({ ...limits, ...invalid }, {
       started() { events.push('started'); },
-      settled(value) { events.push(value); },
+      settled(value: unknown) { events.push(value); },
     }), { code: 'InvalidLimits' });
   }
   assert.deepEqual(events, []);
