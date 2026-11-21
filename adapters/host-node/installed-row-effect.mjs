@@ -1928,7 +1928,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   };
 
   const managedReadChild = ({member, phase, physicalOperations, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, originalTargetAuthorization}) => {
+    dispatchRequestCid, assertCurrent, signal, originalTargetAuthorization, accountTargetRead}) => {
     const recipe = recipeOf(member);
     const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
     if (ownedRead !== undefined) {
@@ -1970,10 +1970,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         if(field!==undefined&&!Object.hasOwn(field,'value'))fail('InvalidInstalledEffectReadProjector');
         responsePreparation=field?.value;
       }
+      // The standard declaration consumes its own ordinary Account-issued
+      // read grant when there was no Checkpoint target-read delegation.
+      // The physical child still requires the exact original Site purpose.
+      const ordinaryRead = selected.perRow === false || selected.resource !== undefined ||
+        (accountTargetRead === true && prepareOperations !== undefined);
       return physicalOperations({member, rowIndex, phase, operation, site, originalAuthorization,
         responsePreparation,
         useId: input.useId, resource: selected.resource ?? member.resource,
-        purpose: selected.perRow === false || selected.resource !== undefined ? 'read' : 'target-read',
+        purpose: ordinaryRead ? 'read' : 'target-read',
         credentialSlot: slot,
         runInvocationCid, dispatchRequestCid, assertCurrent, signal,
         maxResponseBytes: input.maxResponseBytes,
@@ -2094,7 +2099,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const phase = `${operationPhase}-target`;
     const readChild = managedReadChild({member, phase,
       physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal,
-      originalTargetAuthorization: read.consumeOriginal});
+      originalTargetAuthorization: read.consumeOriginal, accountTargetRead: read.approval === undefined});
     const observe = targetEntry => owned.observeTargets({member, entries, current,
       ...targetEntry, signal,
       ...(readChild === undefined ? {} : typeof readChild === 'function' ? {
