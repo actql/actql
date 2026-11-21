@@ -27239,7 +27239,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -27265,7 +27265,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27339,7 +27339,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27680,7 +27680,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -27702,7 +27702,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27764,7 +27764,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",

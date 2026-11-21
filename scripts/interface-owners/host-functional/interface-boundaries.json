@@ -77095,7 +77095,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "inputsOutputs": [
@@ -77113,7 +77113,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "identity": [
@@ -77131,7 +77131,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "ownership": [
@@ -77149,7 +77149,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "synchronization": [
@@ -77167,7 +77167,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "failure": [
@@ -77185,7 +77185,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "cancellation": [
@@ -77239,7 +77239,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "verification": [
@@ -77256,7 +77256,7 @@
                 "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
-                "path": "adapters/host-node/local-account-current.test.mjs",
+                "path": "adapters/host-node/local-account-current.test.mts",
                 "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
               }
             ]
@@ -77285,7 +77285,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "inputsOutputs": [
@@ -77303,7 +77303,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "identity": [
@@ -77321,7 +77321,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "ownership": [
@@ -77339,7 +77339,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "synchronization": [
@@ -77357,7 +77357,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "failure": [
@@ -77375,7 +77375,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "cancellation": [
@@ -77429,7 +77429,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "verification": [
@@ -77446,7 +77446,7 @@
                 "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
-                "path": "adapters/host-node/local-account-current.test.mjs",
+                "path": "adapters/host-node/local-account-current.test.mts",
                 "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
               }
             ]
@@ -77473,7 +77473,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "inputsOutputs": [
@@ -77491,7 +77491,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "identity": [
@@ -77509,7 +77509,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "ownership": [
@@ -77527,7 +77527,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "synchronization": [
@@ -77545,7 +77545,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "failure": [
@@ -77563,7 +77563,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "cancellation": [
@@ -77617,7 +77617,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "verification": [
@@ -77634,7 +77634,7 @@
                 "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
-                "path": "adapters/host-node/local-account-current.test.mjs",
+                "path": "adapters/host-node/local-account-current.test.mts",
                 "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
               }
             ]
@@ -77657,13 +77657,13 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-account-config.mts",
-                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
+                "anchor": "export function observeInstalledAccount(moon: AccountRuntime,"
               }
             ],
             "identity": [

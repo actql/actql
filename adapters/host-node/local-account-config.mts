@@ -20,7 +20,11 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type NodeAuthorizationOptions = NonNullable<Parameters<typeof createNodeAuthorizationGate>[0]>;
 type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
+type AccountRuntime = Pick<AuthorizationRuntime, 'executionAuthorizationAdmit' | 'executionAuthorizationMissing'>;
 type Account = ReturnType<AuthorizationRuntime['executionAuthorizationAdmit']>;
+type LocalGate = Awaited<ReturnType<typeof createNodeAuthorizationGate>> & Readonly<{
+  accountConfiguration?: string; context?: NodeAuthorizationOptions['context'];
+}>;
 type Construction = ReturnType<typeof createAccountConstruction>;
 type Frame = ReturnType<Construction['begin']>;
 type Selection = Readonly<{
@@ -69,8 +73,8 @@ function observeAccountConfigurationWire(authorization: Selection | null | undef
 
 // Shared by the installed Model owner and Local account gate. This reads no
 // new identity or permit and preserves the existing Model Missing fallback.
-const installedAccountObservations = new WeakMap<AuthorizationRuntime, WeakMap<object, Readonly<{wire: string; account: Account}>>>();
-export function observeInstalledAccount(moon: AuthorizationRuntime, authorization?: Selection | null, construction?: Construction) {
+const installedAccountObservations = new WeakMap<AccountRuntime, WeakMap<object, Readonly<{wire: string; account: Account}>>>();
+export function observeInstalledAccount(moon: AccountRuntime, authorization?: Selection | null, construction?: Construction) {
   construction ??= authorization?.accountConstruction;
   if (construction !== undefined) {
     if (!isAccountConstruction(construction)) throw new TypeError('ForeignAccountConstruction');
@@ -79,7 +83,7 @@ export function observeInstalledAccount(moon: AuthorizationRuntime, authorizatio
   return observeInstalledAccountOriginal(moon, authorization);
 }
 
-function observeInstalledAccountOriginal(moon: AuthorizationRuntime, authorization?: Selection | null, frame?: Frame, construction?: Construction) {
+function observeInstalledAccountOriginal(moon: AccountRuntime, authorization?: Selection | null, frame?: Frame, construction?: Construction) {
   try {
     const wire = observeAccountConfigurationWire(authorization, frame);
     if (wire === undefined) return moon.executionAuthorizationMissing();
@@ -220,7 +224,7 @@ export function localAuthorizationContext(principal: string, accountId: string |
 // (`accountConfiguration`), or the Missing gate when neither was selected. A
 // selected but unreadable or rejected configuration is an installation
 // failure; it never degrades to Missing or to allow.
-export async function createLocalAuthorizationGate({accountConstruction, ...options}: LocalAuthorizationOptions = {}) {
+export async function createLocalAuthorizationGate({accountConstruction, ...options}: LocalAuthorizationOptions = {}): Promise<LocalGate> {
   if (accountConstruction === undefined) return createLocalAuthorizationGateOriginal(options);
   if (!isAccountConstruction(accountConstruction)) fail(ACCOUNT_CONFIG_INVALID, 'ForeignAccountConstruction');
   const frame = accountConstruction.begin();

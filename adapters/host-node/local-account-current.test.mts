@@ -7,11 +7,15 @@ import {writeFileSync} from 'node:fs';
 import {createLocalAuthorizationGate, observeInstalledAccount,
   readAccountConfiguration, sourceReadAccountConfiguration} from './local-account-config.mjs';
 
+type BufferAllocTail = Parameters<typeof Buffer.alloc> extends [number, ...infer Tail] ? Tail : never;
+type LocalGate = Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
+
 const tuple = {connection: 'connection', resource: 'resource', operation: 'read'};
 const wire = sourceReadAccountConfiguration(tuple);
 const subjectCid = `sha256:${'a'.repeat(64)}`;
+type ObservedWire = Readonly<{text: string}>;
 const fakeMoon = {
-  executionAuthorizationAdmit: text => ({state: 'admitted', text}),
+  executionAuthorizationAdmit: (text: string) => ({state: 'admitted', text}),
   executionAuthorizationMissing: () => ({state: 'missing'}),
 };
 
@@ -36,13 +40,13 @@ test('the account observer allocates only the opened file length and growth sent
   t.after(() => rm(root, {recursive: true, force: true}));
   const path = join(root, 'account.json');
   await writeFile(path, wire);
-  const requested = [];
+  const requested: number[] = [];
   const original = Buffer.alloc;
-  t.mock.method(Buffer, 'alloc', function(size, ...args) {
+  t.mock.method(Buffer, 'alloc', function(this: typeof Buffer, size: number, ...args: BufferAllocTail) {
     requested.push(size);
     return original.call(this, size, ...args);
   });
-  assert.equal(observeInstalledAccount(fakeMoon, {accountConfig: path}).text, wire);
+  assert.equal((observeInstalledAccount(fakeMoon, {accountConfig: path}) as ObservedWire).text, wire);
   assert.deepEqual(requested, [Buffer.byteLength(wire) + 1]);
 });
 
@@ -53,7 +57,7 @@ test('the account observer refuses growth after sizing instead of admitting a pr
   await writeFile(path, wire);
   let changed = false;
   const original = Buffer.alloc;
-  t.mock.method(Buffer, 'alloc', function(size, ...args) {
+  t.mock.method(Buffer, 'alloc', function(this: typeof Buffer, size: number, ...args: BufferAllocTail) {
     if (!changed) {
       changed = true;
       writeFileSync(path, wire + ' '.repeat(64));
@@ -73,12 +77,12 @@ test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds', 
     assert.deepEqual(observeInstalledAccount(fakeMoon, {accountConfig: path}), {state: 'missing'});
   }
   await writeFile(path, Buffer.alloc(1_000_000, 32));
-  assert.equal(observeInstalledAccount(fakeMoon, {accountConfig: path}).text.length, 1_000_000);
+  assert.equal((observeInstalledAccount(fakeMoon, {accountConfig: path}) as ObservedWire).text.length, 1_000_000);
   assert.deepEqual(observeInstalledAccount(fakeMoon,
     {accountConfig: path, accountConfiguration: wire}), {state: 'missing'});
   await rm(path);
   assert.deepEqual(observeInstalledAccount(fakeMoon, {accountConfig: path}), {state: 'missing'});
-  assert.equal(observeInstalledAccount(fakeMoon, {accountConfiguration: wire}).text, wire);
+  assert.equal((observeInstalledAccount(fakeMoon, {accountConfiguration: wire}) as ObservedWire).text, wire);
 });
 
 // These controls use the real Node loader and compiled authorization runtime.
@@ -89,7 +93,7 @@ test('file-backed gate observes replacement and deletion at the original path', 
   const path = join(root, 'account.json');
   await writeFile(path, wire);
   const gate = await createLocalAuthorizationGate({accountConfig: path});
-  t.after(() => gate.close());
+  t.after((() => gate.close()) as () => void);
   const original = await gate.authorize('acquisition', tuple, {subjectCid});
   gate.assertAccountCurrent(original);
   const replacement = join(root, 'replacement.json');
@@ -121,13 +125,13 @@ test('installed file-backed gate retains the exact Account wire and context for 
   const path = join(root, 'account.json');
   await writeFile(path, wire);
   const gate = await createLocalAuthorizationGate({accountConfig: path, principal: 'original-reader'});
-  t.after(() => gate.close());
+  t.after((() => gate.close()) as () => void);
   assert.equal(gate.accountConfiguration, wire);
   assert.deepEqual(gate.context, {principal: 'original-reader', contextCid: gate.contextCid});
   assert.equal(Object.isFrozen(gate.context), true);
   const projection = await createLocalAuthorizationGate({accountConfiguration: gate.accountConfiguration,
     context: gate.context});
-  t.after(() => projection.close());
+  t.after((() => projection.close()) as () => void);
   assert.equal((await projection.authorize('acquisition', tuple, {subjectCid})).action, 'dispatch');
   const original = await gate.authorize('acquisition', tuple, {subjectCid});
   await writeFile(path, sourceReadAccountConfiguration({...tuple, outcome: 'deny'}));
@@ -176,7 +180,7 @@ test('installed Account uses the admitted Common identity for wire and original 
 });
 
 test('installed Account retains an explicit expected-CID refusal instead of overwriting it', async () => {
-  let gate;
+  let gate: LocalGate | undefined;
   try {
     await assert.rejects(async () => {
       gate = await createLocalAuthorizationGate({accountConfiguration: corpusWire,

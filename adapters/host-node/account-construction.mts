@@ -11,7 +11,7 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
 type Account = ReturnType<AuthorizationRuntime['executionAuthorizationAdmit']>;
-type Runtime = AuthorizationRuntime & Readonly<{
+type Runtime = Readonly<{
   clientProgramAccountReadControlBytes(): bigint;
   clientProgramCloseAccountRead(read: unknown, confirmed: boolean): SynchronousRuntimeData;
   clientProgramPrepareAccountReadConstruction(read: unknown, retained: bigint, execution: bigint): SynchronousRuntimeData;
@@ -199,7 +199,7 @@ export function createAccountConstruction({moon, prepareRead, current}:
         prepare(256n * nodes + 72n * units,
           1024n * nodes + 1296n * units * depth + 512n);
       },
-      admit(runtime: AuthorizationRuntime, wire: string): Account {
+      admit(runtime: Extract<SynchronousRuntimeData, object>, wire: string): Account {
         if (runtime !== moon) fail('ForeignAccountConstructionRuntime');
         frame.nativeJson(wire);
         const value = moon.executionAuthorizationAdmitPrepared(wire, frame.core);
