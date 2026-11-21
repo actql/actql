@@ -458,13 +458,16 @@ function App() {
     map ? 'Plan checked · not run' : 'No Run selected';
   const supportedCheckpoint = connected && (checkpointCapabilities.list || checkpointCapabilities.read);
   const fileLabel = draftName ?? 'Query draft';
+  const independentDraft = !!selectedRef || launcherProgram;
+  const draftStatus = independentDraft ? (editing ? 'Editing independent draft' : 'Independent draft') :
+    editing ? 'Editing draft' : draftName ? `Loaded ${draftName}` : 'Local query draft';
   const openDrawer = (next: 'connect' | 'open-run') => {showError(''); showDrawer(next);};
   const closeDrawer = () => {showDrawer(undefined); showError('');};
   return <div className="explorer-workspace">
     <header className="workspace-header">
       <div className="workspace-brand"><strong><span aria-hidden="true">&gt;</span> ActQL<span aria-hidden="true">_</span></strong>
         <span>Explorer</span><span className="breadcrumb-divider" aria-hidden="true">/</span>
-        <span className="workspace-label">{fileLabel}</span>
+      <span className="workspace-label" aria-label={independentDraft ? 'Local draft file' : undefined}>{fileLabel}</span>
       </div>
       <div className="workspace-actions">
         <button type="button" className="small" onClick={()=>showQuery(value=>!value)}
@@ -486,9 +489,12 @@ function App() {
     </header>
     <div className={'workspace-grid' + (queryShown ? '' : ' query-hidden')}>
       {queryShown && <aside id="query-pane" className="query-panel panel" aria-label="Query">
-        <header><div><span className="connection-dot" data-connected={!!analyzedDraft && !edited}/>
-          <span>{editing ? 'Editing draft' : draftName ? `Loaded ${draftName}` : 'Local query draft'}</span></div>
+        <header><div><span className="connection-dot" data-connected={!independentDraft && !!analyzedDraft && !edited}/>
+          <span>{draftStatus}</span></div>
           <button className="small" type="button" onClick={()=>setEditing(value=>!value)}>{editing ? 'Done' : 'Edit'}</button></header>
+        {independentDraft && <p className="query-scope-note">{selectedRef
+          ? 'This Run keeps its original query. Edits here apply to a future Run.'
+          : 'The launcher supplied the Plan. Edits here apply to a future Run.'}</p>}
         {editing ? <label className="query-editor"><span className="sr-only">Program</span>
           <textarea value={programText} onChange={event=>{draftVersion.current++; setProgramText(event.target.value);}}
             maxLength={60000} rows={8} spellCheck={false}/>
@@ -508,8 +514,6 @@ function App() {
             </div>
           </details>
         </form>
-        {selectedRef && <p className="query-note">Local draft · separate from this Run's original query.</p>}
-        {launcherProgram && <p className="query-note">Plan supplied by the launcher.</p>}
       </aside>}
       <main className="story-workspace">
         <div className="story-heading">

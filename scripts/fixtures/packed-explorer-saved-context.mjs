@@ -94,7 +94,8 @@ try {
     const executablePath = process.env.ACTQL_TEST_BROWSER_EXECUTABLE;
     assert(browserModule && executablePath, 'Explicit browser tooling required');
     const {chromium} = await import(pathToFileURL(browserModule));
-    gateway = await startExplorer({client});
+    const launchInput = phase === 'before' ? {kind: 'program', format: 'sql', text: 'SELECT 7 AS launcher_plan'} : undefined;
+    gateway = await startExplorer({client, launchInput});
     browser = await chromium.launch({headless: true, executablePath});
     const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
     page.setDefaultTimeout(10000);
@@ -121,6 +122,8 @@ try {
       };
       await connect('Connect to Local');
       if (original === undefined) {
+        await page.getByText('The launcher supplied the Plan. Edits here apply to a future Run.', {exact: true}).waitFor();
+        assert.match(await page.getByRole('list', {name: 'Query text'}).innerText(), /SELECT 1 AS answer/u);
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'deal-review.aql'));
         await page.getByLabel('Query options').click();
@@ -134,6 +137,7 @@ try {
           ['salesforce', 'Opportunity'], ['drive', 'files'], ['drive', 'contents']]);
         const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});
         await staticSteps.waitFor();
+        assert.equal(await page.locator('.query-scope-note').count(), 0);
         assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);
         assert.match(await staticSteps.innerText(), /Planned/u);
         await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
@@ -168,9 +172,17 @@ try {
         const story = page.getByRole('region', {name: 'Original story', exact: true});
         await story.waitFor();
         assert.match(await story.textContent(), /model-task:churn-risk\.v1/u);
+        await page.getByText('This Run keeps its original query. Edits here apply to a future Run.', {exact: true}).waitFor();
         await page.getByText('Current status unavailable', {exact: true}).waitFor();
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/run-explanation-context']);
         await page.screenshot({path: join(evidence, 'installed-saved-context.png')});
+        const narrative = await page.getByRole('heading', {level: 1}).textContent();
+        await page.getByRole('button', {name: 'Edit', exact: true}).click();
+        const separateDraft = 'SELECT 2 AS draft_only';
+        await page.getByRole('textbox', {name: 'Program', exact: true}).fill(separateDraft);
+        await page.getByRole('button', {name: 'Done', exact: true}).click();
+        assert.equal(await page.getByRole('list', {name: 'Query text'}).innerText(), separateDraft);
+        assert.equal(await page.getByRole('heading', {level: 1}).textContent(), narrative);
         await page.getByRole('button', {name: /Graph/}).click();
         const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
         const nextNode = graph.locator('.react-flow__node:not(:has([data-selected="true"]))').first();
@@ -202,6 +214,7 @@ try {
         await openOriginal(false);
         await story.waitFor();
         assert.match(await story.textContent(), /model-task:churn-risk\.v1/u);
+        assert.equal(await page.getByRole('list', {name: 'Query text'}).innerText(), separateDraft);
         await page.setViewportSize({width: 390, height: 844});
         await page.getByRole('button', {name: /Hide query/}).click();
         assert.equal(await page.locator('#query-pane').count(), 0);

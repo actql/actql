@@ -4380,7 +4380,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "97afdbbcd27541040f0257ae4dfe7e0f42aa5e1ab5d9afd58e8e67d52e7ba943",
+      "sha256": "933f5babb5f1b685563d1bee3912ee724975e81367b089b3bc1c87973fc564f9",
       "exports": [],
       "operations": [
         {

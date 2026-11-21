@@ -119,8 +119,9 @@ kbd { border: 1px solid #bbc8c5; border-radius: 4px; font-size: 10px; padding: 0
 .query-options { display: grid; gap: 10px; right: 0; width: min(295px, 80vw); }
 .query-file { width: 100%; min-width: 0; }
 .query-file input { width: 100%; background: white; font-size: 12px; }
-.query-note, .workspace-note { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.query-note { margin: 0; padding: 0 12px 8px; }
+.workspace-note { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.query-scope-note { margin: 0; padding: 6px 14px; background: #f5f7f6; border-bottom: 1px solid var(--border);
+  color: var(--muted); font-size: 12px; }
 
 .story-workspace { min-width: 0; }
 .story-heading { margin-bottom: 14px; }
