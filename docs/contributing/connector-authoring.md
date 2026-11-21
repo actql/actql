@@ -112,7 +112,20 @@ reserializing them.
 
 ### Scaffold, build and install
 
-From a checkout with the authoring toolkit, scaffold and project the package:
+Install a matching Local Node distribution that ships `actql-connector`.
+Scaffold in a new child directory so the definition can resolve that package
+from its parent project:
+
+```sh
+npm install --prefix /absolute/acme-work --save-exact "@actql/local-node@${ACTQL_HOST_VERSION:?select a matching distribution}"
+/absolute/acme-work/node_modules/.bin/actql-connector init /absolute/acme-work/author acme
+# Edit /absolute/acme-work/author/connector.json.
+/absolute/acme-work/node_modules/.bin/actql-connector build /absolute/acme-work/author/connector.json /absolute/acme-work/package
+/absolute/acme-work/node_modules/.bin/actql-connector test /absolute/acme-work/author/connector.json /absolute/acme-work/package
+npm pack /absolute/acme-work/package --pack-destination /absolute/artifacts
+```
+
+From a framework checkout, the existing developer tool is also available:
 
 ```sh
 node scripts/connector.mjs init /absolute/acme-author acme
@@ -183,6 +196,13 @@ reference modes are `empty`, `one`, `paged` and `notion-users`. Use
 `mode: "author"` with `casePath` (absolute) and `caseSha256` to select your
 own case. The [Harbor example](../../scripts/fixtures/external-rest/harbor/)
 provides a definition, a case and a scoped operator Account.
+
+Run the same case from the installed toolkit with
+`actql-connector conformance /absolute/normal-input.json --timeout-seconds 180`.
+Use a fresh output path under an existing writable directory. The installed
+tool compares its own files against the selected Local Node archive before
+creating the conformance fixture and again after Saved. It uses the same Node,
+npm, tar and controlled HTTPS fixture as checkout conformance.
 
 The case supplies a registration, connection, resource and independent field
 schema, one structured Program returning `rows`, and its bound parameters

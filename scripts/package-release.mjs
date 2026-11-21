@@ -3,12 +3,15 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, packClientPackages, packedClientPackage} from './packed-client-packages.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
+import {inventory} from './package-inventory.mjs';
+
+export {inventory} from './package-inventory.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -54,26 +57,6 @@ export function releasePackageMetadata(original, name, cohort) {
   }
   for (const lifecycle of ['preinstall', 'install', 'postinstall']) assert.equal(manifest.scripts?.[lifecycle], undefined);
   return manifest;
-}
-
-export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
-  assert.equal(typeof ignoreInstalledDependencies, 'boolean');
-  const files = [];
-  for (const name of (await readdir(directory)).sort()) {
-    // Only the public consumer asks to separate npm's installed dependency
-    // subtree from this package's own frozen payload. Archive checks never do.
-    if (ignoreInstalledDependencies && prefix === '' && name === 'node_modules') continue;
-    const path = join(directory, name), relative = prefix + name;
-    const stat = await lstat(path);
-    assert(!stat.isSymbolicLink(), `Release payload symlink: ${relative}`);
-    if (stat.isDirectory()) files.push(...await inventory(path, `${relative}/`));
-    else {
-      assert(stat.isFile(), `Non-file payload: ${relative}`);
-      files.push({path: relative, bytes: stat.size, mode: stat.mode & 0o777,
-        sha256: hash(await readFile(path))});
-    }
-  }
-  return files;
 }
 
 export async function unpack(archive, destination, {rootName = 'package'} = {}) {
