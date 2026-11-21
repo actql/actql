@@ -9,7 +9,8 @@ import {cidPattern, exactKeys, fail, readBounded} from './publication-store-io.m
 
 type CodedCause = Readonly<{code?: unknown; cleanupHandle?: Readonly<{status?: unknown; retry?: unknown}>}> | null | undefined;
 type CleanupStatus = ReturnType<NonNullable<ActivePhysicalRecordWriter['cleanup']>['status']>;
-type DeliveryAttemptData = Readonly<Record<string, unknown>> & Readonly<{
+export type DeliveryAttemptData = Readonly<Record<string, unknown>> & Readonly<{
+  delivery_attempt_cid: string;
   run_definition_cid: string;
   result_read_grant_cid: string;
   result_manifest_cid: string;
@@ -27,7 +28,8 @@ type GrantData = Readonly<{
   max_uses: number;
   results: readonly Readonly<{result_name: string; result_artifact_cid: string}>[];
 }>;
-type DeliveryRecordData = Readonly<{
+export type DeliveryRecordData = Readonly<{
+  delivery_record_cid: string;
   delivery_attempt_cid: string;
   sequence: number;
   state: string;
@@ -59,7 +61,20 @@ type RecoveredClaim<Contract> = Readonly<{
   streamingRecord?: DeliveryRecordData;
 }>;
 type DeliveryStart<Contract> = Readonly<{original: unknown; streaming: Contract}>;
-type StoredProgress = {runCid: string; phase: 'preparing' | 'installed' | 'failed'};
+export type DeliveryCompletionEntry = Readonly<{
+  attempt_cid: string;
+  prior_cid: string;
+  record_cid: string;
+  record_wire: string;
+  receipt_cid: string;
+  receipt_wire: string;
+}>;
+export type StoredProgress<Contract> = {
+  runCid: string;
+  phase: 'preparing' | 'installed' | 'failed';
+  recordDirectoryAcknowledged?: boolean;
+  completion?: Readonly<{attempt: Contract; receipt: Contract; contract: Contract; entry: DeliveryCompletionEntry}>;
+};
 type DeliveryClaimIndex = Readonly<{
   lookup(key: string): IndexedClaim | undefined;
   claim(row: ClaimRow, maxUses: number, initialWire?: string, initialCid?: string): Readonly<{created: boolean}>;
@@ -89,7 +104,7 @@ export function createDeliveryAttemptStore<Contract extends PublicationContract>
   contractControl: object,
   readDeliveryOriginal: ReadDeliveryOriginal<Contract> | undefined,
   deliveryStartTransition: (previous: undefined, current: Contract) => unknown,
-  deliveryStarts: Map<string, StoredProgress>,
+  deliveryStarts: Map<string, StoredProgress<Contract>>,
   activePhysicalRecordWriters: Set<ActivePhysicalRecordWriter>,
   {active, currentDeliveryIndex, contractPath, deliveryAttemptPath, exactUtf8WireMatches, syncDirectory,
     runMetadataDeletionStarted, putSemanticBatch, admitContract, parseContract, nativeDeliveryContract, readContract,
@@ -264,7 +279,7 @@ export function createDeliveryAttemptStore<Contract extends PublicationContract>
     return {attemptContract,attempt,grantContract,grant};
   };
 
-  const enqueueDeliveryAdmission = <Result,>(action: () => Promise<Result>) => {
+  const enqueueDeliveryAdmission = <Result,>(action: () => Result | PromiseLike<Result>) => {
     active();
     const operation = deliveryAdmissionBusy.then(action);
     deliveryAdmissionBusy = operation.catch(() => {});
@@ -297,7 +312,7 @@ export function createDeliveryAttemptStore<Contract extends PublicationContract>
     }
     if (currentDeliveryIndex() === undefined) fail('DeliveryAttemptIndexUnavailable');
     const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
-    const progress: StoredProgress | undefined = initial === undefined ? undefined :
+    const progress: StoredProgress<Contract> | undefined = initial === undefined ? undefined :
       {runCid:attempt.run_definition_cid,phase:'preparing'};
     if (progress !== undefined) deliveryStarts.set(admitted.identity,progress);
     try {

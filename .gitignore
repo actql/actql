@@ -1545,3 +1545,5 @@ target/
 /adapters/store-local/publication-progress.d.mts
 /adapters/store-local/delivery-attempt-store.mjs
 /adapters/store-local/delivery-attempt-store.d.mts
+/adapters/store-local/delivery-record-store.mjs
+/adapters/store-local/delivery-record-store.d.mts

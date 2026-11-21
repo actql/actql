@@ -48,6 +48,7 @@ import {createPublicationResultMetadata} from './publication-result-metadata.mjs
 import {createPublicationContractStore} from './publication-contract-store.mjs';
 import {createPublicationProgress} from './publication-progress.mjs';
 import {createDeliveryAttemptStore} from './delivery-attempt-store.mjs';
+import {createDeliveryRecordStore} from './delivery-record-store.mjs';
 import {createPublicationTrustedClock} from './publication-trusted-clock.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
@@ -572,7 +573,6 @@ async function openOriginalLocalPublicationStore(
   const durablyConfirmedIndexes = new Map();
   // One bounded durability observation, not a retained contract or Allow.
   // Each public confirmation still acquires and checks its selected record.
-  let lastConfirmedDeliveryRecord;
   let lastConfirmedManifestRead;
   let manifestReadAdmissionBusy = Promise.resolve();
   let materialRetentionBusy = Promise.resolve();
@@ -1748,247 +1748,13 @@ async function openOriginalLocalPublicationStore(
     return operation;
   };
 
-  const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth, retainedBirthValue) => {
-    active();
-    const completed=deliveryIndex?.completion(attemptCid);
-    if(completed!==undefined) {
-      const retained=original?.contract;
-      const contract=retained?.identity===completed.record_cid && retained.wire===completed.record_wire
-        ? retained : admitContract('delivery_record',completed.record_wire);
-      const record=parseContract(contract);
-      if(contract.identity!==completed.record_cid || record.delivery_attempt_cid!==attemptCid ||
-          record.sequence!==1 || record.state!=='succeeded' || record.result_delivery_receipt_cid!==completed.receipt_cid) {
-        fail('InvalidDeliveryAttemptIndex');
-      }
-      return contract;
-    }
-    const directory = deliveryAttemptPath(attemptCid);
-    const row = deliveryIndex?.attempt(attemptCid);
-    let initial;
-    if (row?.initial_cid != null) {
-      initial = retainedBirth ?? admitContract('delivery_record',row.initial_wire);
-      const record = retainedBirthValue ?? parseContract(initial);
-      if (initial.identity !== row.initial_cid || initial.wire !== row.initial_wire ||
-          record.delivery_attempt_cid !== attemptCid || record.sequence !== 0 || record.state !== 'streaming') {
-        fail('InvalidDeliveryAttemptIndex');
-      }
-    }
-    let entries;
-    try {entries = await readdir(directory);}
-    catch(error) {if(error?.code !== 'ENOENT' || initial === undefined) throw error; entries=[];}
-    if (entries.some(name => name !== 'attempt.json' &&
-        !recordNamePattern.test(name))) {
-      fail('InvalidDeliveryRecord');
-    }
-    const names = entries
-      .filter(name => recordNamePattern.test(name))
-      .map(name => ({name, sequence: Number(name.slice(0, -5))}))
-      .filter(value => Number.isSafeInteger(value.sequence))
-      .sort((left, right) => left.sequence - right.sequence);
-    if (names.length === 0) return initial;
-    for (let index = 0; index < names.length; index++) {
-      if (names[index].sequence !== index + (initial === undefined ? 0 : 1)) fail('DeliveryRecordGap');
-    }
-    const bytes = await readBounded(
-      resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
-    );
-    const retained = original?.contract;
-    if (original !== undefined) original.bytes = bytes;
-    // An append already admitted its immutable input. Equal canonical bytes
-    // are the same fact in this operation, not a second contract admission.
-    if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {
-      return retained;
-    }
-    try {
-      return admitContract('delivery_record', bytes.toString('utf8'));
-    } catch (error) {
-      fail('InvalidDeliveryRecord', error);
-    }
-  };
-
-  const latestDeliveryRecordContract = attemptCid =>
-    readLatestDeliveryRecordContract(attemptCid);
-
-  const latestDeliveryRecord = async attemptCid => {
-    const contract = await latestDeliveryRecordContract(attemptCid);
-    return contract === undefined ? undefined : parseContract(contract);
-  };
-
-  const confirmDeliveryRecord = async suppliedWire => {
-    active();
-    const contract = admitContract('delivery_record', suppliedWire);
-    const record = parseContract(contract);
-    return confirmAdmittedDeliveryRecord(contract, record, false);
-  };
-
-  const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {
-    if(deliveryIndex?.confirmRecord(record.delivery_attempt_cid,contract.identity,contract.wire)===true) return record;
-    const directory = deliveryAttemptPath(record.delivery_attempt_cid);
-    const target = resolve(directory, `${record.sequence}.json`);
-    let previousBytes = Buffer.isBuffer(observed) ? observed : undefined;
-    const matches = bytes => {
-      if (exactUtf8WireMatches(bytes, contract.wire)) return true;
-      // Preserve existing admission of another valid wire spelling. Only a
-      // distinct acquired wire needs this fallback; identical rereads reuse it.
-      const admitted = admitContract('delivery_record', bytes.toString('utf8'));
-      return admitted.identity === contract.identity && admitted.wire === contract.wire;
-    };
-    if (observed === false) {
-      let bytes;
-      try { bytes = await readBounded(target, configuration.maxObjectBytes); }
-      catch (error) {
-        if (error?.code === 'ENOENT') fail('DeliveryRecordMissing', error);
-        throw error;
-      }
-      if (!matches(bytes)) fail('DeliveryRecordConflict');
-      previousBytes = bytes;
-    }
-    if (previousBytes !== undefined &&
-        lastConfirmedDeliveryRecord === contract.identity) return record;
-    // A directory entry may be visible before its containing directory is
-    // durable. Unless this Store already confirmed this immutable record,
-    // sync its directory and check the same original before acknowledging it.
-    await syncDirectory(directory);
-    const confirmed = await readBounded(
-      target, configuration.maxObjectBytes,
-    );
-    // The input was admitted once. Trusted I/O and its directory ACK do not
-    // require parsing/hashing identical bytes again; changed bytes still fail.
-    if (!(previousBytes !== undefined && confirmed.equals(previousBytes)) &&
-        !matches(confirmed)) {
-      fail('DeliveryRecordDurabilityMismatch');
-    }
-    lastConfirmedDeliveryRecord = contract.identity;
-    return record;
-  };
-
-  const appendDeliveryRecord = async suppliedWire => {
-    active();
-    const contract = admitContract('delivery_record', suppliedWire);
-    return enqueueDeliveryAdmission(()=>appendAdmittedDeliveryRecord(contract));
-  };
-
-  const appendDeliveryCompletion = async (attempt, receipt, contract) => {
-    active();
-    for (const [original, name, identityField] of [
-      [attempt, 'delivery_attempt', 'delivery_attempt_cid'],
-      [receipt, 'result_delivery_receipt', 'result_delivery_receipt_cid'],
-      [contract, 'delivery_record', 'delivery_record_cid'],
-    ]) {
-      if (!exactKeys(original, ['name', 'identityField', 'identity', 'wire']) ||
-          !Object.isFrozen(original) || original.name !== name ||
-          original.identityField !== identityField || !cidPattern.test(original.identity) ||
-          typeof original.wire !== 'string' ||
-          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
-        fail('InvalidDeliverySuccessEvidence');
-      }
-    }
-    let valid = false;
-    try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }
-    catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
-    if (!valid) fail('InvalidDeliverySuccessEvidence');
-    const record = parseContract(contract);
-    if (record.state !== 'succeeded') fail('InvalidDeliverySuccessEvidence');
-    return enqueueDeliveryAdmission(()=>{
-      const progress=deliveryStarts.get(attempt.identity), pending=progress?.completion;
-      if(pending!==undefined) {
-        if(pending.attempt!==attempt || pending.receipt!==receipt || pending.contract!==contract) {
-          fail('ResultDeliveryAttemptUnresolved');
-        }
-        deliveryIndex.complete(pending.entry);
-        progress.completion=undefined;
-        return record;
-      }
-      return appendAdmittedDeliveryRecord(contract, {attempt, receipt, record});
+  const {readLatestDeliveryRecordContract, latestDeliveryRecordContract, latestDeliveryRecord,
+    confirmDeliveryRecord, appendDeliveryRecord, appendDeliveryCompletion} =
+    createDeliveryRecordStore(configuration, deliveriesDirectory, recordNamePattern, contractControl, deliveryStarts, {
+      active, currentDeliveryIndex, contractPath, deliveryAttemptPath, exactUtf8WireMatches, syncDirectory,
+      runMetadataDeletionStarted, putSemantic, putSemanticBatch, admitContract, parseContract, enqueueDeliveryAdmission,
+      readDeliveryAttemptContract, readContract, readSemanticBytes,
     });
-  };
-
-  const appendAdmittedDeliveryRecord = async (contract, completion) => {
-    const suppliedReceipt = completion?.receipt;
-    const record = completion?.record ?? parseContract(contract);
-    const directory = deliveryAttemptPath(record.delivery_attempt_cid);
-    const attemptContract = await readDeliveryAttemptContract(
-      record.delivery_attempt_cid, completion?.attempt,
-    );
-    const attempt = parseContract(attemptContract);
-    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
-      fail('PublicationMetadataDeleted');
-    }
-    const original = {contract, bytes: undefined};
-    const previous = await readLatestDeliveryRecordContract(
-      record.delivery_attempt_cid, original,
-    );
-    if (completion !== undefined && attemptContract !== completion.attempt) {
-      let valid = false;
-      try {
-        valid = record.state === 'succeeded' &&
-          contractControl.deliverySuccessValid(attemptContract, suppliedReceipt, contract) === true;
-      } catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
-      if (!valid) fail('InvalidDeliverySuccessEvidence');
-    }
-    if (previous?.identity === contract.identity) {
-      if (suppliedReceipt !== undefined && !exactUtf8WireMatches(
-        await readSemanticBytes(suppliedReceipt.identity), suppliedReceipt.wire,
-      )) fail('InvalidDeliverySuccessEvidence');
-      return confirmAdmittedDeliveryRecord(contract, record, original.bytes);
-    }
-    if (contractControl.deliveryTransition(previous, contract) !== true) {
-      fail('InvalidDeliveryRecordTransition');
-    }
-    if (attempt.delivery_attempt_cid !== record.delivery_attempt_cid) {
-      fail('DeliveryAttemptMismatch');
-    }
-    if (record.state === 'succeeded' && suppliedReceipt === undefined) {
-      const receipt = (await readContract(
-        record.result_delivery_receipt_cid,
-        'result_delivery_receipt',
-      )).contract;
-      if (contractControl.deliverySuccessValid(
-        attemptContract, receipt, contract,
-      ) !== true) {
-        fail('InvalidDeliverySuccessEvidence');
-      }
-    }
-    const native=deliveryIndex?.attempt(record.delivery_attempt_cid);
-    if(completion!==undefined && record.sequence===1 && native?.initial_cid===previous?.identity) {
-      const progress=deliveryStarts.get(record.delivery_attempt_cid) ?? {runCid:attempt.run_definition_cid,phase:'installed'};
-      deliveryStarts.set(record.delivery_attempt_cid,progress);
-      const entry=Object.freeze({attempt_cid:record.delivery_attempt_cid,prior_cid:previous.identity,
-        record_cid:contract.identity,record_wire:contract.wire,
-        receipt_cid:suppliedReceipt.identity,receipt_wire:suppliedReceipt.wire});
-      try {deliveryIndex.complete(entry);}
-      catch(error) {
-        // Retain these SAME nominal inputs for storage-only finalization.
-        // A retry cannot send again, reissue a receipt or replace this duty.
-        progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});
-        throw error;
-      }
-      return record;
-    }
-    if (suppliedReceipt === undefined) await putSemantic(contract.wire, contract.identity);
-    else await putSemanticBatch([suppliedReceipt, contract].map(value => ({
-      wire: value.wire, semanticCid: value.identity,
-    })));
-    const target = resolve(directory, `${record.sequence}.json`);
-    // Native START has no alias directory. Its first later record owns this
-    // directory ACK; a failed ACK remains pending even when mkdir is visible.
-    const start=deliveryStarts.get(record.delivery_attempt_cid);
-    if(deliveryIndex?.attempt(record.delivery_attempt_cid)?.initial_cid != null &&
-        start?.recordDirectoryAcknowledged !== true) {
-      try {await mkdir(directory,{mode:0o700});}
-      catch(error) {if(error?.code!=='EEXIST') throw error;}
-      await syncDirectory(deliveriesDirectory);
-      const progress=start ?? {runCid:attempt.run_definition_cid,phase:'installed'};
-      progress.recordDirectoryAcknowledged=true;
-      deliveryStarts.set(record.delivery_attempt_cid,progress);
-    }
-    try { await link(contractPath(record.delivery_record_cid), target); }
-    catch (error) {
-      if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
-      throw error;
-    }
-    return confirmAdmittedDeliveryRecord(contract, record, true);
-  };
 
   const selectedPublicationReads = new WeakMap();
   const {admitNativeIndexOriginal, inspectCommittedIndexRaw, inspectCommittedIndex, confirmCommittedIndex,

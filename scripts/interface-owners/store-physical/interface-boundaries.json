@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6c69a503142a58fa4c61426ee19c269ceca086f74e2d3f83e22d7ab275d69ca8",
+      "sha256": "6f0c4bf167fd745f5b0600ee49da278f258bf6384a0622eb2cd2836eb8d84ce8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6277,39 +6277,6 @@
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion",
-          "parameters": [
-            "attempt",
-            "receipt",
-            "contract"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
-          "parameters": [
-            "suppliedWire"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
@@ -6593,13 +6560,6 @@
           "parameters": [
             "captured",
             "definition"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
-          "parameters": [
-            "suppliedWire"
           ],
           "async": true
         },
@@ -7011,20 +6971,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
-          "parameters": [
-            "attemptCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-          "parameters": [
-            "attemptCid"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
           "parameters": [
             "materialCid"
@@ -7325,52 +7271,6 @@
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames/syncNames#2",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-          "parameters": [
-            "attemptCid",
-            "original",
-            "retainedBirth",
-            "retainedBirthValue"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -7702,10 +7602,7 @@
       "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
       "contracts": [
         {
-          "operations": [
-            "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
-            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -7724,8 +7621,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const appendDeliveryCompletion = async (attempt: Contract, receipt: Contract, contract: Contract) => {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -7738,7 +7635,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-record-store.mts",
                 "anchor": "try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }"
               },
               {
@@ -8011,7 +7908,6 @@
             "nativePublicationContract/nativePublicationContract",
             "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
-            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
@@ -8045,7 +7941,6 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
@@ -8096,8 +7991,6 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
-            "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
-            "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
@@ -8116,12 +8009,6 @@
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
@@ -10506,8 +10393,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {"
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const confirmAdmittedDeliveryRecord = async (contract: Contract, record: DeliveryRecordData, observed: boolean | Buffer | undefined) => {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10520,7 +10407,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-record-store.mts",
                 "anchor": "if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {"
               },
               {
@@ -10534,8 +10421,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = {contract, bytes: undefined};"
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const original: OriginalRecordRead<Contract> = {contract, bytes: undefined};"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10562,7 +10449,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/delivery-record-store.mts",
                 "anchor": "fail('DeliveryRecordDurabilityMismatch');"
               },
               {
@@ -10931,8 +10818,6 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
-            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic"
           ],
@@ -10970,8 +10855,8 @@
                 "anchor": "const nativeDeliveryContract = (cid: string, name?: string, retained?: Contract) =>"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const appendDeliveryCompletion = async (attempt: Contract, receipt: Contract, contract: Contract) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11070,8 +10955,8 @@
                 "anchor": "delivery index preserves an actual committed claim after its reply is lost"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});"
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt!,contract,entry});"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -11752,6 +11637,235 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/delivery-record-store.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e0ff1225de13e8acea92f688380116c33976ddeab41c0a16e8e90ec3fba3a09c",
+      "exports": [
+        "createDeliveryRecordStore"
+      ],
+      "operations": [
+        {
+          "name": "createDeliveryRecordStore",
+          "parameters": [
+            "configuration",
+            "deliveriesDirectory",
+            "recordNamePattern",
+            "contractControl",
+            "deliveryStarts",
+            "active",
+            "currentDeliveryIndex",
+            "contractPath",
+            "deliveryAttemptPath",
+            "exactUtf8WireMatches",
+            "syncDirectory",
+            "runMetadataDeletionStarted",
+            "putSemantic",
+            "putSemanticBatch",
+            "admitContract",
+            "parseContract",
+            "enqueueDeliveryAdmission",
+            "readDeliveryAttemptContract",
+            "readContract",
+            "readSemanticBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/appendDeliveryCompletion/appendDeliveryCompletion",
+          "parameters": [
+            "attempt",
+            "receipt",
+            "contract"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryRecordStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/appendDeliveryRecord/appendDeliveryRecord",
+          "parameters": [
+            "suppliedWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryRecordStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/confirmDeliveryRecord/confirmDeliveryRecord",
+          "parameters": [
+            "suppliedWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryRecordStore/latestDeliveryRecord/latestDeliveryRecord",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryRecordStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
+          "parameters": [
+            "attemptCid",
+            "original",
+            "retainedBirth",
+            "retainedBirthValue"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createDeliveryRecordStore",
+            "createDeliveryRecordStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+            "createDeliveryRecordStore/appendDeliveryCompletion/appendDeliveryCompletion",
+            "createDeliveryRecordStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
+            "createDeliveryRecordStore/appendDeliveryRecord/appendDeliveryRecord",
+            "createDeliveryRecordStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
+            "createDeliveryRecordStore/confirmDeliveryRecord/confirmDeliveryRecord",
+            "createDeliveryRecordStore/latestDeliveryRecord/latestDeliveryRecord",
+            "createDeliveryRecordStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
+            "createDeliveryRecordStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract"
+          ],
+          "exports": [
+            "createDeliveryRecordStore"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Indexed delivery claims and coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "const readLatestDeliveryRecordContract = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "pending.attempt!==attempt || pending.receipt!==receipt || pending.contract!==contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "Retain these SAME nominal inputs for storage-only finalization."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "lastConfirmedDeliveryRecord = contract.identity;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "fail('DeliveryRecordDurabilityMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "if (await runMetadataDeletionStarted(attempt.run_definition_cid))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "currentDeliveryIndex()!.complete(pending.entry);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/delivery-record-store.mts",
+                "anchor": "Native START has no alias directory."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "delivery record confirmation refuses changed original bytes after its ACK"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/delivery-attempt-store.mjs",
