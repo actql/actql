@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {Buffer as OriginalBuffer} from 'node:buffer';
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
   from '../host-node/host-journal-directory.mjs';
+import type {createPublicationCustodyRecords} from './publication-custody-records.mjs';
 import {exactKeys, fail, quantity, readBounded} from './publication-store-io.mjs';
 
 type BootstrapCloseStatus = Readonly<{pending: boolean}>;
@@ -143,4 +144,167 @@ export async function removeOpeningTree(path: string,
     }
     await rmdir(path);
   } else await unlink(path);
+}
+
+type OpeningNamespaces = Readonly<{
+  stagingDirectory: string;
+  custodyDirectory: string;
+  preparedSchemasDirectory: string;
+  metadataDeletionsDirectory: string;
+  physicalHoldingDeletionsDirectory: string;
+  clocksDirectory: string;
+}>;
+
+export async function readOpeningStoreInventory(
+  {stagingDirectory, custodyDirectory, preparedSchemasDirectory, metadataDeletionsDirectory,
+    physicalHoldingDeletionsDirectory, clocksDirectory}: OpeningNamespaces,
+  custodyNamePattern: RegExp,
+  readOpeningDirectory: (path: string) => Promise<readonly string[]>,
+  syncDirectory: (path: string) => unknown,
+) {
+  let removedStaging = false;
+  for (const name of await readOpeningDirectory(stagingDirectory)) {
+    const path = resolve(stagingDirectory, name);
+    if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
+        !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationStagingObject');
+    }
+    await unlink(path);
+    removedStaging = true;
+  }
+  if (removedStaging) await syncDirectory(stagingDirectory);
+
+  for (const name of await readOpeningDirectory(custodyDirectory)) {
+    const path = resolve(custodyDirectory, name);
+    if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationPreparedCustody');
+    }
+  }
+  // Opening only observes these names. The selected custody recovery below
+  // owns any actual unlink and its acknowledgement.
+  let removedSchemaStaging = false;
+  for (const name of await readOpeningDirectory(preparedSchemasDirectory)) {
+    const path = resolve(preparedSchemasDirectory, name);
+    if (/^\.staging-[0-9a-f-]{36}\.json$/u.test(name)) {
+      await unlink(path);
+      removedSchemaStaging = true;
+      continue;
+    }
+    if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationPreparedSchema');
+    }
+  }
+  if (removedSchemaStaging) await syncDirectory(preparedSchemasDirectory);
+
+  // Delivery coverage and pending recovery below own the selected entries.
+  // Ordinary opens must not enumerate every historical delivery directory.
+  // Manifest use admission and legacy staging recovery belong to the selected
+  // grant. Committed grants are not another all-history opening inventory.
+  const openingMetadataDeletionNames: string[] = [];
+  let removedMetadataStaging = false;
+  for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
+    const path = resolve(metadataDeletionsDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await unlink(path);
+      removedMetadataStaging = true;
+      continue;
+    }
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(resolve(metadataDeletionsDirectory, name))).isFile()) {
+      fail('InvalidPublicationMetadataDeletionStore');
+    }
+    openingMetadataDeletionNames.push(name);
+  }
+  if (removedMetadataStaging) await syncDirectory(metadataDeletionsDirectory);
+  // Immutable holdings are checked through their selected original FD, not
+  // by enumerating all committed names at every open. Pending deletion
+  // records still require bounded opening admission and actual recovery.
+  for (const name of await readOpeningDirectory(physicalHoldingDeletionsDirectory)) {
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(resolve(physicalHoldingDeletionsDirectory, name))).isFile()) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+  }
+  // Each selected extension reader owns its directory types, complete chain
+  // and actual Result-directory ACK. Unrelated committed histories are not
+  // another ordinary opening admission or durability transition.
+  // Result deletion recovery owns its bounded names only after the native
+  // lifecycle reports unfinished or legacy cleanup, not on every clean open.
+  let removedClockStaging = false;
+  for (const name of await readOpeningDirectory(clocksDirectory)) {
+    const path = resolve(clocksDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await rm(path, {force: false});
+      removedClockStaging = true;
+      continue;
+    }
+    // The selected clock reader owns its actual file/type/checksum admission.
+    // Opening retains only name admission and legacy staging cleanup here.
+    if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+      fail('InvalidPublicationClockObservation');
+    }
+  }
+  if (removedClockStaging) await syncDirectory(clocksDirectory);
+  return openingMetadataDeletionNames;
+}
+
+type ReclaimNativePreparation = ReturnType<typeof createPublicationCustodyRecords>['reclaimNativePreparation'];
+type RecoverStorePorts = Readonly<{
+  initializeDeliveryIndex(): Promise<void>;
+  currentDeliveryIndex(): Readonly<{pendingPhysicalObjects(): readonly Parameters<ReclaimNativePreparation>[0][]}> | undefined;
+  reclaimNativePreparation: ReclaimNativePreparation;
+  recoverPreparedCustodies(): Promise<unknown>;
+  recoverPreparedSchemas(): Promise<unknown>;
+  recoverPhysicalHoldingDeletions(): Promise<unknown>;
+  recoverUncommittedPublications(): Promise<unknown>;
+  recoverRetiredResults(): Promise<unknown>;
+  recoverRetiredMetadata(): Promise<unknown>;
+}>;
+
+export async function recoverPublicationStoreOnOpen(
+  configuration: Readonly<{capacityBytes: number; maxObjects: number}>,
+  capacityUsage: Readonly<{storedBytes: number; objectCount: number}>,
+  {initializeDeliveryIndex, currentDeliveryIndex, reclaimNativePreparation, recoverPreparedCustodies,
+    recoverPreparedSchemas, recoverPhysicalHoldingDeletions, recoverUncommittedPublications, recoverRetiredResults,
+    recoverRetiredMetadata}: RecoverStorePorts,
+) {
+  // Immutable holding bodies are admitted at their selected read. Pending
+  // deletion recovery below still owns its exact records and original ACKs;
+  // unrelated history is not another ordinary opening admission boundary.
+  // Recover process-crash custody before accepting new Store work. A
+  // committed or shared allocation survives; an unpublished allocation is
+  // reclaimed using its exact recorded generation.
+  // Native publication bodies and their persisted capacity are available to
+  // the same targeted recovery/retirement paths as legacy file originals.
+  await initializeDeliveryIndex();
+  const physicalPreparations = currentDeliveryIndex()!.pendingPhysicalObjects();
+  for (const original of physicalPreparations) await reclaimNativePreparation(original);
+  if(capacityUsage.storedBytes>configuration.capacityBytes||capacityUsage.objectCount>configuration.maxObjects) {
+    fail('PublicationStoreCapacity');
+  }
+  await recoverPreparedCustodies();
+  await recoverPreparedSchemas();
+  // A crash between semantic alias creation and physical-custody handoff
+  // leaves both records. Revisit physical custody after alias reclamation.
+  await recoverPreparedCustodies();
+
+  // A retiring Transfer holding is unavailable before physical reclamation.
+  // Recovery resumes the exact durable cleanup without treating an absent
+  // object name as proof that another live holding was released.
+  await recoverPhysicalHoldingDeletions();
+
+  // A terminal attempt that never won the public index retains an exact
+  // inventory until every unshared metadata allocation is durably reclaimed.
+  // Live and outcome-unknown attempts remain available for legal retry.
+  await recoverUncommittedPublications();
+
+  // Reconcile durable deletion markers before accepting new Store work. A
+  // failed physical cleanup remains owned by the returned Store and can be
+  // retried without making the deleted Result visible again.
+  await recoverRetiredResults();
+
+  // Metadata deletion markers hide the public index before physical cleanup.
+  // Restart resumes every exact contract and payload responsibility recorded
+  // by the marker rather than treating an absent index as successful cleanup.
+  await recoverRetiredMetadata();
 }

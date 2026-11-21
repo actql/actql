@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7faafd718cf0f11e5e5fd540e9faba5968573e918ba722e97a4dcad19050cdd8",
+      "sha256": "eb70bd660c8e99ce4bf92104858296b7f0d7e16ac4cad872f2253031636d1747",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -20260,9 +20260,11 @@
     {
       "module": "adapters/store-local/publication-store-bootstrap.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "115b57eb6cab469380e2bbb57f18b90cfcece27d6ce6c37b3939c3ed31d835d2",
+      "sha256": "36a4b733dccd09f74ed7d1ee43b9738f7fb33393b69ddd1c6dc29b2ce954d13a",
       "exports": [
         "processIsAlive",
+        "readOpeningStoreInventory",
+        "recoverPublicationStoreOnOpen",
         "removeOpeningTree",
         "storeBootstrapAcquisition"
       ],
@@ -20271,6 +20273,38 @@
           "name": "processIsAlive",
           "parameters": [
             "pid"
+          ],
+          "async": true
+        },
+        {
+          "name": "readOpeningStoreInventory",
+          "parameters": [
+            "stagingDirectory",
+            "custodyDirectory",
+            "preparedSchemasDirectory",
+            "metadataDeletionsDirectory",
+            "physicalHoldingDeletionsDirectory",
+            "clocksDirectory",
+            "custodyNamePattern",
+            "readOpeningDirectory",
+            "syncDirectory"
+          ],
+          "async": true
+        },
+        {
+          "name": "recoverPublicationStoreOnOpen",
+          "parameters": [
+            "configuration",
+            "capacityUsage",
+            "initializeDeliveryIndex",
+            "currentDeliveryIndex",
+            "reclaimNativePreparation",
+            "recoverPreparedCustodies",
+            "recoverPreparedSchemas",
+            "recoverPhysicalHoldingDeletions",
+            "recoverUncommittedPublications",
+            "recoverRetiredResults",
+            "recoverRetiredMetadata"
           ],
           "async": true
         },
@@ -20415,6 +20449,82 @@
               {
                 "path": "adapters/store-local/bootstrap-acquisition.test.mjs",
                 "anchor": "Store bootstrap false Dir close is pending"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readOpeningStoreInventory",
+            "recoverPublicationStoreOnOpen"
+          ],
+          "exports": [
+            "readOpeningStoreInventory",
+            "recoverPublicationStoreOnOpen"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "Opening only observes these names."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "return openingMetadataDeletionNames;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "for (const original of physicalPreparations) await reclaimNativePreparation(original);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "const physicalPreparations = currentDeliveryIndex()!.pendingPhysicalObjects();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "if (removedStaging) await syncDirectory(stagingDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "fail('InvalidPublicationStagingObject');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "await recoverRetiredMetadata();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "capacityUsage.storedBytes>configuration.capacityBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "Opening retains only name admission and legacy staging cleanup here."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "opening staging cleanup still acknowledges each actual directory mutation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ordinary opening pending holding recovery retains its actual directory ACK and same cleanup"
               }
             ]
           }
