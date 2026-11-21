@@ -105,9 +105,11 @@ for (const outcome of ['false', 'reject']) {
     let original, cleanup, blocked = true, reads = 0, closes = 0;
     const primary = new Error('OriginalInstallationStoreContractCloseRefused');
     fs.open = async function(path, ...args) {
+      if (path === f.contractPath) {
+        assert.equal(original, undefined, 'a pending observation cannot open a replacement FD');
+      }
       const handle = await Reflect.apply(open, this, [path, ...args]);
       if (path !== f.contractPath) return handle;
-      assert.equal(original, undefined, 'a pending observation cannot open a replacement FD');
       original = handle;
       const close = handle.close, read = handle.read;
       handle.read = function(...readArgs) {
