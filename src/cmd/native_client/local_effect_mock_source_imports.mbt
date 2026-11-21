@@ -261,14 +261,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
           .native_effect_proposal(self.original)
         source.artifacts.push(artifact)
         source.names.push(name)
-        for
-          retained_wire in [
-            @run_host.client_effect_local_result_artifact_json(artifact),
-            @run_host.client_effect_local_result_derivation_json(artifact),
-            @run_host.client_effect_local_result_ordering_json(artifact),
-          ] {
-          construction.retain_wire(self.original, retained_wire)
-        }
+        construction.retain_result_artifact(self.original, artifact, 1024, 20)
         construction.source_snapshot = Some(0L)
         let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
             stream, receipt,

@@ -111,6 +111,36 @@ fn LocalNativeMockEffectImportConstruction::issue_result_definition(
 }
 
 ///|
+// The fixed recipe still funds issuance. After the three sealers return, the
+// retained contracts carry their own canonical tree and wire. Only a depth
+// stack and one extent carrier are added for the sequential backing walk.
+fn LocalNativeMockEffectImportConstruction::retain_result_artifact(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  artifact : @run_host.ClientEffectLocalResultArtifact,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Unit raise ClientStop {
+  let frames = 4L * (max_depth.to_int64() + 1L) + 16L
+  let walk = @execution.preparation_representation_cost({
+    record_headers: 12L + frames,
+    reference_slots: 24L + 4L * frames,
+    scalar_words: 16L + 4L * frames,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(workspace => @execution.execution_capacity(0L, workspace))
+  if !self.prepare_body(original, walk) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  let backing = @run_host.client_effect_local_result_artifact_retained_bytes(
+    artifact, max_nodes, max_depth,
+  ).bind(retained => @execution.execution_capacity(retained, retained))
+  if !self.prepare_body(original, backing) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+}
+
+///|
 // The dependency parser actually normalizes keys. Preserve that constructor's
 // complete inventory, plus its owned wire/UTF8 conversion and body carriers.
 // Dimensions come from an original immutable wire, not business policy.

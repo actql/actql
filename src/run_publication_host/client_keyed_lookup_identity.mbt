@@ -579,7 +579,7 @@ fn grow_keyed_lookup_protocol_metadata(
 // Canonical nodes are conservatively charged as payload-bearing variants;
 // FrozenArray/Array/backing and object entry tuples include spare slots.
 // Contract/evidence control, optional wire-usage tuple and Strings remain.
-fn keyed_lookup_protocol_extent_cost(
+fn publication_protocol_extent_cost(
   extent : @publication.PublicationRepresentationExtent,
 ) -> Int64? {
   @execution.canonical_preparation_retained_bytes(
@@ -685,7 +685,7 @@ fn finish_keyed_lookup_protocol_metadata(
       Ok(value) => value
       Err(issue) => return Err(Identity(@publication.Contract(issue)))
     }
-    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+    guard publication_protocol_extent_cost(extent) is Some(bytes) &&
       @execution.checked_preparation_add_product(retained, bytes, 1L)
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))
@@ -700,7 +700,7 @@ fn finish_keyed_lookup_protocol_metadata(
       Ok(value) => value
       Err(issue) => return Err(Identity(@publication.Contract(issue)))
     }
-    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+    guard publication_protocol_extent_cost(extent) is Some(bytes) &&
       @execution.checked_preparation_add_product(retained, bytes, 1L)
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))

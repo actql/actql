@@ -751,6 +751,8 @@ pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact)
 
 pub fn client_effect_local_result_artifact_matches_public_result(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
 
+pub fn client_effect_local_result_artifact_retained_bytes(ClientEffectLocalResultArtifact, Int, Int) -> Int64?
+
 pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
 
 pub fn client_effect_local_result_definition_construction_geometry(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalResultDefinitionIssue]

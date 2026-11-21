@@ -446,6 +446,47 @@ pub fn client_effect_local_result_artifact_contract(
 }
 
 ///|
+/// The original issuer has returned. Measure only its retained contracts
+/// and control records, borrowing the unchanged inputs and export receipt.
+/// Caller funds the depth-bounded extent walk before entering this function.
+pub fn client_effect_local_result_artifact_retained_bytes(
+  value : ClientEffectLocalResultArtifact,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int64? {
+  guard value.content_references is None else { return None }
+  // Artifact, custody/source variants, optional contract borrows, and
+  // ordering evidence. The physical CID already belongs to the receipt.
+  let options = (if value.run_invocation is Some(_) { 1L } else { 0L }) +
+    (if value.scope is Some(_) { 1L } else { 0L })
+  let mut retained = @execution.preparation_representation_cost({
+    record_headers: 4L + options,
+    reference_slots: 16L + options,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  for
+    contract in [
+      value.artifact,
+      @publication.result_ordering_derivation_contract(value.evidence),
+      @publication.result_ordering_evidence_contract(value.evidence),
+    ] {
+    guard @publication.publication_contract_representation_extent(
+        contract, max_nodes, max_depth, 2147483647,
+      )
+      is Ok(extent) &&
+      publication_protocol_extent_cost(extent) is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return None
+    }
+    retained = total
+  }
+  Some(retained)
+}
+
+///|
 pub fn client_effect_local_artifact_definition_cid(
   value : ClientEffectLocalResultArtifact,
 ) -> String {

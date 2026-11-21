@@ -791,6 +791,35 @@ fn combined_source_unit_completed_fixture(
         }
         assert_eq(@utf8.encode(actual[index]).length(), geometry.bytes + extra)
       }
+      let mut max_nodes = 0
+      let mut max_depth = 0
+      let mut wire_units = 0L
+      for index in 1..<geometries.length() {
+        let (_, body) = geometries[index]
+        // Each original seal adds exactly one scalar self-CID field.
+        max_nodes = Int::max(max_nodes, body.nodes + 1)
+        max_depth = Int::max(max_depth, body.depth)
+        wire_units += actual[index].length().to_int64()
+      }
+      let retained = client_effect_local_result_artifact_retained_bytes(
+        artifact, max_nodes, max_depth,
+      ).unwrap()
+      assert_true(retained > 2L * wire_units)
+      assert_true(
+        client_effect_local_result_artifact_retained_bytes(
+          artifact,
+          max_nodes - 1,
+          max_depth,
+        )
+        is None,
+      )
+      assert_true(
+        physical_equal(
+          client_effect_local_relation_export_receipt(artifact),
+          receipt,
+        ),
+      )
+      assert_eq(client_effect_local_result_artifact_json(artifact), actual[3])
       assert_eq(
         @utf8.encode(client_effect_local_manifest_json(manifest.unwrap())).length(),
         manifest_geometry.unwrap().bytes,
