@@ -523,7 +523,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "ec6e06e94fd285bea545c174fec8121a83202e34c124f714991c12ce77b58caf",
+      "sha256": "e55e6fce66c589bedd8dcf4aa7df06f8ee74da66e33f9ae7295ec5a7790e0235",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -698,7 +698,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/init:capacity/init:capacity",
+          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/identity#2",
           "parameters": [],
           "async": false
         },
@@ -772,28 +772,6 @@
         {
           "name": "loadInstalledHubSpotSource/targets/targets#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
-          "parameters": [
-            "n",
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
-          "parameters": [
-            "view"
-          ],
           "async": false
         },
         {
@@ -880,7 +858,7 @@
             "loadInstalledHubSpotSource/columnCount/columnCount",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/identity",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/init:capacity/init:capacity",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/identity/identity#2",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/protocolBounds/protocolBounds",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
@@ -892,9 +870,6 @@
             "loadInstalledHubSpotSource/targets/targets/targets",
             "loadInstalledHubSpotSource/targets/targets/targets/targets",
             "loadInstalledHubSpotSource/targets/targets#2",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
-            "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
             "loadInstalledHubSpotSource/view/view",
             "prepareHubSpotMaterials/init:project/init:project",
             "prepareHubSpotMaterials/prepareHubSpotMaterials",
@@ -1025,6 +1000,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs",
                 "anchor": "managed metadata children retain the same parent target and their independent current decisions"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-installation-materials.fixture.mjs",
+                "anchor": "HubSpot standard Source consumes the same shared materials before opening its original Site"
               }
             ]
           }

@@ -114,8 +114,10 @@ class OriginalSDKPayloadReader:
                         self._uncertain_input = None
                     raise
                 self._uncertain_input = None
-                self._core.fill_input(self._input, 0, self._input.length)
-                self._core.seal_input(self._input)
+                # The Common delivery encoder frames the original byte stream
+                # across physical chunks, including partial UTF-8 and JSONL.
+                if self._input.length:
+                    self._core.fill_input(self._input, 0, self._input.length)
                 self._output = self._storage.produce_original_chunk(
                     self._request, self._input, clock, eof=chunk.eof)
                 payload = self._storage.read_original_chunk(
