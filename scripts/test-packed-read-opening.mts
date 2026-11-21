@@ -24,13 +24,13 @@ if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly, effectRecon
 const state = checkoutState(repository);
 if (!state.clean) throw new Error('Build inputs differ from HEAD');
 const names = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
-const tarball = name => `actql-${name}-0.0.0-development.tgz`;
+const tarball = (name: string) => `actql-${name}-0.0.0-development.tgz`;
 const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
   prefix: 'packed-read-opening-', label: 'packed original Delivery lookup',
   digests: () => [...names.map(tarball), 'packed-client-packages.json']});
 const root = scratch.path;
-const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
-function run(command, args, cwd, timeout = 120000) {
+const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: packedNpmCache(root)};
+function run(command: string, args: readonly string[], cwd: string, timeout = 120000) {
   const result = spawnSync(command, args, {cwd, env: environment, encoding: 'utf8', timeout});
   if (result.error || result.status !== 0) {
     throw new Error(`${command} failed (${result.status}):\n${result.stdout}\n${result.stderr}`, {cause: result.error});
@@ -103,9 +103,9 @@ for (const group of selectedGroups) {
   await writeFile(join(root, 'acceptance.log'), logs.join('\n'));
   console.log(output);
   const checked = assertTestExecution('node', process.execPath, args, result);
-  assert.equal(checked.counts.tests, group.count);
-  assert.equal(checked.counts.passed, group.count);
-  passed += checked.counts.passed;
+  assert.equal(checked.counts!.tests, group.count);
+  assert.equal(checked.counts!.passed, group.count);
+  passed += checked.counts!.passed;
 }
 assert.equal(passed, cancellationOnly ? 8 : submissionCustodyOnly ? 6 : submissionRefusalOnly ? 11
   : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 52);

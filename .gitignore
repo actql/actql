@@ -953,3 +953,7 @@ target/
 /scripts/packed-fixture-support.d.mts
 /scripts/test-packed-local-without-duckdb.mjs
 /scripts/test-packed-local-without-duckdb.d.mts
+/scripts/test-packed-read-opening.mjs
+/scripts/test-packed-read-opening.d.mts
+/scripts/fixtures/packed-local-without-duckdb.mjs
+/scripts/fixtures/packed-local-without-duckdb.d.mts

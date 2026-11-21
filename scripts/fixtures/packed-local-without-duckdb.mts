@@ -6,6 +6,14 @@ import {readFile, stat, writeFile} from 'node:fs/promises';
 import {createRequire, registerHooks} from 'node:module';
 import {resolve} from 'node:path';
 import {canonicalJson} from '@actql/sdk/host-port';
+import type {EmbeddedLocalOptions, HostCapacityPolicy, SourceProfilePaths} from '@actql/node';
+import type {Client, RunReference, SubmissionReference} from '@actql/sdk';
+import type {InstallationFailure} from '@actql/local-node/connector-installation';
+
+type FixtureEnvironment = {host_policy_profile: {capacity: HostCapacityPolicy}; evidence_bundle_cid?: string};
+type MissingDependencyFailure = InstallationFailure & {
+  cause: Error & {code: string; cause: {code: string}};
+};
 
 const require = createRequire(import.meta.url);
 const local = createRequire(require.resolve('@actql/local-node'));
@@ -14,7 +22,7 @@ for (const resolver of [require, local]) {
     assert.throws(() => resolver.resolve(name), {code: 'MODULE_NOT_FOUND'});
   }
 }
-const physicalLoads = [];
+const physicalLoads: string[] = [];
 const hook = registerHooks({resolve(specifier, context, next) {
   if (specifier.includes('@duckdb/') ||
       /duckdb\/node\/(?:host|session|physical-values|physical-appender|bounded-vector)\.mjs$/u.test(specifier)) {
@@ -26,18 +34,18 @@ let networkCalls = 0;
 globalThis.fetch = () => { networkCalls++; throw new Error('UnexpectedNetworkOnLocalRun'); };
 const {connect, open} = await import('@actql/node');
 const mode = process.argv[2];
-const options = {mode: 'local', owner: 'local', durability: 'durable',
+const options: EmbeddedLocalOptions = {mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory: resolve('state')}};
 const client = await connect(options);
-let sibling;
+let sibling: Client | undefined;
 try {
   sibling = await connect(options);
-  const submissionRef = mode === 'restart'
+  const submissionRef: SubmissionReference = mode === 'restart'
     ? JSON.parse(await readFile('submission.json', 'utf8'))
     : client.newSubmission({nonce: 'without-duckdb'});
   if (mode !== 'restart') await writeFile('submission.json', JSON.stringify(submissionRef));
   const execution = mode === 'restart'
-    ? await client.attach(JSON.parse(await readFile('run.json', 'utf8')))
+    ? await client.attach(JSON.parse(await readFile('run.json', 'utf8')) as RunReference)
     : await client.startSource(await readFile('values.json', 'utf8'),
       {format: 'json', submissionRef});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -83,6 +91,7 @@ try {
 // Three independently installed Sources remain inert for a source-free Run.
 // Keep their durable state separate from the original no-Source lifecycle.
 const sourceNames = ['unused-first', 'unused-second', 'unused-third'];
+// The map emits one profile path for each of the three authored Sources.
 const sourceProfilePaths = await Promise.all(sourceNames
   .map(async name => {
     const schemaWire = '{"amount":{"nullable":true,"type":"number"},"id":{"nullable":false,"type":"number"}}';
@@ -105,14 +114,14 @@ const sourceProfilePaths = await Promise.all(sourceNames
       limits: {maxPages: 1, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16},
     }));
     return path;
-  }));
+  })) as string[] & SourceProfilePaths;
 let sourceSecretCalls = 0;
 const installation = {sourceProfilePaths, resolveSourceSecret() {
   sourceSecretCalls++; throw new Error('UnexpectedSourceSecretOnValuesRun');
 }};
 const directory = resolve('inventory-state');
 const inventory = await open({stateDir: directory, durability: 'durable', installation});
-let inventoryRef, inventorySubmissionRef;
+let inventoryRef: RunReference, inventorySubmissionRef: SubmissionReference;
 try {
   assert.equal(inventory.info.stateDir, directory);
   inventorySubmissionRef = mode === 'restart'
@@ -122,7 +131,7 @@ try {
     await writeFile('inventory-submission.json', JSON.stringify(inventorySubmissionRef));
   }
   const execution = mode === 'restart'
-    ? await inventory.attach(JSON.parse(await readFile('inventory-run.json', 'utf8')))
+    ? await inventory.attach(JSON.parse(await readFile('inventory-run.json', 'utf8')) as RunReference)
     : await inventory.startSource(await readFile('values.json', 'utf8'),
       {format: 'json', submissionRef: inventorySubmissionRef});
   assert.equal((await execution.wait()).status, 'succeeded');
@@ -162,8 +171,8 @@ hook.deregister();
 // must never be opened and another execution method must not be selected.
 // Reach that dependency boundary with the authored Source and the SAME
 // explicitly selected Host policy, rather than an invalid Environment placeholder.
-const sourceEnvironment = JSON.parse(await readFile('source-environment.json', 'utf8'));
-const baseEnvironment = JSON.parse(await readFile('base-environment.json', 'utf8'));
+const sourceEnvironment = JSON.parse(await readFile('source-environment.json', 'utf8')) as FixtureEnvironment;
+const baseEnvironment = JSON.parse(await readFile('base-environment.json', 'utf8')) as FixtureEnvironment;
 sourceEnvironment.host_policy_profile = baseEnvironment.host_policy_profile;
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
@@ -180,11 +189,11 @@ await writeFile('source-profile.json', JSON.stringify({
       resource: {all: true}, operation: {all: true}}],
   }),
 }));
-let missingDependencyFailure;
+let missingDependencyFailure: MissingDependencyFailure | undefined;
 await assert.rejects(connect({mode: 'local', owner: 'local', installation: {
   directory: resolve('missing-source-state'), sourceProfilePath: resolve('source-profile.json'),
   hostCapacityPolicy: sourceEnvironment.host_policy_profile.capacity,
-}}), error => {
+}}), (error: MissingDependencyFailure) => {
   assert.equal(error.code, 'InstalledHostInitializationFailed');
   assert.equal(error.primaryFailure, error.cause);
   assert.equal(error.cause.code, 'DuckDBDependencyUnavailable');
@@ -195,7 +204,7 @@ await assert.rejects(connect({mode: 'local', owner: 'local', installation: {
 });
 // The failed bound initializer may still own its original partial Source.
 // Retry only that public continuation; fulfillment alone is not a close ACK.
-const missingDependencyCleanup = missingDependencyFailure.cleanupHandle;
+const missingDependencyCleanup = missingDependencyFailure!.cleanupHandle;
 if (missingDependencyCleanup.status().pending) await missingDependencyCleanup.retry();
 assert.equal(missingDependencyCleanup.status().pending, false);
 const contribution = new URL('./adapters/connectors/duckdb/node/strategy-bundle.mjs',
