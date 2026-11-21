@@ -1149,3 +1149,7 @@ target/
 /adapters/local-node/retained-input.d.mts
 /adapters/store-local/import.mjs
 /adapters/store-local/import.d.mts
+/adapters/store-local/managed-manifest.mjs
+/adapters/store-local/managed-manifest.d.mts
+/adapters/store-local/managed-physical-representation.mjs
+/adapters/store-local/managed-physical-representation.d.mts

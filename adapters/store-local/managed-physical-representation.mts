@@ -2,14 +2,20 @@
 // pins describe physical decoding and logical row order; neither is a logical
 // content identity or permission to publish the result.
 import {snapshotPhysicalManifest} from './managed-manifest.mjs';
+import type {PhysicalManifestControl} from './managed-manifest.mjs';
 
-const cid = value => typeof value === 'string' &&
+type RepresentationControl = PhysicalManifestControl & Readonly<{
+  physicalRepresentationContracts(fieldsFrame: string, storageOrder: readonly number[], contractLimit: number): unknown;
+}>;
+
+const cid = (value: unknown): value is string => typeof value === 'string' &&
   /^sha256:[a-f0-9]{64}$/.test(value);
-const quantity = value => Number.isSafeInteger(value) && value >= 0;
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+const quantity = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 
 export function managedPhysicalRepresentation(
-  body, rowCount, codecContractCid, fieldsFrame, storageOrder, control,
+  body: Readonly<{cid: string; bytes: number}>, rowCount: number, codecContractCid: string,
+  fieldsFrame: string, storageOrder: readonly number[], control: RepresentationControl,
 ) {
   if (!body || !cid(body.cid) || !quantity(body.bytes) ||
       !quantity(rowCount) || !cid(codecContractCid) ||
@@ -20,7 +26,7 @@ export function managedPhysicalRepresentation(
     fail('InvalidManagedPhysicalRepresentation');
   }
   const contractLimit = 4096 + Buffer.byteLength(fieldsFrame);
-  let contracts;
+  let contracts: unknown;
   try {
     contracts = control.physicalRepresentationContracts(
       fieldsFrame, storageOrder, contractLimit,
@@ -33,7 +39,7 @@ export function managedPhysicalRepresentation(
       !cid(contracts[2]) || typeof contracts[3] !== 'string' ||
       !cid(contracts[4])) fail('InvalidManagedPhysicalRepresentation');
   const [, schemaContract, schemaContractCid, viewContract,
-    viewContractCid] = contracts;
+    viewContractCid] = contracts as [unknown, string, string, string, string];
   const manifest = {
     version: 'actql-managed-physical-manifest/0.1',
     schema_contract_cid: schemaContractCid,

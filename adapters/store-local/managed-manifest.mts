@@ -2,19 +2,40 @@
 // aggregate counts and bounded admission are owned by portable MoonBit.
 import {localStoreOwnsBody, localRetainedStoreAvailable, RetainedFileError} from './files.mjs';
 import {withVerifiedDelegatedFile} from './direct-file.mjs';
+import type {LocalRetainedStore} from './files.mjs';
 
-const fail = code => { throw new RetainedFileError(code); };
-const quantity = value => Number.isSafeInteger(value) && value >= 0;
-const fields = ['version', 'schema_contract_cid', 'view_contract_cid', 'codec_contract_cid', 'row_count', 'chunks'];
-const admittedSnapshots = new WeakSet();
-const admittedManifests = new WeakMap();
+type RetainedBody = Awaited<ReturnType<ReturnType<LocalRetainedStore['reserve']>['sealPhysical']>>;
+type Chunk = Readonly<{cid: string; byte_length: number; row_count: number}>;
+type Manifest = Readonly<{
+  version: string;
+  schema_contract_cid: string;
+  view_contract_cid: string;
+  codec_contract_cid: string;
+  row_count: number;
+  chunks: readonly Chunk[];
+}>;
+type ManifestSnapshot = Readonly<{manifest: Manifest; cid: string; bytes: number; referencedBytes: number}>;
+type ManifestLimits = Readonly<{maxChunks: number; maxManifestBytes: number; maxReferencedBytes: number}>;
+type DecodeChunk = (file: Parameters<Parameters<typeof withVerifiedDelegatedFile>[1]>[0],
+  index: number, chunk: Chunk) => unknown;
+export type PhysicalManifestControl = Readonly<{
+  physicalManifestAdmit(version: string, schemaContractCid: string, viewContractCid: string,
+    codecContractCid: string, rowCount: number, chunkCids: string[], chunkByteLengths: bigint[],
+    chunkRowCounts: number[], maxChunks: number, maxManifestBytes: number, maxReferencedBytes: bigint): unknown;
+}>;
 
-function record(value, keys) {
+const fail: (code: string) => never = code => { throw new RetainedFileError(code); };
+const quantity = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const fields = ['version', 'schema_contract_cid', 'view_contract_cid', 'codec_contract_cid', 'row_count', 'chunks'] as const;
+const admittedSnapshots = new WeakSet<object>();
+const admittedManifests = new WeakMap<object, ManifestSnapshot>();
+
+function record<Key extends string>(value: unknown, keys: readonly Key[]): Record<Key, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail('InvalidPhysicalManifest');
   const descriptors = Object.getOwnPropertyDescriptors(value);
   if (Reflect.ownKeys(descriptors).length !== keys.length) fail('InvalidPhysicalManifest');
-  const result = Object.create(null);
+  const result = Object.create(null) as Record<Key, unknown>;
   for (const key of keys) {
     const d = descriptors[key];
     if (!d || !Object.hasOwn(d, 'value') || !d.enumerable) fail('InvalidPhysicalManifest');
@@ -23,21 +44,21 @@ function record(value, keys) {
   return result;
 }
 
-function sum(a, b) {
+function sum(a: number, b: number) {
   if (!quantity(a) || !quantity(b) || b > Number.MAX_SAFE_INTEGER - a) {
     fail('PhysicalManifestCountOverflow');
   }
   return a + b;
 }
 
-const semanticIssue = code => {
+const semanticIssue = (code: unknown) => {
   if (code === 'limit') return 'PhysicalManifestLimit';
   if (code === 'overflow') return 'PhysicalManifestCountOverflow';
   if (code === 'row-count') return 'PhysicalManifestRowCountMismatch';
   return 'InvalidPhysicalManifest';
 };
 
-const safeProjectionCount = value => {
+const safeProjectionCount = (value: unknown) => {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
     fail('InvalidPhysicalManifestControl');
   }
@@ -48,13 +69,14 @@ const safeProjectionCount = value => {
   return number;
 };
 
-export function admittedPhysicalManifestSnapshot(value) {
+export function admittedPhysicalManifestSnapshot(value: unknown) {
   if (value === null || typeof value !== 'object') return undefined;
-  if (admittedSnapshots.has(value)) return value;
+  if (admittedSnapshots.has(value)) return value as ManifestSnapshot;
   return admittedManifests.get(value);
 }
 
-export function snapshotPhysicalManifest(supplied, limits, control) {
+export function snapshotPhysicalManifest(supplied: unknown, limits: ManifestLimits,
+  control: PhysicalManifestControl): ManifestSnapshot {
   if (!limits || !quantity(limits.maxChunks) ||
       !quantity(limits.maxManifestBytes) ||
       !quantity(limits.maxReferencedBytes)) {
@@ -70,7 +92,7 @@ export function snapshotPhysicalManifest(supplied, limits, control) {
   // Only dense ordinary arrays; avoid invoking getters while admitting metadata.
   if (Object.getPrototypeOf(input.chunks) !== Array.prototype ||
       Reflect.ownKeys(input.chunks).length !== input.chunks.length + 1) fail('InvalidPhysicalManifest');
-  const chunks = [];
+  const chunks: Chunk[] = [];
   for (let index = 0; index < input.chunks.length; index++) {
     const descriptor = Object.getOwnPropertyDescriptor(input.chunks, String(index));
     if (!descriptor || !Object.hasOwn(descriptor, 'value')) fail('InvalidPhysicalManifest');
@@ -83,13 +105,13 @@ export function snapshotPhysicalManifest(supplied, limits, control) {
       row_count: chunk.row_count,
     }));
   }
-  let projection;
+  let projection: unknown;
   try {
     projection = control.physicalManifestAdmit(
-      input.version,
-      input.schema_contract_cid,
-      input.view_contract_cid,
-      input.codec_contract_cid,
+      input.version as string,
+      input.schema_contract_cid as string,
+      input.view_contract_cid as string,
+      input.codec_contract_cid as string,
       input.row_count,
       chunks.map(chunk => chunk.cid),
       chunks.map(chunk => BigInt(chunk.byte_length)),
@@ -115,9 +137,9 @@ export function snapshotPhysicalManifest(supplied, limits, control) {
   const admittedRows = safeProjectionCount(projection[4]);
   if (admittedRows !== input.row_count) fail('InvalidPhysicalManifestControl');
   const manifest = Object.freeze({
-    chunks: Object.freeze(chunks), codec_contract_cid: input.codec_contract_cid,
-    row_count: input.row_count, schema_contract_cid: input.schema_contract_cid,
-    version: input.version, view_contract_cid: input.view_contract_cid,
+    chunks: Object.freeze(chunks), codec_contract_cid: input.codec_contract_cid as string,
+    row_count: input.row_count, schema_contract_cid: input.schema_contract_cid as string,
+    version: input.version as string, view_contract_cid: input.view_contract_cid as string,
   });
   const snapshot = Object.freeze({
     manifest,
@@ -135,8 +157,9 @@ export function snapshotPhysicalManifest(supplied, limits, control) {
 // The installed decoder must settle all use before returning its actual count;
 // output remains provisional until this entire operation succeeds. The expected
 // interpretation pins come from Host admission, not from the manifest itself.
-export async function consumePhysicalManifestFiles(store, supplied, suppliedBodies,
-  expected, limits, session, decode, control, signal, beforeRead) {
+export async function consumePhysicalManifestFiles(store: object, supplied: unknown, suppliedBodies: RetainedBody[],
+  expected: unknown, limits: ManifestLimits, session: string, decode: DecodeChunk, control: PhysicalManifestControl,
+  signal?: AbortSignal, beforeRead?: (bytes: number, index: number) => unknown) {
   signal?.throwIfAborted();
   if (!localRetainedStoreAvailable(store)) fail('ForeignPhysicalManifestHolding');
   if (typeof decode !== 'function' || (beforeRead !== undefined && typeof beforeRead !== 'function') ||
@@ -144,10 +167,10 @@ export async function consumePhysicalManifestFiles(store, supplied, suppliedBodi
   const admitted = snapshotPhysicalManifest(supplied, limits, control);
   const interpretation = record(expected, ['schema_contract_cid', 'view_contract_cid', 'codec_contract_cid']);
   for (const key of Object.keys(interpretation)) {
-    if (interpretation[key] !== admitted.manifest[key]) fail('ForeignPhysicalManifestInterpretation');
+    if (interpretation[key as keyof typeof interpretation] !== admitted.manifest[key as keyof typeof interpretation]) fail('ForeignPhysicalManifestInterpretation');
   }
   if (!Array.isArray(suppliedBodies) || suppliedBodies.length !== admitted.manifest.chunks.length) fail('ForeignPhysicalManifestHolding');
-  const bodies = suppliedBodies.slice(), borrows = new Map();
+  const bodies = suppliedBodies.slice(), borrows = new Map<RetainedBody, ReturnType<RetainedBody['delegateRead']>>();
   const live = () => {
     signal?.throwIfAborted();
     if (!localRetainedStoreAvailable(store)) fail('RetainedUnavailable');
@@ -163,7 +186,7 @@ export async function consumePhysicalManifestFiles(store, supplied, suppliedBodi
     let integrityReadBytes = 0;
     for (let index = 0; index < bodies.length; index++) {
       live();
-      const borrow = borrows.get(bodies[index]), chunk = admitted.manifest.chunks[index];
+      const borrow = borrows.get(bodies[index])!, chunk = admitted.manifest.chunks[index];
       let result;
       try {
         result = await withVerifiedDelegatedFile(borrow.descriptor, async file => {
@@ -173,7 +196,7 @@ export async function consumePhysicalManifestFiles(store, supplied, suppliedBodi
           if (!quantity(rowCount) || rowCount !== chunk.row_count) fail('PhysicalManifestDecodedCountMismatch');
         }, signal, async bytes => { live(); await beforeRead?.(bytes, index); live(); });
       } catch (error) {
-        if (['RetainedBodyChanged', 'RetainedBodyTruncated', 'ForeignStoreFile', 'ENOENT'].includes(error?.code)) bodies[index].close();
+        if (['RetainedBodyChanged', 'RetainedBodyTruncated', 'ForeignStoreFile', 'ENOENT'].includes((error as {code: string} | null | undefined)?.code!)) bodies[index].close();
         throw error;
       }
       borrow.verify(result.report);

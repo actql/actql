@@ -1930,7 +1930,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/managed-manifest.mjs",
+                "path": "adapters/store-local/managed-manifest.mts",
                 "anchor": "admittedPhysicalManifestSnapshot"
               },
               {
@@ -2666,7 +2666,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/managed-physical-representation.mjs",
+                "path": "adapters/store-local/managed-physical-representation.mts",
                 "anchor": "managedPhysicalRepresentation"
               },
               {
