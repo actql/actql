@@ -20,6 +20,14 @@ pub fn after_query_bindings(Query) -> Query
 
 pub fn after_relation_generator(Query, NamePart) -> Query?
 
+pub fn anonymous_namespace_geometry(Query) -> (Int, Int, Int, Int, Int)
+
+pub fn anonymous_namespace_may_use_publication(Query) -> Bool
+
+pub fn anonymous_output_context_required(Query) -> Bool
+
+pub fn anonymous_output_star_growth(Query) -> Int
+
 pub fn bound_source(Query) -> NamePart?
 
 pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
@@ -35,6 +43,8 @@ pub fn exact_integer_literal(String) -> Int64?
 pub fn expression_child(Expression, Int) -> Expression?
 
 pub fn expression_document(Expression) -> @frontend_source_map.Document
+
+pub fn expression_implicit_name(Expression) -> NamePart?
 
 pub fn expression_node(Expression, Int) -> ExpressionNode?
 
@@ -100,6 +110,8 @@ pub fn positional_output(Query) -> Bool
 
 pub fn producer_primary(Query) -> ProducerPrimary?
 
+pub fn projection_public_name(Projection) -> NamePart?
+
 pub fn query_binding_at(Query, Int) -> QueryBinding?
 
 pub fn query_binding_count(Query) -> Int
@@ -132,7 +144,7 @@ pub fn sga_predicate_expression(SgaPredicate) -> Expression
 
 pub fn single_query_script(Query) -> QueryScript
 
-pub fn star_column_projection(Query, Projection, String) -> Projection
+pub fn star_column_projection(Query, Projection, String, object_field? : Bool, anonymous? : Bool) -> Projection
 
 pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 

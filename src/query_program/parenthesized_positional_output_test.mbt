@@ -83,6 +83,38 @@ test "positional bindings preserve double parentheses and nested set ownership" 
 }
 
 ///|
+test "three transparent positional wrappers retain the original aggregate slots" {
+  for
+    prefix in [
+      "SELECT 0 AS a, 0 AS b UNION ALL ", "SELECT 0 AS a, 0 AS b |> UNION ALL ",
+    ] {
+    let document = prefix + "(((SELECT SUM(x), COUNT(x) FROM t)))"
+    let query = @query.parse_query(document, syntax_limits()).unwrap()
+    assert_false(@query.anonymous_output_context_required(query), msg=document)
+    let program = compile_query_script(
+      @query.parse_query_script(document, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) => fail("the original aggregate inputs are complete")
+    }
+    assert_true(
+      semantic(program).contains("\"fields\":[\"a\",\"b\"]"),
+      msg=document,
+    )
+  }
+}
+
+///|
 test "standalone positional parentheses reach the usual checker" {
   let source = "SELECT 0 AS a, 0 AS b UNION ALL (SELECT ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM t) ORDER BY a, b"
   let program = match
@@ -109,21 +141,37 @@ test "standalone positional parentheses reach the usual checker" {
 }
 
 ///|
-test "positional permission never grants authored CTE or BY NAME exports" {
-  for
-    source in [
-      "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)",
-      "WITH r AS (SELECT 1 AS x), hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
-      "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
-    ] {
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(source, syntax_limits()).unwrap(),
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
+test "anonymous CTE values survive positional exports without becoming BY NAME aliases" {
+  let by_name = "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(by_name, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
     )
+    is Err(UnsupportedProjection),
+  )
+  for
+    (source, fields) in [
+      (
+        "WITH r AS (SELECT 1 AS x), hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
+        ["a"],
+      ),
+      (
+        "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
+        ["f0_"],
+      ),
+    ] {
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), fields, msg=source)
   }
+  let private_name = "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT p.f0_"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(private_name, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(Expression({ issue: @expression.UnknownReference, .. })),
+  )
 }
