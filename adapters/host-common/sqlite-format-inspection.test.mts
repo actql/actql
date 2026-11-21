@@ -5,11 +5,17 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {inspectSqliteSnapshot} from './sqlite-format-inspection.mjs';
 
-const snapshot = root => Object.fromEntries(readdirSync(root).sort().map(name =>
+type CleanupFailure = Error & Readonly<{
+  code: string; primaryFailure: Readonly<{code: string}>;
+  cleanupErrors: readonly Readonly<{error: Error}>[];
+  cleanupHandle: Readonly<{status(): Readonly<{pending: boolean}>; retry(): Readonly<{pending: boolean}>}>;
+}>;
+const snapshot = (root: string) => Object.fromEntries(readdirSync(root).sort().map(name =>
   [name, readFileSync(join(root, name)).toString('hex')]));
-const fixture = t => {
+const fixture = (t: TestContext) => {
   const root = mkdtempSync(join(tmpdir(), 'actql-format-inspection-test-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const path = join(root, 'journal.sqlite3');
@@ -34,19 +40,19 @@ test('isolated SQLite format inspection reads uncheckpointed WAL without touchin
   unlinkSync(`${path}-shm`);
   const before = snapshot(root);
   assert.throws(() => inspectSqliteSnapshot(path, database => {
-    assert.equal(database.prepare('SELECT value FROM metadata').get().value, 'only-in-wal');
+    assert.equal(database.prepare('SELECT value FROM metadata').get()!.value, 'only-in-wal');
     throw Object.assign(new Error('UnsupportedFormat'), {code: 'UnsupportedFormat'});
   }), {code: 'UnsupportedFormat'});
   assert.deepEqual(snapshot(root), before);
   assert.equal(inspectSqliteSnapshot(path, database =>
-    database.prepare('SELECT value FROM metadata').get().value), 'only-in-wal');
+    database.prepare('SELECT value FROM metadata').get()!.value), 'only-in-wal');
   assert.deepEqual(snapshot(root), before);
 });
 
 test('format inspection refuses a source modified during the isolated read', t => {
   const {path} = fixture(t);
   assert.throws(() => inspectSqliteSnapshot(path, database => {
-    assert.equal(database.prepare('SELECT value FROM metadata').get().value, 'before-wal');
+    assert.equal(database.prepare('SELECT value FROM metadata').get()!.value, 'before-wal');
     const writer = new DatabaseSync(path);
     try { writer.prepare('UPDATE metadata SET value = ?').run('changed'); }
     finally { writer.close(); }
@@ -62,12 +68,12 @@ test('selected copy constructor ignores inherited SQLite option callbacks', t =>
     get(){reads++;throw new Error('InheritedInspectionOptionMustNotRun');}});
   try {
     assert.equal(inspectSqliteSnapshot(path,database=>
-      database.prepare('SELECT value FROM metadata').get().value,
+      database.prepare('SELECT value FROM metadata').get()!.value,
     {assertCurrent(){}}),'before-wal');
     assert.equal(reads,0);
     assert.deepEqual(snapshot(root),before);
   } finally {
-    if(previous===undefined)delete Object.prototype.allowBareNamedParameters;
+    if(previous===undefined)delete (Object.prototype as {allowBareNamedParameters?: unknown}).allowBareNamedParameters;
     else Object.defineProperty(Object.prototype,'allowBareNamedParameters',previous);
   }
 });
@@ -96,7 +102,7 @@ test('selected inspection uses its supplied temporary directory without reacquir
   process.env.TMPDIR = root;
   try {
     assert.equal(inspectSqliteSnapshot(path, database =>
-      database.prepare('SELECT value FROM metadata').get().value,
+      database.prepare('SELECT value FROM metadata').get()!.value,
     {assertCurrent() {}, temporaryDirectory}), 'before-wal');
     assert.deepEqual(snapshot(root), before);
   } finally {
@@ -109,7 +115,7 @@ test('supplied inspection scratch rejects unsupported paths without fallback or 
   for (const temporaryDirectory of ['', '.', 'a'.repeat(4097), '/invalid\0path', null, {}]) {
     let currents = 0;
     assert.throws(() => inspectSqliteSnapshot('/must-not-be-opened', () => assert.fail(),
-      {temporaryDirectory, assertCurrent() { currents++; }}),
+      {temporaryDirectory, assertCurrent() { currents++; }} as Parameters<typeof inspectSqliteSnapshot>[2]),
     {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
     assert.equal(currents, 0);
   }
@@ -121,9 +127,9 @@ test('format failure and isolated close failure keep one retryable cleanup owner
   const close = DatabaseSync.prototype.close;
   let attempts = 0;
   let inspections = 0;
-  let isolated;
-  let failure;
-  DatabaseSync.prototype.close = function() {
+  let isolated!: string;
+  let failure!: CleanupFailure;
+  DatabaseSync.prototype.close = function(this: DatabaseSync) {
     if (++attempts === 1) throw new Error('CLOSE_FAILED');
     return close.call(this);
   };
@@ -131,11 +137,11 @@ test('format failure and isolated close failure keep one retryable cleanup owner
     try {
       inspectSqliteSnapshot(path, database => {
         inspections++;
-        isolated = dirname(database.prepare('PRAGMA database_list').get().file);
+        isolated = dirname(database.prepare('PRAGMA database_list').get()!.file as string);
         throw Object.assign(new Error('FORMAT_REFUSED'), {code: 'FORMAT_REFUSED'});
       });
       assert.fail('expected inspection refusal');
-    } catch (error) { failure = error; }
+    } catch (error) { failure = error as CleanupFailure; }
     assert.equal(failure.code, 'SqliteJournalInitializationCleanupPending');
     assert.equal(failure.primaryFailure.code, 'FORMAT_REFUSED');
     assert.equal(failure.cleanupErrors[0].error.message, 'CLOSE_FAILED');

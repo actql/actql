@@ -1357,3 +1357,13 @@ target/
 /adapters/store-local/publication-commit-owner.d.mts
 /adapters/store-local/publication-commit-owner.test.mjs
 /adapters/store-local/publication-commit-owner.test.d.mts
+/adapters/host-common/sqlite-transaction.mjs
+/adapters/host-common/sqlite-transaction.d.mts
+/adapters/host-common/sqlite-transaction.test.mjs
+/adapters/host-common/sqlite-transaction.test.d.mts
+/adapters/host-common/sqlite-initialization-custody.test.mjs
+/adapters/host-common/sqlite-initialization-custody.test.d.mts
+/adapters/host-common/sqlite-format-inspection.mjs
+/adapters/host-common/sqlite-format-inspection.d.mts
+/adapters/host-common/sqlite-format-inspection.test.mjs
+/adapters/host-common/sqlite-format-inspection.test.d.mts

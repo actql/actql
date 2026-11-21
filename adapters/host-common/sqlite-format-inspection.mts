@@ -2,57 +2,73 @@
 // Never open an unclassified source database with SQLite. Pin read-only file
 // descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes.
 import {DatabaseSync} from 'node:sqlite';
+import type {DatabaseSyncOptions} from 'node:sqlite';
+import type {BigIntStats, Dir, Dirent} from 'node:fs';
 import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
   openSync, opendirSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
-import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema}
-  from './sqlite-schema-resource-bounds.mjs';
+// @ts-expect-error TS7016: remove after sqlite-schema-resource-bounds has an authored TypeScript entry.
+import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema} from './sqlite-schema-resource-bounds.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type DirectoryOptions = Readonly<{maxEntries?: number; unavailableCode?: string; cleanupCode?: string}>;
+type SnapshotOptions = Readonly<{
+  code?: string; validateSource?: () => boolean; maxSourceBytes?: number; unavailableCode?: string;
+  schemaReadLimits?: unknown; schemaSqlSupport?: unknown; assertCurrent?: () => SynchronousRuntimeData;
+  temporaryDirectory?: string;
+}>;
+type FileOriginal = {
+  fd: number; close: typeof closeSync; closeObserved?: boolean; closeAttempted?: boolean;
+  closeFailed?: boolean; closeFailure?: unknown; closeUnknown?: Error;
+};
+type SourceFile = FileOriginal & {path: string; identity?: BigIntStats};
+type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 
 const originalRealpath = realpathSync;
-const originalNativeRealpath = Object.getOwnPropertyDescriptor(originalRealpath, 'native')?.value;
+const originalNativeRealpath: typeof realpathSync.native | undefined = Object.getOwnPropertyDescriptor(originalRealpath, 'native')?.value;
 const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
 const nativePathApply = Reflect.apply;
 
-const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
-  .every(key => left[key] === right[key]);
+const sameFile = (left: BigIntStats, right: BigIntStats) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+  .every(key => left[key as keyof BigIntStats] === right[key as keyof BigIntStats]);
 
 // Original directory inspection shared by the existing SQLite journal Owners.
 // Keep complete names, including unrelated entries, for the currentness fence.
 // A ceiling is an inspection support bound, not a file-format restriction or
 // capacity grant. The same actual Dir owns one lookahead and its close duty.
-export function inspectJournalDirectory(directory, {maxEntries = 100_000,
+export function inspectJournalDirectory(directory: string, {maxEntries = 100_000,
   unavailableCode = 'JournalDirectoryInspectionUnavailable',
-  cleanupCode = 'JournalDirectoryInspectionCleanupPending'} = {}) {
+  cleanupCode = 'JournalDirectoryInspectionCleanupPending'}: DirectoryOptions = {}) {
   if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) {
     throw Object.assign(new Error('InvalidJournalDirectoryInspectionConfiguration'),
       {code: 'InvalidJournalDirectoryInspectionConfiguration'});
   }
-  let original = opendirSync(directory, {bufferSize: 1});
-  let originalClose, failed = false, primary;
+  let original: Dir | undefined = opendirSync(directory, {bufferSize: 1});
+  let originalClose: Dir['closeSync'] | undefined, failed = false, primary: unknown;
   const captureClose = () => {
     if (originalClose !== undefined) return;
-    const selected = original.closeSync;
+    const selected = original!.closeSync;
     if (typeof selected !== 'function') throw new TypeError('JournalDirectoryCloseUnavailable');
     originalClose = selected;
   };
   const close = () => {
     if (original === undefined) return;
     captureClose();
-    if (Reflect.apply(originalClose, original, []) !== undefined) {
+    if (Reflect.apply(originalClose!, original, []) !== undefined) {
       throw new TypeError('JournalDirectoryCleanupPending');
     }
     original = originalClose = undefined;
   };
-  let entries;
+  let entries: string[] | undefined;
   try {
     captureClose();
-    const read = original.readSync;
+    const read = original!.readSync;
     if (typeof read !== 'function') throw new TypeError('JournalDirectoryReadUnavailable');
     entries = [];
     for (;;) {
-      const entry = Reflect.apply(read, original, []);
+      const entry: Dirent | null = Reflect.apply(read, original, []);
       if (entry === null) break;
       if (entries.length === maxEntries) {
         throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
@@ -79,10 +95,11 @@ export function inspectJournalDirectory(directory, {maxEntries = 100_000,
     throw carrier;
   }
   if (failed) throw primary;
-  return entries;
+  return entries!;
 }
 
-export function inspectSqliteSnapshot(databasePath, inspect, {
+export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>(
+  databasePath: string, inspect: (database: DatabaseSync) => Result, {
   code = 'UnknownSqliteJournalFormat',
   validateSource = () => true,
   maxSourceBytes = Number.MAX_SAFE_INTEGER,
@@ -91,7 +108,7 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   schemaSqlSupport,
   assertCurrent,
   temporaryDirectory,
-} = {}) {
+}: SnapshotOptions = {}): Result {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
       typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
       assertCurrent !== undefined && typeof assertCurrent !== 'function' ||
@@ -107,27 +124,27 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   if (assertCurrent !== undefined && typeof originalNativeRealpath !== 'function') {
     throw new TypeError('SqliteInspectionNativePathUnavailable');
   }
-  const fail = cause => {
+  const fail: (cause?: unknown) => never = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
-  const sources = [];
-  const outputs = [];
+  const sources: SourceFile[] = [];
+  const outputs: FileOriginal[] = [];
   const walPath = `${databasePath}-wal`;
-  let isolated;
-  let database;
-  let databaseClose;
-  let databaseIsOpen;
+  let isolated: string | undefined;
+  let database: DatabaseSync | undefined;
+  let databaseClose: DatabaseSync['close'] | undefined;
+  let databaseIsOpen: (() => unknown) | undefined;
   const captureDatabaseCleanup = () => {
-    databaseClose ??= database.close;
-    databaseIsOpen ??= Object.getOwnPropertyDescriptor(database, 'isOpen')?.get;
+    databaseClose ??= database!.close;
+    databaseIsOpen ??= Object.getOwnPropertyDescriptor(database!, 'isOpen')?.get;
     if (typeof databaseClose !== 'function' || typeof databaseIsOpen !== 'function') {
       throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
     }
   };
-  let result;
+  let result!: Result;
   const complete = new Error('SqliteSnapshotInspectionComplete');
-  let primaryFailure = complete;
-  const closeFile = original => {
+  let primaryFailure: unknown = complete;
+  const closeFile = (original: FileOriginal) => {
     if (original.closeObserved === true) return;
     if (original.closeAttempted === true) {
       // A numeric FD may already have been consumed/reused when close throws.
@@ -154,20 +171,20 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         // Capture once before handing the database to the inspector. Retry
         // only that original close; a later replacement is not an ACK.
         captureDatabaseCleanup();
-        const opened = Reflect.apply(databaseIsOpen, database, []);
+        const opened = Reflect.apply(databaseIsOpen!, database, []);
         if (typeof opened !== 'boolean' ||
-            opened && (Reflect.apply(databaseClose, database, []) !== undefined ||
-              Reflect.apply(databaseIsOpen, database, []) !== false)) {
+            opened && (Reflect.apply(databaseClose!, database, []) !== undefined ||
+              Reflect.apply(databaseIsOpen!, database, []) !== false)) {
           throw new TypeError('SqliteInspectionDatabaseCleanupPending');
         }
         database = databaseClose = databaseIsOpen = undefined;
       }
       while (sources.length !== 0) {
-        closeFile(sources.at(-1));
+        closeFile(sources.at(-1)!);
         sources.pop();
       }
       while (outputs.length !== 0) {
-        closeFile(outputs.at(-1));
+        closeFile(outputs.at(-1)!);
         outputs.pop();
       }
       if (isolated !== undefined) {
@@ -183,7 +200,7 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     for (const path of hadWal ? [databasePath, walPath] : [databasePath]) {
       const fd = openSync(path, constants.O_RDONLY |
         (constants.O_NOFOLLOW ?? 0));
-      const source = {path, fd, close: closeSync};
+      const source: SourceFile = {path, fd, close: closeSync};
       sources.push(source);
       const identity = fstatSync(fd, {bigint: true});
       source.identity = identity;
@@ -204,9 +221,9 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     // is neither a filesystem supplier nor an operational admission.
     const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;
     const scratch = assertCurrent === undefined ? realpathSync(scratchOriginal) :
-      nativePathApply(originalNativeRealpath, originalRealpath, [scratchOriginal, nativePathOptions]);
+      nativePathApply(originalNativeRealpath!, originalRealpath, [scratchOriginal, nativePathOptions]) as string;
     const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
-      nativePathApply(originalNativeRealpath, originalRealpath, [dirname(databasePath), nativePathOptions]);
+      nativePathApply(originalNativeRealpath!, originalRealpath, [dirname(databasePath), nativePathOptions]) as string;
     const withinSource = relative(sourceDirectory, scratch);
     if (withinSource === '' ||
         (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&
@@ -221,9 +238,9 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       outputs.push(originalOutput);
       try {
         let offset = 0;
-        while (offset < Number(source.identity.size)) {
+        while (offset < Number(source.identity!.size)) {
           const count = readSync(source.fd, chunk, 0,
-            Math.min(chunk.length, Number(source.identity.size) - offset),
+            Math.min(chunk.length, Number(source.identity!.size) - offset),
             offset);
           if (count === 0) fail();
           let written = 0;
@@ -248,11 +265,11 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         const fd = openSync(join(isolated, basename(source.path)), constants.O_RDONLY |
           (constants.O_NOFOLLOW ?? 0));
         outputs.push({fd, close: closeSync});
-        copies.push({fd, bytes: Number(source.identity.size)});
+        copies.push({fd, bytes: Number(source.identity!.size)});
       }
       inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);
       while (outputs.length !== 0) {
-        closeFile(outputs.at(-1));
+        closeFile(outputs.at(-1)!);
         outputs.pop();
       }
     }
@@ -261,7 +278,7 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     // otherwise consults inherited callbacks before its wrapper is returned.
     database = new DatabaseSync(join(isolated, basename(databasePath)),
       assertCurrent === undefined ? {open: false, readOnly: true} :
-        {__proto__: null, open: false, readOnly: true});
+        {__proto__: null, open: false, readOnly: true} as DatabaseSyncOptions & {__proto__: null});
     // The original wrapper and cleanup are retained before native open can
     // acquire a connection and then fail. GC is not its close acknowledgement.
     captureDatabaseCleanup();
@@ -278,12 +295,12 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     const databaseOpen = database.open;
     if (typeof databaseOpen !== 'function' ||
         Reflect.apply(databaseOpen, database, []) !== undefined ||
-        Reflect.apply(databaseIsOpen, database, []) !== true) {
+        Reflect.apply(databaseIsOpen!, database, []) !== true) {
       throw new TypeError('SqliteInspectionDatabaseOpenUnavailable');
     }
     assertCurrent?.();
     if (schemaSqlSupport !== undefined) {
-      const supportedStatement = Reflect.apply(databasePrepare, database,
+      const supportedStatement = Reflect.apply(databasePrepare!, database,
         ["SELECT sqlite_compileoption_used('TEMP_STORE=1') AS supported"]);
       const supportedGet = supportedStatement.get;
       if (typeof supportedGet !== 'function' ||
@@ -292,9 +309,9 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
           {code: 'SqliteInspectionTemporaryUnavailable'});
       }
       assertCurrent?.();
-      Reflect.apply(databaseExec, database, ['PRAGMA temp_store = MEMORY']);
+      Reflect.apply(databaseExec!, database, ['PRAGMA temp_store = MEMORY']);
       assertCurrent?.();
-      const effectiveStatement = Reflect.apply(databasePrepare, database, ['PRAGMA temp_store']);
+      const effectiveStatement = Reflect.apply(databasePrepare!, database, ['PRAGMA temp_store']);
       const effectiveGet = effectiveStatement.get;
       if (typeof effectiveGet !== 'function' ||
           Reflect.apply(effectiveGet, effectiveStatement, [])?.temp_store !== 2) {
@@ -306,16 +323,16 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||
-        sources.some(source => !sameFile(source.identity,
+        sources.some(source => !sameFile(source.identity!,
           fstatSync(source.fd, {bigint: true})) ||
-          !sameFile(source.identity,
+          !sameFile(source.identity!,
             lstatSync(source.path, {bigint: true})))) fail();
   } catch (cause) {
     // A missing/malformed schema or invalid SQLite file is a format refusal,
     // not an untyped SQLite exception escaping the journal boundary. Keep the
     // original driver cause, including when inspection cleanup also fails.
-    primaryFailure = typeof cause?.code === 'string' &&
-      cause.code.startsWith('ERR_SQLITE') ? Object.assign(
+    primaryFailure = typeof (cause as CodedCause)?.code === 'string' &&
+      ((cause as CodedCause)!.code as string).startsWith('ERR_SQLITE') ? Object.assign(
         new Error(code, {cause}), {code, path: databasePath}) : cause;
   }
   // Reuse the same retryable initialization cleanup owner, including for the

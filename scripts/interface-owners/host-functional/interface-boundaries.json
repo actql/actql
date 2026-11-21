@@ -14257,8 +14257,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -14275,8 +14275,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -14291,17 +14291,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const identity = fstatSync(fd, {bigint: true});"
               },
               {
@@ -14317,13 +14317,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "const source = {path, fd, close: closeSync};"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "const source: SourceFile = {path, fd, close: closeSync};"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// SQLite readOnly connections may create -shm or checkpoint during close."
               },
               {
@@ -14339,17 +14339,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "captureDatabaseCleanup();"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The original wrapper and cleanup are retained before native open can"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';"
               },
               {
@@ -14365,17 +14365,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// Capture once before handing the database to the inspector. Retry"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "assertCurrent?.();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes."
               },
               {
@@ -14391,17 +14391,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// A ceiling is an inspection support bound, not a file-format restriction or"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "primaryFailure = typeof cause?.code === 'string'"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "primaryFailure = typeof (cause as CodedCause)?.code === 'string'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// SQLite readOnly connections may create -shm or checkpoint during close."
               },
               {
@@ -14417,13 +14417,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "throwSqliteInitializationFailure(cleanup, primaryFailure,"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "while (sources.length !== 0) {"
               },
               {
@@ -14439,30 +14439,30 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The original pinned DB and WAL coexist with their isolated copies."
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "retainedSourceBytes += identity.size;"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const chunk = Buffer.allocUnsafe(64 * 1024);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "!isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\\0'))) {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -14477,13 +14477,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.test.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.test.mts",
                 "anchor": "test('isolated SQLite format inspection reads uncheckpointed WAL without touching source', t => {"
               },
               {
@@ -14507,7 +14507,7 @@
                 "anchor": "native open retains and closes its original"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.test.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.test.mts",
                 "anchor": "format failure and isolated close failure keep one retryable cleanup owner"
               },
               {
@@ -14533,8 +14533,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -14551,8 +14551,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -14567,17 +14567,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const identity = fstatSync(fd, {bigint: true});"
               },
               {
@@ -14593,13 +14593,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "const source = {path, fd, close: closeSync};"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "const source: SourceFile = {path, fd, close: closeSync};"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// SQLite readOnly connections may create -shm or checkpoint during close."
               },
               {
@@ -14615,17 +14615,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "captureDatabaseCleanup();"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The original wrapper and cleanup are retained before native open can"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';"
               },
               {
@@ -14641,17 +14641,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// Capture once before handing the database to the inspector. Retry"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "assertCurrent?.();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes."
               },
               {
@@ -14667,17 +14667,17 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// A ceiling is an inspection support bound, not a file-format restriction or"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "primaryFailure = typeof cause?.code === 'string'"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "primaryFailure = typeof (cause as CodedCause)?.code === 'string'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// SQLite readOnly connections may create -shm or checkpoint during close."
               },
               {
@@ -14693,13 +14693,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "throwSqliteInitializationFailure(cleanup, primaryFailure,"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "while (sources.length !== 0) {"
               },
               {
@@ -14715,30 +14715,30 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The original pinned DB and WAL coexist with their isolated copies."
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "retainedSourceBytes += identity.size;"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "const chunk = Buffer.allocUnsafe(64 * 1024);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "!isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\\0'))) {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "export function inspectSqliteSnapshot(databasePath, inspect, {"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "export function inspectSqliteSnapshot<Result extends SynchronousRuntimeData>("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -14753,13 +14753,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.test.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.test.mts",
                 "anchor": "test('isolated SQLite format inspection reads uncheckpointed WAL without touching source', t => {"
               },
               {
@@ -14783,7 +14783,7 @@
                 "anchor": "native open retains and closes its original"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.test.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.test.mts",
                 "anchor": "format failure and isolated close failure keep one retryable cleanup owner"
               },
               {
@@ -14924,7 +14924,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The same isolated-copy Owner retains these original read FDs before"
               },
               {
@@ -14938,16 +14938,16 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "outputs.push({fd, close: closeSync});"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "closeFile(outputs.at(-1));"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "closeFile(outputs.at(-1)!);"
               }
             ],
             "synchronization": [
@@ -14960,7 +14960,7 @@
                 "anchor": "function at(fd, target, position, bytes = target.length) {"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "captureDatabaseCleanup();"
               }
             ],
@@ -14984,15 +14984,15 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// before native SQLite construction; failure stays under cleanup below."
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "while (outputs.length !== 0) {"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// acquire a connection and then fail. GC is not its close acknowledgement."
               }
             ],
@@ -15104,7 +15104,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// The same isolated-copy Owner retains these original read FDs before"
               },
               {
@@ -15118,16 +15118,16 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "outputs.push({fd, close: closeSync});"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
-                "anchor": "closeFile(outputs.at(-1));"
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
+                "anchor": "closeFile(outputs.at(-1)!);"
               }
             ],
             "synchronization": [
@@ -15140,7 +15140,7 @@
                 "anchor": "function at(fd, target, position, bytes = target.length) {"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "captureDatabaseCleanup();"
               }
             ],
@@ -15164,15 +15164,15 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// before native SQLite construction; failure stays under cleanup below."
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "while (outputs.length !== 0) {"
               },
               {
-                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "path": "adapters/host-common/sqlite-format-inspection.mts",
                 "anchor": "// acquire a connection and then fail. GC is not its close acknowledgement."
               }
             ],

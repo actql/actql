@@ -2,16 +2,22 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
 
-function retain(database) {
-  const primary=new Error('OriginalInitializationFailure');let failure;
+type Failure = Error & Readonly<{
+  primaryFailure: unknown; cleanupPending: boolean;
+  cleanupErrors: readonly Readonly<{error: unknown}>[];
+  cleanupHandle: Readonly<{retry(): Readonly<{pending: boolean}>}>;
+}>;
+
+function retain(database: Parameters<typeof throwSqliteInitializationFailure>[0]) {
+  const primary=new Error('OriginalInitializationFailure');let failure!: Failure;
   assert.throws(()=>throwSqliteInitializationFailure(database,primary,'same-journal'),error=>{
-    failure=error;return error.primaryFailure===primary&&error.cleanupPending===true;
+    failure=error as Failure;return (error as Failure).primaryFailure===primary&&(error as Failure).cleanupPending===true;
   });
   return failure;
 }
 
 test('initialization retries retain only first and latest close diagnostics',()=>{
-  const first=new Error('FirstCloseFailure');let calls=0,allow=false,latest;
+  const first=new Error('FirstCloseFailure');let calls=0,allow=false,latest: Error | undefined;
   const database={close(){calls++;if(!allow){latest=calls===1?first:new Error('CloseFailure'+calls);throw latest;}}};
   const failure=retain(database);
   for(let count=0;count<64;count++)assert.equal(failure.cleanupHandle.retry().pending,true);
@@ -31,7 +37,7 @@ test('initialization cleanup retries only the captured original close receiver',
 });
 
 test('synchronous cleanup reentry only observes the existing close flight',()=>{
-  let calls=0,allow=false,failure,nested;
+  let calls=0,allow=false,failure!: Failure,nested!: ReturnType<Failure['cleanupHandle']['retry']>;
   const database={close(){calls++;if(!allow)throw new Error('OriginalClosePending');
     if(calls===2)nested=failure.cleanupHandle.retry();}};
   failure=retain(database);allow=true;

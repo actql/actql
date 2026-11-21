@@ -2015,8 +2015,8 @@
                 "anchor": "| Identity |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
-                "anchor": "originalClose = selected;"
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "originalClose = selected as Close;"
               }
             ],
             "ownership": [
@@ -2025,7 +2025,7 @@
                 "anchor": "| Ownership |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
@@ -2035,7 +2035,7 @@
                 "anchor": "| Synchronization |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (closing) return status();"
               }
             ],
@@ -2045,7 +2045,7 @@
                 "anchor": "| Failure |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
@@ -2055,7 +2055,7 @@
                 "anchor": "| Cancellation |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (observation !== undefined) {"
               }
             ],
@@ -2065,7 +2065,7 @@
                 "anchor": "| Resources |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
@@ -2081,11 +2081,11 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "initialization cleanup retries only the captured original close receiver"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
@@ -2115,8 +2115,8 @@
                 "anchor": "| Identity |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
-                "anchor": "originalClose = selected;"
+                "path": "adapters/host-common/sqlite-transaction.mts",
+                "anchor": "originalClose = selected as Close;"
               }
             ],
             "ownership": [
@@ -2125,7 +2125,7 @@
                 "anchor": "| Ownership |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
@@ -2135,7 +2135,7 @@
                 "anchor": "| Synchronization |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (closing) return status();"
               }
             ],
@@ -2145,7 +2145,7 @@
                 "anchor": "| Failure |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
@@ -2155,7 +2155,7 @@
                 "anchor": "| Cancellation |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "if (observation !== undefined) {"
               }
             ],
@@ -2165,7 +2165,7 @@
                 "anchor": "| Resources |"
               },
               {
-                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "path": "adapters/host-common/sqlite-transaction.mts",
                 "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
@@ -2181,11 +2181,11 @@
                 "anchor": "| Verification |"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "initialization cleanup retries only the captured original close receiver"
               },
               {
-                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mts",
                 "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
