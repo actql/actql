@@ -4,7 +4,9 @@ import {readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {staticExplanationReadModel} from '../../packages/explorer-ui/read-model.mjs';
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
 // Actual imported installed static service, original public template and
@@ -65,7 +67,8 @@ test('installed static Explanation retains the original deal-review Source, Mode
   try {
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
       installation: {directory: '.actql-node', authorization: {accountConfiguration}}});
-    const {version, plan, facts, context} = await client.explain(source, {format: 'aql'});
+    const explanation = await client.explain(source, {format: 'aql'});
+    const {version, plan, facts, context} = explanation;
     assert.equal(version, 'actql-static-explanation/0.1');
     assert.equal(plan.observation, 'static');
     assert.equal(plan.provider_io, 0);
@@ -121,6 +124,33 @@ test('installed static Explanation retains the original deal-review Source, Mode
     assert.equal(writes.state, 'declared');
     assert.deepEqual([...writes.fields].sort(), ['NextStep', 'StageName']);
     assert.doesNotMatch(JSON.stringify({facts, context}), /"(?:prompt|instructions)"|Review only the current stage/);
+
+    // The same public response reaches the Explorer renderer in both
+    // languages without a second Plan read or reopening a producer.
+    const {renderStaticExplanationNarrative} = await import('@actql/run-host-core/explanation-narrative');
+    const render = (view, locale) => {
+      assert.equal(view, explanation);
+      return renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
+    };
+    const english = staticExplanationReadModel(explanation, {render, locale: 'en'});
+    const japanese = staticExplanationReadModel(explanation, {render, locale: 'ja'});
+    for (const presentation of [english, japanese]) {
+      assert.equal(presentation.plan.logicalMapCid, map.self_cid);
+      assert.deepEqual(presentation.story.occurrences.map(step => step.stepId),
+        map.steps.map(step => step.step_id));
+      assert.deepEqual(presentation.context.map(item => item.origin), context.items);
+      assert.doesNotMatch(JSON.stringify(presentation), /"(?:prompt|instructions)"|Review only the current stage/);
+    }
+    assert.equal(english.context[3].text, 'Apply model task "model-task:deal-review.v1" to each input row');
+    assert.equal(japanese.context[3].text, 'モデルタスク "model-task:deal-review.v1" を各入力行に適用');
+    assert.equal(english.context[4].text, 'Declare Result "updates"');
+    assert.match(english.context[5].text, /Declared write update "connector:\/\/salesforce\/Opportunity".*Contract minimum approval: required.*Current decision unknown/u);
+    assert.match(japanese.context[5].text, /^宣言された書き込み 更新 /u);
+    assert.match(japanese.context[5].text, /契約上の最低承認要件 必要.*現在の判断は不明/u);
+    assert.equal(english.story.occurrences.filter(step => step.operator === 'join' &&
+      step.explanation.text.includes(' join on: ')).length, 3);
+    assert.equal(japanese.story.occurrences.filter(step => step.operator === 'join' &&
+      step.explanation.text.includes(' 結合のキー: ')).length, 3);
     assert.deepEqual(await readFile(dataPath), before);
   } catch (error) {primary = error;}
   finally {
