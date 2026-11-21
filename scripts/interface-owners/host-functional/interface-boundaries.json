@@ -38347,7 +38347,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-plan.test.mjs",
+                "path": "adapters/host-node/client-run-plan.test.mts",
                 "anchor": "test('original plan service reads saved bytes and retains Run identity without control changes',async()=>{"
               },
               {
@@ -38491,7 +38491,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-run-plan.test.mjs",
+                "path": "adapters/host-node/client-run-plan.test.mts",
                 "anchor": "test('original plan service reads saved bytes and retains Run identity without control changes',async()=>{"
               },
               {

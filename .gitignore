@@ -1429,3 +1429,9 @@ target/
 /adapters/host-node/client-run-inspect.d.mts
 /adapters/host-node/client-run-plan.mjs
 /adapters/host-node/client-run-plan.d.mts
+/scripts/fixtures/explanation-facts-vectors.mjs
+/scripts/fixtures/explanation-facts-vectors.d.mts
+/scripts/fixtures/interactive-run-control-vectors.mjs
+/scripts/fixtures/interactive-run-control-vectors.d.mts
+/adapters/host-node/client-run-plan.test.mjs
+/adapters/host-node/client-run-plan.test.d.mts

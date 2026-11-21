@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {canonicalText} from '../check-canonical-json.mjs';
 import {explanationBody, explanationCid, explanationFacts, explanationLeakageVectors,
   runExplanation, unprojectedRunExplanation} from './explanation-facts-vectors.mjs';
-export const cid = digit => `sha256:${digit.repeat(64)}`;
+export const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 export const ref = {namespaceId: 'workspace:test', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 export const time = '2026-10-11T00:00:00.000Z';
@@ -43,15 +43,15 @@ export const operationKey = {version: 'actql-logical-step-key/0.1',
   compiled_plan_cid: cid('1'), stage_ordinal: 1,
   occurrence: {kind: 'operation', operation_ordinal: 0}};
 // This oracle never calls a product sealer/compiler or observes a Host result.
-const digest = body => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
-const sealed = body => ({...body, self_cid: digest(body)});
+const digest = (body: unknown) => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
+const sealed = <Body extends object>(body: Body) => ({...body, self_cid: digest(body)});
 export const planBody = {version: 'actql-compiled-plan/0.1', compiler_version: '0.1',
   aoa_ir_version: '0.1', executable_plan_cid: cid('2'),
   program_definition_cid: cid('3'), program_semantics_cid: cid('4'),
   aoa_contract_cid: cid('5'), aoa_logical_cid: cid('6')};
 export const planCid = digest(planBody);
 export const boundInputKey = sealed({...inputKey, compiled_plan_cid: planCid});
-export const portKey = role => sealed({version: 'actql-logical-port-key/0.1',
+export const portKey = (role: string) => sealed({version: 'actql-logical-port-key/0.1',
   compiled_plan_cid: planCid, step_id: boundInputKey.self_cid, role, port_ordinal: 0});
 export const mapBody = {version: 'actql-logical-map/0.1', compiled_plan_cid: planCid,
   program_definition_cid: planBody.program_definition_cid, steps: [{
@@ -76,11 +76,11 @@ export const admissionBody = {version: 'actql-control-admission/0.1',
   request_intent_cid: digest(intentBody), run_ref: ref, compiled_plan_cid: planCid,
   logical_map_cid: digest(mapBody), resolved_profile_cid: digest(resolvedBody),
   policy_revision_cid: cid('9')};
-export const bindingVectors = [
+export const bindingVectors = ([
   ['control_request_intent', intentBody], ['resolved_control_profile', resolvedBody],
   ['logical_map', mapBody], ['control_admission', admissionBody],
-].map(([name, body]) => ({name, body, cid: digest(body)}));
-export const bindingMutations = [
+] satisfies [string, unknown][]).map(([name, body]) => ({name, body, cid: digest(body)}));
+export const bindingMutations = ([
   ['logical_map', {...mapBody, compiled_plan_cid: cid('0')}],
   ['logical_map', {...mapBody, program_definition_cid: cid('0')}],
   ['logical_map', {...mapBody, steps: [{...mapBody.steps[0], operator: 'select'}]}],
@@ -97,7 +97,7 @@ export const bindingMutations = [
   ['control_admission', {...admissionBody, request_intent_cid: cid('0')}],
   ['control_admission', {...admissionBody, run_ref: {...ref, runDefinitionCid: cid('0')}}],
   ['control_admission', {...admissionBody, run_ref: {...ref, authorityScopeCid: cid('0')}}],
-].map(([name, body]) => ({name, body, cid: digest(body)}));
+] satisfies [string, unknown][]).map(([name, body]) => ({name, body, cid: digest(body)}));
 export const sampleRelation = {version: 'actql-sample-relation/0.1',
   kind: 'relation', schema_cid: cid('7'), columns: [
     {position: 0, name: 'p', value_contract_cid: cid('8'), required: false}],
@@ -148,7 +148,7 @@ export const shapeVectors = [
   // Presence means an observed boolean. Every omission combination remains
   // unknown; unsupported capability is not an observation of false.
   ...Array.from({length: 8}, (_, mask) => {
-    const value = {...running};
+    const value: Record<string, unknown> = {...running};
     for (const [index, field] of ['pause_pending', 'expiry_pending',
       'cleanup_pending'].entries()) {
       if (mask & (1 << index)) value[field] = true;

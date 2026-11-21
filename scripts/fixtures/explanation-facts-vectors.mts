@@ -1,7 +1,7 @@
 // Independently authored structural DATA. Expected SHA-256 preimages were
 // calculated with sorted-key UTF-8 JSON outside the product issuer/codec.
-const cid = c => `sha256:${c.repeat(64)}`;
-const type = kind => ({projection: 'shape_and_nullability', kind, nullable: false});
+const cid = (c: string) => `sha256:${c.repeat(64)}`;
+const type = (kind: string) => ({projection: 'shape_and_nullability', kind, nullable: false});
 const key = {version: 'actql-logical-step-key/0.1', compiled_plan_cid: cid('a'),
   stage_ordinal: 0, occurrence: {kind: 'operation', operation_ordinal: 0},
   self_cid: 'sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8'};
@@ -27,12 +27,12 @@ export const unprojectedRunExplanation = {version: 'actql-run-explanation-view/0
 export const explanationLeakageVectors = [
   ...['value', 'value_cid', 'length', 'byte_length', 'text', 'source', 'prompt'].map(field => {
     const value = structuredClone(explanationFacts);
-    value.steps[0].meaning.predicate.nodes[2][field] = field.endsWith('cid') ? cid('2') : 'private';
+    (value.steps[0].meaning.predicate.nodes[2] as Record<string, unknown>)[field] = field.endsWith('cid') ? cid('2') : 'private';
     return {field: `literal.${field}`, value};
   }),
   ...['max_utf8_bytes', 'max_codepoints', 'enumeration', 'contract_cid'].map(field => {
     const value = structuredClone(explanationFacts);
-    value.steps[0].meaning.predicate.nodes[2].type[field] = field.endsWith('cid') ? cid('2') : 17;
+    (value.steps[0].meaning.predicate.nodes[2].type as Record<string, unknown>)[field] = field.endsWith('cid') ? cid('2') : 17;
     return {field: `type.${field}`, value};
   }),
   ...['prompt', 'source_body', 'can_execute', 'sample'].map(field => ({field,

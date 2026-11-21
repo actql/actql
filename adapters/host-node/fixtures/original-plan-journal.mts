@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../../../scripts/check-canonical-json.mjs';
-// @ts-expect-error TS7016: remove after the interactive-run-control vectors have an authored TypeScript entry.
 import {mapBody, planBody, planCid, cid} from '../../../scripts/fixtures/interactive-run-control-vectors.mjs';
 
 type RequestData = Readonly<{authorityScopeCid: string; requestId: string; programDefinitionCid: string;
@@ -24,7 +23,7 @@ export const originalPlanWire = (names?: readonly string[]) => {
 export const planOriginal: PlanData = Object.freeze({compiledPlanWire:
   canonicalText({...planBody, compiled_plan_cid: planCid}), planViewWire: originalPlanWire()});
 export const request: RequestData = Object.freeze({authorityScopeCid: cid('a'), requestId: 'original-request',
-  programDefinitionCid: planBody.program_definition_cid as string, parameterValuesCid: cid('b'),
+  programDefinitionCid: planBody.program_definition_cid, parameterValuesCid: cid('b'),
   callerInputIntentCid: cid('c'), logicalRequestScopeCid: cid('d'), intentFingerprintCid: cid('e')});
 const runBody = {version: 'actql-run-definition/0.1', scope_id: 'original', run_id: 'original-run',
   compiled_plan_cid: planCid, invocation_template_cid: cid('2'), authorization_context_cid: cid('3'),
