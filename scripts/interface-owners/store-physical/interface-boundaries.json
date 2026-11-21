@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f8fe8faaabb48e09f4d82ba435c3e749c4ffd8f1cca90c9fbb9b67536cef226",
+      "sha256": "2e0cf718b39390a94a8972aa749d7c5d5c5fe1f35537864ce1de04c03f540f6e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6211,46 +6211,6 @@
           "parameters": [
             "bindings"
           ],
-          "async": false
-        },
-        {
-          "name": "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
-          "parameters": [
-            "original",
-            "directory"
-          ],
-          "async": true
-        },
-        {
-          "name": "assertOriginalPreparedLocalPublicationStoreOwnership",
-          "parameters": [
-            "original",
-            "directory"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureOriginalLocalExecutionOwner",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "closePreparedLocalPublicationStoreOwnership",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -9154,46 +9114,6 @@
           "async": false
         },
         {
-          "name": "originalLocalExecutionOwnerStopped",
-          "parameters": [
-            "original",
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalPublicationStoreOwnership",
-          "parameters": [
-            "directory",
-            "bounds",
-            "dependency",
-            "directoryInspection"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "releasePreparedOwnership/releasePreparedOwnership",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "releasePreparedOwnership/releasePreparedOwnership#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "retainPrivateRawCleanup/cleanup/cleanup",
           "parameters": [],
           "async": false
@@ -11724,17 +11644,8 @@
         },
         {
           "operations": [
-            "assertOriginalPreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
             "openLocalPublicationStore",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
-            "prepareLocalPublicationStoreOwnership",
-            "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
-            "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
-            "releasePreparedOwnership/releasePreparedOwnership",
-            "releasePreparedOwnership/releasePreparedOwnership#2"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore"
           ],
           "exports": [
             "assertOriginalPreparedLocalPublicationStoreOwnership",
@@ -11745,12 +11656,12 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "// A prepared original is only the existing physical exclusion duty. It is"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory: unknown, bounds?: unknown,"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -11767,12 +11678,12 @@
                 "anchor": "export async function openLocalPublicationStore("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = Object.freeze(Object.create(null));"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const original: object = Object.freeze(Object.create(null));"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "function preparedOwnershipStatus(entry) {"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "function preparedOwnershipStatus(entry: PreparedOwnership): CleanupStatus {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -11785,8 +11696,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const entry = preparedStoreOwnerships.get(original);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const entry = preparedStoreOwnerships.get(original as object);"
               },
               {
                 "path": "adapters/store-local/publication-store-ownership.mts",
@@ -11807,7 +11718,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);"
               },
               {
@@ -11837,16 +11748,16 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (entry.releaseFlight !== undefined) return entry.releaseFlight;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "Object.getOwnPropertyDescriptor(dependency, 'status')"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const observation = await Reflect.apply(entry.dependencyStatus!, entry.dependency, []);"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -11867,11 +11778,11 @@
                 "anchor": "} catch { prepared.unknownChild = true; }"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (!fresh) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');"
               },
               {
@@ -11889,15 +11800,15 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function closePreparedLocalPublicationStoreOwnership(original) {"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function closePreparedLocalPublicationStoreOwnership(original: unknown) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {"
               },
               {
@@ -11911,15 +11822,15 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "// Payload cleanup must still run independently, but cannot release the"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "entry.dependency = entry.dependencyStatus = undefined;"
               },
               {
@@ -11937,11 +11848,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "// neither a Store/capacity authority nor permission to initialize a format,"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "// Selected operational callers still supply their explicit finite bounds."
               },
               {
@@ -11986,9 +11897,7 @@
           }
         },
         {
-          "operations": [
-            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
-          ],
+          "operations": [],
           "exports": [
             "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
           ],
@@ -12009,8 +11918,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original: unknown, directory: string) {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -12023,7 +11932,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "const entry = originalPreparedStoreOwnership(original);"
               },
               {
@@ -12037,7 +11946,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "await entry.ownership.assertCurrent();"
               },
               {
@@ -12051,7 +11960,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
               },
               {
@@ -12065,7 +11974,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
               },
               {
@@ -12079,7 +11988,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
                 "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
               },
               {
@@ -13383,10 +13292,7 @@
           }
         },
         {
-          "operations": [
-            "captureOriginalLocalExecutionOwner",
-            "originalLocalExecutionOwnerStopped"
-          ],
+          "operations": [],
           "exports": [
             "captureOriginalLocalExecutionOwner",
             "originalLocalExecutionOwnerStopped"
@@ -13394,8 +13300,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -13404,8 +13310,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
               }
             ],
             "identity": [
@@ -13436,8 +13342,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
               },
               {
                 "path": "adapters/store-local/publication-owner-lease.mts",
@@ -13701,6 +13607,7 @@
         "./physical-retirement-owner.mjs",
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
+        "./prepared-publication-store-ownership.mjs",
         "./publication-commit-owner.mjs",
         "./publication-store-bootstrap.mjs",
         "./publication-store-io.mjs",
@@ -13715,6 +13622,680 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/prepared-publication-store-ownership.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f4fd67671445a7de3a102531c91c11c58ce3547d9c4eb5432580eb10d1f11824",
+      "exports": [
+        "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
+        "assertOriginalPreparedLocalPublicationStoreOwnership",
+        "captureOriginalLocalExecutionOwner",
+        "closePreparedLocalPublicationStoreOwnership",
+        "originalLocalExecutionOwnerStopped",
+        "originalPreparedStoreOwnership",
+        "prepareLocalPublicationStoreOwnership",
+        "releasePreparedOwnership"
+      ],
+      "operations": [
+        {
+          "name": "assertOriginalPreparedLocalPublicationStoreFirstInitialization",
+          "parameters": [
+            "original",
+            "directory"
+          ],
+          "async": true
+        },
+        {
+          "name": "assertOriginalPreparedLocalPublicationStoreOwnership",
+          "parameters": [
+            "original",
+            "directory"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureOriginalLocalExecutionOwner",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "closePreparedLocalPublicationStoreOwnership",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalLocalExecutionOwnerStopped",
+          "parameters": [
+            "original",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalPreparedStoreOwnership",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalPublicationStoreOwnership",
+          "parameters": [
+            "directory",
+            "bounds",
+            "dependency",
+            "directoryInspection"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releasePreparedOwnership",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "releasePreparedOwnership/releasePreparedOwnership",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "releasePreparedOwnership/releasePreparedOwnership#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertOriginalPreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
+            "prepareLocalPublicationStoreOwnership",
+            "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
+            "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
+            "releasePreparedOwnership/releasePreparedOwnership",
+            "releasePreparedOwnership/releasePreparedOwnership#2",
+            "originalPreparedStoreOwnership",
+            "releasePreparedOwnership"
+          ],
+          "exports": [
+            "assertOriginalPreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership",
+            "prepareLocalPublicationStoreOwnership",
+            "originalPreparedStoreOwnership",
+            "releasePreparedOwnership"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "// A prepared original is only the existing physical exclusion duty. It is"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory: unknown, bounds?: unknown,"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export async function openLocalPublicationStore("
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const original: object = Object.freeze(Object.create(null));"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "function preparedOwnershipStatus(entry: PreparedOwnership): CleanupStatus {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const entry = preparedStoreOwnerships.get(original as object);"
+              },
+              {
+                "path": "adapters/store-local/publication-store-ownership.mts",
+                "anchor": "const sameFile = (state: BigIntStats) => state.isFile() && !state.isSymbolicLink() &&"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined, fresh, directoryInspection);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "prepared.phase = 'adopting';"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
+              },
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retriedWriters = new Set();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (entry.releaseFlight !== undefined) return entry.releaseFlight;"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "Object.getOwnPropertyDescriptor(dependency, 'status')"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const observation = await Reflect.apply(entry.dependencyStatus!, entry.dependency, []);"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Store close attempts that retained failed writer's original confirmation before"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "} catch { prepared.unknownChild = true; }"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (!fresh) {"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "checking its reserved capacity. An unavailable confirmation remains pending;"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function closePreparedLocalPublicationStoreOwnership(original: unknown) {"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "// Payload cleanup must still run independently, but cannot release the"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "entry.dependency = entry.dependencyStatus = undefined;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "independent live payloads, readers and other cleanup duties still refuse close."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "// neither a Store/capacity authority nor permission to initialize a format,"
+              },
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "// Selected operational callers still supply their explicit finite bounds."
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "shared prepared exclusion survives Store cleanup until the same native Journal closes"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "prepared dependency keeps its captured receiver and refuses ambiguous or failed close observations"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "foreign owner-only prefix and copied original never gain the fresh-prefix exception"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "old pending durability retry never reads or removes a successor owner"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Store close confirms failed metadata without releasing an independent live payload', async t => {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "exports": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original: unknown, directory: string) {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "const entry = originalPreparedStoreOwnership(original);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "await entry.ownership.assertCurrent();"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key first setup refuses another Owner or directory before key creation'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureOriginalLocalExecutionOwner",
+            "originalLocalExecutionOwnerStopped"
+          ],
+          "exports": [
+            "captureOriginalLocalExecutionOwner",
+            "originalLocalExecutionOwnerStopped"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-bootstrap.mjs",
+        "./publication-store-io.mjs",
+        "./publication-store-ownership.mjs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing prepared Store exclusion, adoption and original receipt operations only. No new token issuer or installed acceptance."
     },
     {
       "module": "adapters/store-local/publication-store-ownership.mjs",
@@ -13840,8 +14421,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -13850,8 +14431,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function originalLocalExecutionOwnerStopped(original, receipt)"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "export function originalLocalExecutionOwnerStopped(original: unknown, receipt: unknown)"
               },
               {
                 "path": "adapters/store-local/publication-store-ownership.mts",
@@ -13890,8 +14471,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
               },
               {
                 "path": "adapters/store-local/publication-owner-lease.mts",
@@ -13999,9 +14580,10 @@
     {
       "module": "adapters/store-local/publication-store-io.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "67da399622de5eeb8880d57fda928d2af0890471e11a0a79cd9d529ea8896bec",
+      "sha256": "aed9101ebe8611cac8935425d3dde5a350c7a741f41c0968bfc2ce660b270e93",
       "exports": [
         "PublicationStoreError",
+        "cidPattern",
         "exactKeys",
         "fail",
         "localDurability",
@@ -14201,6 +14783,7 @@
           ],
           "exports": [
             "PublicationStoreError",
+            "cidPattern",
             "exactKeys",
             "fail",
             "localDurability",
@@ -15280,8 +15863,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
               },
               {
                 "path": "adapters/store-local/publication-owner-lease.mts",

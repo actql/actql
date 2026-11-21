@@ -21,7 +21,8 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
 // @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
-import {prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {loadSelectedJournalAdapter} from './fixtures/selected-host-journal-adapter.fixture.mjs';
 

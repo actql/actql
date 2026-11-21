@@ -5,8 +5,7 @@ import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-// @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
-import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped} from '../store-local/publication-store.mjs';
+import {captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped} from '../store-local/prepared-publication-store-ownership.mjs';
 import {isHostObservationProjection, type installHostObservation} from '../host-common/observation.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {WireRunRef, WireSubmissionRef} from '../../packages/client-wire/index.js';

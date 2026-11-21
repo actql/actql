@@ -1501,3 +1501,5 @@ target/
 /adapters/store-local/publication-store-bootstrap.d.mts
 /adapters/store-local/publication-store-ownership.mjs
 /adapters/store-local/publication-store-ownership.d.mts
+/adapters/store-local/prepared-publication-store-ownership.mjs
+/adapters/store-local/prepared-publication-store-ownership.d.mts

@@ -1,8 +1,7 @@
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
-// @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
-import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import recipeModule from './host-journal-service-recipe.cjs';
 

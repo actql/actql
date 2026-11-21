@@ -20,6 +20,7 @@ export class PublicationStoreError extends Error {
 export const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw new PublicationStoreError(code, cause);
 };
+export const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 export const quantity = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 
 export const exactKeys = <Key extends string>(value: unknown, keys: readonly Key[]):

@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d553456d614f713f7be35eb892ac2460eb74c2c05a3a29f031b21abee6a954a4",
+      "sha256": "80140c37252048a7a5277257dd96256991527bc647711aa5f68521b621cc9ad3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -31299,7 +31299,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/observation.mjs",
         "../host-common/sqlite-transaction.mjs",
-        "../store-local/publication-store.mjs",
+        "../store-local/prepared-publication-store-ownership.mjs",
         "./client-request-journal-attempts.mjs",
         "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
@@ -32514,7 +32514,7 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "802b609d71fe13c231f1ce9141ca1ff9329faadcd07be9b170f573982c103957",
+      "sha256": "1e7a14be093e8c046effa93a1d17b3cd45f338110019faf1d80157cf1069089f",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -37310,7 +37310,7 @@
       "imports": [
         "../host-common/sqlite-format-inspection.mjs",
         "../host-common/sqlite-schema-resource-bounds.mjs",
-        "../store-local/publication-store.mjs",
+        "../store-local/prepared-publication-store-ownership.mjs",
         "./client-request-journal-records.mjs",
         "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
@@ -53969,7 +53969,7 @@
     {
       "module": "adapters/host-node/host-root-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d1108e2cf61d0561701aa8f57dfdf465f09563a3b03b17959a4cf93c2bc13255",
+      "sha256": "1bafe780e0c8238ceddb2dfafcb5890979a296220f71c32df30cabf0e788ea1d",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -54595,7 +54595,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../store-local/publication-store.mjs",
+        "../store-local/prepared-publication-store-ownership.mjs",
         "./host-journal-directory.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
@@ -114042,7 +114042,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "85a1d09b97e413b7b7cc432ddc37b77fe821012df4a04064b1416ab976608109",
+      "sha256": "0b08fb9db605c48512421d51f35fab877743eaef07d9b3cfeb579be9972f34b9",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -114146,7 +114146,7 @@
         }
       ],
       "imports": [
-        "../store-local/publication-store.mjs",
+        "../store-local/prepared-publication-store-ownership.mjs",
         "./client-request-journal.mjs",
         "./host-journal-service-recipe.cjs",
         "./host-root-format.mjs",

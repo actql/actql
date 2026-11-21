@@ -10,8 +10,7 @@ import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sql
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory} from './host-journal-directory.mjs';
 import {inspectClientSourceOperationStorage, snapshotClientSourceOperationLimits, sourceOperationTable} from './client-source-operation.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
-// @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
-import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
   from '../host-common/sqlite-schema-resource-bounds.mjs';
 import {applyOriginal, boundedJournalWalFrames, boundedPrimarySql, boundJournalDatabaseExtent, fail,

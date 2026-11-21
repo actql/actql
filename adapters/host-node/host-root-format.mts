@@ -5,8 +5,7 @@ import {join} from 'node:path';
 import {readBoundedConfigurationText, withOriginalFile} from './source-profile-json.mjs';
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectoryFirstEntry}
   from './host-journal-directory.mjs';
-// @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
-import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 
 type AccountAdoption = Readonly<{
   record_id: string;
