@@ -1756,3 +1756,7 @@ target/
 /adapters/connectors/duckdb/node/acquisition-planning.d.mts
 /adapters/host-node/duckdb-physical-target.mjs
 /adapters/host-node/duckdb-physical-target.d.mts
+/adapters/connectors/duckdb/node/physical-capacity.mjs
+/adapters/connectors/duckdb/node/physical-capacity.d.mts
+/adapters/connectors/duckdb/node/transport-bounds.mjs
+/adapters/connectors/duckdb/node/transport-bounds.d.mts

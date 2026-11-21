@@ -299,7 +299,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "boundedVectorVersion"
               }
             ],
@@ -2430,19 +2430,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "Host capacity policy"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "computePhysicalCapacity"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "boundedVectorVersion"
               }
             ],
@@ -2451,13 +2451,13 @@
             },
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "validateLimits"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "9223372036854775807n"
               }
             ],
@@ -2466,13 +2466,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "scratchBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-capacity.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-capacity.mts",
                 "anchor": "not measured V8 heap bytes"
               }
             ],
@@ -3657,19 +3657,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "Connector-private capacity contract"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "boundedTransport"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "1.5.5-r.4"
               }
             ],
@@ -3678,7 +3678,7 @@
             },
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "maxChunkRows !== undefined"
               }
             ],
@@ -3693,7 +3693,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/transport-bounds.mjs",
+                "path": "adapters/connectors/duckdb/node/transport-bounds.mts",
                 "anchor": "maxNativeVectorRows"
               }
             ],
