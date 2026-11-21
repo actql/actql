@@ -1,9 +1,82 @@
 // Independent protocol fixture for adapter tests. Product execution never
 // imports this file; the portable MoonBit execution_site package is the sole
 // product authority for these transitions.
+type SiteConfiguration = Readonly<{
+  key: string;
+  generation: number;
+  runtimeRevision: string;
+  maxConcurrentOperations: number;
+  maxConcurrentTransfers: number;
+  maxRetainedBytes: bigint;
+  maxExecutionBytes: bigint;
+}>;
+type Site = SiteConfiguration & {
+  accepting: boolean;
+  revoked: boolean;
+  activeOperations: number;
+  activeTransfers: number;
+  holdings: number;
+  cleanup: number;
+  held: bigint;
+  reservedRetention: bigint;
+  reservedExecution: bigint;
+  peak: bigint;
+};
+type Reservation = {retained: bigint; execution: bigint; holding: boolean};
+type Operation = Reservation & {site: Site; stopped: boolean};
+type Transfer = Reservation & {
+  source: Site;
+  destination: Site;
+  sourceStopped: boolean;
+  destinationStopped: boolean;
+};
+type Cleanup = {site: Site; live: boolean};
+type Holding = Cleanup & {bytes: bigint};
+type Candidate = Readonly<{
+  durationMilliseconds: bigint | null;
+  startupMilliseconds: bigint | null;
+  capacitySupported: boolean;
+  acceptsSiteTransfer: boolean;
+  transferProviderAvailable: boolean;
+  transferMilliseconds: bigint | null;
+  transferRequired: readonly boolean[];
+  sharedTransfer: readonly boolean[];
+  sourceRevoked: readonly boolean[];
+  estimateAvailable: readonly boolean[];
+  transferBytes: readonly bigint[];
+  retainedBytes: readonly bigint[];
+  executionBytes: readonly bigint[];
+}>;
+type FailedOperation = {
+  cleanupRequired: boolean;
+  cleanupStopped: boolean;
+  operationSettled: boolean;
+};
+type RetainedClose = {
+  closeStarted: boolean;
+  closeSucceeded: boolean;
+  closeFailed: boolean;
+  cleanupAuthority: boolean;
+  cleanupStopped: boolean;
+};
+type RetainedHolding = {close: RetainedClose; holdingReleased: boolean};
+type HostCleanup = {initialRetryDone: boolean; closesAwaited: boolean; finalRetryDone: boolean};
+type HostTaskSuccess = {
+  connectorOwnedOutput: boolean;
+  managedBindingClaimed: boolean;
+  siteCompletionChecked: boolean;
+  siteCompletionReady: boolean;
+  commonCompletionChecked: boolean;
+  commonCompleted: boolean;
+  outputRetained: boolean;
+  siteOperationSettled: boolean;
+  managedBindingChecked: boolean;
+  managedBindingValid: boolean;
+};
+
 export function createExecutionSiteControlFixture() {
-  const available = site => site.accepting && !site.revoked;
-  const status = site => [
+  const available = (site: Site) => site.accepting && !site.revoked;
+  const status = (site: Site) => [
     available(site) ? 1n : 0n,
     site.revoked ? 1n : 0n,
     BigInt(site.activeOperations),
@@ -21,7 +94,7 @@ export function createExecutionSiteControlFixture() {
       ? 1n : 0n,
   ];
   return Object.freeze({
-    create(configuration) {
+    create(configuration: SiteConfiguration): Site {
       return {
         ...configuration,
         accepting: true,
@@ -37,15 +110,15 @@ export function createExecutionSiteControlFixture() {
       };
     },
     available,
-    revoked: site => site.revoked,
-    capacitySupports: (site, retained, execution) =>
+    revoked: (site: Site) => site.revoked,
+    capacitySupports: (site: Site, retained: bigint, execution: bigint) =>
       retained >= 0n && execution >= 0n &&
       retained <= site.maxRetainedBytes &&
       execution <= site.maxExecutionBytes,
-    bindingCurrent: (site, generation, revision) =>
+    bindingCurrent: (site: Site, generation: number, revision: string) =>
       available(site) && site.generation === generation &&
       site.runtimeRevision === revision,
-    startOperation(site, retained, execution) {
+    startOperation(site: Site, retained: bigint, execution: bigint): Operation | undefined {
       if (!available(site) ||
           site.activeOperations >= site.maxConcurrentOperations ||
           retained > site.maxRetainedBytes - site.held -
@@ -60,8 +133,8 @@ export function createExecutionSiteControlFixture() {
         ? site.peak : site.held + site.reservedRetention;
       return {site, retained, execution, stopped: false, holding: false};
     },
-    operationAvailable: value => !value.stopped && !value.site.revoked,
-    settleOperation(value) {
+    operationAvailable: (value: Operation) => !value.stopped && !value.site.revoked,
+    settleOperation(value: Operation) {
       if (value.stopped) return false;
       value.stopped = true;
       value.site.activeOperations--;
@@ -71,7 +144,7 @@ export function createExecutionSiteControlFixture() {
       value.execution = 0n;
       return true;
     },
-    retainOperationHolding(value, bytes) {
+    retainOperationHolding(value: Operation, bytes: bigint): Holding | undefined {
       if (value.stopped || value.holding || bytes > value.retained) {
         return undefined;
       }
@@ -82,7 +155,7 @@ export function createExecutionSiteControlFixture() {
       value.site.holdings++;
       return {site: value.site, bytes, live: true};
     },
-    startTransfer(source, destination, retained, execution) {
+    startTransfer(source: Site, destination: Site, retained: bigint, execution: bigint): Transfer | undefined {
       const same = source === destination;
       if (!available(source) || !available(destination) ||
           source.activeTransfers >= source.maxConcurrentTransfers ||
@@ -105,10 +178,10 @@ export function createExecutionSiteControlFixture() {
       return {source, destination, retained, execution,
         sourceStopped: false, destinationStopped: false, holding: false};
     },
-    transferAvailable: value => !value.sourceStopped &&
+    transferAvailable: (value: Transfer) => !value.sourceStopped &&
       !value.destinationStopped && !value.source.revoked &&
       !value.destination.revoked,
-    settleTransferSource(value) {
+    settleTransferSource(value: Transfer) {
       if (value.sourceStopped) return false;
       value.sourceStopped = true;
       if (value.source !== value.destination || value.destinationStopped) {
@@ -116,7 +189,7 @@ export function createExecutionSiteControlFixture() {
       }
       return true;
     },
-    settleTransferDestination(value) {
+    settleTransferDestination(value: Transfer) {
       if (value.destinationStopped) return false;
       value.destinationStopped = true;
       value.destination.reservedRetention -= value.retained;
@@ -128,7 +201,7 @@ export function createExecutionSiteControlFixture() {
       }
       return true;
     },
-    retainTransferHolding(value, bytes) {
+    retainTransferHolding(value: Transfer, bytes: bigint): Holding | undefined {
       if (value.source.revoked || value.destination.revoked ||
           value.destinationStopped || value.holding || bytes > value.retained) {
         return undefined;
@@ -140,7 +213,7 @@ export function createExecutionSiteControlFixture() {
       value.destination.holdings++;
       return {site: value.destination, bytes, live: true};
     },
-    retainHolding(site, bytes) {
+    retainHolding(site: Site, bytes: bigint): Holding | undefined {
       if (site.revoked || bytes > site.maxRetainedBytes - site.held -
           site.reservedRetention) return undefined;
       site.held += bytes;
@@ -148,27 +221,27 @@ export function createExecutionSiteControlFixture() {
       site.peak = site.peak > site.held ? site.peak : site.held;
       return {site, bytes, live: true};
     },
-    releaseHolding(value) {
+    releaseHolding(value: Holding) {
       if (!value.live) return false;
       value.live = false;
       value.site.held -= value.bytes;
       value.site.holdings--;
       return true;
     },
-    retainCleanup(site) {
+    retainCleanup(site: Site): Cleanup {
       site.cleanup++;
       return {site, live: true};
     },
-    releaseCleanup(value) {
+    releaseCleanup(value: Cleanup) {
       if (!value.live) return false;
       value.live = false;
       value.site.cleanup--;
       return true;
     },
-    beginTeardown(site) { site.accepting = false; },
-    revoke(site) { site.accepting = false; site.revoked = true; },
+    beginTeardown(site: Site) { site.accepting = false; },
+    revoke(site: Site) { site.accepting = false; site.revoked = true; },
     status,
-    selectCandidate(durations, keys) {
+    selectCandidate(durations: readonly bigint[], keys: readonly string[]) {
       if (!Array.isArray(durations) || !Array.isArray(keys) ||
           durations.length !== keys.length) return -2;
       let selected = -1;
@@ -186,7 +259,7 @@ export function createExecutionSiteControlFixture() {
       }
       return selected;
     },
-    planCandidate(value) {
+    planCandidate(value: Candidate): [number, bigint] {
       const length = value.transferRequired.length;
       if (![value.sharedTransfer, value.sourceRevoked,
         value.estimateAvailable, value.transferBytes, value.retainedBytes,
@@ -210,7 +283,7 @@ export function createExecutionSiteControlFixture() {
       }
       return [0, duration];
     },
-    managedCandidateFallback(retainedInputCount, exclusionCodes) {
+    managedCandidateFallback(retainedInputCount: number, exclusionCodes: readonly number[]) {
       if (!Number.isSafeInteger(retainedInputCount) || retainedInputCount < 0 ||
           !Array.isArray(exclusionCodes)) return 4;
       if (retainedInputCount === 0) return 0;
@@ -220,30 +293,30 @@ export function createExecutionSiteControlFixture() {
       if (exclusionCodes.some(code => [3, 4, 5].includes(code))) return 2;
       return 3;
     },
-    beginFailedOperation(cleanupRequired, alreadySettled) {
+    beginFailedOperation(cleanupRequired: boolean, alreadySettled: boolean): FailedOperation {
       return {
         cleanupRequired,
         cleanupStopped: false,
         operationSettled: alreadySettled,
       };
     },
-    recordFailedOperationStop(progress) {
+    recordFailedOperationStop(progress: FailedOperation) {
       if (!progress.cleanupRequired) return false;
       progress.cleanupStopped = true;
       return true;
     },
-    recordFailedOperationSettlement(progress) {
+    recordFailedOperationSettlement(progress: FailedOperation) {
       if (progress.operationSettled ||
           (progress.cleanupRequired && !progress.cleanupStopped)) return false;
       progress.operationSettled = true;
       return true;
     },
-    failedOperationAction(progress) {
+    failedOperationAction(progress: FailedOperation) {
       if (progress.operationSettled) return 2;
       if (progress.cleanupRequired && !progress.cleanupStopped) return 0;
       return 1;
     },
-    beginRetainedClose() {
+    beginRetainedClose(): RetainedClose {
       return {
         closeStarted: false,
         closeSucceeded: false,
@@ -252,41 +325,41 @@ export function createExecutionSiteControlFixture() {
         cleanupStopped: false,
       };
     },
-    beginRetainedHolding(close) {
+    beginRetainedHolding(close: RetainedClose): RetainedHolding | undefined {
       return close.closeStarted ? undefined : {close, holdingReleased: false};
     },
-    recordRetainedCloseStarted(progress) {
+    recordRetainedCloseStarted(progress: RetainedClose) {
       if (progress.closeStarted) return false;
       progress.closeStarted = true;
       return true;
     },
-    recordRetainedCloseSucceeded(progress) {
+    recordRetainedCloseSucceeded(progress: RetainedClose) {
       if (!progress.closeStarted || progress.closeFailed) return false;
       progress.closeSucceeded = true;
       return true;
     },
-    recordRetainedCloseFailed(progress) {
+    recordRetainedCloseFailed(progress: RetainedClose) {
       if (!progress.closeStarted || progress.closeSucceeded) return false;
       progress.closeFailed = true;
       return true;
     },
-    recordRetainedCleanupAuthority(progress) {
+    recordRetainedCleanupAuthority(progress: RetainedClose) {
       if (!progress.closeStarted || !progress.closeFailed) return false;
       progress.cleanupAuthority = true;
       return true;
     },
-    recordRetainedCleanupStopped(progress) {
+    recordRetainedCleanupStopped(progress: RetainedClose) {
       if (!progress.cleanupAuthority) return false;
       progress.cleanupStopped = true;
       return true;
     },
-    recordRetainedHoldingReleased(progress) {
+    recordRetainedHoldingReleased(progress: RetainedHolding) {
       if (progress.holdingReleased) return true;
       if (this.retainedHoldingAction(progress) !== 3) return false;
       progress.holdingReleased = true;
       return true;
     },
-    retainedCloseAction(progress) {
+    retainedCloseAction(progress: RetainedClose) {
       if ((progress.closeSucceeded && progress.closeFailed) ||
           (progress.cleanupStopped && !progress.cleanupAuthority) ||
           ((progress.closeSucceeded || progress.closeFailed ||
@@ -298,7 +371,7 @@ export function createExecutionSiteControlFixture() {
       if (progress.closeFailed) return 2;
       return 1;
     },
-    retainedHoldingAction(progress) {
+    retainedHoldingAction(progress: RetainedHolding) {
       const {close} = progress;
       if ((close.closeSucceeded && close.closeFailed) ||
           (close.cleanupStopped && !close.cleanupAuthority) ||
@@ -313,14 +386,14 @@ export function createExecutionSiteControlFixture() {
       if (close.closeFailed) return 2;
       return 1;
     },
-    beginHostCleanup() {
+    beginHostCleanup(): HostCleanup {
       return {
         initialRetryDone: false,
         closesAwaited: false,
         finalRetryDone: false,
       };
     },
-    recordHostCleanupRetry(progress) {
+    recordHostCleanupRetry(progress: HostCleanup) {
       if (!progress.initialRetryDone) {
         progress.initialRetryDone = true;
         return true;
@@ -331,17 +404,17 @@ export function createExecutionSiteControlFixture() {
       }
       return false;
     },
-    recordHostCleanupClosesAwaited(progress) {
+    recordHostCleanupClosesAwaited(progress: HostCleanup) {
       if (!progress.initialRetryDone || progress.closesAwaited) return false;
       progress.closesAwaited = true;
       return true;
     },
     hostCleanupAction(
-      progress,
-      closesPending,
-      knownCleanupPending,
-      unconfirmedOwnership,
-      cleanupFailed,
+      progress: HostCleanup,
+      closesPending: boolean,
+      knownCleanupPending: boolean,
+      unconfirmedOwnership: boolean,
+      cleanupFailed: boolean,
     ) {
       if (!progress.initialRetryDone) return 0;
       if (closesPending && !progress.closesAwaited) return 1;
@@ -353,16 +426,16 @@ export function createExecutionSiteControlFixture() {
       return 4;
     },
     hostCleanupPending: (
-      closesPending,
-      knownCleanupPending,
-      unconfirmedOwnership,
+      closesPending: boolean,
+      knownCleanupPending: boolean,
+      unconfirmedOwnership: boolean,
     ) => closesPending || knownCleanupPending || unconfirmedOwnership,
-    hostTaskRunOutcome(failed, runFinished) {
+    hostTaskRunOutcome(failed: boolean, runFinished: boolean) {
       if (failed) return 1;
       if (runFinished) return 0;
       return 2;
     },
-    beginHostTaskSuccess(connectorOwnedOutput, managedBindingClaimed) {
+    beginHostTaskSuccess(connectorOwnedOutput: boolean, managedBindingClaimed: boolean): HostTaskSuccess {
       return {
         connectorOwnedOutput,
         managedBindingClaimed,
@@ -376,13 +449,13 @@ export function createExecutionSiteControlFixture() {
         managedBindingValid: false,
       };
     },
-    recordHostTaskSiteCompletion(progress, ready) {
+    recordHostTaskSiteCompletion(progress: HostTaskSuccess, ready: boolean) {
       if (progress.siteCompletionChecked) return false;
       progress.siteCompletionChecked = true;
       progress.siteCompletionReady = ready;
       return true;
     },
-    recordHostTaskCommonCompletion(progress, completed) {
+    recordHostTaskCommonCompletion(progress: HostTaskSuccess, completed: boolean) {
       if (!progress.siteCompletionChecked ||
           !progress.siteCompletionReady ||
           progress.commonCompletionChecked) return false;
@@ -390,20 +463,20 @@ export function createExecutionSiteControlFixture() {
       progress.commonCompleted = completed;
       return true;
     },
-    recordHostTaskOutputRetained(progress) {
+    recordHostTaskOutputRetained(progress: HostTaskSuccess) {
       if (!progress.commonCompletionChecked || !progress.commonCompleted ||
           progress.outputRetained) return false;
       progress.outputRetained = true;
       return true;
     },
-    recordHostTaskSiteOperationSettled(progress) {
+    recordHostTaskSiteOperationSettled(progress: HostTaskSuccess) {
       if (!progress.outputRetained || progress.siteOperationSettled) {
         return false;
       }
       progress.siteOperationSettled = true;
       return true;
     },
-    recordHostTaskManagedBinding(progress, valid) {
+    recordHostTaskManagedBinding(progress: HostTaskSuccess, valid: boolean) {
       if (!progress.managedBindingClaimed ||
           !progress.siteOperationSettled ||
           progress.managedBindingChecked) return false;
@@ -411,9 +484,9 @@ export function createExecutionSiteControlFixture() {
       progress.managedBindingValid = valid;
       return true;
     },
-    hostTaskSiteOperationSettled: progress =>
+    hostTaskSiteOperationSettled: (progress: HostTaskSuccess) =>
       progress.siteOperationSettled,
-    hostTaskSuccessAction(progress) {
+    hostTaskSuccessAction(progress: HostTaskSuccess) {
       if (!progress.siteCompletionChecked) return 0;
       if (!progress.siteCompletionReady) return 1;
       if (!progress.commonCompletionChecked) return 2;

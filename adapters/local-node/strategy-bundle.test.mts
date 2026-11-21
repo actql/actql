@@ -8,7 +8,6 @@ import type {SynchronousResultCheck} from '../host-common/runtime-result.mjs';
 import type {ManagedFailure} from '../host-common/managed-failure.mjs';
 // @ts-expect-error TS7016: remove after migrating the installed strategy runner.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
-// @ts-expect-error TS7016: remove after migrating the Site control fixture.
 import {createExecutionSiteControlFixture} from '../host-common/execution-site-control.fixture.mjs';
 import {numericStrategyContribution} from '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
