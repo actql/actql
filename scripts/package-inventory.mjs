@@ -6,11 +6,24 @@ import {join} from 'node:path';
 
 export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
   assert.equal(typeof ignoreInstalledDependencies, 'boolean');
+  const names = (await readdir(directory)).sort();
+  // Only the public consumer separates the installed dependency subtree from
+  // this package's own frozen payload. Archive checks never do.
+  return inventoryEntries(directory, prefix, ignoreInstalledDependencies && prefix === ''
+    ? names.filter(name => name !== 'node_modules') : names);
+}
+
+// Health checks the npm-created root .bin separately. Nested .bin directories
+// and all package and archive files still go through the strict walk.
+export async function installedModulesPayloadInventory(directory) {
+  assert((await lstat(directory)).isDirectory(), 'Installed node_modules must be a real directory');
+  const names = (await readdir(directory)).sort().filter(name => name !== '.bin');
+  return inventoryEntries(directory, '', names);
+}
+
+async function inventoryEntries(directory, prefix, names) {
   const files = [];
-  for (const name of (await readdir(directory)).sort()) {
-    // Only the public consumer asks to separate npm's installed dependency
-    // subtree from this package's own frozen payload. Archive checks never do.
-    if (ignoreInstalledDependencies && prefix === '' && name === 'node_modules') continue;
+  for (const name of names) {
     const path = join(directory, name), relative = prefix + name;
     const stat = await lstat(path);
     assert(!stat.isSymbolicLink(), `Release payload symlink: ${relative}`);
