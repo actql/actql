@@ -11899,7 +11899,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "RowRun remains the sole acquisition, capture and release owner"
               },
               {
@@ -11911,31 +11911,31 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramCapturedTaskSourceMatches"
               },
               {
@@ -11951,13 +11951,13 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceCaptureCleanup"
               },
               {
@@ -11965,7 +11965,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -11977,7 +11977,7 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               },
               {
@@ -11987,15 +11987,15 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceCaptureAdvance"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -12007,17 +12007,17 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "const physicalAndBackingStopped = () => transportStopped &&"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "InstalledSourceCleanupPending"
               },
               {
@@ -12033,17 +12033,17 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "signal?.throwIfAborted"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {
@@ -12055,14 +12055,14 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity.executionBytes"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "capacity!.executionBytes"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -12081,7 +12081,7 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               },
               {
@@ -12091,7 +12091,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceStartListingAccounted"
               },
               {
@@ -12103,7 +12103,7 @@
                 "anchor": "## Native response construction phase"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerPrepared = borrow;"
               }
             ],
@@ -12339,7 +12339,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12349,7 +12349,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12359,7 +12359,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12369,7 +12369,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12379,7 +12379,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12389,7 +12389,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "fail('InstalledSourceReadUnavailable')"
               },
               {
@@ -12399,7 +12399,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "fail('InstalledSourceReadUnavailable')"
               },
               {
@@ -12413,13 +12413,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               },
               {
@@ -12514,7 +12514,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "if (originalRead !== undefined)"
               },
               {
@@ -12524,7 +12524,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramInstalledSourceReadStartRows(originalRead, acquisition,"
               },
               {
@@ -12534,7 +12534,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramInstalledSourceReadCheckLedger(originalRead, ledger)"
               },
               {
@@ -12554,17 +12554,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "(attempt: unknown) => settled.has(attempt), capacity!.transferBytes, capacity!.executionBytes)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "if (!checked(moon.clientProgramRowSourceCaptureCleanup(run)))"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "fail('InstalledSourceReadUnavailable')"
               },
               {
@@ -12574,7 +12574,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramInstalledSourceReadRetire(originalRead)"
               },
               {
@@ -12594,7 +12594,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "ledger === undefined || keyed || reportCapacity !== undefined"
               },
               {
@@ -12634,38 +12634,38 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "export function startInstalledRowRun"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckLedger(originalKeyedRead, ledger));"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "if (!checked(moon.clientProgramRowSourceCaptureCleanup(run))) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "fail('InstalledSourceCleanupPending');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "function closeAfterFailure(state, recovery) {"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "function closeAfterFailure(state: CloseState, recovery?: Recovery) {"
               }
             ],
             "resources": [
@@ -12698,7 +12698,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "RowRun remains the sole acquisition, capture and release owner"
               },
               {
@@ -12720,12 +12720,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
@@ -12742,7 +12742,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramCapturedTaskSourceMatches"
               },
               {
@@ -12768,7 +12768,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceCaptureCleanup"
               },
               {
@@ -12776,7 +12776,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -12802,15 +12802,15 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceCaptureAdvance"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -12832,7 +12832,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "InstalledSourceCleanupPending"
               },
               {
@@ -12858,11 +12858,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "signal?.throwIfAborted"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {
@@ -12884,8 +12884,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity.executionBytes"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "capacity!.executionBytes"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -12914,7 +12914,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceStartListingAccounted"
               },
               {
@@ -14859,8 +14859,8 @@
                 "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -14999,7 +14999,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -15069,11 +15069,11 @@
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -15197,7 +15197,7 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {
@@ -16044,8 +16044,8 @@
                 "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -16144,7 +16144,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -16194,11 +16194,11 @@
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -16290,7 +16290,7 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {
@@ -16576,7 +16576,7 @@
                 "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramInstalledSourceReadCheckLedger(originalRead, ledger)"
               }
             ],
@@ -16586,7 +16586,7 @@
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramInstalledSourceReadStartRows(originalRead, acquisition,"
               }
             ],
@@ -16604,7 +16604,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));"
               }
             ],
@@ -17209,8 +17209,8 @@
                 "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -17301,7 +17301,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -17347,11 +17347,11 @@
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -17431,7 +17431,7 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {

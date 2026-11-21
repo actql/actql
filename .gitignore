@@ -1299,3 +1299,5 @@ target/
 /adapters/host-node/local-account-config.d.mts
 /adapters/host-node/local-account-current.test.mjs
 /adapters/host-node/local-account-current.test.d.mts
+/adapters/host-node/installed-row-run.mjs
+/adapters/host-node/installed-row-run.d.mts

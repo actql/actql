@@ -878,8 +878,8 @@
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
+                "path": "adapters/host-node/installed-row-run.mts",
+                "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -946,7 +946,7 @@
                 "anchor": "@resources.reserve_attempt"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
@@ -976,11 +976,11 @@
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
@@ -1040,7 +1040,7 @@
                 "anchor": "/** Generated runtime namespaces and handles are supplied by their owners."
               },
               {
-                "path": "adapters/host-node/installed-row-run.mjs",
+                "path": "adapters/host-node/installed-row-run.mts",
                 "anchor": "readerStopRequested = true"
               },
               {
