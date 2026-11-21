@@ -18,17 +18,50 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape, validWireRunExplanationViewShape} from '../../packages/client-wire/index.mjs';
 
+import type {IncomingMessage, ServerResponse} from 'node:http';
+import type {ClientHostOperation, WireClientBodyByOperation, WireConnection, WireRunRef} from '../../packages/client-wire/index.js';
+import type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, RoutedBody}
+  from './in-process-client.mjs';
+
+type Delivery = Parameters<typeof deliverAuthorizedResult>;
+type DeliveryFormat = Delivery[1]['format'];
+type ErrorCode = Readonly<{code?: unknown}>;
+type Terminal = 'failed' | 'returned';
+type RequestFields = Readonly<Record<string, unknown>>;
+type RequestLifetime = Readonly<{
+  body: unknown;
+  beforeReply(): unknown;
+  bindRequest(request: unknown): unknown;
+  finish(terminal: Terminal): unknown;
+}>;
+type BodyLifetime = Readonly<{
+  beforeRead(bytes: number, chunks: number, quantum: number): unknown;
+  beforeJson(wire: string): unknown;
+  prepareRequest(request: RequestFields): RequestLifetime | PromiseLike<RequestLifetime>;
+  finish(terminal: Terminal): unknown;
+}>;
+type HttpInstallation = Omit<HostInstallation, 'authenticate' | 'negotiate' | 'maxRowBytes' |
+  'bindOwnedRequest' | 'performInstalledRequest' | 'captureResultObservation' | 'captureResultOperation'> & Readonly<{
+  authenticate(authorization: string | undefined): unknown;
+  negotiate?: Handler<'connect'>;
+  deliveryAttempt?: Handler<'delivery-attempt'>;
+  maxRequestBytes?: number;
+  loopbackHttp?: boolean;
+  prepareRequest(operation: ClientHostOperation, request: RequestFields):
+    RequestLifetime | null | undefined | PromiseLike<RequestLifetime | null | undefined>;
+}>;
+
 const operations = new Set(clientHostOperations);
 
-function invalid(code) {
-  const error = new Error(code);
+function invalid(code: string): never {
+  const error = new Error(code) as Error & {code: string};
   error.code = code;
   throw error;
 }
 
-async function boundedJson(request, maxBytes) {
+async function boundedJson(request: IncomingMessage, maxBytes: number): Promise<unknown> {
   let size = 0;
-  const chunks = [];
+  const chunks: Uint8Array[] = [];
   for await (const chunk of request) {
     size += chunk.byteLength;
     if (size > maxBytes) invalid('ClientRequestTooLarge');
@@ -43,7 +76,7 @@ async function boundedJson(request, maxBytes) {
 
 // Own bounded copies only. IncomingMessage/socket producer allocations remain
 // supplied by the transport owner, not by highWaterMark or this Request quote.
-async function preparedJson(request, maxBytes, prepared) {
+async function preparedJson(request: IncomingMessage, maxBytes: number, prepared: BodyLifetime): Promise<unknown> {
   if (typeof request.read !== 'function' || typeof request.once !== 'function' ||
       typeof request.off !== 'function' || request.readableObjectMode === true ||
       request.readableEncoding !== null && request.readableEncoding !== undefined) {
@@ -51,9 +84,9 @@ async function preparedJson(request, maxBytes, prepared) {
   }
   // Admit the empty copy/control inventory before constructing its chunk list.
   prepared.beforeRead(0, 1, 1);
-  const chunks = [];
+  const chunks: Uint8Array[] = [];
   let size = 0, reservedBytes = 0, reservedChunks = 1, reservedQuantum = 1;
-  const reserve = (bytes, count, read) => {
+  const reserve = (bytes: number, count: number, read: number) => {
     reservedBytes = Math.max(reservedBytes, bytes);
     reservedChunks = Math.max(reservedChunks, count);
     reservedQuantum = Math.max(reservedQuantum, read);
@@ -72,9 +105,9 @@ async function preparedJson(request, maxBytes, prepared) {
     const chunk = request.read(count);
     if (chunk === null) {
       if (request.readableEnded) break;
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         let settled = false;
-        const finish = error => {
+        const finish = (error?: unknown) => {
           if (settled) return;
           settled = true;
           request.off('readable', ready); request.off('end', ready);
@@ -83,7 +116,7 @@ async function preparedJson(request, maxBytes, prepared) {
           error === undefined ? resolve() : reject(error);
         };
         const ready = () => finish();
-        const failed = error => finish(error);
+        const failed = (error: unknown) => finish(error);
         const closed = () => request.readableEnded ? finish() : finish(disconnected());
         request.once('readable', ready); request.once('end', ready);
         request.once('error', failed); request.once('aborted', closed);
@@ -115,7 +148,7 @@ async function preparedJson(request, maxBytes, prepared) {
   catch { invalid('InvalidClientRequest'); }
 }
 
-function responseCode(error) {
+function responseCode(error: ErrorCode | null | undefined) {
   if (error?.code === 'RunStateAccessDenied' ||
       error?.code === 'RunObservationAccessDenied' ||
       error?.code === 'ResultAccessDenied' ||
@@ -134,7 +167,7 @@ function responseCode(error) {
       error?.code === 'ResourceDiscoveryDenied' ||
       error?.code === 'ResourcePeekDenied' ||
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
-        .test(error?.code ?? '')) return 403;
+        .test((error?.code ?? '') as string)) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
   if (error?.code === 'WaitAborted' || error?.code === 'WaitTimeout') return 408;
   if (error?.code === 'ClientRequestNotFound' ||
@@ -181,29 +214,29 @@ function responseCode(error) {
 
 // The public code HTTP ingress answers for `error`; in-process ingress uses
 // the same classification for operations both serve.
-export function publicClientErrorCode(error) {
-  return responseCode(error) === 500 ? 'ClientHostFailure' : error.code;
+export function publicClientErrorCode(error: unknown): unknown {
+  return responseCode(error as ErrorCode | null | undefined) === 500 ? 'ClientHostFailure' : (error as ErrorCode).code;
 }
 
 // In-process errors retain the same refusal/unknown-outcome classification.
-export function publicClientErrorStatus(error) {
-  return responseCode(error);
+export function publicClientErrorStatus(error: unknown) {
+  return responseCode(error as ErrorCode | null | undefined);
 }
 
-function sendError(response, error) {
+function sendError(response: ServerResponse, error: unknown) {
   if (response.headersSent) {
-    response.destroy(error);
+    response.destroy(error as Error);
     return;
   }
-  const status = responseCode(error);
+  const status = responseCode(error as ErrorCode | null | undefined);
   response.writeHead(status, {'content-type': 'application/json'});
   response.end(JSON.stringify({
-    code: status === 500 ? 'ClientHostFailure' : error.code,
+    code: status === 500 ? 'ClientHostFailure' : (error as ErrorCode).code,
   }));
 }
 
-function write(response, bytes) {
-  return new Promise((resolve, reject) => {
+function write(response: ServerResponse, bytes: Uint8Array) {
+  return new Promise<Readonly<{confirmedBytes: number}>>((resolve, reject) => {
     if (response.destroyed) {
       reject(new Error('ClientDisconnected'));
       return;
@@ -213,8 +246,8 @@ function write(response, bytes) {
   });
 }
 
-function finish(response, format) {
-  return new Promise((resolve, reject) => {
+function finish(response: ServerResponse, format: DeliveryFormat) {
+  return new Promise<Readonly<{confirmed: true}>>((resolve, reject) => {
     if (response.destroyed) {
       reject(new Error('ClientDisconnected'));
       return;
@@ -228,7 +261,7 @@ function finish(response, format) {
   });
 }
 
-function observationAttempt(response) {
+function observationAttempt(response: ServerResponse) {
   const controller = new AbortController();
   const disconnected = () => {
     if (!response.writableEnded) controller.abort();
@@ -246,7 +279,7 @@ export function createClientHttpHandler({
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, plan, inspectRun, runPlan, runExplanation, maxRequestBytes = 65536, observe, loopbackHttp = false,
   prepareRequest,
-}) {
+}: HttpInstallation) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof loopbackHttp !== 'boolean' ||
@@ -257,8 +290,8 @@ export function createClientHttpHandler({
   const rawPort = Object.getOwnPropertyDescriptor(prepareRequest, 'beforeBody');
   if (rawPort !== undefined && (!Object.hasOwn(rawPort, 'value') ||
       typeof rawPort.value !== 'function')) throw new TypeError('InvalidClientHostInstallation');
-  return async (request, response) => {
-    let requestLifetime, bodyLifetime, terminal = 'failed';
+  return async (request: IncomingMessage, response: ServerResponse) => {
+    let requestLifetime: RequestLifetime | null | undefined, bodyLifetime: BodyLifetime | undefined, terminal: Terminal = 'failed';
     try {
       try {
       if (loopbackHttp && !isLoopbackHttpRequest(request)) {
@@ -268,7 +301,7 @@ export function createClientHttpHandler({
           !request.url?.startsWith('/actql/client/0.1/')) {
         invalid('UnknownClientOperation');
       }
-      const operation = request.url.slice('/actql/client/0.1/'.length);
+      const operation = request.url.slice('/actql/client/0.1/'.length) as ClientHostOperation;
       if (!operations.has(operation)) invalid('UnknownClientOperation');
       if (request.headers['content-type'] !== 'application/json') {
         invalid('InvalidClientRequest');
@@ -284,19 +317,20 @@ export function createClientHttpHandler({
         invalid('ClientAuthenticationDenied');
       }
       if (rawPort !== undefined) {
-        const original = Reflect.apply(rawPort.value, prepareRequest, [operation, maxRequestBytes]);
+        const original = Reflect.apply(rawPort.value, prepareRequest, [operation, maxRequestBytes]) as
+          Partial<Record<keyof BodyLifetime, unknown>> | undefined;
         const methods = ['beforeRead', 'beforeJson', 'prepareRequest', 'finish']
-          .map(name => original?.[name]);
+          .map(name => original?.[name as keyof BodyLifetime]);
         if (methods.some(method => typeof method !== 'function')) invalid('InvalidClientHostPreparation');
         bodyLifetime = Object.freeze(Object.fromEntries(
           ['beforeRead', 'beforeJson', 'prepareRequest', 'finish'].map((name, index) =>
-            [name, (...args) => Reflect.apply(methods[index], original, args)])));
+            [name, (...args: unknown[]) => Reflect.apply(methods[index] as (...args: unknown[]) => unknown, original, args)]))) as BodyLifetime;
       }
       const decoded = bodyLifetime === undefined ? await boundedJson(request, maxRequestBytes)
         : await preparedJson(request, maxRequestBytes, bodyLifetime);
       const prepared = prepareClientHostRequest(operation, decoded);
       if (prepared === undefined) invalid('InvalidClientRequest');
-      const {body, connection} = prepared;
+      const {body, connection} = prepared as Readonly<{body: RoutedBody; connection: WireConnection}>;
       const ref = body.ref === undefined ? undefined :
         Object.freeze({...body.ref});
       // Widening the structural wire schema must not let an old boolean
@@ -324,7 +358,7 @@ export function createClientHttpHandler({
           'authorize_connection', cause);
         authorized = false;
       }
-      const sendJson = value => {
+      const sendJson = (value: unknown) => {
         requestLifetime?.beforeReply();
         response.writeHead(200, {'content-type': 'application/json'});
         response.end(JSON.stringify(value));
@@ -349,14 +383,16 @@ export function createClientHttpHandler({
           typeof requestLifetime.bindRequest !== 'function' ||
           typeof requestLifetime.finish !== 'function') invalid('InvalidClientHostPreparation');
       const admittedRequest = requestLifetime.body;
-      const invoke = async (handler, signal, preparedProgram, consume) => {
+      const invoke = async (handler: HandlerPorts[keyof HandlerPorts] | Handler<'delivery-attempt'>,
+        signal?: AbortSignal, preparedProgram?: unknown, consume?: ExplanationConsumer) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         const original = Object.freeze({...admittedRequest,
           ...(signal === undefined ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         });
-        requestLifetime.bindRequest(original);
-        return consume === undefined ? handler(original) : handler(original, consume);
+        requestLifetime!.bindRequest(original);
+        return consume === undefined ? (handler as DispatchedHandler)(original)
+          : (handler as DispatchedHandler)(original, consume);
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -388,16 +424,16 @@ export function createClientHttpHandler({
       } else if (operation === 'result-describe') {
         const observation = observationAttempt(response);
         try {
-          const resultRequest = {
-            indexKey: ref, principalId: principal, purpose: 'inspect',
-            resultName: body.resultName, format: body.format,
+          const resultRequest: Parameters<typeof describeAuthorizedResult>[1] = {
+            indexKey: ref!, principalId: principal, purpose: 'inspect',
+            resultName: body.resultName, format: body.format as DeliveryFormat,
             attemptId: body.attemptId, maxWireBytes: body.maxWireBytes,
             maxNodes: body.maxNodes, maxDepth: body.maxDepth,
           };
           requestLifetime.bindRequest(resultRequest);
-          const answer = await describeAuthorizedResult(resultService, resultRequest,
+          const answer = await describeAuthorizedResult(resultService!, resultRequest,
             observation.signal);
-          if (!validResultDescription(answer, body, body)) {
+          if (!validResultDescription(answer, body as WireClientBodyByOperation['result-describe'], body)) {
             invalid('InvalidClientHostResultDescription');
           }
           sendJson(answer);
@@ -405,9 +441,9 @@ export function createClientHttpHandler({
       } else if (operation === 'attach') {
         const admission = await invoke(attach);
         if (!validClientAdmission(admission, connection) ||
-            admission.ref.namespaceId !== ref.namespaceId ||
-            admission.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            admission.ref.runDefinitionCid !== ref.runDefinitionCid) {
+            admission.ref.namespaceId !== ref!.namespaceId ||
+            admission.ref.authorityScopeCid !== ref!.authorityScopeCid ||
+            admission.ref.runDefinitionCid !== ref!.runDefinitionCid) {
           invalid('InvalidClientHostAdmission');
         }
         sendJson(admission);
@@ -420,13 +456,13 @@ export function createClientHttpHandler({
       } else if (operation === 'status') {
         let state;
         if (observeRun === undefined) {
-          const stateRequest = {
-            indexKey: body.ref,
+          const stateRequest: Parameters<typeof observeClientRunState>[2] = {
+            indexKey: body.ref!,
             principalId: principal,
             purpose: 'inspect',
           };
           requestLifetime.bindRequest(stateRequest);
-          state = await observeClientRunState(runStateObservation, stateService, stateRequest);
+          state = await observeClientRunState(runStateObservation, stateService!, stateRequest);
         } else state = await invoke(observeRun);
         if (!validRunState(state)) {
           invalid('InvalidClientHostRunState');
@@ -444,7 +480,7 @@ export function createClientHttpHandler({
         try {
           const view = await invoke(runPlan, observer.signal);
           if (!validWireRunPlanViewShape(view) ||
-              Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunPlanView');
+              (Object.keys(ref!) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref![key])) invalid('InvalidClientHostRunPlanView');
           sendJson(view);
         } finally { observer.release(); }
       } else if (operation === 'run-explanation') {
@@ -452,16 +488,16 @@ export function createClientHttpHandler({
         try {
           await invoke(runExplanation, observer.signal, undefined, async view => {
             if (!validWireRunExplanationViewShape(view) ||
-                Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunExplanationView');
+                (Object.keys(ref!) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref![key])) invalid('InvalidClientHostRunExplanationView');
             const wire = JSON.stringify(view);
             if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) invalid('RunExplanationReadLimit');
             const bytes = Buffer.from(wire);
-            requestLifetime.beforeReply();
+            requestLifetime!.beforeReply();
             // The SAME read owns wire/buffer/view until the native end callback
             // confirms consumption. On error, retain it through actual close;
             // neither starting end nor a failed callback is a physical ACK.
-            await new Promise((resolve, reject) => {
-              let settled = false, primary;
+            await new Promise<void>((resolve, reject) => {
+              let settled = false, primary: unknown;
               const complete = () => {
                 if (settled) return;
                 settled = true;
@@ -474,7 +510,7 @@ export function createClientHttpHandler({
                 primary ??= new Error('ClientDisconnected');
                 complete();
               };
-              const failed = error => {
+              const failed = (error: unknown) => {
                 primary ??= error;
                 if (response.closed) complete();
                 else response.destroy();
@@ -485,7 +521,7 @@ export function createClientHttpHandler({
               if (response.destroyed) return;
               try {
                 response.writeHead(200, {'content-type': 'application/json'});
-                response.end(bytes, error => {
+                response.end(bytes, (error?: Error) => {
                   if (error) failed(error);
                   else if (primary === undefined) complete();
                 });
@@ -502,7 +538,7 @@ export function createClientHttpHandler({
         } finally { observer.release(); }
       } else if (operation === 'owner-observations') {
         const views = await invoke(observeOwners);
-        if (!validOwnerObservations(views,ref,body)) invalid('InvalidClientHostOwnerObservations');
+        if (!validOwnerObservations(views,ref!,body)) invalid('InvalidClientHostOwnerObservations');
         sendJson(views);
       } else if (operation === 'wait') {
         const observer = observationAttempt(response);
@@ -515,7 +551,7 @@ export function createClientHttpHandler({
       } else if (operation === 'checkpoints') {
         const page = await invoke(checkpoints);
         if (!(Object.hasOwn(body, 'checkpointId')
-          ? validCheckpointLookup(page, body.checkpointId)
+          ? validCheckpointLookup(page, body.checkpointId!)
           : validCheckpointPage(page, body.limit))) {
           invalid('InvalidClientHostCheckpointPage');
         }
@@ -574,12 +610,12 @@ export function createClientHttpHandler({
           sendJson(answer);
         } finally { observer.release(); }
       } else if (operation === 'cancel') {
-        const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
+        const expected = {...ref!, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
         const cancelled = await invoke(cancel);
         if (!validCancellationAttempt(cancelled, expected, body.attemptRef)) invalid('InvalidClientHostCancellation');
         sendJson(cancelled);
       } else if (operation === 'lookup-cancellation') {
-        const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
+        const expected = {...ref!, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
         const found = await invoke(lookupCancellation);
         if (!validCancellationLookup(found, expected)) invalid('InvalidClientHostCancellationLookup');
         sendJson(found);
@@ -592,19 +628,19 @@ export function createClientHttpHandler({
       } else if (operation === 'delivery-attempt') {
         let lookup;
         if (deliveryAttempt === undefined) {
-          const resultRequest = {
-            indexKey: body.ref,
+          const resultRequest: Parameters<typeof inspectAuthorizedDeliveryAttempt>[1] = {
+            indexKey: body.ref!,
             principalId: principal,
             purpose: 'download',
             resultName: body.resultName,
             attemptId: body.attemptId,
           };
           requestLifetime.bindRequest(resultRequest);
-          lookup = await inspectAuthorizedDeliveryAttempt(resultService, resultRequest);
+          lookup = await inspectAuthorizedDeliveryAttempt(resultService!, resultRequest);
         } else lookup = await invoke(deliveryAttempt);
         if (!validDeliveryAttemptLookup(lookup, {
           attemptId: body.attemptId,
-          runDefinitionCid: body.ref.runDefinitionCid,
+          runDefinitionCid: body.ref!.runDefinitionCid,
           resultName: body.resultName,
         })) invalid('InvalidClientHostAttemptLookup');
         sendJson(lookup);
@@ -616,7 +652,7 @@ export function createClientHttpHandler({
           json: 'application/json',
           jsonl: 'application/x-ndjson',
           csv: 'text/csv',
-        }[body.format];
+        }[body.format as DeliveryFormat];
         const begin = () => {
           requestLifetime?.beforeReply();
           if (!response.headersSent) {
@@ -625,18 +661,18 @@ export function createClientHttpHandler({
         };
         const observer = observationAttempt(response);
         try {
-          const resultRequest = {
-            indexKey: body.ref,
+          const resultRequest: Delivery[1] = {
+            indexKey: body.ref!,
             principalId: principal,
             purpose: 'download',
             resultName: body.resultName,
-            format: body.format,
+            format: body.format as DeliveryFormat,
             attemptId: body.attemptId,
           };
           requestLifetime.bindRequest(resultRequest);
-          await deliverAuthorizedResult(resultService, resultRequest, {
+          await deliverAuthorizedResult(resultService!, resultRequest, {
             write: bytes => { begin(); return write(response, bytes); },
-            finish: () => { begin(); return finish(response, body.format); },
+            finish: () => { begin(); return finish(response, body.format as DeliveryFormat); },
           }, observer.signal);
           // The shared owner confirms sink completion before issuing and
           // persisting its receipt and succeeded record. Only their successful
@@ -644,9 +680,9 @@ export function createClientHttpHandler({
           requestLifetime?.beforeReply();
           // A closed response cannot acknowledge the original native end.
           // Settle its transport failure so the same Request can finish.
-          await new Promise((resolve, reject) => {
+          await new Promise<void>((resolve, reject) => {
             let settled = false;
-            const complete = (failure, error) => {
+            const complete = (failure: boolean, error: unknown) => {
               if (settled) return;
               settled = true;
               response.off('close', disconnected);
@@ -655,11 +691,11 @@ export function createClientHttpHandler({
               else resolve();
             };
             const disconnected = () => complete(true, new Error('ClientDisconnected'));
-            const failed = error => complete(true, error);
+            const failed = (error: unknown) => complete(true, error);
             response.once('close', disconnected);
             response.once('error', failed);
             if (response.destroyed) { disconnected(); return; }
-            try { response.end(error => complete(Boolean(error), error)); }
+            try { response.end((error?: Error) => complete(Boolean(error), error)); }
             catch (error) { complete(true, error); }
           });
         } finally { observer.release(); }

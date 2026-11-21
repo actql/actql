@@ -16,7 +16,6 @@ import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWire
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
-// @ts-expect-error TS7016: This shared runtime classifier still has its original HTTP JS owner.
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 import type {ClientHostOperation, WireClientBody, WireClientBodyByOperation, WireRunRef,
@@ -100,6 +99,8 @@ type HostInstallation = HandlerPorts & Readonly<{
   captureResultOperation?: () => ResultObservation;
 }>;
 
+export type {DispatchedHandler, ExplanationConsumer, Handler, HandlerPorts, HostInstallation, RoutedBody};
+
 const localErrors = new WeakSet<ClientError>();
 // Only packets captured here before deferred service construction carry this
 // original operation's immutable shape facts into the activated ingress.
@@ -116,7 +117,7 @@ const fail: (code: string) => never = code => {
   throw error;
 };
 const publicFailure = (error: unknown) => localErrors.has(error as ClientError) ? error as ClientError
-  : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
+  : publicError(publicClientErrorCode(error) as string, publicClientErrorStatus(error));
 
 function publicResultRows(response: ResultRows, observeConsumed: ObserveConsumed, observeOperation: ResultObservation) {
   // Keep a failed delivery record's exact retry owner off public errors. The

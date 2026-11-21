@@ -12904,7 +12904,7 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -13204,7 +13204,7 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -23034,7 +23034,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9eb34e5a65ec6a7c2eaec2f889aa974affb7557ba186ec1aec6dd5a80fa21bb6",
+      "sha256": "d6b47f6095afcd63d37b298a253139ec88baeacd716123452556cf3aa83d3f32",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23359,8 +23359,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -23377,8 +23377,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23395,7 +23395,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -23413,7 +23413,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -23431,7 +23431,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -23449,7 +23449,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -23467,7 +23467,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -23485,7 +23485,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -23507,7 +23507,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -23551,8 +23551,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -23569,8 +23569,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23587,7 +23587,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -23605,7 +23605,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -23623,7 +23623,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -23641,7 +23641,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -23659,7 +23659,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -23677,7 +23677,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -23699,7 +23699,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -23754,7 +23754,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23764,7 +23764,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23774,7 +23774,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23784,7 +23784,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23794,7 +23794,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23804,7 +23804,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23814,7 +23814,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23824,7 +23824,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23834,7 +23834,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "async function preparedJson("
               }
             ],
@@ -23858,8 +23858,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -23876,8 +23876,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23894,7 +23894,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -23912,7 +23912,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -23930,7 +23930,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -23948,7 +23948,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -23966,7 +23966,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -23984,7 +23984,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -24006,7 +24006,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -24050,8 +24050,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -24068,8 +24068,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -24086,7 +24086,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -24104,7 +24104,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -24122,7 +24122,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -24140,7 +24140,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -24158,7 +24158,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -24176,7 +24176,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -24198,7 +24198,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -24242,8 +24242,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -24260,8 +24260,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -24278,7 +24278,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -24296,7 +24296,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -24314,7 +24314,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -24332,7 +24332,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -24350,7 +24350,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -24368,7 +24368,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -24390,7 +24390,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -24434,8 +24434,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -24452,8 +24452,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -24470,7 +24470,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -24488,7 +24488,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -24506,7 +24506,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -24524,7 +24524,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -24542,7 +24542,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -24560,7 +24560,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -24582,7 +24582,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -24626,8 +24626,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -24644,8 +24644,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-http.mjs",
-                "anchor": "export function publicClientErrorCode(error) {"
+                "path": "adapters/host-node/client-http.mts",
+                "anchor": "export function publicClientErrorCode(error: unknown): unknown {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -24662,7 +24662,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
               },
               {
@@ -24680,7 +24680,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
               },
               {
@@ -24698,7 +24698,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "for await (const chunk of request) {"
               },
               {
@@ -24716,7 +24716,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
               },
               {
@@ -24734,7 +24734,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -24752,7 +24752,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "validCheckpointLookup"
               },
               {
@@ -24774,7 +24774,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
               },
               {
@@ -54609,7 +54609,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6d19231065e6c7111de5bc8ed04cfd5a836ff8e87fdbabc1155196860f1fb3b2",
+      "sha256": "4c22e864545097d935a4cee25a4b218b7ac12a6a59bbede4fa60f2a895def7a0",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -125198,7 +125198,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -125302,7 +125302,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -138969,7 +138969,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-http.mjs",
+                "path": "adapters/host-node/client-http.mts",
                 "anchor": "function observationAttempt("
               },
               {
