@@ -985,8 +985,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
               }
             ],
             "inputsOutputs": [
@@ -1035,7 +1035,7 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "catch {drop('resourceUnavailable'); return;}"
               }
             ],
@@ -1055,8 +1055,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const snapshot: Record<string, string> = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -1093,12 +1093,12 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "function accumulateSelectedRows(context, detail, pendingLimit = 0) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "function accumulateSelectedRows(context: ObservationFrame | undefined, detail: SelectedRowDetail, pendingLimit = 0): boolean {"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "function bindSelectedRequestRows(detail, binding) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "function bindSelectedRequestRows(detail: SelectedRowDetail, binding: SelectedRequestBinding | undefined) {"
               }
             ],
             "inputsOutputs": [
@@ -1107,7 +1107,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;"
               }
             ],
@@ -1117,11 +1117,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "request.requestId === binding.requestId) {"
               }
             ],
@@ -1131,11 +1131,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.selectedRowsClosed = true; context.selectedRows = undefined;"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.pendingRequestRows = context.selectedRequestBinding = undefined;"
               }
             ],
@@ -1145,7 +1145,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "// One bounded record for this existing ingress, not another durable"
               }
             ],
@@ -1155,7 +1155,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (!captured) drop('rowsUnavailable');"
               }
             ],
@@ -1165,7 +1165,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.selectedRowsClosed = true;"
               }
             ],
@@ -1175,11 +1175,11 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}"
               }
             ],
@@ -1189,7 +1189,7 @@
                 "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "rowKind !== 'run' || coverage !== 'selected-returned' ||"
               }
             ],
@@ -1229,7 +1229,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const captureCurrentOperation = () => {"
               }
             ],
@@ -1239,8 +1239,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const retainOperation = promise => {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const retainOperation = (promise: unknown) => {"
               }
             ],
             "identity": [
@@ -1249,7 +1249,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (context?.owner !== contextOwner || context.finished) return undefined;"
               }
             ],
@@ -1259,7 +1259,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "const held = original; original = undefined;"
               }
             ],
@@ -1269,8 +1269,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "Promise.prototype.then.call(promise, captured.release, captured.release);"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "Promise.prototype.then.call(promise as Promise<unknown>, captured.release, captured.release);"
               }
             ],
             "failure": [
@@ -1279,7 +1279,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "} catch {captured.release(); drop('rowsUnavailable');}"
               }
             ],
@@ -1289,7 +1289,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "context.finished = true; context.selectedRowsClosed = true;"
               }
             ],
@@ -1299,7 +1299,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}"
               }
             ],
@@ -1309,7 +1309,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "if (closed || !observeRows) return undefined;"
               }
             ],

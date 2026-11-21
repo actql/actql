@@ -50569,8 +50569,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
               }
             ],
             "inputsOutputs": [
@@ -50619,7 +50619,7 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "catch {drop('resourceUnavailable'); return;}"
               }
             ],
@@ -50639,8 +50639,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const snapshot: Record<string, string> = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -63875,8 +63875,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "export function captureManagedRunObservation(projection: unknown, ref: RunReference, readUsage: () => SynchronousRuntimeData) {"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -63933,7 +63933,7 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
+                "path": "adapters/host-common/observation.mts",
                 "anchor": "catch {drop('resourceUnavailable'); return;}"
               }
             ],
@@ -63953,8 +63953,8 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+                "path": "adapters/host-common/observation.mts",
+                "anchor": "const snapshot: Record<string, string> = {'actql.resource.scope': 'managed-run-ledger'};"
               },
               {
                 "path": "src/client_local_host/preparation_request_explanation_read.mbt",

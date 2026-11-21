@@ -5,8 +5,7 @@ import type {StatementSync} from 'node:sqlite';
 import type {ObservationContext} from '../../packages/local-node/observation.js';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
-// @ts-expect-error TS7016: remove after observation has an authored TypeScript entry.
-import {snapshotObservationContext} from '../host-common/observation.mjs';
+import {snapshotObservationContext, type ObservationStorage} from '../host-common/observation.mjs';
 
 type ObservationSqlValue = number | string | null;
 type ObservationStatement = Readonly<{
@@ -20,12 +19,9 @@ type ObservationDatabase = Readonly<{
   prepare(sql: string): ObservationStatement;
 }>;
 
-type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
-type BoundObservation = Readonly<{ref: RunReference; scope: string; revision: string}>;
-type ObservationStart = BoundObservation & Readonly<{requestId: string; context?: unknown; maxRuns?: number}>;
-type ObservationCharge = BoundObservation & Readonly<{
-  bytes: number; maxRecords: number; maxBytes: number; ownerFactKey?: string;
-}>;
+type ObservationStart = Parameters<ObservationStorage['initialize']>[0];
+type ObservationCharge = Parameters<ObservationStorage['consume']>[0];
+type RunReference = ObservationStart['ref'];
 
 const version = 'actql-client-observation-custody/0.1';
 const columns = ['namespace_id', 'authority_scope_cid', 'run_definition_cid',
@@ -127,5 +123,5 @@ export function openClientObservationStorage(database: ObservationDatabase,
         return Object.freeze({accepted: true, context});
       });
     },
-  });
+  }) satisfies ObservationStorage;
 }
