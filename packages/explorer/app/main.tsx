@@ -20,6 +20,11 @@ function sameRun(original: RunReference, other: RunReference | undefined) {
     other.runDefinitionCid === original.runDefinitionCid;
 }
 
+function parseLocalJson(text: string): unknown {
+  try {return JSON.parse(text);}
+  catch {return undefined;}
+}
+
 function StoryText({text}: {text: string}) {
   return <>{text.split(/("[^"\n]+")/u).map((part, index) => index % 2
     ? <code key={index}>{part.slice(1, -1)}</code> : part)}</>;
@@ -246,6 +251,15 @@ function App() {
   const readPlan = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     const text = programText, format = programFormat;
+    let input: string | Record<string, unknown> = text;
+    if (format === 'program') {
+      const parsed = parseLocalJson(text);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        showError('Enter a valid Program JSON object before reading the Plan.');
+        return;
+      }
+      input = parsed as Record<string, unknown>;
+    }
     const locale = data.get('staticLocale') === 'ja' ? 'ja' : 'en';
     const explain = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'static-explanation';
     const scope = epoch.current;
@@ -253,7 +267,6 @@ function App() {
       runSelection.current++; setFollow(false); selectRef(undefined);
       showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined);
       showLauncherProgram(false); showPlan(undefined); showStaticExplanation(undefined);
-      const input = format === 'program' ? JSON.parse(text) : text;
       const options = format === 'program' ? {} : {format};
       if (explain) {
         const original = await source.staticExplanation(input, options, locale);
@@ -269,6 +282,11 @@ function App() {
   };
   const readRun = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const original = parseLocalJson(runReference);
+    if (!validRunRef(original)) {
+      showError('Enter the complete original Run reference as JSON.');
+      return;
+    }
     const menu = event.currentTarget.closest('details');
     const data = new FormData(event.currentTarget);
     const name = String(data.get('name'));
@@ -277,8 +295,6 @@ function App() {
     const selected = ++runSelection.current, scope = epoch.current; setFollow(false);
     const current = () => runSelection.current === selected && epoch.current === scope;
     void perform(async () => {
-      const original: unknown = JSON.parse(runReference);
-      if (!validRunRef(original)) throw new Error('Invalid Run reference');
       showRun(undefined);
       if (!sameRun(original, selectedRef)) {
         showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined);

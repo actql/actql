@@ -4340,7 +4340,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "f5d10fb0ae87804936ec657d97835438bba91ef3b45c3d26eb53dec487bf0648",
+      "sha256": "8a931a095a3d2042268de63f99cca677c6adf92276bfa58e390e7cbf9a899aa3",
       "exports": [],
       "operations": [
         {
@@ -4613,6 +4613,13 @@
           "name": "App/session/<call>",
           "parameters": [],
           "result": null
+        },
+        {
+          "name": "parseLocalJson",
+          "parameters": [
+            "text: string"
+          ],
+          "result": "unknown"
         },
         {
           "name": "sameRun",
@@ -4987,6 +4994,7 @@
             "App/readRun",
             "App/readRun/<call>",
             "App/readRun/current",
+            "parseLocalJson",
             "sameRun"
           ],
           "exports": [],
