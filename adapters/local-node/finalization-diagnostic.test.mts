@@ -7,20 +7,46 @@ import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {publicBudgetFailureMessage} from '../host-node/client-dispatch-diagnostic.mjs';
 import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
+import type {beginManagedFailureProgress, ManagedFailure, settleFailedManagedOperations} from '../host-common/managed-failure.mjs';
+
+type Stage = 'prepare' | 'advance' | 'settle' | 'complete';
+type FixtureFailure = Omit<ManagedFailure, 'primaryFailure' | 'primaryDiagnostic'> & {
+  primaryFailure: Error;
+  primaryDiagnostic?: Readonly<{dimension: string; task: number}>;
+};
+type FixtureEntry = Readonly<{
+  prepareNext(outputs: ReadonlyMap<unknown, unknown>): Promise<unknown>;
+  runPrepared(prepared: unknown): Promise<{diagnostic: {outputRows: number}}>;
+}>;
+type FixtureStrategyModule = Readonly<{
+  localStrategyContribution(moon: object, setup: object, check: typeof checked): FixtureEntry;
+}>;
+
+type FailurePorts = Parameters<typeof settleFailedManagedOperations>;
+type ProgressFactory = Parameters<typeof beginManagedFailureProgress>[0]['strategyHostBeginManagedFailureProgress'];
+type Reject<Actual, Port> = Actual extends Port ? false : true;
+type Assert<A extends true> = A;
+type _ProgressIsSynchronous = Assert<Reject<(...args: Parameters<ProgressFactory>) => Promise<ReturnType<ProgressFactory>>, ProgressFactory>>;
+type _CloseIsSynchronous = Assert<Reject<() => Promise<void>, FailurePorts[0]['close']>>;
+type _SettleIsSynchronous = Assert<Reject<() => Promise<object>, FailurePorts[0]['settle']>>;
+type _CheckIsSynchronous = Assert<Reject<(result: unknown) => PromiseLike<object>, FailurePorts[1]>>;
+type _AdditionalCloseIsSynchronous = Assert<Reject<() => Promise<void>,
+  NonNullable<NonNullable<FailurePorts[4]>[number]['close']>>>;
 
 const source = process.env.ACTQL_FINALIZATION_STRATEGY_SOURCE ??
   new URL('./strategy-bundle.mjs', import.meta.url).href;
-const {localStrategyContribution} = await import(source);
-const originalCore = await import(process.env.ACTQL_FINALIZATION_CORE_SOFTWARE
+const {localStrategyContribution} = await import(source) as FixtureStrategyModule;
+// Keep the original URL inputs that Node coerces at this test import boundary.
+const originalCore = await import((process.env.ACTQL_FINALIZATION_CORE_SOFTWARE
   ? pathToFileURL(process.env.ACTQL_FINALIZATION_CORE_SOFTWARE)
-  : new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
-const ok = value => ({$tag: 1, _0: value});
+  : new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)) as unknown as string);
+const ok = (value?: unknown) => ({$tag: 1, _0: value});
 
-function fixture(failedStage, {classified = true} = {}) {
-  const calls = [], setup = {}, configuration = {}, issue = {}, material = {};
+function fixture(failedStage: Stage | undefined, {classified = true} = {}) {
+  const calls: string[] = [], setup = {}, configuration = {}, issue = {}, material = {};
   const originalFailure = {$tag: 0, _0: issue};
   let failureIssued = false, stopped = false, cleanupCalls = 0, projects = 0;
-  const result = stage => {
+  const result = (stage: Stage) => {
     calls.push(stage);
     if (stage === failedStage && !failureIssued) {
       failureIssued = true;
@@ -62,7 +88,7 @@ function fixture(failedStage, {classified = true} = {}) {
     strategyModule_local_ManagedDuration: () => 1n,
     strategyModule_local_ManagedCapacity: () => [0n, 0n],
     strategyModule_local_ManagedStart: () => ok(operations),
-    strategyModule_local_ManagedAdvanceResourceDimension(value) {
+    strategyModule_local_ManagedAdvanceResourceDimension(value: unknown) {
       assert.strictEqual(this, moon);
       assert.strictEqual(value, originalFailure);
       projects++;
@@ -78,19 +104,19 @@ function fixture(failedStage, {classified = true} = {}) {
   return {entry, issue, calls, projectCount: () => projects};
 }
 
-for (const stage of ['prepare', 'advance', 'settle', 'complete']) {
+for (const stage of ['prepare', 'advance', 'settle', 'complete'] as const) {
   test(`finalization diagnostic preserves same original ${stage} refusal through cleanup`, async () => {
     const f = fixture(stage);
     const prepared = await f.entry.prepareNext(new Map());
     const failure = await f.entry.runPrepared(prepared).then(
-      () => assert.fail('original finalization refusal was lost'), error => error);
+      () => assert.fail('original finalization refusal was lost'), (error: unknown) => error as FixtureFailure);
     assert.equal(failure.code, 'MoonBitHostFailure');
     assert.equal(failure.primaryFailure.cause, f.issue);
     assert.equal(f.projectCount(), 1);
-    assert.equal(failure.primaryDiagnostic.dimension, 'execution_bytes');
-    assert.equal(failure.primaryDiagnostic.task, 7);
+    assert.equal(failure.primaryDiagnostic!.dimension, 'execution_bytes');
+    assert.equal(failure.primaryDiagnostic!.task, 7);
     assert(Object.isFrozen(failure.primaryDiagnostic));
-    assert.match(publicBudgetFailureMessage(failure),
+    assert.match(publicBudgetFailureMessage(failure)!,
       /dimension=execution_bytes; requested_delta=unavailable; remaining=unavailable; policy=unavailable; unit=logical_bytes; setting=installation\.requestMemory\.executionBytes/);
     assert.equal(failure.cleanupPending, true);
     assert.equal(failure.cleanupHandle.status().pending, true);
@@ -115,7 +141,7 @@ test('finalization diagnostic leaves an unclassified original refusal unclassifi
   const f = fixture('prepare', {classified: false});
   const prepared = await f.entry.prepareNext(new Map());
   const failure = await f.entry.runPrepared(prepared).then(
-    () => assert.fail('original refusal was lost'), error => error);
+    () => assert.fail('original refusal was lost'), (error: unknown) => error as FixtureFailure);
   assert.equal(failure.primaryFailure.cause, f.issue);
   assert.equal(failure.primaryDiagnostic, undefined);
   assert.equal(publicBudgetFailureMessage(failure), undefined);
@@ -131,7 +157,7 @@ test('finalization diagnostic never projects a foreign checker error from Ok or 
     }};
     assert.throws(() => checkedLocalManagedAdvance(moon, result, () => { throw primary; }, 7),
       error => error === primary);
-    assert.equal(primary.primaryDiagnostic, undefined);
+    assert.equal((primary as Error & {primaryDiagnostic?: unknown}).primaryDiagnostic, undefined);
     assert.equal(publicBudgetFailureMessage(primary), undefined);
   }
 });

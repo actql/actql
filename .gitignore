@@ -1195,3 +1195,5 @@ target/
 /adapters/host-common/managed-failure.d.mts
 /adapters/local-node/managed-output-custody.mjs
 /adapters/local-node/managed-output-custody.d.mts
+/adapters/local-node/finalization-diagnostic.test.mjs
+/adapters/local-node/finalization-diagnostic.test.d.mts

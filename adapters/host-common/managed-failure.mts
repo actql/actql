@@ -118,7 +118,8 @@ function localCleanupContinuation(operations: ManagedFailureOperations) {
   } catch { return undefined; }
 }
 
-const managedFailureProgresses = new WeakMap<ManagedFailureProgress, {moon: ProgressBindings; progress: unknown}>();
+type CoreManagedFailureProgress = object & Readonly<{then?: never}>;
+const managedFailureProgresses = new WeakMap<ManagedFailureProgress, {moon: ProgressBindings; progress: CoreManagedFailureProgress}>();
 const requiredProgressMethods = [
   'strategyHostBeginManagedFailureProgress',
   'strategyHostRecordManagedFailureAdditionalClosed',
@@ -132,9 +133,9 @@ const requiredProgressMethods = [
 type ProgressRecordMethod = Exclude<typeof requiredProgressMethods[number],
   'strategyHostBeginManagedFailureProgress' | 'strategyHostManagedFailureAction'>;
 type ProgressBindings = Readonly<{
-  strategyHostBeginManagedFailureProgress(additionalClosed: boolean, settled: boolean, cleanupRefreshed: boolean): unknown;
-  strategyHostManagedFailureAction(progress: unknown): number;
-} & Record<ProgressRecordMethod, (progress: unknown) => boolean>>;
+  strategyHostBeginManagedFailureProgress(additionalClosed: boolean, settled: boolean, cleanupRefreshed: boolean): CoreManagedFailureProgress;
+  strategyHostManagedFailureAction(progress: CoreManagedFailureProgress): number;
+} & Record<ProgressRecordMethod, (progress: CoreManagedFailureProgress) => boolean>>;
 
 export function beginManagedFailureProgress(
   moon: ProgressBindings,

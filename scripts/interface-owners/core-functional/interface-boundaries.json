@@ -28480,7 +28480,7 @@
                 "anchor": "retains export custody until the actual seal promise settles"
               },
               {
-                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "path": "adapters/local-node/finalization-diagnostic.test.mts",
                 "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
@@ -99880,7 +99880,7 @@
                 "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
               },
               {
-                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "path": "adapters/local-node/finalization-diagnostic.test.mts",
                 "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
