@@ -8,7 +8,7 @@ type Payload<Prepared> = {input?: unknown; parameters?: unknown; prepared?: Prep
 type Submission = {kind?: string; input?: unknown; parameters?: unknown; preparedProgram?: unknown};
 type Custody<Prepared> = ReturnType<typeof createLocalPreparationCustody<Payload<Prepared>>>;
 type Borrow<Prepared> = ReturnType<Custody<Prepared>['borrow']>;
-type CoreBorrow = object;
+type CoreBorrow = object & {readonly then?: never};
 type BorrowField = 'coreHandler' | 'coreDispatch';
 type PreparationResource<Prepared> = {
   borrow(prepared: Prepared, request: object | undefined): CoreBorrow | undefined;
@@ -68,9 +68,7 @@ export function installLocalPreparationRegistry<Prepared extends object>(
   };
   const payload = (entry: Entry<Prepared>) => entry.ownerActive ? entry.owner.prepared :
     entry.dispatch === undefined ? (() => {throw new Error('LocalPreparationRetired');})() : entry.dispatch.prepared;
-  const copy = <Value extends object, Changes extends Record<string, unknown> = Record<never, never>>(
-    value: Value, changes: Changes = {} as Changes,
-  ) => {
+  const copy = (value: object, changes: Readonly<Record<string, unknown>> = {}) => {
     if (Object.hasOwn(changes, 'input') || Object.hasOwn(changes, 'parameters') ||
         Object.hasOwn(changes, 'preparedProgram')) {
       throw new TypeError('LocalPreparationSnapshotMutation');
@@ -84,7 +82,7 @@ export function installLocalPreparationRegistry<Prepared extends object>(
     const result = Object.defineProperties({}, descriptors);
     const handle = submissions.get(value);
     if (handle !== undefined) submissions.set(result, handle);
-    return result as Omit<Value, keyof Changes> & Changes;
+    return result as Record<string, unknown>;
   };
   const bindPayload = <Value extends object>(value: Value, entry: Entry<Prepared>) => {
     for (const name of payloadFields) if (Object.hasOwn(value, name)) {

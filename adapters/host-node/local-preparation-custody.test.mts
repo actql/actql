@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalPreparationCustody} from './local-preparation-custody.mjs';
+import type {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+
+type Assert<T extends true> = T;
+type Registry = ReturnType<typeof installLocalPreparationRegistry>;
+type Resource = NonNullable<Parameters<typeof installLocalPreparationRegistry>[2]>;
+type AsyncBorrow = () => PromiseLike<object>;
+declare const override: unique symbol;
+type PrototypeMethod = {prototypeMethod(): void};
+type SymbolOverride = {[override]: true};
+type CopiesPrototype = (value: PrototypeMethod) => PrototypeMethod;
+type CopiesSymbolOverride = (value: object, changes: SymbolOverride) => SymbolOverride;
+type _SynchronousBorrow = Assert<AsyncBorrow extends Resource['borrow'] ? false : true>;
+type _NoPrototypeMethodClaim = Assert<Registry['copy'] extends CopiesPrototype ? false : true>;
+type _NoSymbolOverrideClaim = Assert<Registry['copy'] extends CopiesSymbolOverride ? false : true>;
+
 
 test('Local preparation custody accepts only its frozen nominal handle', () => {
   const value = {};
