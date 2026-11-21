@@ -6,11 +6,87 @@
 // projection.
 import {createHmac, randomBytes} from 'node:crypto';
 import {validCheckOutcome, checkReasonSchemaCid, checkOutcomeSchemaCid} from '../../packages/client-wire/index.mjs';
+import type {WireCheckOutcome, WireClientBodyByOperation} from '../../packages/client-wire/index.js';
+import type {sourceAliasPublication} from './source-alias-publication.mjs';
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {observeSourceSelectorNamespace, sourceSelectorNamespaceObservationFacts,
   observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts} from './source-alias-publication.mjs';
+
+type CheckWire = WireClientBodyByOperation['check'];
+type IngressCheck<Body extends CheckWire> = Body extends CheckWire
+  ? Omit<Body, 'connection'> & Readonly<{principalId: string; connection?: CheckWire['connection']; signal?: AbortSignal}>
+  : never;
+type CheckRequest = IngressCheck<CheckWire>;
+type CheckScope = CheckWire['scope'];
+type Publication = ReturnType<typeof sourceAliasPublication>;
+type Alias = Publication['aliases'][number];
+type TableWrite = NonNullable<Publication['tableWrites']>[number];
+type UpdateTarget = NonNullable<Publication['updateTargets']>[number];
+type NamespaceGate = NonNullable<Parameters<typeof observeSourceAliasNamespace>[1]>;
+type NamespaceFacts = NonNullable<ReturnType<typeof sourceAliasNamespaceObservationFacts> |
+  ReturnType<typeof sourceSelectorNamespaceObservationFacts>>;
+type BoundReport = Pick<Extract<WireCheckOutcome, {report: unknown}>['report'], 'context_ref' | 'scope' | 'inputs'>;
+type OutcomeReportView = Readonly<{report?: BoundReport; partial_report?: BoundReport}> | null | undefined;
+type Document = BoundReport['inputs'][number];
+type AccessDecision = Readonly<{action?: string}> | undefined;
+type AccessAuthorization = Readonly<{
+  authorize(...args: Parameters<NamespaceGate['authorize']>): AccessDecision | PromiseLike<AccessDecision>;
+}>;
+type SourceAccess = Readonly<{
+  sourceRef?: string;
+  connection: string;
+  resource?: string;
+  authorization: AccessAuthorization;
+}>;
+type TableWriteAccess = Readonly<{
+  capabilityCid: string;
+  connection: string;
+  resource: string;
+  authorization: AccessAuthorization;
+}>;
+type Audience = Readonly<{principalId: string; signal?: AbortSignal}>;
+type UnavailableCheck = Readonly<{unavailable?: () => unknown}>;
+type PreparedProjection = readonly [
+  visiblePublication: string, context: string, documentKind: CheckWire['kind'],
+  originalRevision: string, originalBytes: number, declarationsRevision: string | undefined,
+  declarationsBytes: number, bindingsRevision: string | undefined, bindingsBytes: number,
+  correlationRef: string, selectorNamespace: unknown, sourceNamespace: unknown, parameters: string | undefined,
+];
+type ProjectOriginal = (projection: PreparedProjection) => unknown;
+type InstalledCheck = ((request: CheckRequest) => Promise<WireCheckOutcome>) & Readonly<{
+  unavailable(): unknown;
+  projectOriginal(request: Extract<CheckRequest, {scope: 'bound_input'}>,
+    project: ProjectOriginal): Promise<WireCheckOutcome | undefined>;
+}>;
+type Runtime = Readonly<{
+  clientProgramCheckSource(document: string, format: string, environment: unknown,
+    visiblePublication: string, declarations: string | undefined, parameters: string | undefined,
+    context: string, sourceRevision: string, declarationsRevision: string | undefined,
+    parametersRevision: string | undefined, correlationRef: string, scope: CheckScope, sourceNamespace: unknown): string;
+  clientProgramCheckProgram(document: string, environment: unknown, visiblePublication: string,
+    parameters: string | undefined, context: string, programRevision: string, parametersRevision: string | undefined,
+    correlationRef: string, scope: CheckScope, selectorNamespace: unknown): string;
+  clientProgramCheckUnavailable(correlationRef: string): string;
+  clientProgramCheckCompilerIdentity(): string;
+  clientProgramCheckContextIdentity(environment: unknown): string;
+  clientProgramCheckSourceNamespace(environment: unknown, publication: string, name: string,
+    configurationRevision: string, context: string, sourceRevision: string): unknown;
+  clientProgramCheckSourceSelectorNamespace(range: unknown, name: string,
+    configurationRevision: string, context: string, programRevision: string): unknown;
+  clientProgramCheckingEnvironmentCid(environment: unknown): string;
+}>;
+type Installation = Readonly<{
+  moon: Runtime;
+  environment: unknown;
+  publication?: Publication;
+  sourceAccesses?: readonly SourceAccess[];
+  tableWriteAccesses?: readonly TableWriteAccess[];
+  namespaceAuthorizationFor?: (audience: Audience) => NamespaceGate | PromiseLike<NamespaceGate>;
+  updateTargetDisclosure?: object;
+  contextKey?: Uint8Array;
+}>;
 
 const version = 'actql-check-outcome/0.1';
 // Revisions bound into every context reference. A change to what an audience
@@ -18,15 +94,17 @@ const version = 'actql-check-outcome/0.1';
 const disclosurePolicy = 'actql-check-disclosure/0.1';
 const contextVersion = 'actql-check-context/0.1';
 
-const failed = (code, correlation_ref) => Object.freeze({outcome: 'failed', correlation_ref,
-  problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid,
-  outcome_schema_cid: checkOutcomeSchemaCid, version});
+type FailedCheck = Extract<WireCheckOutcome, {outcome: 'failed'}>;
+const failed = (code: 'check_internal', correlation_ref: string): FailedCheck => Object.freeze({outcome: 'failed', correlation_ref,
+  problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid as FailedCheck['reason_schema_cid'],
+  outcome_schema_cid: checkOutcomeSchemaCid as FailedCheck['outcome_schema_cid'], version});
 
 // Shape validation alone cannot bind an otherwise valid old Owner report to
 // this call. Compare the metadata issued to the existing checker before the
 // public SDK can associate its opaque revisions with the current snapshot.
-const validBoundOutcome = (outcome, context, scope, documents) => {
-  const report = outcome?.report ?? outcome?.partial_report;
+const validBoundOutcome = (outcome: unknown, context: string, scope: CheckScope,
+  documents: readonly Document[]): outcome is WireCheckOutcome => {
+  const report = (outcome as OutcomeReportView)?.report ?? (outcome as OutcomeReportView)?.partial_report;
   return validCheckOutcome(outcome) && (!report ||
     report.context_ref === context &&
     report.scope.kind === scope &&
@@ -39,7 +117,7 @@ const validBoundOutcome = (outcome, context, scope, documents) => {
 export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], tableWriteAccesses = [], namespaceAuthorizationFor,
   updateTargetDisclosure,
-  contextKey = randomBytes(32)}) {
+  contextKey = randomBytes(32)}: Installation) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
       typeof moon.clientProgramCheckProgram !== 'function' ||
@@ -51,10 +129,10 @@ export function installNodeClientCheck({moon, environment, publication,
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
-      !Array.isArray(sourceAccesses) || sourceAccesses.some(access =>
+      !Array.isArray(sourceAccesses) || sourceAccesses.some((access: SourceAccess) =>
         typeof access?.authorization?.authorize !== 'function') ||
       namespaceAuthorizationFor !== undefined && typeof namespaceAuthorizationFor !== 'function' ||
-      !Array.isArray(tableWriteAccesses) || tableWriteAccesses.some(access =>
+      !Array.isArray(tableWriteAccesses) || tableWriteAccesses.some((access: TableWriteAccess) =>
         typeof access?.authorization?.authorize !== 'function' ||
         !/^sha256:[0-9a-f]{64}$/u.test(access.capabilityCid ?? '') ||
         typeof access.connection !== 'string' || !access.connection ||
@@ -89,8 +167,8 @@ export function installNodeClientCheck({moon, environment, publication,
   // already authenticated and authorized this call, and installation admitted
   // its checking environment. The checker retains protected obligations and
   // independent disclosable violations under that binding.
-  const accesses = sourceAccesses.map(access => ({...access}));
-  const aliasesFor = async (sourceAccess, signal) => {
+  const accesses = sourceAccesses.map((access: SourceAccess) => ({...access}));
+  const aliasesFor = async (sourceAccess: SourceAccess, signal: AbortSignal | undefined) => {
     const readTuple = typeof sourceAccess.sourceRef === 'string' &&
       typeof sourceAccess.resource === 'string';
     if (!readTuple) return null;
@@ -107,7 +185,7 @@ export function installNodeClientCheck({moon, environment, publication,
     if (decision?.action !== 'dispatch') return [];
     return aliases.filter(alias => alias.sourceRef === sourceAccess.sourceRef);
   };
-  const visibleAliases = async signal => {
+  const visibleAliases = async (signal: AbortSignal | undefined) => {
     const portions = [];
     for (const access of accesses) {
       signal?.throwIfAborted();
@@ -121,9 +199,9 @@ export function installNodeClientCheck({moon, environment, publication,
   // cannot disclose or authorize a destination. This preparation decision
   // discloses metadata only; the Effect still requires its ordinary approval
   // and current commit authorization against the sealed operation.
-  const writeAccesses = tableWriteAccesses.map(access => ({...access}));
-  const visibleTableWrites = async signal => {
-    const visibleCapabilities = new Set();
+  const writeAccesses = tableWriteAccesses.map((access: TableWriteAccess) => ({...access}));
+  const visibleTableWrites = async (signal: AbortSignal | undefined) => {
+    const visibleCapabilities = new Set<string>();
     for (const access of writeAccesses) {
       signal?.throwIfAborted();
       let decision;
@@ -144,9 +222,9 @@ export function installNodeClientCheck({moon, environment, publication,
   // The installed Effect owner retains currentness and metadata disclosure.
   // Its selected members must be these exact original publication entries;
   // returned JSON, equal CIDs or a Source read decision cannot replace them.
-  const visibleUpdateTargets = async (principalId, signal) => {
+  const visibleUpdateTargets = async (principalId: string, signal: AbortSignal | undefined) => {
     if (updateDisclosureMethod === undefined) return [];
-    let selected;
+    let selected: unknown;
     try {
       selected = await Reflect.apply(updateDisclosureMethod, updateTargetDisclosure,
         [Object.freeze({principalId, signal})]);
@@ -167,7 +245,9 @@ export function installNodeClientCheck({moon, environment, publication,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible, visibleWrites, visibleUpdates, kind, scope, namespace) => {
+  const contextRef = (principalId: string, input: CheckWire['input'], parameters: CheckWire['parameters'],
+    visible: readonly Alias[], visibleWrites: readonly TableWrite[], visibleUpdates: readonly UpdateTarget[],
+    kind: CheckWire['kind'], scope: CheckScope, namespace?: NamespaceFacts) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
@@ -193,18 +273,18 @@ export function installNodeClientCheck({moon, environment, publication,
     return `ctx:${createHmac('sha256', key).update(preimage).digest('hex')}`;
   };
 
-  const revision = (documentId, bytes) => `rev:${createHmac('sha256', key)
+  const revision = (documentId: Document['document_id'], bytes: string) => `rev:${createHmac('sha256', key)
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  const documentBinding = (documentId, kind, bytes) => ({document_id: documentId,
+  const documentBinding = (documentId: Document['document_id'], kind: Document['kind'], bytes: string): Document => ({document_id: documentId,
     kind, revision: revision(documentId, bytes), byte_length: Buffer.byteLength(bytes, 'utf8')});
 
-  const check = async (request, projectOriginal) => {
+  const check = async (request: CheckRequest, projectOriginal?: ProjectOriginal) => {
     const {principalId, kind, input, parameters, signal, scope} = request;
     if (!['template_only', 'bound_input'].includes(scope) || !['text', 'program'].includes(kind) ||
         scope === 'template_only' && Object.hasOwn(request, 'parameters')) {
-      const error = new TypeError('InvalidCheckRequest');
+      const error = new TypeError('InvalidCheckRequest') as TypeError & {code: string};
       error.code = 'InvalidCheckRequest';
       throw error;
     }
@@ -222,12 +302,12 @@ export function installNodeClientCheck({moon, environment, publication,
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
       const original = documentBinding('program', 'structured', document);
       const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
-      let namespace;
+      let namespace: unknown;
       if (namespaceAuthorizationFor !== undefined) {
         const binding = Object.freeze({principalId, contextCid: `sha256:${context.slice(4)}`,
           inputs: Object.freeze([original, ...(bindings ? [bindings] : [])]
             .map(value => Object.freeze({...value})))});
-        let gate;
+        let gate: NamespaceGate | undefined;
         try {
           gate = await namespaceAuthorizationFor({principalId, signal});
           const observation = await observeSourceSelectorNamespace(publication, gate, binding, {signal});
@@ -252,10 +332,10 @@ export function installNodeClientCheck({moon, environment, publication,
           context, original.revision, bindings?.revision, correlationRef, scope, namespace)
         : projectOriginal(Object.freeze([visiblePublication, context, 'program',
           original.revision, original.byte_length, undefined, 0,
-          bindings?.revision, bindings?.byte_length ?? 0, correlationRef, namespace, undefined, supplied]));
+          bindings?.revision, bindings?.byte_length ?? 0, correlationRef, namespace, undefined, supplied] as const));
       if (projectOriginal !== undefined && wire === undefined) return undefined;
       if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
-      const outcome = JSON.parse(wire);
+      const outcome: unknown = JSON.parse(wire as string);
       if (validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])) return outcome;
       if (projectOriginal !== undefined) throw new TypeError('InvalidOriginalCheckObservation');
       return failed('check_internal', correlationRef);
@@ -268,14 +348,14 @@ export function installNodeClientCheck({moon, environment, publication,
     const declared = declarations === undefined ? undefined
       : documentBinding('parameter_declarations', 'structured', declarations);
     const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
-    let namespace;
+    let namespace: unknown;
     if (namespaceAuthorizationFor !== undefined) {
       // Only original publication/observation custody can reach the common
       // projection. Neither an SDK response nor client JSON supplies this fact.
       const binding = Object.freeze({principalId, contextCid: `sha256:${context.slice(4)}`,
         inputs: Object.freeze([original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])]
           .map(value => Object.freeze({...value})))});
-      let gate;
+      let gate: NamespaceGate | undefined;
       try {
         gate = await namespaceAuthorizationFor({principalId, signal});
         const observation = await observeSourceAliasNamespace(publication, gate, binding, {signal});
@@ -303,10 +383,10 @@ export function installNodeClientCheck({moon, environment, publication,
       : projectOriginal(Object.freeze([visiblePublication, context, 'text',
         original.revision, original.byte_length, declared?.revision,
         declared?.byte_length ?? 0, bindings?.revision, bindings?.byte_length ?? 0,
-        correlationRef, undefined, namespace, supplied])); // Query-alias and nominal Source selector namespaces stay distinct.
+        correlationRef, undefined, namespace, supplied] as const)); // Query-alias and nominal Source selector namespaces stay distinct.
     if (projectOriginal !== undefined && wire === undefined) return undefined;
     if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
-    const outcome = JSON.parse(wire);
+    const outcome: unknown = JSON.parse(wire as string);
     if (validBoundOutcome(outcome, context, scope,
       [original, ...(declared ? [declared] : []), ...(bindings ? [bindings] : [])])) return outcome;
     if (projectOriginal !== undefined) throw new TypeError('InvalidOriginalCheckObservation');
@@ -320,21 +400,21 @@ export function installNodeClientCheck({moon, environment, publication,
   // Private fixed Host path: share this same installation's fresh audience,
   // namespace and input bindings, while the retained Request supplies the
   // original typed outcome. The public check still uses its existing checker.
-  Object.defineProperty(check, 'projectOriginal', {value: (request, project) => {
+  Object.defineProperty(check, 'projectOriginal', {value: (request: CheckRequest, project: ProjectOriginal) => {
     if (request.scope !== 'bound_input' || typeof project !== 'function') {
       throw new TypeError('InvalidOriginalCheckObservation');
     }
     return check(request, project);
   }});
-  return Object.freeze(check);
+  return Object.freeze(check) as InstalledCheck;
 }
 
 // Both entrances validate the existing common projection before serialization.
 // A missing or corrupt producer is a Host protocol failure, never a report.
-export async function projectClientCheckUnavailable(check) {
+export async function projectClientCheckUnavailable(check: UnavailableCheck | null | undefined) {
   const outcome = typeof check?.unavailable === 'function' ? await check.unavailable() : undefined;
   if (!validCheckOutcome(outcome) || outcome.outcome !== 'unavailable') {
-    const error = new Error('InvalidClientHostCheckOutcome');
+    const error = new Error('InvalidClientHostCheckOutcome') as Error & {code: string};
     error.code = 'InvalidClientHostCheckOutcome';
     throw error;
   }

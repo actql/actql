@@ -24,7 +24,7 @@ type Target = Readonly<{
   name: string;
   targetRef: string;
 }>;
-type TableWrite = Readonly<Record<string, unknown> & {expectedTable: object | null}>;
+type TableWrite = Readonly<Record<string, unknown> & {capabilityCid: string; expectedTable: object | null}>;
 type NamespaceDeclaration = Readonly<{name: string; profilePaths: readonly string[]}>;
 type SourceEnvironmentOriginal = Readonly<{wire: string}>;
 type InstalledSource = Readonly<{
@@ -77,7 +77,7 @@ type ObservationAuthority = DispatchFacts & Readonly<{
   answeringAuthority: string | undefined;
 }>;
 type RetainedObservation = Readonly<{
-  publication: object;
+  publication: object | undefined;
   binding: ObservationBinding;
   proof: NonNullable<NamespaceProofs[NamespaceDomain]>;
   domain: NamespaceDomain;
@@ -363,19 +363,19 @@ export function retireSourceAliasPublicationOriginal(moon: Runtime, environment:
 // A current decision in its own short-lived scope: ordinary check/read grants
 // do not disclose negative namespace membership. Deferred decisions remain
 // unresolved; there is no Checkpoint journal or automatic approval here.
-export async function observeSourceAliasNamespace(publication: object, authorization: Gate | undefined,
+export async function observeSourceAliasNamespace(publication: object | undefined, authorization: Gate | undefined,
   binding: ObservationBinding, {signal}: Readonly<{signal?: AbortSignal}> = {}) {
   return observeNamespace(publication, authorization, binding, 'queryAlias', signal);
 }
 
-export async function observeSourceSelectorNamespace(publication: object, authorization: Gate | undefined,
+export async function observeSourceSelectorNamespace(publication: object | undefined, authorization: Gate | undefined,
   binding: ObservationBinding, {signal}: Readonly<{signal?: AbortSignal}> = {}) {
   return observeNamespace(publication, authorization, binding, 'sourceSelector', signal);
 }
 
-async function observeNamespace(publication: object, authorization: Gate | undefined,
+async function observeNamespace(publication: object | undefined, authorization: Gate | undefined,
   binding: ObservationBinding, domain: NamespaceDomain, signal: AbortSignal | undefined) {
-  const proof = namespaces.get(publication)?.[domain];
+  const proof = namespaces.get(publication!)?.[domain];
   if (proof === undefined || typeof authorization?.withContext !== 'function' ||
       !validBinding(binding) || domain === 'sourceSelector' &&
       !binding.inputs.some(input => input.document_id === 'program')) return unresolved();
@@ -417,14 +417,14 @@ async function observeNamespace(publication: object, authorization: Gate | undef
 // Only the original observation for this call may supply metadata to the common
 // checker. Even an authentic observation cannot be transplanted to a new input,
 // namespace or attempt. The returned private facts never go directly on wire.
-export function sourceAliasNamespaceObservationFacts(publication: object, observation: object, binding: ObservationBinding) {
+export function sourceAliasNamespaceObservationFacts(publication: object | undefined, observation: object, binding: ObservationBinding) {
   const retained = observations.get(observation);
   return retained?.domain === 'queryAlias' && retained.publication === publication && retained.binding === binding
     ? Object.freeze({namespace: retained.proof.name, revision: retained.proof.revision,
       aliases: (retained.proof as AliasNamespace).aliases, authority: retained.authority}) : undefined;
 }
 
-export function sourceSelectorNamespaceObservationFacts(publication: object, observation: object, binding: ObservationBinding) {
+export function sourceSelectorNamespaceObservationFacts(publication: object | undefined, observation: object, binding: ObservationBinding) {
   const retained = observations.get(observation);
   return retained?.domain === 'sourceSelector' && retained.publication === publication && retained.binding === binding
     ? Object.freeze({namespace: retained.proof.name, revision: retained.proof.revision,
