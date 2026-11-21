@@ -67,7 +67,7 @@ type SiteInstallationCleanup = Readonly<{status(): CleanupStatus | undefined; re
 type RememberCleanup = (error: unknown, releaseOwner?: object) => void;
 type CloseOwner = Readonly<{
   close?(): unknown;
-  afterFailure?(error: unknown, remember: RememberCleanup): void;
+  afterFailure?(error: unknown, remember: RememberCleanup): SynchronousRuntimeData;
 }>;
 type RowConsumer = Parameters<typeof withManagedOutputRows>[1];
 type RetainedRead = (accept: RowConsumer, signal?: AbortSignal) => Awaitable<unknown>;
@@ -158,7 +158,7 @@ type PublicationInventory = Readonly<{
   requestInventory: readonly Readonly<{result_name: string; result_definition_cid: string}>[];
 }>;
 type OutputExportControl = Readonly<{
-  beginManagedResultImport(host: object, result: number, completed: unknown, material: object, limits: unknown): unknown;
+  beginManagedResultImport(host: object, result: number, completed: unknown, material: object, limits: unknown): CommonObject;
   appendManagedResultImport(importing: unknown, row: string, limits: unknown): SynchronousRuntimeData;
   finishManagedResultImport(importing: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
   transformManagedResultImport(importing: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;

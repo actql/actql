@@ -23,6 +23,12 @@ type PrepareOutputs = Parameters<ReturnType<typeof localStrategyContribution>['p
 type Materialized = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['run']>>, {diagnostic: object}>;
 type CarrierCompletion = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['runPrepared']>>, {carrierMaterial: object}>;
 type Assert<Condition extends true> = Condition;
+type StrategyRuntime = Parameters<typeof runInstalledStrategy>[0]['runtime'];
+type StrategyResult = NonNullable<Awaited<ReturnType<StrategyRuntime['contributions'][number]['run']>>>;
+type FailureObserver = NonNullable<StrategyResult['afterFailure']>;
+type ManagedImporter = NonNullable<StrategyRuntime['core']['outputExportControl']>['beginManagedResultImport'];
+type _FailureObserverIsSynchronous = Assert<(() => Promise<void>) extends FailureObserver ? false : true>;
+type _ManagedImporterIsSynchronous = Assert<(() => Promise<object>) extends ManagedImporter ? false : true>;
 type RejectAsyncRegistration<Port> = (() => Promise<object>) extends Port ? false : true;
 type _LocalRegistrationIsSynchronous = Assert<RejectAsyncRegistration<LocalBindings['strategyModule_local_Registration']>>;
 type _ReferenceRegistrationIsSynchronous = Assert<RejectAsyncRegistration<ReferenceBindings['strategyModule_reference_compute_Registration']>>;
