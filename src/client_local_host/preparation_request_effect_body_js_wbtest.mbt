@@ -540,3 +540,71 @@ test "static Effect Request Plan refuses foreign or noncurrent originals before 
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static Effect Context measures and emits on the original working Request" {
+  let current = Ref(true)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    current.val
+  })
+  let manifests = request_program_module_manifests()
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let (original, _) = @publication_host.capture_client_static_effect_explanation_original(
+    prepared, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let build = (candidate, bytes) => {
+    construct_request_static_effect_context(
+      parent, candidate, original, compiled, bytes, 8192, 64, 10000,
+    )
+  }
+  let capacity = parent.effect_capacity.unwrap()
+  let extents = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let usage = @resources.ledger_usage(parent.ledger)
+  let entry = static_context_measurement_bytes +
+    client_static_plan_quote_construction_bytes()
+  let free = @resources.ledger_limits(parent.ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  assert_true(free >= entry)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    free - entry + 1L,
+    0L,
+  ).unwrap()
+  assert_true(build(input, 65536) is Err(Preparation(Capacity(_))))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    extents,
+  )
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  assert_true(build(input.copy(), 65536) is Err(Preparation(ForeignOriginal)))
+  let wire = match build(input, 65536) {
+    Ok(value) => value
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  assert_true(wire.contains("actql-explanation-context/0.1"))
+  assert_true(wire.contains("\"write_fields\":{\"fields\":[\"Name\"]"))
+  assert_true(wire.contains("\"name\":\"rows\""))
+  assert_true(!wire.contains("run_ref"))
+  let completed = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  assert_true(completed.0 > extents.0 + entry)
+  assert_true(completed.1 > extents.1 + entry)
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  current.val = false
+  assert_true(build(input, 65536) is Err(Preparation(Capacity(_))))
+  current.val = true
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

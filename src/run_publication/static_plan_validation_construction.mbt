@@ -170,6 +170,11 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
     static_plan_validation_profile("explanation_facts", true),
   ),
   (
+    "explanation_context",
+    true,
+    static_plan_validation_profile("explanation_context", true),
+  ),
+  (
     "run_explanation_view",
     true,
     static_plan_validation_profile("run_explanation_view", true),
