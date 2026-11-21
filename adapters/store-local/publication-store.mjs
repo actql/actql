@@ -57,7 +57,7 @@ import {acquireStoreOwnership} from './publication-store-ownership.mjs';
 import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStoreAdoptionFailure}
   from './prepared-publication-store-ownership.mjs';
 import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
-import {admitExistingStoreFormat, createStoreContract} from './publication-store-format.mjs';
+import {admitExistingStoreFormat, createOriginalStoreStorageBindings, createStoreContract} from './publication-store-format.mjs';
 import {createPrivatePublicationEvidence, privateEvidenceWireLimitForObject} from './publication-store-private-evidence.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
@@ -5466,75 +5466,9 @@ async function openOriginalLocalPublicationStore(
   // by the marker rather than treating an absent index as successful cleanup.
   await recoverRetiredMetadata();
 
-  // One bounded semantic view per actual Store admission. The escaped handle
-  // carries no key/path and must be presented to this same live Store owner.
-  let originalModelStorageBinding;
-  // This existing Store's original binding readers stay owned during read and
-  // failed-close cleanup. Count/callback/error/control holding is not a new
-  // physical byte allowance, and must be included in the installed envelope.
-  let originalModelStorageBindingReaders = 0;
-  const observeOriginalModelStorageBinding = async () => {
-    active();
-    if (originalModelStorageBindingReaders !== 0) {
-      fail('PublicationStoreCleanupPending');
-    }
-    originalModelStorageBindingReaders++;
-    const bytes = await readBounded(storeContractPath, 256, () => {
-      originalModelStorageBindingReaders--;
-    });
-    const current = JSON.parse(bytes);
-    active();
-    if (!exactKeys(current, ['version', 'isolation', 'store_authority_cid']) ||
-        !Buffer.from(JSON.stringify(current), 'utf8').equals(storeContractBytes)) {
-      fail('PublicationStoreAuthorityMismatch');
-    }
-    if (originalModelStorageBinding === undefined) {
-      const evidence = contractControl.sealRunEvidence('model_original_storage_binding',
-        JSON.stringify({version: 'actql-model-original-storage-binding/0.1',
-          store_contract_wire: storeContractBytes.toString('utf8'),
-          store_contract_cid: `sha256:${createHash('sha256').update(storeContractBytes).digest('hex')}`,
-          store_authority_cid: configuration.storeAuthorityCid,
-          key_generation_cid: `sha256:${createHash('sha256').update(privateEvidenceKey()).digest('hex')}`,
-          private_namespace: 'local-continuation-private'}),
-        {maxWireBytes: 2048, maxNodes: 32, maxDepth: 2});
-      originalModelStorageBinding = {evidence, handle: Object.freeze({
-        kind: 'model-original-storage-binding', identity: evidence.identity,
-        wire: evidence.wire})};
-    }
-    return originalModelStorageBinding.handle;
-  };
-
-  // Read-only original Store observation for the separate installation
-  // publication Owner. This is not Model RunEvidence or a semantic issuer.
-  // A caller must fund the read/hash/control overlap and independently admit
-  // its publication, installation and generation before using these DATA.
-  let originalInstallationPublicationStorageBinding;
-  let originalInstallationPublicationStorageBindingReaders = 0;
-  const observeOriginalInstallationPublicationStorageBinding = async () => {
-    active();
-    if (originalInstallationPublicationStorageBindingReaders !== 0) {
-      fail('PublicationStoreCleanupPending');
-    }
-    originalInstallationPublicationStorageBindingReaders++;
-    const bytes = await readBounded(storeContractPath, 256, () => {
-      originalInstallationPublicationStorageBindingReaders--;
-    });
-    active();
-    // Preserve the exact immutable original contract wire, not a parsed and
-    // reserialized replacement. readBounded retains its same FD on failed close.
-    if (!bytes.equals(storeContractBytes)) fail('PublicationStoreAuthorityMismatch');
-    if (originalInstallationPublicationStorageBinding === undefined) {
-      const evidence = Object.freeze({
-        storeContractWire: storeContractBytes.toString('utf8'),
-        storeAuthorityCid: configuration.storeAuthorityCid,
-        keyGenerationCid: `sha256:${createHash('sha256').update(privateEvidenceKey()).digest('hex')}`,
-        privateNamespace: 'publication-private',
-      });
-      originalInstallationPublicationStorageBinding = {evidence,
-        handle: Object.freeze({kind: 'installation-publication-storage-binding'})};
-    }
-    return originalInstallationPublicationStorageBinding.handle;
-  };
+  const storageBindings = createOriginalStoreStorageBindings(
+    configuration, storeContractPath, storeContractBytes, contractControl, active, privateEvidenceKey,
+  );
 
   // Qualification follows Store startup, before this Store can reach
   // any physical start. Fresh-format failures never leave a lease-only prefix.
@@ -5542,24 +5476,10 @@ async function openOriginalLocalPublicationStore(
   if (prepared !== undefined) prepared.recoveryReady = true;
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
-    observeOriginalInstallationPublicationStorageBinding,
-    originalInstallationPublicationStorageBindingEvidence(handle) {
-      active();
-      if (originalInstallationPublicationStorageBinding === undefined ||
-          handle !== originalInstallationPublicationStorageBinding.handle) {
-        fail('ForeignOriginalInstallationPublicationStorageBinding');
-      }
-      return originalInstallationPublicationStorageBinding.evidence;
-    },
-    observeOriginalModelStorageBinding,
-    originalModelStorageBindingEvidence(handle) {
-      active();
-      if (originalModelStorageBinding === undefined ||
-          handle !== originalModelStorageBinding.handle) {
-        fail('ForeignOriginalModelStorageBinding');
-      }
-      return originalModelStorageBinding.evidence;
-    },
+    observeOriginalInstallationPublicationStorageBinding: storageBindings.observeOriginalInstallationPublicationStorageBinding,
+    originalInstallationPublicationStorageBindingEvidence: storageBindings.originalInstallationPublicationStorageBindingEvidence,
+    observeOriginalModelStorageBinding: storageBindings.observeOriginalModelStorageBinding,
+    originalModelStorageBindingEvidence: storageBindings.originalModelStorageBindingEvidence,
     createObjectWriter,
     createPreparedObjectWriter,
     commitPhysicalHolding,
@@ -5585,23 +5505,7 @@ async function openOriginalLocalPublicationStore(
       active();
       return privateEvidenceWireLimitForObject(configuration.maxObjectBytes);
     },
-    // Private Host DATA from this exact Store, not caller-supplied profile
-    // dimensions or authenticated storage evidence. The original installation
-    // must bind the receiver and fund this record, UTF-8 scan workspace and
-    // all derived paths/encodings before using it in an envelope. No path or
-    // key bytes escape, and no I/O, reservation, ACK or permission is issued.
-    originalModelStorageDimensions() {
-      active();
-      const key = privateEvidenceKey();
-      const namespace = 'local-continuation-private';
-      return Object.freeze({
-        directoryCodeUnits: configuration.directory.length,
-        directoryUtf8Bytes: Buffer.byteLength(configuration.directory, 'utf8'),
-        privateNamespaceCodeUnits: namespace.length,
-        privateNamespaceUtf8Bytes: Buffer.byteLength(namespace, 'utf8'),
-        privateKeyBytes: key.byteLength,
-      });
-    },
+    originalModelStorageDimensions: storageBindings.originalModelStorageDimensions,
     confirmPrivateEvidence,
     prepareModelRawEvidence,
     readModelRawEvidence,
@@ -5719,8 +5623,8 @@ async function openOriginalLocalPublicationStore(
               physicalHoldingDeletions: pendingPhysicalHoldingDeletions.size,
               resultReaders: activeResultReaders.size,
               physicalHoldingReaders: activePhysicalHoldingReaders.size,
-              modelStorageBindingReaders: originalModelStorageBindingReaders,
-              installationPublicationStorageBindingReaders: originalInstallationPublicationStorageBindingReaders,
+              modelStorageBindingReaders: storageBindings.modelStorageBindingReaders,
+              installationPublicationStorageBindingReaders: storageBindings.installationPublicationStorageBindingReaders,
               semanticReaders: activeSemanticReaders.size,
               physicalRecordWriters: activePhysicalRecordWriters.size,
             }),
@@ -5748,8 +5652,8 @@ async function openOriginalLocalPublicationStore(
             pendingPhysicalHoldingDeletions.size !== 0 ||
             activeResultReaders.size !== 0 ||
             activePhysicalHoldingReaders.size !== 0 ||
-            originalModelStorageBindingReaders !== 0 ||
-            originalInstallationPublicationStorageBindingReaders !== 0) {
+            storageBindings.modelStorageBindingReaders !== 0 ||
+            storageBindings.installationPublicationStorageBindingReaders !== 0) {
           throw cleanupPendingFailure();
         }
         // An unsettled read still owns its FD; close must not interrupt it.
@@ -5786,7 +5690,7 @@ async function openOriginalLocalPublicationStore(
         if (released !== true) fail('PublicationStoreOwnershipLost');
         closed = true;
         configuration.privateEvidenceKey?.fill(0);
-        originalInstallationPublicationStorageBinding = undefined;
+        storageBindings.clearInstallationPublicationStorageBinding();
         clearEffectCaptureCustodyObservation();
         return true;
       }).finally(() => { closeFlight = undefined; });

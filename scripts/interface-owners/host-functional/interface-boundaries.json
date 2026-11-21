@@ -6609,7 +6609,7 @@
                 "anchor": "if (handle !== original || !sameFields(found)) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "handle !== originalInstallationPublicationStorageBinding.handle"
               }
             ],
@@ -6649,7 +6649,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "originalInstallationPublicationStorageBindingReaders !== 0"
               },
               {
@@ -6667,7 +6667,7 @@
                 "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth']);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "const bytes = await readBounded(storeContractPath, 256, () => {"
               }
             ],
@@ -6725,7 +6725,7 @@
                 "anchor": "if (handle !== original || !sameFields(found)) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "handle !== originalInstallationPublicationStorageBinding.handle"
               }
             ],
@@ -6765,7 +6765,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "originalInstallationPublicationStorageBindingReaders !== 0"
               },
               {
@@ -6783,7 +6783,7 @@
                 "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth']);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "const bytes = await readBounded(storeContractPath, 256, () => {"
               }
             ],

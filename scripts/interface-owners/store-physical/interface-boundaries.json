@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "626893d1e202892a9d7ef3578bb44d1acf0147eacb53f16aa8ce98bd4ce3f3ac",
+      "sha256": "3c88eab150b7659d7a9973b1a8d9d7a7b9064c779b4e3b38c9740518d8ff4958",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7121,25 +7121,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
           "parameters": [],
           "async": false
@@ -7466,26 +7447,6 @@
           "parameters": [
             "cid"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
-          "parameters": [],
           "async": false
         },
         {
@@ -8809,9 +8770,6 @@
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
             "openOriginalLocalPublicationStore/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
-            "openOriginalLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
-            "openOriginalLocalPublicationStore/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
             "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
             "openOriginalLocalPublicationStore/init:publicationCapacitySupports/init:publicationCapacitySupports",
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
@@ -8844,10 +8802,6 @@
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
             "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
-            "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
-            "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
-            "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
-            "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
             "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
@@ -14943,9 +14897,10 @@
     {
       "module": "adapters/store-local/publication-store-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9b8fca2e8a841e2876e20633a1eed66a03f1f770a751d7412033fb642ca09378",
+      "sha256": "9c5f463ef549f52c72824eb19876f9f9697b4ad8fa4769f1a60acbd50b24f901",
       "exports": [
         "admitExistingStoreFormat",
+        "createOriginalStoreStorageBindings",
         "createStoreContract"
       ],
       "operations": [
@@ -14970,6 +14925,72 @@
           "async": false
         },
         {
+          "name": "createOriginalStoreStorageBindings",
+          "parameters": [
+            "configuration",
+            "storeContractPath",
+            "storeContractBytes",
+            "contractControl",
+            "active",
+            "privateEvidenceKey"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/createOriginalStoreStorageBindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/createOriginalStoreStorageBindings#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/init:clearInstallationPublicationStorageBinding/init:clearInstallationPublicationStorageBinding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createOriginalStoreStorageBindings/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createStoreContract",
           "parameters": [
             "root",
@@ -14990,10 +15011,22 @@
             "<module>",
             "admitExistingStoreFormat",
             "admitExistingStoreFormat/legacy/legacy",
-            "createStoreContract"
+            "createStoreContract",
+            "createOriginalStoreStorageBindings",
+            "createOriginalStoreStorageBindings/createOriginalStoreStorageBindings",
+            "createOriginalStoreStorageBindings/createOriginalStoreStorageBindings#2",
+            "createOriginalStoreStorageBindings/init:clearInstallationPublicationStorageBinding/init:clearInstallationPublicationStorageBinding",
+            "createOriginalStoreStorageBindings/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
+            "createOriginalStoreStorageBindings/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
+            "createOriginalStoreStorageBindings/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
+            "createOriginalStoreStorageBindings/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
+            "createOriginalStoreStorageBindings/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
+            "createOriginalStoreStorageBindings/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
+            "createOriginalStoreStorageBindings/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes"
           ],
           "exports": [
             "admitExistingStoreFormat",
+            "createOriginalStoreStorageBindings",
             "createStoreContract"
           ],
           "attributes": {
@@ -15007,6 +15040,10 @@
               {
                 "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "export async function admitExistingStoreFormat("
+              },
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "export function createOriginalStoreStorageBindings<"
               }
             ],
             "identity": [
@@ -15019,12 +15056,20 @@
               {
                 "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
+              },
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "clearInstallationPublicationStorageBinding() { originalInstallationPublicationStorageBinding = undefined; }"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "await syncDirectory(root);"
+              },
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "originalInstallationPublicationStorageBindingReaders--;"
               }
             ],
             "failure": [
@@ -15059,6 +15104,10 @@
               {
                 "path": "adapters/store-local/prepared-ownership.test.mjs",
                 "anchor": "fresh prepared owner remains nominal and ordinary owner-only format refusal stays unchanged"
+              },
+              {
+                "path": "adapters/store-local/installation-publication-storage-original.test.mjs",
+                "anchor": "copied and equal foreign Store handles cannot replace original membership"
               }
             ]
           }
@@ -15066,6 +15115,7 @@
       ],
       "imports": [
         "./publication-store-io.mjs",
+        "node:crypto",
         "node:fs/promises"
       ],
       "compilerFields": [],
