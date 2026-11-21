@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "c4927d19e527b627212dc7b26e4ea62d0f0abd9244d4963785e8d9d2427536ac",
+      "sha256": "648a4becde00a069e27fd9427e865c40c19ee689a32f20efd44ba674c6dfda7c",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1875,7 +1875,7 @@
           "parameters": [
             "id: string"
           ],
-          "result": "{kind?: string; title?: string; state: string}"
+          "result": "{kind?: string; title?: string; inputs?: string; state: string}"
         },
         {
           "name": "PlanExplorer",
@@ -2026,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "4dd2e17aff10a2527f7a641900514dbfc9ab87dc76d473fc4bef1d14590e9ef0",
+      "sha256": "1f287e50a5075f62cba4230189d58ed553e0ab7153d7c19014d4aa971406e08e",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -4492,7 +4492,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "0f6929cdf44ae24f2f092b12f09288ac5fdcb3f3c006ebda23dbfc64cda9cb26",
+      "sha256": "6659938745142fe8da1dea42ceb2e95d5787bd7d22b9c8aaf22ed9670eb46a18",
       "exports": [],
       "operations": [
         {

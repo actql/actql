@@ -11,7 +11,7 @@ import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight, flowPortO
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
-type NodePresentation = {kind?: string; title?: string; state: string};
+type NodePresentation = {kind?: string; title?: string; inputs?: string; state: string};
 type LogicalNode = Node<{original: Logical; presentation?: NodePresentation}, 'logical'>;
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;
@@ -23,6 +23,8 @@ function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
     style={{width: flowNodeWidth, height: flowNodeHeight(original.ports.length)}}>
     <div className="actql-explorer-kind">{data.presentation?.kind ?? operation}</div>
     <strong title={title}>{title}</strong>
+    {data.presentation?.inputs && <span className="actql-explorer-node-inputs"
+      title={data.presentation.inputs}>{data.presentation.inputs}</span>}
     <p>{data.presentation?.state ?? original.kind}</p>
     {original.ports.map((port, index) => <Handle key={port.port_id} id={port.port_id}
       type={port.role === 'input' ? 'target' : 'source'}

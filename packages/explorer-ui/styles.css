@@ -35,6 +35,8 @@
 .actql-explorer-node { box-sizing: border-box; padding: 12px 14px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }
 .actql-explorer-node .actql-explorer-kind { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node p { margin: 5px 0 0; }
+.actql-explorer-node-inputs { display: block; color: #485b59; font-size: 12px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node[data-selected=true] { outline: 2px solid #3468bd; }
 .actql-explorer-table { width: 100%; border-collapse: collapse; }

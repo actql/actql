@@ -172,18 +172,52 @@ try {
         assert.deepEqual((await graph.locator('.react-flow__edge').evaluateAll(items=>
           items.map(item=>item.getAttribute('data-testid')))).sort(), edges.map(edge=>`rf__edge-${edge.id}`).sort());
         const visible = new Set(await rendered(nodes.map(node=>node.id)));
-        const visibleInputNames = beforeRun.context.flatMap(({origin})=>origin.kind === 'source' &&
-          origin.consuming_ports.some(port=>visible.has(port.step_id)) ? [origin.source_view.resource] : []);
+        await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
+        const visibleInputs = beforeRun.context.flatMap(({origin})=>origin.kind === 'source'
+          ? origin.consuming_ports.filter(port=>visible.has(port.step_id)).map(port=>({...port,
+            resource: origin.source_view.resource, connector: origin.source_view.connector, locator: origin.stage_input}))
+          : []);
+        const visibleInputNames = [...new Set(visibleInputs.map(input=>input.resource))];
         assert(visibleInputNames.length >= 2, `Visible checked inputs: ${visibleInputNames.join(', ')}`);
         const visibleJoins = nodes.filter(node=>node.operator === 'join' && visible.has(node.id));
         assert(visibleJoins.length > 0, 'A checked Join should be readable in the opening Graph');
-        assert(edges.some(edge=>visible.has(edge.sourceStepId) &&
-          visibleJoins.some(join=>join.id === edge.targetStepId)), 'A real input edge reaches the visible Join');
-        for (const name of visibleInputNames) assert((await cards.allTextContents()).some(text=>text.includes(name)));
+        for (const input of visibleInputs) {
+          const port = nodes.find(node=>node.id === input.step_id).ports.find(port=>port.port_id === input.port_id);
+          assert.equal(port.role, 'input');
+          assert.deepEqual(port.source, input.locator);
+          const card = graph.locator(`.react-flow__node[data-id="${input.step_id}"]`);
+          assert((await card.textContent()).includes(input.resource), `Missing label on ${input.resource}'s original node`);
+        }
+        const connections = edges.filter(edge=>visible.has(edge.sourceStepId) && visible.has(edge.targetStepId));
+        function visibleRoute(start, finish) {
+          const queue = [{step: start, route: []}], visited = new Set([start]);
+          for (const {step, route} of queue) {
+            if (step === finish) return route;
+            for (const edge of connections.filter(edge=>edge.sourceStepId === step)) {
+              if (visited.has(edge.targetStepId)) continue;
+              visited.add(edge.targetStepId);
+              queue.push({step: edge.targetStepId, route: [...route, edge]});
+            }
+          }
+        }
+        const visibleConvergence = visibleJoins.map(join=>visibleInputs.flatMap(input=>{
+          const route = visibleRoute(input.step_id, join.id);
+          return route?.length ? [{resource: input.resource, connector: input.connector,
+            originalInputPort: input.port_id, route}] : [];
+        })).find(routes=>new Set(routes.map(route=>route.resource)).size >= 2);
+        assert(visibleConvergence, 'Two declared inputs must reach the same visible Join by drawn original edges');
+        for (const {route} of visibleConvergence) for (const edge of route) {
+          const path = graph.getByTestId(`rf__edge-${edge.id}`).locator('.react-flow__edge-path');
+          assert(await path.evaluate(path=>path.getTotalLength() > 0));
+          const from = nodes.find(node=>node.id === edge.sourceStepId).ports.find(port=>port.port_id === edge.sourcePortId);
+          const to = nodes.find(node=>node.id === edge.targetStepId).ports.find(port=>port.port_id === edge.targetPortId);
+          assert.equal(from.role, 'output');
+          assert.equal(to.role, 'input');
+          assert.deepEqual(to.source, {kind: 'logical_output', step_id: edge.sourceStepId, output_port_id: edge.sourcePortId});
+        }
         const graphText = (await cards.allTextContents()).join('\n');
         assert.match(graphText, /Join · /u);
         assert.doesNotMatch(graphText, /\baql_|connector:\/\//u);
-        await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
         await page.getByRole('button', {name: 'Steps', exact: true}).click();
         await page.setViewportSize({width: 390, height: 844});
         assert.equal(await heading.innerText(), summary);
@@ -192,7 +226,7 @@ try {
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation']);
         receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
-          originalGraphNodes: nodes.length, originalGraphEdges: edges.length};
+          originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence};
       } else {
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));

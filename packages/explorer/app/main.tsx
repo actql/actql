@@ -104,24 +104,27 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       add(results, origin.producer.step_id, origin.name);
     }
   }
-  const labels = new Map<string, {kind?: string; title: string}>();
+  const labels = new Map<string, {kind?: string; title: string; inputs?: string}>();
   const ja = story?.locale === 'ja';
   for (const step of story?.occurrences ?? []) {
     const inputs = sources.get(step.stepId), models = tasks.get(step.stepId), outputs = results.get(step.stepId);
     const {meaning} = step.explanation;
+    const inputNames = inputs?.map(input=>input.resource).join(', ');
+    const inputDetail = inputNames ? `${ja ? '入力' : 'Input'} · ${inputNames}` : undefined;
     if (meaning.kind === 'join') {
       const key = meaning.keys[0];
       const name = ja ? '結合' : 'Join';
       labels.set(step.stepId, {kind: ja ? 'データ結合' : 'Combine', title: key ?
-        `${name} · ${key.left} = ${key.right}` : name});
+        `${name} · ${key.left} = ${key.right}` : name, inputs: inputDetail});
     } else if (models?.length) {
-      labels.set(step.stepId, {kind: 'Model', title: `${ja ? 'モデル' : 'Ask'} ${models.join(', ')}`});
-    } else if (inputs?.length) {
+      labels.set(step.stepId, {kind: 'Model', title: `${ja ? 'モデル' : 'Ask'} ${models.join(', ')}`,
+        inputs: inputDetail});
+    } else if (inputs?.length && inputDetail) {
       // A linked declaration names the input port; it does not make this
       // logical occurrence an actual Source attempt or another Graph node.
       const connections = new Set(inputs.map(input=>input.connector));
       labels.set(step.stepId, {kind: connections.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
-        title: `${ja ? '入力' : 'Input'} · ${inputs.map(input=>input.resource).join(', ')}`});
+        title: inputDetail});
     } else if (outputs?.length) {
       labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
     } else if (meaning.kind === 'projection' && meaning.operation === 'select') {
