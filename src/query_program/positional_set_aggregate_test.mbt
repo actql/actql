@@ -47,21 +47,25 @@ test "terminal positional aggregate expressions do not require output aliases" {
 }
 
 ///|
-test "anonymous aggregate physical outputs never become public or BY NAME aliases" {
-  for
-    source in [
-      "SELECT COUNT(*)", "SELECT 0 AS n UNION ALL BY NAME SELECT COUNT(*)",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        { ..values_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
+test "anonymous aggregate returns a display label and still refuses BY NAME" {
+  let context = { ..values_context(), inputs: [], }
+  let result = compile(
+    @query.parse_query("SELECT COUNT(*)", syntax_limits()).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_eq(anonymous_result_fields(result), ["f0_"])
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT 0 AS n UNION ALL BY NAME SELECT COUNT(*)",
+        syntax_limits(),
+      ).unwrap(),
+      context,
+      construction_limits(),
     )
-  }
+    is Err(UnsupportedProjection),
+  )
 }
 
 ///|

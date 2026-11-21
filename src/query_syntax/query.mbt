@@ -343,6 +343,7 @@ pub fn is_source_free_scalar_projection(query : Query) -> Bool {
       | Parenthesized(_)
       | Predicate(_, _)
       | SearchedCase(_, _)
+      | SimpleCase(_, _, _)
       | Cast(_, _)
       | Interval(_, _) => ()
     }
@@ -822,6 +823,7 @@ fn QueryParser::resolve_producer(
   relation : Array[NamePart],
 ) -> Array[NamePart] raise QueryAbort {
   if relation.length() != 1 {
+    self.source.published_namespace_possible = true
     return relation
   }
   let mut scope = self.binding_scopes.length() - 1
@@ -838,6 +840,7 @@ fn QueryParser::resolve_producer(
     }
     scope -= 1
   }
+  self.source.published_namespace_possible = true
   relation
 }
 
@@ -1198,6 +1201,7 @@ fn QueryParser::bind_query(
   inner : Query,
   carry_ranges? : Bool = false,
 ) -> Query raise QueryAbort {
+  ignore(self.namespace_query(inner))
   self.node()
   let generated = self.fresh_producer("aql_query_source_")
   let bindings = inner.bindings +
@@ -1212,7 +1216,7 @@ fn QueryParser::bind_query(
   if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: None,
     implicit_source_alias: false,
@@ -1234,7 +1238,7 @@ fn QueryParser::bind_query(
     short_command_effect: None,
     commands: [],
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -1293,20 +1297,132 @@ fn QueryParser::mark_positional_output(
   query : Query,
 ) -> Query raise QueryAbort {
   let bindings = query.bindings.copy()
-  // Only an internal identity binding exports the same operand values.
-  // Authored CTEs and transformed continuations retain their own scopes.
-  if query.operations.is_empty() && query.bound_source is Some(bound) {
-    for index in 0..<bindings.length() {
+  // bind_query flattens continuation bindings before storing each bound
+  // Query. Follow their original links in that same table. Each link must
+  // target an earlier entry, so every table entry is scanned at most once.
+  let mut current = query
+  let mut cursor = bindings.length() - 1
+  while cursor >= 0 && current.operations.is_empty() {
+    guard current.bound_source is Some(bound) else { break }
+    let transparent = current.sets.is_empty() &&
+      current.final_operations.is_empty()
+    let mut found = false
+    while cursor >= 0 {
       self.spend(1)
-      if self.binding_name_matches(bindings[index].name, bound) {
-        bindings[index] = {
-          ..bindings[index],
-          query: self.mark_positional_output(bindings[index].query),
+      let index = cursor
+      cursor -= 1
+      let binding = bindings[index]
+      if binding.origin is RelationalContinuation &&
+        self.binding_name_matches(binding.name, bound) {
+        let original = binding.query
+        if transparent && !original.positional_output {
+          self.retire_positional_output_demands(original)
         }
+        bindings[index] = {
+          ..binding,
+          query: { ..original, positional_output: true, },
+        }
+        current = original
+        found = true
+        break
       }
+    }
+    if !found || !transparent {
+      break
     }
   }
   { ..query, bindings, positional_output: true, }
+}
+
+///|
+fn QueryParser::retire_anonymous_projection_demands(
+  self : QueryParser,
+  projections : Array[Projection],
+) -> Unit raise QueryAbort {
+  for projection in projections {
+    self.spend(1)
+    if projection.star is None && projection_public_name(projection) is None {
+      self.source.anonymous_output_demands -= 1
+    }
+  }
+}
+
+///|
+// In a fresh parenthesized positional RHS, a terminal SELECT can still use
+// the existing positional slots. Keep every demand from nested producers,
+// intermediate projections and unrecognized continuations.
+fn QueryParser::retire_positional_output_demands(
+  self : QueryParser,
+  operand : Query,
+) -> Unit raise QueryAbort {
+  if self.source.anonymous_output_demands == 0 {
+    return
+  }
+  if !operand.sets.is_empty() {
+    // A tail can observe the inner set's names. A purely positional inner
+    // set without a tail takes its public names from this left term, but
+    // the enclosing positional match immediately replaces those names.
+    if !operand.final_operations.is_empty() {
+      return
+    }
+    for part in operand.sets {
+      self.spend(1)
+      if part.by_name {
+        return
+      }
+    }
+  }
+  let mut index = operand.operations.length() - 1
+  let mut range : NamePart? = None
+  while index >= 0 {
+    self.spend(1)
+    match operand.operations[index] {
+      Order(_)
+      | Limit(_, _)
+      | Where(_)
+      | Distinct
+      | AssertUnique(_)
+      | Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | UnnestSource(_, _, _)
+      | Analytic(_)
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => ()
+      Infer(_) | Unpivot(_) | Pivot(_) =>
+        // These keep positional slots, but do not prove a whole-range star.
+        if range is Some(_) {
+          return
+        }
+      Alias(name) =>
+        if range is Some(original) {
+          if !self.binding_name_matches(original, name) {
+            return
+          }
+          range = None
+        }
+      Select(projections, _) => {
+        if range is Some(_) {
+          return
+        }
+        if projections.length() == 1 && projections[0].star == Some("*") {
+          if projections[0].expression is Some(receiver) {
+            guard receiver.nodes[receiver.root].kind is Reference(path) &&
+              path.length() == 1 else {
+              return
+            }
+            range = Some(path[0])
+          }
+        } else {
+          self.retire_anonymous_projection_demands(projections)
+          return
+        }
+      }
+      _ => return
+    }
+    index -= 1
+  }
 }
 
 ///|
@@ -1317,6 +1433,9 @@ fn QueryParser::sql_operand(
 ) -> Query raise QueryAbort {
   if self.peek().value == Symbol(40) {
     let inner = self.parenthesized()
+    if positional_output {
+      self.retire_positional_output_demands(inner)
+    }
     let carry_ranges = !set_operand &&
       !self.has("UNION") &&
       !self.has("INTERSECT") &&
@@ -1332,7 +1451,7 @@ fn QueryParser::sql_operand(
       carry_ranges~,
     )
   } else {
-    self.sql_term()
+    self.sql_term(record_anonymous_output=!set_operand)
   }
 }
 
@@ -1555,8 +1674,10 @@ fn QueryParser::projections(
   ordering? : Array[PipeAggregateOrder]? = None,
   windows? : Array[Projection] = [],
   window_expressions? : Bool = false,
+  record_anonymous_output? : Bool = true,
 ) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
+  let mut stars = 0
   let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
@@ -1597,6 +1718,20 @@ fn QueryParser::projections(
         value
       }
     }
+    // A direct set RHS SELECT either takes positional names from the left
+    // operand or must supply genuine names for BY NAME. Neither needs display
+    // labels for this projection. Nested and intermediate results still do.
+    if record_anonymous_output &&
+      projection.star is None &&
+      projection_public_name(projection) is None {
+      self.source.anonymous_output_demands += 1
+    }
+    if projection.star is Some(_) {
+      stars += 1
+      if self.source.anonymous_star_growth < 31 {
+        self.source.anonymous_star_growth += 1
+      }
+    }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
       let (direction, nulls) = self.order_suffix()
@@ -1612,6 +1747,14 @@ fn QueryParser::projections(
       break
     }
     ignore(self.advance())
+  }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+    values.length(),
+  )
+  // A single pass-through star does not multiply row width. Multiple stars
+  // and a completed JOIN list contribute their actual multiplicity instead.
+  if stars > 1 {
+    self.namespace_replace_factor(1, stars)
   }
   (values, embedded)
 }
@@ -1774,6 +1917,11 @@ fn QueryParser::range_star_receiver(
       break
     }
   }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(1)
+  self.source.namespace_references = namespace_count_add(
+    self.source.namespace_references,
+    1,
+  )
   Some({
     source: self.source,
     nodes: [{ kind: Reference(names), start, end, }],
@@ -1985,9 +2133,14 @@ fn QueryParser::group_keys(
   while true {
     self.node()
     let start = self.peek().start
-    keys.push(self.expression())
+    let expression = self.expression()
+    keys.push(expression)
     if names is Some(names) {
-      names.push(self.optional_output_alias())
+      let name = self.optional_output_alias()
+      names.push(name)
+      if name is None && expression_implicit_name(expression) is None {
+        self.source.anonymous_output_demands += 1
+      }
     }
     if ordering is Some(terms) &&
       (order_all || self.has("ASC") || self.has("DESC") || self.has("NULLS")) {
@@ -2322,6 +2475,7 @@ fn QueryParser::initial_from(
     initial_implicit_alias,
     initial_file_listing,
   ) = if allow_graph_marker && self.has("GRAPH") {
+    self.source.published_namespace_possible = true
     self.keyword("GRAPH")
     let start = self.peek().start
     let relation = self.resolve_producer(self.path())
@@ -2397,6 +2551,7 @@ fn QueryParser::initial_from(
     }
     let (part, join_ctes) = self.join_part()
     joins.push(part)
+    self.namespace_replace_factor(joins.length(), joins.length() + 1)
     for cte in join_ctes {
       bindings.push(cte)
     }
@@ -2409,7 +2564,10 @@ fn QueryParser::initial_from(
 }
 
 ///|
-fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::sql_term(
+  self : QueryParser,
+  record_anonymous_output~ : Bool,
+) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
   if distinct {
@@ -2422,6 +2580,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     aggregate_expressions=true,
     windows=select_windows,
     window_expressions=true,
+    record_anonymous_output~,
   )
   let group_projections = projections +
     embedded.map(pair => {
@@ -2580,7 +2739,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     !resolved.any(operation => operation is Group(_, _, _)) {
     raise QueryAbort("HAVING requires grouping", at)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: None,
     implicit_source_alias,
@@ -2602,7 +2761,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     short_command_effect: None,
     commands: [],
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -2885,11 +3044,13 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     }
     term = { ..term, operations, }
   }
-  if sets.is_empty() {
-    { ..term, operations: term.operations + tail, work: self.work, }
-  } else {
-    { ..term, bindings, sets, final_operations: tail, work: self.work, }
-  }
+  self.namespace_query(
+    if sets.is_empty() {
+      { ..term, operations: term.operations + tail, work: self.work, }
+    } else {
+      { ..term, bindings, sets, final_operations: tail, work: self.work, }
+    },
+  )
 }
 
 ///|
@@ -2908,7 +3069,7 @@ fn QueryParser::pipe(
     operations,
   ) = self.initial_from(allow_graph_marker=true)
   self.pipe_tail(
-    {
+    self.namespace_query({
       source: self.source,
       primary: None,
       implicit_source_alias,
@@ -2930,7 +3091,7 @@ fn QueryParser::pipe(
       short_command_effect: None,
       commands: [],
       work: self.work,
-    },
+    }),
     context~,
   )
 }
@@ -3177,17 +3338,34 @@ fn QueryParser::pipe_tail(
       if self.source_depth >= 32 {
         raise QueryAbort("Subquery depth limit", self.peek().start)
       }
+      let direct_pipe = self.has("FROM")
       self.source_depth += 1
       let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
+      let parsed = if !by_name {
+        self.retire_positional_output_demands(parsed)
+        if !parsed.sets.is_empty() ||
+          (parsed.operations.is_empty() && parsed.bound_source is Some(_)) {
+          self.mark_positional_output(parsed)
+        } else {
+          parsed
+        }
+      } else {
+        // A strict named set requires genuine names from its direct right
+        // output. Its terminal SELECT needs no anonymous display names.
+        // Keep all demand from producers, intermediate projections and tails.
+        if direct_pipe &&
+          !inner_by_name &&
+          self.source.anonymous_output_demands > 0 &&
+          parsed.sets.is_empty() &&
+          parsed.final_operations.is_empty() &&
+          parsed.operations.last() is Some(Select(projections, _)) {
+          self.retire_anonymous_projection_demands(projections)
+        }
+        parsed
+      }
       let right = if !parsed.sets.is_empty() {
-        self.bind_query(
-          if !by_name {
-            self.mark_positional_output(parsed)
-          } else {
-            parsed
-          },
-        )
+        self.bind_query(parsed)
       } else {
         parsed
       }
@@ -3241,6 +3419,7 @@ fn QueryParser::pipe_tail(
       }
       let (part, join_ctes) = self.join_part()
       joins.push({ ..part, pre_join_filter, })
+      self.namespace_replace_factor(joins.length(), joins.length() + 1)
       for cte in join_ctes {
         bindings.push(cte)
       }
@@ -3303,6 +3482,10 @@ fn QueryParser::pipe_tail(
           },
         )
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       window_operations.push(Extend(values))
       // WINDOW names belong only to this EXTEND, not to a subsequent operator.
       operations.append(
@@ -3351,6 +3534,10 @@ fn QueryParser::pipe_tail(
           ),
         )
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       operations.push(Set(values))
     } else if self.has("DROP") {
       self.keyword("DROP")
@@ -3377,6 +3564,10 @@ fn QueryParser::pipe_tail(
         }
         ignore(self.advance())
       }
+      self.source.namespace_added_fields = namespace_count_add(
+        self.source.namespace_added_fields,
+        values.length(),
+      )
       operations.push(Rename(values))
     } else if self.has("PIVOT") {
       operations.push(Pivot(self.pivot_clause()))
@@ -3433,6 +3624,12 @@ fn QueryParser::pipe_tail(
         except_columns: [],
         replacements: [],
       })
+      self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+        namespace_count_add(
+          keys.length(),
+          namespace_count_add(aggregates.length(), calls.length()),
+        ),
+      )
       operations.push(
         Group(
           keys,
@@ -3597,7 +3794,7 @@ fn QueryParser::pipe_tail(
   if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  {
+  self.namespace_query({
     source: self.source,
     primary: input.primary,
     implicit_source_alias: input.implicit_source_alias,
@@ -3619,7 +3816,7 @@ fn QueryParser::pipe_tail(
     short_command_effect,
     commands,
     work: self.work,
-  }
+  })
 }
 
 ///|
@@ -3637,6 +3834,7 @@ fn QueryParser::symbol(
 fn QueryParser::infer_clause(
   self : QueryParser,
 ) -> InferClause raise QueryAbort {
+  self.source.published_namespace_possible = true
   let origin = token_origin(self.source, self.index)
   self.keyword("INFER")
   let contract = self.name()
@@ -4196,4 +4394,104 @@ fn QueryParser::update_effect_clause(
     self.symbol(41)
   }
   { kind, name, target, mapping, result, id, id_expression, set: assignments, }
+}
+
+///|
+// The original optional SQL name; display labels never enter this projection.
+pub fn projection_public_name(projection : Projection) -> NamePart? {
+  // A receiver star contributes its fields, never an alias for the receiver.
+  if projection.star is Some(_) {
+    return None
+  }
+  match projection.name {
+    Some(name) => Some(name)
+    None =>
+      match projection.expression {
+        Some(expression) => expression_implicit_name(expression)
+        None => None
+      }
+  }
+}
+
+///|
+// Only a genuine implicit SQL name, never an evaluated/display slot.
+pub fn expression_implicit_name(expression : Expression) -> NamePart? {
+  match expression.nodes[expression.root].kind {
+    Reference(path) => path.last()
+    Property(_, name) => Some(name)
+    _ => None
+  }
+}
+
+///|
+// One parser-owned fact shared by the nested queries of this document.
+pub fn anonymous_output_context_required(query : Query) -> Bool {
+  query.source.anonymous_output_demands > 0
+}
+
+///|
+/// Whether an admitted publication can supply namespace field shapes to the
+/// original query. Every unresolved producer and separate Source selector
+/// retains the complete publication bound. This is construction DATA only.
+pub fn anonymous_namespace_may_use_publication(query : Query) -> Bool {
+  query.source.published_namespace_possible ||
+  query.effect is Some(_) ||
+  query.table_effect is Some(_) ||
+  query.store_effect is Some(_) ||
+  query.insert_effect is Some(_) ||
+  query.short_command_effect is Some(_) ||
+  !query.commands.is_empty()
+}
+
+///|
+// Bounded growth exponent from actual parser-owned Star projections. Once31
+// is reached, min(2^growth, any positive Int builder bound) is already saturated.
+pub fn anonymous_output_star_growth(query : Query) -> Int {
+  query.source.anonymous_star_growth
+}
+
+///|
+fn QueryParser::namespace_replace_factor(
+  self : QueryParser,
+  previous : Int,
+  next : Int,
+) -> Unit {
+  if self.source.namespace_field_factor == 2147483647 {
+    return
+  }
+  // The old JOIN-list factor remains an exact divisor until saturation.
+  // Replace J by J+1, rather than multiplying by two for every extra join.
+  self.source.namespace_field_factor = (self.source.namespace_field_factor.to_int64() /
+    previous.to_int64() *
+    next.to_int64())
+    .min(2147483647L)
+    .to_int()
+}
+
+///|
+fn QueryParser::namespace_query(self : QueryParser, query : Query) -> Query {
+  let events = 1L +
+    query.operations.length().to_int64() +
+    query.final_operations.length().to_int64() +
+    query.joins.length().to_int64() +
+    query.sets.length().to_int64() +
+    query.bindings.length().to_int64()
+  self.source.namespace_events = (self.source.namespace_events.to_int64() +
+    events)
+    .min(2147483647L)
+    .to_int()
+  query
+}
+
+///|
+// Construction facts of the SAME parser-owned document. No traversal, schema
+// admission, currentness or caller-selected capacity is hidden in this view.
+pub fn anonymous_namespace_geometry(query : Query) -> (Int, Int, Int, Int, Int) {
+  (
+    query.source.namespace_events,
+    query.source.namespace_seed_fields,
+    query.source.namespace_field_factor,
+    query.source.namespace_added_fields,
+    query.source.namespace_references,
+  )
 }

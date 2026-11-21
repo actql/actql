@@ -220,3 +220,24 @@ test "long demand prefixes and deep addresses remain linear retained structures"
   )
   assert_eq(@expression_typing.demand_usage(v).links, 10001)
 }
+
+///|
+test "simple CASE demand tests bind the reached original match operands" {
+  let v = demands(
+    (
+      #|{"case":{"operand":{"literal":2},"when":[{"when":{"literal":1},"then":{"literal":7}},{"when":{"literal":2},"then":{"literal":8}}],"else":{"literal":9}}}
+    ),
+  )
+  assert_demand(v, "/case/operand", [])
+  assert_demand(v, "/case/when/0/when", [])
+  assert_demand(v, "/case/when/0/then", [("/case/when/0/when", CaseMatch)])
+  assert_demand(v, "/case/when/1/when", [("/case/when/0/when", CaseNoMatch)])
+  assert_demand(v, "/case/when/1/then", [
+    ("/case/when/0/when", CaseNoMatch),
+    ("/case/when/1/when", CaseMatch),
+  ])
+  assert_demand(v, "/case/else", [
+    ("/case/when/0/when", CaseNoMatch),
+    ("/case/when/1/when", CaseNoMatch),
+  ])
+}

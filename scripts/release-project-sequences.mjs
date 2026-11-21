@@ -2,16 +2,34 @@
 // bounds and scratch; these same imported assertions run with explicit test ports.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFile, stat} from 'node:fs/promises';
+import {lstat, readFile, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {mockTemplates, expectedChanges} from './native-cli-mock-scenario.mjs';
-import {assertProjectStaticCheckControls} from './release-project-node-action.mjs';
+import {assertProjectStaticCheckControls, projectStaticCheckControls} from './release-project-node-action.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
 export const releaseProjectFamilies = Object.freeze([
   'native-while-waiting', 'native-after-approve', 'native-after-reject',
   'node-sequential',
 ]);
+
+const cliStaticFiles = Object.freeze({
+  'known-outcome-type-error': 'stage2-known-outcome-type-error.aql',
+  'unknown-update-target': 'stage2-unknown-update-target.aql',
+});
+
+// Only the existing invalid CheckOutcome exits 1, after its JSON and original
+// cleanup have returned. A label cannot make another command's failure pass.
+export function projectCliExpectedExit(args, label) {
+  if (label.staticCheckControl === undefined) return 0;
+  assert(mockTemplates.includes(label.template));
+  assert.equal(label.surface, 'cli');
+  assert.equal(label.family, 'native-while-waiting');
+  assert.equal(label.ordinal, 0); assert.equal(label.phase, 'check');
+  assert(Object.hasOwn(cliStaticFiles, label.staticCheckControl), 'Unknown CLI static control');
+  assert.deepEqual(args, ['check', cliStaticFiles[label.staticCheckControl], '--json']);
+  return label.staticCheckControl === 'known-outcome-type-error' ? 1 : 0;
+}
 
 // Independent expectations from the authored Catalog, ModelTask and SELECT.
 // These are not learned from a first Result or emitted by the product compiler.
@@ -66,7 +84,10 @@ export function assertTemplateStatic(check, plan) {
   for (const operator of ['join', 'infer']) assert(steps.some(step => step.operator === operator), operator);
   assert.equal(plan.effect_set?.members.length, 1);
   assert.equal(plan.effect_set.members[0].effect_kind, 'update');
-  assert.deepEqual(plan.effect_set.members[0].input, {kind: 'result', result_name: 'updates'});
+  // Both authored templates evaluate their SET expressions in this checked
+  // private Result (query_program/lower_update_capture), not the separately
+  // exported updates Result checked below by full row/schema/Saved oracles.
+  assert.deepEqual(plan.effect_set.members[0].input, {kind: 'result', result_name: 'aql_private_update'});
 }
 
 export function requiredProjectReplacements(template, beforeBytes) {
@@ -124,7 +145,10 @@ export function assertProjectSequenceRows(template, rows, before) {
     assert(original);
     if (template === 'churn-risk-mock') {
       const usage = source.snowflake.usage_30d.rows.find(value => value.account_id === update.id);
-      assert.equal(row.notes, original.description); assert.equal(row.active_users, usage.active_users);
+      assert.equal(row.notes, original.description);
+      assert(Number.isSafeInteger(usage.active_users), 'The authored Mock count must be exact before encoding');
+      // The retained int64 contract requires decimal Strings even for small counts.
+      assert.equal(row.active_users, String(usage.active_users));
       assert.equal(row.trend, usage.trend);
     } else {
       assert.equal(row.StageName, original.StageName); assert.equal(row.NextStep, original.NextStep);
@@ -154,10 +178,14 @@ export async function runReleaseProjectSequences({root, cli, node, snapshot = pr
     const project = join(root, template + '-' + family), record = {template, family, project, complete: false, runs: [], phases: []};
     cases.push(record);
     let phase = 'init';
-    const cliCommand = async (args, ordinal = 0) => {
-      phase = args[0]; const value = await cli(args, project, {template, family, ordinal, phase, surface: 'cli'});
+    const cliCommand = async (args, ordinal = 0, staticCheckControl) => {
+      phase = args[0];
+      const label = {template, family, ordinal, phase, surface: 'cli',
+        ...(staticCheckControl === undefined ? {} : {staticCheckControl})};
+      const expectedExit = projectCliExpectedExit(args, label);
+      const value = await cli(args, project, label);
       record.phases.push({ordinal, phase, surface: 'cli', pid: value.pid});
-      assert.equal(value.signal, null); assert.equal(value.code, 0, value.stderr);
+      assert.equal(value.signal, null); assert.equal(value.code, expectedExit, value.stderr);
       return value;
     };
     const nodeCommand = async (request, ordinal = 0) => {
@@ -214,6 +242,38 @@ export async function runReleaseProjectSequences({root, cli, node, snapshot = pr
         const plan = JSON.parse((await cliCommand(['explain', program, '--json'])).stdout);
         assertTemplateStatic(check, plan);
         assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');
+        const originalRoot = await lstat(project, {bigint: true});
+        assert(originalRoot.isDirectory() && !originalRoot.isSymbolicLink(), 'Use the current original project root');
+        const original = await readFile(join(project, program));
+        assert(original.length > 0 && original.length <= 65536, 'Use the existing bounded Program input');
+        const text = original.toString('utf8');
+        assert.deepEqual(Buffer.from(text), original, 'Preserve exact UTF-8 Program bytes');
+        const controls = [];
+        for (const control of projectStaticCheckControls(program, text)) {
+          const name = cliStaticFiles[control.name], path = join(project, name);
+          // Fixed basenames stay under the current project input root. Never
+          // replace the original Program, an existing control or a symlink.
+          await writeFile(path, control.text, {flag: 'wx', mode: 0o600});
+          const value = await cliCommand(['check', name, '--json'], 0, control.name);
+          const check = JSON.parse(value.stdout);
+          assert.equal(check.version, 'actql-check-outcome/0.1');
+          assert.equal(check.report?.inputs?.length, 1);
+          const input = check.report.inputs[0];
+          assert.equal(input.document_id, 'source'); assert.equal(input.kind, 'text');
+          assert.equal(input.byte_length, Buffer.byteLength(control.text));
+          assert(/^rev:[0-9a-f]{64}$/u.test(input.revision), 'Use the original CLI input revision, not a reconstructed one');
+          assert.deepEqual(value.acceptance?.modelAttempts, []);
+          assert.deepEqual(value.acceptance?.writes, []);
+          controls.push({name: control.name, check});
+          const currentRoot = await lstat(project, {bigint: true});
+          assert(currentRoot.isDirectory() && !currentRoot.isSymbolicLink());
+          assert.equal(currentRoot.dev, originalRoot.dev); assert.equal(currentRoot.ino, originalRoot.ino,
+            'Original project root changed during check');
+          assert.deepEqual(await readFile(path), Buffer.from(control.text), 'Original control changed during check');
+          assert.deepEqual(await readFile(join(project, program)), original, 'Original Program changed during check');
+          assert.deepEqual(await snapshot(project), before, 'Static control must not change the target');
+        }
+        assertProjectStaticCheckControls(controls);
       } else if (family === 'node-sequential') {
         const before = await snapshot(project);
         const observed = await nodeCommand({kind: 'static', program});

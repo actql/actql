@@ -11,12 +11,14 @@ fn append_local_owned_grant_original_locked(
   host_prepared? : String? = None,
   resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
   capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
   }
   let (count, revision, runs) = match
-    grant_host.local_grant_custody(grant_crypto, capture~) {
+    grant_host.local_grant_custody(grant_crypto, capture~, operations~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -31,7 +33,12 @@ fn append_local_owned_grant_original_locked(
     let mut checked = 0
     while true {
       let row = match
-        grant_host.database.scan_after("client_local_grant_originals", cursor) {
+        scan_client_journal_value(
+          grant_host.database,
+          "client_local_grant_originals",
+          cursor,
+          reads,
+        ) {
         Ok(value) => value
         Err(@sqlite.NotFound) => break
         Err(issue) => return Err(Physical(issue))
@@ -60,7 +67,11 @@ fn append_local_owned_grant_original_locked(
   }
   if original.grant is SigningGrant(_) {
     match
-      grant_host.same_signing_operation_locked(original, resolution_proof~) {
+      grant_host.same_signing_operation_locked(
+        original,
+        resolution_proof~,
+        reads~,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -79,13 +90,15 @@ fn append_local_owned_grant_original_locked(
   // Reserve before encoding/copying the appended grant packet. Missing
   // reservations for existing originals refuse rather than being repaired.
   match
-    grant_host.database.reserve_capacity_in_transaction(
+    reserve_client_journal_capacity(
+      grant_host.database,
       "client_local_grant_originals",
       reservation_scope,
       65536L,
       1L,
       grant_host.journal.max_records.to_int64() * 65536L,
       grant_host.journal.max_records.to_int64(),
+      operations,
     ) {
     Ok(fresh) if fresh == (entries == 0) => ()
     Ok(_) => return Err(CustodyLost)
@@ -124,12 +137,21 @@ fn append_local_owned_grant_original_locked(
       }
     None => None
   }
-  match grant_host.database.read("client_local_grant_originals", key) {
+  match
+    read_client_journal_value(
+      grant_host.database,
+      "client_local_grant_originals",
+      key,
+      reads,
+    ) {
     Ok(row) if row.revision == 0L && row.body == packet => {
       if target_packet is Some(body) {
         match
-          grant_host.database.read(
-            "client_local_preparation_target_originals", key,
+          read_client_journal_value(
+            grant_host.database,
+            "client_local_preparation_target_originals",
+            key,
+            reads,
           ) {
           Ok(saved) if saved.revision == 0L && saved.body == body => ()
           Ok(_) => return Err(ChangedIntent)
@@ -138,7 +160,7 @@ fn append_local_owned_grant_original_locked(
         }
       }
       if prepared_packet is Some(body) {
-        match local_initial_host_prepared_locked(grant_host, original) {
+        match local_initial_host_prepared_locked(grant_host, original, reads~) {
           Ok(saved) if saved == body => ()
           Ok(_) => return Err(ChangedIntent)
           Err(issue) => return Err(issue)
@@ -168,14 +190,24 @@ fn append_local_owned_grant_original_locked(
     Err(issue) => return Err(issue)
   }
   match
-    grant_host.database.insert("client_local_grant_originals", key, packet) {
+    insert_client_journal_value(
+      grant_host.database,
+      "client_local_grant_originals",
+      key,
+      packet,
+      operations,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   if target_packet is Some(body) {
     match
-      grant_host.database.insert(
-        "client_local_preparation_target_originals", key, body,
+      insert_client_journal_value(
+        grant_host.database,
+        "client_local_preparation_target_originals",
+        key,
+        body,
+        operations,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
@@ -183,22 +215,25 @@ fn append_local_owned_grant_original_locked(
   }
   if prepared_packet is Some(body) {
     match
-      grant_host.database.insert(
+      insert_client_journal_value(
+        grant_host.database,
         "client_local_signing_candidate_originals",
         local_initial_host_prepared_key(original),
         body,
+        operations,
       ) {
       Ok(0L) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }
-  grant_host.database
-  .compare_exchange(
+  compare_exchange_client_journal_value(
+    grant_host.database,
     "client_local_grant_custody",
     "issued",
     revision,
     @utf8.encode((count + 1).to_string()),
+    operations,
   )
   .map(_ => ())
   .map_err(issue => Physical(issue))

@@ -7299,7 +7299,7 @@ unchanged extent through the parent-current check. The same owner fences reentry
 
 Missing runtime methods or unsupported carrier construction return explicit
 operation unavailability. The current Node connection supplies source-free Pure
-and checked source-free Effect computation; this implementation boundary does not make other authored Programs
+and checked Effect computation with its installed original Model metadata; this implementation boundary does not make other authored Programs
 invalid or establish their target coverage. A declined original construction
 admission cannot select a raw compiler fallback. Current loss and primary/read
 or cleanup failures remain failures, with their original owner and retry duty.
@@ -7318,6 +7318,41 @@ retain their own typed cause and cleanup. Unavailable captured prefixes or
 other carrier construction remain implementation boundaries, never proof that
 an otherwise legal Program is invalid. Unobserved target, permission, gate and
 approval facts stay unknown; the static envelope does not invent a sealed Preview.
+
+The Native Project Mock path can supply its retained Model profiles and the
+same installed compiler contracts to this static read. It borrows the original
+Request's Plan input and prepares the declared Model graphs on that capacity;
+it neither reads Source payloads nor invokes a Model. The existing compiler
+selects its single or composed Model input and validates every acquired route.
+A captured prefix alone is not an unsupported-Program verdict. The command
+retains the borrow before graph construction, returns that exact token before
+clearing it, and leaves pending return or failure with its existing cleanup.
+The Node installed static service uses the same nominal Plan-input borrower
+before exposing any original Infer occurrence or graph. It completes the
+already-started check first, then enters the existing metadata-material and
+graph owner stages with the retained prepared identity and installed sequence
+contracts. The execution-contract reader is metadata-only: Provider binding,
+Account observation, Source rows, Model invocation and executable Effect material
+are not prepared. The ordered opaque graphs cross the existing static bridge;
+the compiler retains its single/composed distinction and original checks.
+
+Before those Host vectors and captured methods are constructed, the same borrow
+reserves their finite occurrence/graph/closure overlap on the original Effect
+capacity. Partial metadata and graph holds remain with that producer through
+failure. Static reads issue no submitted alias: cleanup drops their local holds
+while the same nominal token is still backed, then uses the existing abort and
+exact token return. A declined return retains the original parent cleanup duty;
+metadata success is not a physical cleanup acknowledgement.
+
+Native Effect acceptance retains the same compiler's computation Plan alongside
+its already-checked observation originals in the existing first-admission
+transaction. No second Run binding, compiler, persisted format or Store round
+trip supplies this metadata. The original Read admits the temporary compiler
+variant and reservation closure before construction and includes their held
+extent throughout measurement and encoding. Copied or restored observation
+objects cannot replace those first-capture originals. Saved planning reads the
+stored Plan after its existing authorization/current checks; an older accepted
+Run without that Plan remains unavailable and is never recompiled or repaired.
 
 Aborting a static read ends that read; it cannot cancel or create a Run. Failed
 return stays in the existing connection cleanup owner, without resnapshot,
@@ -7507,6 +7542,14 @@ Ledger and complete nonempty input inventory before dependent ports retire.
 The Query predicate remains separate. Neither entry acknowledges physical
 Source retirement; captures, managed reads and the original Work remain
 cleanup-owned until their actual existing release predicates succeed.
+
+A Whole slot whose checked catalog contract declares a file listing binds
+the Project's original typed listing provider. Admission verifies that
+provider against the same declaration, listing resource and physical locator
+used for the quote. Its own capacity and existing ResourceRef issuer travel
+with the same Read and Work. A plain relation slot keeps its original row
+provider. For mixed inputs, the original Account and current checks still
+cover each selected Source before capture and during advancement.
 
 The Whole entry quotes the physical supplied-input graph retained by that
 same managed Plan, as does its original caller preback. The logical compiler

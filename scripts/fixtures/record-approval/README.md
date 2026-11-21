@@ -164,6 +164,21 @@ qualify Darwin. This source connection alone is not hosted CI or real-account
 acceptance. The existing three-path release/closed-installation entry is retained.
 
 
+## Rejecting the original checkpoint
+
+Append `--reject` to the installed `--approval` or `--kintone-approval`
+selection to run the same Program and provider fixture in a fresh project.
+The three processes capture, reject, and then look up the original cancelled
+Run. The parent checks the entire target and control and counts every selected
+write request across the three phases. Both rows remain unchanged and the
+write count remains zero.
+
+For the separate consumer commands, set `"decision": "rejected"` in the fresh
+configuration before capture and use `reject` as the second phase. The signed
+rejection must identify the original checkpoint and Run. The final `recover`
+phase reads the original cancelled status without reading an Effect Result or
+submitting another resolution.
+
 ## Applied update with a lost reply
 
 Each provider fixture exposes `writeRequest` from its actual existing write

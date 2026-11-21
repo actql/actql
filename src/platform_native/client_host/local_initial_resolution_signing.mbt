@@ -317,6 +317,78 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
     return Err(OriginalSigningUnavailable)
   }
   self.entered = true
+  self.with_original_signing_journal(true)
+}
+
+///|
+// Fixed owner operations only. The same Read pays all new routing/return
+// controls before their closures/Ref/Some wrappers exist; no caller callback,
+// permission, replacement signer or second Journal can enter this holder.
+fn NativeLocalInitialResolutionSigning::with_original_signing_journal(
+  self : NativeLocalInitialResolutionSigning,
+  signing : Bool,
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  match self.key.original.original_read {
+    None =>
+      if signing {
+        self.sign_original_entered_with_operations(None)
+      } else {
+        self.original_wire_with_operations(None)
+      }
+    Some((capture, _)) => {
+      if self.materials.reviewer.approval_scope is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(OriginalSigningUnavailable)
+      }
+      match self.require_original_frame() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      // Extra fixed overlap beyond the existing routing bundle: outcome Ref,
+      // its Some/Result handoff, internal work/return closures and captures,
+      // and read/operation option handoffs. No payload copy or growing vector.
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(OriginalSigningOriginal(issue))
+        Ok(_) => ()
+      }
+      let outcome : Ref[
+        Result[String, NativeLocalInitialResolutionSigningIssue]?,
+      ] = Ref(None)
+      let routed = capture.with_current_adoption_material_in_original_read((
+        host,
+        _material,
+        operations,
+      ) => {
+        guard physical_equal(host, self.key.original.host) &&
+          physical_equal(host.database, operations.reads.database) else {
+          return Err(CustodyLost)
+        }
+        let result = if signing {
+          self.sign_original_entered_with_operations(Some(operations))
+        } else {
+          self.original_wire_with_operations(Some(operations))
+        }
+        outcome.val = Some(result)
+        match result {
+          Ok(_) => Ok(())
+          Err(OriginalSigningOriginal(issue)) => Err(issue)
+          Err(OriginalSigningJournal(issue))
+          | Err(OriginalSigningProof(ProofOriginal(issue))) =>
+            Err(Journal(issue))
+          Err(_) => Err(Journal(CustodyLost))
+        }
+      })
+      finish_initial_resolution_signing_read(outcome.val, routed)
+    }
+  }
+}
+
+///|
+fn NativeLocalInitialResolutionSigning::sign_original_entered_with_operations(
+  self : NativeLocalInitialResolutionSigning,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  let reads = operations.map(value => value.reads)
   let current = match self.require_current() {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -324,49 +396,58 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
   let host = self.key.original.host
   let primary : Ref[NativeLocalInitialResolutionSigningIssue?] = Ref(None)
   let retained_signature : Ref[String?] = Ref(None)
-  let stored = host.journal.transaction(() => {
-    let result = match
-      local_initial_signing_issue_storage_locked(
-        self.key,
-        self.materials.reviewer.request,
-        self.scope,
-        self.scope.attempt_id,
-        self.earlier_valid_until,
-        () => @env.now().reinterpret_as_int64(),
-        () => current.require_locked(),
-        resolution_proof=match self.materials.proof {
-          ResolutionOriginal(proof) => Some(proof)
-          ApprovalOriginal(_) => None
-        },
-      ) {
-      Err(InitialStorageJournal(issue)) => return Err(issue)
-      Err(InitialStorageCredential(issue)) => {
-        primary.val = Some(OriginalSigningCredential(issue))
-        return Err(CustodyLost)
-      }
-      Ok(value) => value
-    }
-    match result {
-      InitialStorageClaim(original, signing_use) =>
-        self.original_use = Some((original, signing_use))
-      InitialStorageHistory(original, history) => {
-        // A claimed/Unknown/Failed tag or absent/corrupt signature never signs
-        // again. Even Succeeded must have this exact authenticated original.
-        if history.observed_outcome() != @credential_resource.Succeeded {
+  let stored = host.journal.transaction_with_reads(
+    () => {
+      let result = match
+        local_initial_signing_issue_storage_locked(
+          self.key,
+          self.materials.reviewer.request,
+          self.scope,
+          self.scope.attempt_id,
+          self.earlier_valid_until,
+          () => @env.now().reinterpret_as_int64(),
+          () => current.require_locked(reads~),
+          operations~,
+          resolution_proof=match self.materials.proof {
+            ResolutionOriginal(proof) => Some(proof)
+            ApprovalOriginal(_) => None
+          },
+        ) {
+        Err(InitialStorageJournal(issue)) => return Err(issue)
+        Err(InitialStorageCredential(issue)) => {
+          primary.val = Some(OriginalSigningCredential(issue))
           return Err(CustodyLost)
         }
-        let signing_use = history.original_use()
-        let signature = match
-          local_initial_resolution_signature_locked(host, original, signing_use) {
-          Err(issue) => return Err(issue)
-          Ok(value) => value
-        }
-        self.original_use = Some((original, signing_use))
-        retained_signature.val = Some(signature)
+        Ok(value) => value
       }
-    }
-    current.require_locked()
-  })
+      match result {
+        InitialStorageClaim(original, signing_use) =>
+          self.original_use = Some((original, signing_use))
+        InitialStorageHistory(original, history) => {
+          // A claimed/Unknown/Failed tag or absent/corrupt signature never signs
+          // again. Even Succeeded must have this exact authenticated original.
+          if history.observed_outcome() != @credential_resource.Succeeded {
+            return Err(CustodyLost)
+          }
+          let signing_use = history.original_use()
+          let signature = match
+            local_initial_resolution_signature_locked(
+              host,
+              original,
+              signing_use,
+              reads~,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(value) => value
+          }
+          self.original_use = Some((original, signing_use))
+          retained_signature.val = Some(signature)
+        }
+      }
+      current.require_locked(reads~)
+    },
+    reads~,
+  )
   match stored {
     Err(CustodyLost) if primary.val is Some(issue) => return Err(issue)
     Err(issue) => return Err(OriginalSigningJournal(issue))
@@ -387,7 +468,11 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
       Ok(_) => ()
     }
   }
-  match host.journal.transaction(() => current.require_locked()) {
+  match
+    host.journal.transaction_with_reads(
+      () => current.require_locked(reads~),
+      reads~,
+    ) {
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(_) => ()
   }
@@ -418,32 +503,36 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
         return Err(OriginalSigningUnavailable)
       }
       match
-        host.journal.transaction(() => {
-          match current.require_locked() {
-            Err(issue) => return Err(issue)
-            Ok(_) => ()
-          }
-          match
-            store_local_initial_resolution_signature_locked(
-              host,
-              original,
-              signing_use,
-              signature,
-              capture=self.key.original.original_read.map(value => value.0),
-              prepared=match self.materials.proof {
-                ResolutionOriginal(proof) => Some(proof)
-                ApprovalOriginal(_) => None
-              },
-              approval=match self.materials.proof {
-                ApprovalOriginal(proof) => Some(proof)
-                ResolutionOriginal(_) => None
-              },
-            ) {
-            Err(issue) => return Err(issue)
-            Ok(_) => ()
-          }
-          current.require_locked()
-        }) {
+        host.journal.transaction_with_reads(
+          () => {
+            match current.require_locked(reads~) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            match
+              store_local_initial_resolution_signature_locked(
+                host,
+                original,
+                signing_use,
+                signature,
+                operations~,
+                capture=self.key.original.original_read.map(value => value.0),
+                prepared=match self.materials.proof {
+                  ResolutionOriginal(proof) => Some(proof)
+                  ApprovalOriginal(_) => None
+                },
+                approval=match self.materials.proof {
+                  ApprovalOriginal(proof) => Some(proof)
+                  ResolutionOriginal(_) => None
+                },
+              ) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            current.require_locked(reads~)
+          },
+          reads~,
+        ) {
         Err(issue) => return Err(OriginalSigningJournal(issue))
         Ok(_) => self.signature = Some(signature)
       }
@@ -453,7 +542,7 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  self.original_wire_in_current(current)
+  self.original_wire_in_current(current, operations~)
 }
 
 ///|
@@ -472,18 +561,28 @@ pub fn NativeLocalInitialResolutionSigning::original_candidate(
 fn NativeLocalInitialResolutionSigning::original_wire(
   self : NativeLocalInitialResolutionSigning,
 ) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  self.with_original_signing_journal(false)
+}
+
+///|
+fn NativeLocalInitialResolutionSigning::original_wire_with_operations(
+  self : NativeLocalInitialResolutionSigning,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
   let current = match self.require_current() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  self.original_wire_in_current(current)
+  self.original_wire_in_current(current, operations~)
 }
 
 ///|
 fn NativeLocalInitialResolutionSigning::original_wire_in_current(
   self : NativeLocalInitialResolutionSigning,
   current : NativeLocalInitialSigningCurrent,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  let reads = operations.map(value => value.reads)
   guard self.signature is Some(signature) &&
     self.original_use is Some((original, signing_use)) &&
     original.grant is SigningGrant(grant) else {
@@ -492,34 +591,42 @@ fn NativeLocalInitialResolutionSigning::original_wire_in_current(
   let host = self.key.original.host
   let retained : Ref[String?] = Ref(None)
   match
-    host.journal.transaction(() => {
-      match current.require_locked() {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
-      let history = match
-        @credential_resource.prepare_native_local_original_signing_history_candidate(
-          host.database,
-          grant,
-        ) {
-        Err(_) => return Err(CustodyLost)
-        Ok(value) if value.observed_outcome() == @credential_resource.Succeeded =>
-          value
-        Ok(_) => return Err(CustodyLost)
-      }
-      if @credential.local_signing_credential_use_cid(history.original_use()) !=
-        @credential.local_signing_credential_use_cid(signing_use) {
-        return Err(CustodyLost)
-      }
-      match
-        local_initial_resolution_result_locked(host, original, signing_use) {
-        Ok((value, Some(wire))) if value == signature =>
-          retained.val = Some(wire)
-        Ok(_) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
-      }
-      current.require_locked()
-    }) {
+    host.journal.transaction_with_reads(
+      () => {
+        match current.require_locked(reads~) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        let history = match
+          @credential_resource.prepare_native_local_original_signing_history_candidate(
+            host.database,
+            grant,
+          ) {
+          Err(_) => return Err(CustodyLost)
+          Ok(value) if value.observed_outcome() ==
+            @credential_resource.Succeeded => value
+          Ok(_) => return Err(CustodyLost)
+        }
+        if @credential.local_signing_credential_use_cid(history.original_use()) !=
+          @credential.local_signing_credential_use_cid(signing_use) {
+          return Err(CustodyLost)
+        }
+        match
+          local_initial_resolution_result_locked(
+            host,
+            original,
+            signing_use,
+            reads~,
+          ) {
+          Ok((value, Some(wire))) if value == signature =>
+            retained.val = Some(wire)
+          Ok(_) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        current.require_locked(reads~)
+      },
+      reads~,
+    ) {
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(_) => ()
   }
@@ -536,7 +643,11 @@ fn NativeLocalInitialResolutionSigning::original_wire_in_current(
   }
   // The last full proof/current callback may revoke the original Credential.
   // Observe it afterwards too; never expose a signature from an earlier gate.
-  match host.journal.transaction(() => current.require_locked()) {
+  match
+    host.journal.transaction_with_reads(
+      () => current.require_locked(reads~),
+      reads~,
+    ) {
     Err(issue) => Err(OriginalSigningJournal(issue))
     Ok(_) => self.require_original_frame().map(_ => wire)
   }
@@ -557,5 +668,23 @@ pub fn NativeLocalInitialResolutionSigning::close_checked(
       self.signature = None
       Ok(())
     }
+  }
+}
+
+///|
+// Preserve the original combined Read/COMMITUnknown outcome. A successful
+// inner signing result cannot authorize return after its original Read failed.
+fn finish_initial_resolution_signing_read(
+  outcome : Result[String, NativeLocalInitialResolutionSigningIssue]?,
+  routed : Result[Unit, NativeLocalAdoptionIssue],
+) -> Result[String, NativeLocalInitialResolutionSigningIssue] {
+  if routed is Err(issue) && issue is InstallationReadTransactionFailure(_, _) {
+    return Err(OriginalSigningOriginal(issue))
+  }
+  match (outcome, routed) {
+    (Some(Err(primary)), _) => Err(primary)
+    (Some(Ok(value)), Ok(_)) => Ok(value)
+    (_, Err(issue)) => Err(OriginalSigningOriginal(issue))
+    _ => Err(OriginalSigningUnavailable)
   }
 }

@@ -46,10 +46,46 @@ pub fn NativeClientRunJournal::claim_effect_resume(
   current : () -> Bool,
   clock : () -> (String, Int64),
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
+  self.claim_effect_resume_with_operations(
+    request,
+    crypto,
+    authentication,
+    reviewers,
+    keys,
+    claimant,
+    lease_ms,
+    binding,
+    current,
+    clock,
+    None,
+  )
+}
+
+///|
+fn NativeClientRunJournal::claim_effect_resume_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  crypto : @crypto.Library,
+  authentication : @checkpoint.HostAuthentication,
+  reviewers : Array[@checkpoint.ReviewerAuthority],
+  keys : Array[@effect_resolution.NativeEffectHostAuthority],
+  claimant : String,
+  lease_ms : Int64,
+  binding : @checkpoint.ResumeBinding,
+  current : () -> Bool,
+  clock : () -> (String, Int64),
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+
   if !current() {
     return Err(AuthorizationDenied)
   }
-  let before = match self.lookup(request, true) {
+  let before = match self.lookup_with_reads(request, true, reads~) {
     Ok(Retained(value)) => value
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
@@ -87,71 +123,77 @@ pub fn NativeClientRunJournal::claim_effect_resume(
     @checkpoint.resumed_approval_current(approval, at) else {
     return Err(Checkpoint(InvalidMaterial))
   }
-  self.transaction(() => {
-    let record = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if record.revision != before.revision {
-      return Err(Checkpoint(StaleRevision))
-    }
-    guard record.checkpoint is Some(checkpoint) &&
-      checkpoint.resume_intent is Some(intent) else {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    // Leave room for the common Owner's strictly increasing generation.
-    if intent.generation >= 9223372036854775806L {
-      return Err(Checkpoint(Resume(InvalidIntent)))
-    }
-    let action = match
-      @checkpoint.decide_effect_resume_claim(
-        intent,
+  self.transaction_with_reads(
+    () => {
+      let record = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if record.revision != before.revision {
+        return Err(Checkpoint(StaleRevision))
+      }
+      guard record.checkpoint is Some(checkpoint) &&
+        checkpoint.resume_intent is Some(intent) else {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      // Leave room for the common Owner's strictly increasing generation.
+      if intent.generation >= 9223372036854775806L {
+        return Err(Checkpoint(Resume(InvalidIntent)))
+      }
+      let action = match
+        @checkpoint.decide_effect_resume_claim(
+          intent,
+          claimant,
+          now_ms,
+          lease_ms,
+          checkpoint.binding,
+          binding,
+          checkpoint.settlement_only || record.cancellation_requested,
+        ) {
+        Ok(action) => action
+        Err(issue) => return Err(Checkpoint(Resume(issue)))
+      }
+      let (generation, expires, settlement_only) = match action {
+        ClaimIntent(generation, expires) => (generation, expires, false)
+        ClaimSettlement(generation, expires) => (generation, expires, true)
+        ClaimBusy => return Ok(Busy)
+        _ => return Err(Checkpoint(InvalidMaterial))
+      }
+      let next : @checkpoint.ResumeIntentView = {
+        state: ResumeClaimed,
+        generation,
         claimant,
-        now_ms,
-        lease_ms,
-        checkpoint.binding,
-        binding,
-        checkpoint.settlement_only || record.cancellation_requested,
-      ) {
-      Ok(action) => action
-      Err(issue) => return Err(Checkpoint(Resume(issue)))
-    }
-    let (generation, expires, settlement_only) = match action {
-      ClaimIntent(generation, expires) => (generation, expires, false)
-      ClaimSettlement(generation, expires) => (generation, expires, true)
-      ClaimBusy => return Ok(Busy)
-      _ => return Err(Checkpoint(InvalidMaterial))
-    }
-    let next : @checkpoint.ResumeIntentView = {
-      state: ResumeClaimed,
-      generation,
-      claimant,
-      lease_expires_ms: expires,
-    }
-    match
-      self.save({
-        ..record,
-        checkpoint: Some({
-          ..checkpoint,
-          resume_intent: Some(next),
-          settlement_only,
-        }),
-      }) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let claim = {
-      journal: self,
-      request,
-      checkpoint_cid: checkpoint.artifact.checkpoint_cid,
-      resolution_cid: verified.resolution_cid,
-      intent_id,
-      claim: { claimant, generation, },
-      approval,
-    }
-    Ok(if settlement_only { SettlementOnly(claim) } else { Claimed(claim) })
-  })
+        lease_expires_ms: expires,
+      }
+      match
+        self.save_with_operations(
+          {
+            ..record,
+            checkpoint: Some({
+              ..checkpoint,
+              resume_intent: Some(next),
+              settlement_only,
+            }),
+          },
+          operations~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let claim = {
+        journal: self,
+        request,
+        checkpoint_cid: checkpoint.artifact.checkpoint_cid,
+        resolution_cid: verified.resolution_cid,
+        intent_id,
+        claim: { claimant, generation, },
+        approval,
+      }
+      Ok(if settlement_only { SettlementOnly(claim) } else { Claimed(claim) })
+    },
+    reads~,
+  )
 }
 
 ///|
@@ -159,6 +201,7 @@ fn NativeClientRunJournal::effect_resume_fence_locked(
   self : NativeClientRunJournal,
   claim : NativeClientEffectResumeClaim,
   now_ms : Int64,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientEffectResumeFence, NativeClientRunJournalIssue] {
   if now_ms < 0L || now_ms > 9007199254740991L {
     return Err(Checkpoint(Resume(InvalidClock)))
@@ -166,7 +209,7 @@ fn NativeClientRunJournal::effect_resume_fence_locked(
   if !physical_equal(self, claim.journal) {
     return Ok(Stale)
   }
-  let record = match self.retained(claim.request) {
+  let record = match self.retained(claim.request, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
@@ -202,6 +245,23 @@ pub fn NativeClientRunJournal::effect_resume_fence(
   current : () -> Bool,
   clock : () -> Int64,
 ) -> Result[NativeClientEffectResumeFence, NativeClientRunJournalIssue] {
+  self.effect_resume_fence_with_operations(claim, current, clock, None)
+}
+
+///|
+fn NativeClientRunJournal::effect_resume_fence_with_operations(
+  self : NativeClientRunJournal,
+  claim : NativeClientEffectResumeClaim,
+  current : () -> Bool,
+  clock : () -> Int64,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectResumeFence, NativeClientRunJournalIssue] {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+
   if !current() {
     return Err(AuthorizationDenied)
   }
@@ -209,5 +269,8 @@ pub fn NativeClientRunJournal::effect_resume_fence(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => self.effect_resume_fence_locked(claim, at))
+  self.transaction_with_reads(
+    () => self.effect_resume_fence_locked(claim, at, reads~),
+    reads~,
+  )
 }

@@ -177,6 +177,7 @@ fn QueryParser::property_endpoint(
 fn QueryParser::graph(self : QueryParser) -> GraphConstructor raise QueryAbort {
   self.node()
   let start = self.peek().start
+  self.source.published_namespace_possible = true
   self.keyword("GRAPH")
   self.symbol(40)
   self.keyword("NODE")

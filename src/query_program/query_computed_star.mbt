@@ -9,21 +9,13 @@ fn materialize_computed_star_receivers(
   lower : (@query.Expression) -> @builder.Node raise Abort,
   already_evaluated : (@query.Expression) -> Bool,
   max_work : Int,
+  object_expansions? : Array[ExpandedObjectColumn]? = None,
 ) -> (
   Array[@query.Projection],
   Array[(String, String)],
   Array[(String, @builder.Node)],
 ) raise Abort {
-  if !original.any(projection => {
-      projection.star == Some("*") &&
-      projection.expression is Some(receiver) &&
-      !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-      is Reference(_))
-    }) {
-    return (expanded, [], [])
-  }
   let receivers : Array[@query.Expression] = []
-  let reserved = physical.copy()
   let mut remaining = max_work
   let spend = fn(count : Int) -> Unit raise Abort {
     if count < 0 || count > remaining {
@@ -31,18 +23,40 @@ fn materialize_computed_star_receivers(
     }
     remaining -= count
   }
+  let retained_receiver = fn(receiver : @query.Expression) -> Bool raise Abort {
+    guard object_expansions is Some(values) else { return false }
+    spend(values.length())
+    values.any(value => physical_equal(value.receiver, receiver))
+  }
+  if !original.any(projection => {
+      projection.star == Some("*") &&
+      projection.expression is Some(receiver) &&
+      (
+        retained_receiver(receiver) ||
+        !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+        is Reference(_))
+      )
+    }) {
+    return (expanded, [], [])
+  }
   for projection in original {
     spend(1)
     if projection.star == Some("*") &&
       projection.expression is Some(receiver) &&
-      !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
-      is Reference(_)) {
+      (
+        retained_receiver(receiver) ||
+        !(@query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+        is Reference(_))
+      ) {
       receivers.push(receiver)
     }
   }
   if receivers.is_empty() {
     return (expanded, [], [])
   }
+  // The ordinary named/no-star path needs no field-width-dependent copy.
+  // Copy only after the original receiver guard selects this constructor.
+  let reserved = physical.copy()
   // Private names must also avoid authored references and output aliases,
   // including a user spelling that happens to match the generated prefix.
   for projection in expanded {
@@ -67,12 +81,33 @@ fn materialize_computed_star_receivers(
   let bindings : Array[(String, String)] = []
   let derives : Array[(String, @builder.Node)] = []
   for receiver in receivers {
+    let private_receiver = retained_receiver(receiver)
     let matches : Array[(Int, Int)] = []
     for index in 0..<values.length() {
       spend(1)
+      if private_receiver {
+        // Only this exact generated occurrence owns the checked DATA-key
+        // projection. Authored siblings keep their original receiver and
+        // namespace validation, even when their expression trees are equal.
+        guard object_expansions is Some(originals) else {
+          raise Abort(InvalidContext)
+        }
+        spend(originals.length())
+        if !originals.any(original => {
+            physical_equal(original.projection, expanded[index]) &&
+            physical_equal(original.receiver, receiver)
+          }) {
+          continue
+        }
+      }
       if values[index].expression is Some(expression) &&
         !already_evaluated(expression) &&
-        @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
+        (match
+          @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+          Parenthesized(child) =>
+            @query.expression_node(expression, child).unwrap().kind
+          other => other
+        })
         is Property(child, _) {
         spend(
           @query.expression_node_count(expression) +
