@@ -463,10 +463,14 @@ test('RC zero-work and reuse claims require complete same-Run observations', () 
 });
 
 test('RC sequence phase uses the existing observer and preserves an original failed action', async () => {
-  const records = [], primary = new Error('original RC failure');
-  await assert.rejects(observeNativeMockHarnessPhase(records, 'release-project-sequences', async () => {throw primary;}),
-    value => value === primary);
-  assert.equal(records[0].state, 'failed'); assert(Number.isSafeInteger(records[0].wallNs));
+  for (const phase of ['release-project-sequences', 'original-mock-regressions']) {
+    const records = [], primary = new Error('original RC failure'), result = {};
+    assert.equal(await observeNativeMockHarnessPhase(records, phase, async () => result), result);
+    await assert.rejects(observeNativeMockHarnessPhase(records, phase, async () => {throw primary;}),
+      value => value === primary);
+    assert.deepEqual(records.map(({phase, state}) => [phase, state]), [[phase, 'completed'], [phase, 'failed']]);
+    assert(records.every(({wallNs}) => Number.isSafeInteger(wallNs) && wallNs >= 0));
+  }
 });
 
 test('RC same-value Native approval keeps original trace validation without requiring a redundant replacement', () => {

@@ -13,7 +13,8 @@ import {mockTemplates} from './native-cli-mock-scenario.mjs';
 export async function observeNativeMockHarnessPhase(records, phase, action, template) {
   assert(['release-verification', 'source-platform-admission', 'scratch-creation',
     'registry-open', 'installation', 'installed-package-admission', 'scenario',
-    'installed-integrity', 'registry-close', 'release-project-sequences'].includes(phase), 'Unknown Mock harness phase');
+    'installed-integrity', 'registry-close', 'release-project-sequences', 'original-mock-regressions'].includes(phase),
+  'Unknown Mock harness phase');
   assert(phase === 'scenario' ? mockTemplates.includes(template) : template === undefined,
     'Mock harness template belongs only to its scenario');
   const record = {phase, ...(template === undefined ? {} : {template}), state: 'running'};

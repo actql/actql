@@ -1,21 +1,28 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {access, mkdtemp, mkdir, readFile, realpath, rm, writeFile} from 'node:fs/promises';
+import {access, mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFile, spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {promisify} from 'node:util';
 import {readFileSync, chmodSync} from 'node:fs';
 import {parse} from 'yaml';
-import {assertReleaseProjectCohort, prepareReleaseProjectNode, runReleaseProjectCli} from './release-project-sequence-install.mjs';
+import {assertReleaseProjectCohort, prepareReleaseProjectNode, retainReleaseProjectArchives, runReleaseProjectCli} from './release-project-sequence-install.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 
 const source = 'a'.repeat(40), registry = {url: 'http://127.0.0.1:32123/'};
 const native = {sourceSha: source, cohort: {packageVersion: '0.0.2'}};
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const fixtureArchive = file => Buffer.from('Independent exact archive bytes for ' + file);
 const nodeManifest = () => ({sourceSha: source, cohort: {packageVersion: '0.0.2', packages: ['client-wire', 'sdk', 'local-node', 'node']},
-  packages: ['client-wire', 'sdk', 'local-node', 'node'].map(name => ({name: '@actql/' + name,
-    version: '0.0.2', file: name + '.tgz', integrity: 'sha512:independent-' + name, files: []}))});
+  packages: ['client-wire', 'sdk', 'local-node', 'node'].map(name => {
+    const file = name + '.tgz', originalFile = 'original-' + file;
+    return {name: '@actql/' + name, version: '0.0.2', file, originalFile, integrity: 'sha512:independent-' + name,
+      bytes: fixtureArchive(file).length, sha256: sha256(fixtureArchive(file)),
+      originalSha256: sha256(fixtureArchive(originalFile)), files: []};
+  })});
 
 test('RC CLI init creates its own project from the existing parent; later commands use that project', async t => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-rc-cli-cwd-')));
@@ -89,13 +96,22 @@ test('RC companion checks payload/lock on both sides of the original child and p
   const root = await mkdtemp(join(tmpdir(), 'actql-rc-companion-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const directory = join(root, 'node-rc'), manifest = nodeManifest(), primary = new Error('original child failed');
-  await mkdir(directory); await writeFile(join(directory, 'release.json'), JSON.stringify(manifest));
-  let calls = 0, originalLock, consumer, fail = false;
+  const development = join(directory, 'development');
+  await mkdir(development, {recursive: true});
+  await writeFile(join(directory, 'release.json'), JSON.stringify(manifest));
+  const developmentManifest = Buffer.from(JSON.stringify({revision: source}));
+  await writeFile(join(development, 'packed-client-packages.json'), developmentManifest);
+  for (const item of manifest.packages) {
+    await writeFile(join(directory, item.file), fixtureArchive(item.file));
+    await writeFile(join(development, item.originalFile), fixtureArchive(item.originalFile));
+  }
+  let calls = 0, releaseChecks = 0, originalLock, consumer, fail = false;
   const prepared = await prepareReleaseProjectNode({directory, nativeManifest: native, root,
     originalNodeManifest: manifest, originalNodeManifestBytes: await readFile(join(directory, 'release.json')),
+    originalNodeDevelopmentManifestBytes: developmentManifest,
     repository: fileURLToPath(new URL('../', import.meta.url)), registry,
     verifySource() {assert.equal(manifest.sourceSha, source);},
-    async verifyManifest(path) {assert.equal(path, directory); return structuredClone(manifest);},
+    async verifyManifest(path) {releaseChecks++; assert.equal(path, directory); return structuredClone(manifest);},
     async run(command, args, cwd) {
       calls++;
       if (command === 'npm') {
@@ -119,6 +135,9 @@ test('RC companion checks payload/lock on both sides of the original child and p
   });
   const label = {template: 'churn-risk-mock', family: 'node-sequential', ordinal: 1, phase: 'start'};
   await prepared.node({kind: 'start'}, prepared.projects, label);
+  assert.equal(releaseChecks, 1, 'Canonical verification belongs to a cohort boundary, not a Node child');
+  await prepared.verifyRelease();
+  assert.equal(releaseChecks, 2);
   const before = calls;
   const lock = JSON.parse(originalLock); lock.packages['node_modules/@actql/sdk'].integrity = 'foreign-SRI';
   await writeFile(join(consumer, 'package-lock.json'), JSON.stringify(lock));
@@ -130,8 +149,34 @@ test('RC companion checks payload/lock on both sides of the original child and p
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label));
   assert.equal(calls, before);
   await writeFile(fixture, originalFixture);
+  const originalFile = manifest.packages[0].originalFile;
+  const originalArchive = join(development, originalFile);
+  await writeFile(originalArchive, Buffer.alloc(fixtureArchive(originalFile).length, 113));
+  await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label), /Original archive bytes changed/u);
+  assert.equal(calls, before);
+  assert.equal(releaseChecks, 2);
+  await writeFile(originalArchive, fixtureArchive(originalFile));
   fail = true;
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label), value => value === primary);
+});
+
+test('RC archive fence refuses same-byte replacement and changes to original manifest bytes', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-rc-archive-fence-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const name = 'native.tgz', bytes = fixtureArchive(name);
+  const manifest = {packages: [{file: name, bytes: bytes.length, sha256: sha256(bytes)}]};
+  const manifestFile = join(directory, 'release.json'), archive = join(directory, name);
+  const raw = Buffer.from(JSON.stringify(manifest));
+  await writeFile(manifestFile, raw);
+  await writeFile(archive, bytes);
+  const verify = await retainReleaseProjectArchives(directory, manifest, raw);
+  await verify();
+  await writeFile(manifestFile, Buffer.concat([raw, Buffer.from(' ')]));
+  await assert.rejects(verify);
+  await writeFile(manifestFile, raw);
+  await rename(archive, join(directory, 'prior.tgz'));
+  await writeFile(archive, bytes);
+  await assert.rejects(verify);
 });
 
 test('RC actual command selects only Mac project sequences and preserves failures', async t => {
