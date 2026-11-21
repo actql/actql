@@ -2393,6 +2393,8 @@ pub fn client_program_row_source_advance_cursor_progress(@client_row_source_host
 
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_advance_provider_page_cursor(@client_row_source_host.RowSourceCursorProgress, Int, Int, Int, Bool, String) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
 
 pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]

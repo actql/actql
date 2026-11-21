@@ -2765,6 +2765,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/drain/drain",
           "parameters": [],
           "async": true
@@ -2837,6 +2844,23 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -3290,7 +3314,11 @@
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "observeNodeRestoredModelStop",
             "observeNodeRunCancellation",
-            "recordNodeRunPhysicalStop"
+            "recordNodeRunPhysicalStop",
+            "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2"
           ],
           "exports": [
             "cancelNodeRunContinuation",
@@ -4674,6 +4702,7 @@
         "./client-dispatch-diagnostic.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
+        "./infer-operation.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
         "./logical-task-observation.mjs",
@@ -4683,7 +4712,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "ac4777e9c6abdffac5a3fb9baa1f7fd54cc269bb4d98fb63d953878025e5495a",
+      "sha256": "44b8a8deaf6c57657a1535d5a002f9ca263748458958b68284cecd90b24d1a8f",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -28988,6 +29017,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -29106,10 +29136,8 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "e1a1804fa829dd79acd3623f30a2a737dc81310ab656192dc5dc6ab19be2c87a"
+      "unresolvedSyntax": [],
+      "sha256": "abea9916810c7140db541d3f59189e41fe3150b97fb5133ef950621d8f7df993"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -34480,7 +34508,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "1b8aabebd73c4d530f5f76a4ddeebc65ecf90fe8cee7bd1f082af5551e48859b",
+      "sha256": "3911d211d8ff6980d2d1881a14c83a1e86fd3f8b9dc665978bdfc8d4b1be583b",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -34853,6 +34881,31 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/context/init:readText/init:readText",
           "parameters": [
             "path",
@@ -34962,7 +35015,10 @@
         "../host-common/runtime-result.mjs",
         "./installed-host-services.mjs",
         "./installed-model.mjs",
-        "./installed-project-model-tasks.mjs"
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "node:url",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -35049,7 +35105,12 @@
             "installConfiguredModelProviders/policyInventory/init:project/init:project",
             "installConfiguredModelProviders/policyInventory/policyInventory",
             "installConfiguredModelProviders/policyInventory/policyInventory#2",
-            "installConfiguredModelProviders/providers/providers#2"
+            "installConfiguredModelProviders/providers/providers#2",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2"
           ],
           "exports": [
             "installConfiguredModelProviders"

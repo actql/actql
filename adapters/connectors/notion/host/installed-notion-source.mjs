@@ -125,11 +125,18 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
       notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits));},
     project(){return originals.project(notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits);},
   })]);
+  const transportUnits=restReadTransportConstructionUnits(request);
+  // Six captured Common methods and their namespace reference live alongside
+  // the reader's existing fields. Cover the method capture vector, original
+  // call vector, and result observation in the same request workspace.
+  const cursorBindings=7n, captureVector=1n+6n, advanceCallVector=1n+6n;
+  transportUnits[0]+=cursorBindings;
+  transportUnits[3]+=cursorBindings+captureVector+advanceCallVector;
   const requestConstruction=Object.freeze({capacity:originals.requestCapacity(
-    restReadTransportConstructionUnits(request),[request]),maxRequestBytes:limits.maxTargetBytes});
+    transportUnits,[request]),maxRequestBytes:limits.maxTargetBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
     limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
-    columnCount:provider.notionUserListColumnNames().length,requestConstruction});
+    columnCount:provider.notionUserListColumnNames().length,cursorProgress:true,requestConstruction});
   const connection=`notion:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:'actql-installed-notion-user-target/0.1',
     apiOrigin:siteProfile.apiOrigin,resource:selected,fields:Object.freeze([...fields])});
@@ -144,7 +151,7 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     implementation,NOTION_USER_LIST_OPERATION,
     function preparePageReader({resource:selected,columns},applySynchronousProjection){
       if(selected!==resource)fail('UndeclaredNotionResource');
-      return prepareNotionUserListPages({moon:provider,names:columns,limits,request},applySynchronousProjection);
+      return prepareNotionUserListPages({moon:provider,common:moon,names:columns,limits,request},applySynchronousProjection);
     },
     'InstalledNotionReaderImplementationMismatch',
     function publish({authorization,site},providerReader){

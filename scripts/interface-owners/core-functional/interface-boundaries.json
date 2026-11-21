@@ -20418,7 +20418,11 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult"
+            "withNodeInferResult/withNodeInferResult",
+            "isModelCredentialRefusal",
+            "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+            "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+            "openNodeInferOperation/operation/operation#51"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -20429,7 +20433,8 @@
             "selectOriginalInferResourceCodecAcquisition",
             "selectOriginalInferStoreBootstrapAcquisition",
             "startCompleteInferObservation",
-            "withNodeInferResult"
+            "withNodeInferResult",
+            "isModelCredentialRefusal"
           ],
           "attributes": {
             "responsibility": [
@@ -21676,6 +21681,7 @@
         "inferCopyFundingOriginal",
         "inferEvidenceCopyFunded",
         "inferOriginalReadCleanupComplete",
+        "isModelCredentialRefusal",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
         "originalInferCopyFunding",
@@ -21766,6 +21772,18 @@
           "parameters": [
             "read"
           ],
+          "async": false
+        },
+        {
+          "name": "isModelCredentialRefusal",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+          "parameters": [],
           "async": false
         },
         {
@@ -22215,6 +22233,15 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+          "parameters": [
+            "preparedCallSet",
+            "entered",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:prepareOriginalCaptureInventory/init:prepareOriginalCaptureInventory",
           "parameters": [
             "source"
@@ -22535,6 +22562,11 @@
         },
         {
           "name": "openNodeInferOperation/operation/operation#35",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#36",
           "parameters": [
             "control",
             "plan",
@@ -22545,22 +22577,10 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#36",
-          "parameters": [
-            "preparedCallSet",
-            "observe"
-          ],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation/operation/operation#37",
           "parameters": [
             "preparedCallSet",
-            "slot",
-            "record",
-            "proof",
-            "bundle",
-            "attachmentAdmission"
+            "observe"
           ],
           "async": false
         },
@@ -22569,8 +22589,10 @@
           "parameters": [
             "preparedCallSet",
             "slot",
-            "attempt",
-            "authority"
+            "record",
+            "proof",
+            "bundle",
+            "attachmentAdmission"
           ],
           "async": false
         },
@@ -22592,15 +22614,18 @@
         {
           "name": "openNodeInferOperation/operation/operation#40",
           "parameters": [
-            "token",
-            "response"
+            "preparedCallSet",
+            "slot",
+            "attempt",
+            "authority"
           ],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#41",
           "parameters": [
-            "settlement"
+            "token",
+            "response"
           ],
           "async": false
         },
@@ -22614,7 +22639,7 @@
         {
           "name": "openNodeInferOperation/operation/operation#43",
           "parameters": [
-            "slot"
+            "settlement"
           ],
           "async": false
         },
@@ -22635,6 +22660,13 @@
         {
           "name": "openNodeInferOperation/operation/operation#46",
           "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#47",
+          "parameters": [
             "control",
             "compiled",
             "runDefinition",
@@ -22645,12 +22677,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#47",
+          "name": "openNodeInferOperation/operation/operation#48",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#48",
+          "name": "openNodeInferOperation/operation/operation#49",
           "parameters": [
             "ledger",
             "maxSlots",
@@ -22661,7 +22693,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#49",
+          "name": "openNodeInferOperation/operation/operation#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#50",
           "parameters": [
             "control",
             "compiled",
@@ -22671,12 +22708,7 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/operation#50",
+          "name": "openNodeInferOperation/operation/operation#51",
           "parameters": [
             "binding",
             "result",
@@ -22720,7 +22752,9 @@
         {
           "name": "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
           "parameters": [
-            "callback"
+            "callback",
+            "request",
+            "credential"
           ],
           "async": false
         },
@@ -22812,7 +22846,8 @@
         {
           "name": "prepareWithOriginalRawSetter/set/set",
           "parameters": [
-            "callback"
+            "callback",
+            "credential"
           ],
           "async": false
         },
@@ -22940,7 +22975,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
+      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -25674,7 +25709,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
+      "sha256": "0c245d4b9a1c0d7aa9a6bd2b1722dab402941ab0ea3696412e15b1acaf75e220",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -25863,6 +25898,11 @@
         },
         {
           "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
           "parameters": [],
           "async": false
         },
@@ -26338,7 +26378,8 @@
             "installNodeModelContinuation/verifier/verifier#7",
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
-            "select/select/select"
+            "select/select/select",
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
           ],
           "exports": [
             "installNodeModelContinuation"
@@ -26405,7 +26446,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
+                "anchor": "import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -26611,7 +26652,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
+                "anchor": "import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -71383,7 +71424,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "0821413f3e296fd8fee49e75a56ad86b03a575e03bf0f85b2e0c32994b866a00",
+      "sha256": "748d99fd6cd225f0e85c5b6bba0d5a8c6d578ca64d62bc91a30da55c88ea7ff3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -71400,6 +71441,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -71512,10 +71557,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -71526,8 +71573,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -71645,6 +71691,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -73350,7 +73404,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "cd1cc35555ceb1100ba5e67d5a7b3d8c4360f156b7cbf615c2b3b328fd496fdc",
+      "sha256": "59f5f12c53e05a6d1e411185542c8e00e52cc0bf814b2ff1add31726dad25c8a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -73367,6 +73421,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -73479,10 +73537,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -73493,8 +73553,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -73612,6 +73671,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -106364,15 +106431,23 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "ccc96409465a4d84b2d1acab2c56e57260c148dd69094337e1cfeb737277aade",
+      "sha256": "73d977ebb0a997f5b96218a118eedac329c4433d810bd6753ceddc725fd1cd4f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",
       "exports": [],
       "operations": [
         {
+          "name": "advance_checked_cursor",
+          "declaration": "advance_checked_cursor ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , remaining : Int , page_rows : Int , next : String ? , retain_exhausted_prefix ? : Bool"
+        },
+        {
           "name": "advance_row_source_cursor_progress",
           "declaration": "advance_row_source_cursor_progress ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : RowSourceProjectedJsonPage , rows : RowSourceProjectedJsonPage , ) - > Result [ Bool , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress_from_provider_page",
+          "declaration": "advance_row_source_cursor_progress_from_provider_page ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , next : String ? , ) - > Result [ Bool , RowSourceCursorIssue ]"
         },
         {
           "name": "prepare_row_source_cursor_progress",
@@ -106399,7 +106474,9 @@
         {
           "operations": [
             "<module>",
+            "advance_checked_cursor",
             "advance_row_source_cursor_progress",
+            "advance_row_source_cursor_progress_from_provider_page",
             "prepare_row_source_cursor_progress",
             "row_source_cursor_has_next",
             "row_source_cursor_next",
@@ -106526,6 +106603,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
