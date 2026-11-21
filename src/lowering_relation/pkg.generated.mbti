@@ -1630,6 +1630,7 @@ pub(all) enum ManyOperator {
   TimestampAddition
   TimestampSubtraction
   TimestampDifference
+  MakeDate
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {

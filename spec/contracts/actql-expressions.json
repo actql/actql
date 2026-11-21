@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "6004c7c98248fec162f23f2e43cbaae33afa02b6c15a29cdae752a37ca77c275",
+  "grammar_sha256": "9ced33d38b2e2e24432821b5650d7da878327809dba3277482252dad849bcd05",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2954,6 +2954,23 @@
               ],
               "properties": {
                 "timestamp_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "make_date"
+              ],
+              "properties": {
+                "make_date": {
                   "type": "array",
                   "minItems": 3,
                   "items": {
@@ -9450,6 +9467,27 @@
               "properties": {
                 "op": {
                   "const": "timestamp_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "make_date"
                 },
                 "body": {
                   "type": "array",
@@ -21882,6 +21920,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "make_date"
+              ],
+              "properties": {
+                "make_date": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "try_decimal"
               ],
               "properties": {
@@ -27451,6 +27506,27 @@
               "properties": {
                 "op": {
                   "const": "timestamp_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "make_date"
                 },
                 "body": {
                   "type": "array",
@@ -35855,6 +35931,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "make_date"
+              ],
+              "properties": {
+                "make_date": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "try_decimal"
               ],
               "properties": {
@@ -41444,6 +41537,27 @@
               ],
               "properties": {
                 "op": {
+                  "const": "make_date"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "try_decimal"
                 },
                 "body": {
@@ -46040,6 +46154,13 @@
       "value": "Return the start of the containing UTC bucket at the indicated unit. Fractional precision below the selected unit is discarded; instants before the epoch use the preceding bucket. A day starts at UTC midnight.",
       "demand": "Retain original operand order, strict NULL, child failures, enclosing lazy demand, resource and cancellation boundaries.",
       "compatibility": "The existing unit-first date_trunc, its Date support and its prior units are unchanged. Calendar and timezone overloads have separate syntax and are outside this selected signature."
+    },
+    "make_date": {
+      "signature": "Three original signed64 arguments in year, month, day order. The result is Date and is nullable when any operand is nullable.",
+      "source": "DATE(year, month, day) selects the ordered Common source and machine operation. An original SQL integer lexeme supplies the existing exact integer context.",
+      "value": "Validate the proleptic Gregorian coordinates for years 0001 through 9999. A valid result is the canonical Date Value. Out-of-range or impossible dates fail with InvalidOperand.",
+      "demand": "Retain original eager left-to-right child evaluation before NULL propagation. Failure, lazy demand, resource and cancellation remain under their existing owners.",
+      "compatibility": "DATE string literals and existing Date Value contracts are unchanged. DATE conversion overloads are separate from this constructor."
     },
     "timestamp_diff": {
       "signature": "Two Timestamp operands and one static literal unit us|ms|s|m|h|d. The result is exact signed64 and is nullable when either timestamp operand is nullable.",

@@ -361,6 +361,12 @@ calendar-month or timezone interpretation. It preserves strict NULL, original
 child failure and enclosing lazy demand. This does not change DATE_ADD's
 existing Number-bit duration meaning or introduce a standalone Interval value.
 
+`DATE(year, month, day)` consumes three exact INT64 coordinates and returns
+a Date. The three operand positions select the existing contextual integer
+path for original integer-spelled SQL literals and their derived CTE columns.
+Explicitly typed INT64 fields and Parameters keep their checked types.
+The ordered Common body is `{make_date: [year, month, day]}`.
+
 `EXTRACT(part FROM value)` selects numeric UTC fields of a Timestamp.
 The unquoted part is YEAR, QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR,
 MINUTE, SECOND, MILLISECOND or MICROSECOND. Lower the original value and

@@ -397,6 +397,7 @@ fn emit_frames(
                   RPad => "rpad"
                   Between => "between"
                   DateDifference => "date_diff"
+                  MakeDate => "make_date"
                   TimestampDifference => "timestamp_diff"
                   DateAddition => "date_add"
                   TimestampAddition => "timestamp_add"

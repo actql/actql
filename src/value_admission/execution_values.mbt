@@ -301,6 +301,30 @@ fn timestamp_four_digits(value : Int64) -> String {
 }
 
 ///|
+/// Construct the existing canonical Date from exact Gregorian coordinates.
+pub fn checked_date_parts_value(
+  year : Int64,
+  month : Int64,
+  day : Int64,
+  contract : @contract.Contract,
+) -> CheckedValue? {
+  guard year >= 1L &&
+    year <= 9999L &&
+    month >= 1L &&
+    month <= 12L &&
+    day >= 1L &&
+    day <= 31L else {
+    return None
+  }
+  let text = timestamp_four_digits(year) +
+    "-" +
+    timestamp_two_digits(month) +
+    "-" +
+    timestamp_two_digits(day)
+  checked_date_value(text, contract)
+}
+
+///|
 /// Convert Unix epoch milliseconds to the canonical UTC millisecond spelling.
 /// The supported domain is the same proleptic Gregorian year 0000..9999 range
 /// admitted by timestamp values. Host calendar and timezone APIs are not used.

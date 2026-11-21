@@ -94,6 +94,8 @@ pub fn canonical_scalar_text(CheckedValue, Int) -> String?
 
 pub fn checked_boolean_value(Bool, @value_contract.Contract) -> CheckedValue?
 
+pub fn checked_date_parts_value(Int64, Int64, Int64, @value_contract.Contract) -> CheckedValue?
+
 pub fn checked_date_value(String, @value_contract.Contract) -> CheckedValue?
 
 pub fn checked_null_value(@value_contract.Contract) -> CheckedValue?

@@ -164,6 +164,7 @@ pub(all) enum ManyOperator {
   TimestampAddition
   TimestampSubtraction
   TimestampDifference
+  MakeDate
 } derive(Eq, Debug)
 
 ///|
@@ -455,6 +456,7 @@ fn expression_tag(
     | "if"
     | "case"
     | "date_diff"
+    | "make_date"
     | "timestamp_diff"
     | "date_add"
     | "timestamp_add"
@@ -1337,6 +1339,7 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "make_date" => Many(MakeDate, args)
         "timestamp_diff" => Many(TimestampDifference, args)
         "date_add" => Many(DateAddition, args)
         "timestamp_add" => Many(TimestampAddition, args)

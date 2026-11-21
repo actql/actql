@@ -418,7 +418,8 @@ fn ExpressionParser::add(
   let index = self.nodes.length()
   // This fixed three-character predicate is part of the already bounded Call
   // constructor, not another source/token/AST discovery traversal.
-  if kind is Call(path, _) && integer_context_call_name(path) {
+  if kind is Call(path, arguments) &&
+    integer_context_call_name(path, arguments.length()) {
     self.source.integer_context_required = true
   }
   self.nodes.push({ kind, start, end, })

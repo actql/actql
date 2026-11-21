@@ -777,6 +777,7 @@ fn advance_expression_frame_impl(
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
             if op == @lower.DateDifference ||
+              op == @lower.MakeDate ||
               op == @lower.TimestampDifference ||
               op == @lower.DateAddition ||
               op == @lower.TimestampAddition ||
@@ -897,6 +898,7 @@ fn advance_expression_frame_impl(
               | Greatest
               | Least
               | DateDifference
+              | MakeDate
               | TimestampDifference
               | DateAddition
               | TimestampAddition
@@ -1118,11 +1120,14 @@ fn advance_expression_frame_impl(
                   Ok(_) => ()
                 }
               }
-              guard args.values[2] is Text(unit) else {
-                return Err({
-                  kind: Scalar(InvalidOperand),
-                  expression: args.expression,
-                })
+              let unit = match args.values[2] {
+                Text(unit) => unit
+                _ if args.operation is MakeDate => ""
+                _ =>
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: args.expression,
+                  })
               }
               let addition = args.operation
                 is (DateAddition | TimestampAddition | TimestampSubtraction)
@@ -1153,6 +1158,13 @@ fn advance_expression_frame_impl(
                   )
                 DateDifference =>
                   temporal_difference(unit, args.values[0], args.values[1])
+                MakeDate =>
+                  make_date(
+                    args.expression,
+                    args.values[0],
+                    args.values[1],
+                    args.values[2],
+                  )
                 TimestampDifference =>
                   timestamp_difference(unit, args.values[0], args.values[1])
                 _ => Err(InvalidOperand)
@@ -1867,6 +1879,7 @@ fn advance_expression_frame_impl(
               | RPad
               | Between
               | DateDifference
+              | MakeDate
               | TimestampDifference
               | DateAddition
               | TimestampAddition

@@ -2518,6 +2518,17 @@ is applied. Retain enclosing lazy demand, child failure, cancellation and
 workspace under the existing temporal expression owner. The earlier
 `date_diff` Number result and its selected units remain unchanged.
 
+### Gregorian Date construction
+
+<!-- requirement-block: scalar-expressions.exact-date-constructor -->
+The ordered `make_date` operation MUST construct a Date from three original
+signed64 arguments in year, month, day order. After ordinary eager operand
+evaluation, an operand NULL yields a Date NULL. Otherwise require a valid
+proleptic Gregorian date in years 0001 through 9999 and emit the canonical
+Date Value. Out-of-range coordinates fail under existing InvalidOperand
+semantics. Preserve original child failures, enclosing lazy demand, work,
+workspace and cancellation under the existing expression owner.
+
 ### Numeric UTC Timestamp parts
 
 <!-- requirement-block: scalar-expressions.utc-timestamp-extract -->

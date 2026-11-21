@@ -343,6 +343,10 @@ fn infer(
     )
   }
   match tag {
+    "make_date" => {
+      let nullable = arguments(t, nodes, node, "int64")
+      primitive(t, DateType, nullable, source)
+    }
     "generate_array" => {
       let nullable = arguments(t, nodes, node, "int64")
       fn literal_argument(id : Int) -> Int64? raise Stop {

@@ -641,6 +641,11 @@ export const extractTimestampOriginal = {name: 'extract-timestamp-year', format:
   expected: [{year_part: '2026'}],
   columns: [{name: 'year_part', contract: {type: 'int64', nullable: false}}],
   sourceReadCount: 0};
+export const makeDateOriginal = {name: 'date-constructor', format: 'sql',
+  text: 'SELECT DATE(2026, 1, 2) AS constructed, DATE(2000, 2, 29) AS leap_day',
+  expected: [{constructed: '2026-01-02', leap_day: '2000-02-29'}],
+  columns: ['constructed', 'leap_day'].map(name => ({name,
+    contract: {type: 'date', nullable: false}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -732,6 +737,7 @@ export const sourceFreeSuccesses = [
   timestampDiffOriginal,
   timestampTruncOriginal,
   extractTimestampOriginal,
+  makeDateOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
