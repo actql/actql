@@ -74,7 +74,8 @@ import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStor
   from './prepared-publication-store-ownership.mjs';
 import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
 import {admitExistingStoreFormat, createOriginalStoreStorageBindings, createStoreContract} from './publication-store-format.mjs';
-import {createPrivatePublicationEvidence, privateEvidenceWireLimitForObject} from './publication-store-private-evidence.mjs';
+import {createPrivatePublicationEvidence} from './publication-store-private-evidence.mjs';
+import {createPublicationStoreInterface} from './publication-store-interface.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
   assertOriginalPreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner,
@@ -564,8 +565,7 @@ async function openOriginalLocalPublicationStore(
 
   let reservedBytes = 0;
   let reservedObjects = 0;
-  let closed = false;
-  let closeRequested = false, closeFlight;
+  const lifecycleState = {closed: false, closeRequested: false, closeFlight: undefined};
   const preparedObjects = new Map();
   const preparedSchemas = new Map();
   const preparedObjectOwners = createPreparedHolderRegistry(() => fail('InvalidPublicationPreparedOwner'));
@@ -654,7 +654,7 @@ async function openOriginalLocalPublicationStore(
     // This refusal-only callback is captured from the actual selected Root;
     // it is not itself an issuer and never participates in cleanup ACKs.
     operationalCurrent?.();
-    if (closed || closeRequested) fail('PublicationStoreClosed');
+    if (lifecycleState.closed || lifecycleState.closeRequested) fail('PublicationStoreClosed');
   };
 
   const {parsePhysicalHolding, readPhysicalHoldingAt, admitPhysicalHolding} =
@@ -1010,6 +1010,15 @@ async function openOriginalLocalPublicationStore(
   // any physical start. Fresh-format failures never leave a lease-only prefix.
   await (prepared?.ownership ?? ownership).qualifyExecutionOwner();
   if (prepared !== undefined) prepared.recoveryReady = true;
+  const {privateEvidenceWireLimit, readPublicationContract, inspectEffectfulStoredEvidence: inspectStoredEffectEvidence,
+    publicationCapacitySupports, status, close} = createPublicationStoreInterface(
+    configuration, lifecycleState, writeState, trustedClock, storageBindings, ownership, {
+      physicalRemovalOriginals, physicalRemovalAcquisitions, preparedObjects, preparedSchemas, reclaimableCustodies,
+      pendingResultDeletions, pendingMetadataDeletions, pendingUncommittedMetadataCleanups, pendingPhysicalHoldingDeletions,
+      activeResultReaders, activePhysicalHoldingReaders, activeSemanticReaders, activePhysicalRecordWriters,
+    }, {active, currentDeliveryIndex, clearEffectCaptureCustodyObservation, readContract, readSemanticOriginal,
+      inspectEffectfulStoredEvidence},
+  );
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
     observeOriginalInstallationPublicationStorageBinding: storageBindings.observeOriginalInstallationPublicationStorageBinding,
@@ -1033,14 +1042,7 @@ async function openOriginalLocalPublicationStore(
     putBytes,
     putSemantic,
     preparePrivateEvidence,
-    // Read-only projection of this SAME immutable Store configuration. A
-    // caller must still fund export/tree/String/encoding workspace BEFORE
-    // allocation and retain its original reservation through actual ACK.
-    // No write, grant, reservation, persistence or cleanup is issued here.
-    privateEvidenceWireLimit() {
-      active();
-      return privateEvidenceWireLimitForObject(configuration.maxObjectBytes);
-    },
+    privateEvidenceWireLimit,
     originalModelStorageDimensions: storageBindings.originalModelStorageDimensions,
     confirmPrivateEvidence,
     prepareModelRawEvidence,
@@ -1077,14 +1079,7 @@ async function openOriginalLocalPublicationStore(
     recoverRetiredResults,
     recoverRetiredMetadata,
     readJsonObject,
-    async readPublicationContract(cid, name, readDemand) {
-      active();
-      if (typeof name !== 'string' || name.length === 0) {
-        fail('InvalidPublicationContractName');
-      }
-      return (await readContract(cid, name,
-        (semanticCid, includeNative) => readSemanticOriginal(semanticCid, includeNative, false, undefined, readDemand))).contract;
-    },
+    readPublicationContract,
     createAttempt,
     beginPublicationAttempt,
     beginPublicationAttemptWithRecords,
@@ -1105,133 +1100,14 @@ async function openOriginalLocalPublicationStore(
     commitEffectfulIndex,
     validateCommittedEvidence,
     validateCommittedEffectfulEvidence,
-    inspectEffectfulStoredEvidence(preparation, readOriginal) {
-      return inspectEffectfulStoredEvidence(preparation, readOriginal);
-    },
+    inspectEffectfulStoredEvidence: inspectStoredEffectEvidence,
     inspectCommittedIndex,
     confirmCommittedIndex: confirmSelectedCommittedIndex,
     readCommittedPublication,
     lookupCommittedIndex,
-    publicationCapacitySupports(requirement) {
-      active();
-      if (!exactKeys(requirement, [
-        'requiredBytes', 'objectCount', 'maxObjectBytes',
-      ]) || !quantity(requirement.requiredBytes) ||
-          !quantity(requirement.objectCount) ||
-          !quantity(requirement.maxObjectBytes)) {
-        fail('InvalidPublicationCapacityRequirement');
-      }
-      return requirement.maxObjectBytes <= configuration.maxObjectBytes &&
-        storedBytes + reservedBytes + requirement.requiredBytes <=
-          configuration.capacityBytes &&
-        objectCount + reservedObjects + requirement.objectCount <=
-          configuration.maxObjects;
-    },
-    status() {
-      return Object.freeze({
-        storedBytes,
-        reservedBytes,
-        objectCount,
-        reservedObjects,
-        capacityBytes: configuration.capacityBytes,
-        closed,
-      });
-    },
-    close() {
-      if (closeFlight !== undefined) return closeFlight;
-      if (closed) return Promise.resolve(true);
-      // Snapshot only closed resource counts at the original refusal. These
-      // diagnostics neither acknowledge cleanup nor observe/retry an owner.
-      const cleanupPendingFailure = cause => Object.assign(
-        new PublicationStoreError('PublicationStoreCleanupPending', cause), {
-          cleanupDiagnostic: Object.freeze({kind: 'publication-store-close',
-            resources: Object.freeze({
-              physicalRemovalOriginals: physicalRemovalOriginals.size,
-              physicalRemovalAcquisitions: physicalRemovalAcquisitions.size,
-              clockObservations: trustedClock.clockObservationsPending,
-              reservedObjects: reservedObjects,
-              preparedObjects: preparedObjects.size,
-              preparedSchemas: preparedSchemas.size,
-              reclaimableCustodies: reclaimableCustodies.size,
-              resultDeletions: pendingResultDeletions.size,
-              metadataDeletions: pendingMetadataDeletions.size,
-              uncommittedMetadataCleanups: pendingUncommittedMetadataCleanups.size,
-              physicalHoldingDeletions: pendingPhysicalHoldingDeletions.size,
-              resultReaders: activeResultReaders.size,
-              physicalHoldingReaders: activePhysicalHoldingReaders.size,
-              modelStorageBindingReaders: storageBindings.modelStorageBindingReaders,
-              installationPublicationStorageBindingReaders: storageBindings.installationPublicationStorageBindingReaders,
-              semanticReaders: activeSemanticReaders.size,
-              physicalRecordWriters: activePhysicalRecordWriters.size,
-            }),
-          }),
-        });
-      closeFlight = Promise.resolve().then(async () => {
-        // A failed native writer retains its capacity until its SAME mutation
-        // receives a real confirmation. Drain that original before treating its
-        // reservation as an independent live user. Healthy in-flight writers
-        // and every other unfinished owner still keep the existing close fence.
-        const retriedWriters = new Set();
-        for (const writer of activePhysicalRecordWriters) {
-          if (!writer.failed || writer.cleanup === undefined) continue;
-          retriedWriters.add(writer);
-          try { await writer.cleanup.retry(); }
-          catch (cause) { throw cleanupPendingFailure(cause); }
-        }
-        if (physicalRemovalOriginals.size !== 0 || physicalRemovalAcquisitions.size !== 0 ||
-            trustedClock.clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
-            preparedSchemas.size !== 0 ||
-            reclaimableCustodies.size !== 0 ||
-            pendingResultDeletions.size !== 0 ||
-            pendingMetadataDeletions.size !== 0 ||
-            pendingUncommittedMetadataCleanups.size !== 0 ||
-            pendingPhysicalHoldingDeletions.size !== 0 ||
-            activeResultReaders.size !== 0 ||
-            activePhysicalHoldingReaders.size !== 0 ||
-            storageBindings.modelStorageBindingReaders !== 0 ||
-            storageBindings.installationPublicationStorageBindingReaders !== 0) {
-          throw cleanupPendingFailure();
-        }
-        // An unsettled read still owns its FD; close must not interrupt it.
-        for (const reader of activeSemanticReaders) {
-          if (reader.cleanup === undefined) {
-            throw cleanupPendingFailure();
-          }
-        }
-        for (const writer of activePhysicalRecordWriters) {
-          if (writer.cleanup === undefined) {
-            throw cleanupPendingFailure();
-          }
-        }
-        // Refuse new Store work once retirement starts, but do not report closed
-        // or erase the original key until the SAME ownership confirms release.
-        // A redacted control-read error cannot drive private cleanup. The same
-        // Store retains that original duty and drains close only, never read/send.
-        closeRequested = true;
-        for (const reader of activeSemanticReaders) {
-          try { await reader.cleanup.retry(); }
-          catch { throw cleanupPendingFailure(); }
-        }
-        if (activeSemanticReaders.size !== 0) throw cleanupPendingFailure();
-        for (const writer of activePhysicalRecordWriters) {
-          if (retriedWriters.has(writer)) continue;
-          try { await writer.cleanup.retry(); }
-          catch { throw cleanupPendingFailure(); }
-        }
-        if (activePhysicalRecordWriters.size !== 0) throw cleanupPendingFailure();
-        deliveryIndex.retainResultDeletionSeal();
-        if (deliveryIndex?.close() !== true) throw cleanupPendingFailure();
-        return ownership.release();
-      }).then(released => {
-        if (released !== true) fail('PublicationStoreOwnershipLost');
-        closed = true;
-        configuration.privateEvidenceKey?.fill(0);
-        storageBindings.clearInstallationPublicationStorageBinding();
-        clearEffectCaptureCustodyObservation();
-        return true;
-      }).finally(() => { closeFlight = undefined; });
-      return closeFlight;
-    },
+    publicationCapacitySupports,
+    status,
+    close,
   });
   } catch (cause) {
     const primary = deliveryIndex === undefined ? cause : deliveryIndex.retainFailure(cause);

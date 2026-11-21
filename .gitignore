@@ -1569,3 +1569,5 @@ target/
 /adapters/store-local/publication-evidence-inspection.d.mts
 /adapters/store-local/publication-index-commit.mjs
 /adapters/store-local/publication-index-commit.d.mts
+/adapters/store-local/publication-store-interface.mjs
+/adapters/store-local/publication-store-interface.d.mts

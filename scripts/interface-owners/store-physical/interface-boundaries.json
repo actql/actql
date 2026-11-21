@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce2caa398d0a784cbb4a191b1db24763a867786cb88ea6cbe7386d44219ac0fb",
+      "sha256": "1cac167235c2fcd7437b2ed2c1561b0f23656aabfd482749b2050bac4cf4d312",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6331,70 +6331,6 @@
           "parameters": [
             "cid"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:close/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
-          "parameters": [
-            "released"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
-          "parameters": [
-            "preparation",
-            "readOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:publicationCapacitySupports/init:publicationCapacitySupports",
-          "parameters": [
-            "requirement"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
-          "parameters": [
-            "cid",
-            "name",
-            "readDemand"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
-          "parameters": [
-            "semanticCid",
-            "includeNative"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/init:status/init:status",
-          "parameters": [],
           "async": false
         },
         {
@@ -7210,16 +7146,6 @@
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
-            "openOriginalLocalPublicationStore/init:close/init:close",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
-            "openOriginalLocalPublicationStore/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
-            "openOriginalLocalPublicationStore/init:publicationCapacitySupports/init:publicationCapacitySupports",
-            "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
-            "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
-            "openOriginalLocalPublicationStore/init:status/init:status",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/writeState/writeState",
@@ -9142,8 +9068,8 @@
                 "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const retriedWriters = new Set();"
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "const retriedWriters = new Set<ActivePhysicalRecordWriter>();"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -10205,6 +10131,200 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-store-interface.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "77f9e6b9c0896c63ac943f62138000579662b1565f83e4555c61a0ebf3bfafa2",
+      "exports": [
+        "createPublicationStoreInterface"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationStoreInterface",
+          "parameters": [
+            "configuration",
+            "lifecycleState",
+            "writeState",
+            "trustedClock",
+            "storageBindings",
+            "ownership",
+            "physicalRemovalOriginals",
+            "physicalRemovalAcquisitions",
+            "preparedObjects",
+            "preparedSchemas",
+            "reclaimableCustodies",
+            "pendingResultDeletions",
+            "pendingMetadataDeletions",
+            "pendingUncommittedMetadataCleanups",
+            "pendingPhysicalHoldingDeletions",
+            "activeResultReaders",
+            "activePhysicalHoldingReaders",
+            "activeSemanticReaders",
+            "activePhysicalRecordWriters",
+            "active",
+            "currentDeliveryIndex",
+            "clearEffectCaptureCustodyObservation",
+            "readContract",
+            "readSemanticOriginal",
+            "inspectEffectfulStoredEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:close/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationStoreInterface/init:close/init:close/init:close#2",
+          "parameters": [
+            "released"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:close/init:close/init:close#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
+          "parameters": [
+            "preparation",
+            "readOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:publicationCapacitySupports/init:publicationCapacitySupports",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:readPublicationContract/init:readPublicationContract",
+          "parameters": [
+            "cid",
+            "name",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationStoreInterface/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
+          "parameters": [
+            "semanticCid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationStoreInterface/init:status/init:status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationStoreInterface",
+            "createPublicationStoreInterface/init:close/init:close",
+            "createPublicationStoreInterface/init:close/init:close/init:close",
+            "createPublicationStoreInterface/init:close/init:close/init:close#2",
+            "createPublicationStoreInterface/init:close/init:close/init:close#3",
+            "createPublicationStoreInterface/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
+            "createPublicationStoreInterface/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
+            "createPublicationStoreInterface/init:publicationCapacitySupports/init:publicationCapacitySupports",
+            "createPublicationStoreInterface/init:readPublicationContract/init:readPublicationContract",
+            "createPublicationStoreInterface/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
+            "createPublicationStoreInterface/init:status/init:status"
+          ],
+          "exports": [
+            "createPublicationStoreInterface"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "Refuse new Store work once retirement starts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "publicationCapacitySupports(requirement: unknown) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "if (lifecycleState.closeFlight !== undefined) return lifecycleState.closeFlight;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "return ownership.release();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "const retriedWriters = new Set<ActivePhysicalRecordWriter>();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "throw cleanupPendingFailure(cause);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "lifecycleState.closeRequested = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "configuration.privateEvidenceKey?.fill(0);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "return inspectEffectfulStoredEvidence(preparation, readOriginal);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/close-retirement.test.mjs",
+                "anchor": "actual Store failed close retains original ownership and key for single-flight retry"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication capacity preflight observes limits without reserving"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-index-commit.mjs",
@@ -18482,8 +18602,8 @@
                 "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const retriedWriters = new Set();"
+                "path": "adapters/store-local/publication-store-interface.mts",
+                "anchor": "const retriedWriters = new Set<ActivePhysicalRecordWriter>();"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
