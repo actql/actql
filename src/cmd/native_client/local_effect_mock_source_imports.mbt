@@ -236,21 +236,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
             @strategy.captured_effect_local_result_borrow(result),
           ),
         )
-        let definition = @run_host.issue_client_effect_local_result_definition(
-            state._retained_prepared,
-            stage,
-            name,
-            16384,
-            1024,
-            20,
-          )
-          .map_err(issue => {
-            LocalNativeMockEffectProposalIssue::Definition(issue)
-          })
-          .native_effect_proposal(self.original)
-        construction.retain_wire(
+        let definition = construction.issue_result_definition(
           self.original,
-          @run_host.client_effect_local_result_definition_json(definition),
+          state._retained_prepared,
+          stage,
+          name,
         )
         let artifact = @run_host.issue_acquired_client_effect_local_result_artifact(
             state._retained_prepared,

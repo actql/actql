@@ -755,6 +755,8 @@ pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefiniti
 
 pub fn client_effect_local_result_definition_construction_geometry(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalResultDefinitionIssue]
 
+pub fn client_effect_local_result_definition_issuer_capacity(@encode_core.EncodingConstructionGeometry) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_effect_local_result_definition_json(ClientEffectLocalResultDefinition) -> String
 
 pub fn client_effect_local_result_definition_matches(ClientEffectLocalResultDefinition, PreparedClientEffectComputation, Int, String) -> Bool

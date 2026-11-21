@@ -63,6 +63,54 @@ fn LocalNativeMockEffectImportConstruction::retain_wire(
 }
 
 ///|
+// The measuring sink owns one Writer, its geometry state, and its returned
+// counters. Quote the full original policy here before measuring the actual
+// definition. The fixed recipe continues to fund checked name validation.
+fn LocalNativeMockEffectImportConstruction::issue_result_definition(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientEffectComputation,
+  unit : Int,
+  name : String,
+) -> @run_host.ClientEffectLocalResultDefinition raise ClientStop {
+  let max_bytes = 16384
+  let max_nodes = 1024
+  let max_depth = 20
+  let measuring = @encode.measuring_writer_construction_extent(
+      max_nodes, max_depth,
+    )
+    .bind(extent => {
+      @execution.preparation_representation_cost({
+        record_headers: extent.record_headers + 3L,
+        reference_slots: extent.reference_slots + 2L,
+        scalar_words: extent.scalar_words + 14L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    })
+    .bind(workspace => @execution.execution_capacity(0L, workspace))
+  if !self.prepare_body(original, measuring) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  let geometry = @run_host.client_effect_local_result_definition_construction_geometry(
+      prepared, unit, name, max_bytes, max_nodes, max_depth,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
+    .native_effect_proposal(original)
+  if !self.prepare_body(
+      original,
+      @run_host.client_effect_local_result_definition_issuer_capacity(geometry),
+    ) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  @run_host.issue_client_effect_local_result_definition(
+    prepared, unit, name, max_bytes, max_nodes, max_depth,
+  )
+  .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
+  .native_effect_proposal(original)
+}
+
+///|
 // The dependency parser actually normalizes keys. Preserve that constructor's
 // complete inventory, plus its owned wire/UTF8 conversion and body carriers.
 // Dimensions come from an original immutable wire, not business policy.

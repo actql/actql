@@ -177,21 +177,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
         @strategy.captured_effect_local_result_borrow(result),
       ),
     )
-    let definition = @run_host.issue_client_effect_local_result_definition(
-        state._retained_prepared,
-        unit,
-        name,
-        16384,
-        1024,
-        20,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
-      .native_effect_proposal(self.original)
-    entry._retained_definition = Some(definition)
-    construction.retain_wire(
+    let definition = construction.issue_result_definition(
       self.original,
-      @run_host.client_effect_local_result_definition_json(definition),
+      state._retained_prepared,
+      unit,
+      name,
     )
+    entry._retained_definition = Some(definition)
     let artifact = business.model_work[0]
       .local_effect_model_artifact(
         materials,
