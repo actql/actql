@@ -55,6 +55,7 @@ fn LocalCheckContext::project_request(
   input : LocalCheckInput,
   explain : Bool,
   installed_contracts? : @local_values.ClientInstalledSequenceContracts? = None,
+  explanation_current? : (() -> Bool)? = None,
 ) -> String raise ClientStop {
   guard original.business is Some(business) &&
     business.request_input is Some(producer) &&
@@ -64,6 +65,9 @@ fn LocalCheckContext::project_request(
   // Trusted Host metadata stays bound to the original Read/current boundary.
   if !self.current() {
     stop("LocalCheckContextUnavailable")
+  }
+  if explanation_current is Some(current) && (!explain || !current()) {
+    stop("LocalRunStateReadAuthorizationDenied")
   }
   let (publication, publication_wire) = local_command_project_publication(
     self.environment,
@@ -136,6 +140,9 @@ fn LocalCheckContext::project_request(
           local_stop_submitted_preparation(@local_host.Request(issue))
         Ok(value) => value
       }
+      if explanation_current is Some(_) && kind != @local_values.Effect {
+        stop("LocalStaticExplanationNotProjected")
+      }
       let view = if kind == @local_values.Effect {
         guard business.request_body is None else {
           stop("LocalBusinessOriginalUnavailable")
@@ -179,19 +186,66 @@ fn LocalCheckContext::project_request(
             }
           }
         }
-        let view = match
-          @local_values.request_prepared_static_plan_view(
-            parent,
-            producer,
-            native_request_manifests,
-            65536,
-            8192,
-            64,
-            infers=models.map(value => value.graph),
-          ) {
-          Err(issue) =>
-            local_stop_submitted_preparation(@local_host.Request(issue))
-          Ok(value) => value
+        let infers = models.map(value => value.graph)
+        let view = if explanation_current is Some(_) {
+          // The original Journal Read is suspended during compiler work.
+          // Account calls stay on the entered Read outside this callback.
+          let policy = @local_values.client_local_preparation_initial_limits(
+            @local_values.client_local_resource_policy(),
+          ).unwrap_or_else(() => stop("LocalStaticExplanationUnavailable"))
+          let report = match
+            native_static_explanation_language(producer.arguments) {
+            None =>
+              @local_values.request_prepared_static_effect_explanation_wire(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                infers~,
+              )
+            Some(language) =>
+              @local_values.request_prepared_static_effect_explanation_narrative(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                language,
+                infers~,
+              )
+          }
+          match report {
+            Err(@local_values.Preparation(issue)) =>
+              local_stop_submitted_preparation(
+                @local_host.RequestPreparation(issue),
+              )
+            Err(
+              @local_values.Encoding(_)
+              | @local_values.Presentation(ExplanationPresentationLimit)
+            ) => stop("LocalStaticExplanationLimit")
+            Err(_) => stop("LocalStaticExplanationUnavailable")
+            Ok(value) => value
+          }
+        } else {
+          match
+            @local_values.request_prepared_static_plan_view(
+              parent,
+              producer,
+              native_request_manifests,
+              65536,
+              8192,
+              64,
+              infers~,
+            ) {
+            Err(issue) =>
+              local_stop_submitted_preparation(@local_host.Request(issue))
+            Ok(value) => value
+          }
         }
         @local_host.return_native_client_submitted_request_body(body).unwrap_or_else(() => {
             stop("LocalRequestBodyReturnPending")
@@ -209,6 +263,9 @@ fn LocalCheckContext::project_request(
             local_stop_submitted_preparation(@local_host.Request(issue))
           Ok(value) => value
         }
+      }
+      if explanation_current is Some(_) {
+        return view
       }
       return local_explain_reply(
         view,
@@ -332,6 +389,9 @@ fn LocalCheckContext::project_request(
   })
   if !self.current() {
     stop("LocalCheckContextUnavailable")
+  }
+  if explanation_current is Some(current) && !current() {
+    stop("LocalRunStateReadAuthorizationDenied")
   }
   report
 }

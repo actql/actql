@@ -397,7 +397,9 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan', 'run-explanation'].includes(operation)) {
+  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations',
+    'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
+    'run-explanation-context'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -405,7 +407,7 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   }
   // The structural read's original ref cannot change during awaited Host
   // authentication/authorization. This is its already-captured private copy.
-  if (operation === 'run-explanation') Object.freeze(body.ref);
+  if (operation === 'run-explanation' || operation === 'run-explanation-context') Object.freeze(body.ref);
   if (retainSnapshot === true) {
     if (!snapshotted) {
       try { body = snapshotClientRequest(body); }
@@ -465,13 +467,14 @@ export function validClientBody(operation, body) {
         !Array.isArray(body.parameters));
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
-  if (operation === 'inspect-run' || operation === 'run-plan' || operation === 'run-explanation') {
+  if (operation === 'inspect-run' || operation === 'run-plan' ||
+      operation === 'run-explanation' || operation === 'run-explanation-context') {
     return validRunRef(body.ref) &&
       Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
       Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
       Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
   }
-  if (operation === 'plan') {
+  if (operation === 'plan' || operation === 'static-explanation') {
     return validProgramInput(body) &&
       (body.parameters === null || typeof body.parameters === 'object' &&
         !Array.isArray(body.parameters)) &&

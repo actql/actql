@@ -191,3 +191,79 @@ test "structural read constructor enforces admitted bounds and same Request thro
     0L,
   )
 }
+
+///|
+test "legacy retained wire extent preserves the public encoding rejection" {
+  let (producer, run, prepared, compiled, definition) = original_explanation_capture_fixture()
+  let captured = capture_installed_managed_run_explanation(
+    run, prepared, compiled, definition, 65536, 8192, 64,
+  ).unwrap()
+  let (view, facts) = installed_original_explanation_capture_wires(captured).unwrap()
+  let definition_wire = @publication.publication_contract_json(definition)
+  let plan_wire = @publication.publication_contract_json(
+    @publication_host.client_compiled_run_plan(compiled),
+  )
+  let bytes = wire => @scalar.admit_utf8_length(wire, 1000000).unwrap()
+  let identity = @publication_host.prepared_client_identity(prepared)
+  let view_bytes = bytes(view)
+  assert_true(bytes(facts) < view_bytes)
+  // Use the exact issued Plan and Facts for the Plan one-short case. For the
+  // independent Facts boundary simulate an oversized stored representation
+  // of those same facts, with the complete original Plan inside the limit.
+  let oversized_facts = facts + " ".repeat(view_bytes - bytes(facts) + 1)
+  for
+    (max_bytes, facts_wire) in [
+      (view_bytes - 1, facts),
+      (view_bytes, oversized_facts),
+    ] {
+    let stored = 142 +
+      bytes(definition_wire) +
+      bytes(plan_wire) +
+      view_bytes +
+      bytes(facts_wire)
+    let input = [7]
+    let owner = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    begin_request_explanation_read(owner, input).unwrap()
+    reserve_request_explanation_read(owner, input, stored, max_bytes, 8192, 64).unwrap()
+    let outcome = read_request_explanation_view(
+      owner,
+      input,
+      definition_wire,
+      Some(plan_wire),
+      Some(view),
+      Some(facts_wire),
+      identity.program_definition_cid,
+      identity.parameter_values_cid,
+      "explanation-component",
+      "sha256:" + "a".repeat(64),
+      @publication.publication_contract_identity(definition),
+      stored,
+      max_bytes,
+      8192,
+      64,
+    )
+    guard outcome is Err(issue) else {
+      fail("expected bounded legacy rejection")
+    }
+    assert_true(issue is Projection(Contract(InvalidWire)))
+    assert_eq(
+      request_explanation_read_issue_code(issue),
+      "RunExplanationEncodingRejected",
+    )
+    abort_request_preparation_after_cleanup(owner).unwrap()
+    assert_eq(
+      @resources.ledger_usage(owner.ledger).reserved_retention_bytes,
+      0L,
+    )
+  }
+  return_installed_original_explanation_capture(captured).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(
+    @resources.ledger_usage(producer.ledger).reserved_retention_bytes,
+    0L,
+  )
+}
