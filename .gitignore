@@ -965,3 +965,5 @@ target/
 /scripts/fixtures/client-cleanup.d.mts
 /scripts/fixtures/client-cleanup.test.mjs
 /scripts/fixtures/client-cleanup.test.d.mts
+/scripts/fixtures/packed-short-queries.mjs
+/scripts/fixtures/packed-short-queries.d.mts
