@@ -10,14 +10,16 @@ import {
   installResultAccessService,
 } from '../host-common/result-access.mjs';
 
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
 export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,
   installResultAccessAuthority};
 
-export function installNodeResultAccessService(configuration) {
+export function installNodeResultAccessService(
+  configuration: Omit<Parameters<typeof installResultAccessService>[0], 'createDigest'>,
+) {
   if (!exactKeys(configuration, [
     'store', 'control', 'authority', 'now', 'limits', 'frameLimits',
     ...(Object.hasOwn(configuration ?? {}, 'readWorkspace') ? ['readWorkspace'] : []),

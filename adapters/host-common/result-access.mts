@@ -6,20 +6,134 @@ import {validDeliveryAttemptLookup, validResultDescription,
   withinResultDescriptionLimits, resultDescriptionLimits} from
   '../../packages/client-wire/index.mjs';
 
-const authorities = new WeakMap();
-const services = new WeakMap();
+import type {WireDeliveryAttemptLookup, WireResultDescription} from '../../packages/client-wire/index.js';
+import type {ResultAccessAuthority, ResultAccessRequest, ResultAccessService} from '../../packages/run-host-core/result-access.js';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import type {PublicationContract} from '../store-local/publication-contract-store.mjs';
+import type {publicationProgressControl} from './publication-progress-control.mjs';
+
+type Awaitable<T> = T | PromiseLike<T>;
+type ReadRequest = ResultAccessRequest;
+type LookupRequest = Omit<ReadRequest, 'format'>;
+type Limits = typeof resultDescriptionLimits;
+type DescriptionRequest = ReadRequest & Limits;
+type Delivery = Parameters<typeof deliverPublishedResult>[0];
+type DeliveryWorkspace = NonNullable<Parameters<typeof deliverPublishedResult>[2]>;
+type ReadDemand = DeliveryWorkspace['metadata'];
+type RowAdmission = Awaited<ReturnType<DeliveryWorkspace['row']>>;
+type AccessProgress = Pick<ReturnType<typeof publicationProgressControl>,
+  'beginResultAccessProgress' | 'resultAccessProgressAction' |
+  'recordResultAccessRequestAuthorization' | 'recordResultAccessResolution' |
+  'recordResultAccessInitialAvailability' | 'recordResultAccessReadAdmission' |
+  'recordResultAccessGrant'>;
+type LocalStore = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Store = Pick<Delivery['store'], 'confirmCommittedIndex' | 'readPublicationContract'> &
+  Partial<Delivery['store']> &
+  Pick<LocalStore, 'readCommittedResultRetentionExtension' | 'observeTrustedClock'> &
+  Partial<Pick<LocalStore, 'readCommittedPublication' | 'sampleTrustedClock' | 'lookupDeliveryAttempt' |
+    'readCommittedResultDescriptionEvidence' | 'consumeManifestReadGrant'>>;
+type SelectedPublication = NonNullable<Awaited<ReturnType<NonNullable<Store['readCommittedPublication']>>>>;
+type Entry = SelectedPublication['entry'];
+type RetentionExtension = Awaited<ReturnType<Store['readCommittedResultRetentionExtension']>>;
+type Admission = Readonly<{
+  authorizationContextCid: string;
+  dataCeilingCid: string;
+  egressAdmissionCid: string;
+  expiresAt: string;
+  maxBytes: number;
+  maxUses: number;
+}>;
+type ReadGrantInput = Admission & Pick<ReadRequest, 'principalId' | 'purpose'> &
+  Readonly<{resultNames: readonly string[]; formats: readonly ReadRequest['format'][]}>;
+type ManifestGrantInput = Omit<Admission, 'egressAdmissionCid'> & Pick<ReadRequest, 'principalId' | 'purpose'>;
+type Control = AccessProgress & Pick<Delivery['control'], 'resultReadGrantValidAt'> & Partial<Delivery['control']> &
+  Readonly<{
+    issueResultReadGrant(index: PublicationContract, manifest: PublicationContract,
+      request: ReadGrantInput, limits: Limits): PublicationContract;
+    resultReadRetentionPolicyCid(manifest: PublicationContract, resultName: string): string;
+    resultReadDefinitionCid(manifest: PublicationContract, resultName: string): string;
+    resultReadAvailability(manifest: PublicationContract, resultName: string,
+      retention: PublicationContract, at: string): string;
+    resultReadExtendedAvailability(manifest: PublicationContract, resultName: string,
+      base: PublicationContract, extension: PublicationContract, at: string): string;
+    resultRetentionClockContractCid(retention: PublicationContract): string;
+    trustedClockNotBefore?(previous: string | undefined, observedAt: string): boolean;
+    resultMetadataRetentionState?(retention: PublicationContract, at: string): string;
+    describeCommittedResult?(index: PublicationContract, manifest: PublicationContract,
+      resultName: string, bindings: readonly PublicationContract[], definition: PublicationContract,
+      schema: string, format: ReadRequest['format'], limits: Limits): Omit<WireResultDescription, 'ref'>;
+    issueManifestReadGrant?(index: PublicationContract, manifest: PublicationContract,
+      request: ManifestGrantInput, limits: Limits): PublicationContract;
+    manifestReadGrantAllowsBytes?(grant: PublicationContract, bytes: number): boolean;
+    manifestReadGrantValidAt?(grant: PublicationContract, at: string): boolean;
+  }>;
+type DescriptionFacts = ReadRequest & Readonly<{
+  index: PublicationContract; manifest: PublicationContract;
+  retention: PublicationContract; observedAt: string;
+}>;
+type ReadFacts = DescriptionFacts & Readonly<{baseRetention: PublicationContract}>;
+type AuthorizedFacts = Readonly<{
+  grant: PublicationContract; authorizationContextCid: string; egressAdmissionCid: string;
+}>;
+type DeliveryFacts = Parameters<Delivery['authorize']>[0];
+type DescriptionAuthorization = (facts: (ReadRequest & Readonly<{stage: 'request'}>) |
+  (DescriptionFacts & AuthorizedFacts & Readonly<{stage: 'read' | 'response'}>),
+  request: ReadRequest) => Awaitable<boolean>;
+type AuthorityConfiguration = Readonly<{
+  authorizeResultReadRequest(facts: ReadRequest, request: ReadRequest): Awaitable<boolean>;
+  admitResultRead(facts: ReadFacts, request: ReadRequest): Awaitable<Admission>;
+  authorizeResultRead(facts: ReadFacts & AuthorizedFacts & Readonly<{delivery: DeliveryFacts}>,
+    request: ReadRequest): Awaitable<boolean>;
+  authorizeDeliveryAttemptLookup?(facts: LookupRequest, request: LookupRequest): Awaitable<boolean>;
+  authorizeResultDescription?: DescriptionAuthorization;
+  admitResultDescription?(facts: DescriptionFacts, request: ReadRequest): Awaitable<Admission>;
+}>;
+type ReadWorkspace = Readonly<{
+  begin(request: ReadRequest, control: Control): unknown;
+  prepare(request: ReadRequest, metadata: Parameters<DeliveryWorkspace['prepare']>[0],
+    limits: Limits, frameLimits: Delivery['frameLimits']): number;
+  row<Unit extends number | string>(request: ReadRequest, units: Unit):
+    Unit extends number ? RowAdmission : Awaitable<RowAdmission>;
+  close(request: ReadRequest, failure: unknown): unknown;
+  metadata(request: ReadRequest, ...args: Parameters<ReadDemand>): ReturnType<ReadDemand>;
+  metadataRetain(request: ReadRequest, ...args: Parameters<ReadDemand['retain']>): unknown;
+  metadataData(request: ReadRequest, ...args: Parameters<ReadDemand['data']>): unknown;
+  metadataRelease(request: ReadRequest, ...args: Parameters<ReadDemand['release']>): unknown;
+  metadataFinish(request: ReadRequest): unknown;
+  serializer(request: ReadRequest, value: unknown): unknown;
+}>;
+type ServiceConfiguration = Readonly<{
+  store: Store;
+  control: Control;
+  authority: ResultAccessAuthority;
+  now: Delivery['now'];
+  createDigest: Delivery['createDigest'];
+  limits: Limits;
+  frameLimits: Delivery['frameLimits'];
+  readWorkspace?: ReadWorkspace;
+}>;
+type Installed = Omit<ServiceConfiguration, 'authority'> & Readonly<{
+  authority: AuthorityConfiguration;
+  readCommittedPublication: Store['readCommittedPublication'];
+}>;
+type CodedCause = Readonly<{code?: unknown}> | null | undefined;
+
+const authorities = new WeakMap<ResultAccessAuthority, AuthorityConfiguration>();
+const services = new WeakMap<ResultAccessService, Installed>();
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const positive = value => Number.isSafeInteger(value) && value > 0;
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 const indexKeyFields = [
   'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
 ];
 
+function ownedResultRequest(input: ReadRequest, delivery: true): ReadRequest;
+function ownedResultRequest(input: LookupRequest, delivery: false): LookupRequest;
 // Copy only the typed request fields before any authorization or Store await.
 // This leaves in-process grants and MoonBit handles on their original owners.
-function ownedResultRequest(input, delivery) {
+function ownedResultRequest(input: ReadRequest | LookupRequest, delivery: boolean) {
   const fields = [
     'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
     ...(delivery ? ['format'] : []),
@@ -40,21 +154,24 @@ function ownedResultRequest(input, delivery) {
     purpose: input.purpose,
     resultName: input.resultName,
     attemptId: input.attemptId,
-    ...(delivery ? {format: input.format} : {}),
+    ...(delivery ? {format: (input as ReadRequest).format} : {}),
   });
 }
 
 export class ResultAccessError extends Error {
-  constructor(code, cause) {
+  declare readonly code: string;
+  declare readonly primaryFailure: unknown;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
     this.primaryFailure = cause;
   }
 }
 
-const fail = (code, cause) => { throw new ResultAccessError(code, cause); };
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw new ResultAccessError(code, cause); };
 
-function validateAuthority(configuration) {
+function validateAuthority(configuration: AuthorityConfiguration) {
   const {authorizeResultDescription, admitResultDescription, ...reads} =
     configuration ?? {};
   if ((authorizeResultDescription !== undefined ||
@@ -78,9 +195,9 @@ function validateAuthority(configuration) {
   }
 }
 
-export function installResultAccessAuthority(configuration) {
+export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {
   validateAuthority(configuration);
-  const authority = Object.freeze({});
+  const authority = Object.freeze({}) as ResultAccessAuthority;
   authorities.set(authority, Object.freeze({
     authorizeResultReadRequest: configuration.authorizeResultReadRequest,
     admitResultRead: configuration.admitResultRead,
@@ -93,13 +210,15 @@ export function installResultAccessAuthority(configuration) {
   return authority;
 }
 
-export async function describeAuthorizedResult(service, input, signal) {
+export async function describeAuthorizedResult(
+  service: ResultAccessService, input: DescriptionRequest, signal?: AbortSignal,
+): Promise<WireResultDescription> {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   const {maxWireBytes, maxNodes, maxDepth, ...readInput} = input ?? {};
   const request = ownedResultRequest(readInput, true);
   validateRequest(request);
   const limits = Object.freeze({maxWireBytes, maxNodes, maxDepth});
-  if (!Object.keys(resultDescriptionLimits).every(key =>
+  if (!(Object.keys(resultDescriptionLimits) as (keyof Limits)[]).every(key =>
     positive(limits[key]) && limits[key] <= resultDescriptionLimits[key])) {
     fail('InvalidResultAccessRequest');
   }
@@ -111,13 +230,13 @@ export async function describeAuthorizedResult(service, input, signal) {
       ['describeCommittedResult', 'resultMetadataRetentionState',
         'issueManifestReadGrant', 'manifestReadGrantAllowsBytes',
         'manifestReadGrantValidAt'].some(name =>
-        typeof control[name] !== 'function')) {
+        typeof control[name as keyof Control] !== 'function')) {
     fail('ClientOperationUnavailable');
   }
   signal?.throwIfAborted();
-  const authorize = async facts => {
+  const authorize = async (facts: Parameters<DescriptionAuthorization>[0]) => {
     let allowed;
-    try { allowed = await authority.authorizeResultDescription(facts, request); }
+    try { allowed = await authority.authorizeResultDescription!(facts, request); }
     catch { fail('ResultAccessDenied'); }
     if (allowed !== true) fail('ResultAccessDenied');
     signal?.throwIfAborted();
@@ -139,9 +258,9 @@ export async function describeAuthorizedResult(service, input, signal) {
       ? await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid)
       : await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid, selected);
   } catch (error) {
-    if (error?.code === 'PublicationLookupDenied') fail('ResultAccessDenied');
-    if (['PublicationObjectMissing', 'PublicationContractMissing']
-      .includes(error?.code)) {
+    if ((error as CodedCause)?.code === 'PublicationLookupDenied') fail('ResultAccessDenied');
+    if ((['PublicationObjectMissing', 'PublicationContractMissing'] as readonly unknown[])
+      .includes((error as CodedCause)?.code)) {
       fail('ResultDescriptionUnavailable', error);
     }
     throw error;
@@ -163,7 +282,7 @@ export async function describeAuthorizedResult(service, input, signal) {
       control.resultReadExtendedAvailability(manifest, request.resultName,
         retention, effectiveRetention, at);
     }
-    if (control.resultMetadataRetentionState(effectiveRetention, at) !==
+    if (control.resultMetadataRetentionState!(effectiveRetention, at) !==
         'retained') fail('ResultDescriptionUnavailable');
     return at;
   };
@@ -173,7 +292,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   const admission = await authority.admitResultDescription(facts, request);
   validateAdmission(admission);
   // Metadata consumes the existing Manifest grant, not a payload delivery.
-  const grant = control.issueManifestReadGrant(index, manifest, {
+  const grant = control.issueManifestReadGrant!(index, manifest, {
     principalId: request.principalId, purpose: request.purpose,
     dataCeilingCid: admission.dataCeilingCid,
     maxBytes: admission.maxBytes, maxUses: admission.maxUses,
@@ -185,7 +304,7 @@ export async function describeAuthorizedResult(service, input, signal) {
     egressAdmissionCid: admission.egressAdmissionCid});
   await authorize(Object.freeze({...authorizedFacts, stage: 'read'}));
   const response = Object.freeze({ref: request.indexKey,
-    ...control.describeCommittedResult(index, manifest, request.resultName,
+    ...control.describeCommittedResult!(index, manifest, request.resultName,
       evidence.bindings, evidence.definition, evidence.schemaWire,
       request.format, installed.limits)});
   if (!withinResultDescriptionLimits(response, limits)) {
@@ -196,13 +315,13 @@ export async function describeAuthorizedResult(service, input, signal) {
     fail('InvalidResultDescription');
   }
   const byteCount = new TextEncoder().encode(JSON.stringify(response)).length;
-  if (!control.manifestReadGrantAllowsBytes(grant, byteCount) ||
-      !control.manifestReadGrantValidAt(grant, await checkRetained())) {
+  if (!control.manifestReadGrantAllowsBytes!(grant, byteCount) ||
+      !control.manifestReadGrantValidAt!(grant, await checkRetained())) {
     fail('ResultAccessDenied');
   }
   await store.consumeManifestReadGrant(grant.wire, request.attemptId);
   await authorize(Object.freeze({...authorizedFacts, stage: 'response'}));
-  if (!control.manifestReadGrantValidAt(grant, await checkRetained())) {
+  if (!control.manifestReadGrantValidAt!(grant, await checkRetained())) {
     fail('ResultAccessDenied');
   }
   if ((await store.confirmCommittedIndex(request.indexKey))
@@ -213,7 +332,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   return response;
 }
 
-function validateServiceConfiguration(configuration) {
+function validateServiceConfiguration(configuration: ServiceConfiguration) {
   if (!exactKeys(configuration, [
     'store', 'control', 'authority', 'now', 'createDigest', 'limits',
     'frameLimits',
@@ -265,32 +384,32 @@ function validateServiceConfiguration(configuration) {
   }
 }
 
-export function installResultAccessService(configuration) {
+export function installResultAccessService(configuration: ServiceConfiguration): ResultAccessService {
   validateServiceConfiguration(configuration);
-  let readWorkspace;
+  let readWorkspace: ReadWorkspace | undefined;
   if (configuration.readWorkspace !== undefined) {
     const receiver = configuration.readWorkspace;
     if (receiver === null || typeof receiver !== 'object') fail('InvalidResultAccessWorkspace');
-    const callbacks = {};
-    for (const name of ['begin', 'prepare', 'row', 'close', 'metadata', 'metadataRetain', 'metadataData', 'metadataRelease', 'metadataFinish', 'serializer']) {
+    const callbacks = {} as Record<keyof ReadWorkspace, (...args: unknown[]) => unknown>;
+    for (const name of ['begin', 'prepare', 'row', 'close', 'metadata', 'metadataRetain', 'metadataData', 'metadataRelease', 'metadataFinish', 'serializer'] as const) {
       const field = Object.getOwnPropertyDescriptor(receiver, name);
       if (field === undefined || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
         fail('InvalidResultAccessWorkspace');
       }
       callbacks[name] = (...args) => Reflect.apply(field.value, receiver, args);
     }
-    readWorkspace = Object.freeze(callbacks);
+    readWorkspace = Object.freeze(callbacks) as ReadWorkspace;
   }
   const readCommittedPublication = configuration.store.readCommittedPublication;
   if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
     fail('InvalidResultAccessService');
   }
-  const service = Object.freeze({});
+  const service = Object.freeze({}) as ResultAccessService;
   services.set(service, Object.freeze({
     store: configuration.store,
     readCommittedPublication,
     control: configuration.control,
-    authority: authorities.get(configuration.authority),
+    authority: authorities.get(configuration.authority)!,
     now: configuration.now,
     createDigest: configuration.createDigest,
     limits: Object.freeze({...configuration.limits}),
@@ -300,17 +419,19 @@ export function installResultAccessService(configuration) {
   return service;
 }
 
-async function readSelectedPublication(installed, indexKey, readDemand) {
+async function readSelectedPublication(
+  installed: Installed, indexKey: ReadRequest['indexKey'], readDemand?: ReadDemand,
+): Promise<SelectedPublication | undefined> {
   if (installed.readCommittedPublication === undefined) {
-    const entry = await installed.store.confirmCommittedIndex(indexKey, ...(readDemand === undefined ? [] : [readDemand]));
+    const entry = await installed.store.confirmCommittedIndex(indexKey, ...(readDemand === undefined ? [] : [readDemand] as [ReadDemand?]));
     if (entry === undefined) return undefined;
     const index = await installed.store.readPublicationContract(
-      entry.public_index_entry_cid, 'public_index_entry', ...(readDemand === undefined ? [] : [readDemand]));
+      entry.public_index_entry_cid, 'public_index_entry', ...(readDemand === undefined ? [] : [readDemand] as [ReadDemand?]));
     return {entry, index};
   }
   // This same Store read owns the selected Index's nominal admission. It is
   // not a permission or a successful-read cache across public operations.
-  const selected = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey, ...(readDemand === undefined ? [] : [readDemand])]);
+  const selected: SelectedPublication | undefined = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey, ...(readDemand === undefined ? [] : [readDemand] as [ReadDemand?])]);
   if (selected === undefined) return undefined;
   if (!exactKeys(selected, ['entry', 'index']) || selected.entry === null ||
       typeof selected.entry !== 'object' || selected.index === null || typeof selected.index !== 'object') {
@@ -319,7 +440,9 @@ async function readSelectedPublication(installed, indexKey, readDemand) {
   return selected;
 }
 
-export async function inspectAuthorizedDeliveryAttempt(service, input) {
+export async function inspectAuthorizedDeliveryAttempt(
+  service: ResultAccessService, input: LookupRequest,
+): Promise<WireDeliveryAttemptLookup> {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   const request = ownedResultRequest(input, false);
   if (typeof request.indexKey.namespaceId !== 'string' ||
@@ -360,7 +483,7 @@ export async function inspectAuthorizedDeliveryAttempt(service, input) {
   return reply;
 }
 
-function validateRequest(request) {
+function validateRequest(request: ReadRequest) {
   if (!exactKeys(request, [
     'indexKey', 'principalId', 'purpose', 'resultName', 'format',
     'attemptId',
@@ -382,7 +505,7 @@ function validateRequest(request) {
   }
 }
 
-function validateAdmission(admission) {
+function validateAdmission(admission: Admission) {
   if (!exactKeys(admission, [
     'authorizationContextCid', 'dataCeilingCid', 'egressAdmissionCid',
     'expiresAt', 'maxBytes', 'maxUses',
@@ -397,7 +520,7 @@ function validateAdmission(admission) {
   }
 }
 
-function observedAt(now) {
+function observedAt(now: Delivery['now']) {
   const value = now();
   if (typeof value !== 'string' || value.length === 0) {
     fail('InvalidResultAccessClock');
@@ -409,12 +532,12 @@ function observedAt(now) {
 // clock bound, and sample again after a CAS conflict. Use that exact accepted
 // observation for semantic checks rather than an earlier caller sample.
 // The explicit-observation fallback retains the existing Store contract.
-async function sampleTrustedClock(installed, clockContractCid, suppliedAt) {
+async function sampleTrustedClock(installed: Installed, clockContractCid: string, suppliedAt?: string) {
   if (typeof installed.store.sampleTrustedClock === 'function') {
     const at = await installed.store.sampleTrustedClock(
       clockContractCid, () => observedAt(installed.now),
     );
-    if (!installed.control.trustedClockNotBefore(suppliedAt, at)) {
+    if (!installed.control.trustedClockNotBefore!(suppliedAt, at)) {
       fail('InvalidResultAccessClock');
     }
     return at;
@@ -425,10 +548,10 @@ async function sampleTrustedClock(installed, clockContractCid, suppliedAt) {
 }
 
 export async function deliverAuthorizedResult(
-  service,
-  input,
-  sink,
-  signal,
+  service: ResultAccessService,
+  input: ReadRequest,
+  sink: Delivery['sink'],
+  signal?: AbortSignal,
 ) {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   const request = ownedResultRequest(input, true);
@@ -442,16 +565,16 @@ export async function deliverAuthorizedResult(
   workspace.begin(request, installed.control);
   let failure;
   try {
-    const demand = Object.freeze(Object.assign(bytes => workspace.metadata(request, bytes), {
-      retain: (slot, original, mode) => workspace.metadataRetain(request, slot, original, mode),
-      data: (slot, nodes, textUnits) => workspace.metadataData(request, slot, nodes, textUnits),
-      release: slot => workspace.metadataRelease(request, slot),
+    const demand = Object.freeze(Object.assign((bytes: Parameters<ReadDemand>[0]) => workspace.metadata(request, bytes), {
+      retain: (slot: number, original: PublicationContract, mode: number) => workspace.metadataRetain(request, slot, original, mode),
+      data: (slot: number, nodes: number, textUnits: number) => workspace.metadataData(request, slot, nodes, textUnits),
+      release: (slot: number) => workspace.metadataRelease(request, slot),
       finish: () => workspace.metadataFinish(request),
     }));
     return await deliverPreparedAuthorizedResult(installed, request, sink, signal,
-      Object.freeze({
+      Object.freeze<DeliveryWorkspace>({
         prepare: metadata => workspace.prepare(request, metadata, installed.limits, installed.frameLimits),
-        row: units => workspace.row(request, units),
+        row: ((units: number | string) => workspace.row(request, units)) as DeliveryWorkspace['row'],
         metadata: demand,
         serializer: value => workspace.serializer(request, value),
       }));
@@ -461,7 +584,9 @@ export async function deliverAuthorizedResult(
   } finally { workspace.close(request, failure); }
 }
 
-async function deliverPreparedAuthorizedResult(installed, request, sink, signal, workspace) {
+async function deliverPreparedAuthorizedResult(
+  installed: Installed, request: ReadRequest, sink: Delivery['sink'], signal?: AbortSignal, workspace?: DeliveryWorkspace,
+) {
   if (sink === null || typeof sink !== 'object' ||
       typeof sink.write !== 'function' ||
       typeof sink.finish !== 'function' || signal !== undefined &&
@@ -470,9 +595,9 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
   }
   signal?.throwIfAborted();
   const readDemand = workspace?.metadata;
-  const demandArgument = readDemand === undefined ? [] : [readDemand];
+  const demandArgument: [ReadDemand?] = readDemand === undefined ? [] : [readDemand];
   const progress = installed.control.beginResultAccessProgress();
-  const requireAction = expected => {
+  const requireAction = (expected: ReturnType<AccessProgress['resultAccessProgressAction']>) => {
     if (installed.control.resultAccessProgressAction(progress) !== expected) {
       fail('InvalidResultAccessProgress');
     }
@@ -500,11 +625,11 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
   );
   if (requestAuthorized !== true) fail('ResultAccessDenied');
   requireAction('resolve_committed_result');
-  let entry;
-  let index;
-  let manifest;
-  let retention;
-  let retained;
+  let entry: Entry | undefined;
+  let index: PublicationContract;
+  let manifest: PublicationContract;
+  let retention: PublicationContract;
+  let retained: RetentionExtension;
   try {
     const selected = await readSelectedPublication(installed, indexKey, readDemand);
     if (selected === undefined) {
@@ -534,20 +659,20 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
       manifest, request.resultName,
     );
     retained = installed.readCommittedPublication === undefined
-      ? await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid, ...(readDemand === undefined ? [] : [undefined, readDemand]))
+      ? await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid, ...((readDemand === undefined ? [] : [undefined, readDemand]) as [unknown?, ReadDemand?]))
       : await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid, selected, ...demandArgument);
   } catch (error) {
     if (installed.control.resultAccessProgressAction(progress) ===
         'resolve_committed_result') {
       installed.control.recordResultAccessResolution(progress, false);
     }
-    if (error?.code === 'PublicationObjectMissing') {
+    if ((error as CodedCause)?.code === 'PublicationObjectMissing') {
       fail('ResultUnavailable', error);
     }
     throw error;
   }
   installed.control.recordResultAccessResolution(progress, true);
-  const availability = observed => retained === undefined
+  const availability = (observed: string) => retained === undefined
     ? installed.control.resultReadAvailability(
       manifest, request.resultName, retention, observed,
     )
@@ -619,7 +744,7 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
   installed.control.recordResultAccessGrant(progress, true);
   requireAction('start_delivery');
   let checkedAt = admittedAt;
-  const authorize = async facts => {
+  const authorize = async (facts: DeliveryFacts) => {
     const at = observedAt(installed.now);
     if (typeof installed.control.trustedClockNotBefore === 'function' &&
         (!installed.control.trustedClockNotBefore(checkedAt, at) ||
@@ -654,8 +779,8 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
   entry = undefined;
   readDemand?.release(0);
   return deliverPublishedResult({
-    store: installed.store,
-    control: installed.control,
+    store: installed.store as Delivery['store'],
+    control: installed.control as Delivery['control'],
     indexKey,
     grant,
     resultName: request.resultName,
@@ -669,6 +794,6 @@ async function deliverPreparedAuthorizedResult(installed, request, sink, signal,
     authorize,
     signal,
   }, Object.isFrozen(index) && Object.isFrozen(manifest)
-    ? Object.freeze({store: installed.store, control: installed.control,
+    ? Object.freeze({store: installed.store as Delivery['store'], control: installed.control as Delivery['control'],
       index, manifest}) : undefined, workspace);
 }

@@ -4,11 +4,20 @@ import test from 'node:test';
 import {inspectAuthorizedDeliveryAttempt,
   installResultAccessAuthority, installResultAccessService} from
   './result-access.mjs';
+import type {WireDeliveryAttemptLookup} from '../../packages/client-wire/index.js';
+
+type LookupRequest = Parameters<typeof inspectAuthorizedDeliveryAttempt>[1];
+type AuthorityConfiguration = Parameters<typeof installResultAccessAuthority>[0];
+type ServiceConfiguration = Parameters<typeof installResultAccessService>[0];
+type Fixture = {
+  authorize: NonNullable<AuthorityConfiguration['authorizeDeliveryAttemptLookup']>;
+  lookup(facts: LookupRequest): Promise<unknown>;
+};
 
 const receipt = JSON.parse(readFileSync(new URL(
   '../../packages/client-wire/fixtures/delivery-attempt.found.json',
-  import.meta.url), 'utf8'));
-const cid = char => `sha256:${char.repeat(64)}`;
+  import.meta.url), 'utf8')) as Extract<WireDeliveryAttemptLookup, {kind: 'found'}>;
+const cid = (char: string) => `sha256:${char.repeat(64)}`;
 const request = () => ({
   indexKey: {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
     runDefinitionCid: receipt.attempt.run_definition_cid},
@@ -16,7 +25,7 @@ const request = () => ({
   attemptId: 'read-a',
 });
 
-function service({authorize, lookup}) {
+function service({authorize, lookup}: Fixture) {
   const store = {
     confirmCommittedIndex() {}, readPublicationContract() {},
     observeTrustedClock() {}, readCommittedResultRetentionExtension() {},
@@ -34,27 +43,28 @@ function service({authorize, lookup}) {
     'recordResultAccessReadAdmission', 'recordResultAccessGrant',
   ];
   const control = Object.fromEntries(methods.map(name => [name, () => {}]));
+  // The other installer ports are unused in the lookup-only fixture.
   const authority = installResultAccessAuthority({
     authorizeResultReadRequest() {}, admitResultRead() {},
     authorizeResultRead() {}, authorizeDeliveryAttemptLookup: authorize,
-  });
+  } as unknown as AuthorityConfiguration);
   return installResultAccessService({
     store, control, authority, now: () => '2026-09-24T00:00:00.000Z',
     createDigest() {},
     limits: {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20},
     frameLimits: {maxRowBytes: 1000, maxDepth: 20,
       maxFrameBytes: 10000},
-  });
+  } as unknown as ServiceConfiguration);
 }
 
 test('attempt lookup keeps the authorized scalar and nested Run snapshot',
   async () => {
-    let release;
-    let started;
-    const authorized = new Promise(resolve => { started = resolve; });
-    const gate = new Promise(resolve => { release = resolve; });
-    let authorizedRequest;
-    let lookupRequest;
+    let release!: () => void;
+    let started!: () => void;
+    const authorized = new Promise<void>(resolve => { started = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let authorizedRequest!: LookupRequest;
+    let lookupRequest!: LookupRequest;
     const installed = service({
       async authorize(facts) {
         authorizedRequest = facts;
@@ -124,11 +134,11 @@ for (const answer of ['found', 'absent']) {
   for (const revocation of ['deny', 'unavailable']) {
     test(`attempt lookup withholds ${answer} when its mutable authority becomes ${revocation}`,
       async () => {
-        let release, started, allowed = true;
-        const entered = new Promise(resolve => { started = resolve; });
-        const gate = new Promise(resolve => { release = resolve; });
-        const authorized = [];
-        let lookedUp, lookups = 0;
+        let release!: () => void, started!: () => void, allowed = true;
+        const entered = new Promise<void>(resolve => { started = resolve; });
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const authorized: LookupRequest[] = [];
+        let lookedUp!: LookupRequest, lookups = 0;
         const installed = service({
           async authorize(facts) {
             authorized.push(facts);

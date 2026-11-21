@@ -1685,6 +1685,12 @@ target/
 /adapters/host-common/result-retention.d.mts
 /adapters/host-common/result-delivery.mjs
 /adapters/host-common/result-delivery.d.mts
+/adapters/host-common/result-access.mjs
+/adapters/host-common/result-access.d.mts
+/adapters/host-common/result-access-snapshot.test.mjs
+/adapters/host-common/result-access-snapshot.test.d.mts
+/adapters/host-node/result-access.mjs
+/adapters/host-node/result-access.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs

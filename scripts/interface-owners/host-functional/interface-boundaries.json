@@ -9002,7 +9002,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "99a5ee355db346e226fe7d6c768510315b1a8cce73e7c402aa3e7fb13d1eda88",
+      "sha256": "f78877216ac26d0c2046443da7883476e401808b0e4198eeba9444e74cedfb7a",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -9212,7 +9212,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "export class ResultAccessError extends Error {"
               },
               {
@@ -9230,7 +9230,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "export class ResultAccessError extends Error {"
               },
               {
@@ -9242,13 +9242,13 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "async function readSelectedPublication("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "import {validDeliveryAttemptLookup, validResultDescription,"
               },
               {
@@ -9260,13 +9260,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This same Store read owns the selected Index's nominal admission. It is"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This leaves in-process grants and MoonBit handles on their original owners."
               },
               {
@@ -9284,7 +9284,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// Copy only the typed request fields before any authorization or Store await."
               },
               {
@@ -9296,13 +9296,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "const readCommittedPublication = configuration.store.readCommittedPublication;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "fail('InvalidResultAccessRequest');"
               },
               {
@@ -9320,8 +9320,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export async function describeAuthorizedResult(service, input, signal) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export async function describeAuthorizedResult("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -9332,13 +9332,13 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "withinResultDescriptionLimits, resultDescriptionLimits} from"
               },
               {
@@ -9356,7 +9356,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// Installed Host authority for current Result read and egress admission."
               },
               {
@@ -9396,7 +9396,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "export class ResultAccessError extends Error {"
               },
               {
@@ -9414,7 +9414,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "export class ResultAccessError extends Error {"
               },
               {
@@ -9426,13 +9426,13 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "async function readSelectedPublication("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "import {validDeliveryAttemptLookup, validResultDescription,"
               },
               {
@@ -9444,13 +9444,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This same Store read owns the selected Index's nominal admission. It is"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This leaves in-process grants and MoonBit handles on their original owners."
               },
               {
@@ -9468,7 +9468,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// Copy only the typed request fields before any authorization or Store await."
               },
               {
@@ -9480,13 +9480,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "const readCommittedPublication = configuration.store.readCommittedPublication;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "fail('InvalidResultAccessRequest');"
               },
               {
@@ -9504,8 +9504,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export async function describeAuthorizedResult(service, input, signal) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export async function describeAuthorizedResult("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -9516,13 +9516,13 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "withinResultDescriptionLimits, resultDescriptionLimits} from"
               },
               {
@@ -9540,7 +9540,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// Installed Host authority for current Result read and egress admission."
               },
               {
@@ -9586,8 +9586,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "inputsOutputs": [
@@ -9596,8 +9596,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "identity": [
@@ -9606,8 +9606,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "ownership": [
@@ -9616,8 +9616,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "synchronization": [
@@ -9626,8 +9626,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "failure": [
@@ -9636,8 +9636,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "cancellation": [
@@ -9646,8 +9646,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "resources": [
@@ -9656,8 +9656,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "extension": [
@@ -9666,8 +9666,8 @@
                 "anchor": "### Bounded installed READ workspace and physical writes"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "export function installResultAccessAuthority(configuration) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "export function installResultAccessAuthority(configuration: AuthorityConfiguration): ResultAccessAuthority {"
               }
             ],
             "verification": [
@@ -95973,7 +95973,7 @@
     {
       "module": "adapters/host-node/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8bf149d9bdbbc7cb3bfc5accd7840902c908b83e04eab0e670793ddc8391658",
+      "sha256": "ed25761fcf7cb487877ae93c9feb4c290f813f743586dad040246ad4b38cf607",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -96027,7 +96027,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96041,7 +96041,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96055,7 +96055,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96069,7 +96069,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96083,8 +96083,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/result-access.mjs",
-                "anchor": "export function installNodeResultAccessService(configuration) {"
+                "path": "adapters/host-node/result-access.mts",
+                "anchor": "export function installNodeResultAccessService("
               },
               {
                 "path": "docs/design/result-description.md",
@@ -96097,7 +96097,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "throw new TypeError('InvalidNodeResultAccessService');"
               },
               {
@@ -96111,7 +96111,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96125,7 +96125,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "'store', 'control', 'authority', 'now', 'limits', 'frameLimits',"
               },
               {
@@ -96139,7 +96139,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "// Node installation for the portable Result access service. Node owns the"
               },
               {
@@ -96171,7 +96171,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96185,7 +96185,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96199,7 +96199,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96213,7 +96213,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96227,8 +96227,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/result-access.mjs",
-                "anchor": "export function installNodeResultAccessService(configuration) {"
+                "path": "adapters/host-node/result-access.mts",
+                "anchor": "export function installNodeResultAccessService("
               },
               {
                 "path": "docs/design/result-description.md",
@@ -96241,7 +96241,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "throw new TypeError('InvalidNodeResultAccessService');"
               },
               {
@@ -96255,7 +96255,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,"
               },
               {
@@ -96269,7 +96269,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "'store', 'control', 'authority', 'now', 'limits', 'frameLimits',"
               },
               {
@@ -96283,7 +96283,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/result-access.mjs",
+                "path": "adapters/host-node/result-access.mts",
                 "anchor": "// Node installation for the portable Result access service. Node owns the"
               },
               {
@@ -111025,7 +111025,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/result-access-snapshot.test.mjs",
+                "path": "adapters/host-common/result-access-snapshot.test.mts",
                 "anchor": "test('attempt lookup keeps the authorized scalar and nested Run snapshot',"
               },
               {
@@ -111173,7 +111173,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/result-access-snapshot.test.mjs",
+                "path": "adapters/host-common/result-access-snapshot.test.mts",
                 "anchor": "test('attempt lookup keeps the authorized scalar and nested Run snapshot',"
               },
               {
@@ -111197,7 +111197,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e8823b4b618ca30f6285cdff526819edb590d0ee885bbc383ad9181f42e6e19f",
+      "sha256": "40d245450cc62ce3028e1d6c63fe333c52e5b0698ce14a57b3a47460b9260ed5",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -111437,14 +111437,14 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "async function readSelectedPublication("
               }
             ],
             "identity": [
               {
                 "path": "packages/run-host-core/result-access.mjs",
-                "anchor": "import {validDeliveryAttemptLookup, validResultDescription,"
+                "anchor": "import { validDeliveryAttemptLookup, validResultDescription,"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -111455,7 +111455,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This same Store read owns the selected Index's nominal admission. It is"
               }
             ],
@@ -111491,7 +111491,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "const readCommittedPublication = configuration.store.readCommittedPublication;"
               }
             ],
@@ -111527,14 +111527,14 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "packages/run-host-core/result-access.mjs",
-                "anchor": "withinResultDescriptionLimits, resultDescriptionLimits} from"
+                "anchor": "withinResultDescriptionLimits, resultDescriptionLimits } from"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -111621,14 +111621,14 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
+                "path": "adapters/host-common/result-access.mts",
+                "anchor": "async function readSelectedPublication("
               }
             ],
             "identity": [
               {
                 "path": "packages/run-host-core/result-access.mjs",
-                "anchor": "import {validDeliveryAttemptLookup, validResultDescription,"
+                "anchor": "import { validDeliveryAttemptLookup, validResultDescription,"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -111639,7 +111639,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "// This same Store read owns the selected Index's nominal admission. It is"
               }
             ],
@@ -111675,7 +111675,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "const readCommittedPublication = configuration.store.readCommittedPublication;"
               }
             ],
@@ -111711,14 +111711,14 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-common/result-access.mjs",
+                "path": "adapters/host-common/result-access.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
                 "path": "packages/run-host-core/result-access.mjs",
-                "anchor": "withinResultDescriptionLimits, resultDescriptionLimits} from"
+                "anchor": "withinResultDescriptionLimits, resultDescriptionLimits } from"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
