@@ -3,9 +3,11 @@
 // Neither an operation table nor these support bounds issues resource credit.
 import {Buffer} from 'node:buffer';
 import {TextDecoder, types} from 'node:util';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Method = (...args: unknown[]) => unknown;
-type Current = () => undefined;
+// Currentness finishes synchronously and may return the original Host entry.
+type Current = () => void | Extract<SynchronousRuntimeData, object>;
 type Inspector = (directory: string) => readonly string[];
 type InspectorRecord = Readonly<{maxEntries: number; first: (directory: string) => Buffer | null;
   native: unknown; assertCurrent: Current}>;
