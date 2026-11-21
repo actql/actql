@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import fs, {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -21,36 +22,40 @@ async function fixture(t) {
 
 for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreContractReadFailed'))]) {
   test(`actual pre-owner format failure retains the same FD${readFailure ? ' and frozen primary' : ''} through initialization retry`, async t => {
-    const f = await fixture(t);
-    const probe = await open(join(f.directory, 'store.json'), 'r');
-    const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
-    await probe.close();
-    let original, nativeClose, allowClose = false, failure, closes = 0, reads = 0;
+    const openOriginal = fs.open;
+    let original, nativeClose, allowClose = false, failure, opens = 0, closes = 0, reads = 0;
     const blocked = Object.assign(new Error('OriginalStoreContractCloseFailed'), {code: 'EIO'});
+    const restoreOpen = () => { fs.open = openOriginal; syncBuiltinESMExports(); };
     t.after(async () => {
-      prototype.stat = stat;
+      restoreOpen();
       allowClose = true;
       if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
       if (original?.fd >= 0) await Reflect.apply(nativeClose, original, []);
     });
-    prototype.stat = function(...args) {
-      if (original === undefined) {
-        original = this;
-        nativeClose = this.close;
-        const read = this.read;
-        this.read = function(...args) {
-          reads++;
-          if (readFailure) return Promise.reject(readFailure);
-          return Reflect.apply(read, this, args);
-        };
-        this.close = function(...args) {
-          closes++;
-          if (!allowClose) return Promise.reject(blocked);
-          return Reflect.apply(nativeClose, this, args);
-        };
-      }
-      return Reflect.apply(stat, this, args);
+    const f = await fixture(t);
+    const path = join(f.directory, 'store.json');
+    const saved = await readFile(path);
+    fs.open = async (...args) => {
+      if (args[0] !== path) return Reflect.apply(openOriginal, fs, args);
+      assert.equal(original, undefined, 'pending cleanup must never acquire another contract FD');
+      const handle = await Reflect.apply(openOriginal, fs, args);
+      original = handle;
+      opens++;
+      nativeClose = handle.close;
+      const read = handle.read;
+      handle.read = function(...args) {
+        reads++;
+        if (readFailure) return Promise.reject(readFailure);
+        return Reflect.apply(read, this, args);
+      };
+      handle.close = function(...args) {
+        closes++;
+        if (!allowClose) return Promise.reject(blocked);
+        return Reflect.apply(nativeClose, this, args);
+      };
+      return handle;
     };
+    syncBuiltinESMExports();
     await assert.rejects(openLocalPublicationStore(f.configuration, f.control), error => {
       failure = error;
       return error.code === 'UnknownPublicationStoreFormat';
@@ -71,8 +76,6 @@ for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreCont
     assert.equal(closes, 2);
     const originalReads = reads;
     // A pathname replacement cannot make close-only retry read new metadata.
-    const path = join(f.directory, 'store.json');
-    const saved = await readFile(path);
     await rm(path);
     await writeFile(path, 'not an accepted Store');
     allowClose = true;
@@ -82,9 +85,10 @@ for (const readFailure of [undefined, Object.freeze(new Error('OriginalStoreCont
     assert.equal(original.fd, -1);
     assert.equal(closes, 3);
     assert.equal(reads, originalReads);
+    assert.equal(opens, 1);
     await installed.cleanupHandle.retry();
     assert.equal(closes, 3);
-    prototype.stat = stat;
+    restoreOpen();
     // The ordinary entry still diagnoses invalid format. This is not a
     // continuation of failed initialization and does not issue a read grant.
     await assert.rejects(openLocalPublicationStore(f.configuration, f.control),
