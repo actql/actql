@@ -45,7 +45,7 @@ type DataRecord = Readonly<Record<string, unknown>>;
 type CompletionLimits = ReturnType<typeof completionRecordLimits>;
 type DescriptorSnapshot = Readonly<Record<(typeof descriptorCounts)[number], number> &
   Record<(typeof identities)[number], string> & {values: Readonly<Record<(typeof valueCounts)[number], number>>}>;
-interface InputSnapshot {readonly input: number; readonly producer: number;
+export interface InputSnapshot {readonly input: number; readonly producer: number;
   readonly producer_target_is_input: boolean; readonly producer_target_index: number}
 type TaskSnapshot = Readonly<Record<(typeof taskIdentities)[number], string> & {
   task: number; output_step: number; inputs: readonly InputSnapshot[]; controls: readonly number[];

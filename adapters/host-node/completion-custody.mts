@@ -3,19 +3,37 @@
 // sealing. A record is not permission to run a consumer or publish a Result.
 import {completionRecordLimits, snapshotCompletionDescriptor, snapshotCompletionTask} from './completion-record.mjs';
 import {createCompletionReader} from './completion-reader.mjs';
+import type {CompletionBody, CompletionCall, CompletionChannel, CompletionEntry} from './completion-reader.mjs';
 
-export function createProcessCompletionCustody(store, options, expectedTasks) {
+type CompletionRequest = Readonly<{
+  command?: unknown;
+  task?: number;
+  output?: string;
+  descriptor?: unknown;
+  taskIdentity?: unknown;
+}>;
+type CompletionStore<Lease, Report, Cleanup, ServiceReport> = Readonly<{
+  service: {invoke: (request: CompletionRequest | null | undefined, signal: AbortSignal, owner: CompletionCall) => ServiceReport};
+  observe: (channel: CompletionChannel) => unknown;
+  body: (output: string) => CompletionBody<Lease, Report> | undefined;
+  close: () => unknown;
+  cleanupHandle?: Cleanup;
+}>;
+type Task = ReturnType<typeof snapshotCompletionTask>;
+
+export function createProcessCompletionCustody<Lease, Report, Cleanup, ServiceReport>(
+  store: CompletionStore<Lease, Report, Cleanup, ServiceReport>, options: unknown, expectedTasks: readonly unknown[]) {
   const limits = completionRecordLimits(options);
   if (!Array.isArray(expectedTasks) || expectedTasks.length === 0 || expectedTasks.length > limits.maxCompletions) {
     throw new TypeError('InvalidCompletionTaskSet');
   }
-  const expected = new Map();
+  const expected = new Map<number, Task>();
   for (const supplied of expectedTasks) {
     const task = snapshotCompletionTask(supplied, limits);
     if (expected.has(task.task)) throw new TypeError('InvalidCompletionTaskSet');
     expected.set(task.task, task);
   }
-  const expectedProgram = expected.values().next().value;
+  const expectedProgram = expected.values().next().value!;
   for (const task of expected.values()) {
     if (task.program_definition_cid !== expectedProgram.program_definition_cid ||
         task.program_parameters_cid !== expectedProgram.program_parameters_cid ||
@@ -28,29 +46,30 @@ export function createProcessCompletionCustody(store, options, expectedTasks) {
       typeof store.body !== 'function' || typeof store.close !== 'function') {
     throw new TypeError('InvalidCompletionStore');
   }
-  const entries = new Map(), bodies = new Set(), records = new WeakMap();
-  let identity, stopped = false, closed = false;
-  const fail = code => { throw Object.assign(new Error(code), {code}); };
-  const exact = owner => {
+  const entries = new Map<number, CompletionEntry<Lease, Report> & {readonly handle: object}>(),
+    bodies = new Set<CompletionBody<Lease, Report>>(), records = new WeakMap<object, CompletionEntry<Lease, Report>>();
+  let identity: ReturnType<CompletionChannel['identity']> | undefined, stopped = false, closed = false;
+  const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+  const exact = (owner: CompletionCall) => {
     if (!identity || closed || stopped || owner?.session !== identity.session || owner?.run !== identity.run) {
       fail('ForeignCompletionSession');
     }
   };
-  const invoke = async (request, signal, owner) => {
+  const invoke = async (request: CompletionRequest | null | undefined, signal: AbortSignal, owner: CompletionCall) => {
     exact(owner);
     signal.throwIfAborted();
     if (request?.command !== 'retain-completion') return store.service.invoke(request, signal, owner);
     if (Object.keys(request).sort().join(',') !== 'command,descriptor,output,task,taskIdentity' ||
-        !Number.isSafeInteger(request.task) || request.task < 1 || request.task > 2147483647 ||
+        !Number.isSafeInteger(request.task) || request.task! < 1 || request.task! > 2147483647 ||
         !Number.isSafeInteger(owner.sequence) || owner.sequence < 1 ||
         typeof request.output !== 'string' || !request.output.length || request.output.length > 256) {
       fail('InvalidCompletionRecord');
     }
-    if (entries.has(request.task)) fail('DuplicateCompletionRecord');
+    if (entries.has(request.task!)) fail('DuplicateCompletionRecord');
     if (entries.size >= limits.maxCompletions) fail('CompletionRecordLimit');
     const descriptor = snapshotCompletionDescriptor(request.descriptor, limits);
     const taskIdentity = snapshotCompletionTask(request.taskIdentity, limits);
-    if (JSON.stringify(taskIdentity) !== JSON.stringify(expected.get(request.task))) fail('ForeignCompletionTask');
+    if (JSON.stringify(taskIdentity) !== JSON.stringify(expected.get(request.task!))) fail('ForeignCompletionTask');
     if (taskIdentity.task !== request.task || taskIdentity.output_step !== descriptor.output_step ||
         taskIdentity.inputs.length !== descriptor.input_count) fail('ForeignCompletionTask');
     for (const input of taskIdentity.inputs) {
@@ -70,16 +89,16 @@ export function createProcessCompletionCustody(store, options, expectedTasks) {
     // completion observer supplies the exact common-core task, not diagnostics.
     const handle = Object.freeze({});
     const entry = Object.freeze({handle, body, descriptor, taskIdentity,
-      origin: Object.freeze({session: identity.session, run: identity.run,
-        request: owner.sequence, task: request.task, output: request.output})});
-    entries.set(request.task, entry);
+      origin: Object.freeze({session: identity!.session, run: identity!.run,
+        request: owner.sequence, task: request.task!, output: request.output})});
+    entries.set(request.task!, entry);
     records.set(handle, entry);
     bodies.add(body);
-    return Object.freeze({task: request.task});
+    return Object.freeze({task: request.task!});
   };
   return Object.freeze({
     service: Object.freeze({invoke, cleanupHandle: store.cleanupHandle}),
-    observe(channel) {
+    observe(channel: CompletionChannel) {
       if (identity || closed) fail('CompletionCustodyAlreadyBound');
       store.observe(channel);
       identity = Object.freeze({...channel.identity()});
@@ -88,14 +107,14 @@ export function createProcessCompletionCustody(store, options, expectedTasks) {
         stopped = true;
       });
     },
-    completion(task) { return entries.get(task)?.handle; },
-    prepareReader(handle) {
+    completion(task: number) { return entries.get(task)?.handle; },
+    prepareReader(handle: object) {
       const entry = records.get(handle);
       if (!entry) fail('ForeignCompletionRecord');
       if (closed || !entry.body.available()) fail('RetainedUnavailable');
       return createCompletionReader(entry, limits, () => !closed && entry.body.available());
     },
-    inspect(handle) {
+    inspect(handle: object) {
       const entry = records.get(handle);
       if (!entry) fail('ForeignCompletionRecord');
       return Object.freeze({origin: entry.origin, descriptor: entry.descriptor, taskIdentity: entry.taskIdentity,

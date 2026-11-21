@@ -2,10 +2,40 @@
 // an already admitted process, not Compute admission or logical re-admission.
 // Only completion custody constructs it with its private, exact record.
 import {snapshotCompletionTask} from './completion-record.mjs';
+import type {completionRecordLimits, snapshotCompletionDescriptor} from './completion-record.mjs';
 
-export function createCompletionReader(entry, limits, available) {
-  let identity, channel, stopped = false, used = false, sequence, borrow;
-  const fail = code => { throw Object.assign(new Error(code), {code}); };
+type CompletionSession = Readonly<{session: string; run: string}>;
+export type CompletionCall = CompletionSession & Readonly<{sequence: number}>;
+export type CompletionChannel = Readonly<{
+  identity: () => CompletionSession;
+  cleanupHandle: Readonly<{whenStopped: () => PromiseLike<unknown>}>;
+}>;
+type ReaderChannel = CompletionChannel & Readonly<{status: () => Readonly<{exited?: boolean}>}>;
+type CompletionReadRequest = Readonly<{command?: unknown; taskIdentity?: unknown; report?: unknown}>;
+type ReadBorrow<Lease, Report> = Readonly<{
+  descriptor: Lease;
+  verify: (report: unknown) => Report;
+  finish: (report: unknown) => Report;
+  confirmStopped: () => boolean | void;
+}>;
+export type CompletionBody<Lease, Report> = Readonly<{
+  cid: string;
+  bytes: number;
+  available: () => boolean;
+  delegateRead: (session: string) => ReadBorrow<Lease, Report>;
+}>;
+export type CompletionEntry<Lease, Report> = Readonly<{
+  origin: CompletionSession & Readonly<{request: number; task: number; output: string}>;
+  body: CompletionBody<Lease, Report>;
+  descriptor: ReturnType<typeof snapshotCompletionDescriptor>;
+  taskIdentity: ReturnType<typeof snapshotCompletionTask>;
+}>;
+
+export function createCompletionReader<Lease, Report>(entry: CompletionEntry<Lease, Report>,
+  limits: ReturnType<typeof completionRecordLimits>, available: () => boolean) {
+  let identity: CompletionSession | undefined, channel: ReaderChannel | undefined,
+    stopped = false, used = false, sequence: number | undefined, borrow: ReadBorrow<Lease, Report> | undefined;
+  const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
   const confirmStopped = () => {
     stopped = true;
     borrow?.confirmStopped();
@@ -20,7 +50,7 @@ export function createCompletionReader(entry, limits, available) {
       return cleanupHandle.status();
     },
   });
-  const invoke = async (request, signal, owner) => {
+  const invoke = async (request: CompletionReadRequest | null | undefined, signal: AbortSignal, owner: CompletionCall) => {
     if (!identity || stopped || owner?.session !== identity.session || owner?.run !== identity.run ||
         !Number.isSafeInteger(owner.sequence) || owner.sequence < 1) fail('ForeignCompletionReader');
     signal.throwIfAborted();
@@ -61,7 +91,7 @@ export function createCompletionReader(entry, limits, available) {
   return Object.freeze({
     service: Object.freeze({invoke, cleanupHandle}),
     cleanupHandle,
-    observe(value) {
+    observe(value: ReaderChannel) {
       if (identity) fail('CompletionReaderAlreadyBound');
       const candidate = value.identity();
       if (candidate.run !== entry.origin.run || candidate.session === entry.origin.session ||

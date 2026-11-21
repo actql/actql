@@ -1083,3 +1083,7 @@ target/
 /adapters/host-node/effect-command-key.d.mts
 /adapters/host-node/effect-command-key.test.mjs
 /adapters/host-node/effect-command-key.test.d.mts
+/adapters/host-node/completion-reader.mjs
+/adapters/host-node/completion-reader.d.mts
+/adapters/host-node/completion-custody.mjs
+/adapters/host-node/completion-custody.d.mts
