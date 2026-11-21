@@ -353,5 +353,5 @@ export function createResultRetirement<NativeIndex, Contract extends IndexContra
     return Object.freeze(recovered);
   };
 
-  return {readResultDeletion, retireCommittedResult, recoverRetiredResults};
+  return {readResultDeletion, createResultDeletionCleanup, retireCommittedResult, recoverRetiredResults};
 }

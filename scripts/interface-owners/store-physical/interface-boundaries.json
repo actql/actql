@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f2792d9ada66da426109ffe9b133cee43e75575c06ed47ee43fbd97bf464f475",
+      "sha256": "2e6882a7bd271959607cd03c3353e5e1428fe7adcd3704ea5b13e44b378d58df",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -17257,7 +17257,7 @@
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9edd83bf42405619e5bcf6a5856057bdffdf30cb2fa37cfe4abc28c350fc8367",
+      "sha256": "726ba370db8bef46eaf1637e817b989b49218a38adf89b083087d575ff2b7d6e",
       "exports": [
         "createResultDeletionOwner",
         "createResultRetirement"
@@ -17324,6 +17324,16 @@
             "releasePhysicalCapacity"
           ],
           "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup",
+          "parameters": [
+            "keyHash",
+            "resultDefinitionCid",
+            "marker",
+            "expectedBytes"
+          ],
+          "async": true
         },
         {
           "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
@@ -17426,7 +17436,8 @@
             "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
             "createResultRetirement/readResultDeletion/readResultDeletion",
             "createResultRetirement/recoverRetiredResults/recoverRetiredResults",
-            "createResultRetirement/retireCommittedResult/retireCommittedResult"
+            "createResultRetirement/retireCommittedResult/retireCommittedResult",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup"
           ],
           "exports": [
             "createResultDeletionOwner",

@@ -5405,7 +5405,7 @@ async function openOriginalLocalPublicationStore(
       metadataRetentionCurrent, retainMetadataOperation,
     });
 
-  const {readResultDeletion, retireCommittedResult, recoverRetiredResults} =
+  const {readResultDeletion, createResultDeletionCleanup, retireCommittedResult, recoverRetiredResults} =
     createResultRetirement(configuration, deletionsDirectory, indexesDirectory, {
       active, cidHex, currentDeliveryIndex, resultDeletionDirectory, resultDeletionPath,
       readOpeningDirectory, readMetadataDeletion, admitNativeIndexOriginal, admitContract, parseContract,
