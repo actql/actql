@@ -2768,6 +2768,11 @@ jobs:
         if: github.event_name != 'schedule'
         timeout-minutes: 5
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+      - name: Require installed Native Mock updates across one shared file
+        id: shared_file_mock
+        if: github.event_name != 'schedule'
+        timeout-minutes: 5
+        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release" --shared-file-mock
       - name: Require thirty complete approvals per original Mock workflow on the weekly schedule
         id: approval_profile
         if: github.event_name == 'schedule'

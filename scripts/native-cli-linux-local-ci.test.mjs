@@ -131,6 +131,10 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(functional.run.includes('node scripts/test-native-cli-mock-install.mjs'));
   assert(functional.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
   assert(!/--measure|--diagnos/u.test(functional.run), 'Keep the ordinary maximum-only smoke check');
+  const sharedFile = mockJob.steps.find(step => step.id === 'shared_file_mock');
+  assert.equal(sharedFile.run, 'node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release" --shared-file-mock');
+  assert.equal(sharedFile['timeout-minutes'], 5);
+  assert.equal(sharedFile['continue-on-error'], undefined);
   const mock = mockJob.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
   for (const argument of ['--normal "$RUNNER_TEMP/native-cli-linux-local/release"',
     '--binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"',
@@ -142,6 +146,7 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     const selected = step => Function('github', 'return (' +
       step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event});
     assert.equal(selected(functional), event !== 'schedule');
+    assert.equal(selected(sharedFile), event !== 'schedule');
     assert.equal(selected(mock), event === 'schedule');
   }
   assert.equal(mock['continue-on-error'], undefined);
@@ -149,6 +154,7 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(functional));
+  assert(mockJob.steps.indexOf(functional) < mockJob.steps.indexOf(sharedFile));
   assert(!/--measure|performance-diagnostic/u.test(mock.run), 'The formal collector is not the diagnostic consumer');
   assert(!mockJob.steps.some(step => /produce-native|native-cli-release/u.test(step.run ?? '')),
     'Neither formal sampling nor failure diagnostics may rebuild the fixed Native payload');
