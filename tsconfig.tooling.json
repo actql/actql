@@ -18,6 +18,7 @@
       "ES2023.Array",
     "ESNext.Array",
       "ES2024.String",
+      "ES2024.Promise",
       "ES2024.ArrayBuffer",
       "DOM.AsyncIterable"
     ],

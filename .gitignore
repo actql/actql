@@ -957,3 +957,7 @@ target/
 /scripts/test-packed-read-opening.d.mts
 /scripts/fixtures/packed-local-without-duckdb.mjs
 /scripts/fixtures/packed-local-without-duckdb.d.mts
+/scripts/fixtures/run-revision-assertions.mjs
+/scripts/fixtures/run-revision-assertions.d.mts
+/scripts/run-revision-assertions.test.mjs
+/scripts/run-revision-assertions.test.d.mts

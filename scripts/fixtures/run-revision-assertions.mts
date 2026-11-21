@@ -5,18 +5,29 @@ import {generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {isDeepStrictEqual} from 'node:util';
 import {setImmediate} from 'node:timers/promises';
+import type {RunReference} from '@actql/sdk';
 
-export function observedRevision(state, label) {
+type RunObservation = {
+  run_id: string;
+  revision?: number;
+  updated_at?: string;
+  status?: string;
+  control?: {physical_stop?: string};
+  result_available?: boolean;
+  result_availability?: Readonly<Record<string, {state?: string; observed_at?: string}>>;
+};
+
+export function observedRevision(state: RunObservation, label: string) {
   assert.equal(Number.isSafeInteger(state.revision), true, `${label}: state revision`);
-  assert.ok(state.revision >= 0, `${label}: nonnegative state revision`);
-  return state.revision;
+  assert.ok(state.revision! >= 0, `${label}: nonnegative state revision`);
+  return state.revision!;
 }
 
 // Keep every published fact, including the complete control and availability
 // cause projections. Only the state counter and specified read clocks differ
 // without a new logical fact (run-observation.state-revision).
-export function publishedFacts(state) {
-  const facts = structuredClone(state);
+export function publishedFacts<State extends RunObservation>(state: State) {
+  const facts: Partial<State> = structuredClone(state);
   delete facts.revision;
   delete facts.updated_at;
   if (facts.result_availability !== undefined) {
@@ -30,7 +41,7 @@ export function publishedFacts(state) {
 // These arguments are the fixture's already-authorized public Run responses,
 // never transport errors, journal parameters or backend objects. Keep a full
 // pair on failure without changing the assertion or the product's disclosure.
-function retainObservationPair(error, before, after, label) {
+function retainObservationPair(error: Error, before: RunObservation, after: RunObservation, label: string) {
   let evidence;
   try {
     const pair = JSON.stringify({label, before, after,
@@ -51,7 +62,7 @@ function retainObservationPair(error, before, after, label) {
   if (typeof stack === 'string') error.stack = `${stack}\n${diagnostic}`;
 }
 
-export function assertObservedTransition(before, after, label) {
+export function assertObservedTransition(before: RunObservation, after: RunObservation, label: string) {
   try {
     assert.equal(after.run_id, before.run_id, `${label}: same original Run`);
     const previous = observedRevision(before, label), next = observedRevision(after, label);
@@ -66,12 +77,14 @@ export function assertObservedTransition(before, after, label) {
   }
 }
 
-export function hasSettledResult(state, resultName) {
+export function hasSettledResult(state: RunObservation, resultName: string) {
   return state.status === 'succeeded' && state.control?.physical_stop === 'confirmed' &&
     state.result_available === true && state.result_availability?.[resultName]?.state === 'available';
 }
 
-export async function observeSettledResult(run, initial, resultName, label, signal) {
+export async function observeSettledResult<State extends RunObservation>(
+  run: {status(): Promise<State>}, initial: State, resultName: string, label: string, signal: AbortSignal,
+) {
   let state = initial;
   // Do not accept a stable counter or terminal status as evidence of settled
   // control. Read only this original Run until its actual published facts say so.
@@ -87,20 +100,20 @@ export async function observeSettledResult(run, initial, resultName, label, sign
 
 // The existing awaited computed hook can expose a real earlier publication
 // before its original cleanup/stop transition. No counter or state is invented.
-export function createComputedBarrier() {
-  const reached = Promise.withResolvers(), released = Promise.withResolvers();
+export function createComputedBarrier<Reference extends object = object>() {
+  const reached = Promise.withResolvers<Reference>(), released = Promise.withResolvers<void>();
   let entered = false;
   return Object.freeze({
-    async observe(ref) {
+    async observe(ref: Reference) {
       assert.equal(entered, false, 'One original computed observation');
       entered = true;
       reached.resolve(structuredClone(ref));
       await released.promise;
     },
-    async waitForOriginal(ref, signal) {
+    async waitForOriginal(ref: Reference, signal: AbortSignal) {
       signal.throwIfAborted();
-      let onAbort;
-      const aborted = new Promise((_, reject) => {
+      let onAbort!: () => void;
+      const aborted = new Promise<never>((_, reject) => {
         onAbort = () => reject(signal.reason);
         signal.addEventListener('abort', onAbort, {once: true});
       });
@@ -113,12 +126,12 @@ export function createComputedBarrier() {
   });
 }
 
-export function shortQueryAuthorization(outcome = 'allow') {
+export function shortQueryAuthorization(outcome: 'allow' | 'delegate' = 'allow') {
   const keys = generateKeyPairSync('ed25519');
-  let computes = 0, nextComputed;
+  let computes = 0, nextComputed: ReturnType<typeof createComputedBarrier<RunReference>> | undefined;
   return {count: () => computes, holdNextComputed() {
     assert.equal(nextComputed, undefined, 'One fixture-owned pending barrier');
-    nextComputed = createComputedBarrier();
+    nextComputed = createComputedBarrier<RunReference>();
     return nextComputed;
   }, value: {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
@@ -136,8 +149,8 @@ export function shortQueryAuthorization(outcome = 'allow') {
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    observe(name) {if (name === 'computed') computes++;},
-    async faultInjection(name, detail) {
+    observe(name: string) {if (name === 'computed') computes++;},
+    async faultInjection(name: string, detail: {ref: RunReference}) {
       if (name === 'computed' && nextComputed !== undefined) {
         const original = nextComputed;
         nextComputed = undefined;

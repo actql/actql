@@ -36,10 +36,10 @@ test('same succeeded status with actual control change requires advancement', ()
 });
 
 test('availability cause, next action and complete control remain facts', () => {
-  for (const change of [value => {value.result_availability.answer.reason = 'expired';},
-    value => {value.next_action.results = [];},
-    value => {value.control.revision++;},
-    value => {value.control.cancellation_requested = true;}]) {
+  for (const change of [(value: ReturnType<typeof state>) => {value.result_availability.answer.reason = 'expired';},
+    (value: ReturnType<typeof state>) => {value.next_action.results = [];},
+    (value: ReturnType<typeof state>) => {value.control.revision++;},
+    (value: ReturnType<typeof state>) => {value.control.cancellation_requested = true;}]) {
     const before = state(), after = structuredClone(before);
     change(after);
     assert.throws(() => assertObservedTransition(before, after, 'changed fact'), /must advance/u);
@@ -89,10 +89,10 @@ test('an aborted settle observation never substitutes a settled default', async 
     state(), 'answer', 'cancel', abort.signal), /TestStop/u);
 });
 
-test('both external consumer preparations stage the actual assertion module', async () => {
+test('both external consumer preparations await shared short-query staging', async () => {
   for (const path of ['test-package-release-install.mjs', 'test-packed-local-without-duckdb.mjs']) {
     const source = await readFile(new URL(path, import.meta.url), 'utf8');
-    assert.match(source, /copyFile\(join\(repository, 'scripts\/fixtures\/run-revision-assertions\.mjs'\),/u);
+    assert.match(source, /\bawait\s+stageShortQueryFixtures\s*\(/u);
   }
 });
 
@@ -123,10 +123,10 @@ test('revision zero is a legal earlier observation, not an invented predecessor'
   assert.equal(after.revision > before.revision, true);
 });
 
-function observationEvidence(error) {
+function observationEvidence(error: Error) {
   const line = error.message.split('\n').find(value => value.startsWith('RUN_STATE_OBSERVATIONS '));
   assert.notEqual(line, undefined);
-  return JSON.parse(line.slice('RUN_STATE_OBSERVATIONS '.length));
+  return JSON.parse(line!.slice('RUN_STATE_OBSERVATIONS '.length)) as Record<string, unknown>;
 }
 
 test('failed revision assertion retains both complete public responses and compared facts', () => {
@@ -135,7 +135,7 @@ test('failed revision assertion retains both complete public responses and compa
   after.updated_at = '2026-10-17T00:00:02Z';
   after.result_availability.answer.observed_at = after.updated_at;
   const originals = structuredClone({before, after});
-  assert.throws(() => assertObservedTransition(before, after, 'https after wait'), error => {
+  assert.throws(() => assertObservedTransition(before, after, 'https after wait'), (error: assert.AssertionError) => {
     assert.equal(error.code, 'ERR_ASSERTION');
     assert.equal(error.actual, 3);
     assert.equal(error.expected, 1);
@@ -143,8 +143,8 @@ test('failed revision assertion retains both complete public responses and compa
     const pair = observationEvidence(error);
     assert.deepEqual(pair, {label: 'https after wait', ...originals,
       beforeFacts: publishedFacts(before), afterFacts: publishedFacts(after)});
-    assert.match(error.stack, /assertObservedTransition/u);
-    assert.match(error.stack, /RUN_STATE_OBSERVATIONS/u);
+    assert.match(error.stack!, /assertObservedTransition/u);
+    assert.match(error.stack!, /RUN_STATE_OBSERVATIONS/u);
     return true;
   });
   assert.deepEqual({before, after}, originals);
@@ -152,12 +152,12 @@ test('failed revision assertion retains both complete public responses and compa
 
 test('changed facts and a foreign Run remain refusals with their original public pair', () => {
   for (const [label, change, reason] of [
-    ['control', value => {value.control.physical_stop = 'confirmed';}, /must advance/u],
-    ['foreign', value => {value.run_id = 'foreign';}, /same original/u],
-  ]) {
+    ['control', (value: ReturnType<typeof state>) => {value.control.physical_stop = 'confirmed';}, /must advance/u],
+    ['foreign', (value: ReturnType<typeof state>) => {value.run_id = 'foreign';}, /same original/u],
+  ] as const) {
     const before = state(), after = structuredClone(before);
     change(after);
-    assert.throws(() => assertObservedTransition(before, after, label), error => {
+    assert.throws(() => assertObservedTransition(before, after, label), (error: assert.AssertionError) => {
       assert.match(error.message, reason);
       const pair = observationEvidence(error);
       assert.deepEqual(pair.before, before);
@@ -169,13 +169,13 @@ test('changed facts and a foreign Run remain refusals with their original public
 
 test('oversized observation evidence stays bounded and never substitutes a partial pair', () => {
   const before = {...state(), fixtureData: 'x'.repeat(80 * 1024)};
-  assert.throws(() => assertObservedTransition(before, {...before, revision: 2}, 'large'), error => {
+  assert.throws(() => assertObservedTransition(before, {...before, revision: 2}, 'large'), (error: assert.AssertionError) => {
     assert.equal(error.actual, 2);
     assert.equal(error.expected, 1);
     const record = observationEvidence(error);
     assert.equal(record.available, false);
     assert.equal(record.reason, 'observation_pair_byte_limit');
-    assert(record.bytes > 64 * 1024);
+    assert((record.bytes as number) > 64 * 1024);
     assert.equal(Object.hasOwn(record, 'before'), false);
     assert(Buffer.byteLength(error.message) < 1024);
     return true;
@@ -194,7 +194,7 @@ test('uncaught child assertion exposes the exact public pair through the ordinar
   assert.match(result.stderr, /AssertionError \[ERR_ASSERTION\]/u);
   const line = result.stderr.split('\n').find(value => value.startsWith('RUN_STATE_OBSERVATIONS '));
   assert.notEqual(line, undefined);
-  const pair = JSON.parse(line.slice('RUN_STATE_OBSERVATIONS '.length));
+  const pair = JSON.parse(line!.slice('RUN_STATE_OBSERVATIONS '.length));
   assert.deepEqual(pair.before, before);
   assert.deepEqual(pair.after, after);
 });
