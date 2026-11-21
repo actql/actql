@@ -4,34 +4,141 @@ import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // identity, Artifact admission, publication commit, and retention remain
 // separate common-core decisions.
 
+import type {publicationAction} from './publication-action.mjs';
+import type {outputLimitFields, resultOutputLimitFields} from './result-output-limits.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type CommonObject = Extract<SynchronousRuntimeData, object>;
+type ExportHandle = CommonObject;
+type PayloadLimits = Readonly<Record<typeof outputLimitFields[number], number>>;
+type ResultLimits = Readonly<Record<typeof resultOutputLimitFields[number], number>>;
+type PayloadIdentity = Readonly<{
+  orderedRowsCid: string;
+  logicalRelationCid: string;
+  resultSchemaCid: string;
+  resultSchemaWire: string;
+  resultFields: readonly string[];
+  codecContractCid: string;
+  bytes: number;
+  nodes: number;
+  rows: number;
+  schemaBytes: number;
+  schemaNodes: number;
+  schemaFields: number;
+}>;
+type CleanupStatus = Readonly<{pending: boolean; errors?: readonly unknown[]}>;
+type CleanupHandle = Readonly<{status(): CleanupStatus; retry(): Awaitable<unknown>}>;
+type PreparedOwner = CleanupHandle & Readonly<{release(): Awaitable<unknown>}>;
+type CleanupOwner = Readonly<{pending(): boolean; retry?(): Awaitable<unknown>}>;
+type Physical = Readonly<{cid: string; bytes: number; created: boolean}>;
+type PreparedSchema = Readonly<{semanticCid: string; physical: Physical; created: boolean; prepared: PreparedOwner}>;
+type ObjectWriter = Readonly<{
+  append(batch: string): Awaitable<unknown>;
+  seal(expectedCid: string): Awaitable<Physical & Readonly<{prepared?: PreparedOwner}>>;
+  cancel(): Awaitable<unknown>;
+  status(): Readonly<{reservationHeld?: boolean; custodyPending?: boolean}>;
+}>;
+type PayloadStore = Readonly<{
+  createObjectWriter(maxBytes: number): ObjectWriter;
+  createPreparedObjectWriter?(maxBytes: number): ObjectWriter;
+  putPreparedResultSchema?(wire: string, semanticCid: string, runDefinitionCid: string): Awaitable<PreparedSchema>;
+  storeAuthorityCid?: string;
+}>;
+type IssuedEvidence = Readonly<{derivation: CommonObject; ordering: CommonObject}>;
+type ResultPublicationEvidence = IssuedEvidence & Readonly<{artifact: CommonObject; snapshot: CommonObject}>;
+type CleanupControl = Readonly<{
+  cleanupOwnerAction(currentOwner: number, ownerCount: number, statusChecked: boolean,
+    pending: boolean, retryAvailable: boolean, retryAttempted: boolean): ReturnType<typeof publicationAction<'cleanupOwner'>>;
+}>;
+type PayloadControl = CleanupControl & Readonly<{
+  begin(output: unknown, limits: PayloadLimits): ExportHandle;
+  next(handle: ExportHandle): string | undefined;
+  finish(handle: ExportHandle): string;
+  identity(handle: ExportHandle): PayloadIdentity;
+  cancel(handle: ExportHandle): SynchronousRuntimeData;
+  payloadFailureAction(writerExists: boolean, sealed: boolean, writerCancelAttempted: boolean,
+    preparedPending: boolean, preparedReleaseAttempted: boolean, exportExists: boolean,
+    exportReleased: boolean, exportCancelAttempted: boolean): ReturnType<typeof publicationAction<'durablePayloadFailure'>>;
+}>;
+type ResultControl = PayloadControl & Readonly<{
+  beginResult(host: object, result: number, limits: ResultLimits, output?: unknown,
+    transformation?: unknown, signal?: AbortSignal, progress?: unknown): Awaitable<ExportHandle>;
+}>;
+type PublicationResultControl = ResultControl & Readonly<{
+  issueResultEvidence(handle: ExportHandle, context: unknown, limits: unknown): IssuedEvidence;
+}>;
+type DurableBindingContracts = Readonly<{
+  runDefinition: Readonly<{identity: string}>;
+  definition: unknown;
+  invocation: unknown;
+  artifact: CommonObject;
+  ordering: CommonObject;
+  retention: unknown;
+}>;
+type ResultPhysicalFacts = Readonly<{
+  codecContractCid: string;
+  resultFields: readonly string[];
+  resultSchemaWire: string;
+  materialGenerationCid: string;
+  storeAuthorityCid: string | undefined;
+  rowCount: number;
+  byteCount: number;
+  physicalSha256: string;
+}>;
+type PublicationControl = Readonly<{
+  issueResultArtifact(handle: ExportHandle, invocation: unknown, retention: unknown, limits: unknown): CommonObject;
+  admitCompletedResultSnapshot(handle: ExportHandle, limits: ResultLimits, signal?: AbortSignal, resource?: unknown): Awaitable<CommonObject>;
+  issueDurableResultBinding(contracts: DurableBindingContracts, facts: ResultPhysicalFacts, limits: unknown): CommonObject;
+}>;
+type PublicationOptions = Readonly<{
+  control: PublicationControl;
+  runDefinition: DurableBindingContracts['runDefinition'];
+  definition: unknown;
+  invocation: unknown;
+  retention: unknown;
+  evidenceContext: unknown;
+  limits: unknown;
+}>;
+type BeginResult = (host: object, result: number, limits: ResultLimits) => Awaitable<ExportHandle>;
+type ReadBatch = (handle: ExportHandle, signal?: AbortSignal) => Awaitable<string | undefined>;
+type IssueEvidence = (handle: ExportHandle) => Awaitable<ResultPublicationEvidence>;
+type IssuePhysicalEvidence = (physical: Physical, orderedRows: PayloadIdentity, evidence: ResultPublicationEvidence) => CommonObject;
+
 export class DurableResultPayloadError extends Error {
-  constructor(code, cause) {
+  declare code: string;
+  declare primaryFailure?: unknown;
+  declare cleanupPending?: boolean;
+  declare cleanupErrors?: readonly unknown[];
+  declare cleanupHandle?: CleanupHandle;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
   }
 }
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw new DurableResultPayloadError(code, cause);
 };
 
-function validStore(store) {
+function validStore(store: unknown): store is PayloadStore {
   return store !== null && typeof store === 'object' &&
-    typeof store.createObjectWriter === 'function';
+    typeof (store as PayloadStore).createObjectWriter === 'function';
 }
 
-function validControl(control) {
+function validControl(control: unknown): control is PayloadControl {
   return control !== null && typeof control === 'object' &&
     ['begin', 'next', 'finish', 'identity', 'cancel',
       'payloadFailureAction', 'cleanupOwnerAction']
-      .every(name => typeof control[name] === 'function');
+      .every(name => typeof (control as PayloadControl)[name as keyof PayloadControl] === 'function');
 }
 
-function validResultControl(control) {
-  return validControl(control) && typeof control.beginResult === 'function';
+function validResultControl(control: unknown): control is ResultControl {
+  return validControl(control) && typeof (control as ResultControl).beginResult === 'function';
 }
 
-function validIdentity(value) {
+function validIdentity(value: PayloadIdentity) {
   return value !== null && typeof value === 'object' &&
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
@@ -42,15 +149,15 @@ function validIdentity(value) {
     value.resultFields.every(field =>
       typeof field === 'string' && field.length > 0) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.codecContractCid) &&
-    ['bytes', 'nodes', 'rows'].every(name =>
+    (['bytes', 'nodes', 'rows'] as const).every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0) &&
-    ['schemaBytes', 'schemaNodes', 'schemaFields'].every(name =>
+    (['schemaBytes', 'schemaNodes', 'schemaFields'] as const).every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0) &&
     new TextEncoder().encode(value.resultSchemaWire).byteLength ===
       value.schemaBytes;
 }
 
-function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
+function payloadFailure(reason: unknown, cleanupErrors: unknown[], cleanupOwners: readonly CleanupOwner[], control: CleanupControl) {
   const initialErrorCount = cleanupErrors.length;
   // The caller's throwable can be a primitive or an immutable Error. Keep all
   // cleanup metadata on an envelope owned by this adapter.
@@ -95,7 +202,7 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
           }
           if (action === 'retry') {
             retryAttempted = true;
-            try { await cleanupOwners[currentOwner].retry(); }
+            try { await cleanupOwners[currentOwner].retry!(); }
             catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error, initialErrorCount); }
             continue;
           }
@@ -118,7 +225,7 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
   return failure;
 }
 
-function preparedResultOwners(physical, schema) {
+function preparedResultOwners(physical: PreparedOwner, schema: PreparedOwner) {
   const owners = [physical, schema];
   const status = () => Object.freeze({
     pending: owners.some(owner => owner.status().pending === true),
@@ -148,7 +255,7 @@ function preparedResultOwners(physical, schema) {
 /// JavaScript. The ordered-row receipt and physical object identity are kept as
 /// distinct typed fields even when this codec makes their SHA-256 values equal.
 export async function storeCompletedOutputPayload(
-  store, control, output, limits, signal,
+  store: unknown, control: unknown, output: unknown, limits: PayloadLimits, signal?: AbortSignal,
 ) {
   if (!validStore(store) || !validControl(control)) {
     fail('InvalidDurableResultPayloadAdapter');
@@ -162,7 +269,7 @@ export async function storeCompletedOutputPayload(
 /// adapter receives an index only; projection, ordering, and identity remain
 /// bound to the opaque occurrence retained by the MoonBit runtime.
 export async function storeCompletedResultPayload(
-  store, control, host, result, limits, signal,
+  store: unknown, control: unknown, host: object, result: number, limits: ResultLimits, signal?: AbortSignal,
 ) {
   if (!validStore(store) || !validResultControl(control) ||
       !Number.isSafeInteger(result) || result < 0) {
@@ -182,16 +289,16 @@ export async function storeCompletedResultPayload(
 /// issued before the physical object is sealed, so a failed issuance cannot
 /// strand an otherwise unreferenced durable payload.
 export async function storeCompletedResultPublicationPayload(
-  store,
-  control,
-  host,
-  result,
-  limits,
-  publication,
-  signal,
-  beginResult,
-  readBatch,
-  publicationResource,
+  store: unknown,
+  control: PublicationResultControl,
+  host: object,
+  result: number,
+  limits: ResultLimits,
+  publication: PublicationOptions,
+  signal?: AbortSignal,
+  beginResult?: BeginResult,
+  readBatch?: ReadBatch,
+  publicationResource?: unknown,
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
@@ -204,7 +311,7 @@ export async function storeCompletedResultPublicationPayload(
       typeof publication.control?.admitCompletedResultSnapshot !==
         'function' ||
       !/^sha256:[0-9a-f]{64}$/u.test(
-        publication.runDefinition?.identity,
+        publication.runDefinition?.identity!,
       ) ||
       !Number.isSafeInteger(result) || result < 0) {
     fail('InvalidDurableResultPayloadAdapter');
@@ -263,28 +370,28 @@ export async function storeCompletedResultPublicationPayload(
 }
 
 async function storeCompletedPayload(
-  store,
-  control,
-  beginExport,
-  limits,
-  signal,
-  issueEvidence,
-  issuePhysicalEvidence,
+  store: PayloadStore,
+  control: PayloadControl,
+  beginExport: () => Awaitable<ExportHandle>,
+  limits: PayloadLimits,
+  signal?: AbortSignal,
+  issueEvidence?: IssueEvidence,
+  issuePhysicalEvidence?: IssuePhysicalEvidence,
   preparePhysical = false,
-  schemaRunDefinitionCid,
-  readBatch,
+  schemaRunDefinitionCid?: string,
+  readBatch?: ReadBatch,
 ) {
   signal?.throwIfAborted();
-  let exportHandle;
-  let writer;
-  let prepared;
-  let schema;
+  let exportHandle: ExportHandle | undefined;
+  let writer: ObjectWriter | undefined;
+  let prepared: PreparedOwner | undefined;
+  let schema: PreparedSchema | undefined;
   let sealed = false;
   let exportReleased = false;
   try {
     exportHandle = await beginExport();
     writer = preparePhysical
-      ? store.createPreparedObjectWriter(limits.maxWireBytes)
+      ? store.createPreparedObjectWriter!(limits.maxWireBytes)
       : store.createObjectWriter(limits.maxWireBytes);
     for (;;) {
       signal?.throwIfAborted();
@@ -307,17 +414,17 @@ async function storeCompletedPayload(
     const publication = await issueEvidence?.(exportHandle);
     signal?.throwIfAborted();
     if (publication !== undefined) {
-      schema = await store.putPreparedResultSchema(
+      schema = await store.putPreparedResultSchema!(
         orderedRows.resultSchemaWire,
         orderedRows.resultSchemaCid,
-        schemaRunDefinitionCid,
+        schemaRunDefinitionCid!,
       );
       prepared = schema.prepared;
     }
     signal?.throwIfAborted();
     const sealedPhysical = await writer.seal(orderedRows.orderedRowsCid);
     if (schema !== undefined) {
-      prepared = preparedResultOwners(sealedPhysical.prepared, schema.prepared);
+      prepared = preparedResultOwners(sealedPhysical.prepared!, schema.prepared);
     } else {
       prepared = sealedPhysical.prepared;
     }
@@ -332,9 +439,9 @@ async function storeCompletedPayload(
       fail('DurableResultPayloadIdentityMismatch');
     }
     const durableBinding = issuePhysicalEvidence?.(
-      physical, orderedRows, publication,
+      physical, orderedRows, publication!,
     );
-    control.cancel(exportHandle);
+    control.cancel(exportHandle!);
     exportReleased = true;
     return Object.freeze({
       physical: Object.freeze({...physical}),
@@ -342,22 +449,22 @@ async function storeCompletedPayload(
       ...(publication === undefined ? {} : {
         publication: Object.freeze({...publication, durableBinding}),
         schema: Object.freeze({
-          semanticCid: schema.semanticCid,
-          physical: schema.physical,
-          created: schema.created,
+          semanticCid: schema!.semanticCid,
+          physical: schema!.physical,
+          created: schema!.created,
         }),
         physicalPrepared: sealedPhysical.prepared,
         prepared,
       }),
     });
   } catch (reason) {
-    const cleanupErrors = [];
-    const cleanupOwners = [];
-    if (reason?.cleanupPending === true &&
-        reason.cleanupHandle !== undefined) {
+    const cleanupErrors: unknown[] = [];
+    const cleanupOwners: CleanupOwner[] = [];
+    if ((reason as DurableResultPayloadError | null | undefined)?.cleanupPending === true &&
+        (reason as DurableResultPayloadError).cleanupHandle !== undefined) {
       cleanupOwners.push(Object.freeze({
-        pending: () => reason.cleanupHandle.status().pending === true,
-        retry: () => reason.cleanupHandle.retry(),
+        pending: () => (reason as DurableResultPayloadError).cleanupHandle!.status().pending === true,
+        retry: () => (reason as DurableResultPayloadError).cleanupHandle!.retry(),
       }));
     }
     let writerCancelAttempted = false;
@@ -384,25 +491,25 @@ async function storeCompletedPayload(
       );
       if (action === 'cancel_writer') {
         writerCancelAttempted = true;
-        try { await writer.cancel(); }
+        try { await writer!.cancel(); }
         catch (error) {
           cleanupErrors.push(error);
           cleanupOwners.push(Object.freeze({
-            pending: () => writer.status().reservationHeld === true ||
-              writer.status().custodyPending === true,
-            retry: () => writer.cancel(),
+            pending: () => writer!.status().reservationHeld === true ||
+              writer!.status().custodyPending === true,
+            retry: () => writer!.cancel(),
           }));
         }
         continue;
       }
       if (action === 'release_prepared') {
         preparedReleaseAttempted = true;
-        try { await prepared.release(); }
+        try { await prepared!.release(); }
         catch (error) {
           cleanupErrors.push(error);
           cleanupOwners.push(Object.freeze({
-            pending: () => prepared.status().pending === true,
-            retry: () => prepared.retry(),
+            pending: () => prepared!.status().pending === true,
+            retry: () => prepared!.retry(),
           }));
         }
         continue;
@@ -410,14 +517,14 @@ async function storeCompletedPayload(
       if (action === 'cancel_export') {
         exportCancelAttempted = true;
         try {
-          control.cancel(exportHandle);
+          control.cancel(exportHandle!);
           exportReleased = true;
         } catch (error) {
           cleanupErrors.push(error);
           cleanupOwners.push(Object.freeze({
             pending: () => !exportReleased,
             retry: async () => {
-              control.cancel(exportHandle);
+              control.cancel(exportHandle!);
               exportReleased = true;
             },
           }));

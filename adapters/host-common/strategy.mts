@@ -38,7 +38,6 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
   './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs';
-// @ts-expect-error TS7016: remove after migrating durable result payload storage.
 import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
 // @ts-expect-error TS7016: remove after migrating completed-run publication.
 import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
@@ -153,13 +152,16 @@ type PublicationInventory = Readonly<{
   occurrences: readonly ResultOccurrence[];
   requestInventory: readonly Readonly<{result_name: string; result_definition_cid: string}>[];
 }>;
-type OutputExportControl = Readonly<{
+type PayloadExportControl = Parameters<typeof storeCompletedResultPublicationPayload>[1];
+type PayloadLimits = Parameters<typeof storeCompletedResultPublicationPayload>[4];
+type PayloadPublication = Parameters<typeof storeCompletedResultPublicationPayload>[5];
+type ExportHandle = Awaited<ReturnType<PayloadExportControl['beginResult']>>;
+type OutputExportControl = PayloadExportControl & Readonly<{
   beginManagedResultImport(host: object, result: number, completed: unknown, material: object, limits: unknown): CommonObject;
   appendManagedResultImport(importing: unknown, row: string, limits: unknown): SynchronousRuntimeData;
-  finishManagedResultImport(importing: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
-  transformManagedResultImport(importing: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
+  finishManagedResultImport(importing: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<ExportHandle>;
+  transformManagedResultImport(importing: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<ExportHandle>;
   cancelManagedResultImport(importing: unknown): SynchronousRuntimeData;
-  beginResult(host: object, result: number, limits: unknown, output: unknown, transformation: unknown, signal: AbortSignal | undefined, progress: unknown): Awaitable<unknown>;
 }>;
 type Core = Readonly<{
   siteControl: unknown;
@@ -1483,7 +1485,7 @@ export async function runInstalledStrategy({
             }
           }
         };
-      const beginResult = beginManagedResult ?? ((host: object, result: number, limits: unknown) =>
+      const beginResult = beginManagedResult ?? ((host: object, result: number, limits: PayloadLimits) =>
         core.outputExportControl!.beginResult(
           host, result, limits, publicationOutputs.get(occurrence.task),
           publication.transformation, signal, publication.resultProgress,
@@ -1493,10 +1495,10 @@ export async function runInstalledStrategy({
         core.outputExportControl,
         setup,
         result,
-        publication.outputLimits,
+        publication.outputLimits as PayloadLimits,
         {
-          control: core.publicationControl,
-          runDefinition: publication.runDefinition,
+          control: core.publicationControl as PayloadPublication['control'],
+          runDefinition: publication.runDefinition as PayloadPublication['runDefinition'],
           definition: occurrence.definitionContract,
           invocation: publication.invocation,
           retention: publication.retention,

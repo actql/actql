@@ -4,20 +4,57 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import type {TestContext} from 'node:test';
+import type {DurableResultPayloadError} from './durable-result-payload.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
 import {
   storeCompletedOutputPayload,
   storeCompletedResultPayload,
   storeCompletedResultPublicationPayload,
 } from './durable-result-payload.mjs';
+// @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {runtimeCore} from './runtime-core.mjs';
 import {openLocalPublicationStore} from
+  // @ts-expect-error TS7016: remove after migrating the Local publication Store.
   '../store-local/publication-store.mjs';
 
-const digest = value => `sha256:${createHash('sha256')
+type PayloadControl = Parameters<typeof storeCompletedResultPublicationPayload>[1];
+type PublicationOptions = Parameters<typeof storeCompletedResultPublicationPayload>[5];
+type PublicationControl = PublicationOptions['control'];
+type FailureStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type RetriableFailure = Omit<DurableResultPayloadError, 'cleanupHandle'> & Readonly<{
+  cleanupHandle: Readonly<{status(): FailureStatus; retry(): Promise<FailureStatus>}>;
+}>;
+type FixtureStatus = Readonly<{
+  objectCount: number;
+  reservedBytes: number;
+  reservedObjects: number;
+  storedBytes: number;
+}>;
+type FixtureStore = Readonly<{
+  close(): unknown;
+  consumeObject(identity: string, accept: (chunk: Uint8Array) => unknown): Promise<unknown>;
+  status(): FixtureStatus;
+}>;
+type ExportHooks = Readonly<{
+  output?: unknown;
+  next?(index: number): SynchronousRuntimeData;
+  tail?: string;
+  schemaWire?: string;
+  cid?: string;
+  logicalCid?: string;
+  schemaCid?: string;
+  resultFields?: readonly string[];
+  codecCid?: string;
+  cancelled?(): SynchronousRuntimeData;
+}>;
+
+const runtimePath = '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon = await import(runtimePath) as object;
+
+const digest = (value: string) => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const defaultSchemaWire =
   '{"answer":{"nullable":false,"type":"integer"}}';
 const limits = Object.freeze({
@@ -40,7 +77,7 @@ const limits = Object.freeze({
   maxSchemaDepth: 10,
   maxBatchBytes: 32,
 });
-const payloadProgress = runtimeCore(moon).outputExportControl;
+const payloadProgress = runtimeCore(moon).outputExportControl as Pick<PayloadControl, 'payloadFailureAction' | 'cleanupOwnerAction'>;
 const unusedContractControl = Object.freeze({
   admit() { throw new Error('unexpected semantic admission'); },
   recordTransition() { throw new Error('unexpected record transition'); },
@@ -51,7 +88,7 @@ const unusedContractControl = Object.freeze({
   effectFreeCommitValid() { throw new Error('unexpected chain check'); },
 });
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-payload-'));
   const store = await openLocalPublicationStore({
     directory,
@@ -61,7 +98,7 @@ async function fixture(t) {
     maxObjects: 100,
     maxContractNodes: 1000,
     maxContractDepth: 64,
-  }, unusedContractControl);
+  }, unusedContractControl) as FixtureStore;
   t.after(async () => {
     // Node after hooks run in registration order. Retire the same Store owner
     // before deleting its directory; failed cleanup must retain that original.
@@ -71,12 +108,12 @@ async function fixture(t) {
   return store;
 }
 
-function exportFixture(parts, text, hooks = {}) {
+function exportFixture(parts: readonly string[], text: string, hooks: ExportHooks = {}) {
   let index = 0;
   return Object.freeze({
     payloadFailureAction: payloadProgress.payloadFailureAction,
     cleanupOwnerAction: payloadProgress.cleanupOwnerAction,
-    begin(output, supplied) {
+    begin(output: unknown, supplied: Parameters<PayloadControl['begin']>[1]) {
       assert.equal(output, hooks.output);
       assert.equal(supplied, limits);
       return {};
@@ -122,7 +159,7 @@ test('exact Result occurrence streams through the same bounded Store path',
     });
     const control = {
       ...exportFixture([text], text, {}),
-      beginResult(actualHost, result, supplied) {
+      beginResult(actualHost: object, result: number, supplied: Parameters<PayloadControl['beginResult']>[2]) {
         assert.equal(actualHost, host);
         assert.equal(result, 2);
         assert.equal(supplied, resultLimits);
@@ -152,12 +189,12 @@ test('Result evidence is issued before its durable payload becomes visible',
     const publicationLimits = Object.freeze({
       maxWireBytes: 4096, maxNodes: 100, maxDepth: 10,
     });
-    const events = [];
+    const events: string[] = [];
     const evidence = Object.freeze({derivation: {}, ordering: {}});
     const artifact = Object.freeze({name: 'result_artifact'});
     const snapshot = Object.freeze({kind: 'captured-result-snapshot'});
     const durableBinding = Object.freeze({name: 'durable_result_binding'});
-    const publicationControl = Object.freeze({
+    const publicationControl = Object.freeze<PublicationControl>({
       issueResultArtifact(handle, invocation, retention, supplied) {
         assert.deepEqual(handle, {});
         assert.equal(invocation, 'invocation');
@@ -210,13 +247,13 @@ test('Result evidence is issued before its durable payload becomes visible',
       ...exportFixture([text], text, {
         cancelled: () => events.push('cancel'),
       }),
-      beginResult(actualHost, result, supplied) {
+      beginResult(actualHost: object, result: number, supplied: Parameters<PayloadControl['beginResult']>[2]) {
         assert.equal(actualHost, host);
         assert.equal(result, 0);
         assert.equal(supplied, resultLimits);
         return {};
       },
-      issueResultEvidence(handle, context, supplied) {
+      issueResultEvidence(handle: Parameters<PayloadControl['issueResultEvidence']>[0], context: unknown, supplied: unknown) {
         assert.deepEqual(handle, {});
         assert.equal(context, evidenceContext);
         assert.equal(supplied, publicationLimits);
@@ -232,15 +269,15 @@ test('Result evidence is issued before its durable payload becomes visible',
       resultLimits,
       publication,
     );
-    assert.equal(stored.publication.derivation, evidence.derivation);
-    assert.equal(stored.publication.ordering, evidence.ordering);
-    assert.equal(stored.publication.artifact, artifact);
-    assert.equal(stored.publication.snapshot, snapshot);
-    assert.equal(stored.publication.durableBinding, durableBinding);
-    assert.equal(stored.schema.semanticCid, digest(defaultSchemaWire));
+    assert.equal(stored.publication!.derivation, evidence.derivation);
+    assert.equal(stored.publication!.ordering, evidence.ordering);
+    assert.equal(stored.publication!.artifact, artifact);
+    assert.equal(stored.publication!.snapshot, snapshot);
+    assert.equal(stored.publication!.durableBinding, durableBinding);
+    assert.equal(stored.schema!.semanticCid, digest(defaultSchemaWire));
     assert.deepEqual(events,
       ['evidence', 'artifact', 'snapshot', 'binding', 'cancel']);
-    assert.equal(stored.prepared.status().pending, true);
+    assert.equal(stored.prepared!.status().pending, true);
 
     const failing = {
       ...control,
@@ -255,14 +292,14 @@ test('Result evidence is issued before its durable payload becomes visible',
         resultLimits,
         publication,
       ),
-      error => error.code === 'DurableResultPayloadFailed' &&
-        error.primaryFailure?.message === 'evidence rejected',
+      error => (error as DurableResultPayloadError).code === 'DurableResultPayloadFailed' &&
+        ((error as DurableResultPayloadError).primaryFailure as Error | undefined)?.message === 'evidence rejected',
     );
     assert.equal(store.status().objectCount, 2);
     assert.equal(store.status().reservedBytes, 0);
     assert.equal(store.status().reservedObjects, 0);
-    assert.equal(await stored.prepared.release(), true);
-    assert.equal(stored.prepared.status().pending, false);
+    assert.equal(await stored.prepared!.release(), true);
+    assert.equal(stored.prepared!.status().pending, false);
     assert.equal(store.status().objectCount, 0);
     assert.equal(store.status().storedBytes, 0);
   });
@@ -299,7 +336,7 @@ test('canonical batches stream to one durable object without whole-array input',
         schemaNodes: 8, schemaFields: 1},
     });
     assert.equal(cancelled, 1, 'the export receipt releases its source');
-    const bytes = [];
+    const bytes: Buffer[] = [];
     await store.consumeObject(result.physical.cid,
       chunk => bytes.push(Buffer.from(chunk)));
     assert.equal(Buffer.concat(bytes).toString('utf8'), text);
@@ -329,11 +366,11 @@ test('identity mismatch and cancellation cannot leave a sealed object',
           store, control, output, limits, controller.signal,
         ),
         mode === 'identity'
-          ? error => error.code === 'DurableResultPayloadFailed' &&
-            error.primaryFailure?.code ===
+          ? error => (error as DurableResultPayloadError).code === 'DurableResultPayloadFailed' &&
+            ((error as DurableResultPayloadError).primaryFailure as (Error & {code?: string}) | undefined)?.code ===
               'PublicationObjectIdentityMismatch'
-          : error => error.code === 'DurableResultPayloadFailed' &&
-            error.primaryFailure?.name === 'AbortError',
+          : error => (error as DurableResultPayloadError).code === 'DurableResultPayloadFailed' &&
+            ((error as DurableResultPayloadError).primaryFailure as Error | undefined)?.name === 'AbortError',
       );
       assert.equal(cancelled, 1);
       assert.equal(store.status().storedBytes, 0);
@@ -383,26 +420,26 @@ test('immutable and primitive failures retain every cleanup owner', async () => 
         if (exportCancels === 1) throw exportFailure;
       },
     });
-    let failure;
+    let failure: RetriableFailure | undefined;
     try {
       await storeCompletedOutputPayload(store, control, {}, limits);
       assert.fail('payload export must fail');
     } catch (error) {
-      failure = error;
+      failure = error as RetriableFailure;
     }
-    assert.equal(failure.code, 'DurableResultPayloadFailed');
-    assert.equal(failure.primaryFailure, primary);
-    assert.equal(failure.cause, primary);
-    assert.equal(failure.cleanupPending, true);
-    assert.deepEqual(failure.cleanupErrors, [writerFailure, exportFailure]);
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    const retried = await failure.cleanupHandle.retry();
+    assert.equal(failure!.code, 'DurableResultPayloadFailed');
+    assert.equal(failure!.primaryFailure, primary);
+    assert.equal(failure!.cause, primary);
+    assert.equal(failure!.cleanupPending, true);
+    assert.deepEqual(failure!.cleanupErrors, [writerFailure, exportFailure]);
+    assert.equal(failure!.cleanupHandle.status().pending, true);
+    const retried = await failure!.cleanupHandle.retry();
     assert.equal(retried.pending, false);
-    assert.equal(failure.cleanupPending, false);
+    assert.equal(failure!.cleanupPending, false);
     assert.equal(reservationHeld, false);
     assert.equal(writerCancels, 2);
     assert.equal(exportCancels, 2);
-    await failure.cleanupHandle.retry();
+    await failure!.cleanupHandle.retry();
     assert.equal(writerCancels, 2);
     assert.equal(exportCancels, 2);
   }
@@ -434,15 +471,15 @@ test('payload retries retain independent initial errors and bounded first/latest
     identity() {assert.fail('Original export did not finish');},
     cancel() {if (++exportCalls === 1) throw exportFailure;},
   });
-  let failure;
+  let failure: RetriableFailure | undefined;
   try {await storeCompletedOutputPayload({createObjectWriter: () => writer}, control, {}, limits);}
-  catch (error) {failure = error;}
-  assert.equal(failure.primaryFailure, primary);
-  const original = failure.cleanupHandle.status();
+  catch (error) {failure = error as RetriableFailure;}
+  assert.equal(failure!.primaryFailure, primary);
+  const original = failure!.cleanupHandle.status();
   assert.deepEqual(original.errors, [writerFailure, exportFailure]);
-  const snapshots = [];
+  const snapshots: FailureStatus[] = [];
   for (let index = 0; index < retries.length; index++) {
-    const status = await failure.cleanupHandle.retry(); snapshots.push(status);
+    const status = await failure!.cleanupHandle.retry(); snapshots.push(status);
     assert.equal(status.pending, true); assert.equal(held, true);
     const tail = index === 0 ? [retries[0]] : [retries[0], retries[index]];
     assert.deepEqual(status.errors, [writerFailure, exportFailure, ...tail]);
@@ -453,8 +490,8 @@ test('payload retries retain independent initial errors and bounded first/latest
     }
   }
   allow = true;
-  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal((await failure!.cleanupHandle.retry()).pending, false);
   assert.equal(held, false); assert.equal(nextCalls, 1); assert.equal(exportCalls, 2);
-  assert.equal(failure.primaryFailure, primary);
-  assert.deepEqual(failure.cleanupErrors, [writerFailure, exportFailure, retries[0], retries.at(-1)]);
+  assert.equal(failure!.primaryFailure, primary);
+  assert.deepEqual(failure!.cleanupErrors, [writerFailure, exportFailure, retries[0], retries.at(-1)]);
 });

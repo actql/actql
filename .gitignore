@@ -1209,6 +1209,10 @@ target/
 /adapters/host-common/execution-sites.d.mts
 /adapters/host-common/managed-site-transfer.mjs
 /adapters/host-common/managed-site-transfer.d.mts
+/adapters/host-common/durable-result-payload.mjs
+/adapters/host-common/durable-result-payload.d.mts
+/adapters/host-common/durable-result-payload.test.mjs
+/adapters/host-common/durable-result-payload.test.d.mts
 /adapters/host-common/strategy.mjs
 /adapters/host-common/strategy.d.mts
 /adapters/host-common/task-observation.mjs

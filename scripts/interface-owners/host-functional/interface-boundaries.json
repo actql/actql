@@ -4142,7 +4142,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4160,7 +4160,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4178,7 +4178,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "// identity, Artifact admission, publication commit, and retention remain"
               },
               {
@@ -4196,7 +4196,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "'payloadFailureAction', 'cleanupOwnerAction']"
               },
               {
@@ -4214,8 +4214,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
-                "anchor": "try { await cleanupOwners[currentOwner].retry(); }"
+                "path": "adapters/host-common/durable-result-payload.mts",
+                "anchor": "try { await cleanupOwners[currentOwner].retry!(); }"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -4232,7 +4232,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4250,7 +4250,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "['begin', 'next', 'finish', 'identity', 'cancel',"
               },
               {
@@ -4268,7 +4268,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "Array.isArray(value.resultFields) && value.resultFields.length > 0 &&"
               },
               {
@@ -4286,7 +4286,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "// It streams batches directly to an installed durable Store. Logical Result"
               },
               {
@@ -4304,7 +4304,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/durable-result-payload.test.mjs",
+                "path": "adapters/host-common/durable-result-payload.test.mts",
                 "anchor": "test('exact Result occurrence streams through the same bounded Store path',"
               },
               {
@@ -4326,7 +4326,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4344,7 +4344,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4362,7 +4362,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "// identity, Artifact admission, publication commit, and retention remain"
               },
               {
@@ -4380,7 +4380,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "'payloadFailureAction', 'cleanupOwnerAction']"
               },
               {
@@ -4398,8 +4398,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
-                "anchor": "try { await cleanupOwners[currentOwner].retry(); }"
+                "path": "adapters/host-common/durable-result-payload.mts",
+                "anchor": "try { await cleanupOwners[currentOwner].retry!(); }"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -4416,7 +4416,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "export class DurableResultPayloadError extends Error {"
               },
               {
@@ -4434,7 +4434,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "['begin', 'next', 'finish', 'identity', 'cancel',"
               },
               {
@@ -4452,7 +4452,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "Array.isArray(value.resultFields) && value.resultFields.length > 0 &&"
               },
               {
@@ -4470,7 +4470,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/durable-result-payload.mjs",
+                "path": "adapters/host-common/durable-result-payload.mts",
                 "anchor": "// It streams batches directly to an installed durable Store. Logical Result"
               },
               {
@@ -4488,7 +4488,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/durable-result-payload.test.mjs",
+                "path": "adapters/host-common/durable-result-payload.test.mts",
                 "anchor": "test('exact Result occurrence streams through the same bounded Store path',"
               },
               {
@@ -10787,7 +10787,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/durable-result-payload.test.mjs",
+                "path": "adapters/host-common/durable-result-payload.test.mts",
                 "anchor": "test('exact Result occurrence streams through the same bounded Store path',"
               },
               {
@@ -10931,7 +10931,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/durable-result-payload.test.mjs",
+                "path": "adapters/host-common/durable-result-payload.test.mts",
                 "anchor": "test('exact Result occurrence streams through the same bounded Store path',"
               },
               {
