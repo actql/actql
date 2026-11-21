@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a564832800d996b7700c54b3ae67c1b457e45f763c814842ec2d058fe22c7d45",
+      "sha256": "a3651522baf75115acf9360e484718ae7329c5581fdc7f9b198acd9e50e2344c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7180,33 +7180,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
           "parameters": [],
           "async": false
@@ -7342,6 +7315,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
+          "parameters": [
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
           "parameters": [
             "key"
           ],
@@ -7573,6 +7553,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
+          "parameters": [
+            "holdingCid",
+            "excludedPublicIndexEntryCid"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
           "parameters": [
             "publicIndexEntryCid"
@@ -7585,6 +7573,11 @@
             "left",
             "right"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -8131,6 +8124,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
           "parameters": [],
           "async": false
@@ -8154,11 +8154,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
           "parameters": [],
           "async": true
         },
@@ -8293,6 +8288,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
           "parameters": [
             "key",
@@ -8324,23 +8326,6 @@
             "resultDefinitionCid"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
-          "parameters": [
-            "publicIndexEntryCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
@@ -8943,11 +8928,6 @@
             "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
             "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
             "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
@@ -9050,7 +9030,6 @@
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
             "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
-            "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
@@ -9076,9 +9055,6 @@
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
             "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
@@ -9113,7 +9089,12 @@
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
             "openOriginalLocalPublicationStore/admitContract/admitContract",
-            "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit"
+            "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
+            "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
+            "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
+            "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
+            "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
+            "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation"
           ],
           "exports": [
             "PublicationStoreError",
@@ -9958,8 +9939,8 @@
                 "anchor": "restart resumes schema cleanup after alias unlink before sync"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "currentDeliveryIndex()!.retireNativePublicationInventory(recoveryOriginal);"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -13884,9 +13865,10 @@
     {
       "module": "adapters/store-local/publication-metadata-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fae62c6ab2ab3dfcec0debdf28a3aac3c0256d6df8927355e7c1193cc1c46ad6",
+      "sha256": "8da9eeaa63db02d8f29e141e7103385e19a840af41eb6bbf4368cced37ef2f6e",
       "exports": [
         "createPublicationMetadataInventory",
+        "createUncommittedPublicationCleanup",
         "metadataContractObject"
       ],
       "operations": [
@@ -14023,6 +14005,84 @@
           "async": true
         },
         {
+          "name": "createUncommittedPublicationCleanup",
+          "parameters": [
+            "metadataInventoriesDirectory",
+            "pendingUncommittedMetadataCleanups",
+            "active",
+            "cidHex",
+            "currentDeliveryIndex",
+            "publicationRecoveryOriginal",
+            "publicationRecoveryValue",
+            "readMetadataInventory",
+            "recoverMetadataInventory",
+            "restoreMetadataInventory",
+            "metadataInventoryPath",
+            "syncDirectory",
+            "inspectCommittedIndexRaw",
+            "confirmCommittedIndex",
+            "latestRecord",
+            "readMetadataDeletion",
+            "metadataHoldingHasOtherOwner",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "reclaimMetadataContract",
+            "confirmPhysicalRemovals",
+            "metadataRetentionCurrent",
+            "retainMetadataOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/recoverUncommittedPublications/recoverUncommittedPublications",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication",
+          "parameters": [
+            "publicIndexEntryCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "metadataContractObject/metadataContractObject",
           "parameters": [
             "object"
@@ -14053,10 +14113,21 @@
             "createPublicationMetadataInventory/recoverMetadataInventory/recoverMetadataInventory",
             "createPublicationMetadataInventory/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
             "createPublicationMetadataInventory/restoreMetadataInventory/restoreMetadataInventory",
-            "metadataContractObject/metadataContractObject"
+            "metadataContractObject/metadataContractObject",
+            "createUncommittedPublicationCleanup",
+            "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry",
+            "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
+            "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
+            "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
+            "createUncommittedPublicationCleanup/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
+            "createUncommittedPublicationCleanup/recoverUncommittedPublications/recoverUncommittedPublications",
+            "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication",
+            "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
+            "createUncommittedPublicationCleanup/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2"
           ],
           "exports": [
             "createPublicationMetadataInventory",
+            "createUncommittedPublicationCleanup",
             "metadataContractObject"
           ],
           "attributes": {
@@ -14070,6 +14141,10 @@
               {
                 "path": "adapters/store-local/publication-metadata-inventory.mts",
                 "anchor": "export function createPublicationMetadataInventory("
+              },
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "export function createUncommittedPublicationCleanup<"
               }
             ],
             "identity": [
@@ -14082,9 +14157,17 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "currentDeliveryIndex, stageMetadataInventory, readPhysicalHolding, readPhysicalHoldingDeletion,"
+              },
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "if (inventoryRetired) return finishInventory();"
               }
             ],
             "synchronization": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "await syncDirectory(metadataInventoriesDirectory);"
+              },
               {
                 "path": "adapters/store-local/publication-metadata-inventory.mts",
                 "anchor": "await syncDirectory(metadataInventoriesDirectory);"
@@ -14122,6 +14205,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery retries only the native removal after physical uncommitted retirement"
               }
             ]
           }

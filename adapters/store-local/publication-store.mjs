@@ -37,7 +37,7 @@ import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createP
   createPhysicalHoldingRecordReader}
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingLifecycle, createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
-import {createPublicationMetadataInventory} from './publication-metadata-inventory.mjs';
+import {createPublicationMetadataInventory, createUncommittedPublicationCleanup} from './publication-metadata-inventory.mjs';
 import {createPublicationMetadataDeletionMarkers} from './publication-metadata-deletion-markers.mjs';
 import {createEffectCaptureCustodyRecords, createPublicationCustodyRecords} from './publication-custody-records.mjs';
 import {createPublicationObjectVerifier} from './publication-object-verifier.mjs';
@@ -5421,148 +5421,16 @@ async function openOriginalLocalPublicationStore(
       group.record.semantic_cid));
   };
 
-  const createUncommittedMetadataCleanup = async inventory => {
-    const inventoryCid = inventory.public_index_entry_cid;
-    const existing = pendingUncommittedMetadataCleanups.get(inventoryCid);
-    if (existing !== undefined) return existing;
-    let pending = true, inventoryRetired = false;
-    const recoveryOriginal = publicationRecoveryOriginal(inventory);
-    const errors = [];
-    const unconfirmedObjects = new Map();
-    const status = () => Object.freeze({
-      pending,
-      errors: Object.freeze([...errors]),
+  const metadataRetentionCurrent = () => metadataRetentionBusy;
+  const retainMetadataOperation = operation => { metadataRetentionBusy = operation; };
+  const {retireUncommittedPublication, recoverUncommittedPublications} =
+    createUncommittedPublicationCleanup(metadataInventoriesDirectory, pendingUncommittedMetadataCleanups, {
+      active, cidHex, currentDeliveryIndex, publicationRecoveryOriginal, publicationRecoveryValue,
+      readMetadataInventory, recoverMetadataInventory, restoreMetadataInventory, metadataInventoryPath, syncDirectory,
+      inspectCommittedIndexRaw, confirmCommittedIndex, latestRecord, readMetadataDeletion, metadataHoldingHasOtherOwner,
+      readPhysicalHolding, readPhysicalHoldingDeletion, reclaimMetadataContract, confirmPhysicalRemovals,
+      metadataRetentionCurrent, retainMetadataOperation,
     });
-    const finishInventory = () => {
-      deliveryIndex.retireNativePublicationInventory(recoveryOriginal);
-      pending = false;
-      pendingUncommittedMetadataCleanups.delete(inventoryCid);
-      return status();
-    };
-    const cleanup = Object.freeze({
-      status,
-      retry() {
-        if (!pending) return Promise.resolve(status());
-        const operation = metadataRetentionBusy.then(async () => {
-          if (!pending) return status();
-          // No other indexed read may precede this same-original Unknown
-          // retry after all physical metadata retirement was acknowledged.
-          if (inventoryRetired) return finishInventory();
-          const key = {
-            namespaceId: inventory.namespace_id,
-            authorityScopeCid: inventory.authority_scope_cid,
-            runDefinitionCid: inventory.run_definition_cid,
-          };
-          const committed = await inspectCommittedIndexRaw(key);
-          if (committed?.public_index_entry_cid === inventoryCid) {
-            fail('PublicationMetadataAlreadyCommitted');
-          }
-          const attempt = await latestRecord(inventory.publication_attempt_cid);
-          if (!['failed', 'cancelled'].includes(attempt?.state)) {
-            fail('PublicationUncommittedMetadataLive');
-          }
-          for (const holdingCid of inventory.physical_holding_cids) {
-            if (await metadataHoldingHasOtherOwner(
-              holdingCid, inventoryCid,
-            )) continue;
-            if (await readPhysicalHolding(holdingCid) !== undefined ||
-                await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
-              fail('PublicationPhysicalHoldingCleanupRequired');
-            }
-          }
-          for (const object of inventory.contract_objects) {
-            await reclaimMetadataContract(
-              inventoryCid, object, unconfirmedObjects,
-            );
-          }
-          if (unconfirmedObjects.size !== 0) {
-            await confirmPhysicalRemovals(unconfirmedObjects);
-            unconfirmedObjects.clear();
-          }
-          try {
-            await unlink(metadataInventoryPath(inventoryCid));
-            await syncDirectory(metadataInventoriesDirectory);
-          } catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
-          }
-          inventoryRetired = true;
-          return finishInventory();
-        });
-        metadataRetentionBusy = operation.catch(() => {});
-        return operation.catch(error => {
-          errors.push(error);
-          throw error;
-        });
-      },
-    });
-    pendingUncommittedMetadataCleanups.set(inventoryCid, cleanup);
-    return cleanup;
-  };
-
-  const retireUncommittedPublication = async publicIndexEntryCid => {
-    active();
-    cidHex(publicIndexEntryCid);
-    const original = deliveryIndex.pendingPublication(publicIndexEntryCid);
-    const inventory = original === undefined ? await readMetadataInventory(publicIndexEntryCid)
-      : await recoverMetadataInventory(original);
-    if (inventory === undefined) {
-      const cleanup = Object.freeze({
-        status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
-        retry: () => Promise.resolve(Object.freeze({
-          pending: false,
-          errors: Object.freeze([]),
-        })),
-      });
-      return Object.freeze({inventory, cleanup, deleted: true});
-    }
-    const cleanup = await createUncommittedMetadataCleanup(inventory);
-    try { await cleanup.retry(); }
-    catch {}
-    return Object.freeze({
-      inventory,
-      cleanup,
-      deleted: cleanup.status().pending === false,
-    });
-  };
-
-  const recoverUncommittedPublications = async () => {
-    active();
-    const recovered = [];
-    for (const original of deliveryIndex.pendingPublications()) {
-      const retained = publicationRecoveryValue(original);
-      const key = {
-        namespaceId: retained.namespace_id,
-        authorityScopeCid: retained.authority_scope_cid,
-        runDefinitionCid: retained.run_definition_cid,
-      };
-      // The already durable deletion marker owns retirement. Do not restore
-      // an inventory file it has physically retired, or read its removed Run.
-      const marker = await readMetadataDeletion(indexKey(key));
-      if (marker !== undefined) {
-        if (marker.version !== 'actql-local-publication-metadata-deletion/0.1' ||
-            marker.namespace_id !== retained.namespace_id ||
-            marker.authority_scope_cid !== retained.authority_scope_cid ||
-            marker.run_definition_cid !== retained.run_definition_cid ||
-            marker.public_index_entry_cid !== retained.public_index_entry_cid) {
-          fail('InvalidPublicationMetadataDeletionStore');
-        }
-        continue;
-      }
-      const inventory = await restoreMetadataInventory(original,retained);
-      if ((await confirmCommittedIndex(key))?.public_index_entry_cid ===
-          inventory.public_index_entry_cid) {
-        deliveryIndex.finishPublicationInventory(original);
-        continue;
-      }
-      const attempt = await latestRecord(inventory.publication_attempt_cid);
-      if (!['failed', 'cancelled'].includes(attempt?.state)) continue;
-      const cleanup = await createUncommittedMetadataCleanup(inventory);
-      try { await cleanup.retry(); }
-      catch {}
-      recovered.push(cleanup);
-    }
-    return Object.freeze(recovered);
-  };
 
   const ensureResultDeletionMarker = async (
     keyHash,
