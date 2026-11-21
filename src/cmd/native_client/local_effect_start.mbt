@@ -300,22 +300,28 @@ fn local_effect_prepare_start_with_clocks(
   if original.request != request {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
-  let native_model = match business {
-    Some(selected) if original._retained_models.length() == 1 => {
+  let native_mock = match business {
+    Some(selected) if original._retained_models.length() == 1 ||
+      (
+        original._retained_models.is_empty() &&
+        !original._retained_sources.is_empty() &&
+        selected.original.project is Some(project) &&
+        project.mock_declarations is Some(_)
+      ) => {
       selected.prepare_mock_effect_plan(original, run)
       true
     }
     _ => false
   }
   if !values_supported &&
-    !native_model &&
+    !native_mock &&
     !@source_owner.resident_effect_source_compute_shape_supported(bound) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope, business~) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  if native_model && business is Some(selected) && policy is Some(binding) {
+  if native_mock && business is Some(selected) && policy is Some(binding) {
     selected.capture_mock_effect_sources(
       reference,
       binding,
@@ -325,15 +331,22 @@ fn local_effect_prepare_start_with_clocks(
       epoch_now(),
       run,
     )
-    selected.capture_mock_effect_content(run)
-    selected.execute_mock_effect_model(run)
-    selected.prepare_mock_effect_observation()
-    selected.retain_mock_effect_host(bound)
-    selected.prepare_mock_effect_local_observation()
-    selected.prepare_mock_effect_proposals(
-      run.retention,
-      native_mock_effect_record_bytes(run),
-    )
+    if original._retained_models.is_empty() {
+      selected.execute_direct_mock_effect(
+        run.retention,
+        native_mock_effect_record_bytes(run),
+      )
+    } else {
+      selected.capture_mock_effect_content(run)
+      selected.execute_mock_effect_model(run)
+      selected.prepare_mock_effect_observation()
+      selected.retain_mock_effect_host(bound)
+      selected.prepare_mock_effect_local_observation()
+      selected.prepare_mock_effect_proposals(
+        run.retention,
+        native_mock_effect_record_bytes(run),
+      )
+    }
     selected.observe_mock_effect_targets()
     selected.prepare_mock_effect_preview(run, binding)
     selected.prepare_mock_effect_computation(run)

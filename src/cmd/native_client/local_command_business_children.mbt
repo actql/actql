@@ -212,6 +212,13 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => ()
     }
     if business.effect_model is Some(state) {
+      if state.source_review is Some(saved) {
+        match saved.close() {
+          Err(issue) => return Err(CommandBusinessModel(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.source_review = None
+        }
+      }
       for target in state.targets {
         match target.close() {
           Err(issue) => return Err(issue)

@@ -204,6 +204,35 @@ pub fn NativeLocalJournalCapture::claim_effect_start_in_original_read(
 }
 
 ///|
+/// Reobserve the first-start proof before using already captured inputs.
+pub fn NativeLocalJournalCapture::require_effect_start_in_original_read(
+  self : NativeLocalJournalCapture,
+  first : NativeClientWorkFirstStart,
+  request : @host.ClientRequestIdentity,
+  principal : String,
+  connection : String,
+  owner_current : () -> Bool,
+) -> Result[Result[Unit, NativeClientSourceWorkIssue], NativeLocalAdoptionIssue] {
+  self.with_local_effect_start_authority(
+    request,
+    principal,
+    connection,
+    owner_current,
+    None,
+    (journal, operations, current) => {
+      Ok(
+        first.require_current(
+          journal,
+          request,
+          current,
+          reads=Some(operations.reads),
+        ),
+      )
+    },
+  )
+}
+
+///|
 /// Recheck the exact claim and Source grant before a physical step.
 pub fn NativeLocalJournalCapture::require_effect_source_in_original_read(
   self : NativeLocalJournalCapture,

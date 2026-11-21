@@ -25,6 +25,7 @@ priv struct LocalNativeMockEffectPlan {
   mut proposals : LocalNativeMockEffectProposals?
   mut preview : LocalNativeMockEffectPreview?
   mut computation : LocalNativeMockEffectComputation?
+  mut source_review : @local_host.NativeMockEffectReview?
   targets : Array[LocalNativeMockEffectTarget]
   keyed_reads : Array[@local_values.ClientInstalledKeyedSourceRead]
   sources : Array[@row_file.NativeRelationFileCapture]
@@ -74,6 +75,7 @@ fn retain_native_mock_effect_plan(
     proposals: None,
     preview: None,
     computation: None,
+    source_review: None,
     targets: [],
     keyed_reads: [],
     sources: [],
@@ -496,54 +498,81 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) &&
     business.request_run is None &&
     business.effect_model is None &&
-    first._retained_models.length() == 1 &&
-    business.model_work.length() == 1 &&
+    first._retained_models.length() == business.model_work.length() &&
+    (
+      first._retained_models.length() == 1 ||
+      (
+        first._retained_models.is_empty() &&
+        first.model_compiled is None &&
+        !first._retained_sources.is_empty()
+      )
+    ) &&
     self.original.project is Some(project) &&
     project.mock_declarations is Some(mock) else {
     stop("LocalOriginalEffectPlanUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
-    let selected = first._retained_models[0]
-    let limits = selected._retained_limits
-    let work = business.model_work[0]
-    let provider = @infer.composed_local_provider(
-      selected.graph.occurrence,
-      limits,
-      inputs => {
-        // This Native root reads its captured inputs through the original
-        // composed Source closure; unrelated external ports cannot replace it.
-        if !inputs.is_empty() || business.model_work.length() != 1 {
-          return Err(@infer.InvalidAdvance)
-        }
-        // The SAME command slot owns this original Work through its real
-        // cleanup ACK. Retained provider metadata must not independently pin
-        // the closed Work/Journal after that slot has retired.
-        business.model_work[0]
-        .borrow_opened_original_model()
-        .map_err(_ => @infer.InvalidAdvance)
-      },
-      _ => @compute_sdk.ComputeUnsupported,
-    )
     let capture_recipes = []
-    let plan = native_mock_effect_managed_plan(
-      prepared,
-      first,
-      mock,
-      self.installed_contracts,
-      provider,
-      work
-      .observation_capacity(
-        first.request,
-        first.model_compiled.unwrap(),
-        first.definition,
-        selected.graph,
+    let plan = if first._retained_models.is_empty() {
+      let file_limits = local_project_mock_file_limits()
+      native_mock_effect_source_plan(
+        prepared,
+        first,
+        mock,
+        self.installed_contracts,
+        {
+          max_columns: 100,
+          max_order_work: file_limits.max_work,
+          max_bytes: file_limits.page.max_bytes,
+          max_nodes: file_limits.page.max_nodes,
+          max_depth: file_limits.page.max_depth,
+        },
+        native_mock_effect_record_bytes(installation),
+        capture_recipes,
+        provider_factory=native_request_provider_factory,
       )
-      .unwrap_or_else(() => {
-        stop("LocalOriginalModelPublicationCapacityUnavailable")
-      }),
-      native_mock_effect_record_bytes(installation),
-      capture_recipes~,
-    )
+    } else {
+      let selected = first._retained_models[0]
+      let limits = selected._retained_limits
+      let work = business.model_work[0]
+      let provider = @infer.composed_local_provider(
+        selected.graph.occurrence,
+        limits,
+        inputs => {
+          // This Native root reads its captured inputs through the original
+          // composed Source closure; unrelated external ports cannot replace it.
+          if !inputs.is_empty() || business.model_work.length() != 1 {
+            return Err(@infer.InvalidAdvance)
+          }
+          // The SAME command slot owns this original Work through its real
+          // cleanup ACK. Retained provider metadata must not independently pin
+          // the closed Work/Journal after that slot has retired.
+          business.model_work[0]
+          .borrow_opened_original_model()
+          .map_err(_ => @infer.InvalidAdvance)
+        },
+        _ => @compute_sdk.ComputeUnsupported,
+      )
+      native_mock_effect_managed_plan(
+        prepared,
+        first,
+        mock,
+        self.installed_contracts,
+        provider,
+        work
+        .observation_capacity(
+          first.request,
+          first.model_compiled.unwrap(),
+          first.definition,
+          selected.graph,
+        )
+        .unwrap_or_else(() => {
+          stop("LocalOriginalModelPublicationCapacityUnavailable")
+        }),
+        native_mock_effect_record_bytes(installation),
+        capture_recipes~,
+      )
+    }
     let state = retain_native_mock_effect_plan(
       first, prepared, plan, capture_recipes,
     )
@@ -556,19 +585,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     )
     |> ignore
     business.request_body = None
-    let scope = @local_values.prepare_request_effect_model_read_scope(
-      parent, input, plan,
-    ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable"))
-    state.scope = Some(scope)
+    if !first._retained_models.is_empty() {
+      state.scope = Some(
+        @local_values.prepare_request_effect_model_read_scope(
+          parent, input, plan,
+        ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable")),
+      )
+    }
     @local_values.complete_request_effect_preparation(parent, input, plan).unwrap_or_else(() => {
         stop("LocalOriginalEffectPlanUnavailable")
       },
     )
-    let run = @local_values.begin_request_effect_model_managed_run(
-      parent,
-      first.request,
-      scope,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
+    let run = (match state.scope {
+      Some(scope) =>
+        @local_values.begin_request_effect_model_managed_run(
+          parent,
+          first.request,
+          scope,
+        )
+      None =>
+        @local_values.begin_request_effect_managed_run(parent, first.request)
+    }).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
     business.request_run = Some(run)
     business.request_parent = None
     business.request_initial = None

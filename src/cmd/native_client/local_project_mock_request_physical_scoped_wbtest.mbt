@@ -2216,26 +2216,18 @@ test "Native shared-file Effect joins and binds both original Source observation
   }
   assert_eq(@json.parse(rows[0]), expected_row)
   {
-    let policy = @run_host.prepared_client_effect_publication_data_policy_cid(
-      prepared,
+    let original_policy = @run_host.client_local_product_bootstrap_originals(
+      "/fixture/mock-original", "2026-10-10T00:00:00.000Z",
     ).unwrap()
-    let retained = @publication.seal_publication_contract(
-      "result_retention_policy",
-      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
-      "sha256:" +
-      "d".repeat(64) +
-      "\",\"effective_data_policy_cid\":\"" +
-      policy +
-      "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-02T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
-      "sha256:" +
-      "e".repeat(64) +
-      "\",\"metadata_delete_by\":\"2099-01-03T00:00:00.000Z\",\"clock_contract_cid\":\"" +
-      "sha256:" +
-      "f".repeat(64) +
-      "\"}",
-      16384,
-      1024,
-      20,
+    let profile = @run_host.client_local_run_policy_profile(
+      original_policy.common,
+    ).unwrap()
+    let retained = @run_host.issue_client_local_run_retention_policy(
+      profile, "2026-10-10T00:00:00.000Z",
+    ).unwrap()
+    let retention_dependencies = @run_host.client_local_run_policy_retention_bodies(
+      profile,
+      original_policy.common.retention_dependencies,
     ).unwrap()
     let primary : Ref[LocalNativeMockEffectProposalIssue?] = Ref(None)
     state.suffix = Some(executed)
@@ -2421,6 +2413,156 @@ test "Native shared-file Effect joins and binds both original Source observation
         Some(Json::string(["A-new", "C-new", "A2-new"][index])),
       )
     }
+    state.prepare_direct_mock_effect_dependencies(
+      run,
+      retention_dependencies,
+      "sha256:" + "a".repeat(64),
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native dependencies: " +
+          message +
+          " / " +
+          primary.val
+          .map(issue => {
+            match issue {
+              Managed(ForeignOriginal) => "foreign original"
+              Managed(Unsupported) => "unsupported"
+              Managed(AlreadyBound) => "already bound"
+              Managed(Retired) => "retired"
+              Managed(InsufficientCapacity) => "insufficient capacity"
+              Managed(Resource(resource)) => @debug.to_string(resource)
+              Managed(Ledger(ledger)) => @debug.to_string(ledger)
+              Managed(Preparation(preparation)) => @debug.to_string(preparation)
+              _ =>
+                command_preparation_cleanup_cause(
+                  CommandBusinessEffectProposals(issue),
+                )
+            }
+          })
+          .unwrap_or("no typed cause"),
+        )
+    }
+    let inventory = preview._retained_dependency_inventory.unwrap()
+    assert_true(
+      @publication.captured_effect_dependency_sources_match(
+        preview._retained_local_sources,
+        inventory,
+        file_limits.page.max_bytes,
+        file_limits.page.max_nodes,
+        file_limits.page.max_depth,
+      ),
+    )
+    assert_eq(preview._retained_local_sources.length(), 3)
+    let publication_limits = @local_values.installed_effect_managed_publication_limits(
+      run,
+      prepared,
+      original.request,
+      plan,
+      file_limits.page.max_bytes,
+    ).unwrap()
+    let dag = @strategy.captured_effect_run_dag(state.effect_capture.unwrap())
+    let graph = @strategy.captured_dag_graph(dag)
+    let task = @strategy.graph_result_task(graph, 0).unwrap()
+    let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+    // A separate publication pin under the ordinary admission cannot coexist
+    // with these three original member pins. The public view borrows theirs.
+    match
+      @strategy.borrow_captured_any_result_output(
+        dag,
+        task,
+        occurrence,
+        @strategy.graph_result_count(graph) + 1,
+      ) {
+      Err(Physical(@initial_resources.HoldingLimit)) => ()
+      Err(_) => fail("expected the ordinary Result pin allowance to refuse")
+      Ok(extra) => {
+        @strategy.release_captured_any_result_borrow(extra) |> ignore
+        fail("unexpected separate Result pin")
+      }
+    }
+    state.build_mock_effect_computation(
+      publication_limits,
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+      managed_run=Some(run),
+    ) catch {
+      ClientStop(message) => {
+        let output = state.computation.bind(held => held.outputs.get(0))
+        let exported = output
+          .map(value => value.row_count() is Ok(_))
+          .unwrap_or(false)
+        let issued = output
+          .map(value => value.derivation() is Ok(_))
+          .unwrap_or(false)
+        fail(
+          "direct native captured Run: " +
+          message +
+          " / rows exported: " +
+          exported.to_string() +
+          " / Result evidence issued: " +
+          issued.to_string() +
+          " / cause: " +
+          primary.val
+          .map(issue => {
+            match issue {
+              CapturedSource(cause) => @debug.to_string(cause)
+              PublicExport(Evidence(cause)) => @debug.to_string(cause)
+              PublicExport(Artifact(cause)) => @debug.to_string(cause)
+              PublicExport(Capture(cause)) => @debug.to_string(cause)
+              PublicExport(Output(Unavailable)) => "export producer unavailable"
+              PublicExport(Output(NotCellRepresentation)) =>
+                "export representation unavailable"
+              PublicExport(Output(InvalidTarget)) => "export target refused"
+              PublicExport(Output(ForeignMaterial)) => "export foreign material"
+              PublicExport(Output(Schema(_))) => "export schema refused"
+              PublicExport(Output(ResultView(_))) =>
+                "export Result view refused"
+              PublicExport(Output(CanonicalRow)) => "canonical export row"
+              PublicExport(Output(NotFinished)) => "export rows incomplete"
+              PublicExport(Output(Closed)) => "export closed"
+              PublicExport(Output(Wire(_))) => "export row wire"
+              PublicExport(Output(Admission(_))) => "export row admission"
+              _ =>
+                command_preparation_cleanup_cause(
+                  CommandBusinessEffectProposals(issue),
+                )
+            }
+          })
+          .unwrap_or("no typed cause"),
+        )
+      }
+    }
+    let computation = state.computation.unwrap()
+    assert_true(computation._retained_captured is Some(_))
+    assert_eq(computation.snapshots.length(), 1)
+    assert_true(
+      physical_equal(
+        @publication.captured_result_snapshot_artifact(computation.snapshots[0]),
+        computation.artifacts[0],
+      ),
+    )
+    let payload = @publication.start_captured_result_snapshot_payload(
+      computation.snapshots[0],
+      4096,
+    ).unwrap()
+    let published = StringBuilder()
+    while payload.next().unwrap() is Some(chunk) {
+      published.write_string(chunk)
+    }
+    assert_eq(@json.parse(published.to_string()), Json::array([expected_row]))
+    assert_eq(read_file(), before)
+    // The installed run owns the direct issuer through consumer retirement.
+    for output in computation.outputs {
+      output.cancel()
+    }
+    assert_true(@execution.completed_relation_export_receipt_live(receipt))
+    for output in computation.managed_outputs {
+      output.close()
+    }
+    state.computation = None
     for verifier in preview.verifiers {
       @strategy.cancel_captured_effect_plan_verifier(verifier)
     }

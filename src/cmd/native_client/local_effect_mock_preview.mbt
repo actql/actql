@@ -41,7 +41,14 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
-    business.model_work.length() == 1 &&
+    (
+      business.model_work.length() == 1 ||
+      (
+        business.model_work.is_empty() &&
+        state.first._retained_models.is_empty() &&
+        state.source_start is Some(_)
+      )
+    ) &&
     state.effect_capture is Some(_) &&
     state.proposals is Some(proposals) &&
     proposals.materials is Some(materials) &&
@@ -60,6 +67,58 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
     ),
   )
   self.original.with_business_request(self.capture, () => {
+    if state.first._retained_models.is_empty() {
+      guard business.model_work.is_empty() &&
+        state.source_start is Some(_) &&
+        business.request_run is Some(run) &&
+        state.direct_sources is Some(direct) &&
+        direct._retained_publication is Some(publication) else {
+        stop("LocalOriginalEffectPreviewUnavailable")
+      }
+      let max_bytes = native_mock_effect_record_bytes(installation)
+      let limits = @local_values.installed_effect_managed_publication_limits(
+        run,
+        state._retained_prepared,
+        state.first.request,
+        state._retained_plan,
+        max_bytes,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
+      let report = issue => {
+        self.original.retain_primary(CommandBusinessEffectProposals(issue))
+      }
+      state.build_mock_effect_preview(
+        proposals,
+        installations,
+        installation.store_authority_cid,
+        max_bytes,
+        limits.max_result_fields,
+        () => {
+          (
+            @run_host.client_effect_direct_sources_publication_observation(
+              publication,
+            ),
+            @run_host.client_effect_direct_sources_publication_invocation(
+              publication,
+            ),
+            [],
+            direct.observations,
+            None,
+          )
+        },
+        report,
+      )
+      state.prepare_direct_mock_effect_dependencies(
+        run,
+        retention,
+        installation.store_authority_cid,
+        max_bytes,
+        report,
+      )
+      return
+    }
+    if business.model_work.length() != 1 {
+      stop("LocalOriginalEffectPreviewUnavailable")
+    }
     let limits = state.first._retained_models[0]._retained_limits
     state.build_mock_effect_preview(
       proposals,

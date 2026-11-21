@@ -961,6 +961,8 @@ pub fn prepare_installed_effect_dependency_bodies(ClientInstalledManagedRun, @ru
 
 pub fn prepare_installed_effect_dependency_inventory(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Array[String], Array[String?], Array[String], Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int, original_artifacts? : Array[@run_publication_host.ClientEffectLocalResultArtifact]) -> Result[String, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_dependency_inventory_retained(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Array[String], Array[String?], Array[String], Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int, original_artifacts? : Array[@run_publication_host.ClientEffectLocalResultArtifact]) -> Result[@run_publication.CapturedEffectDependencyInventory, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_effect_discarded_projection_extent(ClientInstalledEffectOperationExtent, @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_duckdb_source_input(String, String, String, String, String, String) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue]

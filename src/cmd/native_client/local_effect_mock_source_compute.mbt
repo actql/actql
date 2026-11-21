@@ -256,3 +256,88 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
     inputs
   })
 }
+
+///|
+// Use the already captured Sources on the same managed graph. The Journal
+// reobserves the original first start before entering its retained Request.
+fn LocalCommandBusinessPreparation::execute_direct_mock_effect(
+  self : Self,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+) -> Unit raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.effect_model is Some(state) &&
+    business.request_run is Some(run) &&
+    business.model_work.is_empty() &&
+    state.source_start is Some(first) &&
+    state.direct_sources is Some(direct) &&
+    state.effect_host is Some(host) &&
+    state.effect_capture is Some(captured) &&
+    state.suffix is None &&
+    state.suffix_failure is None else {
+    stop("LocalOriginalEffectContinuationUnavailable")
+  }
+  match
+    self.capture.require_effect_start_in_original_read(
+      first,
+      state.first.request,
+      self.principal,
+      self.connection,
+      () => self.mock_effect_source_current(state, run),
+    ) {
+    Err(issue) => {
+      self.original.retain_primary(CommandAdoption(issue))
+      stop("LocalOriginalEffectStartUnavailable")
+    }
+    Ok(Err(issue)) => {
+      self.original.retain_primary(CommandBusinessEffectStart(issue))
+      stop("LocalOriginalEffectStartUnavailable")
+    }
+    Ok(Ok(_)) => ()
+  }
+  self.original.with_business_request(self.capture, () => {
+    let live = () => direct.captures.all(@query.captured_source_available)
+    let current = () => {
+      live() &&
+      !self.original.closing &&
+      !self.original.closed &&
+      !business.request_retiring &&
+      @local_values.check_installed_effect_managed_run(
+        run,
+        state._retained_prepared,
+        state.first.request,
+      )
+      is Ok(_) &&
+      @run_host.client_effect_run_start_current(
+        state.first.allowed,
+        state.first.definition,
+        local_utc_now(),
+      )
+    }
+    match
+      @local_values.execute_retained_effect_local_tasks_guarded(
+        host,
+        captured,
+        256,
+        100000,
+        current,
+        require_live=Some(live),
+      ) {
+      Ok(value) => state.suffix = Some(value)
+      Err(failure) => {
+        state.suffix_failure = Some(failure)
+        self.original.retain_primary(
+          CommandBusinessEffectProposals(
+            HostExecution(
+              @local_values.local_values_execution_failure_issue(failure),
+            ),
+          ),
+        )
+        stop("LocalOriginalEffectProposalsUnavailable")
+      }
+    }
+    state.prepare_direct_mock_effect_proposals(run, retention, max_bytes, issue => {
+      self.original.retain_primary(CommandBusinessEffectProposals(issue))
+    })
+  })
+}
