@@ -1201,3 +1201,5 @@ target/
 /adapters/local-node/strategy-bundle.d.mts
 /adapters/local-node/strategy-bundle.test.mjs
 /adapters/local-node/strategy-bundle.test.d.mts
+/adapters/reference-compute-node/strategy-bundle.mjs
+/adapters/reference-compute-node/strategy-bundle.d.mts

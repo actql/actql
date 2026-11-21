@@ -10,7 +10,6 @@ import type {ManagedFailure} from '../host-common/managed-failure.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 // @ts-expect-error TS7016: remove after migrating the Site control fixture.
 import {createExecutionSiteControlFixture} from '../host-common/execution-site-control.fixture.mjs';
-// @ts-expect-error TS7016: remove after migrating the Reference strategy.
 import {numericStrategyContribution} from '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
@@ -21,6 +20,7 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   // @ts-expect-error TS7016: remove after migrating the execution Site implementation.
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
 type LocalBindings = Parameters<typeof localStrategyContribution>[0];
+type ReferenceBindings = Parameters<typeof numericStrategyContribution>[0];
 type FixtureBindings = LocalBindings & {strategyHostManagedRequiresLogicalIdentity(): unknown};
 type PrepareOutputs = Parameters<ReturnType<typeof localStrategyContribution>['prepareNext']>[0];
 type Materialized = Extract<Awaited<ReturnType<ReturnType<typeof localStrategyContribution>['run']>>, {diagnostic: object}>;
@@ -397,7 +397,7 @@ test('reference preparation propagates fatal failures instead of hiding them as 
   );
   const fatal = new Error('ForeignPreparation');
   const entry = numericStrategyContribution({
-    ...portableRuntime,
+    ...portableRuntime as LocalBindings & ReferenceBindings,
     strategyModule_reference_compute_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'reference',
     strategyHostNextTask: () => 2,

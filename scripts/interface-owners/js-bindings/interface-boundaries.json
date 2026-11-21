@@ -111067,7 +111067,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111077,7 +111077,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111087,7 +111087,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111097,7 +111097,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111107,7 +111107,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111117,7 +111117,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111127,7 +111127,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111137,7 +111137,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111147,7 +111147,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111157,7 +111157,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -111203,7 +111203,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111213,7 +111213,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111223,7 +111223,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111233,7 +111233,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111243,7 +111243,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111253,7 +111253,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111263,7 +111263,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111273,7 +111273,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111283,7 +111283,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111293,7 +111293,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "numericStrategyContribution"
               },
               {
@@ -111315,7 +111315,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111325,7 +111325,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111335,7 +111335,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111345,7 +111345,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111355,7 +111355,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111365,7 +111365,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111375,7 +111375,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111385,7 +111385,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111395,7 +111395,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {
@@ -111405,7 +111405,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "// In-process independent Compute implementation. No DB, transport settings or"
               },
               {

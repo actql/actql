@@ -8,25 +8,65 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
-const managedSiteCapacity = value => Array.isArray(value)
+import type {ManagedFailureOperations} from '../host-common/managed-failure.mjs';
+import type {SynchronousResultCheck, SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type ReferenceBindings = Parameters<typeof beginManagedFailureProgress>[0] & Readonly<{
+  strategyModule_reference_compute_Registration(setup: unknown): unknown;
+  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyHostNextTask(setup: unknown): number;
+  strategyHostManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedRequiresLogicalIdentity(setup: unknown): unknown;
+  strategyHostReleasableManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedInputMatchesMaterial(input: unknown, material: object): boolean;
+  strategyModule_reference_compute_ManagedDispatch(setup: unknown, outputs: unknown[], fileBytes: bigint): unknown;
+  strategyModule_reference_compute_ManagedDuration(configuration: object): bigint | null | undefined;
+  strategyModule_reference_compute_ManagedCapacity(configuration: object): unknown;
+  strategyModule_reference_compute_ManagedStart(configuration: object): unknown;
+  strategyModule_reference_compute_Dispatch(setup: unknown, task: unknown, completionReady: () => boolean): unknown;
+}>;
+type ManagedInput = Readonly<{material: object; siteMaterial?: object; completed: unknown}>;
+type SiteResolution = Readonly<{materials: readonly object[]; records: readonly unknown[]}>;
+type PreparedTask = Readonly<{
+  configuration: object;
+  inputs: readonly ManagedInput[];
+  resolveSiteInputs?(inputs: readonly unknown[], signal?: AbortSignal): Promise<SiteResolution>;
+  siteCompletionReady?(): boolean;
+}>;
+type RowTransfer = Readonly<{
+  input: unknown;
+  append(row: string): SynchronousRuntimeData;
+  finish(): SynchronousRuntimeData;
+}>;
+type ManagedExecution = ManagedFailureOperations & Readonly<{
+  inputs: readonly RowTransfer[];
+  execute(): SynchronousRuntimeData;
+  complete(payload: number, storageBytes: bigint, available: () => boolean): SynchronousRuntimeData;
+  material(): object | null | undefined;
+  output_rows(): number;
+  output_row(index: number): SynchronousRuntimeData;
+  storage_bytes: bigint;
+}>;
+
+const managedSiteCapacity = (value: unknown) => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
     ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
-export function numericStrategyContribution(moon, setup, checked) {
+export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {
   const registration = moon.strategyModule_reference_compute_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
-    async prepareNext(outputs) {
+    async prepareNext(outputs: ReadonlyMap<number, ManagedInput>) {
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
       if (task < 1 || !Array.isArray(producers) || producers.length !== 1) {
         return undefined;
       }
-      const inputs = producers.map(producer => outputs.get(producer));
+      const inputs = producers.map((producer: number) => outputs.get(producer));
       if (inputs.some(input => input == null ||
           !managedInputSupportsRows(input.siteMaterial ?? input.material))) {
         return undefined;
@@ -38,17 +78,17 @@ export function numericStrategyContribution(moon, setup, checked) {
       if (!checked(moon.strategyHostManagedRequiresLogicalIdentity(setup)) &&
         inputs.some(input =>
             managedInputCodecContractCid(
-              input.siteMaterial ?? input.material,
+              input!.siteMaterial ?? input!.material,
             ) !== undefined)) {
         return undefined;
       }
       const configuration = checked(
         moon.strategyModule_reference_compute_ManagedDispatch(
           setup,
-          inputs.map(input => input.completed),
+          inputs.map(input => input!.completed),
           0n,
         ),
-      );
+      ) as object | null | undefined;
       if (configuration == null) return undefined;
       const siteCapacity = managedSiteCapacity(
         moon.strategyModule_reference_compute_ManagedCapacity(configuration));
@@ -62,23 +102,23 @@ export function numericStrategyContribution(moon, setup, checked) {
           moon.strategyModule_reference_compute_ManagedDuration(configuration),
         acceptsSiteTransfer: true,
         siteCapacity: Object.freeze({
-          retainedBytes: siteCapacity[0],
-          executionBytes: siteCapacity[1],
+          retainedBytes: siteCapacity[0] as bigint,
+          executionBytes: siteCapacity[1] as bigint,
         }),
-        inputs: Object.freeze(inputs),
+        inputs: Object.freeze(inputs as ManagedInput[]),
         outputs,
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
         configuration,
       });
     },
-    async runPrepared(prepared, signal) {
+    async runPrepared(prepared: PreparedTask, signal?: AbortSignal) {
       signal?.throwIfAborted();
       const operations = checked(
         moon.strategyModule_reference_compute_ManagedStart(
           prepared.configuration,
         ),
-      );
+      ) as ManagedExecution;
       const failureProgress = beginManagedFailureProgress(
         moon,
         true,
@@ -100,7 +140,7 @@ export function numericStrategyContribution(moon, setup, checked) {
               input.siteMaterial ?? input.material)),
             records: Object.freeze([]),
           });
-        let completed;
+        let completed: SynchronousRuntimeData | undefined;
         await withManagedInputRows(
           prepared.inputs.map((input, index) => ({
             material: resolved.materials[index],
@@ -153,7 +193,7 @@ export function numericStrategyContribution(moon, setup, checked) {
               const rows = operations.output_rows();
               for (let row = 0; row < rows; row++) {
                 readSignal?.throwIfAborted();
-                await emit(checked(operations.output_row(row)));
+                await emit(checked(operations.output_row(row)) as string);
               }
             },
           }),
@@ -181,7 +221,7 @@ export function numericStrategyContribution(moon, setup, checked) {
         );
       }
     },
-    async run(task, _signal, completionPermit) {
+    async run(task: unknown, _signal?: AbortSignal, completionPermit?: Readonly<{isAvailable?(): boolean}>) {
       checked(moon.strategyModule_reference_compute_Dispatch(
         setup,
         task,

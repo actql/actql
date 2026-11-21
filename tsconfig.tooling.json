@@ -40,6 +40,7 @@
     "adapters/site-node/**/*.mts",
     "adapters/store-local/**/*.mts",
     "adapters/local-node/**/*.mts",
+    "adapters/reference-compute-node/**/*.mts",
     "adapters/workers/**/*.mts",
     "adapters/connectors/duckdb/node/**/*.mts",
     "adapters/connectors/local/host/**/*.mts",

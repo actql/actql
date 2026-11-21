@@ -28814,8 +28814,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28828,8 +28828,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28838,7 +28838,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -28848,8 +28848,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "retainedBytes: siteCapacity[0],"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "retainedBytes: siteCapacity[0] as bigint,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28858,8 +28858,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28868,7 +28868,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "throw new Error('InvalidReferenceManagedSiteCapacity');"
               },
               {
@@ -28878,8 +28878,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "async runPrepared(prepared, signal) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "async runPrepared(prepared: PreparedTask, signal?: AbortSignal) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28888,8 +28888,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "const managedSiteCapacity = value => Array.isArray(value)"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "const managedSiteCapacity = (value: unknown) => Array.isArray(value)"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28898,8 +28898,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28926,8 +28926,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28940,8 +28940,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28950,7 +28950,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -28960,8 +28960,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "retainedBytes: siteCapacity[0],"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "retainedBytes: siteCapacity[0] as bigint,"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -28970,8 +28970,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -28980,7 +28980,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
                 "anchor": "throw new Error('InvalidReferenceManagedSiteCapacity');"
               },
               {
@@ -28990,8 +28990,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "async runPrepared(prepared, signal) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "async runPrepared(prepared: PreparedTask, signal?: AbortSignal) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -29000,8 +29000,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "const managedSiteCapacity = value => Array.isArray(value)"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "const managedSiteCapacity = (value: unknown) => Array.isArray(value)"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -29010,8 +29010,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/reference-compute-node/strategy-bundle.mjs",
-                "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
+                "path": "adapters/reference-compute-node/strategy-bundle.mts",
+                "anchor": "export function numericStrategyContribution(moon: ReferenceBindings, setup: unknown, checked: SynchronousResultCheck) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
