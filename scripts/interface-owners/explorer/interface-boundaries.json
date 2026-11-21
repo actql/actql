@@ -1988,7 +1988,7 @@
               },
               {
                 "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "const originalStep = await node.getAttribute('data-id');"
+                "anchor": "assert((await step.textContent()).includes(originalStep));"
               }
             ]
           }
@@ -2300,7 +2300,7 @@
               },
               {
                 "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
-                "anchor": "const originalStep = await node.getAttribute('data-id');"
+                "anchor": "assert((await step.textContent()).includes(originalStep));"
               }
             ]
           }
