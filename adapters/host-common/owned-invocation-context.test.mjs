@@ -121,7 +121,7 @@ test('scoped Source invocation forwards its exact original response custody befo
   assert.equal(retained, 1); assert.strictEqual(observed.body, body);
 });
 
-test('declared row UPDATE uses the original Host authority and refuses codec-owned response custody', async () => {
+test('declared row UPDATE admits only bounded HTTP DATA under the original Host authority', async () => {
   const member = {}, request = {}, current = {}, grant = {}, journal = {};
   const origin = 'https://records.example', registration = 'fixture';
   const signal = new AbortController().signal;
@@ -134,12 +134,12 @@ test('declared row UPDATE uses the original Host authority and refuses codec-own
       invocations.push(call);
       return {useCid: 'original-reply', statusCode: 200, body};
     }};
-  const transport = {method: 'PUT', path: '/records', body: '{}'};
+  const transport = {method: 'PUT', path: '/records', body: '{}',
+    query: [['id', '東京']], headers: [['accept', 'application/json']], responseHeaders: ['etag']};
   const writeSlot = Object.freeze({phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32});
   const update = {prepareUpdateWrite(...data) {
     assert.deepEqual(data, [member, request, current, origin, registration, signal]);
-    return {...transport, authorization: {}, credential: {},
-      callResource() {assert.fail('Codec tried to replace the Host transport');}};
+    return transport;
   }};
   const {observation} = await invokeDeclaredRowUpdate(update, invocation, 'update-record', writeSlot);
   assert.equal(observation.body, body);
@@ -149,19 +149,62 @@ test('declared row UPDATE uses the original Host authority and refuses codec-own
   assert.equal(invocations[0].journal, journal);
   assert.equal(invocations[0].signal, signal);
   assert.equal(invocations[0].useId, 'original-use');
-  assert.deepEqual(invocations[0].operations.get('update-record'), {method: 'PUT', path: '/records', body: '{}'});
+  assert.deepEqual(invocations[0].operations.get('update-record'), {method: 'PUT',
+    path: '/records?id=%E6%9D%B1%E4%BA%AC', body: '{}',
+    headers: [['accept', 'application/json']], responseHeaders: ['etag']});
   assert.equal(invocations[0].maxRequestBytes, 2);
   assert.equal(invocations[0].maxResponseBytes, 32);
   for (const replacement of [{operation: 'foreign'}, {maxRequestBytes: 3}, {maxResponseBytes: 64},
-    {responseCustody: {}}, {bodyBytes: new Uint8Array()}]) {
+    {responseCustody: {}}, {bodyBytes: new Uint8Array()}, {authorization: {}}, {credential: {}},
+    {callResource() {assert.fail('Codec tried to replace the Host transport');}},
+    {method: 'DELETE', body: undefined}, {body: '€'}, {body: undefined},
+    {headers: [, ['accept', 'application/json']]},
+    {headers: [['accept', 'application/json', 'extra']]},
+    {responseHeaders: Object.assign(['etag'], {map() {assert.fail('Ran provider map');}})},
+    {responseHeaders: new Proxy([], {get() {assert.fail('Read proxy');}})}]) {
     await assert.rejects(invokeDeclaredRowUpdate({prepareUpdateWrite: () => ({...transport, ...replacement})},
       invocation, 'update-record', writeSlot), {code: 'InvalidOwnedInvocationContext'});
   }
-  await assert.rejects(invokeDeclaredRowUpdate(update, invocation, 'foreign', writeSlot),
+  const getter = () => assert.fail('Read provider accessor during transport admission');
+  for (const invalid of [
+    Object.defineProperty({...transport}, 'path', {get: getter}),
+    Object.create(transport),
+    {...transport, query: [Object.defineProperty(['id', 'r1'], '1', {get: getter})]},
+    {...transport, responseHeaders: Object.defineProperty(['etag'], Symbol.iterator, {get: getter})},
+    {...transport, then: getter},
+  ]) {
+    await assert.rejects(invokeDeclaredRowUpdate({prepareUpdateWrite: () => invalid},
+      invocation, 'update-record', writeSlot), {code: 'InvalidOwnedInvocationContext'});
+  }
+  await assert.rejects(invokeDeclaredRowUpdate({
+    prepareUpdateWrite() {assert.fail('A foreign operation reached the write codec');},
+  }, invocation, 'foreign', writeSlot),
     {code: 'InvalidOwnedInvocationContext'});
   await assert.rejects(invokeDeclaredRowUpdate({
     prepareUpdateWrite() {assert.fail('A read slot reached the write codec');},
   }, invocation, 'update-record', {...writeSlot, phase: 'capture-target'}),
   {code: 'InvalidOwnedInvocationContext'});
   assert.equal(invocations.length, 1);
+});
+
+test('invalid async UPDATE encoding settles inside its original invocation without a physical send', async () => {
+  const refusal = new Error('original provider encoder rejected');
+  const invocation = {
+    authorization: {scope: {operation: 'update-record'}},
+    callResource() {assert.fail('Invalid async encoder reached physical send');},
+  };
+  const slot = {phase: 'write', maxRequestBytes: 2, maxResponseBytes: 32};
+  let reject;
+  const encoded = new Promise((_resolve, refuse) => {reject = refuse;});
+  const result = invokeDeclaredRowUpdate({prepareUpdateWrite: () => encoded},
+    invocation, 'update-record', slot);
+  let rejected = false;
+  const observed = assert.rejects(result, cause => {rejected = true; return cause === refusal;});
+  await Promise.resolve();
+  assert.equal(rejected, false);
+  reject(refusal);
+  await observed;
+  await assert.rejects(invokeDeclaredRowUpdate({
+    prepareUpdateWrite: () => Promise.resolve({method: 'PUT', path: '/records', body: '{}'}),
+  }, invocation, 'update-record', slot), {code: 'InvalidOwnedInvocationContext'});
 });

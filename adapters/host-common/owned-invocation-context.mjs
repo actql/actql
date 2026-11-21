@@ -1,5 +1,6 @@
+import {types as nodeTypes} from 'node:util';
 import {credentialInvocationBindingKeys as bindingKeys} from './credential-scope-fields.generated.mjs';
-import {ownHttpRequest, ownHttpByteRequest, ownResponseHeaderNames} from './http-exchange.mjs';
+import {exchangeLimits, ownHttpRequest, ownHttpByteRequest, ownResponseHeaderNames} from './http-exchange.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidOwnedInvocationContext'), {
@@ -165,19 +166,73 @@ export function rowUpdateTransportObservation(response) {
 // It neither selects a target nor grants an operation.
 export const declaredRowUpdateKinds = Object.freeze(['update']);
 
+const updateTransportFields = Object.freeze(['method', 'path', 'query', 'headers', 'body', 'responseHeaders']);
+const updateHostFields = Object.freeze(['operation', 'maxRequestBytes', 'maxResponseBytes',
+  'bodyBytes', 'bodyMediaType', 'responseCustody', 'authorization', 'credential', 'callResource', 'then']);
+const updateMethods = Object.freeze(['POST', 'PATCH', 'PUT']);
+const stringData = value => typeof value === 'string';
+
+// Check the declaration's arrays before the shared HTTP canonicalizer reads
+// them. It can then use their ordinary Array operations without invoking a
+// provider-supplied getter, iterator, constructor or array method.
+function checkTransportList(values, max, element) {
+  if (!Array.isArray(values) || nodeTypes.isProxy(values) || Object.getPrototypeOf(values) !== Array.prototype ||
+      values.length > max || Object.hasOwn(values, 'map') ||
+      Object.hasOwn(values, 'constructor') || Object.hasOwn(values, Symbol.iterator)) fail();
+  for (let index = 0; index < values.length; index++) {
+    const field = Object.getOwnPropertyDescriptor(values, index);
+    if (!field || !Object.hasOwn(field, 'value') || !element(field.value)) fail();
+  }
+  return true;
+}
+
+function transportPair(value) {
+  return checkTransportList(value, 2, stringData) && value.length === 2;
+}
+
+function captureDeclaredUpdateTransport(transport, maxRequestBytes) {
+  if (transport === null || typeof transport !== 'object' || nodeTypes.isProxy(transport) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(transport))) fail();
+  if (updateHostFields.some(key => Object.hasOwn(transport, key))) fail();
+  // A finite projection does not enumerate or retain arbitrary author fields.
+  const request = Object.create(null);
+  for (const key of updateTransportFields) {
+    const field = Object.getOwnPropertyDescriptor(transport, key);
+    if (field === undefined) continue;
+    if (!Object.hasOwn(field, 'value')) fail();
+    request[key] = field.value;
+  }
+  const {method, path, body, query, headers, responseHeaders} = request;
+  if (!updateMethods.includes(method) ||
+      typeof path !== 'string' || typeof body !== 'string' || body.length > maxRequestBytes ||
+      Buffer.byteLength(body) > maxRequestBytes) fail();
+  if (query !== undefined) checkTransportList(query, exchangeLimits.maxQueryPairs, transportPair);
+  if (headers !== undefined) checkTransportList(headers, exchangeLimits.maxRequestHeaders, transportPair);
+  if (responseHeaders !== undefined) {
+    checkTransportList(responseHeaders, exchangeLimits.maxObservedHeaders, stringData);
+  }
+  return request;
+}
+
 // The existing Row Effect dispatch supplies the original scoped invocation.
 // Author transport code receives identity DATA and the original cancellation
 // signal. It has no physical send callback or credential.
 export async function invokeDeclaredRowUpdate(declaration, invocation, operation, writeSlot) {
-  if (writeSlot?.phase !== 'write') fail();
+  if (writeSlot?.phase !== 'write' || !Number.isSafeInteger(writeSlot.maxRequestBytes) ||
+      writeSlot.maxRequestBytes < 1) fail();
   const {member, request, current, authorization, credential, signal} = invocation;
   const scope = invocationScopeFields(authorization?.scope, credential?.control);
+  if (scope?.operation !== operation) fail();
+  signal?.throwIfAborted();
   const transport = declaration.prepareUpdateWrite(member, request, current,
     scope?.resourceOrigin, scope?.connectorRegistration, signal);
+  // A synchronous callback returning a genuine Promise violates the
+  // declaration. Keep its settlement in the original physical child.
+  if (nodeTypes.isPromise(transport)) {
+    await transport;
+    fail();
+  }
+  const requestData = captureDeclaredUpdateTransport(transport, writeSlot.maxRequestBytes);
   signal?.throwIfAborted();
-  if (transport.operation !== undefined ||
-      transport.maxRequestBytes !== undefined || transport.maxResponseBytes !== undefined ||
-      transport.bodyBytes !== undefined || transport.bodyMediaType !== undefined ||
-      transport.responseCustody !== undefined) fail();
-  return rowUpdateTransportObservation(await invokeCredentialRequest(transport, invocation, operation, writeSlot));
+  return rowUpdateTransportObservation(await invokeCredentialRequest(requestData, invocation, operation, writeSlot));
 }
