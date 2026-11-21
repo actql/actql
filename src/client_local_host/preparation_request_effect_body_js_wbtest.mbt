@@ -688,6 +688,152 @@ test "static Effect Explanation pairs Facts and Context with one Plan and final 
 }
 
 ///|
+test "first Effect Run Explanation borrows its issued compilation and holds all facets on the Request" {
+  let live = Ref(true)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    live.val
+  })
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let issued = (context : String) => {
+    @publication_host.issue_client_effect_allowed_run(
+      compiled,
+      "sha256:" + context.repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2026-11-25T00:00:00.000Z",
+    ).unwrap()
+  }
+  let issue_definition = (allowed, id) => {
+    @publication_host.issue_client_effect_run_definition(
+      allowed, "scope", id, "2026-11-24T00:00:00.000Z", "2026-11-25T00:00:00.000Z",
+    ).unwrap()
+  }
+  let allowed = issued("a")
+  let definition = issue_definition(allowed, "first-effect-explanation")
+  let foreign = issue_definition(issued("c"), "foreign-effect-explanation")
+  let sibling = issue_definition(allowed, "sibling-effect-explanation")
+  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let capture = (candidate, run) => {
+    capture_request_effect_run_explanation(
+      parent, candidate, allowed, run, 65536, 8192, 64, 10000,
+    )
+  }
+  assert_true(
+    capture(input.copy(), definition) is Err(Preparation(ForeignOriginal)),
+  )
+  assert_true(capture(input, foreign) is Err(Preparation(ForeignOriginal)))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let usage = @resources.ledger_usage(parent.ledger)
+  let free = @resources.ledger_limits(parent.ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  let unavailable = @resources.reserve_capacity(parent.ledger, free - 1L, 0L).unwrap()
+  assert_true(capture(input, definition) is Err(Preparation(Capacity(_))))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  @resources.settle_capacity(parent.ledger, unavailable).unwrap()
+  let original = capture(input, definition).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, sibling)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  let equal_wire = @publication.admit_publication_contract(
+    "run_definition",
+    @publication.publication_contract_json(definition),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, equal_wire)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  {
+    let selected = original_effect_run_explanation_facets(original, definition).unwrap()
+    assert_eq(
+      selected.plan,
+      @publication_host.client_effectful_static_plan_view(
+        prepared, compiled, 65536, 8192, 64,
+      ).unwrap(),
+    )
+    let plan_cid = @publication.publication_contract_identity(
+      @publication_host.client_effect_compilation_compiled_plan(compiled),
+    )
+    let facts = @publication.parse_interactive_run_control_shape(
+      "explanation_facts",
+      selected.facts,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let context = @publication.parse_interactive_run_control_shape(
+      "explanation_context",
+      selected.context,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let binding = @identity.object_field(context, "binding").unwrap()
+    for facet in [facts, binding] {
+      assert_true(
+        @identity.object_field(facet, "compiled_plan_cid")
+        is Some(@identity.String(value)) &&
+        value == plan_cid,
+      )
+    }
+    guard @identity.object_field(facts, "logical_map_cid")
+      is Some(@identity.String(map_cid)) else {
+      fail("original map identity is required")
+    }
+    assert_true(
+      @identity.object_field(binding, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+    assert_true(
+      selected.context.contains("\"write_fields\":{\"fields\":[\"Name\"]"),
+    )
+  }
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(after.0 > before.0)
+  assert_true(after.1 > before.1)
+  assert_true(parent.phase == EffectPlanReserved)
+  live.val = false
+  assert_true(
+    original_effect_run_explanation_facets(original, definition)
+    is Err(Preparation(Capacity(_))),
+  )
+  live.val = true
+  discard_original_effect_run_explanation(original, definition).unwrap()
+  assert_true(
+    original_effect_run_explanation_facets(original, definition)
+    is Err(Preparation(WrongPhase)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    after,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 test "static Effect Explanation charges the complete envelope at the per-facet clamp" {
   let bytes = 65536
   let nodes = 64

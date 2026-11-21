@@ -643,6 +643,8 @@ pub fn client_effect_direct_sources_publication_invocation(ClientEffectDirectSou
 
 pub fn client_effect_direct_sources_publication_observation(ClientEffectDirectSourcesPublication) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_explanation_compilation_for_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> ClientEffectCompilation?
+
 pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
 
 pub fn client_effect_imported_relation_bodies(ClientEffectImportedEvidence) -> Array[String]

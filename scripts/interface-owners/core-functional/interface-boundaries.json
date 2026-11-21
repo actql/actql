@@ -48101,6 +48101,115 @@
       "referenceQualification": "Same original checked Effect compiler DATA and distinct actual installed Plan, with Resource borrower-delayed retirement; no Host or ordinary runtime acceptance."
     },
     {
+      "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
+      "sha256": "ced54fca471e339c3759e1f0697f118923af30b9fba1dd01b4f06a57d9e848bf",
+      "operations": [
+        {
+          "name": "[I]capture_request_effect_run_explanation",
+          "declaration": "[ I ] capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ClientRequestEffectRunExplanation [ I ] , ClientRequestStaticContextIssue , ]"
+        },
+        {
+          "name": "[I]discard_original_effect_run_explanation",
+          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ Unit , ClientRequestStaticContextIssue ]"
+        },
+        {
+          "name": "[I]original_effect_run_explanation_facets",
+          "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestStaticEffectExplanation , ClientRequestStaticContextIssue , ]"
+        }
+      ],
+      "exports": [],
+      "role": "common-semantics",
+      "owner": "Existing Effect Request compiler and working capacity",
+      "rationale": "Project the exact first-admission Effect compilation already held by the Request, bind the Plan and structural facets to its Definition, and drop those aliases before owner retirement.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]capture_request_effect_run_explanation",
+            "[I]discard_original_effect_run_explanation",
+            "[I]original_effect_run_explanation_facets"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] capture_request_effect_run_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] original_effect_run_explanation_facets("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_compilation.mbt",
+                "anchor": "pub fn client_effect_explanation_compilation_for_run("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "!physical_equal(selected.definition, definition)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "The Request's working reservation holds every new wire"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "with_request_static_effect_explanation("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "if selected.owner.phase == Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "return Err(Preparation(ForeignOriginal))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "guard current() else"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "reserve_static_context_construction(capacity, input, held)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "original.original = None"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] discard_original_effect_run_explanation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "first Effect Run Explanation borrows its issued compilation and holds all facets on the Request"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "referenceQualification": "The Common Request compiler component is separate from the production Journal caller and public Saved read."
+    },
+    {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
       "sha256": "d62199b6fade564d3fc639d1ac6f2d9a56192f02f757906b03b4d76cf3ba7ab0",
@@ -81502,7 +81611,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "8a3a932e669aa6771ef86c674557d5753037e71ab5629f0f33249143ff4e0988",
+      "sha256": "6522c4b4e86335d71b9135cdcc28b9cf8f47e852d47a61aa2ad45033f872ed8f",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -81601,6 +81710,10 @@
           "declaration": "client_effect_compilation_unit_id ( value : ClientEffectCompilation , ) - > String"
         },
         {
+          "name": "client_effect_explanation_compilation_for_run",
+          "declaration": "client_effect_explanation_compilation_for_run ( prepared : PreparedClientEffectComputation , allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , ) - > ClientEffectCompilation ?"
+        },
+        {
           "name": "client_effect_run_start_current",
           "declaration": "client_effect_run_start_current ( allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , at : String , ) - > Bool"
         },
@@ -81649,6 +81762,7 @@
             "client_effect_compilation_result_transformation",
             "client_effect_compilation_template",
             "client_effect_compilation_unit_id",
+            "client_effect_explanation_compilation_for_run",
             "client_effect_run_start_current",
             "issue_client_effect_allowed_run",
             "issue_client_effect_compilation_internal",
