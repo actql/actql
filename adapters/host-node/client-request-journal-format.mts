@@ -2,12 +2,14 @@
 import {randomBytes} from 'node:crypto';
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync, openSync, readSync,
   writeFileSync, type BigIntStats} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import type {SQLOutputValue} from 'node:sqlite';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {inspectHostJournalDirectory} from './host-journal-directory.mjs';
 import {inspectClientSourceOperationStorage, sourceOperationTable} from './client-source-operation.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+// @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
+import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 import {applyOriginal, boundedPrimarySql, fail, type JournalSqlConnection} from './client-request-journal-sql.mjs';
 
 type Row = Record<string, SQLOutputValue>;
@@ -17,6 +19,7 @@ type FormatFeatures = ReturnType<typeof readJournalFormatFeatures>;
 type SnapshotOptions = NonNullable<Parameters<typeof inspectSqliteSnapshot>[2]>;
 type InspectionSql = ReturnType<typeof boundedPrimarySql>;
 type CleanupCarrier = {cleanupHandle?: unknown};
+type InspectionFailure = {cleanupPending?: unknown; code?: string} | null | undefined;
 
 // Originals of the existing checked keyed Source on this Request Journal.
 // The bound canonical schedule limits each batch; no Scope/Run or physical
@@ -682,6 +685,68 @@ export function inspectJournalSnapshot(directory: string, databasePath: string, 
     throw error;
   }
   inspectionSql?.retireClosedNativeAliases();
+}
+
+export function admitJournalDirectory(directory: string, maxInspectionEntries: number,
+  maxInspectionBytes: number, primarySqlLimits: Parameters<typeof inspectJournalSnapshot>[5],
+  primaryExecutionLimits: Parameters<typeof inspectJournalSnapshot>[6], primarySchemaLimits: unknown,
+  primarySchemaSqlSupport: unknown, primaryCurrent: SnapshotOptions['assertCurrent'],
+  primaryDirectoryInspection: unknown, inspectionTemporaryDirectory: string | undefined,
+  ownedOriginal: unknown): false | true | FormatFeatures {
+  if (!existsSync(directory)) return false;
+  const state = lstatSync(directory);
+  if (!state.isDirectory() || state.isSymbolicLink()) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
+  if (entries.length === 0) return false;
+  const markerPath = join(directory, 'journal-format.json');
+  if (!entries.includes('journal-format.json')) {
+    fail(entries.includes('client-requests.sqlite3') ?
+      'LegacyClientRequestJournalFormat' :
+      'UnknownClientRequestJournalFormat');
+  }
+  if (!entries.includes('client-requests.sqlite3') ||
+      !lstatSync(markerPath).isFile() ||
+      !journalMarkerMatches(markerPath, journalMarker)) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  const databasePath = join(directory, 'client-requests.sqlite3');
+  if (!lstatSync(databasePath).isFile()) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  if (ownedOriginal !== undefined) {
+    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+      join(dirname(resolve(directory)), 'publication'));
+    if (existsSync(`${databasePath}-journal`)) fail('UnknownClientRequestJournalFormat');
+    let bytes = 0n;
+    for (const path of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
+      if (!existsSync(path)) continue;
+      const original = lstatSync(path, {bigint: true});
+      if (!original.isFile() || original.isSymbolicLink()) fail('UnknownClientRequestJournalFormat');
+      if (path.endsWith('-shm')) continue;
+      bytes += original.size;
+      if (bytes > BigInt(maxInspectionBytes)) fail('ClientRequestJournalInspectionUnavailable');
+    }
+    return readJournalFormatFeatures(directory, entries);
+  }
+  try {
+    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
+      primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+      primaryDirectoryInspection, inspectionTemporaryDirectory);
+  } catch (cause) {
+    if ((cause as InspectionFailure)?.cleanupPending) throw cause;
+    if (['HostJournalDirectoryUnavailable', 'HostJournalDirectoryCurrentUnavailable',
+      'HostJournalDirectoryBoundsUnavailable', 'HostJournalDirectoryReadUnavailable',
+      'HostJournalDirectoryRecordUnavailable'].includes((cause as InspectionFailure)?.code as string)) throw cause;
+    if ((cause as InspectionFailure)?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
+    if ((cause as InspectionFailure)?.code === 'ClientRequestJournalSqlUnavailable' ||
+        (cause as InspectionFailure)?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
+    if ((cause as InspectionFailure)?.code === 'SqliteSchemaPreparationUnavailable') throw cause;
+    if ((cause as InspectionFailure)?.code === 'UnknownClientRequestJournalFormat') throw cause;
+    fail('UnknownClientRequestJournalFormat', cause);
+  }
+  return true;
 }
 
 export function initializeJournalSchema(database: JournalSqlConnection,

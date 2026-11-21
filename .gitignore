@@ -1439,3 +1439,5 @@ target/
 /adapters/host-common/run-state-access.d.mts
 /adapters/host-node/client-run-state.mjs
 /adapters/host-node/client-run-state.d.mts
+/adapters/host-node/client-request-journal-fresh-schema.test.mjs
+/adapters/host-node/client-request-journal-fresh-schema.test.d.mts

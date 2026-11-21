@@ -6,7 +6,7 @@ import './host-journal-facility-fields.cjs';
 import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
-import {existsSync, lstatSync, mkdirSync, realpathSync} from 'node:fs';
+import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
@@ -33,10 +33,9 @@ import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSo
   retainedIdentity, retainedResultNames, retainedRunDefinition, retainedRunFacts,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
 import {keyedLookupOriginalTable, explanationOriginalTable, inspectExplanationOriginalStorage,
-  journalDirectoryEntries, journalMarkerMatches, syncDirectory,
-  columns, selectColumns, journalMarker, initializeJournalSchema,
+  admitJournalDirectory, syncDirectory, columns, selectColumns, initializeJournalSchema,
   validLocalExecutionOwnerReceipt, validJournalRowUsage, maxEpochTtlMs, hexKey, validEpochAuthority,
-  readJournalFormatFeatures, inspectJournalNativeStorage, inspectJournalSnapshot} from './client-request-journal-format.mjs';
+  inspectJournalNativeStorage} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
 export {validateSourceInventory};
 
@@ -70,65 +69,6 @@ export function assertOriginalClientRequestJournal(journal) {
 // Reuse only its closed budget message for this SAME failed Run/control frame;
 // no second store, error chain, execution owner or status inference is added.
 
-
-function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-  primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal) {
-  if (!existsSync(directory)) return false;
-  const state = lstatSync(directory);
-  if (!state.isDirectory() || state.isSymbolicLink()) {
-    fail('UnknownClientRequestJournalFormat');
-  }
-  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
-  if (entries.length === 0) return false;
-  const markerPath = join(directory, 'journal-format.json');
-  if (!entries.includes('journal-format.json')) {
-    fail(entries.includes('client-requests.sqlite3') ?
-      'LegacyClientRequestJournalFormat' :
-      'UnknownClientRequestJournalFormat');
-  }
-  if (!entries.includes('client-requests.sqlite3') ||
-      !lstatSync(markerPath).isFile() ||
-      !journalMarkerMatches(markerPath, journalMarker)) {
-    fail('UnknownClientRequestJournalFormat');
-  }
-  const databasePath = join(directory, 'client-requests.sqlite3');
-  if (!lstatSync(databasePath).isFile()) {
-    fail('UnknownClientRequestJournalFormat');
-  }
-  if (ownedOriginal !== undefined) {
-    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
-      join(dirname(resolve(directory)), 'publication'));
-    if (existsSync(`${databasePath}-journal`)) fail('UnknownClientRequestJournalFormat');
-    let bytes = 0n;
-    for (const path of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
-      if (!existsSync(path)) continue;
-      const original = lstatSync(path, {bigint: true});
-      if (!original.isFile() || original.isSymbolicLink()) fail('UnknownClientRequestJournalFormat');
-      if (path.endsWith('-shm')) continue;
-      bytes += original.size;
-      if (bytes > BigInt(maxInspectionBytes)) fail('ClientRequestJournalInspectionUnavailable');
-    }
-    return readJournalFormatFeatures(directory, entries);
-  }
-  try {
-    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-      primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-      primaryDirectoryInspection, inspectionTemporaryDirectory);
-  } catch (cause) {
-    if (cause?.cleanupPending) throw cause;
-    if (['HostJournalDirectoryUnavailable', 'HostJournalDirectoryCurrentUnavailable',
-      'HostJournalDirectoryBoundsUnavailable', 'HostJournalDirectoryReadUnavailable',
-      'HostJournalDirectoryRecordUnavailable'].includes(cause?.code)) throw cause;
-    if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
-    if (cause?.code === 'ClientRequestJournalSqlUnavailable' ||
-        cause?.code === 'ClientRequestJournalSqlCleanupPending') throw cause;
-    if (cause?.code === 'SqliteSchemaPreparationUnavailable') throw cause;
-    if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
-    fail('UnknownClientRequestJournalFormat', cause);
-  }
-  return true;
-}
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,

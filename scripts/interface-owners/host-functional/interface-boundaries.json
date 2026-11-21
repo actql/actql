@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "97ea37994fbcfb0d269607f14cbd5e5157137646aeb6bdfb24b6dce1873b8323",
+      "sha256": "fec38e66a70eef9c9025d54711e465dd2d12e1220b7236fbb1fe863b66cb85e6",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29540,7 +29540,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
@@ -30586,7 +30586,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "if (bytes > BigInt(maxInspectionBytes))"
               },
               {
@@ -30870,7 +30870,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
@@ -32541,10 +32541,11 @@
     {
       "module": "adapters/host-node/client-request-journal-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d05cbb654c3e91ed173d968fcb2df158318896ed9653b87537c0305fb54d1a16",
+      "sha256": "31fed5ecebbee92a2b79a0eb975c82f69a0a9315fde5880fc6fe772b32fcbcd9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
+        "admitJournalDirectory",
         "adoptSubmissionUsageStorage",
         "cancellationMarker",
         "cancellationMarkerName",
@@ -32585,6 +32586,23 @@
         "validLocalExecutionOwnerReceipt"
       ],
       "operations": [
+        {
+          "name": "admitJournalDirectory",
+          "parameters": [
+            "directory",
+            "maxInspectionEntries",
+            "maxInspectionBytes",
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "primarySchemaLimits",
+            "primarySchemaSqlSupport",
+            "primaryCurrent",
+            "primaryDirectoryInspection",
+            "inspectionTemporaryDirectory",
+            "ownedOriginal"
+          ],
+          "async": false
+        },
         {
           "name": "adoptSubmissionUsageStorage",
           "parameters": [
@@ -33070,6 +33088,7 @@
       "contracts": [
         {
           "operations": [
+            "admitJournalDirectory",
             "inspectCancellationStorage/custodyFields/custodyFields",
             "inspectCancellationStorage/fields/fields",
             "inspectEpochStorage/fields/fields",
@@ -33088,6 +33107,7 @@
             "journalMarkerMatches/status/status"
           ],
           "exports": [
+            "admitJournalDirectory",
             "inspectJournalSnapshot",
             "journalMarkerMatches"
           ],
@@ -33356,7 +33376,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
@@ -34369,7 +34389,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "if (bytes > BigInt(maxInspectionBytes))"
               },
               {
@@ -34696,7 +34716,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
@@ -35500,7 +35520,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {
@@ -36491,15 +36511,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
                 "anchor": "test('fresh Journal commits its complete current schema once"
               },
               {
-                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
                 "anchor": "test('abrupt fresh initialization at '"
               },
               {
-                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mjs",
+                "path": "adapters/host-node/client-request-journal-fresh-schema.test.mts",
                 "anchor": "test('actual older base format adopts the same DDL"
               }
             ]
@@ -36635,6 +36655,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-format-inspection.mjs",
+        "../store-local/publication-store.mjs",
         "./client-request-journal-sql.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
@@ -37231,7 +37252,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
               },
               {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createHash} from 'node:crypto';
+import {createHash, type BinaryLike} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
@@ -8,7 +8,10 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+// @ts-expect-error TS7016: remove when the original physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal} from './client-request-journal.mjs';
+
+type CloseableJournal = Readonly<{close(): void}>;
 
 async function fixture() {
   const scratch=await createOwnedScratch({parent:fileURLToPath(new URL('../../_build/',import.meta.url)),
@@ -22,7 +25,7 @@ async function fixture() {
 test('fresh Journal commits its complete current schema once before publishing format markers',async()=>{
   const {scratch,directory}=await fixture();
   const originalExec=DatabaseSync.prototype.exec,originalOpen=fs.openSync,originalFsync=fs.fsyncSync;
-  const events=[];let markerFsyncs=0,directoryFsyncs=0,journal;
+  const events: string[] = [];let markerFsyncs=0,directoryFsyncs=0,journal: CloseableJournal | undefined;
   DatabaseSync.prototype.exec=function(sql){
     const result=Reflect.apply(originalExec,this,[sql]);
     if(sql==='BEGIN IMMEDIATE'||sql==='COMMIT'||sql==='ROLLBACK')events.push(sql);
@@ -55,20 +58,20 @@ test('fresh Journal commits its complete current schema once before publishing f
   scratch.passed();
 });
 
-function inspectDatabase(directory, read) {
+function inspectDatabase<Result>(directory: string, read: (database: DatabaseSync) => Result) {
   const database=new DatabaseSync(join(directory,'client-requests.sqlite3'));
   try {return read(database);} finally {database.close();}
 }
-const schema=database=>database.prepare(`SELECT type,name,sql FROM sqlite_master
+const schema = (database: DatabaseSync) =>database.prepare(`SELECT type,name,sql FROM sqlite_master
   WHERE sql IS NOT NULL ORDER BY type,name`).all().map(row=>({...row}));
-const databaseBytes=directory=>fs.readFileSync(join(directory,'client-requests.sqlite3'));
-const digest=value=>createHash('sha256').update(value).digest('hex');
+const databaseBytes = (directory: string) =>fs.readFileSync(join(directory,'client-requests.sqlite3'));
+const digest = (value: BinaryLike) =>createHash('sha256').update(value).digest('hex');
 
 test('actual older base format adopts the same DDL and preserves its original row on current reopen',async()=>{
   const {scratch,directory}=await fixture();
-  let journal=openClientRequestJournal(directory);journal.close();journal=undefined;
+  let journal: CloseableJournal | undefined = openClientRequestJournal(directory);journal!.close();journal=undefined;
   const current=inspectDatabase(directory,database=>({schema:schema(database),
-    version:database.prepare('PRAGMA user_version').get().user_version}));
+    version:database.prepare('PRAGMA user_version').get()!.user_version}));
   const identity='sha256:'+'1'.repeat(64);
   inspectDatabase(directory,database=>{
     // This fixture downgrades ONLY its newly created test database to the
@@ -97,9 +100,9 @@ test('actual older base format adopts the same DDL and preserves its original ro
     custody:database.prepare('SELECT * FROM client_submission_custody').get(),
     usage:database.prepare('SELECT * FROM client_request_row_usage').get(),
     rows:database.prepare('SELECT * FROM client_requests').all(),
-    version:database.prepare('PRAGMA user_version').get().user_version}));
+    version:database.prepare('PRAGMA user_version').get()!.user_version}));
   assert.deepEqual(retained.schema,current.schema);
-  assert.equal(retained.custody.issued_count,1);assert.equal(retained.usage.retained_count,1);
+  assert.equal(retained.custody!.issued_count,1);assert.equal(retained.usage!.retained_count,1);
   assert.equal(retained.rows[0].caller_request_id,'retained-original');assert.equal(retained.version,current.version);
   const originalExec=DatabaseSync.prototype.exec;let transactions=0;
   DatabaseSync.prototype.exec=function(sql){if(sql==='BEGIN IMMEDIATE')transactions++;
@@ -111,13 +114,13 @@ test('actual older base format adopts the same DDL and preserves its original ro
     custody:database.prepare('SELECT * FROM client_submission_custody').get(),
     usage:database.prepare('SELECT * FROM client_request_row_usage').get(),
     rows:database.prepare('SELECT * FROM client_requests').all(),
-    version:database.prepare('PRAGMA user_version').get().user_version})),retained);
+    version:database.prepare('PRAGMA user_version').get()!.user_version})),retained);
   scratch.passed();
 });
 
 test('selected Source operation schema is inside the same fresh transaction',async()=>{
   const {scratch,directory}=await fixture();
-  const originalExec=DatabaseSync.prototype.exec;let commits=0,tableInsideTransaction=false,journal;
+  const originalExec=DatabaseSync.prototype.exec;let commits=0,tableInsideTransaction=false,journal: CloseableJournal | undefined;
   DatabaseSync.prototype.exec=function(sql){
     if(sql.startsWith('CREATE TABLE client_source_operation_originals'))tableInsideTransaction=this.isTransaction;
     if(sql==='COMMIT')commits++;
@@ -127,7 +130,7 @@ test('selected Source operation schema is inside the same fresh transaction',asy
   finally {DatabaseSync.prototype.exec=originalExec;journal?.close();}
   assert.equal(tableInsideTransaction,true);assert.equal(commits,1);
   inspectDatabase(directory,database=>assert.equal(database.prepare(
-    "SELECT count(*) AS n FROM client_source_operation_originals").get().n,0));
+    "SELECT count(*) AS n FROM client_source_operation_originals").get()!.n,0));
   scratch.passed();
 });
 
@@ -168,11 +171,11 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
     assert.equal(child.status,73,child.stderr);
     const before=databaseBytes(directory),entries=fs.readdirSync(directory).sort();
     const committed=stage==='after-directory-ack' ? inspectDatabase(directory,database=>({
-      schema:schema(database),version:database.prepare('PRAGMA user_version').get().user_version,
+      schema:schema(database),version:database.prepare('PRAGMA user_version').get()!.user_version,
       tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
-        rows:database.prepare(`SELECT * FROM "${name.replaceAll('"','""')}"`).all()})),
+        rows:database.prepare(`SELECT * FROM "${(name as string).replaceAll('"','""')}"`).all()})),
     })) : undefined;
-    let journal;
+    let journal: CloseableJournal | undefined;
     try {
       if(stage==='after-directory-ack')journal=openClientRequestJournal(directory);
       else assert.throws(()=>{journal=openClientRequestJournal(directory);},{code:
@@ -185,9 +188,9 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
       // A completed directory ACK permits reopening the exact committed
       // schema and rows. SQLite may checkpoint its physical WAL on reopen.
       assert.deepEqual(inspectDatabase(directory,database=>({
-        schema:schema(database),version:database.prepare('PRAGMA user_version').get().user_version,
+        schema:schema(database),version:database.prepare('PRAGMA user_version').get()!.user_version,
         tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
-          rows:database.prepare(`SELECT * FROM "${name.replaceAll('"','""')}"`).all()})),
+          rows:database.prepare(`SELECT * FROM "${(name as string).replaceAll('"','""')}"`).all()})),
       })),committed);
     }
     scratch.passed();
@@ -197,7 +200,7 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
 test('a failed marker fsync retains the committed schema without ready or automatic reset',async()=>{
   const {scratch,directory}=await fixture();
   const originalFsync=fs.fsyncSync;const primary=new Error('OriginalMarkerAckFailed');
-  let journal,markerAcks=0;
+  let journal: CloseableJournal | undefined,markerAcks=0;
   fs.fsyncSync=function(fd){
     if(!fs.fstatSync(fd).isDirectory()&&++markerAcks===2)throw primary;
     return Reflect.apply(originalFsync,fs,[fd]);
