@@ -68,7 +68,8 @@ export const vectorScalarViewSpecification = Object.freeze({views: [{
   facts_wire: vectorScalarFactsWire,
 }]});
 
-export function createVectorScalarPageDriver(observations: Observations) {
+export function createVectorScalarPageDriver(observations: Pick<Observations,
+  'sourceIo' | 'sourceReads' | 'sourceReadSessions' | 'sourceReadCommands' | 'acceptedPages'>) {
   return async ({resource, columns, requestWire, operation: selectedOperation,
     signal, authorizationFor, chargePage, consumePage}: RowPageRequest & {requestWire: string}) => {
     signal?.throwIfAborted();

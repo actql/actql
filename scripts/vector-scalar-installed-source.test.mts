@@ -15,10 +15,26 @@ import {vectorScalarSourceSchema, vectorScalarSourceRows,
 import {retainInstalledHostInitializationFailure} from
   '../adapters/host-node/installed-host-cleanup.mjs';
 
+type PageRequest = Parameters<ReturnType<typeof createVectorScalarPageDriver>>[0];
+type PageHooks = 'authorizationFor' | 'chargePage' | 'consumePage';
+type TestPageOptions = Partial<Omit<PageRequest, PageHooks>> & {
+  authorizationFor?: (...args: Parameters<PageRequest['authorizationFor']>) => unknown;
+  chargePage?: PageRequest['chargePage'];
+  consumePage?: (rows: Parameters<PageRequest['consumePage']>[0],
+    admission: NonNullable<Parameters<PageRequest['consumePage']>[1]>) => unknown;
+};
+type Installation = Parameters<typeof installVectorScalarFixture>[0];
+type ConnectorEntries = Parameters<Installation['createInstalledConnectorTable']>[0];
+type InitializationFailure = Awaited<ReturnType<typeof retainInstalledHostInitializationFailure>>;
+type LoadedFixture = {load(profile: unknown, options: {
+  root: string; principalId: string; moon: object; baseEnvironmentWire: string; runtimeBundleCid: string;
+}): Promise<unknown>};
+
+
 const observations = () => ({sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
   sourceReadCommands: [], acceptedPages: 0});
-const options = overrides => ({resource: 'vectors', columns: ['id', 'left_vector', 'right_vector'],
-  requestWire: '{}', operation: 'vector_fixture:vectors:read', ...overrides});
+const options = (overrides: TestPageOptions) => ({resource: 'vectors', columns: ['id', 'left_vector', 'right_vector'],
+  requestWire: '{}', operation: 'vector_fixture:vectors:read', ...overrides}) as PageRequest;
 
 test('full Relation declaration retains the independent original Vector schema/CID', () => {
   assert.deepEqual(JSON.parse(vectorScalarSchemaWire), {
@@ -40,18 +56,18 @@ test('full Relation declaration retains the independent original Vector schema/C
 });
 
 test('physical page driver supplies original rows once with the exact charged ticket', async () => {
-  const counts = observations(), calls = [];
+  const counts = observations(), calls: [phase: string, index?: number][] = [];
   const ticket = {};
   await createVectorScalarPageDriver(counts)(options({
     async authorizationFor(index) { calls.push(['authorization', index]); },
     chargePage(bytes) {
-      assert.deepEqual(JSON.parse(bytes), vectorScalarSourceRows);
+      assert.deepEqual(JSON.parse(bytes as unknown as string), vectorScalarSourceRows);
       calls.push(['charged']); return ticket;
     },
     async consumePage(rows, {charge}) {
       assert.equal(charge, ticket); assert.deepEqual(rows, vectorScalarSourceRows);
       calls.push(['admitted']);
-      rows[0].left_vector[0] = 999;
+      (rows[0].left_vector as number[])[0] = 999;
     },
   }));
   assert.deepEqual(calls, [['authorization', 0], ['charged'], ['admitted']]);
@@ -94,10 +110,10 @@ test('common admission refusal is preserved and does not become a completed page
 test('actual installed fixture import closure is delivered and detects a missing supplier', () => {
   const copies = new Map([...readFileSync('scripts/test-packed-public-query.mts', 'utf8')
     .matchAll(/\['([^']+)', '([^']+\.mjs)'\]/gu)].map(match => [match[2], match[1]]));
-  function closure(map) {
-    const pending = ['packed-query-worker.mjs'], seen = new Set(), absent = [];
+  function closure(map: ReadonlyMap<string, string>) {
+    const pending = ['packed-query-worker.mjs'], seen = new Set<string>(), absent: string[] = [];
     while (pending.length) {
-      const name = pending.pop(); if (seen.has(name)) continue; seen.add(name);
+      const name = pending.pop()!; if (seen.has(name)) continue; seen.add(name);
       const source = map.get(name); if (!source) { absent.push(name); continue; }
       for (const match of readFileSync(source, 'utf8').matchAll(
         /(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
@@ -121,13 +137,13 @@ test('fixture initialization failure retains original cause and the same pending
   const directory = await mkdtemp(join(tmpdir(), 'actql-vector-init-control-'));
   const primary = new Error('FixtureRowSourceConstructorFailure');
   const closeFailure = new Error('FixtureSiteCloseFailure');
-  let closeCalls = 0, constructorCalls = 0, failure, entries;
+  let closeCalls = 0, constructorCalls = 0, failure: InitializationFailure | undefined, entries: ConnectorEntries | undefined;
   const site = {connection: 'vector_fixture:vectors', close() {
     closeCalls++;
     if (closeCalls === 1) throw closeFailure;
   }};
   t.after(async () => {
-    if (failure?.cleanupHandle !== undefined) await failure.cleanupHandle.retry();
+    if (failure?.cleanupHandle !== undefined) await failure!.cleanupHandle.retry();
     else if (closeCalls < 2) site.close();
     await rm(directory, {recursive: true, force: true});
   });
@@ -135,31 +151,31 @@ test('fixture initialization failure retains original cause and the same pending
     view_bodies: [JSON.stringify({contract_cid: 'fixture-view', output: {schema: {cid: 'fixture-schema'}}})]};
   const moon = {clientProgramRowSourceRestoreRelationDeclaration: () => ({}),
     clientProgramRowSourceDeclarationJson: () => JSON.stringify(declared)};
-  const helpers = {checked: value => value,
+  const helpers = {checked: (value: unknown) => value,
     rowSourceCheckEnvironment: () => ({wire: '{}'}),
     installRowSourceAuthorization: async () => ({context: {contextCid: 'fixture-context'}}),
     openRowSourceCredentialSite: async () => site,
     createInstalledRowSource: async () => { constructorCalls++; throw primary; },
     retainInstalledHostInitializationFailure};
   const installed = await installVectorScalarFixture({moon, helpers, directory,
-    createInstalledConnectorTable: value => { entries = value; return {}; }});
-  const module = await entries[0].source.load();
+    createInstalledConnectorTable: (value: ConnectorEntries) => { entries = value; return {}; }} as unknown as Installation);
+  const module = await entries![0].source!.load() as LoadedFixture;
   const {queryAliases: _, ...profile} = JSON.parse(await readFile(installed.sourceProfilePath, 'utf8'));
   await assert.rejects(module.load(profile, {root: directory, principalId: 'fixture-principal',
-    moon, baseEnvironmentWire: '{}', runtimeBundleCid: 'fixture-runtime'}), error => {
+    moon, baseEnvironmentWire: '{}', runtimeBundleCid: 'fixture-runtime'}), (error: InitializationFailure) => {
     failure = error;
     assert.equal(error.code, 'InstalledHostInitializationFailed');
     assert.equal(error.primaryFailure, primary);
     assert.equal(error.cleanupPending, true);
     assert.deepEqual(error.cleanupHandle.status().owners, ['source-profile']);
-    assert.equal(error.cleanupErrors[0].error, closeFailure);
+    assert.equal((error.cleanupErrors[0] as {error: unknown}).error, closeFailure);
     return true;
   });
   assert.equal(closeCalls, 1); assert.equal(constructorCalls, 1);
-  await failure.cleanupHandle.retry();
-  assert.equal(failure.cleanupPending, false);
+  await failure!.cleanupHandle.retry();
+  assert.equal(failure!.cleanupPending, false);
   assert.equal(installed.observations.closedSites, 1);
   assert.equal(closeCalls, 2); assert.equal(constructorCalls, 1);
-  await failure.cleanupHandle.retry();
+  await failure!.cleanupHandle.retry();
   assert.equal(closeCalls, 2, 'retry never closes an already completed Site twice');
 });

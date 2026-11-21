@@ -1031,3 +1031,5 @@ target/
 /adapters/host-node/installed-host-cleanup.d.mts
 /adapters/host-node/installed-runtime-retirement-unit.test.mjs
 /adapters/host-node/installed-runtime-retirement-unit.test.d.mts
+/scripts/vector-scalar-installed-source.test.mjs
+/scripts/vector-scalar-installed-source.test.d.mts
