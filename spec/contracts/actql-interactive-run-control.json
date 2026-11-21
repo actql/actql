@@ -5119,6 +5119,39 @@
           "minItems": 0
         }
       }
+    },
+    "static_explanation_view": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-static-explanation-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "plan",
+        "facts",
+        "context"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-static-explanation/0.1"
+        },
+        "plan": {
+          "oneOf": [
+            {
+              "$ref": "#/schemas/plan_view"
+            },
+            {
+              "$ref": "#/schemas/effectful_static_plan_view"
+            }
+          ]
+        },
+        "facts": {
+          "$ref": "#/schemas/explanation_facts"
+        },
+        "context": {
+          "$ref": "#/schemas/explanation_context"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -5166,7 +5199,8 @@
     "explanation_step": "sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a",
     "explanation_facts": "sha256:0bd17264c5c1efa5e2fa2984a5052e3ebace93ba3a66bcbe0c3a60ffca01b2a2",
     "run_explanation_view": "sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1",
-    "explanation_context": "sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27"
+    "explanation_context": "sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27",
+    "static_explanation_view": "sha256:8e4b03ac25f7e1457d676d66caf56ece97fdbad1a3dd78d09552f3bc0e4a73a2"
   },
   "identity_domains": {
     "control_profile": {
@@ -5264,5 +5298,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:92257649387571b9d3804710790636abf4a684d98db34f4633c8375465e5b7ab"
+  "registry_cid": "sha256:6e02efccfec632da19197ae848d98647d122e71bc2c28feff1b7d1aff9b1170e"
 }

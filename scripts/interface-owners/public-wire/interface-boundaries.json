@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "c7b1bb28a7d9ee12ef429fa675a61d61c5d9332401e1017bf6381a0f83395cc2",
+      "sha256": "b2ee259b0edbb0774ad0a53f69dfd2e48fc3282b9b606db85021361c606b92fc",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -1889,7 +1889,8 @@
         "validWireSampleRelationShape",
         "validWireSampleSelectorShape",
         "validWireSampleSourceShape",
-        "validWireSampleVectorsShape"
+        "validWireSampleVectorsShape",
+        "validWireStaticExplanationViewShape"
       ],
       "operations": [
         {
@@ -2271,6 +2272,13 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "imports": [],
@@ -2531,7 +2539,8 @@
             "validWireSampleRelationShape/validWireSampleRelationShape",
             "validWireSampleSelectorShape/validWireSampleSelectorShape",
             "validWireSampleSourceShape/validWireSampleSourceShape",
-            "validWireSampleVectorsShape/validWireSampleVectorsShape"
+            "validWireSampleVectorsShape/validWireSampleVectorsShape",
+            "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape"
           ],
           "exports": [
             "validWireControlAdmissionShape",
@@ -2578,7 +2587,8 @@
             "validWireSampleRelationShape",
             "validWireSampleSelectorShape",
             "validWireSampleSourceShape",
-            "validWireSampleVectorsShape"
+            "validWireSampleVectorsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -2691,6 +2701,10 @@
               {
                 "path": "scripts/effectful-static-plan-contract.test.mjs",
                 "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
               }
             ]
           }

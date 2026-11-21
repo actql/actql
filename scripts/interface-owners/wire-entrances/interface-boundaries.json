@@ -11815,7 +11815,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ca232fbe6266e89888fb0b035fc4d263cc704d65ca42fc14ea7d108b4968b64d",
+      "sha256": "1d5b25766cd9b4cf6062cfccd4a35c6f4e0666b5a58019ca3f05cb09ffe22d55",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -11863,6 +11863,7 @@
         "WireSampleSelector",
         "WireSampleSource",
         "WireSampleVectors",
+        "WireStaticExplanationView",
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
         "validWireControlAdmissionShape",
@@ -11909,7 +11910,8 @@
         "validWireSampleRelationShape",
         "validWireSampleSelectorShape",
         "validWireSampleSourceShape",
-        "validWireSampleVectorsShape"
+        "validWireSampleVectorsShape",
+        "validWireStaticExplanationViewShape"
       ],
       "operations": [
         {
@@ -12226,6 +12228,13 @@
             "value: unknown"
           ],
           "result": "value is WireSampleVectors"
+        },
+        {
+          "name": "validWireStaticExplanationViewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireStaticExplanationView"
         }
       ],
       "imports": [],
@@ -15933,7 +15942,8 @@
             "WireSampleSource",
             "WireSampleVectors",
             "interactiveControlErrors",
-            "interactiveControlRegistryCid"
+            "interactiveControlRegistryCid",
+            "WireStaticExplanationView"
           ],
           "attributes": {
             "responsibility": [
@@ -16143,11 +16153,13 @@
         {
           "operations": [
             "validWireExplanationContextShape",
-            "validWireExplanationFactsShape"
+            "validWireExplanationFactsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "exports": [
             "validWireExplanationContextShape",
-            "validWireExplanationFactsShape"
+            "validWireExplanationFactsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -16246,6 +16258,10 @@
               {
                 "path": "scripts/effectful-static-plan-contract.test.mjs",
                 "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
               }
             ]
           }

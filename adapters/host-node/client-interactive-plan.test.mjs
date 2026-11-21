@@ -49,7 +49,7 @@ async function staticExplanationFixture() {
     binding: {...binding, check_environment_cid: plan.check_environment_cid},
     items: [{kind: 'result', name: '結果', stage_ordinal: 0,
       producer: {state: 'not_projected', reason: 'no_original_port'}}]};
-  return {plan, facts, context};
+  return {version: 'actql-static-explanation/0.1', plan, facts, context};
 }
 
 function explanationWires(view) {

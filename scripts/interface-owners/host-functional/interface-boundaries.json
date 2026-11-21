@@ -24911,7 +24911,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "98f47ff5cd02acac9297db9a1e77a8ebea3194826691b62f131589f5312318fc",
+      "sha256": "1fe463ae84872e6c67baba2c358eec969eaf01135c9376fa1b08819525cad664",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [

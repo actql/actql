@@ -124,5 +124,14 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
         check_environment_cid: cid, compiled_plan_cid: cid, logical_map_cid: cid}),
       items: list(item)}),
   };
+  // A transport envelope around the original Plan and its two facets. Its
+  // references share the Plan and Map binding; the reader checks that binding.
+  schemas.static_explanation_view = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://smooth.dev/schemas/actql-static-explanation-0.1.json',
+    ...object({version: {const: 'actql-static-explanation/0.1'},
+      plan: {oneOf: [ref('plan_view'), ref('effectful_static_plan_view')]},
+      facts: ref('explanation_facts'), context: ref('explanation_context')}),
+  };
   return schemas;
 }

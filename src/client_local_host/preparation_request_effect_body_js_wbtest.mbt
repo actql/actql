@@ -692,8 +692,8 @@ test "static Effect Explanation charges the complete envelope at the per-facet c
   let bytes = 65536
   let nodes = 64
   let depth = 16
-  let wire_bytes = 3 * bytes + 29
-  let decoded_nodes = 3L * nodes.to_int64() + 7L
+  let wire_bytes = 3 * bytes + 70
+  let decoded_nodes = 3L * nodes.to_int64() + 9L
   let extent_nodes = 4L * decoded_nodes + 4L * depth.to_int64() + 64L
   let expected = result_read_data_cost(
     extent_nodes,

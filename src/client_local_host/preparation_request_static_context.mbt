@@ -383,9 +383,11 @@ fn static_effect_explanation_delivery_construction(
   max_wire_bytes : Int,
 ) -> Int64? {
   let (bytes, nodes, depth) = limits
-  let decoded_nodes = 3L * nodes.to_int64() + 7L
+  let decoded_nodes = 3L * nodes.to_int64() + 9L
   // These are the Host's ASCII member names and delimiters, without values.
-  let envelope_bytes = "{\"plan\":,\"facts\":,\"context\":}".length().to_int64()
+  let envelope_bytes = "{\"version\":\"actql-static-explanation/0.1\",\"plan\":,\"facts\":,\"context\":}"
+    .length()
+    .to_int64()
   let delivered_bytes = Int64::min(
     max_wire_bytes.to_int64(),
     3L * bytes.to_int64() + envelope_bytes,

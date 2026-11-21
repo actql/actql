@@ -1,7 +1,7 @@
 // Static planning reuses the installed preparation and compiler owners. This
 // service has no request journal, Source acquisition or execution dependency.
 import {validWirePlanViewShape, validWireEffectfulStaticPlanViewShape,
-  validWireExplanationFactsShape, validWireExplanationContextShape,
+  validWireStaticExplanationViewShape,
   withinResultDescriptionLimits, resultDescriptionLimits} from '../../packages/client-wire/index.mjs';
 
 export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {
@@ -44,7 +44,9 @@ export function installClientStaticPlan({moon, control, prepare, authorize, read
   };
 }
 
-const explanationReplyOverhead = Buffer.byteLength('{"plan":,"facts":,"context":}', 'utf8');
+const staticExplanationVersion = 'actql-static-explanation/0.1';
+const explanationReplyOverhead = Buffer.byteLength(
+  `{"version":"${staticExplanationVersion}","plan":,"facts":,"context":}`, 'utf8');
 const staticExplanationFailure = code => Object.assign(new Error(code), {code});
 
 function assertSynchronousStaticCurrent(assertCurrent) {
@@ -147,13 +149,14 @@ export function installClientStaticEffectExplanation({authorize, authorizeEgress
       }
       let view;
       try {
-        view = {plan: JSON.parse(plan), facts: JSON.parse(facts), context: JSON.parse(context)};
+        view = {version: staticExplanationVersion,
+          plan: JSON.parse(plan), facts: JSON.parse(facts), context: JSON.parse(context)};
       } catch {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
       if (!withinResultDescriptionLimits(view, limits)) throw staticExplanationFailure('StaticExplanationReadLimit');
-      if (!validWireEffectfulStaticPlanViewShape(view.plan) || !validWireExplanationFactsShape(view.facts) ||
-          !validWireExplanationContextShape(view.context) || !originalStaticExplanation(view)) {
+      if (view.plan?.version !== 'actql-effectful-static-plan-view/0.1' ||
+          !validWireStaticExplanationViewShape(view) || !originalStaticExplanation(view)) {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
       await requireConnection();
