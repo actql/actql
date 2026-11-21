@@ -32,7 +32,7 @@ test('original typed row cause reaches the same failure without reading private 
 
 test('unavailable or malformed row diagnosis never replaces the original error or infers a memory quota', () => {
   for (const [cause, step] of [[undefined, 1], ['private query text', 1], ['x'.repeat(97), 1],
-    ['rows.row_limit', -1], ['rows.row_limit', 1.5], ['rows.row_limit', 2147483648]]) {
+    ['rows.row_limit', -2], ['rows.row_limit', 1.5], ['rows.row_limit', 2147483648]]) {
     const original = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     assert.throws(() => checkedLocalManagedAdvance({
       strategyModule_local_ManagedAdvanceCause: () => cause,
