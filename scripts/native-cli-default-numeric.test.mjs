@@ -193,7 +193,7 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   const observed = await observeNativeDefaultNumericQueries(fixture);
   const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
-    'window-row-number', 'window-typed-null', 'date-literal'];
+    'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
   assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
@@ -220,6 +220,8 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   assert.match(nativeDefaultNumericQueries.find(entry => entry.name === 'window-typed-null').sql,
     /CAST\(NULL AS NUMBER\)/u);
   assert.deepEqual(observed.find(entry => entry.name === 'date-literal').rows, [{x: '2026-01-02'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'timestamp-literal').rows,
+    [{x: '2026-01-02T03:04:05.000Z'}]);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {

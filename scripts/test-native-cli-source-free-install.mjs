@@ -19,7 +19,7 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
-import {dateLiteralOriginal} from './fixtures/public-query-input.mjs';
+import {dateLiteralOriginal, timestampLiteralOriginal} from './fixtures/public-query-input.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -113,6 +113,7 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'window-row-number', sql: 'WITH x AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS ordinal FROM x ORDER BY id', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
   {name: 'window-typed-null', sql: 'WITH x AS (SELECT 3 AS id, 5 AS n UNION ALL SELECT 1 AS id, CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
   {name: dateLiteralOriginal.name, sql: dateLiteralOriginal.text, rows: dateLiteralOriginal.expected},
+  {name: timestampLiteralOriginal.name, sql: timestampLiteralOriginal.text, rows: timestampLiteralOriginal.expected},
 ]);
 
 export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {

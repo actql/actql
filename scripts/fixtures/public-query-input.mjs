@@ -611,13 +611,14 @@ const numberColumn = name => ({name, contract: {type: 'number', nullable: false}
 export const dateLiteralOriginal = {name: 'date-literal', format: 'sql',
   text: "SELECT DATE '2026-01-02' AS x", expected: [{x: '2026-01-02'}],
   columns: [{name: 'x', contract: {type: 'date', nullable: false}}], sourceReadCount: 0};
+export const timestampLiteralOriginal = {name: 'timestamp-literal', format: 'sql',
+  text: "SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS x", expected: [{x: '2026-01-02T03:04:05.000Z'}],
+  columns: [{name: 'x', contract: {type: 'timestamp', nullable: false}}], sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
   dateLiteralOriginal,
-  {name: 'timestamp-literal', format: 'sql', text: "SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS x",
-    expected: [{x: '2026-01-02T03:04:05.000Z'}],
-    columns: [{name: 'x', contract: {type: 'timestamp', nullable: false}}], sourceReadCount: 0},
+  timestampLiteralOriginal,
   ...octalQuotes.flatMap(([name, quote]) => [
     {name: `octal-boundary-${name}`, format: 'sql',
       text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
