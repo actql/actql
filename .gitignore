@@ -991,3 +991,5 @@ target/
 /scripts/fixtures/infer-source-expectation.d.mts
 /scripts/fixtures/graph-host-cases.mjs
 /scripts/fixtures/graph-host-cases.d.mts
+/scripts/fixtures/packed-query-transport-owner.mjs
+/scripts/fixtures/packed-query-transport-owner.d.mts
