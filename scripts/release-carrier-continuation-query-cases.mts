@@ -8,8 +8,8 @@ export const carrierContinuationRecordsSchema = Object.freeze({id: Object.freeze
 // A trusted fixture owns this complete original extent. Do not derive facts
 // from Runtime observations, filter rows here or replace the independent data.
 export const carrierContinuationRecordsRows = Object.freeze(
-  carrierContinuationSuccesses.find(item => item.sourceReadSessionCount === 1)
-    .sourceRows.map(row => Object.freeze({...row})));
+  carrierContinuationSuccesses.find(item => item.sourceReadSessionCount === 1)!
+    .sourceRows!.map(row => Object.freeze({...row})));
 
 export function selectReleaseCarrierContinuationCases() {
   const names = ['graph-marked', 'graph-unmarked', 'events-flat', 'events-with',

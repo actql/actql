@@ -1057,3 +1057,13 @@ target/
 /scripts/package-release-shared-cohort.test.d.mts
 /scripts/test-package-release-effect.mjs
 /scripts/test-package-release-effect.d.mts
+/scripts/fixtures/carrier-continuation-source-input.mjs
+/scripts/fixtures/carrier-continuation-source-input.d.mts
+/scripts/release-carrier-continuation-query-cases.mjs
+/scripts/release-carrier-continuation-query-cases.d.mts
+/scripts/release-carrier-continuation-fixtures.mjs
+/scripts/release-carrier-continuation-fixtures.d.mts
+/scripts/test-package-release-carrier-continuation.mjs
+/scripts/test-package-release-carrier-continuation.d.mts
+/reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mjs
+/reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.d.mts

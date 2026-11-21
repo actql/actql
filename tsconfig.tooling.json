@@ -28,6 +28,7 @@
   "include": [
     "scripts/**/*.mts",
     "reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts",
+    "reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mts",
     "packages/sdk/**/*.mts",
     "packages/node/**/*.mts",
     "packages/native-cli/**/*.mts",

@@ -1,11 +1,13 @@
 // Independent F01/F02 public inputs. They use the existing installed records
 // Source and ordinary Client/Host. No Catalog override or test Driver is added.
+import type {PublicQuerySuccess} from './public-query-input.mjs';
+
 const number={type:'number',nullable:false};
 const columns=[{name:'node_key',contract:number},{name:'occurred_ms',contract:number}];
 const expected=[{node_key:1,occurred_ms:0}];
 const sourceRows=[{id:2,amount:20},{id:1,amount:null},{id:3,amount:30}];
 const graph=', g AS (GRAPH (NODE TABLES (source_rows AS N KEY (node_key) PROPERTIES (occurred_ms)))) ';
-const prefix=source=>'WITH source_rows AS ('+source+')'+graph;
+const prefix=(source: string)=>'WITH source_rows AS ('+source+')'+graph;
 const localPrefix=prefix('SELECT 1 AS node_key, 0 AS occurred_ms');
 const sourcePrefix=prefix('SELECT id AS node_key, 0 AS occurred_ms FROM records WHERE id = 1');
 const select=' |> SELECT node_key, occurred_ms |> ORDER BY node_key';
@@ -23,12 +25,17 @@ const graphControl={version:'actql/0.1',id:'fixture.carrier_continuation_graph_e
   ],results:{rows:{from:'out',fields:['node_key','occurred_ms']}}}],
   results:{answer:{from:{stage:'main',result:'rows'}}}};
 const result={answer:{rows:expected,columns}};
-function success(name,text,source=false) {
-  return ['sql','aql-text'].map(format=>({name:`carrier-continuation-${name}-${format}`,format,text,
+type CarrierContinuationSuccess = PublicQuerySuccess & {
+  results: Record<string, typeof result.answer>;
+  sourceReadSessionCount: number;
+  sourceRows?: typeof sourceRows;
+};
+function success(name: string,text: string,source=false) {
+  return (['sql','aql-text'] as const).map(format=>({name:`carrier-continuation-${name}-${format}`,format,text,
     results:{main:structuredClone(result.answer)},sourceReadSessionCount:source?1:0,
     ...(source?{sourceRows}: {sourceReadCount:0})}));
 }
-export const carrierContinuationSuccesses=[
+export const carrierContinuationSuccesses: CarrierContinuationSuccess[]=[
   {name:'carrier-continuation-json-events-control',format:'json',text:JSON.stringify(graphControl),
     results:structuredClone(result),sourceReadCount:0,sourceReadSessionCount:0},
   ...success('graph-marked',localPrefix+', picked AS (FROM GRAPH g) FROM picked |> node_rows()'+select),
@@ -57,6 +64,6 @@ export const carrierContinuationRefusals=invalidGraphCases.flatMap(([name,text])
 // acceptance control. Correcting the example does not relax output collisions.
 const collision=structuredClone(graphControl);
 collision.id+='.key_property_collision';
-collision.stages[0].steps[1].graph.nodes[0].labels[0].properties.columns.unshift({from:'node_key',to:'node_key'});
+collision.stages[0].steps[1].graph!.nodes[0].labels[0].properties.columns.unshift({from:'node_key',to:'node_key'});
 carrierContinuationRefusals.push({name:'carrier-continuation-refusal-key-property-collision-json',
   format:'json',text:JSON.stringify(collision),expectedCode:'ClientProgramInvalidInput'});

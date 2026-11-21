@@ -28,16 +28,16 @@ assert(source.clean, 'Release ranking fixture requires clean committed source');
 assert.equal(manifest.sourceSha, source.revision, 'Use the exact same clean producer/consumer source');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-carrier-continuation-',
   label: 'Installed Graph to Events continuation acceptance'});
-const root = scratch.path, fixtureDigests = {}, audits = [];
+const root = scratch.path, fixtureDigests: Record<string, string> = {}, audits: ReturnType<typeof auditCarrierContinuationTransport>[] = [];
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
 const env = releaseCarrierContinuationEnvironment(process.env, {registry: registry.url, root, node: process.execPath});
 // One original 300-second consumer budget, including install and both transports.
 const owner = createTransportOwner({deadline: Date.now() + 300000, timeoutMs: 300000, env});
-let primary;
+let primary: unknown;
 try {
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
-  await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
-  await writeFile(env.npm_config_globalconfig, '');
+  await writeFile(env.npm_config_userconfig!, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+  await writeFile(env.npm_config_globalconfig!, '');
   await owner.run([{name: 'registry-install-node', command: 'npm',
     args: ['install', '--no-audit', '--no-fund', `@actql/node@${manifest.cohort.packageVersion}`], cwd: root}]);
   auditPackedPackages(root, manifest.cohort.packages);
@@ -72,7 +72,7 @@ finally {
     fixtureSourceSha: source.revision, consumerDirectory: root, fixtureDigests,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     audits, processReceipt: owner.report(), complete: primary === undefined,
-    primaryError: primary?.message, publicPublication: false}, null, 2) + '\n', {flag: 'wx'});
+    primaryError: (primary as {message?: string} | null | undefined)?.message, publicPublication: false}, null, 2) + '\n', {flag: 'wx'});
 }
 if (primary !== undefined) throw primary;
 scratch.passed();
