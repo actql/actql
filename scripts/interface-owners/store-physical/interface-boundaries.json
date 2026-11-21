@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d516999e83408d79a3067e4dc63f043ee3d9bb9cf8cf54b828d3da1a300d21eb",
+      "sha256": "fa8e8a05ae986efb077441ae183d3af4bb7eed8dffda62f2f66011c158466aae",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6916,44 +6916,8 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
-          "parameters": [
-            "materialCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
-          "parameters": [
-            "semanticCid",
-            "excludedPublicIndexEntryCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
-          "parameters": [
-            "object"
-          ],
           "async": false
         },
         {
@@ -6967,14 +6931,6 @@
           "name": "openOriginalLocalPublicationStore/metadataFencesAreReady/metadataFencesAreReady",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
-          "parameters": [
-            "holdingCid",
-            "excludedPublicIndexEntryCid"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -7024,6 +6980,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
           "parameters": [
             "args"
           ],
@@ -7225,18 +7188,6 @@
             "holdingCid",
             "readDemand"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
-          "parameters": [],
           "async": false
         },
         {
@@ -7906,10 +7857,6 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#7",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#8",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
-            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
@@ -7924,7 +7871,6 @@
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
-            "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
@@ -7965,7 +7911,6 @@
             "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
             "openOriginalLocalPublicationStore/contractPath/contractPath",
             "openOriginalLocalPublicationStore/custodyPath/custodyPath",
-            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
@@ -7975,16 +7920,15 @@
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
-            "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
             "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
-            "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
             "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
             "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
-            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6"
           ],
           "exports": [
             "PublicationStoreError",
@@ -11547,6 +11491,188 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-reference-owner.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "33bb59e259c7a334d068c653b57e3ab27b41531476a8027047c2a2951bbf3034",
+      "exports": [
+        "createPublicationReferenceOwner"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationReferenceOwner",
+          "parameters": [
+            "configuration",
+            "metadataInventoriesDirectory",
+            "contractsDirectory",
+            "physicalHoldingsDirectory",
+            "indexesDirectory",
+            "preparedSchemas",
+            "currentDeliveryIndex",
+            "accountNativePublication",
+            "contractPath",
+            "objectPath",
+            "syncDirectory",
+            "rememberPhysicalRemoval",
+            "confirmPhysicalRemovals",
+            "withSemanticCommit",
+            "admitNativeIndexOriginal",
+            "readResultDeletion",
+            "admitContract",
+            "parseContract",
+            "readContract",
+            "readMetadataInventory",
+            "publicationRecoveryValue",
+            "readMetadataDeletion",
+            "readPhysicalHoldingAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationReferenceOwner/materialHasLiveReference/materialHasLiveReference",
+          "parameters": [
+            "materialCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationReferenceOwner/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference",
+          "parameters": [
+            "semanticCid",
+            "excludedPublicIndexEntryCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationReferenceOwner/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
+          "parameters": [
+            "holdingCid",
+            "excludedPublicIndexEntryCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationReferenceOwner/reclaimMetadataContract/reclaimMetadataContract",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationReferenceOwner/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationReferenceOwner",
+            "createPublicationReferenceOwner/materialHasLiveReference/materialHasLiveReference",
+            "createPublicationReferenceOwner/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
+            "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference",
+            "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
+            "createPublicationReferenceOwner/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
+            "createPublicationReferenceOwner/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
+            "createPublicationReferenceOwner/reclaimMetadataContract/reclaimMetadataContract",
+            "createPublicationReferenceOwner/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract"
+          ],
+          "exports": [
+            "createPublicationReferenceOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed Run metadata retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "const materialHasLiveReference = async (materialCid: unknown) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "pendingNativeMetadataReclaims.set(object.semantic_cid,original);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "preparedSchemas.get(object.semantic_cid)?.holders.size! > 0"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "withSemanticCommit(() => reclaimMetadataContractInternal(...args));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "fail('PublicationContractCorrupt');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "if (await readMetadataDeletion(keyHash) !== undefined) continue;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "await confirmPhysicalRemovals(unconfirmedObjects);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-reference-owner.mts",
+                "anchor": "currentDeliveryIndex()!.nativePublicationMaterialReferences(materialCid,afterIndex,afterResult)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native shared holding selection reads only owners of that holding"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index shared Result payload keeps the same allocation until final real unlink ACK"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/run-metadata-inventory.mjs",

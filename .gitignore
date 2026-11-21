@@ -1551,3 +1551,5 @@ target/
 /adapters/store-local/manifest-read-grant-store.d.mts
 /adapters/store-local/run-metadata-inventory.mjs
 /adapters/store-local/run-metadata-inventory.d.mts
+/adapters/store-local/publication-reference-owner.mjs
+/adapters/store-local/publication-reference-owner.d.mts

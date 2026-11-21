@@ -21,7 +21,7 @@ type MetadataIdentity = InventorySource & Readonly<{
 }>;
 type ContractExtent = Readonly<{semantic_cid: unknown; byte_count: number}>;
 export type MetadataContractObject = ContractExtent & (
-  Readonly<{physical_cid: unknown}> | Readonly<{native: 'sqlite'; body_sha256: unknown}>
+  Readonly<{physical_cid: unknown; native?: never}> | Readonly<{native: 'sqlite'; body_sha256: unknown}>
 );
 type MetadataInventory = MetadataIdentity & Readonly<{
   version: 'actql-local-publication-metadata-inventory/0.1';

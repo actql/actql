@@ -51,6 +51,7 @@ import {createDeliveryAttemptStore} from './delivery-attempt-store.mjs';
 import {createDeliveryRecordStore} from './delivery-record-store.mjs';
 import {createManifestReadGrantStore} from './manifest-read-grant-store.mjs';
 import {createRunMetadataInventory} from './run-metadata-inventory.mjs';
+import {createPublicationReferenceOwner} from './publication-reference-owner.mjs';
 import {createPublicationTrustedClock} from './publication-trusted-clock.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
@@ -2568,212 +2569,14 @@ async function openOriginalLocalPublicationStore(
       readDeliveryAttemptContract, admitDeliveryClaim,
     });
 
-  const metadataContractHasLiveReference = async (
-    semanticCid,
-    excludedPublicIndexEntryCid,
-  ) => {
-    for (const original of deliveryIndex.nativePublicationReferenceOwners(
-      'contract', semanticCid, excludedPublicIndexEntryCid)) {
-      const inventory = publicationRecoveryValue(original);
-      if (!inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const keyHash = indexKey({namespaceId:inventory.namespace_id,
-        authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid});
-      if (await readMetadataDeletion(keyHash) !== undefined) continue;
-      return true;
-    }
-    for (const name of await readdir(metadataInventoriesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const inventory = await readMetadataInventory(
-        `sha256:${name.slice(0, -5)}`,
-      );
-      const keyHash = indexKey({
-        namespaceId: inventory.namespace_id,
-        authorityScopeCid: inventory.authority_scope_cid,
-        runDefinitionCid: inventory.run_definition_cid,
-      });
-      if (inventory.public_index_entry_cid === excludedPublicIndexEntryCid ||
-          await readMetadataDeletion(keyHash) !== undefined) continue;
-      if (inventory.contract_objects.some(object =>
-        object.semantic_cid === semanticCid)) return true;
-    }
-    return false;
-  };
-
-  const metadataHoldingHasOtherOwner = async (
-    holdingCid, excludedPublicIndexEntryCid,
-  ) => {
-    for (const original of deliveryIndex.nativePublicationReferenceOwners(
-      'holding', holdingCid, excludedPublicIndexEntryCid)) {
-      if (!publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      return true;
-    }
-    for (const name of await readdir(metadataInventoriesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const inventory = await readMetadataInventory(
-        `sha256:${name.slice(0, -5)}`,
-      );
-      if (inventory.public_index_entry_cid !==
-            excludedPublicIndexEntryCid &&
-          inventory.physical_holding_cids.includes(holdingCid)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const pendingNativeMetadataReclaims = new Map();
-  const reclaimMetadataContractInternal = async (
-    excludedPublicIndexEntryCid,
-    object,
-    unconfirmedObjects,
-  ) => {
-    if (preparedSchemas.get(object.semantic_cid)?.holders.size > 0 ||
-        await metadataContractHasLiveReference(
-      object.semantic_cid, excludedPublicIndexEntryCid,
-    )) return;
-    if (object.native === 'sqlite') {
-      let original = pendingNativeMetadataReclaims.get(object.semantic_cid);
-      if (original === undefined) original = deliveryIndex.publicationContract(object.semantic_cid);
-      if (original === undefined) return; // A durable deletion marker owns this exact idempotent removal.
-      if (original.byte_count !== object.byte_count ||
-          `sha256:${createHash('sha256').update(original.wire,'utf8').digest('hex')}` !== object.body_sha256) {
-        fail('PublicationContractCorrupt');
-      }
-      pendingNativeMetadataReclaims.set(object.semantic_cid,original);
-      accountNativePublication(deliveryIndex.removePublicationContract(original));
-      pendingNativeMetadataReclaims.delete(object.semantic_cid);
-      return;
-    }
-    const semanticPath = contractPath(object.semantic_cid);
-    let semanticState;
-    try { semanticState = await lstat(semanticPath); }
-    catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
-    if (semanticState !== undefined) {
-      if (!semanticState.isFile() ||
-          semanticState.size !== object.byte_count) {
-        fail('InvalidPublicationContractObject');
-      }
-      const physicalState = await lstat(objectPath(object.physical_cid));
-      if (!physicalState.isFile() ||
-          physicalState.dev !== semanticState.dev ||
-          physicalState.ino !== semanticState.ino ||
-          physicalState.size !== object.byte_count) {
-        fail('PublicationContractCorrupt');
-      }
-      // Another Store directory still needs the canonical contract lookup.
-      if (semanticState.nlink > 2) return;
-      await unlink(semanticPath);
-      await syncDirectory(contractsDirectory);
-    }
-    let physicalState;
-    try { physicalState = await lstat(objectPath(object.physical_cid)); }
-    catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
-    if (physicalState === undefined) {
-      const removal = await rememberPhysicalRemoval(object.physical_cid,object.byte_count);
-      if (removal !== undefined) unconfirmedObjects.set(object.physical_cid, removal);
-      return;
-    }
-    if (!physicalState.isFile() ||
-        physicalState.size !== object.byte_count) {
-      fail('InvalidPublicationStoreObject');
-    }
-    if (physicalState.nlink > 1) return;
-    const removal = await rememberPhysicalRemoval(object.physical_cid,object.byte_count,physicalState);
-    unconfirmedObjects.set(object.physical_cid, removal);
-    await confirmPhysicalRemovals(unconfirmedObjects);
-    unconfirmedObjects.clear();
-  };
-
-  const reclaimMetadataContract = (...args) =>
-    withSemanticCommit(() => reclaimMetadataContractInternal(...args));
-
-  const materialHasLiveReference = async materialCid => {
-    for (const name of await readdir(physicalHoldingsDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationPhysicalHoldingStore');
-      }
-      const holding = await readPhysicalHoldingAt(
-        resolve(physicalHoldingsDirectory, name),
-        `sha256:${name.slice(0, -5)}`,
-      );
-      if (holding.objects.some(object => object.cid === materialCid)) {
-        return true;
-      }
-    }
-    const bindings = new Map();
-    const bindingOriginal = cid => {
-      if (!bindings.has(cid)) bindings.set(cid,readContract(cid,'durable_result_binding'));
-      return bindings.get(cid);
-    };
-    let afterIndex, afterResult, visited = 0n;
-    const maximum = BigInt(configuration.maxObjects) * BigInt(configuration.maxObjects);
-    while (true) {
-      const rows = deliveryIndex.nativePublicationMaterialReferences(materialCid,afterIndex,afterResult);
-      if (rows.length === 0) break;
-      visited += BigInt(rows.length);
-      if (visited > maximum) fail('PublicationStoreObjectLimit');
-      for (const reference of rows) {
-        const native = deliveryIndex.nativePublicationIndex(reference.metadata_key);
-        if (native === undefined) {
-          if (await readMetadataDeletion(reference.metadata_key) !== undefined) continue;
-          fail('InvalidPublicationMetadataInventoryStore');
-        }
-        const original = admitNativeIndexOriginal(native);
-        if (original.contract.identity !== reference.public_index_cid ||
-            !original.entry.durable_result_binding_cids.includes(reference.binding_cid)) {
-          fail('InvalidPublicationMetadataInventoryStore');
-        }
-        const binding = (await bindingOriginal(reference.binding_cid)).value;
-        if (binding.material_generation_cid !== materialCid ||
-            binding.result_definition_cid !== reference.result_definition_cid) fail('PublicationDurableBindingMismatch');
-        const deletion = await readResultDeletion(reference.metadata_key,reference.result_definition_cid);
-        if (deletion === undefined) return true;
-        if (deletion.public_index_entry_cid !== reference.public_index_cid ||
-            deletion.material_generation_cid !== materialCid) fail('InvalidPublicationDeletionStore');
-      }
-      const last = rows[rows.length - 1];
-      afterIndex = last.public_index_cid; afterResult = last.result_definition_cid;
-    }
-    for (const name of await readdir(indexesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationStoreIndex');
-      }
-      const keyHash = name.slice(0, -5);
-      const bytes = await readBounded(
-        resolve(indexesDirectory, name), configuration.maxObjectBytes,
-      );
-      const indexContract = admitContract(
-        'public_index_entry', bytes.toString('utf8'),
-      );
-      const entry = parseContract(indexContract);
-      for (const bindingCid of entry.durable_result_binding_cids) {
-        const binding = (await bindingOriginal(bindingCid)).value;
-        if (binding.material_generation_cid !== materialCid) continue;
-        const deletion = await readResultDeletion(
-          keyHash, binding.result_definition_cid,
-        );
-        if (deletion === undefined) return true;
-        if (deletion.public_index_entry_cid !== indexContract.identity ||
-            deletion.material_generation_cid !==
-              binding.material_generation_cid) {
-          fail('InvalidPublicationDeletionStore');
-        }
-      }
-    }
-    return false;
-  };
+  const {metadataContractHasLiveReference, metadataHoldingHasOtherOwner, reclaimMetadataContract, materialHasLiveReference} =
+    createPublicationReferenceOwner(configuration, {metadataInventoriesDirectory, contractsDirectory, physicalHoldingsDirectory,
+      indexesDirectory}, preparedSchemas, {
+      currentDeliveryIndex, accountNativePublication, contractPath, objectPath, syncDirectory, rememberPhysicalRemoval,
+      confirmPhysicalRemovals, withSemanticCommit, admitNativeIndexOriginal,
+      readResultDeletion: (...args) => readResultDeletion(...args), admitContract, parseContract, readContract,
+      readMetadataInventory, publicationRecoveryValue, readMetadataDeletion, readPhysicalHoldingAt,
+    });
 
   const verifyPhysicalHoldingObjects = createPhysicalHoldingObjectVerifier(verifyObject);
 
