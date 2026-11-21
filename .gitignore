@@ -1035,3 +1035,9 @@ target/
 /scripts/vector-scalar-installed-source.test.d.mts
 /adapters/host-node/embedded-local-lifecycle.mjs
 /adapters/host-node/embedded-local-lifecycle.d.mts
+/adapters/host-node/local-preparation-custody.mjs
+/adapters/host-node/local-preparation-custody.d.mts
+/adapters/host-node/local-preparation-registry.mjs
+/adapters/host-node/local-preparation-registry.d.mts
+/adapters/host-node/local-preparation-custody.test.mjs
+/adapters/host-node/local-preparation-custody.test.d.mts

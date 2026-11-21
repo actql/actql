@@ -121258,8 +121258,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121268,8 +121268,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121278,8 +121278,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121288,8 +121288,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121298,8 +121298,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121308,8 +121308,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121318,8 +121318,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121328,8 +121328,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121338,8 +121338,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121348,7 +121348,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-preparation-custody.test.mjs",
+                "path": "adapters/host-node/local-preparation-custody.test.mts",
                 "anchor": "Local preparation custody retains pending cleanup and closes new borrowing"
               }
             ]
@@ -121362,8 +121362,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121372,8 +121372,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121382,8 +121382,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121392,8 +121392,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121402,8 +121402,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121412,8 +121412,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121422,8 +121422,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121432,8 +121432,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121442,8 +121442,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-preparation-custody.mjs",
-                "anchor": "export function createLocalPreparationCustody("
+                "path": "adapters/host-node/local-preparation-custody.mts",
+                "anchor": "export function createLocalPreparationCustody<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121452,7 +121452,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-preparation-custody.test.mjs",
+                "path": "adapters/host-node/local-preparation-custody.test.mts",
                 "anchor": "Local preparation custody retains pending cleanup and closes new borrowing"
               }
             ]
@@ -121569,7 +121569,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
-        "./local-preparation-custody.mjs"
+        "./local-preparation-custody.mts"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -121602,8 +121602,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121616,8 +121616,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121630,8 +121630,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121644,8 +121644,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121658,8 +121658,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121672,8 +121672,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121686,8 +121686,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121700,8 +121700,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121714,8 +121714,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121746,8 +121746,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121760,8 +121760,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121774,8 +121774,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121788,8 +121788,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121802,8 +121802,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121816,8 +121816,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121830,8 +121830,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121844,8 +121844,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121858,8 +121858,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-preparation-registry.mjs",
-                "anchor": "export function installLocalPreparationRegistry("
+                "path": "adapters/host-node/local-preparation-registry.mts",
+                "anchor": "export function installLocalPreparationRegistry<Prepared extends object>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",

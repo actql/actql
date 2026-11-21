@@ -29077,7 +29077,7 @@
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-files-native.mjs",
-        "./local-preparation-registry.mjs",
+        "./local-preparation-registry.mts",
         "./local-result-authorization.mjs",
         "./local-result-read-workspace.mjs",
         "./local-values-plan.mjs",

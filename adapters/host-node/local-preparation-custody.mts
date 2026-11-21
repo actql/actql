@@ -3,11 +3,11 @@
 // the controller. Its confirmation permits payload severing after dispatch
 // quiescence; remaining registered handlers keep their own slots. This does
 // not acknowledge imported-child cleanup or release a Core reservation.
-export function createLocalPreparationCustody(prepared) {
+export function createLocalPreparationCustody<Prepared extends object>(prepared: Prepared | undefined) {
   if (prepared === null || typeof prepared !== 'object') {
     throw new TypeError('InvalidLocalPreparation');
   }
-  const handle = Object.freeze(Object.create(null));
+  const handle = Object.freeze(Object.create(null)) as object;
   let retirementRequested = false;
   let retirementConfirmed = false;
   let borrowers = 0;
@@ -18,7 +18,7 @@ export function createLocalPreparationCustody(prepared) {
   };
   return Object.freeze({
     handle,
-    borrow(original) {
+    borrow(original: unknown) {
       if (original !== handle) throw new TypeError('ForeignLocalPreparation');
       if (retirementRequested || prepared === undefined) {
         throw new Error('LocalPreparationRetired');
@@ -34,7 +34,7 @@ export function createLocalPreparationCustody(prepared) {
       return Object.freeze({
         get prepared() {
           if (!active) throw new Error('LocalPreparationBorrowReleased');
-          return prepared;
+          return prepared!;
         },
         release() {
           if (!active) return;

@@ -14,7 +14,7 @@ test('Local preparation custody accepts only its frozen nominal handle', () => {
   const borrow = owner.borrow(owner.handle);
   assert.ok(Object.isFrozen(borrow));
   assert.equal(borrow.prepared, value);
-  assert.equal(Object.hasOwn(Object.getOwnPropertyDescriptor(borrow, 'prepared'), 'value'), false);
+  assert.equal(Object.hasOwn(Object.getOwnPropertyDescriptor(borrow, 'prepared')!, 'value'), false);
   borrow.release();
   assert.throws(() => borrow.prepared, /BorrowReleased/);
 });
