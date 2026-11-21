@@ -36,7 +36,9 @@ import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSo
 import {keyedLookupOriginalTable, explanationOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
   initializeJournalSchema, readJournalExplanationOriginal, probeJournalExplanation, readJournalExplanation,
   insertJournalExplanationOriginal,
-  validLocalExecutionOwnerReceipt, validJournalRowUsage, maxEpochTtlMs, hexKey, validEpochAuthority,
+  validLocalExecutionOwnerReceipt, maxEpochTtlMs, hexKey, validEpochAuthority, assertJournalSubmissionCustody,
+  assertJournalRestartCustody, assertJournalIntentCustody, journalIntentWireBytes,
+  assertJournalNameCustody, authenticateJournalName, assertJournalCancellationCustody,
   inspectJournalNativeStorage} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
 export {validateSourceInventory};
@@ -439,13 +441,6 @@ export function openClientRequestJournal(directory, {
   const requestUsage = database.prepare('SELECT * FROM client_request_row_usage WHERE singleton=1');
   const submissionIssued = database.prepare('SELECT issued_count FROM client_submission_custody WHERE singleton = 1');
   const advanceSubmissionCustody = database.prepare('UPDATE client_submission_custody SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?');
-  const assertSubmissionCustody = () => {
-    const usage=requestUsage.get(), n=usage?.retained_count;
-    if (!validJournalRowUsage(usage) || submissionIssued.get()?.issued_count !== n) {
-      fail('ClientRequestSubmissionCustodyLost');
-    }
-    return n;
-  };
   const epochAuthority = database.prepare('SELECT * FROM client_submission_epoch_authority WHERE singleton = 1');
   const advanceEpochTime = database.prepare('UPDATE client_submission_epoch_authority SET observed_at = ? WHERE singleton = 1');
   const submissionOperations = new WeakMap();
@@ -550,7 +545,7 @@ export function openClientRequestJournal(directory, {
       // Expiry stops new admission, not preparation of an already accepted
       // intent. The persisted receipt, rather than a caller flag, supplies
       // this fact. Rejection and failed preparation cannot acquire a Run.
-      assertIntentCustody();
+      assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
       const row = intentSelect.get(requestId);
       if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
       const retained = retainedIntent(row, control, submission.epoch);
@@ -575,47 +570,8 @@ export function openClientRequestJournal(directory, {
   const restartUsage = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision
     FROM client_submission_restart_usage WHERE singleton=1`);
   const restartIssued = database.prepare('SELECT issued_count FROM client_submission_restart_custody WHERE singleton = 1');
-  const assertRestartCustody = () => {
-    const retained = restartUsage.get();
-    if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
-        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
-        !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
-        restartIssued.get()?.issued_count !== retained.n) {
-      fail('ClientSubmissionRestartCustodyLost');
-    }
-    return retained;
-  };
-  const assertIntentCustody = () => {
-    const retained = intentUsage.get();
-    const issued = intentIssued.get()?.issued_count;
-    const retired = intentRetired.get()?.retired_count;
-    if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
-        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
-        !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
-        !Number.isSafeInteger(issued) || !Number.isSafeInteger(retired) || retired < 0 ||
-        !Number.isSafeInteger(retained.n + retired) || retained.n + retired !== issued) {
-      fail('ClientSubmittedIntentCustodyLost');
-    }
-    return {...retained, issued, retired};
-  };
-  // Current-version durable input is read under this Journal's selected
-  // opaque Host service, never a retired preparation token or Store grant.
-  // Native SQL still sums ALL operands against the same statement envelope.
-  const intentWireBytes = wire => {
-    if (typeof wire !== 'string') fail('InvalidClientSubmittedIntent');
-    const bytes = Buffer.byteLength(wire, 'utf8');
-    const selected = Math.min(maxInspectionBytes,
-      maxDatabaseBytes ?? maxInspectionBytes,
-      primaryExecutionLimits?.maxParameterBytes ?? maxInspectionBytes);
-    // The shared Core constructor needs +128 bytes/+4 nodes/+1 depth headroom.
-    // This is its actual signed-Int representation boundary, not a profile cap.
-    if (bytes < 1 || bytes > selected || bytes > 2147483519) {
-      fail('ClientSubmittedIntentCapacity');
-    }
-    return bytes;
-  };
   const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {
-    const bytes = intentWireBytes(wire);
+    const bytes = journalIntentWireBytes(wire, maxInspectionBytes, maxDatabaseBytes, primaryExecutionLimits);
     const operation = submissionOperations.get(epoch);
     const previous = operation?.control === control ? operation.borrowedIntentOriginal : undefined;
     if (previous !== undefined && previous.wire === wire) return previous;
@@ -641,29 +597,12 @@ export function openClientRequestJournal(directory, {
   const nameSelect = database.prepare(`SELECT * FROM client_submission_names
     WHERE namespace_id = ? AND actor_id = ? AND name = ?`);
   const nameCustody = database.prepare('SELECT * FROM client_submission_name_custody WHERE singleton = 1');
-  const assertNameCustody = () => {
-    const row = nameCustody.get();
-    if (row?.singleton !== 1 || !Number.isSafeInteger(row.issued_count) ||
-        row.issued_count < 0 || row.issued_count !== row.retained_count) {
-      fail('ClientSubmissionNameCustodyLost');
-    }
-    return row.issued_count;
-  };
-  const authenticateName = row => {
-    const authority = epochAuthority.get();
-    if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
-    // This is private storage authentication, not a new public CID domain or
-    // authority token. Every original scope and intent component is included.
-    return createHmac('sha256', Buffer.from(authority.authentication_key, 'hex'))
-      .update(JSON.stringify(['scoped-submission-name', row.namespace_id, row.actor_id,
-        row.name, row.authority_scope_cid, row.submission_id, row.intent_cid]), 'utf8').digest('hex');
-  };
   // The caller must already hold this journal's transaction. Both ordinary
   // epoch admission and named resolution use this same custody transition.
   const recordIntentLocked = (submissionRef, original, {authorityScopeCid,
     currentAuthorization, phase = 'preparing', outcome}, restartWire, requestId, control,
     originalCustody) => {
-    const retained = originalCustody ?? assertIntentCustody();
+    const retained = originalCustody ?? assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
     const existing = intentSelect.get(requestId);
     if (existing !== undefined) {
       const previous = retainedIntent(existing, control, submissionRef.epoch, original.intent);
@@ -718,10 +657,10 @@ export function openClientRequestJournal(directory, {
       intentCid, actorId}, {dataKeys: true});
   };
   const checkRestartLocked = (requestId, restartWire, fields, control) => {
-    const restarts = assertRestartCustody();
+    const restarts = assertJournalRestartCustody(restartUsage, restartIssued, inspectionBytes);
     if (restartWire === undefined) return {restarts};
     const restart = JSON.parse(restartWire);
-    assertSubmissionCustody();
+    assertJournalSubmissionCustody(requestUsage, submissionIssued);
     const prior = verifyEpochLocked(restart.submissionRef.epoch,
       {...fields, purpose: 'lookup'}, control);
     const originalRequestId = control.clientSubmissionRequestId(prior.handle, restart.submissionRef.nonce);
@@ -792,7 +731,7 @@ export function openClientRequestJournal(directory, {
          restartRow !== undefined && previous.restartRow !== undefined &&
          Object.keys(restartRow).length === Object.keys(previous.restartRow).length &&
          Object.keys(restartRow).every(key => restartRow[key] === previous.restartRow[key]))) {
-      assertRestartCustody();
+      assertJournalRestartCustody(restartUsage, restartIssued, inspectionBytes);
       return previous;
     }
     const original = admitIntentOriginal(row.intent_wire, control, originalEpoch,
@@ -821,7 +760,7 @@ export function openClientRequestJournal(directory, {
       if (run === undefined || run.run_definition_cid !== outcome.admission.ref.runDefinitionCid ||
           run.namespace_id !== outcome.admission.ref.namespaceId) fail('ClientSubmittedIntentCorrupt');
     }
-    assertRestartCustody();
+    assertJournalRestartCustody(restartUsage, restartIssued, inspectionBytes);
     const unresolvedHistory = retainedRestart(restartRow, control);
     if (unresolvedHistory !== undefined && unresolvedHistory.intentCid !== row.intent_cid) {
       fail('ClientSubmissionRestartCorrupt');
@@ -847,11 +786,6 @@ export function openClientRequestJournal(directory, {
   const cancellationInsert = database.prepare(`INSERT INTO client_cancellation_operations
     (namespace_id, authority_scope_cid, cancel_id, run_definition_cid,
      expected_revision, intent_fingerprint_cid) VALUES (?, ?, ?, ?, ?, ?)`);
-  const assertCancellationCustody = () => {
-    const usage=cancellationUsage.get(), n=usage?.retained_count;
-    if (!validJournalRowUsage(usage) || cancellationIssued.get()?.issued_count !== n) fail('ClientRequestJournalCorrupt');
-    return n;
-  };
   const insert = database.prepare(`INSERT INTO client_requests (${columns})
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const reserve = database.prepare(`UPDATE client_requests
@@ -1001,7 +935,7 @@ export function openClientRequestJournal(directory, {
     const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',
       error => typeof error?.code === 'string' &&
         (error.code.startsWith('ClientRequest') || error.code.startsWith('ClientSubmission')), () => {
-      const retainedCount = assertSubmissionCustody();
+      const retainedCount = assertJournalSubmissionCustody(requestUsage, submissionIssued);
       const existing = select.get(fields.authorityScopeCid,
         fields.requestId);
       if (existing !== undefined) {
@@ -1065,7 +999,7 @@ export function openClientRequestJournal(directory, {
         // clock revive the identity after an awaited issuance.
         return {epochRejected: epochValidity};
       }
-      if (retainedCount + assertCancellationCustody() >= maxRecords) {
+      if (retainedCount + assertJournalCancellationCustody(cancellationUsage, cancellationIssued) >= maxRecords) {
         fail('ClientRequestJournalCapacity');
       }
       if (selectRun.get(runDefinitionCid) !== undefined) {
@@ -1186,7 +1120,7 @@ export function openClientRequestJournal(directory, {
         const wire = control.clientSubmittedIntentWire(borrowedIntent);
         const identity = control.clientSubmittedIntentCid(borrowedIntent);
         if (typeof wire !== 'string' || typeof identity !== 'string') fail('InvalidClientSubmittedIntent');
-        intentWireBytes(wire);
+        journalIntentWireBytes(wire, maxInspectionBytes, maxDatabaseBytes, primaryExecutionLimits);
         operation.borrowedIntentOriginal = {intent: borrowedIntent, wire, identity};
       }
       submissionOperations.set(epoch, operation);
@@ -1222,13 +1156,13 @@ export function openClientRequestJournal(directory, {
       if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
       const original = originalIntent(intent, control, submissionRef?.epoch);
       const result = submissionTransaction(() => {
-        const issued = assertNameCustody();
-        const intentCustody = assertIntentCustody();
+        const issued = assertJournalNameCustody(nameCustody);
+        const intentCustody = assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
         const existing = nameSelect.get(namespaceId, actorId, name);
         if (existing !== undefined) {
           if (!hexKey(existing.binding_authenticator) ||
               !timingSafeEqual(Buffer.from(existing.binding_authenticator, 'hex'),
-                Buffer.from(authenticateName(existing), 'hex'))) fail('ClientSubmissionNameCustodyLost');
+                Buffer.from(authenticateJournalName(existing, epochAuthority), 'hex'))) fail('ClientSubmissionNameCustodyLost');
           if (existing.authority_scope_cid !== authorityScopeCid ||
               existing.intent_cid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
           const row = intentSelect.get(existing.submission_id);
@@ -1264,11 +1198,11 @@ export function openClientRequestJournal(directory, {
           authority_scope_cid: authorityScopeCid, submission_id: requestId, intent_cid: original.identity};
         database.prepare('INSERT INTO client_submission_names VALUES (?, ?, ?, ?, ?, ?, ?)')
           .run(namespaceId, actorId, name, authorityScopeCid, requestId,
-            original.identity, authenticateName(row));
+            original.identity, authenticateJournalName(row, epochAuthority));
         if (Number(database.prepare(`UPDATE client_submission_name_custody
           SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
           .run(issued).changes) !== 1) fail('ClientSubmissionNameCustodyLost');
-        assertNameCustody();
+        assertJournalNameCustody(nameCustody);
         return retained;
       });
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
@@ -1285,7 +1219,7 @@ export function openClientRequestJournal(directory, {
       const restartWire = restartDecision(submissionRef, original.identity, unresolvedHistory, actorId);
       const fields = {authorityScopeCid, currentAuthorization};
       const result = submissionTransaction(() => {
-        assertIntentCustody();
+        assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
         const verified = verifyEpochLocked(submissionRef.epoch, {...fields, purpose: 'lookup'}, control);
         const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
         if (requestId === undefined) fail('InvalidClientSubmittedIntent');
@@ -1359,7 +1293,7 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientSubmittedIntentRetirement');
       }
       return Object.freeze(transaction.run(() => {
-        const custody = assertIntentCustody();
+        const custody = assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
         const current = verifyEpochLocked(submissionRef.epoch, fields, control);
         if (current.validity !== 'expired') fail('ClientSubmittedIntentNotRetirable');
         const row = intentSelect.get(requestId);
@@ -1388,7 +1322,7 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientSubmittedIntentOutcome');
       }
       return transaction.run(() => {
-        assertIntentCustody();
+        assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
         const row = intentSelect.get(requestId);
         if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
         const retained = retainedIntent(row, control, submissionRef.epoch);
@@ -1653,8 +1587,8 @@ export function openClientRequestJournal(directory, {
       let previousReference;
       const readOriginal = () => {
         try {
-          assertSubmissionCustody();
-          assertIntentCustody();
+          assertJournalSubmissionCustody(requestUsage, submissionIssued);
+          assertJournalIntentCustody(intentUsage, intentIssued, intentRetired, inspectionBytes);
           const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
             requestId: fields.requestId}, requestControl, requestOriginal);
           if (run === undefined || requestControl.clientRequestRelation(identity,
@@ -1866,7 +1800,7 @@ export function openClientRequestJournal(directory, {
       }
       if (sourceInventory !== undefined) validateSourceInventory(sourceInventory);
       ensureOpen();
-      assertSubmissionCustody();
+      assertJournalSubmissionCustody(requestUsage, submissionIssued);
       const fields = checkedIdentity(identity, requestControl);
       assertKeyedInventoryRequest(sourceInventory, fields);
       const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
@@ -2232,7 +2166,7 @@ export function openClientRequestJournal(directory, {
       if (!currentAuthorization) fail('ClientCancellationDenied');
       const pending = transact('cancel_admission', 'ClientCancellationUnknown',
         cancellationKnownFailure, () => {
-          const custodyCount = assertCancellationCustody();
+          const custodyCount = assertJournalCancellationCustody(cancellationUsage, cancellationIssued);
           const {row, facts} = cancellationDefinition(ref, requestControl, publicationControl);
           const identity = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
           const record = cancellationSelect.get(ref.namespaceId, ref.authorityScopeCid, cancelId);
@@ -2241,7 +2175,7 @@ export function openClientRequestJournal(directory, {
           const action = cancellationAction(identity, retained?.identity, facts, row,
             currentAuthorization, publicationCommitted, requestControl);
           if (retained !== undefined) return {...retained, facts, action};
-          if (assertSubmissionCustody() + custodyCount >= maxRecords) {
+          if (assertJournalSubmissionCustody(requestUsage, submissionIssued) + custodyCount >= maxRecords) {
             rejectCancellation('ClientRequestJournalCapacity', 'refused', 'admission_capacity');
           }
           cancellationInsert.run(ref.namespaceId, ref.authorityScopeCid, cancelId,
@@ -2270,7 +2204,7 @@ export function openClientRequestJournal(directory, {
         } catch (cause) { fail('ClientCancellationUnknown', cause); }
       }
       return transact('cancel_commit', 'ClientCancellationUnknown', cancellationKnownFailure, () => {
-        assertCancellationCustody();
+        assertJournalCancellationCustody(cancellationUsage, cancellationIssued);
         const record = cancellationSelect.get(ref.namespaceId, ref.authorityScopeCid, cancelId);
         if (record === undefined) fail('ClientRequestJournalCorrupt');
         const retained = cancellationReadmission(record, requestControl, publicationControl);
@@ -2348,7 +2282,7 @@ export function openClientRequestJournal(directory, {
       }
       if (!currentAuthorization) fail('ClientCancellationDenied');
       return transact('cancel_lookup', 'ClientCancellationLookupUnknown', cancellationKnownFailure, () => {
-        assertCancellationCustody();
+        assertJournalCancellationCustody(cancellationUsage, cancellationIssued);
         const {row, facts} = cancellationDefinition(cancelRef, requestControl, publicationControl);
         const requested = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
         const record = cancellationSelect.get(cancelRef.namespaceId, cancelRef.authorityScopeCid, cancelRef.cancelId);

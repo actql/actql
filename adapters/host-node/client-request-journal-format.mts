@@ -1,5 +1,5 @@
 // Physical format and metadata for the original Client Request Journal.
-import {randomBytes} from 'node:crypto';
+import {createHmac, randomBytes} from 'node:crypto';
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync, openSync, readSync,
   writeFileSync, type BigIntStats} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
@@ -12,9 +12,12 @@ import {inspectClientSourceOperationStorage, sourceOperationTable} from './clien
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 // @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
-import {applyOriginal, boundedPrimarySql, fail, type JournalSqlConnection} from './client-request-journal-sql.mjs';
+import {applyOriginal, boundedPrimarySql, fail, type JournalSqlConnection,
+  type snapshotPrimaryExecutionLimits} from './client-request-journal-sql.mjs';
 
 type Row = Record<string, SQLOutputValue>;
+type JournalStatement = ReturnType<JournalSqlConnection['prepare']>;
+type IsSafeInteger = (value: unknown) => value is number;
 type OwnerReceipt = Readonly<{token?: unknown; anchor?: Readonly<{identity?: unknown; device?: unknown; inode?: unknown}>}>;
 type Usage = Readonly<{n: number; bytes: number; revision?: number}>;
 type FormatFeatures = ReturnType<typeof readJournalFormatFeatures>;
@@ -279,6 +282,74 @@ const journalRowUsageTriggers = journalRowUsageSources.flatMap(([usage,table]) =
 ]);
 export const validJournalRowUsage = (row: Row | undefined): row is Row & {retained_count: number} => row?.singleton === 1 &&
   Number.isSafeInteger(row.retained_count) && (row.retained_count as number) >= 0;
+export function assertJournalSubmissionCustody(requestUsage: JournalStatement, submissionIssued: JournalStatement) {
+  const usage = requestUsage.get(), n = usage?.retained_count;
+  if (!validJournalRowUsage(usage) || submissionIssued.get()?.issued_count !== n) {
+    fail('ClientRequestSubmissionCustodyLost');
+  }
+  return n as number;
+}
+
+export function assertJournalCancellationCustody(cancellationUsage: JournalStatement, cancellationIssued: JournalStatement) {
+  const usage = cancellationUsage.get(), n = usage?.retained_count;
+  if (!validJournalRowUsage(usage) || cancellationIssued.get()?.issued_count !== n) fail('ClientRequestJournalCorrupt');
+  return n as number;
+}
+
+export function assertJournalRestartCustody(restartUsage: JournalStatement, restartIssued: JournalStatement,
+  inspectionBytes: number) {
+  const retained = restartUsage.get();
+  if (!retained || !(Number.isSafeInteger as IsSafeInteger)(retained.n) || retained.n < 0 ||
+      !(Number.isSafeInteger as IsSafeInteger)(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
+      !(Number.isSafeInteger as IsSafeInteger)(retained.revision) || retained.revision < 0 ||
+      restartIssued.get()?.issued_count !== retained.n) {
+    fail('ClientSubmissionRestartCustodyLost');
+  }
+  return retained;
+}
+
+export function assertJournalIntentCustody(intentUsage: JournalStatement, intentIssued: JournalStatement, intentRetired: JournalStatement,
+  inspectionBytes: number) {
+  const retained = intentUsage.get();
+  const issued = intentIssued.get()?.issued_count;
+  const retired = intentRetired.get()?.retired_count;
+  if (!retained || !(Number.isSafeInteger as IsSafeInteger)(retained.n) || retained.n < 0 ||
+      !(Number.isSafeInteger as IsSafeInteger)(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
+      !(Number.isSafeInteger as IsSafeInteger)(retained.revision) || retained.revision < 0 ||
+      !(Number.isSafeInteger as IsSafeInteger)(issued) || !(Number.isSafeInteger as IsSafeInteger)(retired) || retired < 0 ||
+      !(Number.isSafeInteger as IsSafeInteger)(retained.n + retired) || retained.n + retired !== issued) {
+    fail('ClientSubmittedIntentCustodyLost');
+  }
+  return {...retained, issued, retired};
+}
+
+export function assertJournalNameCustody(nameCustody: JournalStatement) {
+  const row = nameCustody.get();
+  if (row?.singleton !== 1 || !(Number.isSafeInteger as IsSafeInteger)(row.issued_count) ||
+      row.issued_count < 0 || row.issued_count !== row.retained_count) {
+    fail('ClientSubmissionNameCustodyLost');
+  }
+  return row.issued_count;
+}
+
+// Current-version durable input is read under this Journal's selected
+// opaque Host service, never a retired preparation token or Store grant.
+// Native SQL still sums ALL operands against the same statement envelope.
+export function journalIntentWireBytes(wire: unknown, maxInspectionBytes: number, maxDatabaseBytes: number | undefined,
+  primaryExecutionLimits: ReturnType<typeof snapshotPrimaryExecutionLimits>) {
+  if (typeof wire !== 'string') fail('InvalidClientSubmittedIntent');
+  const bytes = Buffer.byteLength(wire, 'utf8');
+  const selected = Math.min(maxInspectionBytes,
+    maxDatabaseBytes ?? maxInspectionBytes,
+    primaryExecutionLimits?.maxParameterBytes ?? maxInspectionBytes);
+  // The shared Core constructor needs +128 bytes/+4 nodes/+1 depth headroom.
+  // This is its actual signed-Int representation boundary, not a profile cap.
+  if (bytes < 1 || bytes > selected || bytes > 2147483519) {
+    fail('ClientSubmittedIntentCapacity');
+  }
+  return bytes;
+}
+
 function inspectJournalRowUsage(database: JournalSqlConnection, version: number) {
   const originals=[...journalRowUsageTables,...journalRowUsageTriggers], names=originals.map(([name])=>name);
   const schema=database.prepare(`SELECT name,sql FROM sqlite_master
@@ -434,11 +505,21 @@ export const epochMarker = Buffer.from(JSON.stringify({
 }));
 export const maxEpochTtlMs = 7 * 24 * 60 * 60 * 1000;
 export const hexKey = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{64}$/u.test(value);
-export function validEpochAuthority(row: Row | undefined) {
+export function validEpochAuthority(row: Row | undefined): row is Row & {authentication_key: string; observed_at: number} {
   return row?.singleton === 1 && hexKey(row.authentication_key) &&
     Number.isSafeInteger(row.observed_at) && (row.observed_at as number) >= 0 &&
     (row.observed_at as number) <= Number.MAX_SAFE_INTEGER - maxEpochTtlMs;
 }
+export function authenticateJournalName(row: Row, epochAuthority: JournalStatement) {
+  const authority = epochAuthority.get();
+  if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
+  // This is private storage authentication, not a new public CID domain or
+  // authority token. Every original scope and intent component is included.
+  return createHmac('sha256', Buffer.from(authority.authentication_key, 'hex'))
+    .update(JSON.stringify(['scoped-submission-name', row.namespace_id, row.actor_id,
+      row.name, row.authority_scope_cid, row.submission_id, row.intent_cid]), 'utf8').digest('hex');
+}
+
 function inspectEpochStorage(database: JournalSqlConnection, enabled: boolean) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
     AND name = 'client_submission_epoch_authority'`).all();

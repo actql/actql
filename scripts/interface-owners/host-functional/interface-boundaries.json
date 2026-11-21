@@ -32228,6 +32228,12 @@
       "exports": [
         "admitJournalDirectory",
         "adoptSubmissionUsageStorage",
+        "assertJournalCancellationCustody",
+        "assertJournalIntentCustody",
+        "assertJournalNameCustody",
+        "assertJournalRestartCustody",
+        "assertJournalSubmissionCustody",
+        "authenticateJournalName",
         "cancellationMarker",
         "cancellationMarkerName",
         "columns",
@@ -32244,6 +32250,7 @@
         "intentMarker",
         "intentMarkerName",
         "journalDirectoryEntries",
+        "journalIntentWireBytes",
         "journalMarker",
         "journalMarkerMatches",
         "keyedLookupOriginalTable",
@@ -32333,6 +32340,56 @@
           "parameters": [
             "table",
             "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalCancellationCustody",
+          "parameters": [
+            "cancellationUsage",
+            "cancellationIssued"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalIntentCustody",
+          "parameters": [
+            "intentUsage",
+            "intentIssued",
+            "intentRetired",
+            "inspectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalNameCustody",
+          "parameters": [
+            "nameCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalRestartCustody",
+          "parameters": [
+            "restartUsage",
+            "restartIssued",
+            "inspectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertJournalSubmissionCustody",
+          "parameters": [
+            "requestUsage",
+            "submissionIssued"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticateJournalName",
+          "parameters": [
+            "row",
+            "epochAuthority"
           ],
           "async": false
         },
@@ -32675,6 +32732,16 @@
             "directory",
             "maxInspectionEntries",
             "primaryDirectoryInspection"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalIntentWireBytes",
+          "parameters": [
+            "wire",
+            "maxInspectionBytes",
+            "maxDatabaseBytes",
+            "primaryExecutionLimits"
           ],
           "async": false
         },
@@ -33679,9 +33746,14 @@
         {
           "operations": [
             "inspectNameStorage/counters/counters",
-            "inspectNameStorage/fields/fields"
+            "inspectNameStorage/fields/fields",
+            "assertJournalNameCustody",
+            "authenticateJournalName"
           ],
-          "exports": [],
+          "exports": [
+            "assertJournalNameCustody",
+            "authenticateJournalName"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -33701,6 +33773,14 @@
               {
                 "path": "packages/client-wire/index.d.ts",
                 "anchor": "export declare function validNamedSubmissionAttempt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function assertJournalNameCustody(nameCustody:"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function authenticateJournalName(row:"
               }
             ],
             "identity": [
@@ -33970,10 +34050,16 @@
             "journalRowUsageTriggers/journalRowUsageTriggers",
             "legacySubmissionUsageTables/legacySubmissionUsageTables",
             "submissionUsageTables/submissionUsageTables",
-            "submissionUsageTriggers/submissionUsageTriggers"
+            "submissionUsageTriggers/submissionUsageTriggers",
+            "assertJournalRestartCustody",
+            "assertJournalIntentCustody",
+            "journalIntentWireBytes"
           ],
           "exports": [
-            "adoptSubmissionUsageStorage"
+            "adoptSubmissionUsageStorage",
+            "assertJournalRestartCustody",
+            "assertJournalIntentCustody",
+            "journalIntentWireBytes"
           ],
           "attributes": {
             "responsibility": [
@@ -33990,6 +34076,18 @@
               {
                 "path": "adapters/host-node/client-request-journal-format.mts",
                 "anchor": "export function adoptSubmissionUsageStorage(database: JournalSqlConnection, transact: (action: () => void) => void,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function assertJournalRestartCustody(restartUsage:"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function assertJournalIntentCustody(intentUsage:"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function journalIntentWireBytes(wire:"
               }
             ],
             "identity": [
@@ -34174,7 +34272,9 @@
             "validJournalRowUsage/validJournalRowUsage",
             "validLocalExecutionOwnerReceipt",
             "readJournalExplanationOriginal",
-            "insertJournalExplanationOriginal"
+            "insertJournalExplanationOriginal",
+            "assertJournalSubmissionCustody",
+            "assertJournalCancellationCustody"
           ],
           "exports": [
             "cancellationMarker",
@@ -34211,7 +34311,9 @@
             "validJournalRowUsage",
             "validLocalExecutionOwnerReceipt",
             "readJournalExplanationOriginal",
-            "insertJournalExplanationOriginal"
+            "insertJournalExplanationOriginal",
+            "assertJournalSubmissionCustody",
+            "assertJournalCancellationCustody"
           ],
           "attributes": {
             "responsibility": [
@@ -34348,6 +34450,14 @@
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "{wire, value: JSON.parse(wire)};"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function assertJournalSubmissionCustody(requestUsage:"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-format.mts",
+                "anchor": "export function assertJournalCancellationCustody(cancellationUsage:"
               }
             ],
             "identity": [
