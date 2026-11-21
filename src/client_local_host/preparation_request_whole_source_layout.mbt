@@ -33,9 +33,9 @@ fn request_whole_source_route_frontier_bytes(
       map_entries: 0L,
     })
     is Some(scan) &&
-    @execution.checked_preparation_add_product(12L, n, 14L) is Some(headers) &&
-    @execution.checked_preparation_add_product(8L, n, 23L) is Some(references) &&
-    @execution.checked_preparation_add_product(20L, n, 25L) is Some(words) &&
+    @execution.checked_preparation_add_product(12L, n, 18L) is Some(headers) &&
+    @execution.checked_preparation_add_product(8L, n, 34L) is Some(references) &&
+    @execution.checked_preparation_add_product(20L, n, 27L) is Some(words) &&
     @execution.compose_preparation_representation([
       vectors,
       {
@@ -49,8 +49,10 @@ fn request_whole_source_route_frontier_bytes(
         // Fixed grow/refusal/return products: H12/R8/W20, as in the
         // existing Query-domain entry. Per input, count both Source record
         // alternatives, Input target, route/Result/map and budget carriers
-        // (H9/R15/W10); Native locator (H1/R5); and the four immutable
-        // RowInput policy records (H4/R3/W15). No names/paths are copied here.
+        // (H9/R15/W10); Native locator (H1/R6); and the four immutable
+        // RowInput policy records (H4/R3/W15). Listing lookup retains its
+        // three-field selection, Some and provider Some (H3/R5/W2), plus
+        // the common five-field locator tuple (H1/R5). Paths remain borrowed.
         record_headers: headers,
         reference_slots: references,
         scalar_words: words,

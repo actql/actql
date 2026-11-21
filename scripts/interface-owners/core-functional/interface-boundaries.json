@@ -110480,7 +110480,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "ded1937260fa272e3ab430e5417058c7d34e66807e70f8ea58339355e909e58b",
+      "sha256": "8f18d19b29c3fe1135e37405b447f0825826ba8342835895de65552857dc49db",
       "exports": [],
       "operations": [
         {
@@ -111116,7 +111116,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "49ebc4800c5c4d5705b24ff28c34643c9f66dc16e6cd809f6b49ca5b84256463",
+      "sha256": "84262445a5ab71540a483de35ef384f0da6a4206981e9d2daa94f580205a971c",
       "exports": [],
       "operations": [
         {
@@ -112400,7 +112400,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "925c6e5f2dae8cd2c8e218eced70c098e90c4487ecdfd32f46765f098af1b9e5",
+      "sha256": "356b3b23952a673eddd32402d6224813dad24d19826377d14c7fe2a19745e287",
       "exports": [],
       "operations": [
         {
@@ -112991,12 +112991,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "4f95177a8376f03eafa704553fc75902bf58383dda66e2869785ae3642255a96",
+      "sha256": "3f717baaa0e3d55e45aeb6dfefff97a332eedd07286f52a09ba43cb02420ccf7",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
           "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > LocalCommandFileSources raise ClientStop"
+        },
+        {
+          "name": "local_command_file_listing",
+          "declaration": "local_command_file_listing ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -113007,7 +113011,8 @@
         {
           "operations": [
             "<module>",
-            "[I]prepare_local_native_whole_files_request_module"
+            "[I]prepare_local_native_whole_files_request_module",
+            "local_command_file_listing"
           ],
           "exports": [],
           "attributes": {
@@ -113077,7 +113082,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "d8c55f3c07506b1dee1cf7b24f072b73aa9e4aa0c4926c15eef8afb5e0facbd6",
+      "sha256": "b395ca75482d96bfe03368ca33491968a754c49441dbdfe47278cbde89fcf45d",
       "exports": [],
       "operations": [
         {
@@ -113091,6 +113096,14 @@
         {
           "name": "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
           "declaration": "NativeLocalHostConnection : : prepare_original_managed_whole_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileWholeSource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::matches_provider",
+          "declaration": "NativeRelationFileWholeSource : : matches_provider ( self : Self , acquisition : @ rows . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::provider_capacity",
+          "declaration": "NativeRelationFileWholeSource : : provider_capacity ( self : Self , ) - > @ execution . ExecutionCapacity"
         },
         {
           "name": "snapshot_managed_whole_relation_file_sources",
@@ -113108,7 +113121,9 @@
             "managed_relation_file_originals_match",
             "managed_whole_relation_file_sources_match",
             "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
-            "snapshot_managed_whole_relation_file_sources"
+            "snapshot_managed_whole_relation_file_sources",
+            "NativeRelationFileWholeSource::matches_provider",
+            "NativeRelationFileWholeSource::provider_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -113273,7 +113288,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "767786a72446b8180349695a85470cbee7efaed4243f40415b8e3fea1e46b991",
+      "sha256": "590674389e0a27442f6ff9ace8a20b610110ceb1251d73e97fdea5c7e2c59446",
       "exports": [],
       "operations": [
         {

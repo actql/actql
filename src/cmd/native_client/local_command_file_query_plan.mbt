@@ -72,9 +72,23 @@ fn[I] prepare_local_native_file_request_module(
       prepared, request, 0, 0,
     ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
     if route is @sourceviews.WholeInputRoute(source) {
-      let subject = @sourceviews.declaration(
-        @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
+      let source_input = @sourceviews.mode_input(
+        @sourceviews.source_acquisition_mode(source),
       )
+      let subject = @sourceviews.declaration(source_input)
+      // A lone typed listing uses the ordered Whole planner as a JOIN does.
+      // The catalog check itself borrows the original before that Plan quote.
+      if @compiler_environment.source_request_file_listing(
+          @sourceviews.selected_contract(source_input),
+        )
+        is Some(_) {
+        return (
+          None,
+          prepare_local_native_whole_files_request_module(
+            control, parent, input, prepared, request, original, contracts, assets,
+          ),
+        )
+      }
       let (declaration, row) = local_command_file_row(
         original,
         subject.connector,

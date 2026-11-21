@@ -1134,3 +1134,123 @@ test "Native checkpoint decisions select original metadata without reopening Mod
     assert_eq(original.models.length(), 0)
   }
 }
+
+///|
+// Static Source correspondence for the F9 query. No file rows, ResourceRef,
+// Run or permission are issued by this fixture.
+test "Native Mock readonly JOIN has a record source and a typed listing source" {
+  let original = native_project_mock_model_fixture(
+    "deal-review",
+    operation="run",
+  )
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  let drive = original.sources
+    .iter()
+    .find_first(value => value._retained_connection == "drive")
+    .unwrap()
+  assert_true(local_command_file_listing(original, "drive", "files") is None)
+  original.file_sources = Some([
+    local_project_mock_file_source(drive, "sha256:" + "8".repeat(64)).unwrap(),
+  ])
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let source_environment = original
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let environment = original
+    .prepare_model_environment(source_environment)
+    .unwrap()
+  let (_, publication) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  let context = @source_publication.bind_published_query_context(
+    environment,
+    publication,
+    None,
+  ).unwrap()
+  let text = "SELECT o.id AS id, o.StageName, f.name AS file_name FROM salesforce.opportunities AS o JOIN drive.files AS f ON f.name = o.name |> RESULT main"
+  let query = @frontend.lower(text, @frontend.Text, Some(context)).unwrap().program.unwrap()
+  let prepared = @run_host.prepare_parsed_effect_free_client_program(
+    query,
+    environment,
+    None,
+    @run_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let request = @run_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "native-mock-readonly-join",
+  ).unwrap()
+  assert_eq(@run_host.prepared_client_acquisition_count(prepared), 2)
+  assert_true(
+    @local_values.select_installed_source_input(prepared, request, 0, 0).unwrap()
+    is @sourceviews.WholeInputRoute(_),
+  )
+  let occurrences = @run_host.select_client_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  assert_eq(
+    @run_host.client_direct_acquisition_occurrence_count(occurrences),
+    2,
+  )
+  let observed = []
+  for index in 0..<2 {
+    let (stage, input_index, _) = @run_host.client_direct_acquisition_occurrence_at(
+      occurrences, index,
+    ).unwrap()
+    guard @local_values.select_installed_source_input(
+        prepared, request, stage, input_index,
+      ).unwrap()
+      is @sourceviews.WholeInputRoute(source) else {
+      fail("Both checked inputs must remain on their original Whole route")
+    }
+    let target = @sourceviews.declaration(
+      @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
+    )
+    let declaration = original.sources
+      .iter()
+      .find_first(value => value._retained_connection == target.connector)
+      .unwrap()
+    observed.push(
+      (
+        target.connector,
+        target.resource,
+        declaration._retained_rows.any(row => {
+          row.view.resource == target.resource
+        }),
+        declaration._retained_files.any(file => {
+          file.listing.resource == target.resource
+        }),
+      ),
+    )
+  }
+  assert_true(observed.contains(("salesforce", "Opportunity", true, false)))
+  assert_true(observed.contains(("drive", "files", false, true)))
+  let (declaration, provider, binding) = local_command_file_listing(
+    original, "drive", "files",
+  ).unwrap()
+  assert_true(physical_equal(declaration, drive))
+  assert_true(
+    provider.matches_original(
+      drive._retained_declaration,
+      "files",
+      binding._retained_provider,
+    ),
+  )
+  assert_false(
+    provider.matches_original(
+      drive._retained_declaration,
+      "contents",
+      binding._retained_provider,
+    ),
+  )
+  assert_true(
+    local_command_file_listing(original, "salesforce", "files") is None,
+  )
+}

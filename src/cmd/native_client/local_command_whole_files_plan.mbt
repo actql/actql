@@ -1,4 +1,35 @@
 ///|
+// Borrow the listing already installed for this Project and checked resource.
+// The Project retains the issuer; the existing Work retains the physical Read.
+fn local_command_file_listing(
+  original : LocalProjectMockDeclarations,
+  connector : String,
+  resource : String,
+) -> (
+  LocalProjectMockSourceDeclaration,
+  @row_file.NativeRelationFileListingProvider,
+  LocalProjectMockFileBinding,
+)? {
+  guard !original.closing &&
+    !original.retired &&
+    original.file_sources is Some(sources) else {
+    return None
+  }
+  for source in sources {
+    let declaration = source._retained_original
+    if declaration._retained_connection == connector &&
+      source.references.known is Some(_) {
+      for (provider, binding) in source._retained_listings {
+        if binding.listing.resource == resource {
+          return Some((declaration, provider, binding))
+        }
+      }
+    }
+  }
+  None
+}
+
+///|
 // The complete-input branch is selected from the SAME checked Request before
 // Query construction. Preserve each original stage/input; no task/index
 // equality, Query failure fallback, Source reparse or new permission exists.
@@ -32,15 +63,42 @@ fn[I] prepare_local_native_whole_files_request_module(
       ) else {
       stop("LocalSourceInputSelectionUnavailable")
     }
-    let target = @sourceviews.declaration(
-      @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
+    let source_input = @sourceviews.mode_input(
+      @sourceviews.source_acquisition_mode(source),
     )
-    let (declaration, row) = local_command_file_row(
-      original,
-      target.connector,
-      target.resource,
-    )
-    let page = row.limits.page
+    let target = @sourceviews.declaration(source_input)
+    let (declaration, provider, selection, limits, listing) = if @compiler_environment.source_request_file_listing(
+        @sourceviews.selected_contract(source_input),
+      )
+      is Some(_) {
+      guard local_command_file_listing(
+          original,
+          target.connector,
+          target.resource,
+        )
+        is Some((declaration, listing, binding)) else {
+        stop("LocalSourceInputSelectionUnavailable")
+      }
+      (
+        declaration,
+        binding._retained_provider,
+        binding._retained_selection,
+        binding._retained_limits,
+        Some(listing),
+      )
+    } else {
+      let (declaration, row) = local_command_file_row(
+        original,
+        target.connector,
+        target.resource,
+      )
+      (declaration, row.provider, row._retained_selection, row.limits, None)
+    }
+    let page = limits.page
+    let provider_capacity = match listing {
+      Some(value) => value.capacity()
+      None => provider.capacity()
+    }
     let capacity = local_command_query_preparation_result(
       control,
       @local_values.prepare_installed_whole_source_capacity(
@@ -55,7 +113,7 @@ fn[I] prepare_local_native_whole_files_request_module(
           page.max_depth,
           page.max_rows,
         ),
-        Some(row.provider.capacity()),
+        Some(provider_capacity),
       ).map_err(issue => CommandBusinessQueryCapture(issue)),
       "LocalSourceWholeCapacityUnavailable",
     )
@@ -63,9 +121,10 @@ fn[I] prepare_local_native_whole_files_request_module(
     sources.push({
       declaration: declaration._retained_declaration,
       capacity,
-      provider: row.provider,
-      selection: row._retained_selection,
-      limits: row.limits,
+      provider,
+      selection,
+      limits,
+      listing,
     })
     transport.push(page.max_bytes.to_int64())
     executing.push(page.max_bytes.to_int64())

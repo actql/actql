@@ -7543,6 +7543,14 @@ The Query predicate remains separate. Neither entry acknowledges physical
 Source retirement; captures, managed reads and the original Work remain
 cleanup-owned until their actual existing release predicates succeed.
 
+A Whole slot whose checked catalog contract declares a file listing binds
+the Project's original typed listing provider. Admission verifies that
+provider against the same declaration, listing resource and physical locator
+used for the quote. Its own capacity and existing ResourceRef issuer travel
+with the same Read and Work. A plain relation slot keeps its original row
+provider. For mixed inputs, the original Account and current checks still
+cover each selected Source before capture and during advancement.
+
 The Whole entry quotes the physical supplied-input graph retained by that
 same managed Plan, as does its original caller preback. The logical compiler
 graph still contains captured Source roots and is not an interchangeable

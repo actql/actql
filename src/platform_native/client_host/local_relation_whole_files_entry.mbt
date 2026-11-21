@@ -7,6 +7,35 @@ pub(all) struct NativeRelationFileWholeSource {
   provider : @row_file.NativeRelationFilePreparedProvider
   selection : @row_file.NativeRelationFileSelection
   limits : @row_file.NativeRelationFileLimits
+  listing : @row_file.NativeRelationFileListingProvider?
+}
+
+///|
+fn NativeRelationFileWholeSource::provider_capacity(
+  self : Self,
+) -> @execution.ExecutionCapacity {
+  match self.listing {
+    Some(provider) => provider.capacity()
+    None => self.provider.capacity()
+  }
+}
+
+///|
+fn NativeRelationFileWholeSource::matches_provider(
+  self : Self,
+  acquisition : @rows.RowInputAcquisition,
+) -> Bool {
+  let listing = @rows.row_input_acquisition_is_listing(acquisition)
+  match self.listing {
+    Some(provider) =>
+      listing &&
+      provider.matches_original(
+        self.declaration,
+        @rows.row_input_acquisition_target_resource(acquisition),
+        self.provider,
+      )
+    None => !listing
+  }
 }
 
 ///|
@@ -55,10 +84,11 @@ fn managed_whole_relation_file_sources_match(
     guard @local.prepared_installed_managed_whole_source_capacity(plan, index)
       is Some(stored) &&
       physical_equal(stored, input.capacity) &&
+      input.matches_provider(acquisition) &&
       @local.check_installed_whole_source_capacity(
         input.capacity,
         acquisition,
-        input.provider.capacity(),
+        input.provider_capacity(),
       ) &&
       @rows.check_row_input_acquisition_original(
         acquisition,
@@ -89,6 +119,7 @@ fn snapshot_managed_whole_relation_file_sources(
       key_path: input.selection.key_path.map(path => path.copy()),
     },
     limits: input.limits,
+    listing: input.listing,
   })
 }
 
