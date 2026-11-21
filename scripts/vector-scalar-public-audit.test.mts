@@ -8,7 +8,7 @@ import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {createVerifiedCaseReceipts} from './fixtures/cte-value-table-receipts.mjs';
 
 // Synthetic verifier controls, never product execution or retained public data.
-function controls(mode) {
+function controls(mode: string) {
   let acceptedRuns = 0, reads = 0;
   const counters = () => ({acceptedRuns, sourceIo: reads, sourceReads: reads, sourceReadSessions: reads});
   const cases = successes.map((fixture, index) => {
@@ -22,7 +22,7 @@ function controls(mode) {
     submissionRef: {synthetic: fixture.name},
     outcome: {kind: 'not_accepted', problem: {code: fixture.expectedCode}, submissionRef: {synthetic: fixture.name}},
     beforeSubmit: counters(), afterRefusal: counters()}));
-  const inventory = ['successes', 'refusals'].flatMap(kind =>
+  const inventory = (['successes', 'refusals'] as const).flatMap(kind =>
     ({successes, refusals})[kind].map((item, index) => JSON.stringify(['vector-scalar', kind, index,
       item.name, createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')])));
   return {report: {mode, complete: true, expectedInventory: inventory, completedInventory: inventory,
@@ -40,7 +40,7 @@ test('independent Vector audit accepts only the original complete transport inve
 });
 
 test('Vector audit rejects wrong values/types/order refusal codes reacquisition and incomplete cleanup', () => {
-  const mutations = [
+  const mutations: ((input: ReturnType<typeof controls>) => void)[] = [
     ({receipt}) => { receipt.cases[0].results.answer.rows[2].value = 0; },
     ({receipt}) => { receipt.cases[0].results.answer.rows.reverse(); },
     ({receipt}) => { receipt.cases[0].results.answer.columns.reverse(); },
@@ -60,17 +60,17 @@ test('Vector audit rejects wrong values/types/order refusal codes reacquisition 
 });
 
 test('existing receipt collector retains verified replay/refusal snapshots without Client I/O', async () => {
-  const writes = [];
+  const writes: {path: string; receipt: ReturnType<typeof controls>['receipt']}[] = [];
   const collector = createVerifiedCaseReceipts('local', async (path, wire) => {
     writes.push({path, receipt: JSON.parse(wire)});
   }, {prefix: 'vector-scalar', version: 'actql-vector-scalar-acceptance/0.1'});
   const {receipt} = controls('local');
   const first = receipt.cases[0];
-  await collector.record({...first, observedResults: first.results});
-  await collector.recordRefusal(receipt.refusals[0]);
-  assert.equal(writes.at(-1).receipt.complete, false);
+  await collector.record({...first, observedResults: first.results} as unknown as Parameters<typeof collector.record>[0]);
+  await collector.recordRefusal(receipt.refusals[0] as unknown as Parameters<typeof collector.recordRefusal>[0]);
+  assert.equal(writes.at(-1)!.receipt.complete, false);
   await collector.complete();
-  const saved = writes.at(-1).receipt;
+  const saved = writes.at(-1)!.receipt;
   assert.equal(saved.complete, true);
   assert.deepEqual(saved.cases[0].submissionRef, first.submissionRef);
   assert.deepEqual(saved.cases[0].afterReplay, first.afterReplay);

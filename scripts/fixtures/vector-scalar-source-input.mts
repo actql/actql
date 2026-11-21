@@ -27,18 +27,18 @@ function control(expression: (typeof definitions)[number][2]) {
   ],results:{rows:{from:'out',fields:['id','value']}}}],
   results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
-export const vectorScalarSourceSuccesses=definitions.flatMap<PublicQuerySuccess>(([name,surface,expression,values])=>{
+export const vectorScalarSourceSuccesses=definitions.flatMap(([name,surface,expression,values])=>{
   const rows=values.map((value,i)=>({id:i+1,value}));
   const columns=[{name:'id',contract:{type:'number',nullable:false}},
     {name:'value',contract:name==='concat'
       ?{type:'vector',dimensions:4,element_type:'f32',nullable:true}
       :{type:'number',nullable:true}}];
   const text=`SELECT id, ${surface}(left_vector,right_vector) AS value FROM vectors ORDER BY id`;
-  return (['json','sql','aql-text'] as const).map<PublicQuerySuccess>(format=>({name:`vector-scalar-${name}-${format}`,format,
+  return (['json','sql','aql-text'] as const).map(format=>({name:`vector-scalar-${name}-${format}`,format,
     text:format==='json'?JSON.stringify(control(expression)):text,
     results:{answer:{rows,columns}},sourceReadSessionCount:format==='json'?0:1,
     ...(format==='json'?{sourceReadCount:0}:{}),
-  }));
+  } satisfies PublicQuerySuccess));
 });
 export const vectorScalarSourceRefusals=[
   ['score-arity','VECTOR_INNER_PRODUCT(left_vector)'],

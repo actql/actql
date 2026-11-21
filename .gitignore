@@ -1047,3 +1047,9 @@ target/
 /adapters/host-node/embedded-local-mock-preparation.test.d.mts
 /adapters/host-node/host-journal-preparation.test.mjs
 /adapters/host-node/host-journal-preparation.test.d.mts
+/reviews/2026-10-13-vector-scalar-installed-source/public-audit.mjs
+/reviews/2026-10-13-vector-scalar-installed-source/public-audit.d.mts
+/scripts/test-package-release-vector-scalar.mjs
+/scripts/test-package-release-vector-scalar.d.mts
+/scripts/vector-scalar-public-audit.test.mjs
+/scripts/vector-scalar-public-audit.test.d.mts

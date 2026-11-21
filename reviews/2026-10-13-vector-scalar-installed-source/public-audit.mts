@@ -9,12 +9,33 @@ import {fileURLToPath} from 'node:url';
 import {vectorScalarSourceSuccesses as successes, vectorScalarSourceRefusals as refusals}
   from '../../scripts/fixtures/vector-scalar-source-input.mjs';
 import {encodeRetainedFixture} from '../../scripts/fixtures/retained-fixture-values.mjs';
+import type {createVerifiedCaseReceipts} from '../../scripts/fixtures/cte-value-table-receipts.mjs';
 
-const inventory = ['successes', 'refusals'].flatMap(kind =>
+type ReceiptWriter = ReturnType<typeof createVerifiedCaseReceipts>;
+type CaseReceipt = Parameters<ReceiptWriter['record']>[0];
+type RefusalReceipt = Parameters<ReceiptWriter['recordRefusal']>[0];
+type ObservedCase = Pick<CaseReceipt, 'name' | 'beforeSubmit' | 'beforeRead' | 'afterReplay'> & {
+  mode: unknown; ref: unknown; results: {answer: {rows: readonly unknown[]}};
+};
+type ObservedRefusal = Pick<RefusalReceipt, 'name' | 'beforeSubmit' | 'afterRefusal'> & {
+  mode: unknown; submissionRef: unknown;
+  outcome: {kind: unknown; problem: {code: unknown}; submissionRef: unknown};
+};
+type ObservedReceipt = {
+  version: unknown; mode: unknown; complete: unknown;
+  cases: readonly ObservedCase[]; refusals: readonly ObservedRefusal[];
+};
+type TransportReport = {
+  mode: unknown; complete: unknown; expectedInventory: unknown; completedInventory: unknown;
+  actualNormal: unknown; actualRefusal: unknown; observations: Readonly<Record<string, unknown>>;
+};
+
+
+const inventory = (['successes', 'refusals'] as const).flatMap(kind =>
   ({successes, refusals})[kind].map((item, index) => JSON.stringify([
     'vector-scalar', kind, index, item.name,
     createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')])));
-export function auditVectorScalarTransport(mode, report, receipt) {
+export function auditVectorScalarTransport(mode: string, report: TransportReport, receipt: ObservedReceipt) {
   assert.ok(['local', 'remote'].includes(mode));
   assert.equal(report.mode, mode); assert.equal(report.complete, true);
   assert.deepEqual(report.expectedInventory, inventory);
@@ -32,8 +53,8 @@ export function auditVectorScalarTransport(mode, report, receipt) {
     assert.deepEqual(actual.results, fixture.results);
     actualRows += actual.results.answer.rows.length;
     assert.equal(actual.beforeRead.acceptedRuns - actual.beforeSubmit.acceptedRuns, 1);
-    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
-      assert.equal(actual.beforeRead[key] - actual.beforeSubmit[key], fixture.sourceReadSessionCount);
+    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions'] as const) {
+      assert.equal(actual.beforeRead[key]! - actual.beforeSubmit[key]!, fixture.sourceReadSessionCount);
     }
     assert.deepEqual(actual.afterReplay, actual.beforeRead,
       'attach/resend/lookup/reread retain the original Run and acquisition');
@@ -59,7 +80,7 @@ export function auditVectorScalarTransport(mode, report, receipt) {
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [directory, ...extra] = process.argv.slice(2);
   assert.equal(extra.length, 0); assert.ok(directory);
-  const read = name => readFile(join(resolve(directory), name), 'utf8').then(JSON.parse);
+  const read = (name: string) => readFile(join(resolve(directory!), name), 'utf8').then(JSON.parse);
   const audits = [];
   for (const mode of ['local', 'remote']) {
     audits.push(auditVectorScalarTransport(mode,

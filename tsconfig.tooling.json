@@ -27,6 +27,7 @@
   },
   "include": [
     "scripts/**/*.mts",
+    "reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts",
     "packages/sdk/**/*.mts",
     "packages/node/**/*.mts",
     "packages/native-cli/**/*.mts",
