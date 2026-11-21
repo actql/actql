@@ -13,3 +13,10 @@ build instructions and the linked Eclipse Layout Kernel sources. The exact
 npm package is [elkjs-0.12.0.tgz](https://registry.npmjs.org/elkjs/-/elkjs-0.12.0.tgz).
 ELK.js is bundled without source modifications. ActQL's separate Worker and
 position-only adapter are provided with this package's source.
+
+## Geist and Geist Mono
+
+The Explorer includes the Latin WOFF2 fonts supplied with the design export.
+Copyright 2024 The Geist Project Authors. The fonts are distributed under
+the SIL Open Font License 1.1 in [GEIST-OFL.txt](GEIST-OFL.txt). Upstream font
+sources are available in the [Geist project](https://github.com/vercel/geist-font).

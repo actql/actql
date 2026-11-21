@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
+import {sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
 import {connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installClientStaticPlan} from './client-interactive-plan.mjs';
+import {installClientStaticEffectExplanation, installClientStaticPlan} from './client-interactive-plan.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {validClientBody, prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
@@ -31,6 +36,241 @@ const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
 const request = {connection, kind: 'program', input: {stages: []}, parameters: null,
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+
+async function staticExplanationFixture() {
+  const {effectfulStaticPlan: plan} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const binding = {program_definition_cid: plan.program_definition_cid,
+    parameter_values_cid: plan.parameter_values_cid,
+    compiled_plan_cid: plan.computation.plan_view.compiled_plan_cid,
+    logical_map_cid: plan.computation.plan_view.logical_map.self_cid};
+  const facts = {version: 'actql-explanation-facts/0.1', disclosure: 'structural',
+    ...binding, steps: [], self_cid: cid('e')};
+  const context = {version: 'actql-explanation-context/0.1', disclosure: 'structural',
+    binding: {...binding, check_environment_cid: plan.check_environment_cid},
+    items: [{kind: 'result', name: '結果', stage_ordinal: 0,
+      producer: {state: 'not_projected', reason: 'no_original_port'}}]};
+  return {version: 'actql-static-explanation/0.1', plan, facts, context};
+}
+
+function explanationWires(view) {
+  return {plan: JSON.stringify(view.plan), facts: JSON.stringify(view.facts),
+    context: JSON.stringify(view.context)};
+}
+
+function explanationGeometry(value) {
+  if (value === null || typeof value !== 'object') return {nodes: 1, depth: 1};
+  const children = Object.values(value).map(explanationGeometry);
+  const keys = Array.isArray(value) ? 0 : children.length;
+  return {nodes: 1 + keys + children.reduce((sum, child) => sum + child.nodes, 0),
+    depth: 1 + Math.max(0, ...children.map(child => child.depth))};
+}
+
+test('static Explanation applies aggregate limits and retains the original during delivery', async () => {
+  const view = await staticExplanationFixture();
+  const wires = explanationWires(view);
+  const {nodes: maxNodes, depth: maxDepth} = explanationGeometry(view);
+  const limits = {maxWireBytes: Buffer.byteLength(JSON.stringify(view), 'utf8'), maxNodes, maxDepth};
+  let held = false;
+  let delivered = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    async withOriginal(actual, visit) {
+      assert.strictEqual(actual.connection, request.connection);
+      held = true;
+      try {return await visit(wires, () => assert.equal(held, true));}
+      finally {held = false;}
+    }});
+  const result = await read({...request, ...limits}, async actual => {
+    await Promise.resolve();
+    assert.equal(held, true);
+    delivered++;
+    assert.deepEqual(actual, view);
+    return 'delivered';
+  });
+  assert.equal(result, 'delivered');
+  assert.equal(held, false);
+  assert.equal(delivered, 1);
+  for (const [key, bound] of Object.entries(limits)) {
+    await assert.rejects(read({...request, ...limits, [key]: bound - 1},
+      () => assert.fail(`One-short ${key} must stop delivery`)), {code: 'StaticExplanationReadLimit'});
+    assert.equal(held, false);
+  }
+});
+
+test('static Explanation refuses denied egress before preparation or wire access', async () => {
+  let egressAllowed = false;
+  let prepared = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true,
+    authorizeEgress: () => egressAllowed,
+    withOriginal(_request, visit) {
+      prepared++;
+      egressAllowed = false;
+      return visit({get plan() {assert.fail('Revoked egress must not inspect wires');}}, () => {});
+    }});
+  const consume = () => assert.fail('Denied facets must not be delivered');
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 0);
+  egressAllowed = true;
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 1);
+});
+
+test('static Explanation checks the current Account run-read decision before projection and egress', async t => {
+  const folder = await mkdtemp(join(tmpdir(), 'actql-static-account-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const accountConfig = join(folder, 'account.json');
+  const change = (outcome, resource = 'run') => writeFile(accountConfig,
+    sourceReadAccountConfiguration({connection: 'site', resource, outcome}));
+  await change('allow');
+  const evaluated = [];
+  // The actual Local observer and authorization adapter use explicit Common
+  // ports here. The fixture only supplies the result of the selected tuple.
+  const moon = {
+    executionAuthorizationAdmit(wire) {return JSON.parse(wire);},
+    executionAuthorizationAccountJson(account) {
+      return JSON.stringify({state: 'admitted', account_id: account.account_id});
+    },
+    executionAuthorizationEvaluate(account, principal, site, resource, operation) {
+      evaluated.push([principal, site, resource, operation]);
+      const [entry] = account.entries;
+      return {outcome: entry.resource.any_of.includes(resource) ? entry.outcome : 'deny'};
+    },
+    executionAuthorizationEvaluationJson: JSON.stringify,
+  };
+  const {staticPlanImmediate} = createLocalReadAuthorizations({moon,
+    authorization: {siteKey: 'site', accountConfig},
+    principalId: 'person', namespaceId: 'original', authorityScopeCid: cid('a')});
+  const view = await staticExplanationFixture();
+  const selected = {...request, principalId: 'person'};
+  let prepared = 0;
+  let revoke = false;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: staticPlanImmediate,
+    async withOriginal(actual, visit) {
+      assert.strictEqual(actual, selected);
+      prepared++;
+      if (revoke) {
+        await change('deny');
+        return await visit({get plan() {assert.fail('Changed Account must block wire access');}}, () => {});
+      }
+      return await visit(explanationWires(view), () => {});
+    }});
+  assert.deepEqual(await read(selected, value => value), view);
+  const blocked = () => assert.fail('Denied Account must not deliver any facet');
+  for (const [outcome, resource] of [['deny', 'run'], ['delegate', 'run'], ['allow', 'result/out']]) {
+    await change(outcome, resource);
+    await assert.rejects(read(selected, blocked), {code: 'StaticExplanationAccessDenied'});
+  }
+  await change('allow');
+  await assert.rejects(read({...selected, principalId: 'foreign'}, blocked), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 1);
+  revoke = true;
+  await assert.rejects(read(selected, blocked), {code: 'StaticExplanationAccessDenied'});
+  assert.equal(prepared, 2);
+  assert.ok(evaluated.length > 0);
+  assert.ok(evaluated.every(tuple => tuple.join('/') === 'person/site/run/read'));
+});
+
+for (const boundary of ['wire access', 'consumer entry']) {
+  test(`static Explanation rejects Account changes before ${boundary} after async transport authorization`, async () => {
+    const view = await staticExplanationFixture();
+    const wires = explanationWires(view);
+    const revokeAt = boundary === 'wire access' ? 2 : 3;
+    let connected = 0;
+    let allowed = true;
+    const read = installClientStaticEffectExplanation({
+      async authorize() {
+        if (++connected === revokeAt) queueMicrotask(() => {allowed = false;});
+        return true;
+      },
+      authorizeEgress: () => allowed,
+      withOriginal: (_request, visit) => visit({
+        get plan() {
+          assert.notEqual(boundary, 'wire access', 'Revocation must precede the first wire getter');
+          return wires.plan;
+        },
+        facts: wires.facts,
+        context: wires.context,
+      }, () => {}),
+    });
+    await assert.rejects(read(request, () => assert.fail('Revoked Account must not enter the consumer')),
+      {code: 'StaticExplanationAccessDenied'});
+  });
+}
+
+test('static Explanation refuses foreign Context and preserves final original current loss', async () => {
+  const view = await staticExplanationFixture();
+  let wires = explanationWires({...view, context: {...view.context,
+    binding: {...view.context.binding, check_environment_cid: cid('f')}}});
+  const lost = new Error('original is no longer current');
+  let currentChecks = 0;
+  const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    withOriginal: (_request, visit) => visit(wires, () => {
+      currentChecks++;
+      if (currentChecks === 2) throw lost;
+    })});
+  const consume = () => assert.fail('Foreign or stale facets must not be delivered');
+  await assert.rejects(read(request, consume), {code: 'StaticExplanationEncodingRejected'});
+  assert.equal(currentChecks, 1);
+  currentChecks = 0;
+  wires = explanationWires(view);
+  await assert.rejects(read(request, consume), error => error === lost);
+  assert.equal(currentChecks, 2);
+});
+
+test('static Explanation refuses an owner return before the visitor completes', async () => {
+  const connection = Promise.withResolvers();
+  let egressChecks = 0;
+  let authorizationChecks = 0;
+  let dropped;
+  const unreadable = {get plan() {assert.fail('Returned owner must not supply wires');}};
+  const read = installClientStaticEffectExplanation({
+    authorize() {return ++authorizationChecks === 2 ? connection.promise : true;},
+    authorizeEgress() {egressChecks++; return true;},
+    withOriginal(_request, visit) {
+      dropped = visit(unreadable, () => assert.fail('Returned owner must not be used'));
+      void dropped.catch(() => {});
+      return 'returned early';
+    },
+  });
+  const consume = () => assert.fail('Incomplete visit must not deliver');
+  try {
+    await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+  } finally {
+    connection.resolve(true);
+  }
+  await assert.rejects(dropped, {code: 'StaticExplanationOriginalUnavailable'});
+  assert.equal(egressChecks, 1);
+
+  let lateVisit;
+  const absent = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+    withOriginal(_request, visit) {lateVisit = visit;}});
+  await assert.rejects(absent(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+  await assert.rejects(lateVisit(unreadable, () => assert.fail('Late visit must not check current')),
+    {code: 'StaticExplanationOriginalUnavailable'});
+});
+
+test('static Explanation refuses asynchronous current at both disclosure boundaries', async () => {
+  const view = await staticExplanationFixture();
+  const consume = () => assert.fail('Asynchronous assertion must stop delivery');
+  for (const pass of [1, 2]) {
+    let assertions = 0;
+    const wires = pass === 1 ? {get plan() {assert.fail('Asynchronous assertion must stop wire access');}}
+      : explanationWires(view);
+    const read = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
+      withOriginal: (_request, visit) => visit(wires, () => {
+        if (++assertions === pass) return Promise.reject(new Error('asynchronous assertion'));
+      })});
+    await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
+    assert.equal(assertions, pass);
+  }
+});
+
+test('static Explanation requires a synchronous Account decision before projection', async () => {
+  const read = installClientStaticEffectExplanation({authorize: () => true,
+    authorizeEgress: () => Promise.reject(new Error('invalid asynchronous Account port')),
+    withOriginal() {assert.fail('An asynchronous Account port must not start a read');}});
+  await assert.rejects(read(request, () => assert.fail('An asynchronous Account port must not deliver')),
+    {code: 'StaticExplanationAccessDenied'});
+});
 
 test('public static plan admits its original snapshot before options and returns the same read producer', async t => {
   const events = [], receipt = {}, admitted = new WeakSet();
@@ -233,6 +473,19 @@ test('static service uses the same prepared owner and rechecks current access', 
 for (const mode of ['local', 'http-loopback']) {
   test(`${mode}: SDK routes a static read without submit and rejects map CID substitution`, async t => {
     let reads = 0, submits = 0, corrupt = false, server;
+    let explainReads = 0, held = false, current = true, foreign = false;
+    const explanation = await staticExplanationFixture();
+    const readExplanation = installClientStaticEffectExplanation({authorize: () => true,
+      authorizeEgress: () => current,
+      async withOriginal(value, visit) {
+        assert.equal(value.kind, 'program');
+        assert.equal(Object.hasOwn(value, 'requestId'), false);
+        assert.equal(Object.hasOwn(value, 'ref'), false);
+        held = true;
+        explainReads++;
+        try {return await visit(explanationWires(explanation), () => assert.equal(held, true));}
+        finally {held = false;}
+      }});
     const operations = {authorizeConnection: () => true, negotiate: () => profile('local'),
       plan(value) {
         assert.equal(Object.hasOwn(value, 'requestId'), false);
@@ -240,6 +493,18 @@ for (const mode of ['local', 'http-loopback']) {
         const view = mockView();
         if (corrupt) view.logical_map.self_cid = cid('0');
         return view;
+      },
+      staticEffectExplanation(value, consume) {
+        if (foreign) {
+          return consume({...explanation, context: {...explanation.context,
+            binding: {...explanation.context.binding, check_environment_cid: cid('f')}}});
+        }
+        return readExplanation(value, async view => {
+          assert.equal(held, true);
+          const result = await consume(view);
+          assert.equal(held, true);
+          return result;
+        });
       }, submit() {submits++; throw new Error('unexpected submit');}};
     let client;
     t.after(async () => {await client?.close(); if (server) {
@@ -266,6 +531,14 @@ for (const mode of ['local', 'http-loopback']) {
     await assert.rejects(client.plan('SELECT 1 AS n', {format: 'sql'}),
       {code: 'InvalidClientHostPlanView'});
     assert.equal(reads, 2); assert.equal(submits, 0);
+    assert.deepEqual(await client.explain({stages: []}), explanation);
+    assert.equal(explainReads, 1); assert.equal(held, false);
+    current = false;
+    await assert.rejects(client.explain({stages: []}), {code: 'StaticExplanationAccessDenied'});
+    assert.equal(explainReads, 1);
+    foreign = true;
+    await assert.rejects(client.explain({stages: []}), {code: 'InvalidClientHostStaticExplanationView'});
+    assert.equal(submits, 0);
   });
 }
 

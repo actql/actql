@@ -28,7 +28,7 @@ export function installHttpRequestPreparation(preparation, registry, originals, 
     };
     try {
       if (operation !== 'connect') preparation.beforeResultPublicationOperation(operation);
-      if (['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)) {
+      if (['plan', 'static-explanation', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)) {
         if (raw === undefined) {
           receipt = manager.beforeSourceSnapshot(request.kind, request.input, request, request.connection);
         } else manager.bindHttpRequestKind(receipt, request.kind, request.connection);
@@ -39,7 +39,9 @@ export function installHttpRequestPreparation(preparation, registry, originals, 
         manager.bindSourceRequest(receipt, body, request);
         // The normal submission service compares this original typed intent
         // against the supplied CID; transport does not certify equality.
-        if (operation !== 'plan' && operation !== 'submit') manager.intentCid(receipt, body);
+        if (operation !== 'plan' && operation !== 'static-explanation' && operation !== 'submit') {
+          manager.intentCid(receipt, body);
+        }
       }
       return Object.freeze({body,
         beforeReply() {
