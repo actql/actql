@@ -84,7 +84,7 @@ test('versioned static Explanation composes the existing closed schema families'
   assert.equal(validWireStaticExplanationViewShape(envelope), true);
   assert.equal(validWireStaticExplanationViewShape({...envelope, plan: computationPlan}), true);
   for (const value of [effectfulStaticPlan, {...envelope, version: undefined},
-    {...envelope, version: 'actql-static-explanation/0.2'}, {...envelope, facts: undefined},
+    {...envelope, version: 'actql-explanation-context/0.1'}, {...envelope, facts: undefined},
     {...envelope, context: undefined}, {...envelope, plan: null}, {...envelope, run_ref: {}},
     {...envelope, context: {...envelope.context, source_body: {}}},
   ]) assert.equal(validWireStaticExplanationViewShape(value), false);
