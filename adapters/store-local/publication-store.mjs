@@ -58,8 +58,7 @@ import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStor
   from './prepared-publication-store-ownership.mjs';
 import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
 import {admitExistingStoreFormat, createStoreContract} from './publication-store-format.mjs';
-import {createPrivateEvidenceReader, encodePrivateEvidenceEnvelope, privateEvidenceWireLimitForObject, retainPrivateRawCleanup,
-  retainPrivateWriterCleanup} from './publication-store-private-evidence.mjs';
+import {createPrivatePublicationEvidence, privateEvidenceWireLimitForObject} from './publication-store-private-evidence.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
   assertOriginalPreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner,
@@ -2322,235 +2321,6 @@ async function openOriginalLocalPublicationStore(
   // also retains the digest of this exact allocation after its real FD close.
   const readSemanticBytes = async (cid, includeNative = true, readDemand) =>
     (await readSemanticOriginal(cid, includeNative, false, undefined, readDemand)).bytes;
-
-  const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
-    active();
-    if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
-        (!isWire && !(input instanceof Uint8Array))) {
-      fail('InvalidPublicationPrivateEvidence');
-    }
-    const byteLength = isWire ? Buffer.byteLength(input, 'utf8') : input.byteLength;
-    if (byteLength > configuration.maxObjectBytes) {
-      fail('InvalidPublicationPrivateEvidence');
-    }
-    cidHex(semanticCid);
-    const key = privateEvidenceKey();
-    // Share this exact original Store bound with upstream private exporters.
-    // Preserve validation/key priority, bytes/AAD and refusal before copying,
-    // crypto or Base64 construction. A clamp is not a memory reservation.
-    if (byteLength > privateEvidenceWireLimitForObject(configuration.maxObjectBytes)) {
-      fail('PublicationObjectLimit');
-    }
-    const envelope = encodePrivateEvidenceEnvelope(input, isWire, key,
-      privateEvidenceAad(name, semanticCid), configuration.maxObjectBytes);
-    const writer = createPreparedObjectWriter(envelope.byteLength);
-    try {
-      await writer.append(envelope);
-      const stored = await writer.seal();
-      return Object.freeze({
-        semanticCid, physicalCid: stored.cid,
-        bytes: stored.bytes, prepared: stored.prepared,
-      });
-    } catch (error) {
-      let cleanupFailure;
-      try { await writer.cancel(); }
-      catch (cleanupError) { cleanupFailure = cleanupError; }
-      const state = writer.status();
-      const pending = state.reservationHeld || state.custodyPending || state.cleanupPending;
-      if (!pending && cleanupFailure === undefined) throw error;
-      const failure = error !== null && typeof error === 'object' &&
-        Object.isExtensible(error) ? error
-        : new PublicationStoreError(error?.code ??
-          'PublicationPrivateEvidencePreparationFailed', error);
-      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
-      if (pending) {
-        failure.cleanupPending = true;
-        failure.cleanupHandle = retainPrivateWriterCleanup(writer);
-      }
-      throw failure;
-    }
-  };
-  const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>
-    preparePrivateEvidenceInput(name, bytes, semanticCid, false);
-  // The historical String path retains exactly its old encoding and AAD.
-  const preparePrivateEvidence = (name, wire, semanticCid) => {
-    active();
-    if (typeof wire !== 'string' ||
-        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
-      fail('InvalidPublicationPrivateEvidence');
-    }
-    return preparePrivateEvidenceInput(name, wire, semanticCid, true);
-  };
-
-  // The portable Model/Publication issuer supplies the admitted descriptor
-  // binding. This physical port proves exact bytes and Store durability only;
-  // it cannot select a policy, authorize capture, or issue a Model receipt.
-  const validateModelRawBinding = binding => {
-    if (!exactKeys(binding, [
-      'semanticCid', 'holdingCid', 'wire', 'contentCid', 'byteCount',
-    ])) fail('InvalidPublicationModelRawEvidence');
-    binding = Object.freeze({...binding});
-    if (typeof binding.wire !== 'string' ||
-        Buffer.byteLength(binding.wire, 'utf8') > configuration.maxObjectBytes ||
-        !quantity(binding.byteCount) ||
-        binding.byteCount > configuration.maxObjectBytes) {
-      fail('InvalidPublicationModelRawEvidence');
-    }
-    for (const cid of [binding.semanticCid, binding.holdingCid, binding.contentCid]) {
-      cidHex(cid);
-    }
-    return binding;
-  };
-  const verifyModelRawBytes = (binding, bytes) => {
-    if (!(bytes instanceof Uint8Array) || bytes.byteLength !== binding.byteCount ||
-        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !==
-          binding.contentCid) {
-      fail('PublicationModelRawContentMismatch');
-    }
-  };
-  const preparePrivateRawEvidence = async (binding, bytes, kind) => {
-    active();
-    binding = validateModelRawBinding(binding);
-    verifyModelRawBytes(binding, bytes);
-    // Hash and encrypt the same borrowed physical bytes before the first
-    // await. No caller callback can change the content between these steps.
-    const content = await preparePrivateEvidenceBytes(
-      `${kind}_raw_content`, bytes, binding.semanticCid,
-    );
-    try {
-      const descriptor = await preparePrivateEvidence(
-        `${kind}_raw_descriptor`, binding.wire, binding.semanticCid,
-      );
-      return Object.freeze([descriptor, content]);
-    } catch (error) {
-      const descriptorCleanup = error?.cleanupPending === true ? error.cleanupHandle : undefined;
-      let cleanupFailure;
-      let cleanupPending;
-      try {
-        await content.prepared.release();
-        cleanupPending = content.prepared.status().pending !== false;
-      }
-      catch (cleanupError) {
-        cleanupFailure = cleanupError;
-        cleanupPending = true;
-      }
-      if (!cleanupPending) throw error;
-      // False release can retain a visible-but-unconfirmed holding. Export
-      // that same retry handle, just as for a thrown cleanup failure. A frozen
-      // primary cannot accept fields, but its original cause must survive.
-      const failure = error !== null && typeof error === 'object' &&
-        Object.isExtensible(error) ? error
-        : new PublicationStoreError(error?.code ??
-          'PublicationModelRawEvidencePreparationFailed', error);
-      if (cleanupFailure !== undefined) {
-        if (failure.cleanupFailure === undefined) failure.cleanupFailure = cleanupFailure;
-        else failure.contentCleanupFailure = cleanupFailure;
-      }
-      failure.cleanupPending = true;
-      // This error comes from the same closed private Store preparation, not
-      // a packet/caller-provided handle. Do not replace its still-owned
-      // descriptor writer with only the earlier content's cleanup reference.
-      failure.cleanupHandle = descriptorCleanup === undefined
-        ? content.prepared
-        : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
-      throw failure;
-    }
-  };
-  const prepareModelRawEvidence = (binding, bytes) =>
-    preparePrivateRawEvidence(binding, bytes, 'model');
-  const prepareLookupRawEvidence = (binding, bytes) =>
-    preparePrivateRawEvidence(binding, bytes, 'lookup');
-  const readPrivateRawEvidenceOriginal = async (binding, kind, confirm = false) => {
-    active();
-    if (await readPhysicalHoldingDeletion(binding.holdingCid) !== undefined) return undefined;
-    const record = await readPhysicalHolding(binding.holdingCid);
-    if (record === undefined) return undefined;
-    if (record.namespace !== 'publication-private' ||
-        record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
-      fail('PublicationPrivateEvidenceUnavailable');
-    }
-    const release = retainPhysicalHoldingReader(binding.holdingCid);
-    try {
-      if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
-        `${kind}_raw_descriptor`, binding.semanticCid, binding.holdingCid, 0, 2, record,
-      ), binding.wire)) {
-        fail('PublicationPrivateEvidenceConflict');
-      }
-      const bytes = await readPrivateEvidenceObject(
-        `${kind}_raw_content`, binding.semanticCid, binding.holdingCid, 1, 2, record,
-      );
-      verifyModelRawBytes(binding, bytes);
-      if (confirm) {
-        // This exact metadata and both payloads belong to the same operation.
-        // Confirmation still requires its original directory ACK and adoption.
-        await confirmPhysicalHoldingDirectory(record);
-      }
-      return Object.freeze({record, bytes});
-    } finally {release();}
-  };
-  const readModelRawEvidenceOriginal = (binding, confirm = false) =>
-    readPrivateRawEvidenceOriginal(binding, 'model', confirm);
-  const readModelRawEvidence = async binding => {
-    active();
-    return (await readModelRawEvidenceOriginal(validateModelRawBinding(binding)))?.bytes;
-  };
-  const confirmModelRawEvidence = async binding => {
-    active();
-    const original = validateModelRawBinding(binding);
-    const operation = materialRetentionBusy.then(() => readModelRawEvidenceOriginal(original, true));
-    materialRetentionBusy = operation.catch(() => {});
-    return operation;
-  };
-
-  // Lookup transport bytes have a separate closed AAD domain. Reuse the SAME
-  // private Store writer/custody protocol; a Model raw holding cannot stand in
-  // for a lookup response, and neither physical port admits semantic evidence.
-  const readLookupRawEvidence = async binding => {
-    active();
-    return (await readPrivateRawEvidenceOriginal(
-      validateModelRawBinding(binding), 'lookup',
-    ))?.bytes;
-  };
-  const confirmLookupRawEvidence = async binding => {
-    active();
-    const original = validateModelRawBinding(binding);
-    const operation = materialRetentionBusy.then(() =>
-      readPrivateRawEvidenceOriginal(original, 'lookup', true));
-    // The queue owns settlement ordering only. Keep the returned original API
-    // result, but do not retain its decrypted raw bytes on the Store tail.
-    materialRetentionBusy = operation.then(() => undefined, () => undefined);
-    return operation;
-  };
-
-  // Availability of exact common-owner-admitted originals, not policy
-  // selection or permission. Keep this check separate from raw-cell commit:
-  // semantic adoption and physical persistence are different observations.
-  const confirmModelRawCaptureOriginals = async (originals, storeAuthorityCid) => {
-    active();
-    const kinds = ['retention_contract', 'metadata_retention_policy',
-      'clock_contract', 'data_policy'];
-    if (storeAuthorityCid !== configuration.storeAuthorityCid ||
-        !Array.isArray(originals) || originals.length !== kinds.length) {
-      fail('InvalidPublicationModelRawOriginals');
-    }
-    // Freeze the finite expected references before any Store await. This does
-    // not clone body trees or reinterpret a body in a JS policy evaluator.
-    const expected = originals.map((original, index) => {
-      if (!exactKeys(original, ['kind', 'cid', 'wire']) ||
-          original.kind !== kinds[index] || typeof original.wire !== 'string' ||
-          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
-        fail('InvalidPublicationModelRawOriginals');
-      }
-      cidHex(original.cid);
-      return Object.freeze({...original});
-    });
-    for (const original of expected) {
-      if (!exactUtf8WireMatches(await readSemanticBytes(original.cid), original.wire)) {
-        fail('PublicationModelRawOriginalMismatch');
-      }
-    }
-    return true;
-  };
 
   const readContract = async (cid, contractName, readOriginal = readSemanticOriginal) => {
     const includeNative = contractName === undefined || nativeContractRead(contractName);
@@ -5823,10 +5593,13 @@ async function openOriginalLocalPublicationStore(
   const materialRetentionCurrent = () => materialRetentionBusy;
   const retainMaterialOperation = operation => { materialRetentionBusy = operation; };
 
-  const {privateEvidenceAad, privateEvidenceKey, readPrivateEvidenceObject, readPrivateEvidence} =
-    createPrivateEvidenceReader(configuration, localContinuationEvidenceNames, {
+  const {privateEvidenceKey, readPrivateEvidenceObject, readPrivateEvidence,
+    preparePrivateEvidence, prepareModelRawEvidence, prepareLookupRawEvidence,
+    readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence, confirmModelRawCaptureOriginals} =
+    createPrivatePublicationEvidence(configuration, localContinuationEvidenceNames, {
       active, cidHex, readPhysicalHolding, readPhysicalHoldingDeletion, consumeSelectedPhysicalHolding,
       retainPhysicalHoldingReader, confirmPhysicalHoldingDirectory, materialRetentionCurrent, retainMaterialOperation,
+      createPreparedObjectWriter, exactUtf8WireMatches, readSemanticBytes,
     });
 
   const ensurePhysicalHoldingDeletion = async record => {

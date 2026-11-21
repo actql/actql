@@ -1,8 +1,8 @@
-import {createCipheriv, createDecipheriv, randomBytes} from 'node:crypto';
+import {createCipheriv, createDecipheriv, createHash, randomBytes} from 'node:crypto';
 import type {createPhysicalHoldingReaders, ReadPhysicalHolding, SelectedPhysicalHoldingRecord}
   from './physical-holding-record-reader.mjs';
 import type {createObjectWriterOwner} from './object-writer-owner.mjs';
-import {exactKeys, fail} from './publication-store-io.mjs';
+import {exactKeys, fail, PublicationStoreError, quantity} from './publication-store-io.mjs';
 
 type PrivateWriter = Pick<ReturnType<typeof createObjectWriterOwner>, 'cancel' | 'status'>;
 type PrivateCleanup = Readonly<{
@@ -147,7 +147,33 @@ type ReadPrivateEvidence = {
   <Value>(name: string, semanticCid: string, holdingCid: string,
     consume: ConsumeEvidence<Value>, beforeRead?: BeforeEvidenceRead): Promise<Awaited<Value>>;
 };
-type PrivateEvidenceReaderPorts = Readonly<{
+type PhysicalEnvelopeEncoder =
+  (input: string | Uint8Array, isWire: boolean, key: Uint8Array, aad: Uint8Array, maximum: number) => Buffer;
+type PreparedPrivateObject = PrivateCleanup & Readonly<{
+  cid: string;
+  retry(): Promise<Readonly<{pending: boolean; errors: readonly unknown[]}>>;
+}>;
+type PreparedPrivateWriter = PrivateWriter & Readonly<{
+  append(frame: Uint8Array): Promise<unknown>;
+  seal(): Promise<Readonly<{cid: string; bytes: number; prepared: PreparedPrivateObject}>>;
+}>;
+type EvidenceWriteFailure = {
+  code?: string;
+  cleanupFailure?: unknown;
+  contentCleanupFailure?: unknown;
+  cleanupPending?: boolean;
+  cleanupHandle?: PrivateCleanup;
+};
+type RawEvidenceBinding = Readonly<{
+  semanticCid: string;
+  holdingCid: string;
+  wire: string;
+  contentCid: string;
+  byteCount: number;
+}>;
+type RawEvidenceKind = 'model' | 'lookup';
+
+type PrivatePublicationEvidencePorts = Readonly<{
   active(): unknown;
   cidHex(value: unknown): string;
   readPhysicalHolding: ReadPhysicalHolding;
@@ -157,14 +183,17 @@ type PrivateEvidenceReaderPorts = Readonly<{
   confirmPhysicalHoldingDirectory(record: SelectedPhysicalHoldingRecord): Promise<unknown>;
   materialRetentionCurrent(): Promise<unknown>;
   retainMaterialOperation(operation: Promise<unknown>): void;
+  createPreparedObjectWriter(maxBytes: number): PreparedPrivateWriter;
+  exactUtf8WireMatches(bytes: Uint8Array, wire: string): boolean;
+  readSemanticBytes(cid: unknown): Promise<Uint8Array>;
 }>;
 
-export function createPrivateEvidenceReader(
-  configuration: Readonly<{maxObjectBytes: number; privateEvidenceKey?: Uint8Array}>,
+export function createPrivatePublicationEvidence(
+  configuration: Readonly<{storeAuthorityCid: string; maxObjectBytes: number; privateEvidenceKey?: Uint8Array}>,
   localContinuationEvidenceNames: readonly string[],
   {active, cidHex, readPhysicalHolding, readPhysicalHoldingDeletion, consumeSelectedPhysicalHolding,
-    retainPhysicalHoldingReader, confirmPhysicalHoldingDirectory, materialRetentionCurrent, retainMaterialOperation}:
-    PrivateEvidenceReaderPorts,
+    retainPhysicalHoldingReader, confirmPhysicalHoldingDirectory, materialRetentionCurrent, retainMaterialOperation,
+    createPreparedObjectWriter, exactUtf8WireMatches, readSemanticBytes}: PrivatePublicationEvidencePorts,
 ) {
   // Private evidence uses the prepared-object and physical-holding custody
   // already used by Transfer. A semantic alias before a durable owner would
@@ -393,6 +422,239 @@ export function createPrivateEvidenceReader(
     }
   };
 
-  return {privateEvidenceAad, privateEvidenceKey, readPrivateEvidenceObject,
-    readPrivateEvidence: readPrivateEvidence as ReadPrivateEvidence};
+  const preparePrivateEvidenceInput = async (name: string, input: string | Uint8Array,
+    semanticCid: string, isWire: boolean) => {
+    active();
+    if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
+        (!isWire && !(input instanceof Uint8Array))) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    const byteLength = isWire ? Buffer.byteLength(input as string, 'utf8') : (input as Uint8Array).byteLength;
+    if (byteLength > configuration.maxObjectBytes) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    cidHex(semanticCid);
+    const key = privateEvidenceKey();
+    // Share this exact original Store bound with upstream private exporters.
+    // Preserve validation/key priority, bytes/AAD and refusal before copying,
+    // crypto or Base64 construction. A clamp is not a memory reservation.
+    if (byteLength > privateEvidenceWireLimitForObject(configuration.maxObjectBytes)) {
+      fail('PublicationObjectLimit');
+    }
+    const envelope = (encodePrivateEvidenceEnvelope as PhysicalEnvelopeEncoder)(input, isWire, key,
+      privateEvidenceAad(name, semanticCid), configuration.maxObjectBytes);
+    const writer = createPreparedObjectWriter(envelope.byteLength);
+    try {
+      await writer.append(envelope);
+      const stored = await writer.seal();
+      return Object.freeze({
+        semanticCid, physicalCid: stored.cid,
+        bytes: stored.bytes, prepared: stored.prepared,
+      });
+    } catch (error) {
+      let cleanupFailure;
+      try { await writer.cancel(); }
+      catch (cleanupError) { cleanupFailure = cleanupError; }
+      const state = writer.status();
+      const pending = state.reservationHeld || state.custodyPending || state.cleanupPending;
+      if (!pending && cleanupFailure === undefined) throw error;
+      const failure: EvidenceWriteFailure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error as EvidenceWriteFailure
+        : new PublicationStoreError((error as EvidenceWriteFailure | null | undefined)?.code ??
+          'PublicationPrivateEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (pending) {
+        failure.cleanupPending = true;
+        failure.cleanupHandle = retainPrivateWriterCleanup(writer);
+      }
+      throw failure;
+    }
+  };
+  const preparePrivateEvidenceBytes = (name: string, bytes: Uint8Array, semanticCid: string) =>
+    preparePrivateEvidenceInput(name, bytes, semanticCid, false);
+  // The historical String path retains exactly its old encoding and AAD.
+  const preparePrivateEvidence = (name: string, wire: string, semanticCid: string) => {
+    active();
+    if (typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    return preparePrivateEvidenceInput(name, wire, semanticCid, true);
+  };
+
+  // The portable Model/Publication issuer supplies the admitted descriptor
+  // binding. This physical port proves exact bytes and Store durability only;
+  // it cannot select a policy, authorize capture, or issue a Model receipt.
+  const validateModelRawBinding = (binding: unknown) => {
+    if (!exactKeys(binding, [
+      'semanticCid', 'holdingCid', 'wire', 'contentCid', 'byteCount',
+    ])) fail('InvalidPublicationModelRawEvidence');
+    const frozen = Object.freeze({...binding});
+    if (typeof frozen.wire !== 'string' ||
+        Buffer.byteLength(frozen.wire, 'utf8') > configuration.maxObjectBytes ||
+        !quantity(frozen.byteCount) ||
+        frozen.byteCount > configuration.maxObjectBytes) {
+      fail('InvalidPublicationModelRawEvidence');
+    }
+    for (const cid of [frozen.semanticCid, frozen.holdingCid, frozen.contentCid]) {
+      cidHex(cid);
+    }
+    return frozen as RawEvidenceBinding;
+  };
+  const verifyModelRawBytes = (binding: RawEvidenceBinding, bytes: unknown) => {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength !== binding.byteCount ||
+        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !==
+          binding.contentCid) {
+      fail('PublicationModelRawContentMismatch');
+    }
+  };
+  const preparePrivateRawEvidence = async (binding: RawEvidenceBinding, bytes: Uint8Array, kind: RawEvidenceKind) => {
+    active();
+    binding = validateModelRawBinding(binding);
+    verifyModelRawBytes(binding, bytes);
+    // Hash and encrypt the same borrowed physical bytes before the first
+    // await. No caller callback can change the content between these steps.
+    const content = await preparePrivateEvidenceBytes(
+      `${kind}_raw_content`, bytes, binding.semanticCid,
+    );
+    try {
+      const descriptor = await preparePrivateEvidence(
+        `${kind}_raw_descriptor`, binding.wire, binding.semanticCid,
+      );
+      return Object.freeze([descriptor, content] as const);
+    } catch (error) {
+      const descriptorCleanup = (error as EvidenceWriteFailure | null | undefined)?.cleanupPending === true
+        ? (error as EvidenceWriteFailure).cleanupHandle : undefined;
+      let cleanupFailure;
+      let cleanupPending;
+      try {
+        await content.prepared.release();
+        cleanupPending = content.prepared.status().pending !== false;
+      }
+      catch (cleanupError) {
+        cleanupFailure = cleanupError;
+        cleanupPending = true;
+      }
+      if (!cleanupPending) throw error;
+      // False release can retain a visible-but-unconfirmed holding. Export
+      // that same retry handle, just as for a thrown cleanup failure. A frozen
+      // primary cannot accept fields, but its original cause must survive.
+      const failure: EvidenceWriteFailure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error as EvidenceWriteFailure
+        : new PublicationStoreError((error as EvidenceWriteFailure | null | undefined)?.code ??
+          'PublicationModelRawEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) {
+        if (failure.cleanupFailure === undefined) failure.cleanupFailure = cleanupFailure;
+        else failure.contentCleanupFailure = cleanupFailure;
+      }
+      failure.cleanupPending = true;
+      // This error comes from the same closed private Store preparation, not
+      // a packet/caller-provided handle. Do not replace its still-owned
+      // descriptor writer with only the earlier content's cleanup reference.
+      failure.cleanupHandle = descriptorCleanup === undefined
+        ? content.prepared
+        : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
+      throw failure;
+    }
+  };
+  const prepareModelRawEvidence = (binding: RawEvidenceBinding, bytes: Uint8Array) =>
+    preparePrivateRawEvidence(binding, bytes, 'model');
+  const prepareLookupRawEvidence = (binding: RawEvidenceBinding, bytes: Uint8Array) =>
+    preparePrivateRawEvidence(binding, bytes, 'lookup');
+  const readPrivateRawEvidenceOriginal = async (binding: RawEvidenceBinding, kind: RawEvidenceKind, confirm = false) => {
+    active();
+    if (await readPhysicalHoldingDeletion(binding.holdingCid) !== undefined) return undefined;
+    const record = await readPhysicalHolding(binding.holdingCid);
+    if (record === undefined) return undefined;
+    if (record.namespace !== 'publication-private' ||
+        record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
+      fail('PublicationPrivateEvidenceUnavailable');
+    }
+    const release = retainPhysicalHoldingReader(binding.holdingCid);
+    try {
+      if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
+        `${kind}_raw_descriptor`, binding.semanticCid, binding.holdingCid, 0, 2, record,
+      ), binding.wire)) {
+        fail('PublicationPrivateEvidenceConflict');
+      }
+      const bytes = await readPrivateEvidenceObject(
+        `${kind}_raw_content`, binding.semanticCid, binding.holdingCid, 1, 2, record,
+      );
+      verifyModelRawBytes(binding, bytes);
+      if (confirm) {
+        // This exact metadata and both payloads belong to the same operation.
+        // Confirmation still requires its original directory ACK and adoption.
+        await confirmPhysicalHoldingDirectory(record);
+      }
+      return Object.freeze({record, bytes});
+    } finally {release();}
+  };
+  const readModelRawEvidenceOriginal = (binding: RawEvidenceBinding, confirm = false) =>
+    readPrivateRawEvidenceOriginal(binding, 'model', confirm);
+  const readModelRawEvidence = async (binding: unknown) => {
+    active();
+    return (await readModelRawEvidenceOriginal(validateModelRawBinding(binding)))?.bytes;
+  };
+  const confirmModelRawEvidence = async (binding: unknown) => {
+    active();
+    const original = validateModelRawBinding(binding);
+    const operation = materialRetentionCurrent().then(() => readModelRawEvidenceOriginal(original, true));
+    retainMaterialOperation(operation.catch(() => {}));
+    return operation;
+  };
+
+  // Lookup transport bytes have a separate closed AAD domain. Reuse the SAME
+  // private Store writer/custody protocol; a Model raw holding cannot stand in
+  // for a lookup response, and neither physical port admits semantic evidence.
+  const readLookupRawEvidence = async (binding: unknown) => {
+    active();
+    return (await readPrivateRawEvidenceOriginal(
+      validateModelRawBinding(binding), 'lookup',
+    ))?.bytes;
+  };
+  const confirmLookupRawEvidence = async (binding: unknown) => {
+    active();
+    const original = validateModelRawBinding(binding);
+    const operation = materialRetentionCurrent().then(() =>
+      readPrivateRawEvidenceOriginal(original, 'lookup', true));
+    // The queue owns settlement ordering only. Keep the returned original API
+    // result, but do not retain its decrypted raw bytes on the Store tail.
+    retainMaterialOperation(operation.then(() => undefined, () => undefined));
+    return operation;
+  };
+
+  // Availability of exact common-owner-admitted originals, not policy
+  // selection or permission. Keep this check separate from raw-cell commit:
+  // semantic adoption and physical persistence are different observations.
+  const confirmModelRawCaptureOriginals = async (originals: unknown, storeAuthorityCid: unknown) => {
+    active();
+    const kinds = ['retention_contract', 'metadata_retention_policy',
+      'clock_contract', 'data_policy'];
+    if (storeAuthorityCid !== configuration.storeAuthorityCid ||
+        !Array.isArray(originals) || originals.length !== kinds.length) {
+      fail('InvalidPublicationModelRawOriginals');
+    }
+    // Freeze the finite expected references before any Store await. This does
+    // not clone body trees or reinterpret a body in a JS policy evaluator.
+    const expected = originals.map((original: unknown, index) => {
+      if (!exactKeys(original, ['kind', 'cid', 'wire']) ||
+          original.kind !== kinds[index] || typeof original.wire !== 'string' ||
+          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationModelRawOriginals');
+      }
+      cidHex(original.cid);
+      return Object.freeze({...original}) as Readonly<{kind: string; cid: string; wire: string}>;
+    });
+    for (const original of expected) {
+      if (!exactUtf8WireMatches(await readSemanticBytes(original.cid), original.wire)) {
+        fail('PublicationModelRawOriginalMismatch');
+      }
+    }
+    return true;
+  };
+
+  return {privateEvidenceKey, readPrivateEvidenceObject,
+    readPrivateEvidence: readPrivateEvidence as ReadPrivateEvidence,
+    preparePrivateEvidence, prepareModelRawEvidence, prepareLookupRawEvidence,
+    readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence, confirmModelRawCaptureOriginals};
 }

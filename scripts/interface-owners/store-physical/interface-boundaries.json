@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ecba295b3db5897a0ba9dc15c3fa542612b062cd30a452b204127996c06d442",
+      "sha256": "90855a5517bceb322c977af6ed24ec507ed0a022a992842f5f1664ac2682e5fc",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6217,6 +6217,14 @@
           "name": "cidHex/cidHex",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "exactUtf8WireMatches/exactUtf8WireMatches",
+          "parameters": [
+            "bytes",
+            "wire"
           ],
           "async": false
         },
@@ -6774,61 +6782,6 @@
             "suppliedWire"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
-          "parameters": [
-            "binding"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
-          "parameters": [
-            "originals",
-            "storeAuthorityCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
-          "parameters": [
-            "original",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
-          "parameters": [
-            "binding"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
@@ -7846,31 +7799,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
-          "parameters": [
-            "binding",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-          "parameters": [
-            "binding",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
-          "parameters": [
-            "name",
-            "wire",
-            "semanticCid"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
           "parameters": [
             "contract"
@@ -8242,20 +8170,6 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
-          "parameters": [
-            "binding"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
-          "parameters": [
-            "binding"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
@@ -9185,15 +9099,6 @@
             "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
-            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
-            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
-            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
-            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
-            "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
-            "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
-            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
-            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
-            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
             "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
@@ -9320,9 +9225,6 @@
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
-            "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
-            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
@@ -9366,8 +9268,6 @@
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
-            "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
@@ -9455,7 +9355,8 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
             "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
             "cidHex/cidHex",
-            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory"
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+            "exactUtf8WireMatches/exactUtf8WireMatches"
           ],
           "exports": [
             "PublicationStoreError",
@@ -15964,9 +15865,9 @@
     {
       "module": "adapters/store-local/publication-store-private-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e48a8254316b9e362e394538ce145400c74470e6386c4f62c3f2fce80e7c013f",
+      "sha256": "b66eaf42cd15bd47b8d61035948ecc9bd8fd3444e58714475f69a6ff454602d7",
       "exports": [
-        "createPrivateEvidenceReader",
+        "createPrivatePublicationEvidence",
         "encodePrivateEvidenceEnvelope",
         "privateEvidenceWireLimitForObject",
         "retainPrivateRawCleanup",
@@ -15974,7 +15875,7 @@
       ],
       "operations": [
         {
-          "name": "createPrivateEvidenceReader",
+          "name": "createPrivatePublicationEvidence",
           "parameters": [
             "configuration",
             "localContinuationEvidenceNames",
@@ -15986,25 +15887,114 @@
             "retainPhysicalHoldingReader",
             "confirmPhysicalHoldingDirectory",
             "materialRetentionCurrent",
-            "retainMaterialOperation"
+            "retainMaterialOperation",
+            "createPreparedObjectWriter",
+            "exactUtf8WireMatches",
+            "readSemanticBytes"
           ],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/privateEvidenceAad/privateEvidenceAad",
+          "name": "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
+          "parameters": [
+            "originals",
+            "storeAuthorityCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/prepareLookupRawEvidence/prepareLookupRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/prepareModelRawEvidence/prepareModelRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/preparePrivateEvidence/preparePrivateEvidence",
           "parameters": [
             "name",
+            "wire",
             "semanticCid"
           ],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/privateEvidenceKey/privateEvidenceKey",
+          "name": "createPrivatePublicationEvidence/privateEvidenceKey/privateEvidenceKey",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence",
+          "name": "createPrivatePublicationEvidence/readLookupRawEvidence/readLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence",
           "parameters": [
             "name",
             "semanticCid",
@@ -16015,36 +16005,36 @@
           "async": true
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
           "parameters": [
             "binding"
           ],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject",
           "parameters": [
             "name",
             "semanticCid",
@@ -16058,7 +16048,7 @@
           "async": true
         },
         {
-          "name": "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
           "parameters": [
             "chunk"
           ],
@@ -16205,24 +16195,37 @@
             "retainPrivateWriterCleanup/release/release/release",
             "retainPrivateWriterCleanup/release/release/release#2",
             "retainPrivateWriterCleanup/release/release/release#3",
-            "createPrivateEvidenceReader",
-            "createPrivateEvidenceReader/privateEvidenceAad/privateEvidenceAad",
-            "createPrivateEvidenceReader/privateEvidenceKey/privateEvidenceKey",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-            "createPrivateEvidenceReader/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-            "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject",
-            "createPrivateEvidenceReader/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject"
+            "createPrivatePublicationEvidence",
+            "createPrivatePublicationEvidence/privateEvidenceKey/privateEvidenceKey",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
+            "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject",
+            "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
+            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
+            "createPrivatePublicationEvidence/prepareLookupRawEvidence/prepareLookupRawEvidence",
+            "createPrivatePublicationEvidence/prepareModelRawEvidence/prepareModelRawEvidence",
+            "createPrivatePublicationEvidence/preparePrivateEvidence/preparePrivateEvidence",
+            "createPrivatePublicationEvidence/readLookupRawEvidence/readLookupRawEvidence",
+            "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence"
           ],
           "exports": [
             "encodePrivateEvidenceEnvelope",
             "privateEvidenceWireLimitForObject",
             "retainPrivateRawCleanup",
             "retainPrivateWriterCleanup",
-            "createPrivateEvidenceReader"
+            "createPrivatePublicationEvidence"
           ],
           "attributes": {
             "responsibility": [
@@ -16238,7 +16241,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
-                "anchor": "export function createPrivateEvidenceReader("
+                "anchor": "export function createPrivatePublicationEvidence("
               }
             ],
             "identity": [
@@ -16259,6 +16262,10 @@
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "key.fill(0);"
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "const writer = createPreparedObjectWriter(envelope.byteLength);"
               }
             ],
             "synchronization": [
@@ -16269,6 +16276,10 @@
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "const operation = materialRetentionCurrent().then(async () => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "retainMaterialOperation(operation.then(() => undefined, () => undefined));"
               }
             ],
             "failure": [
@@ -16307,6 +16318,10 @@
               {
                 "path": "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
                 "anchor": "same authenticated private read confirms without a second decrypt or wire construction"
+              },
+              {
+                "path": "adapters/store-local/lookup-raw-evidence.test.mjs",
+                "anchor": "lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen"
               }
             ]
           }
