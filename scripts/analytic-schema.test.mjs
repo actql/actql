@@ -24,7 +24,10 @@ test('analytic calls reuse the frame aggregate matrix without local ordering',()
     {type:'integer', minimum:1, maximum:9007199254740991});
   assert.ok(analyticSchema.allOf[0].if.properties.functions.additionalProperties.oneOf.includes(calls[1]));
   assert.deepEqual(analyticSchema.allOf[0].then,{not:{required:['frame']}});
-  assert.deepEqual(analyticSchema.allOf[0].else,{required:['frame']});
+  assert.equal(analyticSchema.allOf[0].else, undefined);
+  assert.deepEqual(analyticSchema.allOf[1].if.not.properties.functions.additionalProperties.oneOf,
+    calls.slice(0,4));
+  assert.deepEqual(analyticSchema.allOf[1].then,{required:['frame']});
 });
 
 test('analytic schema drift is rejected in both Program copies',()=>{

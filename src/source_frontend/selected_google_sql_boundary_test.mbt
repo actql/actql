@@ -28,12 +28,8 @@ test "current date retains the SQL query-time boundary without selecting timezon
 }
 
 ///|
-test "window defaults are not silently invented outside the explicit ROWS profile" {
-  for
-    expression in [
-      "SUM(id) OVER ()", "COUNT(*) OVER (ORDER BY id)", "FIRST_VALUE(id) OVER (ORDER BY id)",
-      "LAST_VALUE(id) OVER (ORDER BY id)",
-    ] {
+test "unselected aggregate window defaults keep their implementation limit" {
+  for expression in ["SUM(id) OVER ()", "COUNT(*) OVER (ORDER BY id)"] {
     assert_true(
       lower(
         "SELECT " + expression + " AS result FROM records",

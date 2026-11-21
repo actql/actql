@@ -1,4 +1,7 @@
 ///|
+const ANALYTIC_PEER_END_PENDING : Int = -2
+
+///|
 /// The whole `analytic` operation as one resumable state, in the order and
 /// with the charges of the draining `evaluate_analytic_into`. Envelope
 /// measurement writes one row entry or cell per advance; names and resolved
@@ -886,8 +889,15 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         s.index += 1
         return Ok(None)
       }
+      let default_frame = @lower.analytic_frame(analytic) is None
       for call_index in 0..<call_count {
-        if analytic_frame_aggregate(s, call_index) is Some(_) &&
+        if default_frame {
+          let call = @lower.analytic_call_at(analytic, call_index).unwrap()
+          if @lower.analytic_call_function(call) is PreparedLastValue(_) {
+            // Phase 14 fills the exclusive peer end while scanning backwards.
+            s.frame_end = -1
+          }
+        } else if analytic_frame_aggregate(s, call_index) is Some(_) &&
           s.count_indices[call_index] is None {
           s.needs_aggregate_demand = true
         }
@@ -976,20 +986,24 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
             }
           }
           PreparedFirstValue(_) | PreparedLastValue(_) => {
-            guard @lower.analytic_frame(analytic) is Some(frame) else {
-              return Err(InvalidRows)
-            }
-            match analytic_frame_range(frame, relative, length) {
-              None => -1
-              Some((first, end)) => {
-                let selected = if @lower.analytic_call_function(call)
-                  is PreparedFirstValue(_) {
-                  first
-                } else {
-                  end - 1
+            let first_value = @lower.analytic_call_function(call)
+              is PreparedFirstValue(_)
+            match @lower.analytic_frame(analytic) {
+              Some(frame) =>
+                match analytic_frame_range(frame, relative, length) {
+                  None => -1
+                  Some((first, end)) =>
+                    s.sorted[range.start +
+                    (if first_value { first } else { end - 1 })]
                 }
-                s.sorted[range.start + selected]
-              }
+              // The ordered default begins at the partition's first row.
+              // LAST_VALUE waits for the authored peer end in phase 14.
+              None =>
+                if first_value {
+                  s.sorted[range.start]
+                } else {
+                  ANALYTIC_PEER_END_PENDING
+                }
             }
           }
           PreparedRowNumber
@@ -1146,10 +1160,32 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         s.index = 0
         return Ok(None)
       }
-      // Mark navigation demand after every reference is known.
+      // Complete omitted-frame LAST_VALUE references in the existing
+      // demand pass. Ranks distinguish peers within the original partition.
       if s.inner - 2 < count {
-        let source = s.inner - 2
+        let default_last = s.frame_end != 0
+        let position = count - 1 - (s.inner - 2)
+        let source = if default_last { s.sorted[position] } else { s.inner - 2 }
+        if default_last {
+          let range = s.ranges[s.partition_by_row[source]]
+          if position + 1 == range.end ||
+            s.ranks[source] != s.ranks[s.sorted[position + 1]] {
+            s.frame_end = position + 1
+          }
+        }
         for call_index in 0..<call_count {
+          if s.references[call_index][source] == ANALYTIC_PEER_END_PENDING {
+            if !spend_control(s.control, 1) {
+              return Err(RowLimit)
+            }
+            if s.envelope is Some(value) {
+              if s.frame_memberships >= value.frame_memberships {
+                return Err(AnalyticEnvelope(FrameMemberships))
+              }
+              s.frame_memberships += 1L
+            }
+            s.references[call_index][source] = s.sorted[s.frame_end - 1]
+          }
           let reference = s.references[call_index][source]
           if reference >= 0 {
             s.demanded[call_index][reference] = true

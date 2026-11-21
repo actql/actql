@@ -17,7 +17,12 @@ export const analyticSchema = {type:'object',additionalProperties:false,required
   order_by:orderKeys,
   functions:{type:'object',minProperties:1,propertyNames:{pattern:fieldPattern},additionalProperties:{oneOf:[rankings,ntile,navigation,values,...aggregateSchema(true).oneOf]}},
   frame:{type:'object',additionalProperties:false,required:['start','end'],properties:{start:{allOf:[boundary,{not:{const:'unbounded_following'}}]},end:{allOf:[boundary,{not:{const:'unbounded_preceding'}}]}}},
-},allOf:[{if:{properties:{functions:{additionalProperties:{oneOf:[rankings,ntile,navigation]}}}},then:{not:{required:['frame']}},else:{required:['frame']}}]};
+},allOf:[
+  {if:{properties:{functions:{additionalProperties:{oneOf:[rankings,ntile,navigation]}}}},
+    then:{not:{required:['frame']}}},
+  {if:{not:{properties:{functions:{additionalProperties:{oneOf:[rankings,ntile,navigation,values]}}}}},
+    then:{required:['frame']}},
+]};
 
 export function checkAnalyticSchemas(registry) {
   for(const p of parameterPrograms(registry)) assert.deepEqual(p.properties.steps.items.properties.analytic,analyticSchema);

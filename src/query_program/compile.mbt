@@ -1885,8 +1885,8 @@ fn lower_analytic_call(
         raise Abort(UnsupportedAnalytic)
       }
       let name = ascii_upper(path[0].value)
-      let needs_frame = name == "FIRST_VALUE" || name == "LAST_VALUE"
-      if needs_frame != (call.window.frame is Some(_)) {
+      let value_function = name == "FIRST_VALUE" || name == "LAST_VALUE"
+      if !value_function && call.window.frame is Some(_) {
         raise Abort(UnsupportedAnalytic)
       }
       let wire_name = match name {

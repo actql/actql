@@ -728,6 +728,14 @@ const numberingSuccesses = [
       columns: [numberColumn('result')]}},
     sourceReadCount: 0},
 ];
+const navigationFrameSuccesses = [
+  {name: 'first-value-default-original', op: 'FIRST_VALUE', values: [10, 10, 10]},
+  {name: 'last-value-default-original', op: 'LAST_VALUE', values: [10, 20, 30]},
+].map(({name, op, values}) => ({name, format: 'sql',
+  text: numberingInputs + `SELECT ${op}(v) OVER (ORDER BY n) AS result FROM t`,
+  results: {answer: {rows: values.map(result => ({result})), unordered: true,
+    columns: [{name: 'result', contract: {type: 'number', nullable: true}}]}},
+  sourceReadCount: 0}));
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -828,6 +836,7 @@ export const sourceFreeSuccesses = [
   ...anyValueSuccesses,
   navigationDefaultOriginal,
   ...numberingSuccesses,
+  ...navigationFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

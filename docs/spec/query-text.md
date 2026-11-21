@@ -805,6 +805,14 @@ size, returning Number zero in a singleton partition. Both use the
 existing analytic `ORDER BY` checks and take no frame.
 [GoogleSQL numbering functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/numbering_functions#ntile)
 
+For ordered `FIRST_VALUE(value)` and `LAST_VALUE(value)`, omission of the
+frame uses the partition prefix through the current authored peer group
+(`RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`). Equal order keys share
+the same prefix even if the completed order distinguishes their positions.
+The selected endpoint may itself be NULL. The same checked ordering and
+positional evidence apply.
+[GoogleSQL window frames](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),

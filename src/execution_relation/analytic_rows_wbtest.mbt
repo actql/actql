@@ -770,3 +770,35 @@ test "analytic collection limits bind exact prepared calls" {
     is Err(InputSet),
   )
 }
+
+///|
+test "analytic envelope counts omitted frame value references" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"amount\":\"asc\"}]," +
+    "\"functions\":{\"first\":{\"fn\":\"first_value\",\"expr\":\"amount\"}," +
+    "\"last\":{\"fn\":\"last_value\",\"expr\":\"amount\"}}}",
+  )
+  let exact = analytic_test_envelope(10000L, 10000L, 10000L, 10L, 5L)
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some(exact),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some({ ..exact, frame_memberships: 9L, }),
+    )
+    is Err(AnalyticEnvelope(FrameMemberships)),
+  )
+}

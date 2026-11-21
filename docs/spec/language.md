@@ -5906,8 +5906,10 @@ fabricates a row or adds a frame member.
 `first_value` and `last_value` respect NULL elements. Rank/navigation calls
 reject `filter` and `distinct`. Aggregate calls retain their own filter/null/
 distinct laws. Result types follow the function, including nullable navigation.
-First_value and last_value are frame functions, not navigation functions;
-they require frame and reject filter/distinct. Only lag/lead are navigation
+First_value and last_value are frame functions and reject filter/distinct.
+With ordered input and an omitted frame, they use the partition prefix from
+its first row through the last authored peer of the current row. The
+completed position order selects the endpoints inside that prefix. Only lag/lead are navigation
 calls. Aggregate frame functions retain their explicitly admitted modifiers.
 
 `frame` is `{start, end}`. A boundary is `unbounded_preceding`, `current_row`,
@@ -5917,8 +5919,9 @@ admitted. Start cannot be unbounded_following, end cannot be
 unbounded_preceding, and start cannot follow end in logical offset order.
 Intersect the logical inclusive interval with the partition; do not clamp an
 out-of-partition start to an existing row. Empty frames use aggregate empty-set
-laws and yield NULL for first/last value. Frame is required for frame functions,
-absent for calls consisting solely of ranking/navigation. It does not affect
+laws and yield NULL for first/last value. Frame is required for aggregate
+calls, optional for first/last value, and absent for calls consisting solely
+of ranking/navigation. It does not affect
 lag, lead or ranking. A bounded partition may use unbounded frame boundaries.
 
 <!-- requirement-block: analytic.peers -->

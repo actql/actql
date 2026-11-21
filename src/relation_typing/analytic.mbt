@@ -240,6 +240,7 @@ fn check_analytic(
   let calls : Array[AnalyticCall] = []
   let validation_calls : Map[Int, Int] = Map([])
   let mut has_frame_call = false
+  let mut has_frame_aggregate = false
   let mut needs_position = false
   for name in names {
     let s = @decode.lookup(funcs, name).unwrap()
@@ -365,6 +366,7 @@ fn check_analytic(
           analytic=true,
         )
         has_frame_call = true
+        has_frame_aggregate = true
         needs_position = true
         (AnalyticFunction::Aggregate(agg), agg.result)
       }
@@ -376,7 +378,8 @@ fn check_analytic(
     }
     calls.push({ name, source: s, function, result, })
   }
-  if has_frame_call != (frame is Some(_)) {
+  if (!has_frame_call && frame is Some(_)) ||
+    (has_frame_aggregate && frame is None) {
     fail(body, InvalidFrame)
   }
   pending.push({ kind: AnalyticPeerOrder, source: order_source, })
