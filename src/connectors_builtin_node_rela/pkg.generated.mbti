@@ -323,6 +323,8 @@ pub fn client_program_begin_installed_effect_capture_validation(@client_local_ho
 
 pub fn client_program_begin_logical_observation(@client_local_host.ClientLogicalObservation, String) -> Result[@client_local_host.ClientLogicalObservationRecord, @client_local_host.ClientLogicalObservationIssue]
 
+pub fn client_program_begin_request_explanation_context_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
+
 pub fn client_program_begin_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
@@ -582,6 +584,8 @@ pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.C
 pub fn client_program_direct_values_result_root_row_contract_cid(@run_publication_host.ClientDirectResultRoot) -> String
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
+
+pub fn client_program_discard_effect_run_explanation(@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal], @run_publication.PublicationContract, Bool) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue]
 
 pub fn client_program_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[@client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionIssue]
 
@@ -912,6 +916,8 @@ pub fn client_program_effect_review_construction_capacity(String, Int, Int, Int,
 pub fn client_program_effect_review_original_construction_capacity(@run_publication.EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
+
+pub fn client_program_effect_run_explanation_wires(@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal], @run_publication.PublicationContract) -> Result[Array[String], @client_local_host.ClientRequestStaticContextIssue]
 
 pub fn client_program_effect_run_materials_allowed(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientEffectAllowedRun
 
@@ -2137,9 +2143,13 @@ pub fn client_program_read_installed_model_defaults(String, String, String, Stri
 
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
+pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
+
 pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
+
+pub fn client_program_read_request_explanation_context(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_read_request_policy_subject(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, Int) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
 
@@ -2310,6 +2320,8 @@ pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_ho
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_effect_original_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, Int, (Int) -> String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_reserve_request_explanation_context_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_reserve_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
@@ -2699,6 +2711,12 @@ pub fn client_program_start_effect_command_key_workspace(ClientEffectCommandWork
 
 pub fn client_program_start_installed_original_composed_keyed_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
 
+pub fn client_program_static_effect_explanation_context_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
+
+pub fn client_program_static_effect_explanation_facts_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
+
+pub fn client_program_static_effect_explanation_plan_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
+
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
 pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String
@@ -2738,6 +2756,8 @@ pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientPro
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
 
 pub fn client_program_task_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
+
+pub fn client_program_try_capture_effect_run_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@client_local_host.ClientRequestEffectRunExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientRequestStaticContextIssue]
 
 pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientProgram) -> Bool
 
@@ -4427,6 +4447,11 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Preparation(@client_local_host.ClientRequestProgramPlanIssue)
   Provider(@model_execution.ModelProviderAdmissionIssue)
+}
+
+pub suberror ClientRequestStaticExplanationBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Projection(@client_local_host.ClientRequestStaticContextIssue)
 }
 
 pub suberror ClientRequestStaticPlanBridgeIssue {

@@ -197,7 +197,7 @@ import {installLocalRetainedStore, installLocalSnapshotStore} from
 import {installHostRunAcceptance} from './client-checkpoints.mjs';
 import {createLocalCheckpointAnswer, createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
-import {installClientStaticPlan} from './client-interactive-plan.mjs';
+import {installClientStaticEffectExplanation, installClientStaticPlan} from './client-interactive-plan.mjs';
 import {installClientRunInspect} from './client-run-inspect.mjs';
 import {createClientOwnerCursorCodec} from './client-owner-cursor.mjs';
 import {installClientEffectObservations} from './client-effect-observations.mjs';
@@ -2622,7 +2622,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
-  const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate} = createLocalReadAuthorizations({
+  const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
+    runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -2790,6 +2791,23 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorize: hostConnection,
     readOriginal: request => preparation.readStaticPlan(request, environment,
       verifyRequestValuePolicy, request.signal, modelInstallation)});
+  const staticEffectExplanation = preparation !== undefined &&
+    ['clientProgramReadRequestCheckedStaticEffectExplanation',
+      'clientProgramStaticEffectExplanationPlanWire', 'clientProgramStaticEffectExplanationFactsWire',
+      'clientProgramStaticEffectExplanationContextWire'].every(function hasStaticExplanationPort(name) {
+      return typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function';
+    }) ? installClientStaticEffectExplanation({
+      authorize: hostConnection,
+      authorizeEgress(request) {
+        if (!hostConnection(request)) return false;
+        preparation.assertStaticEffectExplanationOriginal(request);
+        return authorizeStaticPlan(request);
+      },
+      withOriginal(request, visit) {
+        return preparation.readStaticEffectExplanation(request, environment,
+          verifyRequestValuePolicy, request.signal, visit, modelInstallation);
+      },
+    }) : undefined;
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -4762,6 +4780,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       },
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      captureDefinitionExplanation: function captureDefinitionExplanation(facts, readEvidence, hasIntent) {
+        return preparation.captureEffectRunExplanation(moon, facts, readEvidence, journal, hasIntent);
+      },
       prepareDefinition: facts => {
         preparation.admitEffectResultPublicationRun(facts.prepared);
         const selected = selectedInstalledEffect(facts);
@@ -6410,6 +6431,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
       lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
+  const runExplanationContext = preparation !== undefined &&
+    ['clientProgramBeginRequestExplanationContextRead', 'clientProgramReserveRequestExplanationContextRead',
+      'clientProgramReadRequestExplanationContext', 'clientProgramRequestExplanationReadIssueCode']
+      .every(name => typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function')
+    ? installClientRunExplanation({authorize: hostConnection, context: true,
+      authorizeEgress: (_selected, operation) => authorizeLocalRun(operation, operation),
+      authorizeCurrent: (_selected, operation) => authorizeCurrentLocalRun(operation, operation),
+      probeOriginal: ref => journal.probeRunExplanationContextOriginal(ref),
+      lookupOriginal: (ref, extent) => journal.readRunExplanationContextOriginal(ref, extent),
+      readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
@@ -6434,7 +6465,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
     // Explanation's Account gate runs only after its own fixed read admission,
     // before even the scalar Journal probe. Other read entry rules stay intact.
-    negotiate, prepareSubmit, check, plan, inspectRun, runPlan, runExplanation, attach,
+    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
@@ -7446,6 +7477,27 @@ async function openPreparedInstalledHost(options, initialEntry) {
         environment, originalVerifier, signal, undefined, request, modelInstallation,
         record.managedSourceProfile?.fileReadDeclarations);
     },
+    assertStaticEffectExplanationOriginal(request) {
+      // Only the same mapped, live ingress Request may touch metadata policy.
+      originalSourceManagedHostRequest(originals, request);
+    },
+    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {
+      const manager = sourceManaged ?? computeManaged;
+      if (manager === undefined || typeof manager.withOriginalStaticEffectExplanation !== 'function') {
+        throw clientOperationError('ClientOperationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      const original = originalSourceManagedHostRequest(originals, request);
+      // Use the installed policy's finite planning ceiling as the numeric
+      // traversal bound. The compiled Request still owns the actual backing.
+      const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];
+      if (typeof planning !== 'bigint' || planning < 1n || planning > 2147483647n) {
+        throw clientOperationError('ClientOperationUnavailable');
+      }
+      return manager.withOriginalStaticEffectExplanation(original, environment, originalVerifier, signal,
+        request, Number(planning), visit, modelInstallation, record.managedSourceProfile?.fileReadDeclarations);
+    },
     fundedPreparation(request, environment, originalVerifier, signal, journal) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) return undefined;
@@ -7531,6 +7583,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
+    },
+    captureEffectRunExplanation(runtime, facts, readEvidence, journal, hasIntent) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
+      if (typeof manager.captureEffectRunExplanation !== 'function') return undefined;
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent :
+        assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.captureEffectRunExplanation(facts.prepared,
+        originalSourceManagedHostRequest(originals, facts.prepared), facts, readEvidence, journal, hasIntent);
     },
     prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
       const manager = sourceManaged ?? computeManaged;

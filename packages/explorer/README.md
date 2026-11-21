@@ -105,6 +105,14 @@ unsupported reads, authorization failures and stale sessions remain failures.
 Neither Plan compilation nor Source execution repairs missing Facts. This read
 adds no session capability, Sample retention or Run control operation.
 
+The browser source's `runContext(ref, locale)` uses
+`/api/read/run-explanation-context` and one `Execution.explainContext()` call on
+the attached Run. It renders the retained computation map, Facts and Context
+with the same deterministic renderer as the static read, including declared
+Effects. An authorized Run without that companion returns
+`not_projected` with reason `not_retained`. The Gateway never opens a second
+public read or reconstructs missing originals for this operation.
+
 The private Run presentation read obtains retained Facts and, when projected,
 the original Plan from that same attached Execution. Each public read retains
 its own current authorization and egress checks; one Gateway slot remains

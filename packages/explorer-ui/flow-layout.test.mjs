@@ -37,11 +37,11 @@ test('Worker input contains only bounded original IDs, port roles and real edges
 });
 test('real ELK retains parallel Join ports, original topology and disjoint bounded rectangles', async () => {
   const input = layoutInput(fixture()), graph = elkGraph(input), before = structuredClone(graph);
-  assert.deepEqual(graph.children[1].ports.map(p => [p.id, p.x, p.y]),
-    [['port:left', 0, 28], ['port:right', 0, 46], ['port:result', 260, 64]]);
+  assert.deepEqual(graph.children[1].ports.map(p => [p.id, Math.round(p.x), p.y, p.layoutOptions['elk.port.side']]),
+    [['port:left', 87, 0, 'NORTH'], ['port:right', 173, 0, 'NORTH'], ['port:result', 130, 108, 'SOUTH']]);
   const actual = await new ELK().layout(graph), points = layoutPositions(input, actual);
   assert.deepEqual(points.map(p => p.id), ['values', 'join', 'readback']);
-  assert(points[0].x < points[1].x && points[1].x < points[2].x);
+  assert(points[0].y < points[1].y && points[1].y < points[2].y);
   assert.deepEqual(actual.edges.map(e => [e.id, e.sources, e.targets]),
     before.edges.map(e => [e.id, e.sources, e.targets]));
   for (let i = 0; i < points.length; i++) for (let j = i + 1; j < points.length; j++) {

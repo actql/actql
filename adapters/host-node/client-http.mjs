@@ -16,7 +16,8 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validCheckOutcome,
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape, validWireRunExplanationViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -118,6 +119,7 @@ async function preparedJson(request, maxBytes, prepared) {
 function responseCode(error) {
   if (error?.code === 'RunStateAccessDenied' ||
       error?.code === 'RunObservationAccessDenied' ||
+      error?.code === 'StaticExplanationAccessDenied' ||
       error?.code === 'ResultAccessDenied' ||
       error?.code === 'ResultDeliveryDenied' ||
       error?.code === 'ClientAuthenticationDenied' ||
@@ -141,11 +143,13 @@ function responseCode(error) {
       error?.code === 'ResourceConnectionNotFound') return 404;
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
-  if (error?.code === 'RunExplanationReadLimit') return 413;
+  if (error?.code === 'RunExplanationReadLimit' || error?.code === 'StaticExplanationReadLimit') return 413;
   if (error?.code === 'RunExplanationReadCapacity' ||
       error?.code === 'RunExplanationReadUnavailable' ||
-      error?.code === 'RunExplanationReadCapacityUnavailable') return 503;
-  if (error?.code === 'RunExplanationEncodingRejected') return 422;
+      error?.code === 'RunExplanationReadCapacityUnavailable' ||
+      error?.code === 'StaticExplanationOriginalUnavailable') return 503;
+  if (error?.code === 'RunExplanationEncodingRejected' ||
+      error?.code === 'StaticExplanationEncodingRejected') return 422;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict' ||
       error?.code === 'ClientSubmittedIntentConflict' ||
@@ -244,7 +248,8 @@ export function createClientHttpHandler({
   negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, plan, inspectRun, runPlan, runExplanation, maxRequestBytes = 65536, observe, loopbackHttp = false,
+  check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext,
+  maxRequestBytes = 65536, observe, loopbackHttp = false,
   prepareRequest,
 }) {
   if (typeof authenticate !== 'function' ||
@@ -447,14 +452,23 @@ export function createClientHttpHandler({
               Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunPlanView');
           sendJson(view);
         } finally { observer.release(); }
-      } else if (operation === 'run-explanation') {
+      } else if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
+            operation === 'static-explanation') {
+        const staticRead = operation === 'static-explanation';
+        const contextRead = operation === 'run-explanation-context';
+        const reader = staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
         const observer = observationAttempt(response);
         try {
-          await invoke(runExplanation, observer.signal, undefined, async view => {
-            if (!validWireRunExplanationViewShape(view) ||
+          await invoke(reader, observer.signal, undefined, async view => {
+            if (staticRead) {
+              if (!validWireStaticExplanationViewShape(view)) invalid('InvalidClientHostStaticExplanationView');
+            } else if (!validateRun(view) ||
                 Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunExplanationView');
             const wire = JSON.stringify(view);
-            if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) invalid('RunExplanationReadLimit');
+            if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) {
+              invalid(staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
+            }
             const bytes = Buffer.from(wire);
             requestLifetime.beforeReply();
             // The SAME read owns wire/buffer/view until the native end callback

@@ -14,6 +14,11 @@ if (launch?.kind === 'run') {const original: RunReference = launch.originalPlan.
 if (launch?.kind === 'program') {const sourceIO: 0 = launch.plan.providerIO; void sourceIO;}
 const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
+const staticExplanation = await browser.staticExplanation('SELECT 1', {format: 'sql'}, 'ja');
+const staticText: string = staticExplanation.context[0].text;
+// @ts-expect-error A static explanation does not start an execution.
+await browser.staticExplanation('SELECT 1', {format: 'sql', stopOnEntry: true}, 'ja');
+void staticText;
 const view = await browser.inspect(ref);
 const notAtomic: 'non_atomic' = view.consistency;
 const original = await browser.runPlan(ref);
@@ -27,6 +32,13 @@ if (explanation.explanation.state === 'not_projected') {
 // @ts-expect-error The explanation read never supplies execution/control options.
 await browser.explain(ref, {stopOnEntry: true});
 void explanationRef;
+const saved = await browser.runContext(ref, 'ja');
+if (saved.explanation.state === 'projected') {
+  const text: string = saved.explanation.context[0].text;
+  void text;
+}
+// @ts-expect-error The Saved view has only the selected original and locale.
+await browser.runContext(ref, {restart: true});
 const presentation = await browser.runPresentation(ref, {locale: 'ja'});
 if (presentation.explanation.state === 'projected') {
   const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
