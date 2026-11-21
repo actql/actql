@@ -947,3 +947,5 @@ target/
 /scripts/composite-release-source-qualification.test.d.mts
 /scripts/test-explorer-release-install.mjs
 /scripts/test-explorer-release-install.d.mts
+/scripts/fixtures/explorer-installed-readonly.mjs
+/scripts/fixtures/explorer-installed-readonly.d.mts

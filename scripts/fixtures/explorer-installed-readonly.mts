@@ -5,6 +5,7 @@ import {resolve, sep} from 'node:path';
 import {open} from '@actql/node';
 import {startExplorer, openLocalExplorer} from '@actql/explorer/launcher';
 import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
+import type {Execution} from '@actql/sdk';
 
 const require = createRequire(import.meta.url), modules = resolve('node_modules') + sep;
 for (const name of ['@actql/node', '@actql/sdk', '@actql/explorer/launcher',
@@ -12,7 +13,7 @@ for (const name of ['@actql/node', '@actql/sdk', '@actql/explorer/launcher',
   assert((await realpath(require.resolve(name))).startsWith(modules), 'Installed consumer owns every entry');
 }
 const client = await open({stateDir: 'state'});
-let gateway;
+let gateway: Awaited<ReturnType<typeof startExplorer>> | undefined;
 try {
   const result = await client.sql('SELECT 1 AS answer');
   assert.deepEqual(await result.all(), [{answer: 1}]);
@@ -22,7 +23,10 @@ try {
   assert.deepEqual(savedPlan.run_ref, ref);
   assert.equal(savedPlan.plan_view.provider_io, 0);
   assert(savedPlan.plan_view.logical_map.steps.some(step => step.operator === 'values'));
-  const directPlan = await client.plan('SELECT 1 AS answer', {format: 'sql'});
+  // This authored SELECT has no Effect. The comparisons below check its
+  // static plan against the independent Explorer projection.
+  const directPlan = await client.plan('SELECT 1 AS answer', {format: 'sql'}) as
+    Extract<Awaited<ReturnType<typeof client.plan>>, {version: 'actql-plan-view/0.1'}>;
   gateway = await startExplorer({client});
   const page = await fetch(gateway.origin), html = await page.text();
   assert.equal(page.status, 200); assert.match(html, /ActQL Explorer/u);
@@ -30,15 +34,15 @@ try {
   const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[a-zA-Z0-9_-]+\.(?:js|css))"/gu)].map(v => v[1]);
   assert.equal(assets.length, 2);
   for (const path of assets) {
-    const response = await fetch(gateway.origin + path); assert.equal(response.status, 200);
+    const response: Response = await fetch(gateway.origin + path); assert.equal(response.status, 200);
     const body = await response.text(); assert(body.length > 1000);
     assert(!body.includes('/@vite/client')); if (path.endsWith('.js')) assert.match(body, /Read Plan/u);
   }
   assert.equal((await fetch(gateway.origin + '/../../package.json')).status, 404);
-  let cookie;
+  let cookie: string | undefined;
   const source = createExplorerBrowserSource({origin: gateway.origin, async fetch(url, options) {
-    const response = await fetch(url, {...options, headers: {...options.headers,
-      Origin: gateway.origin, ...(cookie ? {Cookie: cookie} : {})}});
+    const response: Response = await fetch(url, {...options, headers: {...options!.headers,
+      Origin: gateway!.origin, ...(cookie ? {Cookie: cookie} : {})}});
     const installed = response.headers.get('set-cookie');
     if (installed) cookie = installed.split(';')[0];
     return response;
@@ -88,9 +92,9 @@ try {
 } finally {await gateway?.close(); await client.close();}
 const reopened = await open({stateDir: 'state'});
 try {
-  const execution = await reopened.attach(JSON.parse(await readFile('original-run.json', 'utf8')));
+  const execution = await reopened.attach(JSON.parse(await readFile('original-run.json', 'utf8')) as Parameters<typeof reopened.attach>[0]);
   assert.equal((await execution.status()).status, 'succeeded', 'Viewer closure never cancels retained Run');
-  const expected = JSON.parse(await readFile('original-plan.json', 'utf8'));
+  const expected = JSON.parse(await readFile('original-plan.json', 'utf8')) as Awaited<ReturnType<Execution['plan']>>;
   const restored = await execution.plan();
   assert.deepEqual(restored.run_ref, expected.run_ref);
   assert.equal(restored.plan_view.compiled_plan_cid, expected.plan_view.compiled_plan_cid);
