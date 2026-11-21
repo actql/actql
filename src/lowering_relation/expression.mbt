@@ -155,6 +155,7 @@ pub(all) enum ManyOperator {
   Instr
   Split
   GenerateArray
+  ArrayConcat
   Substring
   LeftString
   RightString
@@ -441,6 +442,7 @@ fn expression_tag(
     | "replace"
     | "split"
     | "generate_array"
+    | "array_concat"
     | "substring"
     | "left"
     | "right"
@@ -1400,6 +1402,7 @@ fn lower_typed_expression_measured(
         "translate" => Many(Translate, args)
         "instr" => Many(Instr, args)
         "split" => Many(Split, args)
+        "array_concat" => Many(ArrayConcat, args)
         "generate_array" => Many(GenerateArray, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)

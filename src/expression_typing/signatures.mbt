@@ -347,6 +347,27 @@ fn infer(
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)
     }
+    "array_concat" => {
+      let mut maximum = Some(0L)
+      for value in values {
+        let (base, _) = head(t, value, source)
+        match t.entries[base].kind {
+          Hole => ()
+          Sequence(_, maximum_operand) =>
+            maximum = match (maximum, maximum_operand) {
+              (Some(left), Some(right)) if left <= 9007199254740991L - right =>
+                Some(left + right)
+              _ => None
+            }
+          _ => fail(source, TypeMismatch("typed array operand"))
+        }
+      }
+      let (base, nullable) = head(t, peers(t, values, source), source)
+      guard t.entries[base].kind is Sequence(item, _) else {
+        fail(source, TypeMismatch("typed array operand"))
+      }
+      put(t, Sequence(item, maximum), nullable, source)
+    }
     "generate_array" => {
       let nullable = arguments(t, nodes, node, "int64")
       fn literal_argument(id : Int) -> Int64? raise Stop {

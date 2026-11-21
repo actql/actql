@@ -1621,6 +1621,7 @@ pub(all) enum ManyOperator {
   Instr
   Split
   GenerateArray
+  ArrayConcat
   Substring
   LeftString
   RightString

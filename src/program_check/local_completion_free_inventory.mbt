@@ -545,6 +545,7 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "acos"
     | "acosh"
     | "array"
+    | "array_concat"
     | "asin"
     | "asinh"
     | "atan"

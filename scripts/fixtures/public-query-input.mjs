@@ -664,6 +664,13 @@ const currentDateOriginal = {name: 'current-date-query-time', format: 'sql',
   expected: [{same_day: true, same_original_utc_day: true}],
   columns: ['same_day', 'same_original_utc_day'].map(name => ({name,
     contract: {type: 'boolean', nullable: false}})), sourceReadCount: 0};
+const arrayConcatOriginal = {name: 'array-concat', format: 'sql',
+  text: 'SELECT ARRAY_CONCAT([1], [2]) AS joined, ARRAY_CONCAT([], [3, 3], [1]) AS duplicates, '
+    + 'ARRAY_CONCAT(NULL, [2]) AS absent',
+  expected: [{joined: [1, 2], duplicates: [3, 3, 1], absent: null}],
+  columns: [['joined', false, 2], ['duplicates', false, 3], ['absent', true, 1]]
+    .map(([name, nullable, max_items]) => ({name, contract: {type: 'array', nullable, max_items,
+      items: {type: 'number', nullable: false}}})), sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -758,6 +765,7 @@ export const sourceFreeSuccesses = [
   makeDateOriginal,
   dateCalendarOriginal,
   currentDateOriginal,
+  arrayConcatOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

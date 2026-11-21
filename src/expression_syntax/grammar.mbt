@@ -157,6 +157,7 @@ fn expression_role(
     | "array"
     | "split"
     | "generate_array"
+    | "array_concat"
     | "vector_concat"
     | "current_timestamp"
     | "current_date" => Arguments(tag)
@@ -209,6 +210,7 @@ fn arity(
     | "concat_strict"
     | "coalesce"
     | "concat"
+    | "array_concat"
     | "greatest"
     | "least" => size >= 1
     "vector_concat" => size >= 2

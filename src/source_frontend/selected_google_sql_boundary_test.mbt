@@ -4,10 +4,9 @@ test "unselected GoogleSQL scalar families retain a named checked lowering refus
   for
     expression in [
       "REGEXP_CONTAINS('abc', 'a')", "REGEXP_EXTRACT('abc', 'a')", "REGEXP_REPLACE('abc', 'a', 'b')",
-      "ARRAY_LENGTH([1, 2])", "ANY_VALUE(1)", "JSON_VALUE('{}', '$.n')", "CURRENT_DATE()",
-      "ARRAY_TO_STRING(['a'], ',')", "ARRAY_CONCAT([1], [2])", "FORMAT('%s', 'a')",
-      "TO_JSON_STRING(1)", "UNIX_SECONDS(1)", "SHA256('a')", "FARM_FINGERPRINT('a')",
-      "LOGICAL_AND(TRUE)", "LOGICAL_OR(FALSE)",
+      "ARRAY_LENGTH([1, 2])", "ANY_VALUE(1)", "JSON_VALUE('{}', '$.n')", "ARRAY_TO_STRING(['a'], ',')",
+      "FORMAT('%s', 'a')", "TO_JSON_STRING(1)", "UNIX_SECONDS(1)", "SHA256('a')",
+      "FARM_FINGERPRINT('a')", "LOGICAL_AND(TRUE)", "LOGICAL_OR(FALSE)",
     ] {
     assert_true(
       lower("SELECT " + expression + " AS result", Sql, Some(context))
@@ -15,6 +14,18 @@ test "unselected GoogleSQL scalar families retain a named checked lowering refus
       msg=expression,
     )
   }
+}
+
+///|
+test "current date retains the SQL query-time boundary without selecting timezone arguments" {
+  let context = bind_query_context([], "fixture.environment").unwrap()
+  for source in ["SELECT CURRENT_DATE AS x", "SELECT CURRENT_DATE() AS x"] {
+    assert_true(lower(source, Sql, Some(context)) is Ok(_), msg=source)
+  }
+  assert_true(
+    lower("SELECT CURRENT_DATE('UTC') AS x", Sql, Some(context))
+    is Err(QueryLowering(Expression({ issue: InvalidArguments, .. }))),
+  )
 }
 
 ///|

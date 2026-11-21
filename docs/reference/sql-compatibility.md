@@ -175,6 +175,11 @@ counts signed day boundaries and returns INT64. `DATE_TRUNC(date, MONTH)` return
 the first day of that month as a Date. These forms require Date operands and
 propagate NULL after the original operands are evaluated.
 
+`ARRAY_CONCAT(array, ...)` joins one or more arrays with compatible item
+types. It preserves order and duplicates and returns NULL for a NULL array
+operand. The function uses the existing array value bounds.
+[GoogleSQL ARRAY_CONCAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_concat)
+
 `CURRENT_DATE()` and bare `CURRENT_DATE` return the non-null UTC Date of the
 original query invocation. Repeated occurrences and Saved reads use that same
 original. Time-zone arguments are outside this selected signature.
@@ -258,7 +263,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
-| `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
+| `ARRAY_LENGTH`, `ARRAY_TO_STRING` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |

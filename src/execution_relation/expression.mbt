@@ -96,6 +96,7 @@ priv enum Continuation {
   TextArguments(TextArgumentsState)
   TemporalArguments(TemporalArgumentsState)
   GenerateArrayArguments(GenerateArrayArguments)
+  ArrayConcatArguments(ArrayConcatArguments)
 }
 
 ///|
@@ -106,7 +107,12 @@ priv enum Evaluation {
   Score(VectorScoreState)
   Concat(VectorConcatState)
   FinishArray(ArrayExpressionState)
-  MeasureArray(ArrayExpressionState, Value, LogicalMeasureCursor)
+  MeasureArray(
+    @lower.Expression,
+    ExpressionRootLease,
+    Value,
+    LogicalMeasureCursor
+  )
   ArrayText(ArrayExpressionState, RawTextAdmission)
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
@@ -123,6 +129,7 @@ priv enum Evaluation {
   TextFunction(TextFunctionState)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
+  ArrayConcat(ArrayConcatState)
   PropertyName(PropertyNameState)
   FieldName(FieldNameState)
   ObjectName(ObjectNameState)
@@ -425,7 +432,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
       state.admission = None
     }
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
-    MeasureArray(_, _, cursor) | MeasureObject(_, _, cursor) =>
+    MeasureArray(_, _, _, cursor) | MeasureObject(_, _, cursor) =>
       clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
     ArrayText(_, cursor) | ObjectText(_, cursor) =>
@@ -827,6 +834,26 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
+            if op == @lower.ArrayConcat {
+              // One retained frozen operand and its root per child.
+              if children.length() > (workspace.limit - workspace.live) / 2 ||
+                !reserve_slots(workspace, children.length() * 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                ArrayConcatArguments({
+                  expression: expr,
+                  children,
+                  operands: [],
+                  roots: [],
+                  count: 0L,
+                  bytes: 2L,
+                  has_null: false,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
             if op == @lower.GenerateArray {
               if (children.length() != 2 && children.length() != 3) ||
                 !reserve_slots(workspace, children.length() * 2) {
@@ -918,6 +945,7 @@ fn advance_expression_frame_impl(
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction
+              | ArrayConcat
               | GenerateArray => Null
               Concat
               | ConcatStrict
@@ -1283,6 +1311,13 @@ fn advance_expression_frame_impl(
                 Err(issue) => return Err(issue)
               }
               frame.state = TextFunction(state)
+            }
+          }
+          ArrayConcatArguments(args) => {
+            frame.active = args.expression
+            match push_array_concat_operand(frame, args, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
             }
           }
           GenerateArrayArguments(args) => {
@@ -1899,6 +1934,7 @@ fn advance_expression_frame_impl(
               | Instr
               | Split
               | GenerateArray
+              | ArrayConcat
               | Substring
               | LeftString
               | RightString
@@ -2115,6 +2151,13 @@ fn advance_expression_frame_impl(
           }
         }
       }
+      ArrayConcat(state) => {
+        frame.active = state.args.expression
+        match advance_array_concat(frame, state) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
       GenerateArray(state) => {
         frame.active = state.expression
         match advance_generate_array(frame, state) {
@@ -2324,29 +2367,24 @@ fn advance_expression_frame_impl(
           Err(issue) => return Err(issue)
         }
       }
-      MeasureArray(state, value, cursor) => {
-        frame.active = state.expression
+      MeasureArray(expression, root, value, cursor) => {
+        frame.active = expression
         match
           advance_reserved_logical_measure(
             cursor,
             workspace,
             frame.measurement_slots,
           ) {
-          Err(Workspace) =>
-            return Err({ kind: WorkspaceLimit, expression: state.expression, })
+          Err(Workspace) => return Err({ kind: WorkspaceLimit, expression, })
           Err(Logical(issue)) =>
-            return Err({
-              kind: LogicalValue(issue),
-              expression: state.expression,
-            })
+            return Err({ kind: LogicalValue(issue), expression, })
           Ok((measured, reserved)) => {
             frame.measurement_slots = reserved
             if measured is Some(measured) {
-              guard state.root is Some(root) &&
-                root.root.bytes == measured.wire_bytes.to_int64() else {
+              guard root.root.bytes == measured.wire_bytes.to_int64() else {
                 return Err({
                   kind: LogicalValue(InvalidRootLifetime),
-                  expression: state.expression,
+                  expression,
                 })
               }
               root.root.measurement = Some(measured)

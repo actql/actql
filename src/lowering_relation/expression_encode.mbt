@@ -399,6 +399,7 @@ fn emit_frames(
                   Instr => "instr"
                   Split => "split"
                   GenerateArray => "generate_array"
+                  ArrayConcat => "array_concat"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

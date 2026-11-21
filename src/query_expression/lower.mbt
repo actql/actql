@@ -252,6 +252,7 @@ fn scalar_call(
     "MOD" => ("MOD", "exact_modulo", 2, 2)
     "DIV" => ("DIV", "integer_divide", 2, 2)
     "GENERATE_ARRAY" => ("GENERATE_ARRAY", "generate_array", 2, 3)
+    "ARRAY_CONCAT" => ("ARRAY_CONCAT", "array_concat", 1, 2147483647)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "CBRT" => ("CBRT", "cbrt", 1, 1)
     "SIN" => ("SIN", "sin", 1, 1)
