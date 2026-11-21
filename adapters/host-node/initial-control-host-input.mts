@@ -12,7 +12,7 @@ const setHas = Set.prototype.has, setAdd = Set.prototype.add, setDelete = Set.pr
 const apply = Reflect.apply;
 const limitNames = freeze(['maxProperties', 'maxNodes', 'maxDepth',
   'maxStringCodeUnits', 'maxTotalStringCodeUnits', 'maxArrayItems',
-  'maxOpaqueAliases', 'maxWork']);
+  'maxOpaqueAliases', 'maxWork'] as const);
 
 // These existing Host fields retain an original Owner, not a replacement DATA
 // copy. This list classifies copying only: a field name or alias count never
@@ -20,10 +20,21 @@ const limitNames = freeze(['maxProperties', 'maxNodes', 'maxDepth',
 const originalInstallationFields = new NativeSet(['authorization', 'connectorTable',
   'modelInstallation', 'calendarArtifact', 'resultDataPolicy', 'inferEvidence',
   'observation']);
-const unavailable = () => {
-  const error = new NativeError('NodeInitialControlInputUnavailable');
+const unavailable: () => never = () => {
+  const error = new NativeError('NodeInitialControlInputUnavailable') as Error & {code: string};
   error.code = 'NodeInitialControlInputUnavailable';
   throw error;
+};
+
+type OriginalReference = Readonly<{path: readonly string[]; original: unknown}>;
+type TraversalFrame = {
+  value: object;
+  result: object;
+  path: readonly string[];
+  depth: number;
+  keys: (string | symbol)[];
+  array: boolean;
+  index: number;
 };
 
 // Pure bounded snapshot, not an operational admission or a public validator.
@@ -33,8 +44,8 @@ const unavailable = () => {
 // The same supplier must separately admit every original reference's backing
 // and extended lifetime; this function neither walks nor certifies that graph.
 // Missing supported coverage remains Unavailable, not an invalid public value.
-export function snapshotInitialControlHostInput(input, limits) {
-  const selected = create(null);
+export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {
+  const selected = create(null) as Record<(typeof limitNames)[number], number>;
   if (limits === null || typeof limits !== 'object' || isProxy(limits)) unavailable();
   for (let index = 0; index < limitNames.length; index++) {
     const name = limitNames[index], field = descriptor(limits, name);
@@ -48,33 +59,34 @@ export function snapshotInitialControlHostInput(input, limits) {
   if (inputPrototype !== objectPrototype && inputPrototype !== null) unavailable();
   const usage = {properties: 0, nodes: 0, depth: 0, stringCodeUnits: 0,
     arrayItems: 0, opaqueAliases: 0, work: 0};
-  const copies = new NativeMap(), active = new NativeSet(), originals = [], frames = [];
+  const copies = new NativeMap(), active = new NativeSet(),
+    originals: OriginalReference[] = [], frames: TraversalFrame[] = [];
   function work(amount = 1) {
     if (amount > selected.maxWork - usage.work) unavailable();
     usage.work += amount;
   }
-  function string(text) {
+  function string(text: string) {
     if (text.length > selected.maxStringCodeUnits ||
         text.length > selected.maxTotalStringCodeUnits - usage.stringCodeUnits) unavailable();
     work(text.length);
     usage.stringCodeUnits += text.length;
     return text;
   }
-  function borrow(value, path) {
+  function borrow(value: unknown, path: readonly string[]) {
     if (usage.opaqueAliases === selected.maxOpaqueAliases) unavailable();
     work(path.length);
     usage.opaqueAliases++;
     originals[originals.length] = freeze({path: freeze(path), original: value});
     return value;
   }
-  function childPath(path, key) {
+  function childPath(path: readonly string[], key: string) {
     work(path.length + 1);
-    const result = new NativeArray(path.length + 1);
+    const result = new NativeArray<string>(path.length + 1);
     for (let index = 0; index < path.length; index++) result[index] = path[index];
     result[path.length] = key;
     return result;
   }
-  function visit(value, path, depth) {
+  function visit(value: unknown, path: readonly string[], depth: number): unknown {
     work();
     if (usage.nodes === selected.maxNodes || depth > selected.maxDepth) unavailable();
     usage.nodes++;
@@ -90,13 +102,13 @@ export function snapshotInitialControlHostInput(input, limits) {
         !(originalPrototype === null && !array)) return borrow(value, path);
     if (apply(setHas, active, [value])) unavailable();
     if (apply(mapHas, copies, [value])) return apply(mapGet, copies, [value]);
-    let length;
+    let length: number | undefined;
     if (array) {
       const field = descriptor(value, 'length');
       if (field === undefined || !hasOwn(field, 'value') ||
           !safeInteger(field.value) || field.value < 0 ||
           field.value > selected.maxArrayItems - usage.arrayItems) unavailable();
-      length = field.value;
+      length = field.value as number;
       usage.arrayItems += length;
       work(length);
     }
@@ -104,7 +116,7 @@ export function snapshotInitialControlHostInput(input, limits) {
     if (keys.length > selected.maxProperties - usage.properties) unavailable();
     usage.properties += keys.length;
     work(keys.length);
-    const result = array ? new NativeArray(length) : create(originalPrototype);
+    const result: object = array ? new NativeArray(length!) : create(originalPrototype);
     apply(mapSet, copies, [value, result]);
     apply(setAdd, active, [value]);
     // The supplier's envelope includes these traversal frames and key/path
@@ -112,7 +124,7 @@ export function snapshotInitialControlHostInput(input, limits) {
     frames[frames.length] = {value, result, path, depth, keys, array, index: 0};
     return result;
   }
-  const packet = visit(input, [], 0);
+  const packet = visit(input, [], 0) as Readonly<Record<string, unknown>>;
   while (frames.length !== 0) {
     const frame = frames[frames.length - 1];
     if (frame.index === frame.keys.length) {

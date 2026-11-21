@@ -9,7 +9,9 @@ import {snapshotInitialControlHostInput} from './initial-control-host-input.mjs'
 // issue a child, select a Program, authorize I/O or acknowledge any lifetime.
 // Preserve all fields and original aliases so the selected recipe can refuse
 // unsupported valid inputs, while the unchanged SDK owns semantic validation.
-export function readSourceManagedOriginalInput(kind, rawInput, rawOptions, explicitLimits) {
+export function readSourceManagedOriginalInput(
+  kind: unknown, rawInput: unknown, rawOptions: unknown, explicitLimits: unknown,
+) {
   try {
     return snapshotInitialControlHostInput({kind, input: rawInput, options: rawOptions}, explicitLimits);
   } catch (cause) {

@@ -1713,6 +1713,10 @@ target/
 /adapters/host-node/loopback-http.d.mts
 /adapters/host-node/client-interactive-plan.mjs
 /adapters/host-node/client-interactive-plan.d.mts
+/adapters/host-node/initial-control-host-input.mjs
+/adapters/host-node/initial-control-host-input.d.mts
+/adapters/host-node/source-managed-original-input.mjs
+/adapters/host-node/source-managed-original-input.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs

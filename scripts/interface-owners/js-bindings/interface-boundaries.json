@@ -51198,8 +51198,8 @@
                 "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+                "path": "adapters/host-node/initial-control-host-input.mts",
+                "anchor": "export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {"
               }
             ],
             "identity": [
@@ -51244,7 +51244,7 @@
                 "anchor": "return readInitialControlInstallationAsset(control, originals,"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "path": "adapters/host-node/initial-control-host-input.mts",
                 "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
               },
               {
@@ -59388,13 +59388,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+                "path": "adapters/host-node/initial-control-host-input.mts",
+                "anchor": "export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "path": "adapters/host-node/initial-control-host-input.mts",
                 "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
               },
               {
@@ -61290,8 +61290,8 @@
                 "anchor": "const environmentSource = preparation.readEnvironmentSource();"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+                "path": "adapters/host-node/initial-control-host-input.mts",
+                "anchor": "export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -61344,7 +61344,7 @@
                 "anchor": "return readInitialControlInstallationAsset(control, originals,"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "path": "adapters/host-node/initial-control-host-input.mts",
                 "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
               },
               {
@@ -77570,13 +77570,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+                "path": "adapters/host-node/initial-control-host-input.mts",
+                "anchor": "export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "path": "adapters/host-node/initial-control-host-input.mts",
                 "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
               },
               {
@@ -77646,13 +77646,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
-                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+                "path": "adapters/host-node/initial-control-host-input.mts",
+                "anchor": "export function snapshotInitialControlHostInput(input: unknown, limits: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "path": "adapters/host-node/initial-control-host-input.mts",
                 "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
               },
               {
@@ -77709,7 +77709,7 @@
           }
         }
       ],
-      "sha256": "e713d863b7cd2741a09e3d25de6d460ac7da0cca6e8a010800a5fa42d1c8c8b1",
+      "sha256": "c49bc03152d838d9b8a07d845f6860675192fd4433faf2cfa1007fa54f4fd4d5",
       "exports": [
         "snapshotInitialControlHostInput"
       ],
