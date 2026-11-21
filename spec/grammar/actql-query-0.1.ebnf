@@ -64,9 +64,12 @@ sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
 cte_pipe      = "FROM", carrier_source, { from_join }, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
-select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { from_join } ],
-                [ where_clause ], [ group_clause ],
-                [ having_clause ], [ qualify_clause ], [ window_clause ] ;
+select_core   = "SELECT", [ "ALL" | "DISTINCT" ], ( scalar_subquery_projection
+                | select_list, [ "FROM", source, { from_join } ],
+                  [ where_clause ], [ group_clause ],
+                  [ having_clause ], [ qualify_clause ], [ window_clause ] ) ;
+(* The child starts with SELECT or WITH, yields one column and has its own scope. *)
+scalar_subquery_projection = "(", relational_body, ")", [ [ "AS" ], identifier ] ;
 pipe_query    = "FROM", carrier_source, { from_join }, { "|>", pipe_item } ;
 carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type

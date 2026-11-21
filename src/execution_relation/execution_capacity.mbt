@@ -531,6 +531,15 @@ pub fn generated_bounded_sequence_capacity(
             // LIMIT measures every original cell and forwards checked cells;
             // its range/order metadata constructs no copied input forest.
             @lower.kernel_body(kernel) is @lower.Limit(_, _, _) ||
+            // A direct Boolean assertion reads immediate scalar operands.
+            // It forwards all other required scalar cells from the same row;
+            // the original Fragment frames and complete output stay funded.
+            (match @lower.kernel_body(kernel) {
+              @lower.AssertAll(predicate) =>
+                bounded_string_group_scalar_filter(predicate) &&
+                bounded_number_group_scalar_schema(input)
+              _ => false
+            }) ||
             // ASSERT UNIQUE compares original cells through its bounded
             // key/index workspace and forwards the same admitted values.
             // It builds no second input forest or measurement wire.

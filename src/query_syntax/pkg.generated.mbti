@@ -130,6 +130,8 @@ pub fn rollup_item_count(Query) -> Int
 
 pub fn same_relation_name(NamePart, NamePart) -> Bool
 
+pub fn scalar_projection_count(Query) -> Int
+
 pub fn script_document(QueryScript) -> @frontend_source_map.Document
 
 pub fn script_query(QueryScript) -> Query
@@ -538,6 +540,7 @@ pub(all) struct QueryBinding {
 pub(all) enum QueryBindingOrigin {
   AuthoredWith(NamePart, Int, Int)
   RelationalContinuation
+  ScalarSubquery(NamePart?)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum QueryInteger {

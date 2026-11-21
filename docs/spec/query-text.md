@@ -1506,6 +1506,15 @@ ranges. Generated producer identifiers do not become authored range aliases.
 Subquery ordering is not an outer SQL order promise: keep explicit ORDER BY and
 LIMIT placement, and compare an unordered outer Relation as a multiset.
 
+A SELECT can project a single uncorrelated scalar subquery, such as
+`SELECT (SELECT MAX(v) FROM t) AS x`. The child starts with SELECT or WITH and
+uses its own scope plus the enclosing WITH bindings. Its checked Relation
+must have exactly one column. The result keeps that column's value type with
+a nullable contract. An empty child gives one NULL, and a one-row child gives
+its original value, including NULL. Multiple child rows fail execution before
+publication, even when all values are equal. An output alias follows the
+ordinary SELECT naming rules.
+
 Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.

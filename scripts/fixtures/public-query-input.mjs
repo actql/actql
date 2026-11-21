@@ -201,8 +201,19 @@ export const commaJoinOriginal = {
   sourceReadCount: 0, sourceReadSessionCount: 0,
 };
 
+export const scalarSubquerySuccesses = [
+  ['scalar-subquery-literal', 'SELECT (SELECT 1) AS x', 1],
+  ['scalar-subquery-cte-aggregate',
+    "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL "
+      + "SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+      + 'SELECT (SELECT MAX(v) FROM t) AS x', 30],
+  ['scalar-subquery-empty', 'SELECT (SELECT 1 WHERE FALSE) AS x', null],
+].map(([name, text, x]) => ({name, text, format: 'sql',
+  expected: [{x}], columns: [relationNumber('x', true)], sourceReadCount: 0}));
+
 export const queryCompositionSuccesses = [
   arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
+  ...scalarSubquerySuccesses,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",

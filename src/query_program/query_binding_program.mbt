@@ -171,6 +171,97 @@ fn lower_script_primary(
 }
 
 ///|
+// A scalar subquery keeps the checked child column's own type. An unkeyed
+// group gives one row even on empty input. The assertion rejects multiple
+// original rows before the scalar can reach the enclosing result.
+fn scalar_subquery_output(
+  construction : Construction,
+  sources : ScriptSources,
+  input : Input,
+  name : @query.NamePart?,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Input raise Abort {
+  guard input.visible_fields.length() == 1 else {
+    raise Abort(UnsupportedProjection)
+  }
+  let original = input.visible_fields[0]
+  let value = name.map(name => name.value).unwrap_or("aql_scalar_value")
+  let count = pipe_physical_name([value], "aql_scalar_count_")
+  let grouped = pipe_physical_name(reserved, "aql_scalar_group_")
+  reserved.push(grouped)
+  let projected = pipe_physical_name(reserved, "aql_scalar_result_")
+  reserved.push(projected)
+  steps.push(
+    construction.object([
+      ("from", construction.text(input.name)),
+      (
+        "group",
+        construction.object([
+          ("by", construction.array([])),
+          (
+            "aggregates",
+            construction.object([
+              (
+                value,
+                construction.object([
+                  ("fn", construction.text("any_value")),
+                  ("field", construction.text(original)),
+                ]),
+              ),
+              (count, construction.object([("fn", construction.text("count"))])),
+            ]),
+          ),
+        ]),
+      ),
+      ("as", construction.text(grouped)),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      ("from", construction.text(grouped)),
+      (
+        "assert_rows",
+        construction.object([
+          (
+            "where",
+            construction.object([
+              (
+                "lte",
+                construction.array([
+                  construction.object([("field", construction.text(count))]),
+                  construction.object([
+                    ("literal", construction.add(Number(1.0))),
+                  ]),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      ("select", construction.array([construction.text(value)])),
+      ("as", construction.text(projected)),
+    ]),
+  )
+  let original_column = result_column_profile(
+    script_result_columns(sources, input.name),
+    original,
+    original,
+  )
+  let name_view = original_column.bind(column => column.name_view)
+  if name is None || name_view is Some(_) {
+    put_script_result_columns(sources, projected, [
+      { slot: value, label: value, name, name_view, },
+    ])
+  }
+  { ..input, name: projected, visible_fields: [value], }
+}
+
+///|
 // Resolve a body before installing its name. Both output kinds share this
 // binding owner, so a nearer binding shadows an outer one regardless of kind.
 // A Graph continuation receives its actual producer explicitly; a generated
@@ -308,6 +399,13 @@ fn lower_script_bindings(
         graphs=body_graphs,
         allow_nonrelation=true,
       )
+    }
+    let bound = match binding.origin {
+      ScalarSubquery(name) =>
+        scalar_subquery_output(
+          construction, sources, bound, name, steps, reserved,
+        )
+      _ => bound
     }
     if !binding.carry_ranges &&
       sources.value_tables.get(bound.name) is Some(scope) {

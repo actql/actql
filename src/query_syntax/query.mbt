@@ -261,6 +261,9 @@ pub(all) enum QueryBindingOrigin {
   // Authored name and original UTF-8 byte range, before physical scope binding.
   AuthoredWith(NamePart, Int, Int)
   RelationalContinuation
+  // The SELECT owns an independently parsed single-column producer. Its
+  // optional output name belongs to the enclosing projection, not the child.
+  ScalarSubquery(NamePart?)
 } derive(Eq, Debug)
 
 ///|
@@ -2671,6 +2674,39 @@ fn QueryParser::initial_from(
 }
 
 ///|
+fn QueryParser::scalar_projection_head(self : QueryParser) -> Bool {
+  self.peek().value == Symbol(40) &&
+  self.source.tokens
+  .get(self.index + 1)
+  .map(token => keyword(token, "SELECT") || keyword(token, "WITH"))
+  .unwrap_or(false)
+}
+
+///|
+fn QueryParser::scalar_projection_term(
+  self : QueryParser,
+  record_anonymous_output : Bool,
+) -> Query raise QueryAbort {
+  let inner = self.parenthesized()
+  let name = self.optional_output_alias()
+  if record_anonymous_output && name is None {
+    self.source.anonymous_output_demands += 1
+  }
+  let bound = self.bind_query(inner)
+  let index = bound.bindings.length() - 1
+  let original = bound.bindings[index]
+  bound.bindings[index] = { ..original, origin: ScalarSubquery(name), }
+  self.source.scalar_projections += 1
+  bound
+}
+
+///|
+/// Count scalar projections selected by the parser on this original document.
+pub fn scalar_projection_count(query : Query) -> Int {
+  query.source.scalar_projections
+}
+
+///|
 fn QueryParser::sql_term(
   self : QueryParser,
   record_anonymous_output~ : Bool,
@@ -2681,6 +2717,9 @@ fn QueryParser::sql_term(
     self.keyword("DISTINCT")
   } else if self.has("ALL") {
     self.keyword("ALL")
+  }
+  if self.scalar_projection_head() {
+    return self.scalar_projection_term(record_anonymous_output)
   }
   let select_windows : Array[Projection] = []
   let (projections, embedded) = self.projections(

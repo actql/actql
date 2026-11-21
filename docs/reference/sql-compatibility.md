@@ -322,6 +322,10 @@ INT64 Result values use canonical decimal strings on the existing wire.
 
 SQL `GROUP BY ROLLUP` returns each prefix subtotal and the grand total with typed NULLs for omitted grouping keys.
 
+A SELECT with a single scalar subquery projection accepts a one-column query,
+with access to the enclosing WITH bindings. Zero rows give a typed NULL, one
+row gives its value, and more than one row fails execution.
+
 A comma in the initial FROM list uses the bounded CROSS JOIN operation.
 A comma before UNNEST supports correlated expansion and offsets.
 
@@ -342,7 +346,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
 | `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
-| Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
+| Correlated scalar subqueries, scalar subqueries within other expressions, `IN (SELECT …)` and `EXISTS` | The scalar subquery profile selects a standalone SELECT projection. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
