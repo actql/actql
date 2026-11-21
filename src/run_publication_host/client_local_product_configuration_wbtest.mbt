@@ -533,6 +533,76 @@ test "finite Mock product originals retain the closed selected Account and Resul
 }
 
 ///|
+test "finite Mock product retains all prepared update targets in one Account" {
+  let targets = [("crm", "Leads"), ("crm", "Accounts"), ("crm", "Contacts")]
+  let subjects : @authorization.LocalMockAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: "local",
+    sources: [
+      ("crm", "Accounts"),
+      ("crm", "Contacts"),
+      ("crm", "Leads"),
+      ("crm", "Control"),
+    ],
+    model_tasks: [],
+    request_target: None,
+    update_target: None,
+    signing_key_resource: Some("key/initial-host-attestation"),
+  }
+  let make = fn(prepare) {
+    client_local_product_finite_originals(
+      "/home/operator/.actql-local",
+      "/product/lib/sqlite",
+      "/product/lib/crypto",
+      "2026-10-12T00:00:00.000Z",
+      product_test_assets(),
+      mock=Some(subjects),
+      mock_preparation=Some((targets, prepare)),
+    )
+  }
+  assert_true(make(_ => false) is Err(ConfigurationLimit))
+  let reservations = Ref(0)
+  let originals = make(_ => {
+    reservations.val += 1
+    true
+  }).unwrap()
+  assert_eq(reservations.val, 1)
+  let wire = product_test_original(originals, "account.json")
+  let account = @authorization.admit_account_configuration_json(wire).unwrap()
+  for resource in ["Accounts", "Contacts", "Leads"] {
+    assert_true(
+      @authorization.evaluate_account(account, {
+        principal: "local-cli",
+        connection: "crm",
+        resource,
+        operation: "effect",
+      })
+      is @authorization.Delegate(_),
+    )
+  }
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "crm",
+      resource: "Control",
+      operation: "effect",
+    })
+    is @authorization.Deny(NoMatch),
+  )
+  assert_true(
+    @authorization.evaluate_account(account, {
+      principal: "local-cli",
+      connection: "local",
+      resource: "key/initial-host-attestation",
+      operation: "sign",
+    })
+    is @authorization.Allow(_),
+  )
+  assert_eq(wire.split("\"entry_id\":\"local-result-read\"").length(), 2)
+}
+
+///|
 test "finite Mock selected control stays original across Account and all Native read bindings" {
   let selected = @authorization.local_mock_control_connection_prepared(
       "local",

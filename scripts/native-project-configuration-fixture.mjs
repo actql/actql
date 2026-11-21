@@ -65,9 +65,27 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
+  for (const name of ['deal-review', 'deal-review-plural', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
     const path = directory(name);
-    for (const [originalPath, original] of Object.entries(projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock'))) {
+    const files = {...projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock')};
+    if (name === 'deal-review-plural') {
+      const catalog = JSON.parse(files['mock/catalog.json']);
+      const data = JSON.parse(files['mock/data.json']);
+      const connection = catalog.connections.salesforce;
+      for (const resource of ['Contacts', 'Leads']) {
+        connection.views.push({...connection.views[0], resource});
+        connection.query_aliases.push({name: 'salesforce.' + resource.toLowerCase(), resource});
+        connection.data.push({...connection.data[0], resource,
+          items_path: ['salesforce', resource, 'rows'], key_path: ['salesforce', resource, 'key']});
+        connection.writes.push({...connection.writes[0], resource, aliases: ['salesforce.' + resource]});
+        data.salesforce[resource] = {key: ['id'], rows: [
+          {id: resource + '-001', name: resource + ' seed', StageName: 'Qualified', NextStep: null},
+        ]};
+      }
+      files['mock/catalog.json'] = JSON.stringify(catalog) + '\n';
+      files['mock/data.json'] = JSON.stringify(data) + '\n';
+    }
+    for (const [originalPath, original] of Object.entries(files)) {
       // Cold approval selects the original write implementation metadata only.
       // Missing Model registry/Task/answers and payload prove those are not replayed.
       if (name === 'deal-review-approval' && !['actql.config.json', 'connectors.json',

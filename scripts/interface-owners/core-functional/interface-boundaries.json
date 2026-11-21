@@ -112249,7 +112249,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "9a8042366e6e22e42b5fadad0d0f30e2904a303f255da63a3e97dcdb7f65c112",
+      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
       "exports": [],
       "operations": [
         {

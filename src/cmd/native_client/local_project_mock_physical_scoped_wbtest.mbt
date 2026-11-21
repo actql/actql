@@ -236,6 +236,7 @@ fn native_project_mock_model_backed_read(
     )
   } else if account_initialization {
     native_project_mock_account_in_original_read()
+    native_project_mock_plural_account_in_original_read()
   } else if lookup_policy {
     native_mock_lookup_policy_in_original_read()
   } else if file_references {
@@ -968,7 +969,9 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     operation="adopt",
   )
   defer original.retire()
-  assert_true(original.account_subjects() is Err(ForeignOriginal))
+  assert_true(
+    original.account_subjects(_ => true) is Some(Err(ForeignOriginal)),
+  )
   original.prepare_source_declarations().unwrap()
   original
   .prepare_models(
@@ -977,7 +980,12 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     local_utc_now,
   )
   .unwrap()
-  let subjects = original.account_subjects().unwrap()
+  assert_true(original.account_subjects(_ => false) is None)
+  let (subjects, targets) = original
+    .account_subjects(_ => true)
+    .unwrap()
+    .unwrap()
+  assert_eq(targets, [("salesforce", "Opportunity")])
   assert_eq(subjects.sources.length(), 3)
   for
     subject in [
@@ -1037,7 +1045,45 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     is @authorization.Deny(_),
   )
   original.retire()
-  assert_true(original.account_subjects() is Err(ForeignOriginal))
+  assert_true(
+    original.account_subjects(_ => true) is Some(Err(ForeignOriginal)),
+  )
+}
+
+///|
+fn native_project_mock_plural_account_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture(
+    "deal-review-plural",
+    operation="adopt",
+  )
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let calls = Ref(0)
+  let (subjects, targets) = original
+    .account_subjects(_ => {
+      calls.val += 1
+      true
+    })
+    .unwrap()
+    .unwrap()
+  assert_eq(calls.val, 1)
+  let expected = [
+    ("salesforce", "Opportunity"),
+    ("salesforce", "Contacts"),
+    ("salesforce", "Leads"),
+  ]
+  assert_eq(targets, expected)
+  assert_true(subjects.update_target is None)
+  for target in expected {
+    assert_true(subjects.sources.contains(target))
+  }
 }
 
 ///|
@@ -1226,8 +1272,9 @@ fn native_mock_original_journal_body(
     local_utc_now,
   )
   .native_mock_journal_required("prepare original Model metadata")
-  let subjects = original
-    .account_subjects()
+  let (subjects, _) = original
+    .account_subjects(_ => true)
+    .native_mock_journal_required("fund original Account subjects")
     .native_mock_journal_required("retain original Account subjects")
   let path = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").native_mock_journal_required(
     "select fresh process root",

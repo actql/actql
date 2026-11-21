@@ -312,70 +312,97 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         is Some(_) {
         stop("LocalProductCustodyLost")
       }
-      let mock = match self.project {
+      let (mock, mock_preparation, host_configuration) = match self.project {
         Some(project) if operation == "adopt" &&
-          project.mock_declarations is Some(mock) =>
-          Some(
-            mock
-            .account_subjects()
-            .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable")),
-          )
-        _ => None
-      }
-      let mock = mock.map(subjects => {
-        // The fixed target literal still has the pinned Array wrapper/backing:
-        //2H,(1+N)R,2W. Add new subjects1H8R, Some1H1R1W and the existing
-        // private assembler's selected-control alias1R, before any allocation.
-        let slots = if subjects.update_target is Some(_) { 1L } else { 0L }
-        let array = @shape.reference_array_retained_extent(1L, slots).unwrap_or_else(() => {
-            stop("LocalMockAccountConstructionUnavailable")
-          },
-        )
-        let controls : @authorization.AccountConfigurationConstructionUnits = {
-          record_headers: array.record_headers + 2L,
-          reference_slots: array.reference_slots + 10L,
-          scalar_words: array.scalar_words + 1L,
-          owned_utf16_units: 0L,
-          owned_wire_bytes: 0L,
-        }
-        if !self.prepare_account_construction({
-            retained: controls,
-            execution: controls,
-          }) {
-          stop("LocalMockAccountConstructionUnavailable")
-        }
-        let targets = match subjects.update_target {
-          Some(target) => [target]
-          None => []
-        }
-        let selected = @authorization.local_mock_control_connection_prepared(
-            subjects.control_connection,
-            None,
-            None,
-            subjects.sources,
-            targets,
-            request => self.prepare_account_construction(request),
-          )
-          .unwrap_or_else(() => stop("LocalMockAccountConstructionUnavailable"))
-          .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable"))
-        { ..subjects, control_connection: selected, }
-      })
-      let host_configuration = if mock is Some(subjects) &&
-        subjects.update_target is Some(_) {
-        Some(self.select_operator_host(matches, true))
-      } else {
-        None
-      }
-      let mock = mock.map(subjects => {
-        if host_configuration is Some(_) {
-          {
-            ..subjects,
-            signing_key_resource: Some("key/initial-host-attestation"),
+          project.mock_declarations is Some(mock) => {
+          let (subjects, targets) = mock
+            .account_subjects(request => {
+              self.prepare_account_construction(request)
+            })
+            .unwrap_or_else(() => {
+              stop("LocalMockAccountConstructionUnavailable")
+            })
+            .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable"))
+          let signing = !targets.is_empty()
+          let plural = targets.length() > 1
+          // The selected subject record, returned triple and its tagged
+          // options borrow the already funded target and Source arrays.
+          // The plural callback borrows the same installing command Read.
+          let controls : @authorization.AccountConfigurationConstructionUnits = {
+            record_headers: 3L +
+            (if signing { 2L } else { 0L }) +
+            (if plural { 3L } else { 0L }),
+            reference_slots: 12L +
+            (if signing { 2L } else { 0L }) +
+            (if plural { 5L } else { 0L }),
+            scalar_words: 1L +
+            (if signing { 2L } else { 0L }) +
+            (if plural { 1L } else { 0L }),
+            owned_utf16_units: 0L,
+            owned_wire_bytes: 0L,
           }
-        } else {
-          subjects
+          if !self.prepare_account_construction({
+              retained: controls,
+              execution: controls,
+            }) {
+            stop("LocalMockAccountConstructionUnavailable")
+          }
+          let control = @authorization.local_mock_control_connection_prepared(
+              subjects.control_connection,
+              None,
+              None,
+              subjects.sources,
+              targets,
+              request => self.prepare_account_construction(request),
+            )
+            .unwrap_or_else(() => {
+              stop("LocalMockAccountConstructionUnavailable")
+            })
+            .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable"))
+          if plural {
+            @authorization.validate_local_mock_inventory_prepared(
+              control,
+              subjects.sources,
+              subjects.model_tasks,
+              subjects.request_target,
+              targets,
+              request => self.prepare_account_construction(request),
+            )
+            .unwrap_or_else(() => {
+              stop("LocalMockAccountConstructionUnavailable")
+            })
+            .unwrap_or_else(() => stop("LocalProjectBindingsUnavailable"))
+          }
+          let host_configuration = if signing {
+            Some(self.select_operator_host(matches, true))
+          } else {
+            None
+          }
+          let selected = {
+            ..subjects,
+            control_connection: control,
+            signing_key_resource: if signing {
+              Some("key/initial-host-attestation")
+            } else {
+              None
+            },
+          }
+          let preparation = if plural {
+            Some(
+              (
+                targets,
+                fn(request : @authorization.AccountConfigurationConstruction) {
+                  self.prepare_account_construction(request)
+                },
+              ),
+            )
+          } else {
+            None
+          }
+          (Some(selected), preparation, host_configuration)
         }
-      })
+        _ => (None, None, None)
+      }
       let selected = @run_host.client_native_local_finite_product_originals(
         configuration_root,
         runtime.sqlite,
@@ -387,6 +414,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
           .query_contract_assets()
           .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged")),
         mock~,
+        mock_preparation~,
         host_configuration~,
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
       let selected = local_product_model_policy_originals(

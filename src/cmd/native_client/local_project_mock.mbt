@@ -689,7 +689,11 @@ fn LocalProjectMockDeclarations::model_provider(
 // fresh Product initializer may persist the Common finite Account original.
 fn LocalProjectMockDeclarations::account_subjects(
   self : Self,
-) -> Result[@authorization.LocalMockAccountSubjects, LocalProjectMockModelIssue] {
+  prepare : (@authorization.AccountConfigurationConstruction) -> Bool,
+) -> Result[
+  (@authorization.LocalMockAccountSubjects, Array[(String, String)]),
+  LocalProjectMockModelIssue,
+]? {
   guard !self.closing &&
     !self.retired &&
     self.model_failure is None &&
@@ -700,11 +704,46 @@ fn LocalProjectMockDeclarations::account_subjects(
       Some(self._retained_project.metadata),
       self._retained_project.profile,
     ) else {
-    return Err(ForeignOriginal)
+    return Some(Err(ForeignOriginal))
   }
-  let sources : Array[(String, String)] = []
-  let tasks : Array[String] = []
-  let mut update : (String, String)? = None
+  let mut source_slots = 0L
+  let mut target_slots = 0L
+  for source in self.sources {
+    source_slots += source._retained_declaration.views.length().to_int64()
+    target_slots += source._retained_writes.length().to_int64()
+  }
+  let task_slots = self.models.length()
+  let total_slots = source_slots + target_slots + task_slots.to_int64()
+  guard total_slots <= 2147483647L &&
+    @shape.reference_array_retained_extent(3L, total_slots) is Some(arrays) else {
+    return None
+  }
+  // Exact backing slots are reserved before the three non-growing Arrays.
+  // The Source/target tuples borrow declaration text. The returned subjects,
+  // pair and tagged options occupy fixed carriers. Model material projection
+  // may also have one transient three-field tuple.
+  let retained : @authorization.AccountConfigurationConstructionUnits = {
+    record_headers: arrays.record_headers + source_slots + target_slots + 5L,
+    reference_slots: arrays.reference_slots +
+    2L * (source_slots + target_slots) +
+    13L,
+    scalar_words: arrays.scalar_words + 3L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard prepare({
+    retained,
+    execution: {
+      ..retained,
+      record_headers: retained.record_headers + 1L,
+      reference_slots: retained.reference_slots + 3L,
+    },
+  }) else {
+    return None
+  }
+  let sources : Array[(String, String)] = Array(capacity=source_slots.to_int())
+  let tasks : Array[String] = Array(capacity=task_slots)
+  let targets : Array[(String, String)] = Array(capacity=target_slots.to_int())
   for source in self.sources {
     for view in source._retained_declaration.views {
       let subject = (source._retained_connection, view.resource)
@@ -714,15 +753,15 @@ fn LocalProjectMockDeclarations::account_subjects(
     }
     for write in source._retained_writes {
       let subject = (source._retained_connection, write.mapping.resource)
-      if update is Some(previous) && previous != subject {
-        return Err(ForeignOriginal)
+      if targets.contains(subject) {
+        return Some(Err(ForeignOriginal))
       }
-      update = Some(subject)
+      targets.push(subject)
     }
   }
   for model in self.models {
     guard model.normalized is Some(normalized) && model.installation is Some(_) else {
-      return Err(ForeignOriginal)
+      return Some(Err(ForeignOriginal))
     }
     let task = @compiler_environment.normalized_public_model_task_materials(
         normalized,
@@ -731,14 +770,19 @@ fn LocalProjectMockDeclarations::account_subjects(
       tasks.push(task)
     }
   }
-  Ok({
+  let subjects : @authorization.LocalMockAccountSubjects = {
     account_id: "local-cli",
     principal: "local-cli",
     control_connection: "local",
     sources,
     model_tasks: tasks,
     request_target: None,
-    update_target: update,
+    update_target: if targets.length() == 1 {
+      Some(targets[0])
+    } else {
+      None
+    },
     signing_key_resource: None,
-  })
+  }
+  Some(Ok((subjects, targets)))
 }
