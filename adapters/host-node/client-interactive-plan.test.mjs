@@ -473,6 +473,19 @@ test('static service uses the same prepared owner and rechecks current access', 
 for (const mode of ['local', 'http-loopback']) {
   test(`${mode}: SDK routes a static read without submit and rejects map CID substitution`, async t => {
     let reads = 0, submits = 0, corrupt = false, server;
+    let explainReads = 0, held = false, current = true, foreign = false;
+    const explanation = await staticExplanationFixture();
+    const readExplanation = installClientStaticEffectExplanation({authorize: () => true,
+      authorizeEgress: () => current,
+      async withOriginal(value, visit) {
+        assert.equal(value.kind, 'program');
+        assert.equal(Object.hasOwn(value, 'requestId'), false);
+        assert.equal(Object.hasOwn(value, 'ref'), false);
+        held = true;
+        explainReads++;
+        try {return await visit(explanationWires(explanation), () => assert.equal(held, true));}
+        finally {held = false;}
+      }});
     const operations = {authorizeConnection: () => true, negotiate: () => profile('local'),
       plan(value) {
         assert.equal(Object.hasOwn(value, 'requestId'), false);
@@ -480,6 +493,18 @@ for (const mode of ['local', 'http-loopback']) {
         const view = mockView();
         if (corrupt) view.logical_map.self_cid = cid('0');
         return view;
+      },
+      staticEffectExplanation(value, consume) {
+        if (foreign) {
+          return consume({...explanation, context: {...explanation.context,
+            binding: {...explanation.context.binding, check_environment_cid: cid('f')}}});
+        }
+        return readExplanation(value, async view => {
+          assert.equal(held, true);
+          const result = await consume(view);
+          assert.equal(held, true);
+          return result;
+        });
       }, submit() {submits++; throw new Error('unexpected submit');}};
     let client;
     t.after(async () => {await client?.close(); if (server) {
@@ -506,6 +531,14 @@ for (const mode of ['local', 'http-loopback']) {
     await assert.rejects(client.plan('SELECT 1 AS n', {format: 'sql'}),
       {code: 'InvalidClientHostPlanView'});
     assert.equal(reads, 2); assert.equal(submits, 0);
+    assert.deepEqual(await client.explain({stages: []}), explanation);
+    assert.equal(explainReads, 1); assert.equal(held, false);
+    current = false;
+    await assert.rejects(client.explain({stages: []}), {code: 'StaticExplanationAccessDenied'});
+    assert.equal(explainReads, 1);
+    foreign = true;
+    await assert.rejects(client.explain({stages: []}), {code: 'InvalidClientHostStaticExplanationView'});
+    assert.equal(submits, 0);
   });
 }
 

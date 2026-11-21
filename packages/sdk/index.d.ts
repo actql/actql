@@ -12,7 +12,8 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView} from
+  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView,
+  WireStaticExplanationView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -626,6 +627,9 @@ export interface Client {
     maxWireBytes?: number; maxNodes?: number; maxDepth?: number;
     signal?: AbortSignal;
   }): Promise<WirePlanView | WireEffectfulStaticPlanView>;
+  /** Static structural Plan, Facts and Context through the current Host's read authority. */
+  explain(input: string | Record<string, unknown>,
+    options?: Parameters<Client['plan']>[1]): Promise<WireStaticExplanationView>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,

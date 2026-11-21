@@ -124,6 +124,7 @@ export type WireClientBodyByOperation = Readonly<{
   plan: Omit<WireClientBodyByOperation['submit'], 'requestId' | 'parameters' | 'executionProfile'> & Readonly<{
     parameters: Record<string, unknown> | null;
     maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+  'static-explanation': WireClientBodyByOperation['plan'];
   check: WireBodyBase & (Readonly<{
     kind: 'text'; input: Readonly<{
       text: string;

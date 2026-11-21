@@ -5747,7 +5747,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "198420765f0189f785b372061999a117662034805f58148549720fef7d115346",
+      "sha256": "7eb787813b6b446bf4252ad04e9b4a35fe32a2b63418846b2a59b651262f8cf9",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6016,6 +6016,14 @@
           "name": "Client/close",
           "parameters": [],
           "result": "Promise<void>"
+        },
+        {
+          "name": "Client/explain",
+          "parameters": [
+            "input: string | Record<string, unknown>",
+            "options?: Parameters<Client['plan']>[1]"
+          ],
+          "result": "Promise<WireStaticExplanationView>"
         },
         {
           "name": "Client/inspectResource",
@@ -6698,6 +6706,7 @@
             "Client/newSubmission",
             "Client/peekResource",
             "Client/plan",
+            "Client/explain",
             "Client/recoverRequest",
             "Client/resolveCheckpoints",
             "Client/resources",
@@ -10068,7 +10077,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a68b8a5dd91e0e74647f45335d02c8f415e4bf96064b8b56fb2a3f97839bc4d9",
+      "sha256": "dba03949624cabafb5816511fd69385bb4573493784b89ef01c1243ab877d7f8",
       "exports": [
         "createPlan"
       ],
@@ -10088,19 +10097,27 @@
           "name": "createPlan/createPlan",
           "parameters": [
             "input",
-            "originalOptions"
+            "options"
           ],
           "async": false
         },
         {
-          "name": "createPlan/createPlan/createPlan",
+          "name": "createPlan/createPlan#2",
+          "parameters": [
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPlan/read/read/read",
           "parameters": [
             "producer"
           ],
           "async": true
         },
         {
-          "name": "createPlan/createPlan/createPlan/snapshot/snapshot",
+          "name": "createPlan/read/read/read/snapshot/snapshot",
           "parameters": [
             "value",
             "observe"
@@ -10125,8 +10142,9 @@
             "<module>",
             "createPlan",
             "createPlan/createPlan",
-            "createPlan/createPlan/createPlan",
-            "createPlan/createPlan/createPlan/snapshot/snapshot"
+            "createPlan/createPlan#2",
+            "createPlan/read/read/read",
+            "createPlan/read/read/read/snapshot/snapshot"
           ],
           "exports": [
             "createPlan"
@@ -10150,6 +10168,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "explain: (input, options) => read('static-explanation', input, options),"
               }
             ],
             "identity": [

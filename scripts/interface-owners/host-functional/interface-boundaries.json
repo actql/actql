@@ -23050,7 +23050,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9eb34e5a65ec6a7c2eaec2f889aa974affb7557ba186ec1aec6dd5a80fa21bb6",
+      "sha256": "187d2362371a686a265da9545ae4b7555913b241abc4cce1f0731aaaebc8a655",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23092,6 +23092,7 @@
             "peekResource",
             "check",
             "plan",
+            "staticEffectExplanation",
             "inspectRun",
             "runPlan",
             "runExplanation",
@@ -48191,7 +48192,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "10ad2ba0b7000648c342ff806274c1b6fa98d7454b3236d4155421d7d1488881",
+      "sha256": "b47163bb37a2643e3b41d7d51cea37a07574afdeba5c881073ccbb263c4c9386",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -48231,6 +48232,7 @@
             "peekResource",
             "check",
             "plan",
+            "staticEffectExplanation",
             "inspectRun",
             "runPlan",
             "runExplanation",
@@ -132566,7 +132568,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "08072b45c64c3e0115f3672338a98d208078c981bd0b97ddfc4866387e07db6b",
+      "sha256": "50eca4bfbe9bdd0f5134efe280ecf4e1b1261260fd0414514a04be8f0951a151",
       "exports": [
         "installHttpRequestPreparation"
       ],
