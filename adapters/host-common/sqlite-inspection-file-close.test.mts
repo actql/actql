@@ -8,8 +8,17 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
 // Fresh process to isolate builtin substitutions. The database/copy are real;
 // the close fault is explicit and unaccounted, not an operational Host fixture.
+type InspectionFailure = {
+  code?: string;
+  primaryFailure?: unknown;
+  cleanupHandle: {
+    status(): {pending: boolean; errors: readonly {error: unknown}[]};
+    retry(): {pending: boolean};
+  };
+};
+
 async function counter() {
-  const assert = (await import('node:assert/strict')).default;
+  const assert: typeof import('node:assert/strict') = (await import('node:assert/strict')).default;
   const fs = (await import('node:fs')).default;
   const {syncBuiltinESMExports} = await import('node:module');
   const {DatabaseSync} = await import('node:sqlite');
@@ -23,10 +32,12 @@ async function counter() {
   database.close();
   const sourceBytes = fs.readFileSync(source);
   const open = fs.openSync, close = fs.closeSync, stat = fs.fstatSync;
-  const opened = new Set();
+  const opened = new Set<number>();
   const closeFailure = new Error('OriginalNumericCloseOutcomeUnknown');
   const primary = new Error('OriginalFormatRefusal');
-  let target, reused, sentinelIdentity, closes = 0, inspections = 0, failure;
+  let target: number | undefined, reused: number | undefined,
+    sentinelIdentity: import('node:fs').BigIntStats | undefined,
+    closes = 0, inspections = 0, failure: InspectionFailure | undefined;
   fs.openSync = function(path, flags, ...args) {
     const fd = Reflect.apply(open, fs, [path, flags, ...args]);
     opened.add(fd);
@@ -41,7 +52,7 @@ async function counter() {
         opened.delete(fd);
         reused = Reflect.apply(open, fs, [sentinel, 'r']);
         assert.equal(reused, fd, 'counter requires actual same-number FD reuse');
-        sentinelIdentity = Reflect.apply(stat, fs, [reused, {bigint:true}]);
+        sentinelIdentity = Reflect.apply(stat, fs, [reused, {bigint:true}]) as import('node:fs').BigIntStats;
         throw closeFailure;
       }
     }
@@ -53,25 +64,25 @@ async function counter() {
   try {
     const {inspectSqliteSnapshot} = await import(moduleUrl);
     try {
-      inspectSqliteSnapshot(source, copy => {
+      inspectSqliteSnapshot(source, (copy: import('node:sqlite').DatabaseSync) => {
         inspections++;
-        assert.equal(copy.prepare('SELECT value FROM metadata').get().value, 'original');
+        assert.equal(copy.prepare('SELECT value FROM metadata').get()!.value, 'original');
         throw primary;
       }, {maxSourceBytes:65536, assertCurrent(){}});
-    } catch (cause) { failure = cause; }
+    } catch (cause) { failure = cause as InspectionFailure; }
     assert.notEqual(reused, undefined);
     assert.equal(closes, 1, 'one numeric close attempt even during immediate cleanup');
     assert.equal(failure?.code, 'SqliteJournalInitializationCleanupPending');
-    assert.equal(failure.primaryFailure, role === 'source' ? primary : closeFailure);
+    assert.equal(failure!.primaryFailure, role === 'source' ? primary : closeFailure);
     assert.equal(inspections, role === 'source' ? 1 : 0);
     for (let index = 0; index < 3; index++) {
-      assert.equal(failure.cleanupHandle.status().pending, true);
-      assert.equal(failure.cleanupHandle.retry().pending, true);
+      assert.equal(failure!.cleanupHandle.status().pending, true);
+      assert.equal(failure!.cleanupHandle.retry().pending, true);
       assert.equal(closes, 1);
       const current = Reflect.apply(stat, fs, [reused, {bigint:true}]);
-      assert.equal(current.dev, sentinelIdentity.dev);
-      assert.equal(current.ino, sentinelIdentity.ino);
-      assert(failure.cleanupHandle.status().errors.every(item => item.error === closeFailure));
+      assert.equal(current.dev, sentinelIdentity!.dev);
+      assert.equal(current.ino, sentinelIdentity!.ino);
+      assert(failure!.cleanupHandle.status().errors.every(item => item.error === closeFailure));
     }
     assert.deepEqual(fs.readFileSync(source), sourceBytes);
     console.log(JSON.stringify({role, closes, inspections, sameNumber:reused === target,
@@ -85,10 +96,10 @@ async function counter() {
     if (reused !== undefined) {
       try {
         const current = Reflect.apply(stat, fs, [reused, {bigint:true}]);
-        if (current.dev === sentinelIdentity.dev && current.ino === sentinelIdentity.ino) {
+        if (current.dev === sentinelIdentity!.dev && current.ino === sentinelIdentity!.ino) {
           Reflect.apply(close, fs, [reused]);
         }
-      } catch (cause) { if (cause.code !== 'EBADF') throw cause; }
+      } catch (cause) { if ((cause as NodeJS.ErrnoException).code !== 'EBADF') throw cause; }
     }
     for (const fd of opened) Reflect.apply(close, fs, [fd]);
   }

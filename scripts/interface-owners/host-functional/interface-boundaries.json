@@ -14495,7 +14495,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-bounds.test.mts",
                 "anchor": "combined actual DB and WAL extent refuses before scratch copying or the SQLite inspector"
               },
               {
@@ -14511,15 +14511,15 @@
                 "anchor": "format failure and isolated close failure keep one retryable cleanup owner"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected own-DDL inspection selects actual memory temporary storage before its callback"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected temporary support refusal retains the same copy connection until original close"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected inspection retains original prepare and exec before native open callbacks"
               }
             ]
@@ -14771,7 +14771,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-bounds.test.mts",
                 "anchor": "combined actual DB and WAL extent refuses before scratch copying or the SQLite inspector"
               },
               {
@@ -14787,15 +14787,15 @@
                 "anchor": "format failure and isolated close failure keep one retryable cleanup owner"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected own-DDL inspection selects actual memory temporary storage before its callback"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected temporary support refusal retains the same copy connection until original close"
               },
               {
-                "path": "adapters/host-common/sqlite-inspection-temporary.test.mjs",
+                "path": "adapters/host-common/sqlite-inspection-temporary.test.mts",
                 "anchor": "selected inspection retains original prepare and exec before native open callbacks"
               }
             ]
@@ -15054,11 +15054,11 @@
                 "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
               },
               {
-                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mts",
                 "anchor": "test('selected original ' + kind + ' payload extent refuses before native open', async () => {"
               },
               {
-                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mts",
                 "anchor": "test('selected record extent uses the original committed WAL page rather than stale main bytes', async () => {"
               }
             ]
@@ -15234,11 +15234,11 @@
                 "anchor": "DB and WAL copying reuse one backing instead of assuming loop-local backing retirement"
               },
               {
-                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mts",
                 "anchor": "test('selected original ' + kind + ' payload extent refuses before native open', async () => {"
               },
               {
-                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mjs",
+                "path": "adapters/host-common/sqlite-record-resource-bounds.test.mts",
                 "anchor": "test('selected record extent uses the original committed WAL page rather than stale main bytes', async () => {"
               }
             ]
