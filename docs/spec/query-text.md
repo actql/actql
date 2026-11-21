@@ -429,6 +429,14 @@ forms retain their bytes and meanings.
 String operand. The result is INT64 with the operand's nullability.
 The checked Common operation consumes the original UTF-8 bytes.
 
+`REGEXP_CONTAINS(value, pattern)` selects the checked Common `regex_match`
+expression with its two original String children in source order. The
+pattern is a String literal or an invocation Parameter and uses the
+admitted text-time grammar and bounds. The result is true for a match
+anywhere in the input, false for no match and NULL for a NULL input.
+An invalid pattern fails at Check, including with a NULL input.
+The SQL call adds no flags argument.
+
 `JSON_VALUE(input[, path])` selects `json_value`. Input is a String or
 admitted Json and the optional path is String. The Common evaluator
 returns nullable String. It retains the original arguments, supports

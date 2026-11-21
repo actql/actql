@@ -196,7 +196,7 @@ test('default numeric oracle requires runnable checking and same Saved after ori
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
     'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
     'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original',
-    'to-json-string-original', 'json-value-original', 'json-value-prefix'];
+    'to-json-string-original', 'json-value-original', 'json-value-prefix', 'regexp-contains-original'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
   assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
@@ -234,6 +234,7 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   assert.deepEqual(observed.find(entry => entry.name === 'to-json-string-original').rows,
     [{result: '1'}]);
   assert.deepEqual(observed.find(entry => entry.name === 'json-value-original').rows, [{result: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'regexp-contains-original').rows, [{result: true}]);
   assert.deepEqual(observed.find(entry => entry.name === 'json-value-prefix').rows, [{result: '9007199254740993'}]);
 });
 

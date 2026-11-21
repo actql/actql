@@ -3,35 +3,36 @@
   "totalCases": 4240,
   "parts": {
     "portable-1": {
-      "totalCases": 1526,
-      "inventorySha256": "68dbdd3b839994b1558f813a8bed73885da23d8fd0c2d26f05662989219abf42",
+      "totalCases": 1527,
+      "inventorySha256": "4f1c6b4d41abb7a85eae55c94a461a2c38aa1a3dd0b40fdd1c61bb9fb5ac55d0",
       "receiptPrefixes": []
     },
     "portable-2": {
-      "totalCases": 1381,
-      "inventorySha256": "e060a6067157b396ae330e4df75deac39fefe5fd6fa25115a843dda6e288b493",
+      "totalCases": 1382,
+      "inventorySha256": "e04976469f296a6cc60767f9c144da7c7b8e31d1d45612713a5c24707aaedb3d",
       "receiptPrefixes": [
         "time-series-primary",
-        "temporal-join",
-        "quoted-identifier",
-        "window-group",
-        "sequence-source",
-        "cte-value-table",
-        "from-unpivot",
-        "unpivot-row-label"
-      ]
-    },
-    "portable-3": {
-      "totalCases": 1372,
-      "inventorySha256": "05e3a0e830b0056cd7fcb7b44d7d55cbefc9920b7f71b2cf736c3ced36124ed9",
-      "receiptPrefixes": [
-        "time-series-primary",
-        "carrier-continuation",
         "temporal-join",
         "ranking-fusion",
         "quoted-identifier",
         "sequence-source",
         "lag",
+        "cte-value-table",
+        "from-unpivot",
+        "unpivot-row-label",
+        "unpivot-multicolumn"
+      ]
+    },
+    "portable-3": {
+      "totalCases": 1372,
+      "inventorySha256": "576ea5b9b37676ec949102d1f88f40e333199507682721481dfca977504ecbf2",
+      "receiptPrefixes": [
+        "time-series-primary",
+        "carrier-continuation",
+        "ranking-fusion",
+        "quoted-identifier",
+        "window-group",
+        "sequence-source",
         "unpivot-multicolumn"
       ]
     }

@@ -387,6 +387,22 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
           )
         )
       )
+    )
+    | Checks(
+      Patterns(
+        Regex(
+          Pattern(
+            _,
+            InvalidSyntax(_)
+            | InvalidRange(_)
+            | InvalidQuantifier(_)
+            | QuantifierOutOfRange(_)
+            | NullableRepeat(_)
+            | InvalidUnicode(_)
+            | NonCanonicalText
+          )
+        )
+      )
     ) => InvalidInput
     SourceView(Program(Program(UnsupportedReceipt(_, _))))
     | Checks(

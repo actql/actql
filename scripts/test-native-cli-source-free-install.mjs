@@ -20,7 +20,8 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 import {assertPublicQueryRows, dateLiteralOriginal, timestampLiteralOriginal,
-  generateArrayOriginalCases, farmFingerprintOriginal, toJsonStringOriginal, jsonValueOriginals} from './fixtures/public-query-input.mjs';
+  generateArrayOriginalCases, farmFingerprintOriginal, toJsonStringOriginal, jsonValueOriginals,
+  regexpContainsOriginal} from './fixtures/public-query-input.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -122,6 +123,8 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: toJsonStringOriginal.name, sql: toJsonStringOriginal.text,
     rows: toJsonStringOriginal.expected},
   ...jsonValueOriginals.map(({name, text, expected}) => ({name, sql: text, rows: expected})),
+  {name: regexpContainsOriginal.name, sql: regexpContainsOriginal.text,
+    rows: regexpContainsOriginal.expected},
 ]);
 
 export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {

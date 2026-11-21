@@ -1064,13 +1064,13 @@ test('baseline preimages and changed normative pins independently determine the 
   // Literal expectations are independently rehashed from complete normative
   // preimages, without consulting a compiler or emitted runtime identity.
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:648b61d856333135b2748ea595de9de05df82f98f1cd1b254a3c24dc6bbc0fd8');
+    'sha256:bf9905d52685e49c84b109f7295eda0edbbe40a4360afc7644a8a2c113cafd76');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:4189ff492e235b46adbad97fcb5424eafde472632936786041e6a7522e5e7e25');
+    'sha256:0abfccf86dfcbad6f73b9046561bc3038fcf26852aeef86f3912f72b29b6c329');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:8bef4fa347d3df384010ba9767b44dc1e3f09df973609c49f8e4709df3f05b3d');
+    'sha256:fe9b4c840cab64e69ec10efbabf99b9b386b6f1edb34868ca6958edbdeee0212');
   assert.equal(current.run.run_definition_cid,
-    'sha256:05b7f4732a3f3972ab2149d45c4defe6438b8504fc84b0feacad38d69cc2f6c6');
+    'sha256:29f83d0b1dd3a261a7694babdd1e6db5a0424902f4f5bafb3886bc04c4ab97e2');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1280,13 +1280,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:648b61d856333135b2748ea595de9de05df82f98f1cd1b254a3c24dc6bbc0fd8");
+    "sha256:bf9905d52685e49c84b109f7295eda0edbbe40a4360afc7644a8a2c113cafd76");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:4189ff492e235b46adbad97fcb5424eafde472632936786041e6a7522e5e7e25");
+    "sha256:0abfccf86dfcbad6f73b9046561bc3038fcf26852aeef86f3912f72b29b6c329");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:8bef4fa347d3df384010ba9767b44dc1e3f09df973609c49f8e4709df3f05b3d");
+    "sha256:fe9b4c840cab64e69ec10efbabf99b9b386b6f1edb34868ca6958edbdeee0212");
   assert.equal(current.run.run_definition_cid,
-    "sha256:05b7f4732a3f3972ab2149d45c4defe6438b8504fc84b0feacad38d69cc2f6c6");
+    "sha256:29f83d0b1dd3a261a7694babdd1e6db5a0424902f4f5bafb3886bc04c4ab97e2");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(

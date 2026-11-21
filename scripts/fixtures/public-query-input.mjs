@@ -682,6 +682,17 @@ export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', forma
   text: "SELECT FARM_FINGERPRINT('a') AS result",
   expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
     contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
+export const regexpContainsOriginal = {name: 'regexp-contains-original', format: 'sql',
+  text: "SELECT REGEXP_CONTAINS('abc', 'a') AS result",
+  expected: [{result: true}], columns: [{name: 'result',
+    contract: {type: 'boolean', nullable: false}}], sourceReadCount: 0};
+const regexpContainsBoundaries = {name: 'regexp-contains-boundaries', format: 'sql',
+  text: "SELECT REGEXP_CONTAINS('a🙂b', '[🙂-🙃]') AS unicode_match, "
+    + "REGEXP_CONTAINS('abc', '^b$') AS anchored_miss, REGEXP_CONTAINS(NULL, 'a') AS absent",
+  expected: [{unicode_match: true, anchored_miss: false, absent: null}],
+  columns: [...['unicode_match', 'anchored_miss'].map(name => ({
+    name, contract: {type: 'boolean', nullable: false},
+  })), {name: 'absent', contract: {type: 'boolean', nullable: true}}], sourceReadCount: 0};
 export const jsonValueOriginals = [
   {name: 'json-value-original', format: 'sql',
     text: "SELECT JSON_VALUE('{}', '$.n') AS result",
@@ -878,6 +889,8 @@ export const sourceFreeSuccesses = [
   farmFingerprintOriginal,
   toJsonStringOriginal,
   ...jsonValueOriginals,
+  regexpContainsOriginal,
+  regexpContainsBoundaries,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
