@@ -2131,6 +2131,8 @@ pub fn client_program_read_installed_model_defaults(String, String, String, Stri
 
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
+pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
+
 pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
@@ -2688,6 +2690,12 @@ pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientP
 pub fn client_program_start_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[@physical_strategy_host.CapturedEffectCommandKeyValidation, ClientEffectCommandWorkspaceIssue]
 
 pub fn client_program_start_installed_original_composed_keyed_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
+
+pub fn client_program_static_effect_explanation_context_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
+
+pub fn client_program_static_effect_explanation_facts_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
+
+pub fn client_program_static_effect_explanation_plan_wire(@client_local_host.ClientRequestStaticEffectExplanation) -> String
 
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
@@ -4417,6 +4425,11 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Preparation(@client_local_host.ClientRequestProgramPlanIssue)
   Provider(@model_execution.ModelProviderAdmissionIssue)
+}
+
+pub suberror ClientRequestStaticExplanationBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Projection(@client_local_host.ClientRequestStaticContextIssue)
 }
 
 pub suberror ClientRequestStaticPlanBridgeIssue {

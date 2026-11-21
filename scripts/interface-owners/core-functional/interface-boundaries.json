@@ -67522,6 +67522,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_read_request_checked_static_effect_explanation",
+            "client_program_static_effect_explanation_context_wire",
+            "client_program_static_effect_explanation_facts_wire",
+            "client_program_static_effect_explanation_plan_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_read_request_checked_static_effect_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "pub struct ClientRequestStaticEffectExplanation {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "guard owner.input is Some(held) && physical_equal(held, input) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, T] with_request_static_effect_explanation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "owner.phase = Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub suberror ClientRequestStaticExplanationBridgeIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, P] reserve_static_context_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "/// Request and installed Model graphs. Disclosure stays with the Host."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_effect_plan_wbtest.mbt",
+                "anchor": "test \"checked static Effect Explanation bridge reads the original Request and its three wires\" {"
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -67999,6 +68070,10 @@
           "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "client_program_read_request_checked_static_effect_explanation",
+          "declaration": "client_program_read_request_checked_static_effect_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ @ client_local_host . ClientRequestStaticEffectExplanation , ClientRequestStaticExplanationBridgeIssue , ]"
+        },
+        {
           "name": "client_program_read_request_checked_static_plan",
           "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
@@ -68175,6 +68250,18 @@
           "declaration": "client_program_return_request_original_explanation ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
         },
         {
+          "name": "client_program_static_effect_explanation_context_wire",
+          "declaration": "client_program_static_effect_explanation_context_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_facts_wire",
+          "declaration": "client_program_static_effect_explanation_facts_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_plan_wire",
+          "declaration": "client_program_static_effect_explanation_plan_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
           "name": "prepare_request_model_graph_with_file_declarations",
           "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
@@ -68191,7 +68278,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "19b99ec67dd7c7f168440592f5c52c6b90cae582735ba46566ed20e6b6304944"
+      "sha256": "4fb8f327235c6c73c09570db8c21551554b8d3228ae1a135098ddaa0b8819b1a"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

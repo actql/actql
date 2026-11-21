@@ -2877,6 +2877,70 @@ pub fn client_program_request_checked_static_plan_issue_code(
 }
 
 ///|
+pub suberror ClientRequestStaticExplanationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Projection(@client_local_host.ClientRequestStaticContextIssue)
+}
+
+///|
+/// Borrow this loaded compiler's manifests and forward the same prepared
+/// Request and installed Model graphs. Disclosure stays with the Host.
+#export_name("clientProgramReadRequestCheckedStaticEffectExplanation")
+pub fn client_program_read_request_checked_static_effect_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @client_local_host.ClientRequestStaticEffectExplanation,
+  ClientRequestStaticExplanationBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.request_prepared_static_effect_explanation(
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers~,
+  ).map_err(issue => Projection(issue))
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationPlanWire")
+pub fn client_program_static_effect_explanation_plan_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.plan
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationFactsWire")
+pub fn client_program_static_effect_explanation_facts_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.facts
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationContextWire")
+pub fn client_program_static_effect_explanation_context_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.context
+}
+
+///|
 #export_name("clientProgramRequestOriginalStaticPlanWire")
 pub fn client_program_request_original_static_plan_wire(
   original : @client_local_host.ClientRequestOriginalExplanation[
