@@ -28302,13 +28302,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/cancellationKnownFailure/cancellationKnownFailure",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
@@ -28467,21 +28460,6 @@
             "key",
             "control"
           ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation",
-          "parameters": [
-            "cancelRef",
-            "currentAuthorization",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
-          "parameters": [],
           "async": false
         },
         {
@@ -28757,30 +28735,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
-          "parameters": [
-            "ref",
-            "cancelId",
-            "expectedRevision",
-            "currentAuthorization",
-            "publicationCommitted",
-            "modelCancellationOwner",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
           "parameters": [
             "ref",
@@ -28832,29 +28786,6 @@
         },
         {
           "name": "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation",
-          "parameters": [
-            "ref",
-            "currentAuthorization",
-            "publicationCommitted",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation#2",
           "parameters": [],
           "async": false
         },
@@ -29033,7 +28964,6 @@
             "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
-            "openClientRequestJournal/cancellationKnownFailure/cancellationKnownFailure",
             "openClientRequestJournal/ensureOpen/ensureOpen",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
@@ -29049,8 +28979,6 @@
             "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
             "openClientRequestJournal/journal/init:issueSubmissionEpoch/init:issueSubmissionEpoch/init:issueSubmissionEpoch",
             "openClientRequestJournal/journal/init:lookup/init:lookup",
-            "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation",
-            "openClientRequestJournal/journal/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
             "openClientRequestJournal/journal/init:lookupDefinition/init:lookupDefinition",
             "openClientRequestJournal/journal/init:lookupIdentity/init:lookupIdentity",
             "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
@@ -29075,9 +29003,6 @@
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
             "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
-            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
-            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
-            "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
             "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
             "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
             "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
@@ -29085,9 +29010,6 @@
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
             "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent",
             "openClientRequestJournal/journal/init:recordSubmittedIntent/init:recordSubmittedIntent/result/result",
-            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation",
-            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation",
-            "openClientRequestJournal/journal/init:requestCancellation/init:requestCancellation/init:requestCancellation#2",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
             "openClientRequestJournal/journal/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
@@ -32292,6 +32214,7 @@
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
         "createJournalAttempts",
+        "createJournalCancellation",
         "ownedCancellationRef",
         "validCancellationRef"
       ],
@@ -32372,6 +32295,95 @@
           "async": false
         },
         {
+          "name": "createJournalCancellation",
+          "parameters": [
+            "database",
+            "selectRef",
+            "requestUsage",
+            "submissionIssued",
+            "cancellationUsage",
+            "cancellationIssued",
+            "cancellationSelect",
+            "cancellationInsert",
+            "ensureOpen",
+            "transact",
+            "rejectCancellation",
+            "maxRecords",
+            "maxRunDefinitionWireBytes",
+            "updateOriginalControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/cancellationKnownFailure/cancellationKnownFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:lookupCancellationOperation/init:lookupCancellationOperation",
+          "parameters": [
+            "cancelRef",
+            "currentAuthorization",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation",
+          "parameters": [
+            "ref",
+            "cancelId",
+            "expectedRevision",
+            "currentAuthorization",
+            "publicationCommitted",
+            "modelCancellationOwner",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:requestCancellation/init:requestCancellation",
+          "parameters": [
+            "ref",
+            "currentAuthorization",
+            "publicationCommitted",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:requestCancellation/init:requestCancellation/init:requestCancellation",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalCancellation/init:requestCancellation/init:requestCancellation/init:requestCancellation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "ownedCancellationRef/ownedCancellationRef",
           "parameters": [
             "ref"
@@ -32388,8 +32400,11 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "./client-request-journal-format.mjs",
         "./client-request-journal-records.mjs",
-        "./client-request-journal-sql.mjs"
+        "./client-request-journal-sql.mjs",
+        "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -32406,12 +32421,23 @@
             "createJournalAttempts/submissionTransaction/submissionTransaction",
             "createJournalAttempts/transact/transact",
             "ownedCancellationRef/ownedCancellationRef",
-            "validCancellationRef/validCancellationRef"
+            "validCancellationRef/validCancellationRef",
+            "createJournalCancellation",
+            "createJournalCancellation/cancellationKnownFailure/cancellationKnownFailure",
+            "createJournalCancellation/init:lookupCancellationOperation/init:lookupCancellationOperation",
+            "createJournalCancellation/init:lookupCancellationOperation/init:lookupCancellationOperation/init:lookupCancellationOperation",
+            "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation",
+            "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
+            "createJournalCancellation/init:recordCancellationOperation/init:recordCancellationOperation/pending/pending",
+            "createJournalCancellation/init:requestCancellation/init:requestCancellation",
+            "createJournalCancellation/init:requestCancellation/init:requestCancellation/init:requestCancellation",
+            "createJournalCancellation/init:requestCancellation/init:requestCancellation/init:requestCancellation#2"
           ],
           "exports": [
             "createJournalAttempts",
             "ownedCancellationRef",
-            "validCancellationRef"
+            "validCancellationRef",
+            "createJournalCancellation"
           ],
           "attributes": {
             "responsibility": [
@@ -32428,12 +32454,20 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "export const validCancellationRef ="
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "export function createJournalCancellation(database: JournalSqlConnection,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "if (rejection === undefined || rejection.ticket !== ticket) throw error;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||"
               }
             ],
             "ownership": [
@@ -32454,6 +32488,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "if (operation === 'cancel_admission' && rejection !== undefined &&"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "const pending = transact('cancel_admission', 'ClientCancellationUnknown',"
               }
             ],
             "failure": [
@@ -32464,6 +32502,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-attempts.mts",
                 "anchor": "outcome: (error as ObservedFailure).outcome ?? 'failed',"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "catch (cause) { fail('ClientCancellationUnknown', cause); }"
               }
             ],
             "cancellation": [
@@ -32500,6 +32542,14 @@
               {
                 "path": "adapters/host-node/client-cancellation-operation.test.mjs",
                 "anchor": "failed final cancellation transaction retains pending identity without accepted fact"
+              },
+              {
+                "path": "adapters/host-node/client-cancellation-operation.test.mjs",
+                "anchor": "same cancellation key cannot change target or revision, including after restart"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.test.mjs",
+                "anchor": "durable cancellation excludes physical start after restart"
               }
             ]
           }
