@@ -1447,3 +1447,5 @@ target/
 /adapters/host-node/node-host-journal-installation.d.mts
 /adapters/host-node/node-host-journal-installation.test.mjs
 /adapters/host-node/node-host-journal-installation.test.d.mts
+/adapters/host-node/host-root-format.mjs
+/adapters/host-node/host-root-format.d.mts

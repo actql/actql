@@ -4,7 +4,6 @@ import {tmpdir} from 'node:os';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 // @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
 import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: remove when the Host root format is authored in TypeScript.
 import {admitHostRootFormat} from './host-root-format.mjs';
 // @ts-expect-error TS7016: remove when the original startup recipe has authored declarations.
 import recipeModule from './host-journal-service-recipe.cjs';
@@ -15,7 +14,7 @@ export type HostJournalOriginals = Readonly<{
   generation: unknown;
 }>;
 type Journal = Readonly<{close(): undefined}>;
-type RootAdmission = 'new' | 'current';
+type RootAdmission = Awaited<ReturnType<typeof admitHostRootFormat>>;
 type CloseState = Readonly<{
   pending: boolean; journalPending: boolean; privateEvidencePending: boolean; ownershipPending: boolean;
 }>;

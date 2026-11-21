@@ -235,7 +235,15 @@ function capturePhysicalIo(io: unknown) {
   return {receiver: io, methods};
 }
 
-export async function withOriginalFile<T>(path: unknown, openFile: unknown, consume: (selected: ReadFileSelection) => T | Promise<T>, physicalIo?: unknown) {
+// With accounting, consumers see only the bounded read/stat projection.
+// Without it, the same opened handle reaches the consumer unchanged.
+export function withOriginalFile<T, Original extends {close(): unknown}>(
+  path: string, openFile: (path: string, flags: 'r') => Original | PromiseLike<Original>,
+  consume: (selected: Original) => T | Promise<T>, physicalIo?: undefined): Promise<Awaited<T>>;
+export function withOriginalFile<T>(path: unknown, openFile: unknown,
+  consume: (selected: ReadFileSelection) => T | Promise<T>, physicalIo?: unknown): Promise<Awaited<T>>;
+export async function withOriginalFile<T, Original extends object = ReadFileSelection>(
+  path: unknown, openFile: unknown, consume: (selected: Original) => T | Promise<T>, physicalIo?: unknown) {
   const io = capturePhysicalIo(physicalIo), pending = new Set<PendingIo>(), computations = new Set<Computation>();
   let original: ReadFileOriginal | undefined, originalClose: Method | undefined, physicallyClosed = false;
   const invalidIo = () => new TypeError('InvalidInstalledSourcePhysicalIo');
@@ -329,7 +337,7 @@ export async function withOriginalFile<T>(path: unknown, openFile: unknown, cons
         const result = await applyOriginal(method, original, []);finish(record!);return result as {size: number};
       },
     });
-    return await consume(selected);
+    return await consume(selected as Original);
   } catch (cause) {
     readFailed = true;failure = cause;throw cause;
   } finally {

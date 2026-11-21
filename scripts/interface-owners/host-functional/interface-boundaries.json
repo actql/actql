@@ -52931,8 +52931,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -52949,8 +52949,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -52965,14 +52965,14 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "if (directoryInspection !== undefined) assertHostJournalDirectoryInspector(directoryInspection, 1);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -52987,13 +52987,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return inspectHostJournalDirectoryFirstEntry(directoryInspection, root);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
@@ -53011,7 +53011,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "import {lstat, mkdir, open, opendir, rename} from 'node:fs/promises';"
               },
               {
@@ -53029,8 +53029,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "function formatError(code, root) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "function formatError(code: string, root: string) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -53047,7 +53047,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
@@ -53065,7 +53065,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "const markerBytes = Buffer.from(JSON.stringify({"
               },
               {
@@ -53081,7 +53081,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "// Only emptiness is needed. Do not materialize an arbitrary directory and"
               },
               {
@@ -53091,7 +53091,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "version: 'actql-local-host-root/0.1',"
               },
               {
@@ -53217,8 +53217,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -53235,8 +53235,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -53251,14 +53251,14 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "if (directoryInspection !== undefined) assertHostJournalDirectoryInspector(directoryInspection, 1);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "export async function admitHostRootFormat(root: string,"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -53273,13 +53273,13 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return inspectHostJournalDirectoryFirstEntry(directoryInspection, root);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
@@ -53297,7 +53297,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "import {lstat, mkdir, open, opendir, rename} from 'node:fs/promises';"
               },
               {
@@ -53315,8 +53315,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "function formatError(code, root) {"
+                "path": "adapters/host-node/host-root-format.mts",
+                "anchor": "function formatError(code: string, root: string) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -53333,7 +53333,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
@@ -53351,7 +53351,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "const markerBytes = Buffer.from(JSON.stringify({"
               },
               {
@@ -53367,7 +53367,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "// Only emptiness is needed. Do not materialize an arbitrary directory and"
               },
               {
@@ -53377,7 +53377,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-root-format.mjs",
+                "path": "adapters/host-node/host-root-format.mts",
                 "anchor": "version: 'actql-local-host-root/0.1',"
               },
               {
@@ -97605,7 +97605,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/source-profile-json.mts",
-                "anchor": "return await consume(selected);"
+                "anchor": "return await consume(selected as Original);"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",

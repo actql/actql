@@ -1,11 +1,35 @@
-import {constants} from 'node:fs';
+import {constants, type Dirent} from 'node:fs';
 import {lstat, mkdir, open, opendir, rename} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {join} from 'node:path';
 import {readBoundedConfigurationText, withOriginalFile} from './source-profile-json.mjs';
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectoryFirstEntry}
   from './host-journal-directory.mjs';
+// @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+
+type AccountAdoption = Readonly<{
+  record_id: string;
+  account_id: string;
+  configuration_cid: string;
+  initialization_cid: string;
+  subject_cid: string;
+  profile: Readonly<{
+    profile_id: 'actql-local-standard';
+    profile_version: '0.1';
+    profile_cid: string;
+  }>;
+}>;
+type HostMarker = Readonly<{
+  version: 'actql-local-host-root/0.1';
+  isolation: 'execution-namespace';
+  account_bootstrap?: AccountAdoption;
+}>;
+type Directory = Readonly<{read(): Dirent | null | Promise<Dirent | null>; close(): unknown}>;
+type OpenDirectory = (path: string, options: Readonly<{bufferSize: number}>) =>
+  Directory | PromiseLike<Directory>;
+type RootFormatOptions = Readonly<{openDirectory?: OpenDirectory; directoryInspection?: unknown}>;
+type Failure = Readonly<{code?: unknown; message?: unknown; cleanupPending?: unknown}> | null | undefined;
 
 const markerName = 'host-format.json';
 const markerBytes = Buffer.from(JSON.stringify({
@@ -13,10 +37,10 @@ const markerBytes = Buffer.from(JSON.stringify({
   isolation: 'execution-namespace',
 }), 'utf8');
 const markerMaximumBytes = 4096;
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const exact = (value, keys) => value !== null && typeof value === 'object' &&
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const exact = <Key extends string>(value: unknown, keys: readonly Key[]): value is Record<Key, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-function validAccountAdoption(value) {
+function validAccountAdoption(value: unknown): value is AccountAdoption {
   return exact(value, ['record_id', 'account_id', 'configuration_cid', 'initialization_cid',
     'subject_cid', 'profile']) && [value.record_id, value.account_id].every(text =>
     typeof text === 'string' && text.length > 0 && text.length <= 128) &&
@@ -29,18 +53,18 @@ const legacyEntries = new Set([
   'requests', 'checkpoints', 'publication', 'state',
 ]);
 
-function formatError(code, root) {
+function formatError(code: string, root: string) {
   return Object.assign(new Error(code), {code, root});
 }
 
-async function firstEntry(root, openDirectory, directoryInspection) {
+async function firstEntry(root: string, openDirectory: OpenDirectory, directoryInspection: unknown) {
   try {
     const state = await lstat(root);
     if (!state.isDirectory() || state.isSymbolicLink()) {
       throw formatError('UnknownHostRootFormat', root);
     }
   } catch (error) {
-    if (error?.code === 'ENOENT') return undefined;
+    if ((error as Failure)?.code === 'ENOENT') return undefined;
     throw error;
   }
   if (directoryInspection !== undefined) {
@@ -60,22 +84,22 @@ async function firstEntry(root, openDirectory, directoryInspection) {
       return original;
     }, original => original.read());
   } catch (cause) {
-    if (!opened && cause?.code === 'ENOENT') return undefined;
+    if (!opened && (cause as Failure)?.code === 'ENOENT') return undefined;
     throw cause;
   }
 }
 
-async function entryExists(root, name) {
+async function entryExists(root: string, name: string) {
   try { await lstat(join(root, name)); return true; }
-  catch (cause) { if (cause?.code === 'ENOENT') return false; throw cause; }
+  catch (cause) { if ((cause as Failure)?.code === 'ENOENT') return false; throw cause; }
 }
 
-async function admitMarker(root) {
+async function admitMarker(root: string): Promise<HostMarker> {
   const path = join(root, markerName);
   let state;
   try { state = await lstat(path); }
   catch (error) {
-    if (error?.code === 'ENOENT') {
+    if ((error as Failure)?.code === 'ENOENT') {
       throw formatError('UnknownHostRootFormat', root);
     }
     throw error;
@@ -86,18 +110,18 @@ async function admitMarker(root) {
   let text;
   try { text = await readBoundedConfigurationText(path, {maxBytes: markerMaximumBytes}); }
   catch (cause) {
-    if (cause?.message === 'InvalidInstalledSourceProfile' && !cause.cleanupPending) {
+    if ((cause as Failure)?.message === 'InvalidInstalledSourceProfile' && !(cause as NonNullable<Failure>).cleanupPending) {
       throw formatError('UnsupportedHostRootFormat', root);
     }
     throw cause;
   }
   if (text === markerBytes.toString('utf8')) return JSON.parse(text);
-  let value;
+  let value: unknown;
   try { value = JSON.parse(text); } catch { throw formatError('UnsupportedHostRootFormat', root); }
   if (!exact(value, ['version', 'isolation', 'account_bootstrap']) ||
       value.version !== 'actql-local-host-root/0.1' || value.isolation !== 'execution-namespace' ||
       !validAccountAdoption(value.account_bootstrap)) throw formatError('UnsupportedHostRootFormat', root);
-  return value;
+  return value as HostMarker;
 }
 
 // A durable selection record in the existing Host format, not an Account
@@ -105,14 +129,14 @@ async function admitMarker(root) {
 // Keeping it outside the configuration directory detects missing adopted
 // files. Its absence is NOT first-initialization authority: the initializer
 // separately needs actual fresh creation or its same saved pending intent.
-export async function readHostRootAccountAdoption(root, preparedOriginal) {
+export async function readHostRootAccountAdoption(root: string, preparedOriginal: unknown) {
   assertOriginalPreparedLocalPublicationStoreOwnership(preparedOriginal, join(root, 'publication'));
   const marker = await admitMarker(root);
   assertOriginalPreparedLocalPublicationStoreOwnership(preparedOriginal, join(root, 'publication'));
   return marker.account_bootstrap;
 }
 
-export async function adoptHostRootAccount(root, preparedOriginal, supplied) {
+export async function adoptHostRootAccount(root: string, preparedOriginal: unknown, supplied: unknown) {
   assertOriginalPreparedLocalPublicationStoreOwnership(preparedOriginal, join(root, 'publication'));
   if (!validAccountAdoption(supplied)) throw formatError('InvalidHostAccountAdoption', root);
   const record = {...supplied, profile: {...supplied.profile}};
@@ -150,7 +174,8 @@ export async function adoptHostRootAccount(root, preparedOriginal, supplied) {
   return Object.freeze({...record, profile: Object.freeze({...record.profile})});
 }
 
-export async function admitHostRootFormat(root, {openDirectory = opendir, directoryInspection} = {}) {
+export async function admitHostRootFormat(root: string,
+  {openDirectory = opendir, directoryInspection}: RootFormatOptions = {}): Promise<'new' | 'current'> {
   if (directoryInspection !== undefined) assertHostJournalDirectoryInspector(directoryInspection, 1);
   let entry = await firstEntry(root, openDirectory, directoryInspection);
   // The closed format already gives the only names relevant to this choice.
@@ -185,7 +210,7 @@ export async function admitHostRootFormat(root, {openDirectory = opendir, direct
       await original.sync();
     });
   } catch (error) {
-    if (error?.code === 'EEXIST') {
+    if ((error as Failure)?.code === 'EEXIST') {
       await admitMarker(root);
       return 'current';
     }
