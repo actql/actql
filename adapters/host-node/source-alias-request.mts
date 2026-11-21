@@ -9,6 +9,9 @@ type AliasIdentity<Request> = Readonly<{
   request?: Request;
 }>;
 
+type AliasIdentityRow<Request> = [name: string, sourceRef: string, sourceViewContractCid: string,
+  schemaContractCid: string, request?: Request];
+
 const invalid: () => never = () => {throw new TypeError('InvalidPublicSourcePublication');};
 const object = (value: unknown): value is AliasRequest => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -79,7 +82,7 @@ export function snapshotAliasRequest(request: unknown) {
 }
 
 export function sourceAliasIdentityRow<Request>(entry: AliasIdentity<Request>) {
-  const row: (string | Request | undefined)[] = [entry.name, entry.sourceRef, entry.sourceViewContractCid, entry.schemaContractCid];
+  const row: AliasIdentityRow<Request> = [entry.name, entry.sourceRef, entry.sourceViewContractCid, entry.schemaContractCid];
   if (Object.hasOwn(entry, 'request')) row.push(entry.request);
   return row;
 }
