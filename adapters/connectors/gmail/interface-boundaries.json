@@ -1586,12 +1586,12 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor, selected, [0]);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor!, selected, [0]);"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "async function readStandard(initialAuthorization, credential)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "async function readStandard(initialAuthorization: unknown, credential: Credential)"
               },
               {
                 "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
@@ -1622,12 +1622,12 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "signal.throwIfAborted(); check();"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "signal!.throwIfAborted(); check();"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "stopped = true; stop.abort(reason);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "stopped = true; stop!.abort(reason);"
               }
             ],
             "resources": [
@@ -2667,8 +2667,8 @@
                 "anchor": "They introduce no await or cancellation boundary."
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "signal.throwIfAborted(); check();"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "signal!.throwIfAborted(); check();"
               }
             ],
             "resources": [

@@ -5,7 +5,7 @@ import {createInstalledCredentialSourceReader} from './installed-credential-sour
 // Constructor/method-selection controls only. These ports issue no grant,
 // physical read, Common capacity, business Run or cleanup acknowledgement.
 function fixture() {
-  const calls=[];
+  const calls: string[]=[];
   const site=Object.freeze({credential:{},referenceCurrent(){return true;},
     callResource(){assert.fail('No physical call in a constructor control');}});
   const originalSite=Object.freeze({site,referenceCurrent(){return true;},
@@ -33,7 +33,7 @@ test('obsolete unhosted raw-site page mode is refused rather than constructing a
 
 for(const method of ['preparePageReader','prepareReadSequence'])test(`normal ${method} selection captures the original method once`,()=>{
   const f=fixture();let prepared=0,retired=0;
-  const options={...f.options,[method](){prepared++;
+  const options: Record<string, unknown>={...f.options,[method](){prepared++;
     return method==='preparePageReader'?{fetchPage(){},decodePage(){}}:{read(){},retire(){retired++;return true;}};}};
   const factory=createInstalledCredentialSourceReader(options);
   options[method]=()=>assert.fail('No replacement installation callback');
@@ -52,14 +52,14 @@ test('installation refuses mixed missing accessor and proxy protocols without in
     {...f.options,get preparePageReader(){observed++;return page;}},
     new Proxy({...f.options,preparePageReader:page},{get(){observed++;assert.fail('No Proxy observation');}})]) {
     assert.throws(()=>createInstalledCredentialSourceReader(input),error=>
-      ['InvalidInstalledCredentialSourceReader','InstalledSourceReaderMethodUnavailable'].includes(error.code));
+      ['InvalidInstalledCredentialSourceReader','InstalledSourceReaderMethodUnavailable'].includes((error as {code: string}).code));
   }
   assert.equal(observed,0);assert.deepEqual(f.calls,[]);
 });
 
 test('invalid asynchronous page preparation remains owned until the same callback settles',async()=>{
-  const f=fixture();let resolve;
-  const pending=new Promise(done=>{resolve=done;});
+  const f=fixture();let resolve!: (value: unknown) => void;
+  const pending=new Promise<unknown>(done=>{resolve=done;});
   const factory=createInstalledCredentialSourceReader({...f.options,preparePageReader(){return pending;}});
   const reader=factory.prepare({columns:['id'],verifyRead(){},authorizationFor(){},chargePage(){},consumePage(){}});
   await assert.rejects(reader.read(),{code:'InstalledSourcePageCallbackNotSynchronous'});

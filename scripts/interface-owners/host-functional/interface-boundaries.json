@@ -123948,7 +123948,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -123972,13 +123972,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124002,13 +124002,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124032,13 +124032,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124062,13 +124062,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124092,13 +124092,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
@@ -124122,13 +124122,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
@@ -124152,8 +124152,8 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "resources": [
@@ -124162,7 +124162,7 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124182,13 +124182,13 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124212,8 +124212,8 @@
                 "anchor": "## Original read rejection during retirement"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               }
             ],
             "verification": [
@@ -124439,7 +124439,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124449,7 +124449,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124459,7 +124459,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124469,7 +124469,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124479,7 +124479,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124489,7 +124489,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
@@ -124499,7 +124499,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "if (!stopped || readPending || pendingCallbacks.size !== 0 || escapedResponseGraph ||"
               },
               {
@@ -124513,13 +124513,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader"
               },
               {
@@ -124553,127 +124553,127 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "prepare(options: ReadOptions | undefined, retainPreparation, reserveResponseCapacity, responseBorrow, reserveTransferCapacity)"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "The SAME combined invocation/reader-stop signal already controls"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
               }
             ],

@@ -2740,7 +2740,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader("
               }
             ],

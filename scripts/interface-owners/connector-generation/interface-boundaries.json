@@ -552,15 +552,15 @@
                 "anchor": "Bound connector construction"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor, selected, [0]);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "const initialAuthorization = await Reflect.apply(authorizationFor!, selected, [0]);"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const verify = async () => {"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "const result = await readSelected(initialAuthorization, acquisition.credential);"
               },
               {
@@ -610,7 +610,7 @@
                 "anchor": "fail('NotionSourceInitializationUnavailable')"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "phase = 'failed'; primary = cause;"
               },
               {
@@ -656,12 +656,12 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "signal.throwIfAborted();"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "signal!.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
-                "anchor": "stopped = true; stop.abort(reason);"
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
+                "anchor": "stopped = true; stop!.abort(reason);"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -772,7 +772,7 @@
                 "anchor": "This factory does not narrow the full public Notion target to users."
               },
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "cleanupConfirmed:retired"
               },
               {
