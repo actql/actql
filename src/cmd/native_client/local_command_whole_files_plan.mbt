@@ -42,14 +42,9 @@ fn[I] prepare_local_native_whole_files_request_module(
   original : LocalProjectMockDeclarations,
   contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
+  direct : @run_host.ClientDirectAcquisitionOccurrences,
+  originals : Array[@sourceviews.SourceAcquisition],
 ) -> LocalCommandFileSources raise ClientStop {
-  let (direct, originals) = local_command_query_preparation_result(
-    control,
-    @local_values.reserve_request_whole_source_construction(
-      parent, input, request,
-    ).map_err(issue => CommandBusinessQueryPlan(issue)),
-    "LocalSourceWholeConstructionUnavailable",
-  )
   let sources : Array[@local_host.NativeRelationFileWholeSource] = []
   let capacities : Array[@local_values.ClientInstalledWholeSourceCapacity] = []
   let transport : Array[Int64] = []

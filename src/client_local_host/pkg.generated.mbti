@@ -1169,6 +1169,8 @@ pub fn[I, T] prepare_request_native_computation_check(ClientRequestPreparation[I
 
 pub fn[I] prepare_request_native_document_check(ClientRequestPreparation[I], I, String, @source_frontend.Format, String?, String?, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, static_check? : Bool) -> Result[Unit, ClientRequestTerminalIssue]
 
+pub fn[I] prepare_request_native_file_source_inputs(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, (String, String)?) -> Result[ClientRequestNativeFileSourceInputs, ClientRequestNativeFileSourceIssue]
+
 pub fn[I, T] prepare_request_native_program_input(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @stage_syntax.Limits, supplied? : T?) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I, T] prepare_request_native_query_computation(ClientRequestPreparation[I], I, String, @source_frontend.Format, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?, declarations? : T?, public_primary? : Bool) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
@@ -2103,6 +2105,18 @@ pub(all) enum ClientRequestExplanationReadIssue {
   Projection(@run_publication_host.ClientRetainedExplanationIssue)
   ReadLimit
 } derive(@debug.Debug)
+
+pub enum ClientRequestNativeFileSourceInputs {
+  WholeSourceInputs(@run_publication_host.ClientDirectAcquisitionOccurrences, Array[@sourceview_resolution.SourceAcquisition])
+  QuerySourceInputs(@query_planning.QueryEvidenceContracts, @run_publication_host.ClientDirectAcquisitionOccurrences)
+  MissingQueryContracts
+}
+
+pub enum ClientRequestNativeFileSourceIssue {
+  NativeFileSourceSelection(ClientRequestProgramPlanIssue)
+  NativeFileWholeConstruction(ClientRequestProgramPlanIssue)
+  NativeFileQueryContracts(ClientRequestProgramPlanIssue)
+}
 
 type ClientRequestOriginalExplanation[I]
 

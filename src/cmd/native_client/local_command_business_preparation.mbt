@@ -147,7 +147,11 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
         stop("LocalOriginalNormalizationNotInstalled")
       }
       let assets = runtime.assets
-      if @run_host.prepared_client_acquisition_count(prepared) != 0 {
+      // This gate only separates Programs with checked Source work from
+      // source-free Programs. Their actual file route is selected later on
+      // the same Request, once its original occurrences are backed.
+      let graph = @run_host.prepared_client_graph(prepared)
+      if @checked.source_execution_count(@strategy.graph_program(graph)) > 0 {
         let selected = self
           .select_business_file_source(prepared)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
@@ -291,10 +295,7 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
     return None
   }
   let graph = @run_host.prepared_client_graph(prepared)
-  let count = @run_host.prepared_client_acquisition_count(prepared)
-  if count <= 0 ||
-    @strategy.graph_captured_prefix(graph) != count ||
-    @strategy.graph_result_count(graph) != 1 ||
+  if @strategy.graph_result_count(graph) != 1 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
     return None

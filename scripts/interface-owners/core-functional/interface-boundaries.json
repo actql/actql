@@ -102562,7 +102562,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "67da869657eff336ea1565ed1fa231c9d62f9bf6ab677daeebc2e91f2e428bd2",
+      "sha256": "2683f5434a19a94c9a3c94960d3e929d8278f3086f7d90e290b3f93b6de8e78f",
       "exports": [],
       "operations": [
         {
@@ -102584,7 +102584,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
             "LocalCommandPreparationOriginal::select_business_file_source"
@@ -104065,12 +104064,12 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "0b9a5ff1a98258b7a89ad9321589948cb1b04e48afd23ae9ebf419afe577ea1d",
+      "sha256": "376f0146de470ddd460f0134d19165130861c0776bcf362745a0c9b4e8b91ca2",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_file_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , source : @ sourceviews . SourceAcquisition , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
         },
         {
           "name": "[T]LocalCommandPreparationOriginal::with_business_request",
@@ -104103,7 +104102,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_whole_file_request_module",
             "[T]LocalCommandPreparationOriginal::with_business_request",
             "LocalCommandBusinessPreparation::adopt_request_run",
@@ -110389,12 +110387,16 @@
     },
     {
       "module": "src/client_local_host/preparation_request_query_contracts.mbt",
-      "sha256": "f225e63bf9abc9e611992d7d11e04686b38f911a159bd31b2da3292ffd101a08",
+      "sha256": "81889107dd8f8f3e61d8cbf71c139031e703bb9414e4361426eb8add6e93d54f",
       "exports": [],
       "operations": [
         {
           "name": "[I]admit_request_query_acquisition_contracts",
           "declaration": "[ I ] admit_request_query_acquisition_contracts ( owner : ClientRequestPreparation [ I ] , input : I , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]admit_request_query_acquisition_contracts_for_original",
+          "declaration": "[ I ] admit_request_query_acquisition_contracts_for_original ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , direct : @ publication_host . ClientDirectAcquisitionOccurrences , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "request_query_acquisition_constructor_bytes",
@@ -110408,8 +110410,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]admit_request_query_acquisition_contracts",
+            "[I]admit_request_query_acquisition_contracts_for_original",
             "request_query_acquisition_constructor_bytes"
           ],
           "exports": [],
@@ -110480,7 +110482,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "8f18d19b29c3fe1135e37405b447f0825826ba8342835895de65552857dc49db",
+      "sha256": "57f75c049c4c16931d33426eb3eb06d56dadfa21fcfa9cdaccc8508d1d0c6e29",
       "exports": [],
       "operations": [
         {
@@ -110503,7 +110505,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_file_request_module",
             "[T]local_command_query_preparation_result",
             "local_command_file_row"
@@ -112400,12 +112401,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "356b3b23952a673eddd32402d6224813dad24d19826377d14c7fe2a19745e287",
+      "sha256": "0107ec3f9f10f8c0b43c49db444d2c32b0ef379658b4181a8d26ecdfd80c6a2d",
       "exports": [],
       "operations": [
         {
           "name": "request_whole_source_route_frontier_bytes",
-          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , ) - > Int64 ?"
+          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , select_query ? : Bool"
         },
         {
           "name": "request_whole_source_route_scan_count",
@@ -112419,7 +112420,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "request_whole_source_route_frontier_bytes",
             "request_whole_source_route_scan_count"
           ],
@@ -112491,12 +112491,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "0e3397ed73b35c560a35facf3016d5232812d227fde2ccb046740478438c9dfc",
+      "sha256": "a0b19d838e0ff32c4a89227688468cc981b74ff3df92787f84595556e693a1cd",
       "exports": [],
       "operations": [
         {
           "name": "[I]reserve_request_whole_source_routes",
-          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , select_query ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -112506,7 +112506,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]reserve_request_whole_source_routes"
           ],
           "exports": [],
@@ -112668,9 +112667,17 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
-      "sha256": "5dacd96b3a3c8021f06c98678cb2012e1ad56a785fd4e3feeb98009baba8a62d",
+      "sha256": "b83d257f4bdb3f8faa572762275746b1d6bddb8d46fa2be35259a9150529e745",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]prepare_request_native_file_source_inputs",
+          "declaration": "[ I ] prepare_request_native_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , bodies : ( String , String ) ? , ) - > Result [ ClientRequestNativeFileSourceInputs , ClientRequestNativeFileSourceIssue , ]"
+        },
+        {
+          "name": "[I]reserve_request_selected_whole_source_inputs",
+          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
         {
           "name": "[I]reserve_request_whole_source_construction",
           "declaration": "[ I ] reserve_request_whole_source_construction ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
@@ -112683,7 +112690,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
+            "[I]prepare_request_native_file_source_inputs",
+            "[I]reserve_request_selected_whole_source_inputs",
             "[I]reserve_request_whole_source_construction"
           ],
           "exports": [],
@@ -112991,12 +112999,12 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "3f717baaa0e3d55e45aeb6dfefff97a332eedd07286f52a09ba43cb02420ccf7",
+      "sha256": "7e15f78c0337bbc5b8afed0bf3d5bdde7de01ee76b6c8c4bf46dcab725e176df",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > LocalCommandFileSources raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
         },
         {
           "name": "local_command_file_listing",
@@ -113010,7 +113018,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_whole_files_request_module",
             "local_command_file_listing"
           ],

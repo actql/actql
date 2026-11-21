@@ -2008,6 +2008,7 @@ fn native_pure_file_capture_plan(
     facility.input,
     prepared,
     request,
+    source,
     selected._retained_declaration,
     row,
     contracts,

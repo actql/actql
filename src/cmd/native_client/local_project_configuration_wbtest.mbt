@@ -1187,11 +1187,6 @@ test "Native Mock readonly JOIN has a record source and a typed listing source" 
     "sha256:" + "a".repeat(64),
     "native-mock-readonly-join",
   ).unwrap()
-  assert_eq(@run_host.prepared_client_acquisition_count(prepared), 2)
-  assert_true(
-    @local_values.select_installed_source_input(prepared, request, 0, 0).unwrap()
-    is @sourceviews.WholeInputRoute(_),
-  )
   let occurrences = @run_host.select_client_direct_acquisition_occurrences(
     prepared, 1000000,
   ).unwrap()

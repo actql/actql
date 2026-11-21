@@ -7,6 +7,7 @@
 fn request_whole_source_route_frontier_bytes(
   count : Int,
   scanned_inputs : Int64,
+  select_query? : Bool = false,
 ) -> Int64? {
   if count <= 0 || scanned_inputs < count.to_int64() {
     return None
@@ -63,7 +64,26 @@ fn request_whole_source_route_frontier_bytes(
     is Some(units) else {
     return None
   }
-  @execution.preparation_representation_cost(units)
+  let cost = @execution.preparation_representation_cost(units)
+  if !select_query {
+    return cost
+  }
+  // A successful structural Query selection creates a borrowed acquisition,
+  // the filter/select traversal array and selection/result carriers. Count
+  // those once per original. The final kind and nullable contracts argument
+  // are fixed controls; complete Query construction has its own later quote.
+  guard cost is Some(base) &&
+    @execution.preparation_representation_cost({
+      record_headers: 7L + 6L * n,
+      reference_slots: 10L + 12L * n,
+      scalar_words: 5L + 8L * n,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(query) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(base, query, 1L)
 }
 
 ///|

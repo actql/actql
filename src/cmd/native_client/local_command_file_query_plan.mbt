@@ -53,73 +53,68 @@ fn[I] prepare_local_native_file_request_module(
   @local_values.ClientInstalledWholeSourceCapacity?,
   LocalCommandFileSources,
 ) raise ClientStop {
-  let count = @run_host.prepared_client_acquisition_count(prepared)
-  if count != 1 {
-    let route = @local_values.select_installed_source_input(
-      prepared, request, 0, 0,
-    ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
-    if route is @sourceviews.WholeInputRoute(_) {
+  let selected = match
+    @local_values.prepare_request_native_file_source_inputs(
+      parent, input, request, bodies,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let (primary, message) = match issue {
+        @local_values.NativeFileSourceSelection(primary) =>
+          (primary, "LocalSourceInputSelectionUnavailable")
+        @local_values.NativeFileWholeConstruction(primary) =>
+          (primary, "LocalSourceWholeConstructionUnavailable")
+        @local_values.NativeFileQueryContracts(primary) =>
+          (primary, "LocalSourceContractsUnavailable")
+      }
+      control.retain_primary(CommandBusinessQueryPlan(primary))
+      stop(message)
+    }
+  }
+  let (protocols, direct) = match selected {
+    @local_values.WholeSourceInputs(direct, originals) => {
+      if originals.length() == 1 {
+        let source = originals[0]
+        let source_input = @sourceviews.mode_input(
+          @sourceviews.source_acquisition_mode(source),
+        )
+        if @compiler_environment.source_request_file_listing(
+            @sourceviews.selected_contract(source_input),
+          )
+          is None {
+          let subject = @sourceviews.declaration(source_input)
+          let (declaration, row) = local_command_file_row(
+            original,
+            subject.connector,
+            subject.resource,
+          )
+          let capacity = prepare_local_native_whole_file_request_module(
+            parent,
+            input,
+            prepared,
+            request,
+            source,
+            declaration._retained_declaration,
+            row,
+            contracts,
+            assets,
+          )
+          return (Some(capacity), Whole(declaration, row))
+        }
+      }
       return (
         None,
         prepare_local_native_whole_files_request_module(
           control, parent, input, prepared, request, original, contracts, assets,
+          direct, originals,
         ),
       )
     }
+    @local_values.QuerySourceInputs(protocols, direct) => (protocols, direct)
+    @local_values.MissingQueryContracts =>
+      stop("LocalQueryContractsNotInstalled")
   }
-  if count == 1 {
-    let route = @local_values.select_installed_source_input(
-      prepared, request, 0, 0,
-    ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
-    if route is @sourceviews.WholeInputRoute(source) {
-      let source_input = @sourceviews.mode_input(
-        @sourceviews.source_acquisition_mode(source),
-      )
-      let subject = @sourceviews.declaration(source_input)
-      // A lone typed listing uses the ordered Whole planner as a JOIN does.
-      // The catalog check itself borrows the original before that Plan quote.
-      if @compiler_environment.source_request_file_listing(
-          @sourceviews.selected_contract(source_input),
-        )
-        is Some(_) {
-        return (
-          None,
-          prepare_local_native_whole_files_request_module(
-            control, parent, input, prepared, request, original, contracts, assets,
-          ),
-        )
-      }
-      let (declaration, row) = local_command_file_row(
-        original,
-        subject.connector,
-        subject.resource,
-      )
-      let capacity = prepare_local_native_whole_file_request_module(
-        parent,
-        input,
-        prepared,
-        request,
-        declaration._retained_declaration,
-        row,
-        contracts,
-        assets,
-      )
-      return (Some(capacity), Whole(declaration, row))
-    }
-  }
-  guard bodies is Some((query, evidence)) else {
-    stop("LocalQueryContractsNotInstalled")
-  }
-  let (protocols, direct) = local_command_query_preparation_result(
-    control,
-    @local_values.admit_request_query_acquisition_contracts(
-      parent, input, query, evidence,
-    ).map_err(issue => CommandBusinessQueryPlan(issue)),
-    "LocalSourceContractsUnavailable",
-  )
-  if @run_host.client_direct_acquisition_occurrence_count(direct) != count {
-    stop("LocalSourceInputSelectionUnavailable")
-  }
+  let count = @run_host.client_direct_acquisition_occurrence_count(direct)
   let sources : Array[@local_host.NativeRelationFileQuerySource] = []
   let capacities : Array[@local_values.ClientInstalledCaptureCapacity] = []
   let transport : Array[Int64] = []
