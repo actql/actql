@@ -30492,7 +30492,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current}, ownership);"
               }
             ],
@@ -34107,7 +34107,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current}, ownership);"
               }
             ],
@@ -87765,49 +87765,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// separate writable Host/Journal facility. No initial/Source credit is used."
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "export async function prepareHostJournalInstallation(sameOriginals) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "export async function prepareHostJournalInstallation(sameOriginals: HostJournalOriginals) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "openRequestJournal(directory, options) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "openRequestJournal(directory: string, options: object) {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "publicationOwnership() {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "admitRootFormat(root) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "admitRootFormat(root: string) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (invoke(1, [state.original, state.originals]) !== undefined) unavailable();"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "return invoke(4, [state.original, state.originals]);"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "return invoke(5, [state.original, state.originals, root]);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "state.original = undefined;"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// Keep that SAME original reachable to the existing Host failure owner."
               },
               {
@@ -87819,47 +87819,47 @@
                 "anchor": "if (entry.journal === undefined || entry.ownership === undefined || entry.ownershipForwarded) {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.closed || state.closing) unavailable();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.flight !== undefined) return state.flight;"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "function current(state) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "function current(state: SelectedJournal): undefined {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "current(state);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "{code: 'HostJournalPreparationCleanupPending'});"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "carrier.cleanupHandle = freeze({status: () => freeze({pending: !state.closed}),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.closed || state.closing) unavailable();"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "function close(state) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "function close(state: SelectedJournal): Promise<unknown> {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// This adapter neither enumerates caller options nor issues admission."
               },
               {
@@ -87873,21 +87873,21 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership',"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// This adapter neither enumerates caller options nor issues admission."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('Journal opening uses the captured Root operation and same opaque pair without inspecting options',async()=>{"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{"
               },
               {
@@ -87899,7 +87899,7 @@
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('root-format admission forwards through the captured sixth Root operation and same original pair'"
               }
             ]
@@ -87913,49 +87913,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// separate writable Host/Journal facility. No initial/Source credit is used."
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "export async function prepareHostJournalInstallation(sameOriginals) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "export async function prepareHostJournalInstallation(sameOriginals: HostJournalOriginals) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "openRequestJournal(directory, options) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "openRequestJournal(directory: string, options: object) {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "publicationOwnership() {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "admitRootFormat(root) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "admitRootFormat(root: string) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (invoke(1, [state.original, state.originals]) !== undefined) unavailable();"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "return invoke(4, [state.original, state.originals]);"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "return invoke(5, [state.original, state.originals, root]);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "state.original = undefined;"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// Keep that SAME original reachable to the existing Host failure owner."
               },
               {
@@ -87967,47 +87967,47 @@
                 "anchor": "if (entry.journal === undefined || entry.ownership === undefined || entry.ownershipForwarded) {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.closed || state.closing) unavailable();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.flight !== undefined) return state.flight;"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "function current(state) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "function current(state: SelectedJournal): undefined {"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "current(state);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "{code: 'HostJournalPreparationCleanupPending'});"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "carrier.cleanupHandle = freeze({status: () => freeze({pending: !state.closed}),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "if (state.closed || state.closing) unavailable();"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
-                "anchor": "function close(state) {"
+                "path": "adapters/host-node/node-host-journal-installation.mts",
+                "anchor": "function close(state: SelectedJournal): Promise<unknown> {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// This adapter neither enumerates caller options nor issues admission."
               },
               {
@@ -88021,21 +88021,21 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal', 'originalHostPublicationOwnership',"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.mts",
                 "anchor": "// This adapter neither enumerates caller options nor issues admission."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('Journal opening uses the captured Root operation and same opaque pair without inspecting options',async()=>{"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{"
               },
               {
@@ -88047,7 +88047,7 @@
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
               },
               {
-                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "path": "adapters/host-node/node-host-journal-installation.test.mts",
                 "anchor": "test('root-format admission forwards through the captured sixth Root operation and same original pair'"
               }
             ]
@@ -113013,47 +113013,47 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "export function prepareOrdinaryHostJournal("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "held.originals.generation !== originals.generation"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "journal = openClientRequestJournal("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (openingFlight !== undefined)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "openingFailure = cause;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "error.primaryFailure = cause;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "return value.databaseClosed !== true || value.observationDatabaseClosed !== true;"
               }
             ],
@@ -113090,37 +113090,37 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
-                "anchor": "retainPrivateEvidenceInitialization(duty) {"
+                "path": "adapters/host-node/ordinary-host-journal.mts",
+                "anchor": "retainPrivateEvidenceInitialization(duty: object): undefined {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (privateEvidenceInitialization === duty) return;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "privateEvidenceInitialization = duty; privateEvidenceStatus = field.value;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "return Object.freeze({pending: nativePending() || privateEvidencePending()});"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "throw new TypeError('ForeignPrivateEvidenceInitialization');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (privateEvidencePending()) return status();"
               }
             ],
@@ -113159,45 +113159,45 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
-                "anchor": "retainPrivateEvidenceInitialization(duty) {"
+                "path": "adapters/host-node/ordinary-host-journal.mts",
+                "anchor": "retainPrivateEvidenceInitialization(duty: object): undefined {"
               },
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "privateEvidenceInitializationOwnership() {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (privateEvidenceInitialization === duty) return;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (rootFormatAdmission !== 'new') {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "privateEvidenceInitialization = duty; privateEvidenceStatus = field.value;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "return Object.freeze({pending: nativePending() || privateEvidencePending()});"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "throw new TypeError('ForeignPrivateEvidenceInitialization');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (privateEvidencePending()) return status();"
               }
             ],
@@ -113239,43 +113239,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "export function prepareOrdinaryHostJournal("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "held.originals.generation !== originals.generation"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "journal = openClientRequestJournal("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "if (openingFlight !== undefined)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "openingFailure = cause;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "path": "adapters/host-node/ordinary-host-journal.mts",
                 "anchor": "return value.databaseClosed !== true || value.observationDatabaseClosed !== true;"
               }
             ],

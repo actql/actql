@@ -1,15 +1,47 @@
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
-  from './client-request-journal.mjs';
-import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership,
-  assertOriginalPreparedLocalPublicationStoreOwnership}
-  from '../store-local/publication-store.mjs';
+// @ts-expect-error TS7016: remove when the physical Request Journal is authored in TypeScript.
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
+// @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
+import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
+// @ts-expect-error TS7016: remove when the Host root format is authored in TypeScript.
 import {admitHostRootFormat} from './host-root-format.mjs';
+// @ts-expect-error TS7016: remove when the original startup recipe has authored declarations.
 import recipeModule from './host-journal-service-recipe.cjs';
-const installations = new WeakMap();
 
-export function ordinaryHostJournalInstallation(originals) {
+export type HostJournalOriginals = Readonly<{
+  host: object;
+  installation: object & Readonly<{root?: unknown}>;
+  generation: unknown;
+}>;
+type Journal = Readonly<{close(): undefined}>;
+type RootAdmission = 'new' | 'current';
+type CloseState = Readonly<{
+  pending: boolean; journalPending: boolean; privateEvidencePending: boolean; ownershipPending: boolean;
+}>;
+type PendingObservation = Readonly<{pending?: unknown}> | null | undefined;
+type OpenFailure = Readonly<{
+  cleanupHandle?: Readonly<{status?: unknown; retry?: unknown}>;
+  cleanupPending?: unknown;
+  primaryFailure?: unknown;
+  cleanupErrors?: unknown[];
+}>;
+type OrdinaryJournalView = Readonly<{
+  assertCurrent(): undefined;
+  close(): Promise<CloseState>;
+  admitRootFormat(directory: string): Promise<RootAdmission>;
+  openRequestJournal(directory: string, options: object): Promise<Journal>;
+  publicationOwnership(): object;
+  assertInitializationCurrent(): undefined;
+  privateEvidenceInitializationOwnership(): object;
+  assertPrivateEvidenceFirstInitialization(): undefined;
+  retainPrivateEvidenceInitialization(duty: object): undefined;
+}>;
+const installations = new WeakMap<object, Readonly<{
+  originals: HostJournalOriginals; view: OrdinaryJournalView;
+}>>();
+
+export function ordinaryHostJournalInstallation(originals: HostJournalOriginals): OrdinaryJournalView {
   const held = installations.get(originals.host);
   if (held === undefined || held.originals.installation !== originals.installation ||
       held.originals.generation !== originals.generation) throw new TypeError('ForeignInstalledHostJournal');
@@ -19,17 +51,20 @@ export function ordinaryHostJournalInstallation(originals) {
 // The existing Host/Journal owner acquires ordinary platform resources here.
 // No preload, process-once slot or closure/allocator ancestry is required.
 // Limits restrict controlled SQL, records and work; they are not an RSS lease.
-export function prepareOrdinaryHostJournal(originals) {
+export function prepareOrdinaryHostJournal(originals: HostJournalOriginals): OrdinaryJournalView {
   if (installations.has(originals.host)) throw new TypeError('InstalledHostJournalAlreadyPrepared');
   const installation = originals.installation, root = installation.root;
   if (typeof root !== 'string' || root.length === 0) throw new TypeError('InvalidInstalledHostRoot');
   const recipe = recipeModule.declareHostJournalServiceRecipe({ordinary: true});
-  let closing = false, closed = false, acquisitionAttempted = false, openAttempted = false, ownership, journal;
-  let journalClose, openingFailure, openingCleanup, openingStatus, openingRetry;
-  let ownershipForwarded = false, flight, openingFlight, ownershipFlight;
-  let privateEvidenceInitialization, privateEvidenceStatus;
-  let rootFormatAdmission;
-  const current = () => {
+  let closing = false, closed = false, acquisitionAttempted = false, openAttempted = false,
+    ownership: object | undefined, journal: Journal | undefined;
+  let journalClose: Journal['close'] | undefined, openingFailure: unknown,
+    openingCleanup: OpenFailure['cleanupHandle'], openingStatus: unknown, openingRetry: unknown;
+  let ownershipForwarded = false, flight: Promise<CloseState> | undefined,
+    openingFlight: Promise<Journal> | undefined, ownershipFlight: Promise<void> | undefined;
+  let privateEvidenceInitialization: object | undefined, privateEvidenceStatus: (() => unknown) | undefined;
+  let rootFormatAdmission: RootAdmission | undefined;
+  const current = (): undefined => {
     if (closing || closed || originals.installation !== installation || installation.root !== root) {
       throw Object.assign(new Error('HostJournalPreparationUnavailable'), {code: 'HostJournalPreparationUnavailable'});
     }
@@ -42,18 +77,18 @@ export function prepareOrdinaryHostJournal(originals) {
     if (!openAttempted && openingFailure === undefined) return false;
     if (openingFailure === undefined) return true;
     if (openingCleanup === undefined) {
-      openingCleanup = openingFailure.cleanupHandle;
-      if (openingCleanup === undefined) return openingFailure.cleanupPending === true;
+      openingCleanup = (openingFailure as OpenFailure).cleanupHandle;
+      if (openingCleanup === undefined) return (openingFailure as OpenFailure).cleanupPending === true;
       openingStatus = openingCleanup.status; openingRetry = openingCleanup.retry;
     }
     if (typeof openingStatus !== 'function') return true;
-    const result = Reflect.apply(openingStatus, openingCleanup, []);
+    const result: PendingObservation = Reflect.apply(openingStatus, openingCleanup, []);
     return result?.pending !== false;
   }
   function privateEvidencePending() {
     if (privateEvidenceInitialization === undefined) return false;
     try {
-      const value = Reflect.apply(privateEvidenceStatus, privateEvidenceInitialization, []);
+      const value = Reflect.apply(privateEvidenceStatus!, privateEvidenceInitialization, []);
       const field = value !== null && typeof value === 'object'
         ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
       return field === undefined || !Object.hasOwn(field, 'value') || field.value !== false;
@@ -66,7 +101,7 @@ export function prepareOrdinaryHostJournal(originals) {
     if (ownershipFlight !== undefined) return ownershipFlight;
     ownershipFlight = Promise.resolve().then(async () => {
       try {
-        ownership = await prepareLocalPublicationStoreOwnership(join(root, 'publication'),
+        ownership = await prepareLocalPublicationStoreOwnership(join(root as string, 'publication'),
           recipe.ownershipBounds, dependency);
         current();
       } catch (cause) {openingFailure = cause; throw cause;}
@@ -99,7 +134,7 @@ export function prepareOrdinaryHostJournal(originals) {
       // before that original child acknowledges close.
       if (privateEvidencePending()) return status();
       if (ownership !== undefined) {
-        const result = await closePreparedLocalPublicationStoreOwnership(ownership);
+        const result: PendingObservation = await closePreparedLocalPublicationStoreOwnership(ownership);
         if (result?.pending !== false) return status();
         ownership = undefined;
       }
@@ -112,10 +147,10 @@ export function prepareOrdinaryHostJournal(originals) {
     flight = pending;
     try {return await pending;} finally {if (flight === pending) flight = undefined;}
   }
-  const view = Object.freeze({assertCurrent: current, close,
-    async admitRootFormat(directory) {
+  const view: OrdinaryJournalView = Object.freeze({assertCurrent: current, close,
+    async admitRootFormat(directory: string) {
       current(); if (directory !== root) throw new TypeError('ForeignInstalledHostRoot');
-      const admission = await admitHostRootFormat(root);
+      const admission: RootAdmission = await admitHostRootFormat(root);
       rootFormatAdmission ??= admission;
       current();
       // The same exclusion also serializes explicitly authorized first
@@ -123,7 +158,7 @@ export function prepareOrdinaryHostJournal(originals) {
       await retainOwnership(); current();
       return rootFormatAdmission;
     },
-    openRequestJournal(directory, options) {
+    openRequestJournal(directory: string, options: object) {
       current();
       if (acquisitionAttempted || directory !== join(root, 'requests')) {
         return Promise.reject(new TypeError('ForeignInstalledHostJournal'));
@@ -136,15 +171,18 @@ export function prepareOrdinaryHostJournal(originals) {
         current(); openAttempted = true;
         journal = openClientRequestJournal(directory, {...recipe.journal, ...options,
           inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current}, ownership);
-        journalClose = journal.close;
+        journalClose = journal!.close;
         if (typeof journalClose !== 'function') throw new TypeError('InstalledHostJournalCleanupPending');
         observeOriginalClientRequestJournalCustody(journal);
-        current(); return journal;
+        current(); return journal!;
       } catch (cause) {
         openingFailure = cause;
         // The same child remains reachable before any later current check;
         // failed acquisition never creates a replacement Journal or lock.
-        const error = Object.assign(new Error('InstalledHostJournalCleanupPending', {cause}),
+        const error: Error & {
+          code: string; cleanupPending: boolean; cleanupHandle?: Readonly<{status: typeof status; retry: typeof close}>;
+          primaryFailure?: unknown; cleanupErrors?: unknown[];
+        } = Object.assign(new Error('InstalledHostJournalCleanupPending', {cause}),
           {code: 'InstalledHostJournalCleanupPending', cleanupPending: true});
         error.cleanupHandle = Object.freeze({status, retry: close});
         // Preserve the original acquisition failure across this additional
@@ -152,8 +190,9 @@ export function prepareOrdinaryHostJournal(originals) {
         error.primaryFailure = cause;
         try {
           if (cause !== null && (typeof cause === 'object' || typeof cause === 'function') &&
-              Object.hasOwn(cause, 'primaryFailure')) error.primaryFailure = cause.primaryFailure;
-          if (Array.isArray(cause?.cleanupErrors)) error.cleanupErrors = cause.cleanupErrors;
+              Object.hasOwn(cause, 'primaryFailure')) error.primaryFailure = (cause as OpenFailure).primaryFailure;
+          if (Array.isArray((cause as OpenFailure | null | undefined)?.cleanupErrors))
+            error.cleanupErrors = (cause as OpenFailure).cleanupErrors;
         } catch { /* Keep the original cause and same cleanup owner. */ }
         throw error;
       }});
@@ -170,16 +209,16 @@ export function prepareOrdinaryHostJournal(originals) {
       }
       ownershipForwarded = true; return ownership;
     },
-    assertInitializationCurrent() {
+    assertInitializationCurrent(): undefined {
       current();
       assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
     },
     privateEvidenceInitializationOwnership() {
       current();
       assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
-      return ownership;
+      return ownership!;
     },
-    assertPrivateEvidenceFirstInitialization() {
+    assertPrivateEvidenceFirstInitialization(): undefined {
       current();
       assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
       // This initializer's actual marker creation, not absent key/Store
@@ -190,7 +229,7 @@ export function prepareOrdinaryHostJournal(originals) {
           {code: 'PrivateEvidenceFirstInitializationUnavailable'});
       }
     },
-    retainPrivateEvidenceInitialization(duty) {
+    retainPrivateEvidenceInitialization(duty: object): undefined {
       current();
       if (privateEvidenceInitialization === duty) return;
       const field = duty !== null && typeof duty === 'object'

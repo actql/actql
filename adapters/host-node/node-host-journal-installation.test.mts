@@ -1,26 +1,55 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {compileFunction} from 'node:vm';
+import {createRequire, Module} from 'node:module';
 import test from 'node:test';
 
-const source=readFileSync(new URL('./node-host-journal-installation.mjs',import.meta.url),'utf8');
-const importLine="import {createRequire} from 'node:module';";
-const requireExpression='createRequire(import.meta.url)';
-assert.equal(source.split(importLine).length,2);
-assert.equal(source.split(requireExpression).length,2);
-assert.equal(source.split('export async function ').length,2);
-// Execute the entire actual adapter with only its module loader/process entry
-// substituted by explicit fixed Root ports. These are original forwarding and
-// cleanup counters, not actual startup/resource/SQLite or installed admission.
-const load=compileFunction(source.replace(importLine,'')
-  .replace(requireExpression,'selectedRequire')
-  .replace('export async function ','async function ')+
-  '\nreturn prepareHostJournalInstallation;', ['selectedRequire','process']);
+type Adapter = typeof import('./node-host-journal-installation.mjs');
+type State = {
+  current: boolean; opens: number; closes: number; checks: number;
+  pending: boolean; failure?: Error; events: string[];
+};
+type FixtureOptions = Readonly<{
+  open?(input: Readonly<{state: State; journal: object; directory: string; options: object}>): unknown;
+  missingOpen?: boolean;
+  admitRootFormat?(root: string): unknown;
+}>;
+type FixtureOwner = {
+  prepareHostJournalInstallation(pair: unknown): object;
+  assertHostJournalInstallationCurrent(value: unknown, pair: unknown): undefined;
+  closeHostJournalInstallation(value: unknown, pair: unknown): Readonly<{pending: boolean}>;
+  openHostJournalRequestJournal?(value: unknown, pair: unknown, directory: string, options: object): unknown;
+  admitHostJournalRootFormat?(value: unknown, pair: unknown, root: string): unknown;
+};
 
-function fixture({open,missingOpen=false,admitRootFormat}={}){
-  const original=Object.freeze({}),originals=Object.freeze({}),journal=Object.freeze({});
-  const state={current:true,opens:0,closes:0,checks:0,pending:false,events:[]};
-  const owner={prepareHostJournalInstallation(pair){assert.strictEqual(this,owner);
+// Load the real adapter. The fixture supplies only its selected startup
+// table, captured before the temporary module cache and entry flags unwind.
+let adapterLoads = 0;
+async function loadSelectedAdapter(owner: FixtureOwner): Promise<Adapter> {
+  const require = createRequire(import.meta.url);
+  const path = require.resolve('./infer-trusted-node-preload.cjs');
+  const previous = require.cache[path];
+  const originalExecArgv = process.execArgv;
+  const preload = new Module(path);
+  preload.filename = path;
+  preload.loaded = true;
+  preload.exports = owner;
+  const url = new URL('./node-host-journal-installation.mjs', import.meta.url);
+  url.searchParams.set('selectedFixture', String(++adapterLoads));
+  require.cache[path] = preload;
+  process.execArgv = [...originalExecArgv, '@actql/node/selected-infer-startup'];
+  try {
+    return await import(url.href);
+  } finally {
+    process.execArgv = originalExecArgv;
+    if (previous === undefined) delete require.cache[path];
+    else require.cache[path] = previous;
+  }
+}
+
+async function fixture({open,missingOpen=false,admitRootFormat}: FixtureOptions = {}) {
+  const original=Object.freeze({}),journal=Object.freeze({});
+  const originals=Object.freeze({host: {}, installation: {}, generation: {}});
+  const state: State = {current:true,opens:0,closes:0,checks:0,pending:false,events:[]};
+  const owner: FixtureOwner = {prepareHostJournalInstallation(pair){assert.strictEqual(this,owner);
     assert.strictEqual(pair,originals);return original;},
   assertHostJournalInstallationCurrent(value,pair){assert.strictEqual(this,owner);
     assert.strictEqual(value,original);assert.strictEqual(pair,originals);
@@ -38,16 +67,14 @@ function fixture({open,missingOpen=false,admitRootFormat}={}){
     assert.strictEqual(this,owner);assert.strictEqual(value,original);assert.strictEqual(pair,originals);
     return admitRootFormat(root);
   };
-  const prepare=load(name=>{
-    assert.equal(name,'./node-public-initial-control-bootstrap.cjs');return owner;
-  },{execArgv:[],env:{}});
+  const {prepareHostJournalInstallation: prepare} = await loadSelectedAdapter(owner);
   return {prepare,owner,originals,journal,state};
 }
 
 test('Journal opening uses the captured Root operation and same opaque pair without inspecting options',async()=>{
   let reads=0;const options=new Proxy({}, {get(){reads++;throw Error('No adapter reads');},
     ownKeys(){reads++;throw Error('No adapter enumeration');}});
-  const f=fixture({open:({directory,options:actual,journal})=>{
+  const f=await fixture({open:({directory,options:actual,journal})=>{
     assert.equal(directory,'/original/requests');assert.strictEqual(actual,options);return journal;
   }}),view=await f.prepare(f.originals);
   f.owner.openHostJournalRequestJournal=()=>assert.fail('Replacement must not run');
@@ -57,7 +84,7 @@ test('Journal opening uses the captured Root operation and same opaque pair with
 });
 
 test('missing captured Journal operation refuses without a constructor or fallback',async()=>{
-  const f=fixture({missingOpen:true}),view=await f.prepare(f.originals);
+  const f=await fixture({missingOpen:true}),view=await f.prepare(f.originals);
   f.owner.openHostJournalRequestJournal=()=>assert.fail('Late installation is not the original');
   assert.throws(()=>view.openRequestJournal('/original/requests',{}),
     {code:'HostJournalPreparationUnavailable'});
@@ -65,7 +92,7 @@ test('missing captured Journal operation refuses without a constructor or fallba
 });
 
 test('original currentness refuses before Journal allocation while its same close remains reachable',async()=>{
-  const f=fixture(),view=await f.prepare(f.originals);
+  const f=await fixture(),view=await f.prepare(f.originals);
   const failure=new Error('OriginalGenerationRetired');f.state.failure=failure;f.state.current=false;
   assert.throws(()=>view.openRequestJournal('/original/requests',{}),error=>error===failure);
   assert.equal(f.state.opens,0);await view.close();assert.equal(f.state.closes,1);
@@ -76,7 +103,7 @@ test('original currentness refuses before Journal allocation while its same clos
 test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{
   const cleanup={status:()=>({pending:true}),retry:async()=>({pending:true})};
   const failure=Object.assign(new Error('OriginalNativeChildPending'),{cleanupHandle:cleanup});
-  const f=fixture({open:({state})=>{state.current=false;throw failure;}});
+  const f=await fixture({open:({state})=>{state.current=false;throw failure;}});
   const view=await f.prepare(f.originals),checks=f.state.checks;
   assert.throws(()=>view.openRequestJournal('/original/requests',{}),error=>error===failure);
   assert.strictEqual(failure.cleanupHandle,cleanup);assert.equal(f.state.checks,checks+1);
@@ -85,7 +112,7 @@ test('a partial Root constructor failure preserves its exact same-child cleanup 
 });
 
 test('a pending original facility close prevents another open until its own exact ACK',async()=>{
-  const f=fixture(),view=await f.prepare(f.originals);f.state.pending=true;
+  const f=await fixture(),view=await f.prepare(f.originals);f.state.pending=true;
   assert.deepEqual(await view.close(),{pending:true});
   assert.throws(()=>view.openRequestJournal('/original/requests',{}),
     {code:'HostJournalPreparationUnavailable'});
@@ -95,7 +122,7 @@ test('a pending original facility close prevents another open until its own exac
 
 test('root-format admission forwards through the captured sixth Root operation and same original pair',async()=>{
   let calls=0;const marker={};
-  const f=fixture({admitRootFormat(root){assert.equal(root,'/original');calls++;return marker;}});
+  const f=await fixture({admitRootFormat(root){assert.equal(root,'/original');calls++;return marker;}});
   const view=await f.prepare(f.originals);
   f.owner.admitHostJournalRootFormat=()=>assert.fail('Replacement is not the original');
   assert.strictEqual(view.admitRootFormat('/original'),marker);
@@ -103,7 +130,7 @@ test('root-format admission forwards through the captured sixth Root operation a
 });
 
 test('missing or retired root-format operation refuses before any fallback',async()=>{
-  const f=fixture(),view=await f.prepare(f.originals);
+  const f=await fixture(),view=await f.prepare(f.originals);
   f.owner.admitHostJournalRootFormat=()=>assert.fail('Late installation is not original');
   assert.throws(()=>view.admitRootFormat('/original'),{code:'HostJournalPreparationUnavailable'});
   await view.close();
@@ -113,7 +140,7 @@ test('missing or retired root-format operation refuses before any fallback',asyn
 
 test('root-format failure preserves the same original cleanup and current refusal',async()=>{
   const failure=Object.assign(new Error('OriginalRootFormatPending'),{cleanupHandle:{}});
-  const f=fixture({admitRootFormat(){throw failure;}}),view=await f.prepare(f.originals);
+  const f=await fixture({admitRootFormat(){throw failure;}}),view=await f.prepare(f.originals);
   assert.throws(()=>view.admitRootFormat('/original'),error=>error===failure);
   f.state.current=false;f.state.failure=new Error('OriginalGenerationRetired');
   assert.throws(()=>view.admitRootFormat('/original'),error=>error===f.state.failure);

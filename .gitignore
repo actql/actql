@@ -1441,3 +1441,9 @@ target/
 /adapters/host-node/client-run-state.d.mts
 /adapters/host-node/client-request-journal-fresh-schema.test.mjs
 /adapters/host-node/client-request-journal-fresh-schema.test.d.mts
+/adapters/host-node/ordinary-host-journal.mjs
+/adapters/host-node/ordinary-host-journal.d.mts
+/adapters/host-node/node-host-journal-installation.mjs
+/adapters/host-node/node-host-journal-installation.d.mts
+/adapters/host-node/node-host-journal-installation.test.mjs
+/adapters/host-node/node-host-journal-installation.test.d.mts
