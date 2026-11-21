@@ -2940,7 +2940,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87337ca928dfdc79e6ee38544d93cbaf758ae4970f806781669d0b26366a4d94",
+      "sha256": "f80a2e753c9319d93e92456896d65321e26a98364a820aacff495588a3172166",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",

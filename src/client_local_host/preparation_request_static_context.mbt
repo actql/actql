@@ -5,6 +5,7 @@ pub(all) enum ClientRequestStaticContextIssue {
   Facts(@publication_host.ClientExplanationFactsIssue)
   Encoding(@encode.EncodeFailure)
   Contract(@publication.PublicationContractIssue)
+  Presentation(@publication_host.ClientExplanationNarrativeIssue)
 } derive(Debug)
 
 ///|
@@ -559,6 +560,58 @@ pub fn[I] request_prepared_static_effect_explanation_wire(
   max_work : Int,
   infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> Result[String, ClientRequestStaticContextIssue] {
+  request_prepared_static_effect_explanation_output(
+    owner,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers,
+    None,
+  )
+}
+
+///|
+/// Render the same closed compiler projection on its working Request before
+/// returning the command reply. The consumer still owns current disclosure.
+pub fn[I] request_prepared_static_effect_explanation_narrative(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  language : @publication_host.ClientExplanationLanguage,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+) -> Result[String, ClientRequestStaticContextIssue] {
+  request_prepared_static_effect_explanation_output(
+    owner,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers,
+    Some(language),
+  )
+}
+
+///|
+fn[I] request_prepared_static_effect_explanation_output(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
+  language : @publication_host.ClientExplanationLanguage?,
+) -> Result[String, ClientRequestStaticContextIssue] {
   if max_bytes < 1 {
     return Err(Preparation(Policy))
   }
@@ -618,11 +671,84 @@ pub fn[I] request_prepared_static_effect_explanation_wire(
       builder.write_string(facets.plan)
       builder.write_string(static_explanation_version_suffix)
       let wire = builder.to_string()
-      @publication.parse_interactive_run_control_shape(
-        "static_explanation_view", wire, extent, nodes, depth,
-      )
-      .map(_ => wire)
-      .map_err(issue => Contract(issue))
+      let admitted = match
+        @publication.parse_interactive_run_control_shape(
+          "static_explanation_view", wire, extent, nodes, depth,
+        ) {
+        Err(issue) => return Err(Contract(issue))
+        Ok(value) => value
+      }
+      match language {
+        None => Ok(wire)
+        Some(selected) =>
+          render_working_static_explanation(
+            capacity, input, admitted, current, bytes, nodes, depth, selected,
+          )
+      }
     },
   )
+}
+
+///|
+fn[I] render_working_static_explanation(
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  input : I,
+  view : @identity.CanonicalValue,
+  current : () -> Bool,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  language : @publication_host.ClientExplanationLanguage,
+) -> Result[String, ClientRequestStaticContextIssue] {
+  guard @identity.object_field(view, "facts") is Some(facts) &&
+    @identity.object_field(view, "context") is Some(context) else {
+    return Err(Presentation(InvalidExplanation))
+  }
+  // Bound the separate Context/step buffers, predicate cache/active/depth
+  // vectors and recursive frames from the admitted tree. Each append debits
+  // the character budget before copying. Include the builder and final text
+  // for the complete CLI reply while the original wires and decoded view live.
+  guard result_read_data_cost(
+      4L * nodes.to_int64() + 4L * depth.to_int64() + 128L,
+      8L * bytes.to_int64(),
+      2L * bytes.to_int64(),
+    )
+    is Some(layout) else {
+    return Err(Preparation(Policy))
+  }
+  match reserve_static_context_construction(capacity, input, layout) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard current() else { return Err(Preparation(ForeignOriginal)) }
+  let narrative = @publication_host.render_client_explanation_narrative(
+    facts, context, language, bytes,
+  ) catch {
+    issue => return Err(Presentation(issue))
+  }
+  let heading = match language {
+    English => "Logical dependencies"
+    Japanese => "論理的な依存関係"
+  }
+  let mut extent = static_explanation_utf8_bytes(heading)
+  for line in narrative.context {
+    extent += static_explanation_utf8_bytes(line) + 1
+  }
+  for line in narrative.steps {
+    extent += static_explanation_utf8_bytes(line) + 1
+  }
+  if extent > bytes {
+    return Err(Encoding(@encode.OutputLimit))
+  }
+  let report = StringBuilder(size_hint=extent)
+  for line in narrative.context {
+    report.write_string(line)
+    report.write_char('\n')
+  }
+  report.write_string(heading)
+  for line in narrative.steps {
+    report.write_char('\n')
+    report.write_string(line)
+  }
+  Ok(report.to_string())
 }

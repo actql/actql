@@ -820,6 +820,40 @@ test "prepared static Effect Explanation envelopes enforce the aggregate byte li
 }
 
 ///|
+test "prepared static Effect Explanation renders the admitted original within its Request" {
+  let manifests = request_program_module_manifests()
+  for
+    (language, result, heading) in [
+      (
+        @publication_host.English,
+        "Declare Result \"rows\"",
+        "Logical dependencies",
+      ),
+      (
+        @publication_host.Japanese,
+        "結果を宣言 \"rows\"",
+        "論理的な依存関係",
+      ),
+    ] {
+    let (parent, input, _) = request_effect_compile_fixture()
+    let output = match
+      request_prepared_static_effect_explanation_narrative(
+        parent, input, manifests, 65536, 8192, 64, 10000, language,
+      ) {
+      Ok(wire) => wire
+      Err(issue) => fail(@debug.to_string(issue))
+    }
+    assert_true(output.contains(result), msg=output)
+    assert_true(output.contains(heading), msg=output)
+    assert_true(output.contains("\"connector://crm/account\""))
+    assert_true(parent.phase == EffectCompiled)
+    assert_true(parent.submitted_intent is None)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "prepared static Effect Explanation reuses its borrowed singleton or composed Model plans" {
   for plural in [false, true] {
     let (parent, input, holder) = request_effect_model_material_fixture(plural~)

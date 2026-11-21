@@ -193,23 +193,41 @@ fn LocalCheckContext::project_request(
           let policy = @local_values.client_local_preparation_initial_limits(
             @local_values.client_local_resource_policy(),
           ).unwrap_or_else(() => stop("LocalStaticExplanationUnavailable"))
-          match
-            @local_values.request_prepared_static_effect_explanation_wire(
-              parent,
-              producer,
-              native_request_manifests,
-              65536,
-              8192,
-              64,
-              policy.planning_work,
-              infers~,
-            ) {
+          let report = match
+            native_static_explanation_language(producer.arguments) {
+            None =>
+              @local_values.request_prepared_static_effect_explanation_wire(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                infers~,
+              )
+            Some(language) =>
+              @local_values.request_prepared_static_effect_explanation_narrative(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                language,
+                infers~,
+              )
+          }
+          match report {
             Err(@local_values.Preparation(issue)) =>
               local_stop_submitted_preparation(
                 @local_host.RequestPreparation(issue),
               )
-            Err(@local_values.Encoding(_)) =>
-              stop("LocalStaticExplanationLimit")
+            Err(
+              @local_values.Encoding(_)
+              | @local_values.Presentation(ExplanationPresentationLimit)
+            ) => stop("LocalStaticExplanationLimit")
             Err(_) => stop("LocalStaticExplanationUnavailable")
             Ok(value) => value
           }

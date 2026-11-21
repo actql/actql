@@ -673,9 +673,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           } else {
             // The structural read uses the same captured Account and Run-read
             // tuple as saved Explain. Check before opening authoring metadata.
-            let explanation_current = if child.flags
-              .get("explanation-json")
-              .unwrap_or(false) {
+            let explanation_current = if native_static_explanation_selected(
+                child,
+              ) {
               let scope = local_host_result(
                 capture.authority_scope_cid_in_original_read(
                   settings.principal,

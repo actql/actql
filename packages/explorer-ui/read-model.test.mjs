@@ -743,6 +743,24 @@ test('structural Story renders original typed parameter and redacted literal wit
     'この条件を満たす行を残す: (fields."id":number > [非開示 number])');
 });
 
+test('structural Story renders a singleton AND or OR and refuses an absent operand', () => {
+  const view = explanationUnary('filter');
+  for (const operator of ['and', 'or']) {
+    const type = explanationType('boolean');
+    const meaning = {kind: 'filter', predicate: {state: 'projected', root: 0, nodes: [
+      {form: 'operation', operator, children: [1], type},
+      {form: 'field', scope: 'fields', name: 'flag', type},
+    ]}};
+    const facts = explanationFixture(view, meaning);
+    assert.equal(explanationStoryModel(view, facts).occurrences[1].explanation.text,
+      'Keep rows where: (fields."flag":boolean)');
+    assert.equal(explanationStoryModel(view, facts, {locale: 'ja'}).occurrences[1].explanation.text,
+      'この条件を満たす行を残す: (fields."flag":boolean)');
+    meaning.predicate.nodes[0].children = [];
+    assert.throws(() => explanationStoryModel(view, explanationFixture(view, meaning)), {code: 'ExplorerInvalidExplanation'});
+  }
+});
+
 test('structural Story keeps ordered projection semantics and explicit unprojected meaning', () => {
   for (const [operation, prefix] of [['select', 'Select output fields'], ['rename', 'Rename output fields'], ['drop', 'Output fields after dropping']]) {
     const view = explanationUnary(operation), meaning = {kind: 'projection', operation,

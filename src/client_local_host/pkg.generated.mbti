@@ -1393,6 +1393,8 @@ pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> R
 
 pub fn[I] request_prepared_static_effect_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
 
+pub fn[I] request_prepared_static_effect_explanation_narrative(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, @run_publication_host.ClientExplanationLanguage, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
+
 pub fn[I] request_prepared_static_effect_explanation_wire(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
 
 pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestTerminalIssue]
@@ -2153,6 +2155,7 @@ pub(all) enum ClientRequestStaticContextIssue {
   Facts(@run_publication_host.ClientExplanationFactsIssue)
   Encoding(@encode_core.EncodeFailure)
   Contract(@run_publication.PublicationContractIssue)
+  Presentation(@run_publication_host.ClientExplanationNarrativeIssue)
 } derive(@debug.Debug)
 
 pub struct ClientRequestStaticEffectExplanation {

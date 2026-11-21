@@ -395,7 +395,7 @@ fn explain_narrative_predicate(
             if arity != 1 {
               raise InvalidExplanation
             }
-          "and" | "or" => if arity < 2 { raise InvalidExplanation }
+          "and" | "or" => if arity == 0 { raise InvalidExplanation }
           _ => if arity != 2 { raise InvalidExplanation }
         }
         if operator == "not" {

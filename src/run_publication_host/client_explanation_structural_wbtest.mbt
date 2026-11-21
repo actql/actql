@@ -205,6 +205,60 @@ test "structural explanation leaves an unprojected predicate honest instead of r
 }
 
 ///|
+test "structural Narrative renders checked singleton AND and OR in both languages" {
+  let context = parse_plan_identity_value("{\"items\":[]}", 20000, 2000, 32).unwrap()
+  for operator in ["and", "or"] {
+    let source = "{\"version\":\"actql/0.1\",\"id\":\"singleton-boolean\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"source\",\"values\":{\"rows\":[{\"flag\":true}],\"schema\":{\"flag\":{\"type\":\"boolean\",\"nullable\":false}}}},{\"from\":\"source\",\"filter\":{\"" +
+      operator +
+      "\":[{\"field\":\"flag\"}]},\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"flag\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+    let prepared = input_result_prepared(source)
+    let compiled = structural_explanation_compiled(prepared)
+    let fact = client_task_operation_explanation(prepared, compiled, 0, 1).unwrap()
+    let wire = client_operation_explanation_structural_json(
+      fact, prepared, 20000, 2000, 32,
+    ).unwrap()
+    let meaning = @publication.parse_interactive_run_control_shape(
+      "explanation_meaning", wire, 20000, 2000, 32,
+    ).unwrap()
+    let predicate = @canonical.object_field(meaning, "predicate").unwrap()
+    assert_true(
+      @canonical.object_field(predicate, "state")
+      is Some(@canonical.String("projected")),
+    )
+    guard @canonical.object_field(predicate, "nodes")
+      is Some(@canonical.Array(nodes)) &&
+      @canonical.array_at(nodes, 0) is Some(root) &&
+      @canonical.object_field(root, "children")
+      is Some(@canonical.Array(children)) else {
+      fail("one original projected predicate root")
+    }
+    assert_eq(@canonical.array_count(children), 1)
+    guard @canonical.object_field(root, "operator")
+      is Some(@canonical.String(selected)) else {
+      fail("original Boolean operator")
+    }
+    assert_eq(selected, operator)
+    let facts = parse_plan_identity_value(
+      "{\"steps\":[{\"meaning\":" + wire + "}]}",
+      20000,
+      2000,
+      32,
+    ).unwrap()
+    let en = render_client_explanation_narrative(facts, context, English, 65536)
+    let ja = render_client_explanation_narrative(
+      facts,
+      context,
+      Japanese,
+      65536,
+    )
+    assert_eq(en.steps, ["Keep rows where: (fields.\"flag\":boolean)"])
+    assert_eq(ja.steps, [
+      "この条件を満たす行を残す: (fields.\"flag\":boolean)",
+    ])
+  }
+}
+
+///|
 test "structural explanation measurement matches output and refuses finite limits or foreign owners" {
   let prepared = structural_explanation_prepared("\"id > 1\"")
   let foreign = structural_explanation_prepared("\"id > 1\"")

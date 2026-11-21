@@ -219,7 +219,7 @@ function predicateStory(predicate, text, budget) {
         output.append('('); output.append(render(children[0], depth + 1)); output.append(')');
         if (node.operator !== 'not') {output.append(' '); output.append(operator);}
       } else if (node.operator === 'and' || node.operator === 'or') {
-        if (children.length < 2) refuse('ExplorerInvalidExplanation');
+        if (children.length === 0) refuse('ExplorerInvalidExplanation');
         for (let i = 0; i < children.length; i++) {
           if (i > 0) {output.append(' '); output.append(operator); output.append(' ');}
           output.append('('); output.append(render(children[i], depth + 1)); output.append(')');

@@ -41,11 +41,30 @@ test "structural Explain keeps the same original Program and refuses competing o
   assert_eq(required(child, "format"), "aql-text")
   assert_true(child.flags.get("explanation-json").unwrap_or(false))
   assert_false(child.flags.get("json").unwrap_or(false))
+  for (tag, language) in [("en", @run_host.English), ("ja", @run_host.Japanese)] {
+    let selected = public_program_arguments("explain", [
+      "original.aql", "--explanation-language", tag,
+    ])
+    normalize_native_program_arguments(selected)
+    let child = selected.subcommand.unwrap().1
+    assert_eq(required(child, "program-file"), "original.aql")
+    assert_true(native_static_explanation_selected(child))
+    let actual = native_static_explanation_language(child)
+    assert_true(
+      match (actual, language) {
+        (Some(English), English) | (Some(Japanese), Japanese) => true
+        _ => false
+      },
+    )
+  }
   for
     args in [
       ["original.aql", "--explanation-json", "--json"],
       ["original.aql", "--explanation-json", "--verbose"],
       ["--run", "original-run", "--explanation-json"],
+      ["original.aql", "--explanation-json", "--explanation-language", "en"],
+      ["original.aql", "--verbose", "--explanation-language", "ja"],
+      ["--run", "original-run", "--explanation-language", "ja"],
     ] {
     let matches = public_program_arguments("explain", args[:])
     let issue = try {
@@ -56,6 +75,18 @@ test "structural Explain keeps the same original Program and refuses competing o
     }
     assert_eq(issue, "ConflictingLocalStaticExplanationSelection")
   }
+  let invalid = public_program_arguments("explain", [
+    "original.aql", "--explanation-language", "fr",
+  ])
+  assert_eq(
+    try {
+      normalize_native_program_arguments(invalid)
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    },
+    "InvalidLocalStaticExplanationLanguage",
+  )
 }
 
 ///|

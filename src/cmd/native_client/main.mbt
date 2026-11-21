@@ -1013,6 +1013,10 @@ fn command() -> @argparse.Command {
           ),
         ],
         options=[
+          @argparse.OptionArg(
+            "explanation-language",
+            about="Read the structural Explanation for a Local Effect Program in en or ja",
+          ),
           @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
             "program", "run",
           ]),
