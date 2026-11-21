@@ -1,4 +1,4 @@
-import {bindDeclaredUpdateTargetRead, invokeDeclaredRowUpdate} from '../../../host-common/owned-invocation-context.mjs';
+import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../../../host-common/owned-invocation-context.mjs';
 // Real provider constructors/decoders with explicit Account/Site/physical
 // ports. The common Host owns actual approval, Ledger claims and cleanup;
 // these tests do not manufacture their acceptance or send to a real service.
@@ -146,12 +146,14 @@ export function registerHubSpotUpdateDriverTests(moon) {
     const ids = [id, '9007199254740994'];
     const entries = ids.map(selected => f.prepare(current, selected).finalized);
     const grants = ids.map((_, row) => Object.freeze({grant: Object.freeze({row}), useId: 'target-' + row}));
-    const options = {member: f.member, entries, current, readChild: f.describeOptions.readChild,
-      readTarget: bindDeclaredUpdateTargetRead({readChild: f.describeOptions.readChild, rowCount: entries.length,
-        operation: 'hubspot:objects:batch-read', slot: {slot: 'target',
-          maxRequestBytes: f.config.readLimits.maxRequestBytes, maxResponseBytes: f.config.readLimits.maxResponseBytes},
-        authorizationForRow(row) {f.state.targetUses.push(row); return grants[row];}})};
-    const rows = await f.driver.observeTargets(options);
+    const observe = selectedEntries => withDeclaredUpdateTargetReads({
+      readChild: f.describeOptions.readChild, rowCount: selectedEntries.length,
+      operation: 'hubspot:objects:batch-read', slot: {slot: 'target',
+        maxRequestBytes: f.config.readLimits.maxRequestBytes, maxResponseBytes: f.config.readLimits.maxResponseBytes},
+      authorizationForRow(row) {f.state.targetUses.push(row); return grants[row];},
+    }, readTarget => f.driver.observeTargets({member: f.member, entries: selectedEntries, current,
+      readChild: f.describeOptions.readChild, readTarget}));
+    const rows = await observe(entries);
     assert.deepEqual(rows.map(row => row.identity), ids);
     assert.deepEqual(decoderBounds, [1, 1]);
     assert.deepEqual(f.state.targetUses, [0, 1]);
@@ -159,7 +161,7 @@ export function registerHubSpotUpdateDriverTests(moon) {
     assert.deepEqual(f.state.physical.map(p => p.slot), ['account', 'schema',
       'account', 'schema-before', 'target', 'schema-after', 'account', 'schema-before', 'target', 'schema-after']);
     const before = f.state.physical.length;
-    await assert.rejects(f.driver.observeTargets({...options, entries: [...entries, entries[0]]}),
+    await assert.rejects(observe([...entries, entries[0]]),
       {code: 'ForeignHubSpotUpdateCurrent'});
     assert.equal(f.state.physical.length, before);
     const bad = fixture(counted, {maxRows: 2, responseRows: 1}), badCurrent = await bad.describe();

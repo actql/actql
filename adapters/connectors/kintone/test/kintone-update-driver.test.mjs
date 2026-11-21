@@ -1,4 +1,4 @@
-import {bindDeclaredUpdateTargetRead, invokeDeclaredRowUpdate} from '../../../host-common/owned-invocation-context.mjs';
+import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../../../host-common/owned-invocation-context.mjs';
 // Actual same-source native request, Form, target and response validators.
 // Explicit Account/Site/read/send ports are component inputs, not ordinary
 // Host approval, durable claims, physical cleanup or provider acceptance.
@@ -75,11 +75,12 @@ test('kintone driver preserves same-issued metadata and distinct serial original
   const logical = [identity, '9007199254740996'].map(id => f.prepare(current, id));
   assert.throws(() => f.finalize(logical[0]), {code: 'KintoneUpdateFinalizationUnavailable'});
   const grants = logical.map((_, row) => Object.freeze({grant: {row}, useId: 'target-' + row})), uses = [];
-  const rows = await f.driver.observeTargets({...f.describeOptions, current, entries: logical,
-    readTarget: bindDeclaredUpdateTargetRead({readChild: f.describeOptions.readChild, rowCount: logical.length,
-      operation: 'kintone:records:target-read', slot: {slot: 'target',
-        maxRequestBytes: f.config.limits.maxRequestBytes, maxResponseBytes: f.config.limits.maxResponseBytes},
-      authorizationForRow(row) {uses.push(row); return grants[row];}})});
+  const rows = await withDeclaredUpdateTargetReads({
+    readChild: f.describeOptions.readChild, rowCount: logical.length,
+    operation: 'kintone:records:target-read', slot: {slot: 'target',
+      maxRequestBytes: f.config.limits.maxRequestBytes, maxResponseBytes: f.config.limits.maxResponseBytes},
+    authorizationForRow(row) {uses.push(row); return grants[row];},
+  }, readTarget => f.driver.observeTargets({...f.describeOptions, current, entries: logical, readTarget}));
   assert.deepEqual(rows.map(row => row.identity), [identity, '9007199254740996']);
   assert.deepEqual(rows.map(row => row.before.$id), [identity, '9007199254740996']);
   assert.deepEqual(uses, [0,1]);
