@@ -1,9 +1,9 @@
 // Read the exact documented files/commands; do not maintain a second example.
-export function readmeQuickstart(markdown) {
+export function readmeQuickstart(markdown: string) {
   const section = markdown.split('## Quickstart\n')[1]?.split('\n## ')[0];
   if (!section) throw new Error('MissingReadmeQuickstart');
   const blocks = [...section.matchAll(/```(\w+)\n([\s\S]*?)\n```/gu)];
-  const one = language => {
+  const one = (language: string) => {
     const selected = blocks.filter(block => block[1] === language);
     if (selected.length !== 1) throw new Error(`AmbiguousQuickstart:${language}`);
     return selected[0][2] + '\n';

@@ -162,7 +162,7 @@ const supported = new Set([
   '--window-scalar-only',
 ]);
 
-export function validatePackedPublicQueryArguments(args, environment = process.env) {
+export function validatePackedPublicQueryArguments(args: readonly string[], environment: NodeJS.ProcessEnv = process.env) {
   for (const argument of args) {
     assert.ok(supported.has(argument), `UnknownPackedPublicQueryArgument: ${argument}`);
   }

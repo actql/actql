@@ -979,3 +979,9 @@ target/
 /scripts/test-packed-graph.d.mts
 /scripts/packed-query-evidence.test.mjs
 /scripts/packed-query-evidence.test.d.mts
+/scripts/readme-quickstart.mjs
+/scripts/readme-quickstart.d.mts
+/scripts/readme-quickstart.test.mjs
+/scripts/readme-quickstart.test.d.mts
+/scripts/packed-public-query-options.mjs
+/scripts/packed-public-query-options.d.mts

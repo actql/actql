@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {readmeQuickstart} from './readme-quickstart.mjs';
-import {parse} from 'acorn';
+import {parse, type AwaitExpression, type CallExpression, type Identifier, type ObjectExpression, type Property} from 'acorn';
 
 const markdown = await readFile(new URL('../docs/development.md', import.meta.url), 'utf8');
 test('README has one executable Program, Client, expected output and command set', () => {
@@ -15,7 +15,7 @@ test('README has one executable Program, Client, expected output and command set
   assert.doesNotMatch(value.client, /requestId:/u);
   assert.equal(value.install, 'npm init -y >/dev/null\n' +
     'npm install --ignore-scripts --no-save "$ACTQL_PACKED_CLIENT_PACKAGES"/*.tgz');
-  assert.deepEqual(value.expected.trimEnd().split('\n').map(JSON.parse),
+  assert.deepEqual(value.expected.trimEnd().split('\n').map(JSON.parse as (line: string) => unknown),
     [{customer_id: 'c1', order_count: 1, total_amount: 120},
       {customer_id: 'c2', order_count: 1, total_amount: 80}]);
 });
@@ -31,9 +31,9 @@ test('README HTTPS operator selects only current principal reads and the origina
   const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
   const declarations = syntax.body.filter(node => node.type === 'VariableDeclaration')
     .flatMap(node => node.declarations);
-  const original = declarations.find(node => node.id.name === 'httpAuthorization');
+  const original = declarations.find(node => (node.id as Identifier).name === 'httpAuthorization');
   assert(original);
-  const authorization = Function('userInfo', `return (${source.slice(original.init.start, original.init.end)});`)(
+  const authorization = Function('userInfo', `return (${source.slice(original.init!.start, original.init!.end)});`)(
     () => ({username: 'readme-operator'}));
   assert.deepEqual(JSON.parse(authorization.accountConfiguration), {
     version: 'actql-execution-account-config/0.1', account_id: 'readme-http',
@@ -44,8 +44,8 @@ test('README HTTPS operator selects only current principal reads and the origina
       principal: {any_of: ['readme-operator']}, connection: {any_of: ['actql-remote-host']},
       resource: {any_of: ['source-free-values']}, operation: {any_of: ['write']}, exclusions: []}],
   });
-  const host = declarations.find(node => node.id.name === 'host').init.argument;
-  assert.equal(host.callee.name, 'openInstalledRemoteHttpHost');
-  const selected = host.arguments[0].properties.find(node => node.key.name === 'authorization');
-  assert.equal(selected.value.name, 'httpAuthorization');
+  const host = (declarations.find(node => (node.id as Identifier).name === 'host')!.init as AwaitExpression).argument as CallExpression;
+  assert.equal((host.callee as Identifier).name, 'openInstalledRemoteHttpHost');
+  const selected = (host.arguments[0] as ObjectExpression).properties.find(node => ((node as Property).key as Identifier).name === 'authorization') as Property;
+  assert.equal((selected.value as Identifier).name, 'httpAuthorization');
 });
