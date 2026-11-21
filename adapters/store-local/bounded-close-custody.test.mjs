@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
-import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const body = Function.prototype.toString.call(readBoundedLocalMetadata);
 const prior = JSON.parse(await readFile(new URL('./bounded-close-original.fixture.json', import.meta.url), 'utf8'));
@@ -121,42 +123,40 @@ test('bounded read confirms original close once; open refusal has no pending FD'
 test('actual original Store binding read retains Store ownership until the same metadata FD closes', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-original-binding-close-'));
   const authority = `sha256:${createHash('sha256').update('original-binding-close').digest('hex')}`;
+  const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: authority, privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 1024 * 1024, maxObjectBytes: 4096, maxObjects: 16,
     maxContractNodes: 4096, maxContractDepth: 64,
-  }, createPublicationContractControlFixture());
-  let prototype, stat;
-  let original, attempts = 0;
+  }, runtimeCore(moon).publicationControl);
+  const originalOpen = fs.open, path = join(directory, 'store.json');
+  let original, nativeClose, attempts = 0, opens = 0;
   let rejectClose = true;
   const primary = Object.assign(new Error('OriginalBindingMetadataClosePending'), {code: 'EIO'});
   t.after(async () => {
-    if (prototype !== undefined) prototype.stat = stat;
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
     rejectClose = false;
     if (primary.cleanupHandle?.status().pending) await primary.cleanupHandle.retry();
-    else if (original?.fd >= 0) await original.close();
+    else if (original?.fd >= 0) await nativeClose();
     if (!store.status().closed) await store.close();
     await rm(directory, {recursive: true});
   });
-  const probe = await open(join(directory, 'store.json'), 'r');
-  prototype = Object.getPrototypeOf(probe);
-  stat = prototype.stat;
-  await probe.close();
-  prototype.stat = function(...args) {
-    if (!new Error().stack.includes('at readBounded ') || original !== undefined) {
-      return Reflect.apply(stat, this, args);
-    }
-    original = this;
-    const close = this.close;
-    this.close = async function() {
+  fs.open = async (...args) => {
+    const handle = await Reflect.apply(originalOpen, fs, args);
+    if (args[0] !== path) return handle;
+    opens++;
+    original = handle;
+    nativeClose = handle.close.bind(handle);
+    handle.close = async () => {
       attempts++;
       if (rejectClose) throw primary;
-      await Reflect.apply(close, this, []);
+      await nativeClose();
     };
-    return Reflect.apply(stat, this, args);
+    return handle;
   };
+  syncBuiltinESMExports();
   await assert.rejects(store.observeOriginalModelStorageBinding(), error => error === primary);
-  prototype.stat = stat;
   assert(original.fd >= 0);
   assert.equal(primary.cleanupHandle.status().pending, true);
   await assert.rejects(store.observeOriginalModelStorageBinding(),
@@ -172,6 +172,7 @@ test('actual original Store binding read retains Store ownership until the same 
   rejectClose = false;
   await reader.retry();
   assert.equal(original.fd, -1);
+  assert.equal(opens, 1, 'retry never opens another metadata FD');
   assert.equal(reader.status().pending, false);
   await store.close();
   assert.equal(store.status().closed, true);
