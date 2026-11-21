@@ -1936,7 +1936,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     retireOriginalExplanation(prepared, original) {
       const run = runs.get(prepared);
       if (run === undefined || run.original !== original) fail('ForeignInstalledSourceProducer');
-      return disposeOriginalExplanation(run.producer.preparation);
+      // This runs before the caller retires the Core parent. Returning
+      // normally permits that retirement, so a pending Journal loan must
+      // stop the caller while the original capacity still backs it.
+      if (!disposeOriginalExplanation(run.producer.preparation)) {
+        fail('InstalledExplanationAdmissionCleanupPending');
+      }
     },
     reservePublication(prepared) {
       const run = publicationRunFor(prepared), state = run.producer.preparation;

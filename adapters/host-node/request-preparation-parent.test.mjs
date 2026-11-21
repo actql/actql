@@ -1075,14 +1075,19 @@ test('managed Facts preserve timed compiler custody and wait for actual Journal 
       // The fixed control's independently tested handoff retains this SAME
       // per-producer scope before any output/current getter can fail.
       context.preparation=undefined;context.scope=scope;context.factsWire='original-facts';context.offered=true;
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);
+      assert.throws(()=>f.view.retireOriginalExplanation(prepared,f.original),
+        {code:'InstalledExplanationAdmissionCleanupPending'});
       refuseClose=true;assert.throws(()=>journal.close(),/AuthoredNativeJournalClosePending/u);
       assert.equal(observeOriginalClientRequestJournalCustody(journal).journalClosed,true);
       assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed,false);
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);assert.equal(returns,0);
+      assert.throws(()=>f.view.retireOriginalExplanation(prepared,f.original),
+        {code:'InstalledExplanationAdmissionCleanupPending'});
+      assert.equal(returns,0);assert.equal(context.scope,scope);assert.equal(context.factsWire,'original-facts');
       refuseClose=false;journal.close();
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),true);
+      f.view.retireOriginalExplanation(prepared,f.original);
       assert.equal(returns,1);assert.equal(context.acknowledged,false);
+      f.view.retireOriginalExplanation(prepared,f.original);
+      assert.equal(returns,1);
     }
     f.view.finishSourceProducer(receipt,'returned');retiring=true;
     f.view.severPreparation(prepared,f.original);
