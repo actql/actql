@@ -31,9 +31,13 @@ const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-re
   import.meta.url), 'utf8');
 const aoa = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',
   import.meta.url), 'utf8'));
-const bodies = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-  fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-  ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+const bodies = {
+  registry: checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered)),
+  values, fragment, ordered,
+};
 const prefixLimits = {maxRows: 3, maxWork: 100000, maxEntries: 1000,
   maxValueBytes: 4096, maxValueNodes: 1000, maxValueDepth: 16, maxFrames: 100};
 const generationLimits = {maxRows: 3, maxBytes: 128, maxValueNodes: 1000,
