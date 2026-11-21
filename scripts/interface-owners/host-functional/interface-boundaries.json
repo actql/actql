@@ -28552,68 +28552,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
-          "parameters": [
-            "ref",
-            "activation",
-            "identity",
-            "preparedEffect",
-            "compilation",
-            "compiled",
-            "runDefinition",
-            "graph",
-            "limits",
-            "sourceOriginal",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-          "parameters": [
-            "ref",
-            "page",
-            "keyedRequest",
-            "identity",
-            "preparedEffect",
-            "compilation",
-            "compiled",
-            "runDefinition",
-            "graph",
-            "limits",
-            "activationRecord",
-            "sourceOriginal",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
           "parameters": [
             "epoch",
@@ -28865,12 +28803,6 @@
             "openClientRequestJournal/journal/init:reservePhysicalStart/init:reservePhysicalStart",
             "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
             "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
           ],
@@ -37679,6 +37611,7 @@
         "checkedIdentity",
         "checkedRunDefinition",
         "cid",
+        "createJournalKeyedLookupStorage",
         "createJournalRunRecords",
         "evidenceJson",
         "freezeAdmissionEvidence",
@@ -37787,6 +37720,78 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage",
+          "parameters": [
+            "database",
+            "selectRef",
+            "ensureOpen",
+            "transact"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+          "parameters": [
+            "ref",
+            "activation",
+            "identity",
+            "preparedEffect",
+            "compilation",
+            "compiled",
+            "runDefinition",
+            "graph",
+            "limits",
+            "sourceOriginal",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+          "parameters": [
+            "ref",
+            "page",
+            "keyedRequest",
+            "identity",
+            "preparedEffect",
+            "compilation",
+            "compiled",
+            "runDefinition",
+            "graph",
+            "limits",
+            "activationRecord",
+            "sourceOriginal",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -38167,7 +38172,14 @@
             "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome",
             "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome#2",
             "createJournalRunRecords/lookupRecord/lookupRecord",
-            "createJournalRunRecords/resolveOriginalDefinition/resolveOriginalDefinition"
+            "createJournalRunRecords/resolveOriginalDefinition/resolveOriginalDefinition",
+            "createJournalKeyedLookupStorage",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+            "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2"
           ],
           "exports": [
             "admission",
@@ -38196,7 +38208,8 @@
             "reinspectJournalRunStopAfterStatePublication",
             "retainJournalRunStateFrame",
             "sameRunStateRow",
-            "createJournalRunRecords"
+            "createJournalRunRecords",
+            "createJournalKeyedLookupStorage"
           ],
           "attributes": {
             "responsibility": [
@@ -38271,6 +38284,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "export function createJournalRunRecords({select, selectRun, requestUsage, submissionIssued, cancellationUsage,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "export function createJournalKeyedLookupStorage(database: Pick<JournalSqlConnection, 'prepare'>,"
               }
             ],
             "inputsOutputs": [
@@ -39029,6 +39046,14 @@
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
                 "anchor": "associated explanation insertion failure rolls back the same first Run admission"
+              },
+              {
+                "path": "adapters/host-node/client-keyed-lookup-journal.test.mts",
+                "anchor": "original keyed activation commits before caller dispatch and cold duplicate cannot authorize another attempt"
+              },
+              {
+                "path": "adapters/host-node/client-keyed-lookup-journal.test.mts",
+                "anchor": "keyed page cannot adopt absent or substituted activation wire"
               }
             ]
           }

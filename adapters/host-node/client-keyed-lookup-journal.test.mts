@@ -4,13 +4,21 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove when the original physical Request Journal is authored in TypeScript.
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {request, requestControl, controls, definition, options}
   from './fixtures/original-plan-journal.mjs';
+import type {createJournalKeyedLookupStorage} from './client-request-journal-records.mjs';
+
+type KeyedLookup = ReturnType<typeof createJournalKeyedLookupStorage>;
+type Activation = Parameters<KeyedLookup['persistOriginalKeyedLookupActivation']>;
+type Page = Parameters<KeyedLookup['persistOriginalKeyedLookupPage']>;
+type FixtureOptions = Readonly<{start?: boolean; afterRecord?: () => void}>;
 
 // Actual SQLite transaction/reopen with explicit typed-control ports. The
 // separate MoonBit counter exercises the real checked activation constructor.
-function fixture(t, {start = true, afterRecord} = {}) {
+function fixture(t: TestContext, {start = true, afterRecord}: FixtureOptions = {}) {
   const parent = fileURLToPath(new URL('../../_build/keyed-lookup-journal-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const directory = fs.mkdtempSync(join(parent, 'case-'));
@@ -47,10 +55,12 @@ function fixture(t, {start = true, afterRecord} = {}) {
     },
     keyedLookupActivationJournalCurrent(a, r, c, d, g) {
       return live && a === activation && r === request && c === compiled && d === definition && g === graph;
-    }});
+    }} satisfies Activation[3] & Page[3] & typeof previous);
   const control = Object.freeze({...requestControl,
-    clientRunStartAction: (_identity, _retained, _run, _cid, reserved, current) => !current ? 5 : reserved ? 1 : 0,
-    clientRunPhysicalStartWithCancellationAction: (_identity, _retained, _run, _cid, reserved, fresh, current, cancelled) =>
+    clientRunStartAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown,
+      reserved: boolean, current: boolean) => !current ? 5 : reserved ? 1 : 0,
+    clientRunPhysicalStartWithCancellationAction: (_identity: unknown, _retained: unknown, _run: unknown, _cid: unknown,
+      reserved: boolean, fresh: boolean, current: boolean, cancelled: boolean) =>
       !current ? 5 : reserved && fresh && !cancelled ? 1 : 0});
   let journal = openClientRequestJournal(directory);
   const accepted = journal.acceptDefinition(request, options, control, publication);
@@ -61,9 +71,9 @@ function fixture(t, {start = true, afterRecord} = {}) {
   const selected = {activation, identity: request, preparedEffect, compilation, compiled,
     runDefinition: definition, graph, limits: {maxWireBytes: 65536, maxNodes: 1024, maxDepth: 32}};
   return {directory, selected, publication, control, record, pageRecord,
-    adopt: activationRecord => journal.persistOriginalKeyedLookupPage(accepted.ref,
+    adopt: (activationRecord?: Page[1]['activationRecord']) => journal.persistOriginalKeyedLookupPage(accepted.ref,
       {...selected, page, keyedRequest, activationRecord: activationRecord ?? record}, control, publication),
-    persist: value => journal.persistOriginalKeyedLookupActivation(accepted.ref, value ?? selected, control, publication),
+    persist: (value?: Activation[1]) => journal.persistOriginalKeyedLookupActivation(accepted.ref, value ?? selected, control, publication),
     retire() {live = false;}, records: () => records,
     get journal() {return journal;},
     reopen() {journal.close(); journal = openClientRequestJournal(directory);},
@@ -78,7 +88,7 @@ function fixture(t, {start = true, afterRecord} = {}) {
 test('original keyed activation commits before caller dispatch and cold duplicate cannot authorize another attempt', t => {
   const prepare = DatabaseSync.prototype.prepare;
   const statements = [];
-  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(this: DatabaseSync, sql: string) {
     if (/\b(?:FROM|INTO|UPDATE) client_keyed_lookup_originals\b/u.test(sql)) statements.push(sql);
     return Reflect.apply(prepare, this, [sql]);
   });

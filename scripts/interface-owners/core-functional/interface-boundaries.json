@@ -99728,7 +99728,7 @@
                 "anchor": "test \"declared-file completed lookup retains its full original dependency closure before Model\" {"
               },
               {
-                "path": "adapters/host-node/client-keyed-lookup-journal.test.mjs",
+                "path": "adapters/host-node/client-keyed-lookup-journal.test.mts",
                 "anchor": "test('original keyed activation commits before caller dispatch and cold duplicate cannot authorize another attempt'"
               },
               {

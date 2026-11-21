@@ -19,11 +19,11 @@ import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCu
   createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, instant, logicalPlanOriginalShape, retainedIdentity, retainedRunDefinition, retainedRunFacts,
-  createJournalRunRecords,
+  createJournalKeyedLookupStorage, createJournalRunRecords,
   admitJournalRunDefinitionRow, readJournalRunDefinitionRow, retainJournalRunStateFrame, sameRunStateRow,
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
-import {keyedLookupOriginalTable, explanationOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
+import {explanationOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
   snapshotJournalConfiguration, initializeJournalPrimaryStorage, readJournalExplanationOriginal, probeJournalExplanation, readJournalExplanation,
   insertJournalExplanationOriginal,
   validLocalExecutionOwnerReceipt, assertJournalSubmissionCustody,
@@ -147,9 +147,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
   const selectRef = selectedRequestStatement(database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`), 'run-definition', true, true);
-  // Prepare each keyed statement only when this Journal first needs it.
-  // Retain that same original for its connection lifetime, not per key.
-  let keyedLookupPrior, keyedLookupBatch, keyedLookupInsert, keyedLookupAdopt;
+  const {persistOriginalKeyedLookupActivation, persistOriginalKeyedLookupPage} =
+    createJournalKeyedLookupStorage(database, selectRef, ensureOpen, transact);
   const sourceOperations = clientSourceOperationStorage(database, {ensureOpen,
     transact, limits: sourceOperationLimits,
     readRun: ref => selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)});
@@ -911,125 +910,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       }
       return started;
     },
-    // Persist the original checked activation BEFORE its first physical
-    // attempt. An existing/uncertain entry never authorizes another send.
-    persistOriginalKeyedLookupActivation(ref, {activation, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits, sourceOriginal}, requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
-          runDefinition?.identity !== ref.runDefinitionCid ||
-          typeof publicationControl?.keyedLookupActivationJournalRecord !== 'function' ||
-          typeof publicationControl?.keyedLookupActivationJournalCurrent !== 'function') {
-        fail('ForeignClientKeyedLookupOriginal');
-      }
-      publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
-      publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
-      const record = publicationControl.keyedLookupActivationJournalRecord(
-        activation, identity, compiled, runDefinition, graph, limits, sourceOriginal);
-      if (!cid(record?.batchCid) || !cid(record?.slotCid) ||
-          !Number.isSafeInteger(record?.batchIndex) || record.batchIndex < 0 ||
-          !Number.isSafeInteger(record?.batchCount) || record.batchCount < 1 ||
-          record.batchIndex >= record.batchCount || typeof record.wire !== 'string') {
-        fail('ForeignClientKeyedLookupOriginal');
-      }
-      const current = () => {
-        ensureOpen();
-        if (publicationControl.keyedLookupActivationJournalCurrent(
-          activation, identity, compiled, runDefinition, graph, sourceOriginal) !== true) {
-          fail('ForeignClientKeyedLookupOriginal');
-        }
-      };
-      current();
-      transact('keyed_lookup_activation', 'ClientKeyedLookupActivationUnknown',
-        error => ['ForeignClientKeyedLookupOriginal', 'ClientRunPhysicalStartDenied',
-          'ClientKeyedLookupActivationUnresolved', 'ClientRequestJournalCorrupt'].includes(error?.code), () => {
-          const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-          if (row === undefined || requestControl.clientRequestRelation(identity,
-                retainedIdentity(row, requestControl)) !== 1 ||
-              row.run_definition_wire !== runDefinition.wire ||
-              row.dispatch_reserved !== 1 || row.physical_start_reserved !== 1 ||
-              row.pre_dispatch_failure_confirmed !== 0 || row.cancellation_requested !== 0) {
-            fail('ClientRunPhysicalStartDenied');
-          }
-          current();
-          const prior = (keyedLookupPrior ??= database.prepare(`SELECT 1 AS present FROM client_keyed_lookup_originals
-    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND call_slot_cid = ?`)).get(ref.namespaceId, ref.authorityScopeCid,
-            ref.runDefinitionCid, record.slotCid);
-          if (prior !== undefined) fail('ClientKeyedLookupActivationUnresolved');
-          const batch = (keyedLookupBatch ??= database.prepare(`SELECT COUNT(*) AS n,
-    COUNT(CASE WHEN page_wire IS NULL THEN 1 END) AS pending FROM client_keyed_lookup_originals
-    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND batch_plan_cid = ?`)).get(ref.namespaceId, ref.authorityScopeCid,
-            ref.runDefinitionCid, record.batchCid);
-          if (!Number.isSafeInteger(batch.n) || batch.n !== record.batchIndex) {
-            fail('ClientRequestJournalCorrupt');
-          }
-          if (batch.pending !== 0) fail('ClientKeyedLookupActivationUnresolved');
-          (keyedLookupInsert ??= database.prepare(`INSERT INTO client_keyed_lookup_originals
-    (namespace_id, authority_scope_cid, run_definition_cid, batch_plan_cid,
-      call_slot_cid, batch_index, batch_count, activation_wire, page_wire)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`)).run(ref.namespaceId, ref.authorityScopeCid,
-            ref.runDefinitionCid, record.batchCid, record.slotCid,
-            record.batchIndex, record.batchCount, record.wire);
-          current();
-        });
-      // A failed post-COMMIT current check still leaves the original durable
-      // entry. It cannot turn into permission to retry the physical attempt.
-      current();
-      return record;
-    },
-    // A completed captured page replaces only the SAME unresolved activation.
-    // Exact original wires and the checked nominal page are both required;
-    // neither row absence nor a lost commit permits another physical read.
-    persistOriginalKeyedLookupPage(ref, {page, keyedRequest, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits, activationRecord, sourceOriginal}, requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
-          runDefinition?.identity !== ref.runDefinitionCid ||
-          typeof activationRecord?.wire !== 'string' ||
-          typeof publicationControl?.keyedLookupPageJournalRecord !== 'function' ||
-          typeof publicationControl?.keyedLookupPageJournalCurrent !== 'function') {
-        fail('ForeignClientKeyedLookupPage');
-      }
-      publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
-      publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
-      const record = publicationControl.keyedLookupPageJournalRecord(page, keyedRequest,
-        identity, compiled, runDefinition, graph, limits, sourceOriginal);
-      if (!cid(record?.batchCid) || !cid(record?.slotCid) || !cid(record?.activationCid) ||
-          typeof record.wire !== 'string' || record.batchCid !== activationRecord.batchCid ||
-          record.slotCid !== activationRecord.slotCid || record.batchIndex !== activationRecord.batchIndex ||
-          !Number.isSafeInteger(activationRecord.batchCount) || activationRecord.batchCount <= record.batchIndex ||
-          !Number.isSafeInteger(record.batchIndex) || record.batchIndex < 0) {
-        fail('ForeignClientKeyedLookupPage');
-      }
-      const current = () => {
-        ensureOpen();
-        if (publicationControl.keyedLookupPageJournalCurrent(page, keyedRequest, identity,
-            compiled, runDefinition, graph, sourceOriginal) !== true) fail('ForeignClientKeyedLookupPage');
-      };
-      current();
-      transact('keyed_lookup_page', 'ClientKeyedLookupPageUnknown',
-        error => ['ForeignClientKeyedLookupPage', 'ClientRunPhysicalStartDenied',
-          'ClientKeyedLookupPageUnresolved'].includes(error?.code), () => {
-          const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-          if (row === undefined || requestControl.clientRequestRelation(identity,
-                retainedIdentity(row, requestControl)) !== 1 ||
-              row.run_definition_wire !== runDefinition.wire || row.dispatch_reserved !== 1 ||
-              row.physical_start_reserved !== 1 || row.pre_dispatch_failure_confirmed !== 0 ||
-              row.cancellation_requested !== 0) fail('ClientRunPhysicalStartDenied');
-          current();
-          if ((keyedLookupAdopt ??= database.prepare(`UPDATE client_keyed_lookup_originals
-    SET page_wire = ? WHERE namespace_id = ? AND authority_scope_cid = ? AND
-      run_definition_cid = ? AND batch_plan_cid = ? AND call_slot_cid = ? AND
-      batch_index = ? AND batch_count = ? AND activation_wire = ? AND page_wire IS NULL`)).run(record.wire, ref.namespaceId, ref.authorityScopeCid,
-            ref.runDefinitionCid, record.batchCid, record.slotCid, record.batchIndex,
-            activationRecord.batchCount, activationRecord.wire).changes !== 1) {
-            fail('ClientKeyedLookupPageUnresolved');
-          }
-          current();
-        });
-      current();
-      return record;
-    },
+    persistOriginalKeyedLookupActivation,
+    persistOriginalKeyedLookupPage,
     lookupOriginalSourceOperation(ref, occurrence) {
       if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
       return sourceOperations.lookup(ref, occurrence);
