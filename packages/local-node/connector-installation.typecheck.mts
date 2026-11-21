@@ -9,7 +9,7 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
-  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, RowEffectUpdateWrite, InstalledRowEffectOptions,
+  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, RowEffectUpdateWrite, RowEffectUpdateConstructionProvider, InstalledRowEffectOptions,
   RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from '@actql/local-node';
@@ -159,10 +159,12 @@ const conflictingCreate = createInstalledRowEffect({...standardHostOptions, writ
 // @ts-expect-error Standard CREATE [mode-missing]: An implementation cannot be absent.
 const missingCreate = createInstalledRowEffect<CreateRequest>({...standardHostOptions});
 type DeclaredUpdateRequest = Readonly<{body: string}>;
-declare const admittedUpdateRecipe: object;
+declare const compiledUpdateProvider: RowEffectUpdateConstructionProvider;
+const updateTransport = Object.freeze({maxRequestBytes: 128, maxResponseBytes: 128, maxTargetBytes: 80});
 declare const standardUpdateHost: Omit<InstalledRowEffectOptions<DeclaredUpdateRequest, unknown, 'update'>, 'driver' | 'write'>;
 const standardUpdateWrite: RowEffectUpdateWrite<DeclaredUpdateRequest> = {
-  kind: 'update', operation: 'records.update', targetRead: {operation: 'records.read'},
+  kind: 'update', operation: 'records.update', transport: updateTransport,
+  targetRead: {operation: 'records.read', transport: updateTransport},
   prepareRequest: ({value}) => ({request: {body: JSON.stringify(value)}, requestCid: 'original'}),
   requestFacts: request => ({value: {name: request.body}, target: 'record'}),
   requestCid: () => 'original',
@@ -189,8 +191,8 @@ const standardUpdateWrite: RowEffectUpdateWrite<DeclaredUpdateRequest> = {
   recoverRequests: () => ({requests: []}),
 };
 const standardUpdate = createInstalledRowEffect<DeclaredUpdateRequest, unknown, 'update'>({...standardUpdateHost,
-  write: Object.freeze(standardUpdateWrite), managedPlanRecipes: Object.freeze({update: admittedUpdateRecipe})});
-// @ts-expect-error Standard UPDATE requires the original managed plan recipe.
+  write: Object.freeze(standardUpdateWrite), providerMoon: compiledUpdateProvider});
+// @ts-expect-error Standard UPDATE requires the compiled implementation profile.
 const unpreparedUpdate = createInstalledRowEffect<DeclaredUpdateRequest, unknown, 'update'>({...standardUpdateHost, write: standardUpdateWrite});
 const asyncUpdate: RowEffectUpdateWrite<DeclaredUpdateRequest> = {...standardUpdateWrite,
   // @ts-expect-error Standard UPDATE encodes synchronous request DATA.

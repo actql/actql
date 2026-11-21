@@ -162,6 +162,37 @@ test('declared UPDATE target reads refuse non-read methods before selecting a gr
   }
 });
 
+test('declared UPDATE target encoding waits for its bounded original child', async () => {
+  const target = '/records?id=%E6%9D%B1%E4%BA%AC';
+  const grant = Object.freeze({grant: {}, useId: 'original-target'});
+  const request = {method: 'GET', path: '/records', query: Object.freeze([Object.freeze(['id', '東京'])])};
+  const calls = [];
+  const plan = {
+    rowCount: 1, operation: 'original-read', slot: {slot: 'target',
+      maxTargetBytes: target.length, maxRequestBytes: 2, maxResponseBytes: 12},
+    authorizationForRow() { calls.push('grant'); return grant; },
+    async readChild(original, input, index, slot, project, prepare) {
+      calls.push('child');
+      assert.equal(original, grant);
+      assert.equal(input.operations, undefined);
+      assert.equal(index, 0);
+      assert.equal(slot, 'target');
+      const operations = prepare();
+      assert.equal(operations.get('original-read').path, target);
+      calls.push('transport');
+      return project('before');
+    },
+  };
+  const run = request => withDeclaredUpdateTargetReads(plan, read =>
+    read(0, request, value => value, () => {}));
+  assert.equal(await run(request), 'before');
+  await assert.rejects(run({...request, path: target + 'a', query: undefined}), {code: 'InvalidHttpRequestTarget'});
+  await assert.rejects(run({...request, query: Object.freeze([Object.freeze(['id', '東京a'])])}),
+    {code: 'InvalidHttpRequestQuery'});
+  await assert.rejects(run({...request, query: [['id', 'mutable']]}), {code: 'InvalidOwnedInvocationContext'});
+  assert.deepEqual(calls, ['grant', 'child', 'transport', 'grant', 'child', 'grant', 'child']);
+});
+
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
   const journal = {};

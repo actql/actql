@@ -189,9 +189,23 @@ export async function withDeclaredUpdateTargetReads({readChild, authorizationFor
         const method = request !== null && typeof request === 'object' && !nodeTypes.isProxy(request)
           ? Object.getOwnPropertyDescriptor(request, 'method')?.value : undefined;
         if (method !== 'GET' && method !== 'POST') fail();
-        const http = ownHttpRequest(request);
-        if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
-            Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();
+        const bounded = slot.maxTargetBytes !== undefined;
+        const operationFor = http => {
+          if (http.body !== undefined && (http.body.length > slot.maxRequestBytes ||
+              Buffer.byteLength(http.body) > slot.maxRequestBytes)) fail();
+          return new Map([[operation, Object.freeze({method: http.method, path: http.target,
+            headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]);
+        };
+        // Capture only a fixed DATA envelope before acquisition. Encoding the
+        // author's bounded target belongs inside its original physical child.
+        const original = bounded ? captureDeclaredUpdateTransport(request, slot.maxRequestBytes, 'target-read') : undefined;
+        const operations = bounded ? undefined : operationFor(ownHttpRequest(request));
+        const prepareOperations = bounded ? () => {
+          requireOpen();
+          assertCurrent?.();
+          signal?.throwIfAborted();
+          return operationFor(ownHttpRequest(original, {maxTargetBytes: slot.maxTargetBytes}));
+        } : undefined;
         const authorization = await authorizationForRow(rowIndex);
         requireOpen();
         assertCurrent?.();
@@ -200,13 +214,12 @@ export async function withDeclaredUpdateTargetReads({readChild, authorizationFor
             nodeTypes.isProxy(authorization) || typeof authorization.useId !== 'string' ||
             !authorization.useId) fail();
         const value = await readChild(authorization, {grant: authorization.grant, useId: authorization.useId,
-          operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
-            headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
+          ...(operations === undefined ? {} : {operations}),
           maxRequestBytes: slot.maxRequestBytes, maxResponseBytes: slot.maxResponseBytes,
           returnRejectedResponse: true, signal, currentBeforeSend: () => {
             requireOpen();
             return currentBeforeSend();
-          }}, rowIndex, 'target', project);
+          }}, rowIndex, 'target', project, prepareOperations);
         assertCurrent?.();
         next++;
         return value;
@@ -259,7 +272,8 @@ function transportPair(value) {
   return checkTransportList(value, 2, stringData) && value.length === 2;
 }
 
-function captureDeclaredUpdateTransport(transport, maxRequestBytes) {
+function captureDeclaredUpdateTransport(transport, maxRequestBytes, purpose = 'write') {
+  const write = purpose === 'write';
   if (transport === null || typeof transport !== 'object' || nodeTypes.isProxy(transport) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(transport))) fail();
   if (updateHostFields.some(key => Object.hasOwn(transport, key))) fail();
@@ -272,11 +286,16 @@ function captureDeclaredUpdateTransport(transport, maxRequestBytes) {
     request[key] = field.value;
   }
   const {method, path, body, query, headers, responseHeaders} = request;
-  if (!updateMethods.includes(method) ||
-      typeof path !== 'string' || typeof body !== 'string' || body.length > maxRequestBytes ||
-      Buffer.byteLength(body) > maxRequestBytes) fail();
-  if (query !== undefined) checkTransportList(query, exchangeLimits.maxQueryPairs, transportPair);
-  if (headers !== undefined) checkTransportList(headers, exchangeLimits.maxRequestHeaders, transportPair);
+  if ((write ? !updateMethods.includes(method) : method !== 'GET' && method !== 'POST') ||
+      typeof path !== 'string' || (write && body === undefined) ||
+      (body !== undefined && (typeof body !== 'string' || body.length > maxRequestBytes ||
+        Buffer.byteLength(body) > maxRequestBytes)) || (!write && responseHeaders !== undefined)) fail();
+  const pair = write ? transportPair : value => transportPair(value) && Object.isFrozen(value);
+  for (const [list, limit] of [[query, exchangeLimits.maxQueryPairs], [headers, exchangeLimits.maxRequestHeaders]]) {
+    if (list === undefined) continue;
+    checkTransportList(list, limit, pair);
+    if (!write && !Object.isFrozen(list)) fail();
+  }
   if (responseHeaders !== undefined) {
     checkTransportList(responseHeaders, exchangeLimits.maxObservedHeaders, stringData);
   }

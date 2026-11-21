@@ -43,7 +43,7 @@ export interface RowSourceMapping {
 }
 export declare function rowSourceMapping(moon: ConnectorRuntimeOwner,
   declaration: ConnectorRuntimeHandle, writesJson: string, resource: string,
-  sources: readonly RowMappingSource[]): RowSourceMapping;
+  sources: readonly RowMappingSource[], operation?: 'create' | 'update'): RowSourceMapping;
 
 export type AuthorizationBoundary = 'preparation' | 'acquisition' |
   'activation' | 'transfer' | 'effect_commit';
@@ -545,22 +545,40 @@ export interface RowEffectUpdateRequest<Method extends string = 'POST' | 'PUT' |
   readonly headers?: HttpPairs;
   readonly body?: string;
 }
+/** Finite implementation DATA used by the installed Host to quote its
+ * physical child. This object is neither an admitted Plan nor a grant. */
+export interface RowEffectUpdateTransportBounds {
+  readonly maxRequestBytes: number;
+  readonly maxResponseBytes: number;
+  readonly maxTargetBytes: number;
+}
+/** Compiled author constructors for the request, target and response codecs.
+ * Return the original native profiles emitted by the installed connector. */
+export interface RowEffectUpdateConstructionProvider {
+  installedDeclaredUpdateConstructionProfile(previewBytes: number, previewNodes: number, previewDepth: number,
+    rowBytes: number, rowNodes: number, rowDepth: number): object;
+  installedDeclaredUpdateCaptureConstructionProfile(previewBytes: number, previewNodes: number, previewDepth: number,
+    rowBytes: number, rowNodes: number, rowDepth: number): object;
+}
 export interface RowEffectUpdateWrite<Request extends object, Current = unknown> extends Pick<
   RowEffectDriver<Request, Current, 'update'>,
-  'prepareRequest' | 'requestFacts' | 'project' | 'footprint' | 'describe' | 'recheckRequests' |
+  'prepareRequest' | 'requestFacts' | 'project' | 'footprint' | 'recheckRequests' |
   'admitTargetReadApproval' | 'recoverMemberRequests'> {
   readonly kind: 'update';
   readonly operation: string;
   readonly kinds?: never;
   readonly writeOperation?: never;
   readonly send?: never;
-  readonly targetRead: Readonly<{operation: string}>;
+  readonly transport: RowEffectUpdateTransportBounds;
+  readonly targetRead: Readonly<{operation: string; transport: RowEffectUpdateTransportBounds}>;
   requestCid(request: Request): string;
   prepareUpdateWrite(member: RowEffectMember<'update'>, request: Request,
     current: Current | undefined, resourceOrigin: string, connectorRegistration: string, signal?: AbortSignal):
     Readonly<RowEffectUpdateRequest & {body: string; responseHeaders?: readonly string[]}>;
   observeTargets(options: Readonly<{member: RowEffectMember<'update'>;
     entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;
+    /** If present, query and header arrays and their pairs must be frozen
+     * so the original physical child can encode the same DATA after acquire. */
     readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,
       request: RowEffectUpdateRequest<'GET' | 'POST'>,
       project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):
@@ -595,8 +613,7 @@ export type InstalledRowEffectOptions<Request extends object,
     driver: RowEffectDriver<Request, Current, Kind>; write?: never;
   }> | (Kind extends 'update' ? Readonly<{
     driver?: never; write: RowEffectUpdateWrite<Request, Current>;
-    /** The existing installer-prepared UPDATE recipe supplies the exact funded operation. */
-    managedPlanRecipes: Readonly<{update: object}>;
+    providerMoon: RowEffectUpdateConstructionProvider;
   }> : never) | (Kind extends 'create' ? Readonly<{
     driver?: never; write: RowEffectCreateWrite<Request>;
   }> : never));

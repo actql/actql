@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "45e9019bbe57e78f6197f520cf7c086b1c510c67a50e55382aeb753a7a65e2b9",
+      "sha256": "45974e61a3587df34a560b3f0c66815037c03f2ef921d37ded1a32b3a496fcbd",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -62,7 +62,9 @@
         "RowEffectRequestChild",
         "RowEffectRequestFacts",
         "RowEffectTargetObservation",
+        "RowEffectUpdateConstructionProvider",
         "RowEffectUpdateRequest",
+        "RowEffectUpdateTransportBounds",
         "RowEffectUpdateWrite",
         "RowEffectValue",
         "RowEffectValueKind",
@@ -601,9 +603,33 @@
           "result": "Readonly<{pending: boolean}>"
         },
         {
+          "name": "RowEffectUpdateConstructionProvider/installedDeclaredUpdateCaptureConstructionProfile",
+          "parameters": [
+            "previewBytes: number",
+            "previewNodes: number",
+            "previewDepth: number",
+            "rowBytes: number",
+            "rowNodes: number",
+            "rowDepth: number"
+          ],
+          "result": "object"
+        },
+        {
+          "name": "RowEffectUpdateConstructionProvider/installedDeclaredUpdateConstructionProfile",
+          "parameters": [
+            "previewBytes: number",
+            "previewNodes: number",
+            "previewDepth: number",
+            "rowBytes: number",
+            "rowNodes: number",
+            "rowDepth: number"
+          ],
+          "result": "object"
+        },
+        {
           "name": "RowEffectUpdateWrite/observeTargets",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    /** If present, query and header arrays and their pairs must be frozen\n     * so the original physical child can encode the same DATA after acquire. */\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
           ],
           "result": "Awaitable<readonly RowEffectTargetObservation<'update'>[]>"
         },
@@ -731,7 +757,8 @@
             "declaration: ConnectorRuntimeHandle",
             "writesJson: string",
             "resource: string",
-            "sources: readonly RowMappingSource[]"
+            "sources: readonly RowMappingSource[]",
+            "operation?: 'create' | 'update'"
           ],
           "result": "RowSourceMapping"
         }
@@ -831,7 +858,9 @@
             "RowEffectUpdateWrite/observeTargets/readTarget/<call>#2",
             "RowEffectUpdateWrite/prepareUpdateWrite",
             "RowEffectUpdateWrite/recoveryEntry",
-            "RowEffectUpdateWrite/requestCid"
+            "RowEffectUpdateWrite/requestCid",
+            "RowEffectUpdateConstructionProvider/installedDeclaredUpdateCaptureConstructionProfile",
+            "RowEffectUpdateConstructionProvider/installedDeclaredUpdateConstructionProfile"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -909,7 +938,9 @@
             "RowEffectWriteInput",
             "RowEffectWriteObservation",
             "RowEffectUpdateRequest",
-            "RowEffectUpdateWrite"
+            "RowEffectUpdateWrite",
+            "RowEffectUpdateConstructionProvider",
+            "RowEffectUpdateTransportBounds"
           ],
           "attributes": {
             "responsibility": [

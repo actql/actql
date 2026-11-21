@@ -1485,7 +1485,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44bf83a14e8ffc5c89c3ac1fced2b8a1245646ab3d6286e8e8a517f02f199bb0",
+      "sha256": "e46e85f0af10c043335c15f68d405f6f673882077cd79787475d4b7c4424a00b",
       "exports": [
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
@@ -1503,6 +1503,13 @@
           "name": "captureDeclaredUpdateTransport/captureDeclaredUpdateTransport",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureDeclaredUpdateTransport/pair/pair",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -1637,6 +1644,11 @@
           "async": true
         },
         {
+          "name": "withDeclaredUpdateTargetReads/read/read/pending/pending/prepareOperations/prepareOperations",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "withDeclaredUpdateTargetReads/read/read/pending/pending/value/value",
           "parameters": [],
           "async": false
@@ -1676,7 +1688,9 @@
             "withDeclaredUpdateTargetReads/read/read/pending/pending",
             "withDeclaredUpdateTargetReads/read/read/pending/pending/value/value",
             "withDeclaredUpdateTargetReads/read/read/read",
-            "withDeclaredUpdateTargetReads/read/read/read#2"
+            "withDeclaredUpdateTargetReads/read/read/read#2",
+            "captureDeclaredUpdateTransport/pair/pair",
+            "withDeclaredUpdateTargetReads/read/read/pending/pending/prepareOperations/prepareOperations"
           ],
           "exports": [
             "declaredRowUpdateKinds",
@@ -1881,6 +1895,10 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.test.mjs",
                 "anchor": "test('declared UPDATE target reads refuse non-read methods before selecting a grant'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target encoding waits for its bounded original child'"
               }
             ]
           }

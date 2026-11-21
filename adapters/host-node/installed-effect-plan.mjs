@@ -158,6 +158,86 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   }), rowOperations.length + memberOperations.length);
 }
 
+// A published UPDATE supplies implementation limits and the compiled
+// constructor profile, just as CREATE does. The Host selects the slots and
+// builds the Plan recipe against its own Common and installed Credential Site.
+export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, write, credentialSite,
+  limits, resourceTextUnits, connectorRegistration}) {
+  const invalid = () => fail('InstalledDeclaredUpdateConstructionUnavailable');
+  const data = (object, name) => {
+    if (object === null || typeof object !== 'object' || nodeTypes.isProxy(object)) invalid();
+    const field = Object.getOwnPropertyDescriptor(object, name);
+    if (!Object.hasOwn(field ?? {}, 'value')) invalid();
+    return field.value;
+  };
+  const method = (object, name) => {
+    const original = data(object, name);
+    if (typeof original !== 'function' || nodeTypes.isProxy(original) || nodeTypes.isAsyncFunction(original)) invalid();
+    return (...args) => Reflect.apply(original, object, args);
+  };
+  const bounds = value => {
+    const maxRequestBytes = data(value, 'maxRequestBytes');
+    const maxResponseBytes = data(value, 'maxResponseBytes');
+    const maxTargetBytes = data(value, 'maxTargetBytes');
+    if (![maxRequestBytes, maxResponseBytes, maxTargetBytes].every(value =>
+      Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) invalid();
+    return {maxRequestBytes, maxResponseBytes, maxTargetBytes};
+  };
+  const mutation = bounds(data(write, 'transport'));
+  const target = bounds(data(data(write, 'targetRead'), 'transport'));
+  const operation = data(write, 'operation');
+  const targetOperation = data(data(write, 'targetRead'), 'operation');
+  if (!text(operation) || !text(targetOperation) || operation === targetOperation ||
+      !operation.isWellFormed() || !targetOperation.isWellFormed()) invalid();
+  const secret = credentialSite.construction;
+  let units = BigInt(resourceTextUnits) + BigInt(operation.length + targetOperation.length + connectorRegistration.length);
+  for (const record of [secret.scope, secret.issuer]) {
+    for (const value of Object.values(record)) if (typeof value === 'string') units += BigInt(value.length);
+  }
+  const {preview, body} = limits;
+  const input = [preview.maxWireBytes, preview.maxNodes, preview.maxDepth, body.maxBytes, body.maxNodes, body.maxDepth];
+  const native = method(providerMoon, 'installedDeclaredUpdateConstructionProfile')(...input);
+  const capture = method(providerMoon, 'installedDeclaredUpdateCaptureConstructionProfile')(...input);
+  // This Common composer already supports a synchronous projector running
+  // on the physical child's reservation. Its projected-response slot includes
+  // HTTP backing, secret and the complete typed decoder. Select it for each
+  // of the three target reads. The simpler target slot splits the decoder's
+  // workspace onto Run controls, so it is not selected here.
+  const capacities = checked(method(moon, 'clientProgramInstalledDescribedEffectInputRecipeCapacities')(
+    native, capture, ...input, mutation.maxRequestBytes, mutation.maxResponseBytes,
+    false, target.maxRequestBytes, target.maxResponseBytes, target.maxRequestBytes, target.maxResponseBytes,
+    secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length, httpsCredentialResponseHeaderByteLimit,
+    Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
+    Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
+    Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth),
+    units, httpsCredentialResponseReadQuantum, 0, -1));
+  if (!Array.isArray(capacities) || capacities.length !== 8) invalid();
+  const prepareCapture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
+  const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
+  const composeTarget = captureDeclaredUpdateTargetCapacity(moon);
+  const member = Object.freeze({operation, extent: checked(prepareCapture(operation, capacities.slice(0, 6), ...input.slice(0, 3)))});
+  const rowOperations = [Object.freeze({operation, extent: checked(extent(operation, capacities[2], 0n, false))})];
+  const credentialOperations = [];
+  const physical = (phase, name, bound, quantity, slot) => {
+    const operationIndex = rowOperations.length;
+    const transfer = BigInt(bound.maxRequestBytes) + httpsCredentialResponseWindowBytes(bound.maxResponseBytes);
+    rowOperations.push(Object.freeze({operation: name,
+      extent: checked(extent(name, quantity, transfer, true))}));
+    credentialOperations.push(Object.freeze({phase, operationIndex, ...bound, ...(slot === undefined ? {} : {slot})}));
+  };
+  const targetCapacity = composeTarget(capacities[7], target.maxTargetBytes);
+  for (const phase of ['capture-target', 'apply-target', 'resume-target']) {
+    physical(phase, targetOperation, target, targetCapacity, 'target');
+  }
+  physical('write', operation, mutation, composeTarget(capacities[3], mutation.maxTargetBytes));
+  return captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([member, member]), rowOperations: Object.freeze(rowOperations),
+    controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0}),
+    recoveryConstruction: Object.freeze({operationIndex: 1}), requestConstruction: Object.freeze({operationIndex: 0}),
+    credentialOperations: Object.freeze(credentialOperations),
+  }), rowOperations.length + 2);
+}
+
 // Non-HTTP providers retain their actual pure constructor metadata. These six
 // extents describe returned/workspace DATA, never policy, grants or a Plan.
 // Common alone composes the native quantities, control codec and operation slots.
@@ -461,13 +541,14 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
       const maxTargetBytes = entry.maxTargetBytes?.value;
       if (typeof phase !== 'string') fail('InvalidInstalledEffectPlanRecipe');
-      if (entry.maxTargetBytes !== undefined && (phase !== 'write' ||
-          !Number.isSafeInteger(maxTargetBytes) || maxTargetBytes < 1 || maxTargetBytes > 2147483647)) {
-        fail('InvalidInstalledEffectPlanRecipe');
-      }
       const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
       const target = ['capture-target', 'apply-target', 'resume-target'].includes(phase);
       const slot = entry.slot?.value, resource = entry.resource?.value;
+      if (entry.maxTargetBytes !== undefined &&
+          ((phase !== 'write' && (!target || slot !== 'target' || resource !== undefined)) ||
+          !Number.isSafeInteger(maxTargetBytes) || maxTargetBytes < 1 || maxTargetBytes > 2147483647)) {
+        fail('InvalidInstalledEffectPlanRecipe');
+      }
       const named = slot !== undefined;
       if (named && (!describe && !target || !text(slot) || !slot.isWellFormed() ||
           /[\u0000-\u001f\u007f]/u.test(slot)) ||

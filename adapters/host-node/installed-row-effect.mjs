@@ -94,7 +94,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -1280,14 +1280,17 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
   const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned, localContractLimits.maxNodes, supportedKinds);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
-  // A declared UPDATE still uses its existing funded credential children,
-  // including per-row observations. Do not select the unfunded legacy port.
-  const updateRecipe = declaredUpdate ? suppliedRecipes?.update ?? suppliedRecipe : undefined;
-  const updateWriteSlot = declaredUpdate ? selectInstalledEffectCredentialOperation(updateRecipe, 'write') : undefined;
-  if (declaredUpdate && (updateWriteSlot?.maxTargetBytes === undefined || updateRecipe.physicalWrite !== undefined ||
-      updateRecipe.rowOperations[updateWriteSlot.operationIndex]?.operation !== owned.operation)) {
-    fail('InvalidInstalledEffectPlanRecipe');
-  }
+  const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
+  if (automaticUpdate && (owned.describe !== undefined || owned.finalizeRequest !== undefined ||
+      managedPlanConstruction !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
+  const checkedUpdateWrite = recipe => {
+    const slot = selectInstalledEffectCredentialOperation(recipe, 'write');
+    if (slot?.maxTargetBytes === undefined || recipe.physicalWrite !== undefined ||
+        recipe.rowOperations[slot.operationIndex]?.operation !== owned.operation) fail('InvalidInstalledEffectPlanRecipe');
+    return slot;
+  };
+  const suppliedUpdateWrite = declaredUpdate && !automaticUpdate
+    ? checkedUpdateWrite(suppliedRecipes?.update ?? suppliedRecipe) : undefined;
   if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
       suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
       managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
@@ -1379,15 +1382,19 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
       return mapping;
     }));
   let resourceTextUnits = 0;
-  if (automatic) {
+  if (automatic || automaticUpdate) {
     for (const selected of installed) resourceTextUnits += selected.resource.length;
     for (const selected of installedCommands) resourceTextUnits += selected.resource.length;
   }
-  const planRecipe = automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
-    construction, credentialSite: installedRowCredentialOperationSite(site.credential),
-    limits: limits.preview, resourceTextUnits,
-    requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
-      maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})}) : suppliedRecipe;
+  const planRecipe = automaticUpdate ? prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon,
+    write: owned, credentialSite: installedRowCredentialOperationSite(site.credential),
+    limits, resourceTextUnits, connectorRegistration})
+    : automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
+      construction, credentialSite: installedRowCredentialOperationSite(site.credential),
+      limits: limits.preview, resourceTextUnits,
+      requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
+        maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})}) : suppliedRecipe;
+  const updateWriteSlot = automaticUpdate ? checkedUpdateWrite(planRecipe) : suppliedUpdateWrite;
   // The driver hook applies to each checked kind. A kind-specific recipe is
   // not the absent legacy recipe: require its own distinct finalization slot.
   for (const recipe of suppliedRecipes === undefined ? [planRecipe] : Object.values(suppliedRecipes)) {
@@ -1938,11 +1945,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (!recipe?.credentialOperations?.some(entry => entry.phase === phase)) return undefined;
     if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
     const {site} = ownerOf(member);
-    return (authorization, input, rowIndex = 0, slot, project) => {
+    return (authorization, input, rowIndex = 0, slot, project, prepareOperations) => {
       if (project !== undefined && (typeof project !== 'function' || nodeTypes.isProxy(project) ||
           nodeTypes.isAsyncFunction(project))) fail('ForeignInstalledEffectReadChild');
       const selected = selectInstalledEffectCredentialOperation(recipe, phase, slot);
-      if (selected === undefined) fail('ForeignInstalledEffectReadChild');
+      if (selected === undefined ||
+          prepareOperations !== undefined && (typeof prepareOperations !== 'function' ||
+            selected.maxTargetBytes === undefined || slot !== 'target')) fail('ForeignInstalledEffectReadChild');
       const operation = (selected.perRow === false ? recipe.memberOperations : recipe.rowOperations)
         [selected.operationIndex].operation;
       // Only a target occurrence consumes this same row's retained approval
@@ -1969,7 +1978,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         runInvocationCid, dispatchRequestCid, assertCurrent, signal,
         maxResponseBytes: input.maxResponseBytes,
         invoke: async ({authorization, credential, callResource}) => {
-          const response = await callResource({...input,
+          const operations = prepareOperations === undefined ? input.operations : prepareOperations();
+          const response = await callResource({...input, operations,
             ...credential, ...authorization, maxRequestBytes: selected.maxRequestBytes});
           // Native decoding must finish INSIDE the original physical child.
           // Its response workspace cannot shrink while projection is pending.
