@@ -138,11 +138,11 @@ fn reserve_keyed_dependency_serial_controls(
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   // One body and one range certificate, plus the old/new certificate overlap
   // while updating the serial state. The extent stack is funded separately.
-  // Also keep the policy hook and up to two disjoint policy range records.
+  // Keep the batch hooks and the checked range carriers until settlement.
   guard @execution.preparation_representation_cost({
-      record_headers: 39L,
-      reference_slots: 61L,
-      scalar_words: 57L,
+      record_headers: 43L,
+      reference_slots: 67L,
+      scalar_words: 65L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -157,6 +157,12 @@ fn reserve_keyed_dependency_serial_controls(
     None,
   )
 }
+
+///|
+// The Request interval, two policy invocations and the Catalog suffix. The
+// Generic suffix can be split by at most one separately borrowed retention
+// body, because its one original identity is inserted at most once.
+let keyed_dependency_measured_range_capacity : Int = 5
 
 ///|
 let keyed_dependency_member_bytes : Int64 = 4096L

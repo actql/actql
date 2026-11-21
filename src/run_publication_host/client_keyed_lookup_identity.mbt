@@ -653,7 +653,7 @@ fn finish_keyed_lookup_protocol_metadata(
   let dependency_frames = match dependencies {
     NoDependencies => if dependency_bodies is Some(_) { 16L } else { 0L }
     Unmeasured(_) => 20L
-    Measured(_, _) => 32L
+    Measured(_, _) => 34L
   }
   let frames = 4L * (max_depth.to_int64() + 1L) +
     4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L) +
@@ -748,14 +748,14 @@ fn finish_keyed_lookup_protocol_metadata(
     }
     retained = total
     // Preserve the original order of unmeasured bodies and their failures.
-    // The collector can have one Request interval and two policy intervals.
+    // The range bound follows the original Request, policy and Catalog sites.
     let ranges = match dependencies {
       Measured(_, last) => {
-        let ordered = Array(capacity=3)
+        let ordered = Array(capacity=keyed_dependency_measured_range_capacity)
         let mut limit = bodies.length()
         let mut current = Some(last)
         while current is Some(original) {
-          guard ordered.length() < 3 &&
+          guard ordered.length() < keyed_dependency_measured_range_capacity &&
             physical_equal(original.bodies, bodies) &&
             original.start >= 0 &&
             original.start < original.end &&
