@@ -69,6 +69,20 @@ function inspectExplanationOriginalStorage(database) {
   return row !== undefined;
 }
 
+// The Context companion uses the same committed original Facts and Run.
+// Keep the deployed Facts table unchanged so a pre-Context journal remains
+// readable without migration, and never create the companion on a read.
+const explanationContextOriginalTable = `CREATE TABLE client_run_explanation_context_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
+  context_wire TEXT NOT NULL
+) STRICT`;
+function inspectExplanationContextOriginalStorage(database) {
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_run_explanation_context_originals'")
+    .get(explanationContextOriginalTable.length + 1);
+  if (row !== undefined && row.sql !== explanationContextOriginalTable) fail('UnknownClientRequestJournalFormat');
+  return row !== undefined;
+}
+
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
 const text = value => typeof value === 'string' &&
@@ -2926,21 +2940,28 @@ export function openClientRequestJournal(directory, {
   // No accepted-row string (including binding CIDs) crosses this probe. The
   // same connection retains/prepares these fixed SQL statements under its
   // existing selected statement/SQL/operand ownership, not the read's codec.
-  const explanationReadSelection = ref => {
+  const explanationReadSelection = (ref, includeContext) => {
     ensureOpen();
     if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
       fail('InvalidClientRunLookup');
     }
     const facet = inspectExplanationOriginalStorage(database);
-    return {facet, from: `FROM client_requests r${facet
-      ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}
+    const context = includeContext && inspectExplanationContextOriginalStorage(database);
+    const selected = {facet, from: `FROM client_requests r${facet
+      ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}${context
+      ? ' LEFT JOIN client_run_explanation_context_originals c ON c.run_definition_cid = r.run_definition_cid' : ''}
       WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`,
     facts: facet ? 'f.facts_wire' : 'NULL',
     present: facet ? 'f.run_definition_cid IS NOT NULL' : '0',
     matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
+    if (includeContext) {
+      selected.context = context ? 'c.context_wire' : 'NULL';
+      selected.contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
+    }
+    return selected;
   };
-  const probeExplanationRead = ref => {
-    const sql = explanationReadSelection(ref);
+  const probeExplanationRead = (ref, includeContext) => {
+    const sql = explanationReadSelection(ref, includeContext);
     const row = database.prepare(`SELECT
       ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
       CASE WHEN typeof(r.run_definition_wire)='text' THEN length(CAST(r.run_definition_wire AS BLOB)) ELSE -1 END AS definition_bytes,
@@ -2950,6 +2971,9 @@ export function openClientRequestJournal(directory, {
         AND typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71 THEN 1 ELSE 0 END AS bindings_bounded,
       CASE WHEN ${sql.present} THEN CASE WHEN typeof(${sql.facts})='text'
         THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes
+      ${includeContext ? `, ${sql.contextPresent} AS context_present,
+        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
+          THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes` : ''}
       ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
     if (row === undefined) return undefined;
     if (row.facet_matches !== 1 || row.bindings_bounded !== 1 ||
@@ -2958,20 +2982,32 @@ export function openClientRequestJournal(directory, {
         row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1) {
       fail('ClientRequestJournalCorrupt');
     }
-    return Object.freeze({definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
-      factsBytes: row.facts_bytes, storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes + 142});
+    const contextBytes = includeContext ? row.context_bytes : 0;
+    if (!Number.isSafeInteger(contextBytes) || contextBytes < 0 ||
+        row.facts_bytes + contextBytes > maxRunDefinitionWireBytes ||
+        row.context_present === 1 && (contextBytes < 1 || row.facts_present !== 1)) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    const extent = {definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
+      factsBytes: row.facts_bytes,
+      storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes + contextBytes + 142};
+    if (includeContext) extent.contextBytes = contextBytes;
+    return Object.freeze(extent);
   };
-  const readExplanationSelection = (ref, extent) => {
+  const readExplanationSelection = (ref, extent, includeContext) => {
     const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes];
+    if (includeContext) bounds.push(extent?.contextBytes);
     if (!bounds.every(value => Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
+        includeContext && (extent.factsBytes + extent.contextBytes > maxRunDefinitionWireBytes ||
+          extent.contextBytes > 0 && extent.factsBytes === 0) ||
         extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value, 142)) {
       fail('InvalidClientRunExplanationExtent');
     }
-    const sql = explanationReadSelection(ref);
+    const sql = explanationReadSelection(ref, includeContext);
     // Recheck EACH scalar/wire inside the same native full-row SELECT. A
     // changed/corrupt row cannot return oversized text after a small probe;
     // NULL is an explicit rejected original, never truncated valid evidence.
-    const row = database.prepare(`SELECT ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
+    const statement = database.prepare(`SELECT ${sql.present} AS facts_present, ${sql.matches} AS facet_matches,
       CASE WHEN typeof(r.run_definition_wire)='text' AND length(CAST(r.run_definition_wire AS BLOB)) BETWEEN 1 AND ?
         THEN r.run_definition_wire ELSE NULL END AS definition_wire,
       CASE WHEN r.run_admission_evidence_json IS NULL THEN NULL WHEN typeof(r.run_admission_evidence_json)='text'
@@ -2983,16 +3019,27 @@ export function openClientRequestJournal(directory, {
         THEN r.parameter_values_cid ELSE NULL END AS parameters_cid,
       CASE WHEN ${sql.present} AND typeof(${sql.facts})='text' AND length(CAST(${sql.facts} AS BLOB)) BETWEEN 1 AND ?
         THEN ${sql.facts} ELSE NULL END AS facts_wire
-      ${sql.from}`).get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+      ${includeContext ? `, ${sql.contextPresent} AS context_present,
+        CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
+          AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire` : ''}
+      ${sql.from}`);
+    const row = includeContext
+      ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, extent.contextBytes,
+        ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)
+      : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
     if (row === undefined) return undefined;
     if (row.facet_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
-        row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null) {
+        row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null ||
+        includeContext && ((row.context_present === 1) !== (extent.contextBytes > 0) ||
+          row.context_present === 1 && (row.context_wire === null || row.facts_present !== 1))) {
       fail('ClientRequestJournalCorrupt');
     }
-    return Object.freeze({definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
+    const result = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
       programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
-      factsWire: row.facts_present === 1 ? row.facts_wire : undefined});
+      factsWire: row.facts_present === 1 ? row.facts_wire : undefined};
+    if (includeContext) result.contextWire = row.context_present === 1 ? row.context_wire : undefined;
+    return Object.freeze(result);
   };
   const insertExplanationOriginal = (ref, original) => {
     // This runs inside the SAME semantic acceptance transaction, after the
@@ -3001,6 +3048,11 @@ export function openClientRequestJournal(directory, {
     database.prepare(`INSERT INTO client_run_explanation_originals
       (namespace_id, authority_scope_cid, run_definition_cid, facts_wire) VALUES (?, ?, ?, ?)`)
       .run(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, original.factsWire);
+    if (original.contextWire !== undefined) {
+      if (!inspectExplanationContextOriginalStorage(database)) database.exec(explanationContextOriginalTable);
+      database.prepare(`INSERT INTO client_run_explanation_context_originals
+        (run_definition_cid, context_wire) VALUES (?, ?)`).run(ref.runDefinitionCid, original.contextWire);
+    }
   };
 
   const acceptRecord = (identity, {namespaceId, runDefinitionCid,
@@ -3091,6 +3143,16 @@ export function openClientRequestJournal(directory, {
             authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
           if (original === undefined) fail('ClientRequestExplanationEvidenceMissing');
           if (original.factsWire !== originalExplanation.factsWire) fail('ClientRequestExplanationEvidenceMismatch');
+          if (originalExplanation.contextWire !== undefined) {
+            if (!inspectExplanationContextOriginalStorage(database)) fail('ClientRequestExplanationEvidenceMissing');
+            // Compare the companion inside SQLite. A retry cannot backfill
+            // absent Context or read a second unquoted copy of it.
+            const context = database.prepare(`SELECT context_wire = ? AS original_matches
+              FROM client_run_explanation_context_originals WHERE run_definition_cid = ?`)
+              .get(originalExplanation.contextWire, existing.run_definition_cid);
+            if (context === undefined) fail('ClientRequestExplanationEvidenceMissing');
+            if (context.original_matches !== 1) fail('ClientRequestExplanationEvidenceMismatch');
+          }
         }
         const proposedInfer = admittedEvidence?.inferRunOriginal;
         if (proposedInfer !== undefined) {
@@ -3566,6 +3628,12 @@ export function openClientRequestJournal(directory, {
       return primarySchemaSqlSupport === undefined ||
         primarySchemaSqlSupport.includes(explanationOriginalTable);
     },
+    supportsOriginalExplanationContext() {
+      ensureOpen();
+      return primarySchemaSqlSupport === undefined ||
+        primarySchemaSqlSupport.includes(explanationOriginalTable) &&
+        primarySchemaSqlSupport.includes(explanationContextOriginalTable);
+    },
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       ensureOpen();
@@ -3604,15 +3672,29 @@ export function openClientRequestJournal(directory, {
             definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
           if (original === null || typeof original !== 'object' || Array.isArray(original)) fail('InvalidClientRunExplanationOriginal');
           const fields = operationDescriptors(original), field = fields.factsWire;
-          if (operationKeys(fields).length !== 1 || field === undefined ||
+          const companion = fields.contextWire;
+          if (operationKeys(fields).length !== (companion === undefined ? 1 : 2) || field === undefined ||
               !Object.hasOwn(field, 'value') || typeof field.value !== 'string' || field.value.length === 0) {
             fail('InvalidClientRunExplanationOriginal');
           }
           const factsWire = field.value;
-          if (Buffer.byteLength(factsWire) > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
-          explanationOriginal = Object.freeze({factsWire});
+          let bytes = Buffer.byteLength(factsWire);
+          const captured = {factsWire};
+          if (companion !== undefined) {
+            if (!Object.hasOwn(companion, 'value') || typeof companion.value !== 'string' || companion.value.length === 0) {
+              fail('InvalidClientRunExplanationOriginal');
+            }
+            if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(explanationContextOriginalTable)) {
+              fail('ClientRequestExplanationStorageUnavailable');
+            }
+            captured.contextWire = companion.value;
+            bytes += Buffer.byteLength(captured.contextWire);
+          }
+          if (bytes > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
+          explanationOriginal = Object.freeze(captured);
         } catch (cause) {
-          if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          if (cause?.code === 'InvalidClientRunAdmissionEvidence' ||
+              cause?.code === 'ClientRequestExplanationStorageUnavailable') throw cause;
           fail('InvalidClientRunExplanationOriginal', cause);
         }
       }
@@ -3731,8 +3813,10 @@ export function openClientRequestJournal(directory, {
     },
     // Private explicit-read DATA only. The installed caller must admit entry
     // before probe, then the complete original/codec overlap before full read.
-    probeRunExplanationOriginal: probeExplanationRead,
-    readRunExplanationOriginal: readExplanationSelection,
+    probeRunExplanationOriginal(ref) {return probeExplanationRead(ref, false);},
+    readRunExplanationOriginal(ref, extent) {return readExplanationSelection(ref, extent, false);},
+    probeRunExplanationContextOriginal(ref) {return probeExplanationRead(ref, true);},
+    readRunExplanationContextOriginal(ref, extent) {return readExplanationSelection(ref, extent, true);},
     // Only public observation metadata may explain this particular frame
     // change. Both frames already belong to this Journal's full admission;
     // every immutable/control column and selected key must remain exact.

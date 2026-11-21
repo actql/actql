@@ -28409,7 +28409,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9aca91e7c8ea5d054804dc7cbe6888094648c39723010396aeef96c210d49b23",
+      "sha256": "847442d53454f37c35ab3622da72f2f22222e4b9beaf0ea975468577607b2e6f",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29494,6 +29494,20 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:probeRunExplanationContextOriginal/init:probeRunExplanationContextOriginal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:probeRunExplanationOriginal/init:probeRunExplanationOriginal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
           "parameters": [
             "frame",
@@ -29520,6 +29534,22 @@
         {
           "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:readRunExplanationOriginal/init:readRunExplanationOriginal",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
           "async": false
         },
         {
@@ -29774,6 +29804,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
           "parameters": [
             "epoch",
@@ -29795,24 +29830,9 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection",
-          "parameters": [
-            "ref",
-            "extent"
           ],
           "async": false
         },
@@ -33186,7 +33206,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/probeExplanationRead/probeExplanationRead"
+            "openClientRequestJournal/journal/init:probeRunExplanationOriginal/init:probeRunExplanationOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -33354,7 +33374,7 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/readExplanationSelection/readExplanationSelection"
+            "openClientRequestJournal/journal/init:readRunExplanationOriginal/init:readRunExplanationOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -33684,6 +33704,93 @@
               {
                 "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
                 "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:probeRunExplanationContextOriginal/init:probeRunExplanationContextOriginal",
+            "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
+            "openClientRequestJournal/journal/init:supportsOriginalExplanationContext/init:supportsOriginalExplanationContext"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const explanationContextOriginalTable ="
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "supportsOriginalExplanationContext()"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "probeRunExplanationContextOriginal(ref)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "readRunExplanationContextOriginal(ref, extent)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "anchor": "REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "c.run_definition_cid = r.run_definition_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "This runs inside the SAME semantic acceptance transaction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context joins the same committed Plan and Facts"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('failed Context insertion rolls back"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These synchronous Journal selections own no independently cancellable operation. The caller owns cancellation and disclosure."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "extent.factsBytes + extent.contextBytes > maxRunDefinitionWireBytes"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context checks combined UTF-8 extent"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('old Facts-only Runs never backfill Context"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context joins the same committed Plan and Facts"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('Context checks combined UTF-8 extent"
               }
             ]
           }
@@ -46773,7 +46880,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "0dedcfa0037d5833e85116241d8f16d0cbf657af88de095b748b0cb77f8d1440",
+      "sha256": "e6e70fe5869ff873248d94af13e4183ea16095888d08cb2965a6bbc29f1aa59c",
       "exports": [
         "commonjs:sql"
       ],
