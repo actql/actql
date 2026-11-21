@@ -4,17 +4,17 @@
     {
       "stage_case": "local-binding-and-parameter-uses",
       "id": "a",
-      "expected_cid": "sha256:2af4103e02d1b456461830c4adfaafa15a760c838291c9d3371d29fb66791db2"
+      "expected_cid": "sha256:b5a20f3e55303cfa8d94c16431c7db0cacc7c4eddfd02146be50ba38a027bd30"
     },
     {
       "stage_case": "other-stage-declarations-excluded",
       "id": "b",
-      "expected_cid": "sha256:8e7684fb6f380bb806a7f8f96d3508d69ee6590ce09b6b89916e0b07d3c1a71c"
+      "expected_cid": "sha256:15c1cdeb7eb1f27fea37d875a2f620435a6e46732c262f7389479af84e22cc57"
     },
     {
       "stage_case": "explicit-empty-maps-and-lists",
       "id": "b",
-      "expected_cid": "sha256:5c75f5493403884284705cbfcec5fcbc1a9bf3f9642999ac8b750558331b6d2c"
+      "expected_cid": "sha256:0e2cc2870e889fa579633ab3e1bbbcc8e397c098f8fe5e7778b980a999c6199e"
     }
   ]
 }

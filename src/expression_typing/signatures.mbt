@@ -388,6 +388,21 @@ fn infer(
       let nullable = arguments(t, nodes, node, "int64")
       primitive(t, DateType, nullable, source)
     }
+    "json_value" => {
+      let input = nodes[node.children[0]]
+      if immediate_null(input) {
+        let hint = primitive(t, StringType, false, input.source)
+        provide(t, input.inferred, hint, input.source)
+      }
+      match resolve_type(t, input.inferred, input.source).shape {
+        Json | Text(_) => ()
+        _ => fail(input.source, TypeMismatch("String or Json"))
+      }
+      if node.children.get(1) is Some(path) {
+        ignore(require_type(t, nodes, path, "string"))
+      }
+      primitive(t, StringType, true, source)
+    }
     "to_json_string" => {
       let input = nodes[node.children[0]]
       if immediate_null(input) {

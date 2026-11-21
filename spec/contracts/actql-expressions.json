@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "4e5f3f98b935a991dfbad1bf28c86fcd593e4e92c1ae6bad4c2272507dc08d24",
+  "grammar_sha256": "8f78cdce151e28cd59d130d1258e167f6ca80ee2bebd8122c62905028b223390",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6351,6 +6351,23 @@
               ],
               "properties": {
                 "to_json_string": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "json_value"
+              ],
+              "properties": {
+                "json_value": {
                   "type": "array",
                   "minItems": 1,
                   "maxItems": 2,
@@ -13367,6 +13384,27 @@
               "properties": {
                 "op": {
                   "const": "to_json_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "json_value"
                 },
                 "body": {
                   "type": "array",
@@ -25750,6 +25788,23 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "json_value"
+              ],
+              "properties": {
+                "json_value": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -31844,6 +31899,27 @@
               "properties": {
                 "op": {
                   "const": "to_json_string"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "json_value"
                 },
                 "body": {
                   "type": "array",
@@ -40199,6 +40275,23 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "json_value"
+              ],
+              "properties": {
+                "json_value": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -46303,6 +46396,27 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "json_value"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -47590,6 +47704,12 @@
       "identity": "The closed source is {to_json_string:[value]} or {to_json_string:[value,pretty]}. The closed machine form uses the original ordered operands.",
       "value": "After all demanded operands succeed, a NULL pretty flag returns SQL NULL. A NULL input Value yields the four-character String null. Otherwise emit compact JSON, or two-space indentation for a true flag, preserving original array elements, admitted object fields and Unicode scalar strings. INT64 and integral Decimal values in the inclusive signed safe range [-2^53,2^53] are numbers. Other INT64 and Decimal values emit their exact decimal spelling as JSON strings. Date and Timestamp retain their Common ISO text. A Json value emits its admitted payload without a wrapper. Opaque references are not serializable.",
       "evaluation": "Measure before building under the existing Text owner. Retain all original operands, use the original work and logical and physical limits, and preserve demand, failed children and cancellation."
+    },
+    "json_value": {
+      "signature": "One original String or Json value and an optional String JSON path. Return nullable String.",
+      "identity": "The closed source is {json_value:[value]} or {json_value:[value,path]}. The machine form retains the original ordered operands.",
+      "value": "Use the root path $ when absent. The linear selector uses dot members, double-quoted members and bracket indexes. A missing or nonscalar selection, JSON null, a NULL operand or malformed input before the selected scalar yields SQL NULL. A malformed selector fails evaluation. Decode selected string escapes; retain the original number token of String input. Admitted Json uses its existing scalar values. Successful String selection does not parse any trailing document text.",
+      "evaluation": "Retain original operands, account each path or parent frame before construction and meter scalar progress. Only selected text is measured and built by the existing owner. Preserve demanded failures and cancellation."
     }
   },
   "regex_ast_contract": {

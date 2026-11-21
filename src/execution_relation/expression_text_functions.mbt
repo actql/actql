@@ -26,6 +26,7 @@ priv enum TextFunctionKind {
   TextArrayJoin
   TextFormatStrings
   TextSqlJson
+  TextJsonValue
   TextSubstring
   TextLeft
   TextRight
@@ -81,7 +82,7 @@ priv struct TextFunctionState {
   input : String
   search : String
   mut replacement : String
-  output_root : ExpressionRootLease?
+  mut output_root : ExpressionRootLease?
   reserved : Int
   mut position : Int
   mut matched : Int
@@ -122,6 +123,41 @@ priv struct TextFunctionState {
 }
 
 ///|
+fn admit_text_expression_output(
+  expression : @lower.Expression,
+  scope : ExpressionRoots?,
+) -> Result[ExpressionRootLease?, EvalIssue] {
+  guard scope is Some(scope) else { return Ok(None) }
+  let budget = scope.budget
+  if budget.host_nodes < 1 ||
+    budget.host_depth < 1 ||
+    budget.host_bytes < 2 ||
+    budget.limits.max_value_bytes < 2L {
+    return Err({
+      kind: LogicalValue(ValueMeasure(HostMeasureLimit)),
+      expression,
+    })
+  }
+  let root = match reserve_text_logical_bytes(budget, 2L) {
+    Ok(root) => root
+    Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
+  }
+  let root = match register_scope_root(scope, root) {
+    Ok(root) => root
+    Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
+  }
+  match charge_logical_work(budget, 1L) {
+    Err(_) =>
+      return Err({
+        kind: LogicalValue(ValueMeasure(LogicalWorkLimit)),
+        expression,
+      })
+    Ok(_) => ()
+  }
+  Ok(Some(root))
+}
+
+///|
 fn start_text_function(
   expression : @lower.Expression,
   values : Array[Value],
@@ -138,6 +174,7 @@ fn start_text_function(
       Null => null_result = true
       _ if kind == TextSqlJson =>
         return Err({ kind: Scalar(InvalidOperand), expression, })
+      Captured(@admitted.JsonData(_)) if kind == TextJsonValue && i == 0 => ()
       Captured(@admitted.Array(_)) if kind == TextArrayJoin && i == 0 => ()
       Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
         ()
@@ -302,6 +339,8 @@ fn start_text_function(
       2 + (if values[0] is Text(_) { FORMAT_STRINGS_SLOTS } else { 0 })
     } else if kind == TextSqlJson {
       2 + (if null_result { 0 } else { SQL_JSON_CURSOR_SLOTS })
+    } else if kind == TextJsonValue {
+      2 + (if null_result { 0 } else { JSON_VALUE_CURSOR_SLOTS })
     } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
@@ -388,35 +427,12 @@ fn start_text_function(
     kind != TextContains &&
     kind != TextLike &&
     kind != TextInstr &&
-    !null_result &&
-    scope is Some(scope) {
-    let budget = scope.budget
-    if budget.host_nodes < 1 ||
-      budget.host_depth < 1 ||
-      budget.host_bytes < 2 ||
-      budget.limits.max_value_bytes < 2L {
-      return Err({
-        kind: LogicalValue(ValueMeasure(HostMeasureLimit)),
-        expression,
-      })
-    }
-    let root = match reserve_text_logical_bytes(budget, 2L) {
+    kind != TextJsonValue &&
+    !null_result {
+    match admit_text_expression_output(expression, scope) {
       Ok(root) => root
-      Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
+      Err(issue) => return Err(issue)
     }
-    let root = match register_scope_root(scope, root) {
-      Ok(root) => root
-      Err(issue) => return Err({ kind: LogicalValue(issue), expression, })
-    }
-    match charge_logical_work(budget, 1L) {
-      Err(_) =>
-        return Err({
-          kind: LogicalValue(ValueMeasure(LogicalWorkLimit)),
-          expression,
-        })
-      Ok(_) => ()
-    }
-    Some(root)
   } else {
     None
   }
@@ -458,7 +474,8 @@ fn start_text_function(
     output_root,
     reserved: if kind == TextArrayJoin ||
       kind == TextFormatStrings ||
-      kind == TextSqlJson {
+      kind == TextSqlJson ||
+      kind == TextJsonValue {
       values.length() * 3 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||

@@ -404,6 +404,7 @@ fn emit_frames(
                   ArrayToString => "array_to_string"
                   FormatStrings => "format_strings"
                   ToJsonString => "to_json_string"
+                  JsonValue => "json_value"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

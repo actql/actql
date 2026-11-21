@@ -130,6 +130,7 @@ priv enum Evaluation {
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   FormatText(TextFunctionState, FormatStrings)
   SqlJsonText(TextFunctionState, SqlJsonCursor)
+  JsonValueText(TextFunctionState, JsonValueQuery)
   Fingerprint(FarmFingerprint)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
@@ -430,7 +431,8 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
     TextFunction(state)
     | ArrayTextJoin(state, _)
     | FormatText(state, _)
-    | SqlJsonText(state, _) => state.builder = None
+    | SqlJsonText(state, _)
+    | JsonValueText(state, _) => state.builder = None
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -881,6 +883,7 @@ fn advance_expression_frame_impl(
             if op == @lower.ArrayToString ||
               op == @lower.FormatStrings ||
               op == @lower.ToJsonString ||
+              op == @lower.JsonValue ||
               op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
@@ -896,7 +899,9 @@ fn advance_expression_frame_impl(
                 // with the fixed cursor slots. Check that sum before any
                 // multiplication of the variable arity.
                 children.length() <= (2147483647 - FORMAT_STRINGS_SLOTS - 3) / 3
-              } else if op == @lower.Split || op == @lower.ToJsonString {
+              } else if op == @lower.Split ||
+                op == @lower.ToJsonString ||
+                op == @lower.JsonValue {
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
@@ -920,6 +925,8 @@ fn advance_expression_frame_impl(
                     TextFormatStrings
                   } else if op == @lower.ToJsonString {
                     TextSqlJson
+                  } else if op == @lower.JsonValue {
+                    TextJsonValue
                   } else if op == @lower.Split {
                     TextSplit
                   } else if op == @lower.Repeat {
@@ -970,7 +977,8 @@ fn advance_expression_frame_impl(
               | GenerateArray
               | ArrayToString
               | FormatStrings
-              | ToJsonString => Null
+              | ToJsonString
+              | JsonValue => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1354,6 +1362,18 @@ fn advance_expression_frame_impl(
                   separator: false,
                   seen: false,
                 })
+              } else if state.kind == TextJsonValue && !state.null_result {
+                let path = match args.values.get(1) {
+                  Some(Text(path)) => path
+                  _ => "$"
+                }
+                guard json_value_query(args.values[0], path) is Some(query) else {
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                }
+                frame.state = JsonValueText(state, query)
               } else if state.kind == TextSqlJson && !state.null_result {
                 frame.state = SqlJsonText(state, {
                   original: args.values[0],
@@ -2015,6 +2035,7 @@ fn advance_expression_frame_impl(
               | ArrayToString
               | FormatStrings
               | ToJsonString
+              | JsonValue
               | Substring
               | LeftString
               | RightString
@@ -2299,6 +2320,18 @@ fn advance_expression_frame_impl(
             release_slots(workspace, FARM_FINGERPRINT_SLOTS)
             frame.state = Return(value)
           }
+        }
+      }
+      JsonValueText(state, query) => {
+        frame.active = state.expression
+        match advance_json_value_query(state, query, workspace, scope) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
         }
       }
       SqlJsonText(state, json) => {

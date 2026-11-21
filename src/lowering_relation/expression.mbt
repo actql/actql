@@ -160,6 +160,7 @@ pub(all) enum ManyOperator {
   ArrayToString
   FormatStrings
   ToJsonString
+  JsonValue
   Substring
   LeftString
   RightString
@@ -451,6 +452,7 @@ fn expression_tag(
     | "array_to_string"
     | "format_strings"
     | "to_json_string"
+    | "json_value"
     | "substring"
     | "left"
     | "right"
@@ -1420,6 +1422,7 @@ fn lower_typed_expression_measured(
         "array_to_string" => Many(ArrayToString, args)
         "format_strings" => Many(FormatStrings, args)
         "to_json_string" => Many(ToJsonString, args)
+        "json_value" => Many(JsonValue, args)
         "generate_array" => Many(GenerateArray, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)

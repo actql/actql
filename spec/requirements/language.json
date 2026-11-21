@@ -3204,6 +3204,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.json-value",
+      "statement_sha256": "6b805e7fa42e95a66bd081c77a123fe4ba4263a7e1c429a0413834a0813fe2ee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.to-json-string",
       "statement_sha256": "7d9b76780f3cff55ea22beb2b2a7f72e591a26518d9311101824da5eb39f3a17",
       "status": "pending",
@@ -11224,7 +11235,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "a0071a7bdeb5be8ece3fa1e99fc1824090c75168f188db1c5825867874c64150",
+      "statement_sha256": "3530c7d35719b73a0019606d0d99381601daa83074646ae5209a32c35f3ddb1a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

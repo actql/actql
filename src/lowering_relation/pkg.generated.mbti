@@ -1627,6 +1627,7 @@ pub(all) enum ManyOperator {
   ArrayToString
   FormatStrings
   ToJsonString
+  JsonValue
   Substring
   LeftString
   RightString

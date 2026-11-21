@@ -429,6 +429,12 @@ forms retain their bytes and meanings.
 String operand. The result is INT64 with the operand's nullability.
 The checked Common operation consumes the original UTF-8 bytes.
 
+`JSON_VALUE(input[, path])` selects `json_value`. Input is a String or
+admitted Json and the optional path is String. The Common evaluator
+returns nullable String. It retains the original arguments, supports
+linear member and array index paths, and reads a JSON String only
+through the selected value.
+
 `TO_JSON_STRING(value[, pretty_print])` selects `to_json_string`.
 The optional Boolean flag and original Value are retained as authored.
 The Common expression emits a String using the admitted Value domains,

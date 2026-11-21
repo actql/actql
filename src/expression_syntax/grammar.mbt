@@ -161,6 +161,7 @@ fn expression_role(
     | "array_to_string"
     | "format_strings"
     | "to_json_string"
+    | "json_value"
     | "array_concat"
     | "vector_concat"
     | "current_timestamp"
@@ -208,7 +209,7 @@ fn arity(
     "translate" => size == 3
     "split" => size == 1 || size == 2
     "generate_array" | "array_to_string" => size == 2 || size == 3
-    "to_json_string" => size == 1 || size == 2
+    "to_json_string" | "json_value" => size == 1 || size == 2
     "lpad" | "rpad" => size == 2 || size == 3
     "and"
     | "or"

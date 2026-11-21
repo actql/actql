@@ -2567,6 +2567,25 @@ hashing participates. Use the existing expression frame to reserve fixed
 working storage, meter scalar progress and hold the original operand
 through evaluation. Preserve enclosing demand, failure and cancellation.
 
+### JSON scalar selection
+
+<!-- requirement-block: scalar-expressions.json-value -->
+The Common `json_value` expression MUST evaluate its original String or
+admitted Json input followed by the optional String path. The default
+path is `$`. Linear paths select dot members, double-quoted member
+names and bracket indexes. Malformed path syntax fails evaluation.
+A NULL operand, missing selection, selected JSON null, array or object
+gives SQL NULL. A selected String is unescaped, Boolean uses its JSON
+spelling and numeric String input retains the selected number lexeme.
+An admitted Json number uses its existing finite Number representation.
+
+A String is read only as far as required to identify the selected
+scalar. Unread suffix bytes do not affect a successful selection.
+Malformed JSON before selection yields SQL NULL. Preserve first matching
+scalar occurrence, original scalar and path spelling, demanded argument
+failures, scoped work and cancellation. The selected text is measured
+before materialization, under the original text output limits.
+
 ### JSON text serialization
 
 <!-- requirement-block: scalar-expressions.to-json-string -->
@@ -11748,7 +11767,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:71fccdf2588eb07c75ca916c5067dfa191dc6d3819023ad1e328bed653c81b17
+../../spec/contracts/actql-aoa.json# sha256:fdbeefbbfdf316a403f2c427b2402204bc61ed83bf8c56124922198d7b87fb61
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11757,13 +11776,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:d1a51208b4542189cd2a671394314b00c5683a3557ae46e0ac0a56a9e0135a90
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:301923a6be1db2434398264366de46c2883596d6666d14fdfbbcd2bbf49217c9
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:dae68446879f3d111143b0c12e813765bb95328fe7a6d2d3b55ec89a40a5da34
+../../spec/contracts/actql-expressions.json# sha256:215fa41861ab09d304abf16a2c3cdd823c247c31419932234df62134d231a50e
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:33886faef911eaa289081dfc4876cf7fecaa361ae175bd9b08b9812aaffa7426
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:3ef200b2ea09ece9f2b254203df4f68695aa16b53b6a496b597d134c6a005e2d
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:824c3f6d37f53acaa9353455d4650d594063f93e193d4714e05b26599b16e1d6
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e5bb50b54f0f0eb083149d89982fb64be7998acd5dfec032a13de9eaf12cdd75
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:c55d983597fe87f1d8b3e9e1f7b73f24d26a5e9a46f895d2f061a1c2dc87b19c
+../../spec/contracts/actql-expressions.json#/laws sha256:2717e040c1acf1877d43d25446ac50bb9b43f605c07e8513863d74d5893221d2
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:9ab0772ec3cbfbb8d6811c40ce1e922bfd2ea45408a521e6ae5e6285a54319b8
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0cb2ede5c7986efbe3df8228780d160061d526881428949685b083d77b87ead7
 ```
 
 <!-- stage-contract-pins:start -->
