@@ -11,6 +11,11 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 
+type ExecutionReceipt = {command: string; args: readonly string[]; startedAt: string;
+  endedAt: string; code: number; stdout: string; stderr: string};
+type ConsumerPackage = {version?: string; bin?: unknown; dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>; optionalDependencies?: Record<string, string>};
+
 const directory = resolve(process.argv[2] ?? '');
 assert(process.argv.length === 3, 'usage: test-explorer-release-install.mjs <Explorer-RC-directory>');
 const manifest = await verifyPackageRelease(directory);
@@ -18,23 +23,23 @@ assert.equal(manifest.cohort.version, 'actql-explorer-release-cohort/0.1');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-explorer-install-',
   label: 'standalone Explorer fixed package installation'});
 const consumer = scratch.path, registry = await openReleaseTestRegistry([{directory, manifest}]);
-const environment = {...process.env, npm_config_cache: join(consumer, 'npm-cache'),
+const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: join(consumer, 'npm-cache'),
   npm_config_userconfig: join(consumer, 'npmrc'), npm_config_globalconfig: join(consumer, 'npmrc-global'),
   npm_config_update_notifier: 'false'};
 for (const key of ['NODE_PATH', 'ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE',
   'ACTQL_PACKED_CLIENT_PACKAGES', 'npm_config_registry']) delete environment[key];
-await writeFile(environment.npm_config_userconfig,
+await writeFile(environment.npm_config_userconfig!,
   `registry=https://registry.npmjs.org/\n@actql:registry=${registry.url}\n`);
-await writeFile(environment.npm_config_globalconfig, '');
+await writeFile(environment.npm_config_globalconfig!, '');
 await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-async function run(command, args) {
+async function run(command: string, args: readonly string[]) {
   const startedAt = new Date().toISOString();
-  return new Promise((resolve, reject) => {
+  return new Promise<ExecutionReceipt>((resolve, reject) => {
     const child = spawn(command, args, {cwd: consumer, env: environment, stdio: ['ignore', 'pipe', 'pipe']});
     const timer = setTimeout(() => child.kill('SIGTERM'), 180000);
     let stdout = '', stderr = '', bytes = 0;
-    for (const [stream, append] of [[child.stdout, b => {stdout += b;}], [child.stderr, b => {stderr += b;}]]) {
-      stream.on('data', chunk => {bytes += chunk.length;
+    for (const [stream, append] of [[child.stdout, (b: string) => {stdout += b;}], [child.stderr, (b: string) => {stderr += b;}]] as const) {
+      stream.on('data', (chunk: Buffer) => {bytes += chunk.length;
         if (bytes > 8 * 1024 * 1024) child.kill('SIGTERM'); else append(chunk.toString());});
     }
     child.once('error', error => {clearTimeout(timer); reject(error);});
@@ -50,17 +55,19 @@ try {
     `@actql/explorer@${manifest.cohort.packageVersion}`])];
   assert.deepEqual((await readdir(join(consumer, 'node_modules/@actql'))).sort(), [...manifest.cohort.packages].sort());
   for (const name of manifest.cohort.packages) {
-    const metadata = JSON.parse(await readFile(join(consumer, 'node_modules/@actql', name, 'package.json')));
+    const metadata = JSON.parse(
+      await readFile(join(consumer, 'node_modules/@actql', name, 'package.json')) as unknown as string,
+    ) as ConsumerPackage;
     assert.equal(metadata.version, manifest.cohort.packageVersion);
     for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-      for (const [dependency, version] of Object.entries(metadata[field] ?? {})) {
+      for (const [dependency, version] of Object.entries(metadata[field as 'dependencies' | 'peerDependencies' | 'optionalDependencies'] ?? {})) {
         assert(!/^(?:file:|link:|workspace:)/u.test(version));
         if (dependency.startsWith('@actql/')) assert.equal(version, manifest.cohort.packageVersion);
       }
     }
     assert(!metadata.bin || !Object.hasOwn(metadata.bin, 'actql'));
   }
-  assert.equal(JSON.parse(await readFile(join(consumer, 'node_modules/react/package.json'))).version, '19.3.0');
+  assert.equal(JSON.parse(await readFile(join(consumer, 'node_modules/react/package.json')) as unknown as string).version, '19.3.0');
   results.push(await run('npm', ['ls', 'react', 'react-dom', '--all', '--json']));
   auditPackedPackages(consumer, manifest.cohort.packages);
   results.push(await run(join(consumer, 'node_modules/.bin/actql-explorer'), ['--help']));
