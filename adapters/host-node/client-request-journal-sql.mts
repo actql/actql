@@ -1,6 +1,8 @@
 // Original SQLite operation and WAL limits for the Request Journal.
 import {types as utilTypes} from 'node:util';
-import type {DatabaseSync, StatementSync, SQLOutputValue} from 'node:sqlite';
+import {DatabaseSync, type DatabaseSyncOptions, type StatementSync, type SQLOutputValue} from 'node:sqlite';
+import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import {openClientObservationStorage} from './client-observation-journal.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Current = () => SynchronousRuntimeData;
@@ -459,4 +461,87 @@ export function selectJournalTemporaryStorage(database: JournalSqlConnection, ex
   database.exec('PRAGMA temp_store = MEMORY');
   const selected = database.prepare('PRAGMA temp_store').get()!.temp_store;
   if (selected !== 2) fail('ClientRequestJournalTemporaryUnavailable');
+}
+
+// One secondary connection for this exact Request Journal. Its historical
+// attempt and captured native cleanup survive a failed open or close.
+export function createJournalObservationConnection(path: string, ensureOpen: () => undefined,
+  primaryCurrent: Parameters<typeof boundedPrimarySql>[3],
+  primarySqlLimits: Parameters<typeof boundedPrimarySql>[1] | undefined,
+  primaryExecutionLimits: Parameters<typeof boundedPrimarySql>[2],
+  walFrames: Parameters<typeof boundedPrimarySql>[4], maxDatabaseBytes: number | undefined) {
+  let observationStorage: (ReturnType<typeof openClientObservationStorage> &
+    Readonly<{close(): undefined}>) | undefined;
+  let observationDatabase: DatabaseSync | undefined;
+  let observationSql: ReturnType<typeof boundedPrimarySql> | undefined;
+  let observationStorageAttempted = false;
+  let observationDatabaseClosed = true;
+  let originalObservationClose: DatabaseSync['close'] | undefined;
+  let originalObservationIsOpen: (() => unknown) | undefined;
+  const captureObservationCleanup = () => {
+    originalObservationClose ??= observationDatabase!.close;
+    originalObservationIsOpen ??= Object.getOwnPropertyDescriptor(
+      observationDatabase!, 'isOpen')?.get;
+    if (typeof originalObservationClose !== 'function' ||
+        typeof originalObservationIsOpen !== 'function') {
+      throw new TypeError('ClientObservationConnectionCleanupUnavailable');
+    }
+  };
+  const closeObservationStorage = (): undefined => {
+    if (observationDatabaseClosed) return;
+    captureObservationCleanup();
+    const opened = applyOriginal(originalObservationIsOpen!, observationDatabase, []);
+    if (typeof opened !== 'boolean' || opened &&
+        (applyOriginal(originalObservationClose!, observationDatabase, []) !== undefined ||
+         applyOriginal(originalObservationIsOpen!, observationDatabase, []) !== false)) {
+      throw new TypeError('ClientObservationConnectionCleanupPending');
+    }
+    // This is the separate original connection's own close observation. Keep
+    // the historical attempted flag, and retain any escaped managed aliases.
+    observationDatabaseClosed = true;
+    observationSql?.retireClosedNativeAliases();
+  };
+
+  return {
+    closeObservationStorage,
+    observationStorage() {
+      ensureOpen();
+      if (observationStorageAttempted) {
+        if (observationStorage === undefined) throw new Error('ObservationBudgetUnavailable');
+        return observationStorage;
+      }
+      observationStorageAttempted = true;
+      // Separate connection/transaction custody prevents an observation's
+      // unknown COMMIT from poisoning the semantic journal connection.
+      observationDatabase = new DatabaseSync(path, primaryCurrent === undefined ?
+        {open: false} : {__proto__: null, open: false} as DatabaseSyncOptions);
+      observationDatabaseClosed = false;
+      captureObservationCleanup();
+      if (primarySqlLimits !== undefined) {
+        observationSql = boundedPrimarySql(observationDatabase, primarySqlLimits,
+          primaryExecutionLimits, primaryCurrent, walFrames);
+      }
+      primaryCurrent?.();
+      const originalObservationOpen = observationDatabase.open;
+      if (typeof originalObservationOpen !== 'function' ||
+          applyOriginal(originalObservationOpen, observationDatabase, []) !== undefined ||
+          applyOriginal(originalObservationIsOpen!, observationDatabase, []) !== true) {
+        throw new TypeError('ClientObservationConnectionOpenUnavailable');
+      }
+      const selectedObservation = (observationSql?.database ?? observationDatabase) as
+        Parameters<typeof openClientObservationStorage>[0] & Pick<DatabaseSync, 'isTransaction'>;
+      // The primary connection's Pager setting cannot constrain this new
+      // original connection. Select the same finite extent before its first
+      // schema/control write, retaining its existing separate close duty.
+      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames,
+        false, undefined, observationSql?.prepareWalCheckpoint);
+      selectedObservation.exec('PRAGMA busy_timeout = 0');
+      const storage = openClientObservationStorage(selectedObservation,
+        createSqliteTransaction(selectedObservation, 'ClientObservation'));
+      observationStorage = Object.freeze({...storage, close: closeObservationStorage});
+      return observationStorage;
+    },
+    get observationAttempted() { return observationStorageAttempted; },
+    get observationDatabaseClosed() { return observationDatabaseClosed; },
+  } as const;
 }

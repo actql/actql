@@ -16,7 +16,6 @@ import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
 import {assertOriginalPreparedLocalPublicationStoreOwnership,
   captureOriginalLocalExecutionOwner, originalLocalExecutionOwnerStopped}
   from '../store-local/publication-store.mjs';
-import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -27,7 +26,7 @@ import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmiss
 import {fail, applyOriginal, operationDescriptors, operationKeys, snapshotPrimarySqlLimits,
   snapshotPrimaryExecutionLimits, guardJournalCurrentness, boundedJournalWalFrames,
   boundedPrimarySql, journalDatabaseGeometry, boundJournalDatabaseExtent,
-  selectJournalTemporaryStorage} from './client-request-journal-sql.mjs';
+  selectJournalTemporaryStorage, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, evidenceJson, freezeAdmissionEvidence, instant, logicalPlanOriginalShape, retainedEvidence,
   retainedIdentity, retainedResultNames, retainedRunDefinition, retainedRunFacts,
@@ -1166,35 +1165,9 @@ export function openClientRequestJournal(directory, {
     });
   };
 
-  let observationStorage;
-  let observationDatabase;
-  let observationSql;
-  let observationStorageAttempted = false;
-  let observationDatabaseClosed = true;
-  let originalObservationClose, originalObservationIsOpen;
-  const captureObservationCleanup = () => {
-    originalObservationClose ??= observationDatabase.close;
-    originalObservationIsOpen ??= Object.getOwnPropertyDescriptor(
-      observationDatabase, 'isOpen')?.get;
-    if (typeof originalObservationClose !== 'function' ||
-        typeof originalObservationIsOpen !== 'function') {
-      throw new TypeError('ClientObservationConnectionCleanupUnavailable');
-    }
-  };
-  const closeObservationStorage = () => {
-    if (observationDatabaseClosed) return;
-    captureObservationCleanup();
-    const opened = applyOriginal(originalObservationIsOpen, observationDatabase, []);
-    if (typeof opened !== 'boolean' || opened &&
-        (applyOriginal(originalObservationClose, observationDatabase, []) !== undefined ||
-         applyOriginal(originalObservationIsOpen, observationDatabase, []) !== false)) {
-      throw new TypeError('ClientObservationConnectionCleanupPending');
-    }
-    // This is the separate original connection's own close observation. Keep
-    // the historical attempted flag, and retain any escaped managed aliases.
-    observationDatabaseClosed = true;
-    observationSql?.retireClosedNativeAliases();
-  };
+  const observationConnection = createJournalObservationConnection(path, ensureOpen, primaryCurrent,
+    primarySqlLimits, primaryExecutionLimits, walFrames, maxDatabaseBytes);
+  const closeObservationStorage = observationConnection.closeObservationStorage;
   const journal = Object.freeze({
     // The submission adapter owns one deeply frozen snapshot per public call.
     // Only that exact epoch may reuse pure authentication and its durable
@@ -1231,42 +1204,7 @@ export function openClientRequestJournal(directory, {
       return admitIntentOriginal(wire, control, epoch, 'InvalidClientSubmittedIntent', false).intent;
     },
     closeObservationStorage,
-    observationStorage() {
-      ensureOpen();
-      if (observationStorageAttempted) {
-        if (observationStorage === undefined) throw new Error('ObservationBudgetUnavailable');
-        return observationStorage;
-      }
-      observationStorageAttempted = true;
-      // Separate connection/transaction custody prevents an observation's
-      // unknown COMMIT from poisoning the semantic journal connection.
-      observationDatabase = new DatabaseSync(path, primaryCurrent === undefined ?
-        {open: false} : {__proto__: null, open: false});
-      observationDatabaseClosed = false;
-      captureObservationCleanup();
-      if (primarySqlLimits !== undefined) {
-        observationSql = boundedPrimarySql(observationDatabase, primarySqlLimits,
-          primaryExecutionLimits, primaryCurrent, walFrames);
-      }
-      primaryCurrent?.();
-      const originalObservationOpen = observationDatabase.open;
-      if (typeof originalObservationOpen !== 'function' ||
-          applyOriginal(originalObservationOpen, observationDatabase, []) !== undefined ||
-          applyOriginal(originalObservationIsOpen, observationDatabase, []) !== true) {
-        throw new TypeError('ClientObservationConnectionOpenUnavailable');
-      }
-      const selectedObservation = observationSql?.database ?? observationDatabase;
-      // The primary connection's Pager setting cannot constrain this new
-      // original connection. Select the same finite extent before its first
-      // schema/control write, retaining its existing separate close duty.
-      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames,
-        false, undefined, observationSql?.prepareWalCheckpoint);
-      selectedObservation.exec('PRAGMA busy_timeout = 0');
-      const storage = openClientObservationStorage(selectedObservation,
-        createSqliteTransaction(selectedObservation, 'ClientObservation'));
-      observationStorage = Object.freeze({...storage, close: closeObservationStorage});
-      return observationStorage;
-    },
+    observationStorage: observationConnection.observationStorage,
     installObservationProjection(projection) {
       if (!isHostObservationProjection(projection) || observationProjection !== undefined) {
         throw new TypeError('ForeignHostObservationProjection');
@@ -2576,7 +2514,8 @@ export function openClientRequestJournal(directory, {
   const deliveredJournal = guardJournalCurrentness(journal, primaryCurrent);
   applyOriginal(originalJournalCustodySet, originalJournalCustodies, [deliveredJournal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
-      observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);
+      observationAttempted: observationConnection.observationAttempted,
+      observationDatabaseClosed: observationConnection.observationDatabaseClosed})]);
   if (!existed) syncDirectory(root);
   return deliveredJournal;
   } catch (error) {

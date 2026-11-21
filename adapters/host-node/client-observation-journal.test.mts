@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
+import {createJournalObservationConnection} from './client-request-journal-sql.mjs';
 
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
@@ -130,4 +131,46 @@ test('observation cursor is scoped and damaged custody cannot reset a budget', (
     assert.equal(db.prepare('SELECT sum(records) AS n FROM client_observation_runs').get()!.n, 2);
     assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get()!.n, 2);
   } finally { db.close(); }
+});
+
+
+test('a failed secondary open retains its original native receiver until close', t => {
+  const nativeOpen = DatabaseSync.prototype.open;
+  const nativeClose = DatabaseSync.prototype.close;
+  const primary = new Error('OriginalObservationOpenFailed');
+  const owner = createJournalObservationConnection(':memory:', () => undefined,
+    undefined, undefined, undefined, undefined, undefined);
+  const opened: DatabaseSync[] = [];
+  const closed: DatabaseSync[] = [];
+  t.mock.method(DatabaseSync.prototype, 'open', function(this: DatabaseSync) {
+    Reflect.apply(nativeOpen, this, []);
+    opened.push(this);
+    throw primary;
+  });
+  t.mock.method(DatabaseSync.prototype, 'close', function(this: DatabaseSync) {
+    closed.push(this);
+    return Reflect.apply(nativeClose, this, []);
+  });
+  try {
+    assert.throws(() => owner.observationStorage(), (error: unknown) => error === primary);
+    assert.equal(owner.observationAttempted, true);
+    assert.equal(owner.observationDatabaseClosed, false);
+    assert.equal(opened.length, 1);
+    assert.equal(opened[0].isOpen, true);
+
+    assert.throws(() => owner.observationStorage(), {message: 'ObservationBudgetUnavailable'});
+    assert.equal(opened.length, 1);
+    owner.closeObservationStorage();
+    owner.closeObservationStorage();
+    assert.equal(closed.length, 1);
+    assert.strictEqual(closed[0], opened[0]);
+    assert.equal(opened[0].isOpen, false);
+    assert.equal(owner.observationAttempted, true);
+    assert.equal(owner.observationDatabaseClosed, true);
+  } finally {
+    owner.closeObservationStorage();
+    for (const original of opened) {
+      if (original.isOpen) Reflect.apply(nativeClose, original, []);
+    }
+  }
 });

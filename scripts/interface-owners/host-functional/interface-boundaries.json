@@ -28248,7 +28248,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f212b00cdf49b7116e0c567db65e43a2754a91b0d68f18de2808a01566485398",
+      "sha256": "d553456d614f713f7be35eb892ac2460eb74c2c05a3a29f031b21abee6a954a4",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28322,11 +28322,6 @@
           "parameters": [
             "error"
           ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/closeObservationStorage/closeObservationStorage",
-          "parameters": [],
           "async": false
         },
         {
@@ -28618,11 +28613,6 @@
         },
         {
           "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
           "parameters": [],
           "async": false
         },
@@ -29133,7 +29123,6 @@
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
             "openClientRequestJournal/cancellationKnownFailure/cancellationKnownFailure",
-            "openClientRequestJournal/closeObservationStorage/closeObservationStorage",
             "openClientRequestJournal/ensureOpen/ensureOpen",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
@@ -29163,7 +29152,6 @@
             "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure",
             "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
             "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
-            "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
@@ -30280,7 +30268,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationDatabaseClosed = true;"
               },
               {
@@ -30330,7 +30318,7 @@
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationSql?.retireClosedNativeAliases();"
               }
             ],
@@ -31988,7 +31976,6 @@
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
-        "./client-observation-journal.mjs",
         "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
         "./client-request-journal-records.mjs",
@@ -32108,7 +32095,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationDatabaseClosed = true;"
               },
               {
@@ -32158,7 +32145,7 @@
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationSql?.retireClosedNativeAliases();"
               }
             ],
@@ -33849,7 +33836,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationDatabaseClosed = true;"
               },
               {
@@ -33899,7 +33886,7 @@
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationSql?.retireClosedNativeAliases();"
               }
             ],
@@ -36069,7 +36056,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationDatabaseClosed = true;"
               },
               {
@@ -36119,7 +36106,7 @@
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationSql?.retireClosedNativeAliases();"
               }
             ],
@@ -38233,7 +38220,7 @@
     {
       "module": "adapters/host-node/client-request-journal-sql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0814f8e96482e780757d3b4730a5731564c5426413fa2504147a431603dfbd3a",
+      "sha256": "15a5ec44c809755e882e2a77abec88ad1aa940e9ac802565eb08c0599fa57d62",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -38241,6 +38228,7 @@
         "boundJournalDatabaseExtent",
         "boundedJournalWalFrames",
         "boundedPrimarySql",
+        "createJournalObservationConnection",
         "fail",
         "guardJournalCurrentness",
         "journalDatabaseGeometry",
@@ -38424,6 +38412,39 @@
           "async": false
         },
         {
+          "name": "createJournalObservationConnection",
+          "parameters": [
+            "path",
+            "ensureOpen",
+            "primaryCurrent",
+            "primarySqlLimits",
+            "primaryExecutionLimits",
+            "walFrames",
+            "maxDatabaseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalObservationConnection/closeObservationStorage/closeObservationStorage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalObservationConnection/createJournalObservationConnection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalObservationConnection/createJournalObservationConnection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalObservationConnection/init:observationStorage/init:observationStorage",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -38587,7 +38608,7 @@
                 "anchor": "originalDatabaseClose ??= connection.close;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationDatabaseClosed = true;"
               },
               {
@@ -38637,7 +38658,7 @@
                 "anchor": "selectedSql?.retireClosedNativeAliases();"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-sql.mts",
                 "anchor": "observationSql?.retireClosedNativeAliases();"
               }
             ],
@@ -38804,10 +38825,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createJournalObservationConnection",
+            "createJournalObservationConnection/closeObservationStorage/closeObservationStorage",
+            "createJournalObservationConnection/createJournalObservationConnection",
+            "createJournalObservationConnection/createJournalObservationConnection#2",
+            "createJournalObservationConnection/init:observationStorage/init:observationStorage"
+          ],
+          "exports": [
+            "createJournalObservationConnection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "// One secondary connection for this exact Request Journal."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "get observationAttempted() { return observationStorageAttempted; }"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "get observationDatabaseClosed() { return observationDatabaseClosed; }"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "const opened = applyOriginal(originalObservationIsOpen!, observationDatabase, []);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "originalObservationClose ??= observationDatabase!.close;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "observationStorage = Object.freeze({...storage, close: closeObservationStorage});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "createSqliteTransaction(selectedObservation, 'ClientObservation')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "throw new TypeError('ClientObservationConnectionOpenUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "throw new TypeError('ClientObservationConnectionCleanupPending');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "try { closeObservationStorage(); }"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "observationSql?.retireClosedNativeAliases();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal-sql.mts",
+                "anchor": "if (observationStorageAttempted) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal-original-custody.test.mjs",
+                "anchor": "test('the separate optional observation connection is not certified by primary close"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-observation-extent.test.mjs",
+                "anchor": "test('the separate original observation connection enforces the selected database extent"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
+                "anchor": "test('current-refused operations retain both original connections through pending close and same-receiver retry"
+              },
+              {
+                "path": "adapters/host-node/client-observation-journal.test.mts",
+                "anchor": "test('a failed secondary open retains its original native receiver until close"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../host-common/sqlite-transaction.mjs",
+        "./client-observation-journal.mjs",
+        "node:sqlite",
         "node:util"
       ],
       "compilerFields": [],
