@@ -655,3 +655,70 @@ test "Saved Capture probe fits the exact same real Read retained boundary" {
 test "Saved Capture probe refuses a one-short real Read retained boundary" {
   saved_capture_probe_quote_case(true)
 }
+
+///|
+test "Saved Capture keeps the typed Store failure for its exact retained identity" {
+  let fixture = journal_metadata_original_read_fixture()
+  let (host, reference, request, checkpoint) = local_checkpoint_lookup_fixture(
+    "saved-capture-store-current",
+    waiting=false,
+  )
+  let crypto = host.epoch.crypto
+  let capture = prepare_native_local_journal_capture_with_original_resources(
+    host.session,
+    fixture.host,
+    fixture.pair,
+    fixture.read,
+    crypto,
+    100.0,
+    8,
+    8388608L,
+  )
+  capture.opening = JournalAcquired(host)
+  let store = @publication_store.open_store(
+    local_journal_test_library(),
+    observed_state_store_fixture("saved-capture-store-current.store"),
+    "sha256:" + "c".repeat(64),
+    65536L,
+    8L,
+    131072L,
+  ).unwrap()
+  let selected : NativeLocalCheckpointSelection = {
+    reference,
+    request,
+    checkpoint_id: checkpoint.checkpoint.checkpoint_id,
+    checkpoint_cid: checkpoint.checkpoint_cid,
+  }
+  let original = capture.original_resources.unwrap()
+  let review = original
+    .stage(@arena.HostRead, fn() {
+      capture.prepare_saved_effect_review(
+        store, selected, "operator", "cli", "saved-capture-store-current",
+      )
+    })
+    .unwrap()
+  let location = store.custody_location().unwrap()
+  review._retained_store_location = Some(location)
+  original
+  .stage(@arena.HostRead, fn() { review.saved_capture_store_current() })
+  .unwrap()
+  assert_true(store.close().unwrap())
+  let (closed, foreign) = original
+    .stage(@arena.HostRead, fn() {
+      let closed = review.saved_capture_store_current()
+        is Err(Journal(PublicationObservation(@publication_store.Closed)))
+      let (authority, device, inode) = location
+      review._retained_store_location = Some((authority, device, inode ^ 1UL))
+      let foreign = review.saved_capture_store_current()
+        is Err(Journal(CustodyLost))
+      Ok((closed, foreign))
+    })
+    .unwrap()
+  assert_true(closed)
+  assert_true(foreign)
+  review.retire_read_aliases()
+  capture.opening = JournalNotAttempted
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+  account_original_read_close_fixture(fixture)
+}

@@ -8,14 +8,21 @@ priv struct NativeLocalSavedEffectRestoration {
   mut capture_reference_key : Bytes?
   mut capture_wire : String?
   schema_cursors : Array[@decode.Cursor]
-  mut attempted : Bool
-  mut completed : Bool
+  mut phase : NativeLocalSavedEffectRestorationPhase
   mut candidate : Result[
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ]?
   mut materials : @host.ClientEffectRunMaterials?
   mut material_issue : @host.ClientEffectRunMaterialsIssue?
+}
+
+///|
+priv enum NativeLocalSavedEffectRestorationPhase {
+  Prepared
+  CaptureReady
+  ConstructorAttempted
+  Completed
 }
 
 ///|
@@ -98,8 +105,7 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     capture_reference_key: None,
     capture_wire: None,
     schema_cursors: [],
-    attempted: false,
-    completed: false,
+    phase: Prepared,
     candidate: None,
     materials: None,
     material_issue: None,
@@ -323,14 +329,18 @@ fn NativeLocalSavedEffectReview::prepare_saved_capture_reference_key(
 fn NativeLocalSavedEffectReview::saved_capture_store_current(
   self : NativeLocalSavedEffectReview,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  guard !self.retired &&
-    self._retained_store_location is Some(location) &&
-    self.store.custody_location() is Ok(actual) &&
-    actual == location &&
-    self.store.retained_data_current() is Ok(_) else {
+  guard !self.retired && self._retained_store_location is Some(location) else {
     return Err(Journal(CustodyLost))
   }
-  self.capture.check_original_read_lifetime()
+  match self.store.custody_location() {
+    Ok(actual) if actual == location => ()
+    Ok(_) => return Err(Journal(CustodyLost))
+    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+  }
+  match self.store.retained_data_current() {
+    Ok(_) => self.capture.check_original_read_lifetime()
+    Err(issue) => Err(Journal(PublicationObservation(issue)))
+  }
 }
 
 ///|
@@ -399,7 +409,7 @@ pub fn NativeLocalSavedEffectReview::finish_approval_capture_in_original_read(
 ) -> Result[@execution.ExecutionCapacity, NativeLocalStoreOperationIssue] {
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
-    !restoration.attempted else {
+    restoration.phase is Prepared else {
     return Err(StoreOperationCapture(OriginalResourceScopePending))
   }
   guard epoch_text(restoration.fields, "captured_run_cid") is Some(cid) else {
@@ -430,6 +440,9 @@ pub fn NativeLocalSavedEffectReview::finish_approval_capture_in_original_read(
     Ok(value) => value
     Err(issue) => return Err(StoreOperationCapture(issue))
   }
+  // Keep the funded wire with the original Read across every fallible handoff.
+  // The constructor cannot consume it until the original return and quote succeed.
+  restoration.capture_wire = Some(captured)
   match journal.begin_captured_journal_read() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -445,6 +458,9 @@ pub fn NativeLocalSavedEffectReview::finish_approval_capture_in_original_read(
     (Ok(_), Err(issue)) => return Err(issue)
     (Ok(_), Ok(_)) => ()
   }
+  guard !self.retired && restoration.phase is Prepared else {
+    return Err(StoreOperationCapture(OriginalResourceScopePending))
+  }
   let geometry = match saved_effect_capture_geometry(captured, wire_limits) {
     Ok(value) => value
     Err(issue) => return Err(StoreOperationCapture(issue))
@@ -459,8 +475,8 @@ pub fn NativeLocalSavedEffectReview::finish_approval_capture_in_original_read(
     is Some(combined) else {
     return Err(StoreOperationCapture(ConfigurationLimit))
   }
-  restoration.capture_wire = Some(captured)
   restoration.capacity = combined
+  restoration.phase = CaptureReady
   Ok(combined)
 }
 
@@ -614,8 +630,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
-    !restoration.attempted &&
-    !restoration.completed &&
+    (restoration.phase is Prepared || restoration.phase is CaptureReady) &&
     self.capture.original_resources is Some(resources) &&
     self.capture.read_callback_active &&
     self.capture.read_facts_valid &&
@@ -625,11 +640,17 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
     self.retained_persisted is Some(persisted) else {
     return Err(OriginalResourceScopePending)
   }
-  restoration.attempted = true
+  let capture_ready = restoration.phase is CaptureReady
+  restoration.phase = ConstructorAttempted
   let result = (fn() -> Result[
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ] {
+    let fields = restoration.fields
+    if @decode.lookup(fields, "captured_run_cid") is Some(_) &&
+      (!capture_ready || restoration.capture_wire is None) {
+      return Err(Journal(CustodyLost))
+    }
     let input_units = Int::max(
       wire.length(),
       restoration.packet.materials_wire.length(),
@@ -657,11 +678,6 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
         resources.read,
       ) else {
       return Err(OriginalResourceScopePending)
-    }
-    let fields = restoration.fields
-    if @decode.lookup(fields, "captured_run_cid") is Some(_) &&
-      restoration.capture_wire is None {
-      return Err(Journal(CustodyLost))
     }
     let publication_present = @decode.lookup(fields, "result_derivation_wires")
       is Some(_)
@@ -736,8 +752,7 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
   defer native_timing_end(32)
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
-    restoration.attempted &&
-    !restoration.completed &&
+    restoration.phase is ConstructorAttempted &&
     restoration.candidate is Some(candidate) &&
     self.capture.opening is JournalAcquired(host) &&
     self.capture.read_callback_active &&
@@ -749,7 +764,7 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
     self.store.retained_data_current() is Ok(_) else {
     return Err(OriginalResourceScopePending)
   }
-  restoration.completed = true
+  restoration.phase = Completed
   match
     host.require_original_effect_material_current(
       self.capture.crypto,
