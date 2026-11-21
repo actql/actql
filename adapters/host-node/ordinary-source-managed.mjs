@@ -21,6 +21,7 @@ import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './
 // checks stay at the Source consumer; this view grants no read or Model use.
 const installations = new WeakMap();
 const noNativeFileReadDeclarations = Object.freeze([]);
+const noStaticModelGraphs = Object.freeze([]);
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const pending = value => {
   const field = value !== null && typeof value === 'object'
@@ -436,6 +437,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     } finally {original.returning = false;}
   }
   function cleanupOriginalRequestInput(state, retire) {
+    if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');
     if (!disposeOriginalExplanation(state)) fail('InstalledExplanationAdmissionCleanupPending');
     return cleanupRequestInput(state, retire);
   }
@@ -562,6 +564,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // children on its existing producer/Run inventory, rather than
         // freezing a no-children answer before those children can exist.
         const childrenPending = () => {
+          if (state.staticExplanationDelivery !== undefined) return true;
           for (const run of liveRuns) if (run.producer === producer &&
               run.children.some(child => child.flight !== undefined || !child.closed)) return true;
           return false;
@@ -1142,7 +1145,35 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return wire;
       });
     },
-    async fundedPreparation(request, environment, originalVerifier, signal, journal, staticPlan) {
+    async withOriginalStaticEffectExplanation(request, environment, originalVerifier, signal, limits, maxWork, visit) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.parent === undefined || state.preparing || state.adopting ||
+          state.staticPlanRead || state.staticExplanationDelivery !== undefined ||
+          limits == null || typeof visit !== 'function' || !Number.isSafeInteger(maxWork) || maxWork < 1 ||
+          maxWork > 2147483647) fail('ForeignInstalledSourceProducer');
+      const parent = state.parent;
+      state.staticExplanationDelivery = visit;
+      const assertOriginal = () => {
+        current();
+        if (producerForRequest(request) !== producer || producer.preparation !== state ||
+            state.parent !== parent || state.staticExplanationDelivery !== visit) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        signal?.throwIfAborted();
+      };
+      try {
+        const wires = await view.fundedPreparation(request, environment, originalVerifier, signal,
+          undefined, limits, visit, maxWork);
+        assertOriginal();
+        const response = await visit(wires, assertOriginal);
+        assertOriginal();
+        return response;
+      } finally {
+        state.staticExplanationDelivery = undefined;
+      }
+    },
+    async fundedPreparation(request, environment, originalVerifier, signal, journal, staticPlan, staticExplanation, maxWork) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
@@ -1153,6 +1184,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (state.sourceFreeMaxWork !== sourceFreeMaxWork) fail('ForeignInstalledSourceProducer');
       } else state.sourceFreeMaxWork = sourceFreeMaxWork;
       if (state.context.environment !== environment || state.adopting || state.preparing ||
+          state.staticExplanationDelivery !== staticExplanation ||
           state.parent === undefined ||
           originalVerifier !== undefined && typeof originalVerifier !== 'function' ||
           state.policyVerifierSelected &&
@@ -1169,6 +1201,19 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramReadRequestCheckedStaticPlan')?.value;
       const checkedStaticIssue = staticPlan === undefined ? undefined
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestCheckedStaticPlanIssueCode')?.value;
+      const explanationPorts = staticExplanation === undefined ? undefined : [
+        'clientProgramReadRequestCheckedStaticEffectExplanation',
+        'clientProgramStaticEffectExplanationPlanWire',
+        'clientProgramStaticEffectExplanationFactsWire',
+        'clientProgramStaticEffectExplanationContextWire',
+      ].map(function originalExplanationPort(name) {
+        return Object.getOwnPropertyDescriptor(moon, name)?.value;
+      });
+      if (explanationPorts !== undefined && explanationPorts.some(function missingExplanationPort(port) {
+        return typeof port !== 'function';
+      })) {
+        fail('ClientOperationUnavailable');
+      }
       if (staticPlan !== undefined) {
         if (state.staticPlanRead || state.holder !== undefined) fail('ForeignInstalledSourceProducer');
         state.staticPlanRead = true;
@@ -1260,8 +1305,24 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different
           // parent or claim that an unconstructed Plan is ready.
+          if (state.compilationKind !== 'effectful' && staticExplanation !== undefined) {
+            fail('ClientOperationUnavailable');
+          }
           if (state.compilationKind === 'effectful') {
             if (staticPlan !== undefined) {
+              if (explanationPorts !== undefined) {
+                const [project, planWire, factsWire, contextWire] = explanationPorts;
+                return constructRequestDomain(state, function projectOriginalStaticExplanation() {
+                  const projection = checked(Reflect.apply(project, moon, [parent, producer.receipt,
+                    staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth,
+                    maxWork, noStaticModelGraphs]));
+                  current();
+                  assertPreparingOriginal();
+                  return {plan: Reflect.apply(planWire, moon, [projection]),
+                    facts: Reflect.apply(factsWire, moon, [projection]),
+                    context: Reflect.apply(contextWire, moon, [projection])};
+                });
+              }
               if (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function') {
                 fail('ClientOperationUnavailable');
               }
@@ -2668,7 +2729,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // initial child, rather than stranding it behind the producer gate.
         for (const producer of producers) if (producer.finished && producer.liveRuns === 0) {
           if (producer.preparation !== undefined) {
-            if (producer.preparation.recovery?.childrenPending() === true) return status();
+            if (producer.preparation.staticExplanationDelivery !== undefined ||
+                producer.preparation.recovery?.childrenPending() === true) return status();
             cleanupOriginalRequestInput(producer.preparation, retireInitialPreparation);
             producer.preparation = undefined;
           }

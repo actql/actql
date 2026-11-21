@@ -113879,6 +113879,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/missingExplanationPort",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/projectOriginalStaticExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation",
+            "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation/assertOriginal/assertOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "async withOriginalStaticEffectExplanation(request, environment, originalVerifier, signal, limits, maxWork, visit) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const response = await visit(wires, assertOriginal);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "state.parent !== parent || state.staticExplanationDelivery !== visit) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "state.staticExplanationDelivery = visit;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ClientOperationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn static_effect_explanation_delivery_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "return constructRequestDomain(state, function projectOriginalStaticExplanation() {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('static Effect Explanation manager holds its original Request through asynchronous delivery', async () => {"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -114335,9 +114407,18 @@
             "originalVerifier",
             "signal",
             "journal",
-            "staticPlan"
+            "staticPlan",
+            "staticExplanation",
+            "maxWork"
           ],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/explanationPorts/originalExplanationPort",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
@@ -114381,10 +114462,22 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/missingExplanationPort",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/projectOriginalStaticExplanation",
+          "parameters": [],
           "async": false
         },
         {
@@ -115206,6 +115299,24 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal",
+            "limits",
+            "maxWork",
+            "visit"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:withOriginalStaticEffectExplanation/init:withOriginalStaticEffectExplanation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryProjectSourceManagedInstallation",
           "parameters": [
             "originals",
@@ -115243,7 +115354,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3a10ab366267b82bbe72376e60b986e650ac388e16d4dcc148762d43d008042e"
+      "sha256": "47d50db49b394727ccb5bdb5039caa8bfdf77d5a088e84000fa05bf8d169022a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

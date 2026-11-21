@@ -3162,6 +3162,72 @@ test('static Effect Plan manager reads the same checked Request without executio
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
 });
 
+test('static Effect Explanation manager holds its original Request through asynchronous delivery', async () => {
+  for (const retireWhileDelivering of [false, true]) {
+    const environment = {}, f = await fixture({environment}), moon = f.context.runtime, request = {};
+    const program = input();
+    const receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+    const bounds = Object.freeze({maxWireBytes: 2048, maxNodes: 256, maxDepth: 32});
+    const entered = Promise.withResolvers(), release = Promise.withResolvers();
+    const projection = {}, response = {}, order = [];
+    moon.clientProgramPrepareRequestNativeComputation = () => {order.push('check'); return ok(undefined);};
+    moon.clientProgramFinishRequestComputation = () => {order.push('compile'); return ok('effectful');};
+    moon.clientProgramReadRequestCheckedStaticEffectExplanation = function(parent, original, ...limits) {
+      assert.strictEqual(this, moon);
+      assert.strictEqual(parent, f.parent); assert.strictEqual(original, receipt);
+      assert.deepEqual(limits, [2048, 256, 32, 1000, []]);
+      order.push('project'); return ok(projection);
+    };
+    for (const member of ['Plan', 'Facts', 'Context']) {
+      moon[`clientProgramStaticEffectExplanation${member}Wire`] = function(actual) {
+        assert.strictEqual(this, moon); assert.strictEqual(actual, projection);
+        return member;
+      };
+    }
+    for (const name of ['clientProgramReadRequestCheckedStaticPlan', 'clientProgramBorrowRequestEffectPlanInput',
+      'clientProgramAdoptRequestEffectPreparation', 'clientProgramIssueRequestEffectRunMaterials']) {
+      moon[name] = () => assert.fail('Explanation must not enter ' + name);
+    }
+    const operation = f.view.withOriginalStaticEffectExplanation(request, environment, undefined, undefined,
+      bounds, 1000, async (wires, current) => {
+        assert.deepEqual(wires, {plan: 'Plan', facts: 'Facts', context: 'Context'});
+        current();
+        order.push('deliver'); entered.resolve();
+        await release.promise;
+        assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+        order.push('delivered'); return response;
+      });
+    try {
+      await Promise.race([entered.promise, operation]);
+      assert.deepEqual(order, ['check', 'compile', 'project', 'deliver']);
+      await assert.rejects(f.view.fundedPreparation(request, environment), {code: 'ForeignInstalledSourceProducer'});
+      if (retireWhileDelivering) {
+        assert.throws(() => f.view.finishSourceProducer(receipt, 'returned'),
+          {code: 'InstalledSourceRunCleanupPending'});
+        assert.deepEqual(await f.view.close(), {pending: true});
+      }
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+      release.resolve();
+      if (retireWhileDelivering) {
+        await assert.rejects(operation, {code: 'SourceManagedPreparationUnavailable'});
+      } else {
+        assert.strictEqual(await operation, response);
+        f.view.finishSourceProducer(receipt, 'returned');
+      }
+      assert.deepEqual(order, ['check', 'compile', 'project', 'deliver', 'delivered']);
+      assert.deepEqual(await f.view.close(), {pending: false});
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+    } finally {
+      release.resolve();
+      await operation.catch(() => {});
+      await f.view.close();
+    }
+  }
+});
+
 test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback', async () => {
   for (const outcome of ['missing', 'original-error', 'stale']) {
     const primary = Error('original Effect Plan failure'); let current = true;

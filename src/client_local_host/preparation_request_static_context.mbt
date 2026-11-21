@@ -374,6 +374,28 @@ fn static_effect_plan_capture_construction(limits : (Int, Int, Int)) -> Int64? {
 }
 
 ///|
+// The Host decodes all three individually bounded originals before checking
+// the aggregate tree. Its UTF-8 gate runs before decoding. Allow the decoded
+// tree, entry iteration/validation frames, traversal work and its Set to
+// overlap, together with response encoding and the fixed delivery controls.
+fn static_effect_explanation_delivery_construction(
+  limits : (Int, Int, Int),
+  max_wire_bytes : Int,
+) -> Int64? {
+  let (bytes, nodes, depth) = limits
+  let decoded_nodes = 3L * nodes.to_int64() + 7L
+  let delivered_bytes = Int64::min(
+    max_wire_bytes.to_int64(),
+    3L * bytes.to_int64() + 26L,
+  )
+  result_read_data_cost(
+    4L * decoded_nodes + 4L * depth.to_int64() + 64L,
+    6L * delivered_bytes,
+    2L * delivered_bytes,
+  )
+}
+
+///|
 /// Issue one static Plan through the original working Effect Request, retaining
 /// that issuer's Map while projecting Facts and Context. The prepared input
 /// may carry the same metadata-only Model plans used by the static compiler.
@@ -441,9 +463,21 @@ pub fn[I] request_prepared_static_effect_explanation(
         Err(issue) => return Err(Context(issue))
         Ok(value) => value
       }
-      construct_static_effect_explanation_working(
-        capacity, input, original, prepared, compiled, current, limits, max_work,
-      ).map(value => { plan, facts: value.0, context: value.1, })
+      let (facts, context) = match
+        construct_static_effect_explanation_working(
+          capacity, input, original, prepared, compiled, current, limits, max_work,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      guard static_effect_explanation_delivery_construction(limits, max_bytes)
+        is Some(delivery) else {
+        return Err(Preparation(Policy))
+      }
+      match reserve_static_context_construction(capacity, input, delivery) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok({ plan, facts, context, })
+      }
     },
   )
 }
