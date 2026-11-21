@@ -1,4 +1,6 @@
 type Action<T = unknown> = () => T | PromiseLike<T>;
+// These callbacks finish in their call. The synchronous result is discarded.
+type SynchronousAction = () => void | boolean | number;
 type CloseOwner = {close: Action};
 type CleanupIssue = Readonly<{owner: string; error: unknown}>;
 type ObservedStatus = {pending?: unknown; errors?: readonly unknown[]};
@@ -43,7 +45,7 @@ type ShutdownResult = Readonly<{
   pendingRetention: readonly unknown[];
   authorizationCleanupPending: boolean;
 }>;
-type CredentialSite = CloseOwner & {cleanupPending: () => unknown};
+type CredentialSite = {close: SynchronousAction; cleanupPending: () => boolean};
 
 // Failed initialization has no returned Host to own its resources. Keep the
 // same retry/status protocol as publication cleanup, without restarting work.
@@ -299,11 +301,11 @@ export async function retainInstalledHostInitializationFailure(cause: unknown,
 // Keep the existing Host's final reference-retirement duty behind the exact
 // failed initializer's cleanup. Never mutate a borrowed/frozen exception or
 // infer successful retirement from its request/Promise alone.
-export function retainInstalledHostRuntimeFailure<Cause>(cause: Cause, retire: Action) {
+export function retainInstalledHostRuntimeFailure<Cause>(cause: Cause, retire: SynchronousAction) {
   let child = (cause as ObservedFailure | null | undefined)?.cleanupHandle;
   let childStatus = child?.status, childRetry = child?.retry;
   let childComplete = child === undefined && (cause as ObservedFailure | null | undefined)?.cleanupPending !== true;
-  let retirementComplete = false, finalize: Action | undefined = retire,
+  let retirementComplete = false, finalize: SynchronousAction | undefined = retire,
     flight: Promise<HostCleanupStatus> | undefined, lastError: unknown;
   let failureOwner = 'initialization';
   const originalErrors = (cause as ObservedFailure | null | undefined)?.cleanupErrors;

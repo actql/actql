@@ -66658,7 +66658,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-host-cleanup.mts",
-                "anchor": "export function retainInstalledHostRuntimeFailure<Cause>(cause: Cause, retire: Action) {"
+                "anchor": "export function retainInstalledHostRuntimeFailure<Cause>(cause: Cause, retire: SynchronousAction) {"
               }
             ],
             "inputsOutputs": [
@@ -66720,7 +66720,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-host-cleanup.mts",
-                "anchor": "let retirementComplete = false, finalize: Action | undefined = retire,"
+                "anchor": "let retirementComplete = false, finalize: SynchronousAction | undefined = retire,"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mts",

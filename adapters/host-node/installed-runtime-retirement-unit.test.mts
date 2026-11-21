@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
+import type {createInstalledHostShutdown, releaseInstalledCredentialSite} from './installed-host-cleanup.mjs';
+
+type Assert<T extends true> = T;
+type AsyncAction = () => PromiseLike<void>;
+type RetirementAction = Parameters<typeof retainInstalledHostRuntimeFailure>[1];
+type CredentialSite = Parameters<typeof releaseInstalledCredentialSite>[0];
+type AwaitedClose = Parameters<typeof createInstalledHostShutdown>[0]['journal'];
+type _SynchronousRetirement = Assert<AsyncAction extends RetirementAction ? false : true>;
+type _SynchronousCredentialClose = Assert<AsyncAction extends CredentialSite['close'] ? false : true>;
+type _SynchronousCredentialStatus = Assert<(() => PromiseLike<boolean>) extends CredentialSite['cleanupPending'] ? false : true>;
+type _AwaitedShutdownClose = Assert<AsyncAction extends AwaitedClose ? true : false>;
 
 type RetainedFailure = ReturnType<typeof retainInstalledHostRuntimeFailure<never>>;
 
