@@ -11568,7 +11568,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:8b84393c3d38fca3b305c1c044639ba5e5864454dfc2160133462a34f7a599c3
+../../spec/contracts/actql-aoa.json# sha256:d35ea20c52343cde4946e7f0a535b58de482a614f278f28b3e89251aeebc6226
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11577,13 +11577,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:de8d34b002309a7edc610ec9351a73ed00e80e04c76db4fa7e438c239f5f56c8
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c8e382edc6f37145953016637c3277ab793dfb8aed2ff011f0ede3e816b93949
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:ea92431bef19056d7a2899a1b86f422d266a2fe5b3d2d2896f44f3f03121e17b
+../../spec/contracts/actql-expressions.json# sha256:de77a27719c58026805465cbfb489df2b9c0b61fc36b3d971a939460fb997b87
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:4c4fde5151c25578f872701fb10dccceaadbaa86ebe20332a20383fd0bd2a7d2
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:547205e0feb41973ac528a4191ae53a7e4338d818f71cdacc7d17e7841660185
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:2f5556eef510c33a7e97dfcfc37cded0238c3f8adb4a070488629e295e32768b
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:12ca285ac1d59c9828a2089d65acee7bd6ad78ee44ff741c91934772898ba3bf
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:f548374233d8328ef6e4d87c30966659da6a3f4928d2aff2a9d0dfcff8057886
+../../spec/contracts/actql-expressions.json#/laws sha256:a5d8d297d34a7d45bb74be5a81a39e88a4eb7cec5479e7008b13614ae3b05205
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:3c2097d71a6d8d993e26249b5ad5ebd8a9ce7813b7d6621eb7f9297a99c9bda9
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:8064e80d0ee38b619f51c0ddf32a98b2066ecf4f36801df5e0fd9073e50de954
 ```
 
 <!-- stage-contract-pins:start -->
