@@ -1,16 +1,25 @@
 import {types} from 'node:util';
 
-const invalid = () => {throw new TypeError('InvalidPublicSourcePublication');};
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+type AliasRequest = Readonly<Record<string, unknown>>;
+type AliasIdentity<Request> = Readonly<{
+  name: string;
+  sourceRef: string;
+  sourceViewContractCid: string;
+  schemaContractCid: string;
+  request?: Request;
+}>;
+
+const invalid: () => never = () => {throw new TypeError('InvalidPublicSourcePublication');};
+const object = (value: unknown): value is AliasRequest => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 // Installation DATA only. This walk neither resolves a Source nor issues a
 // binding. All collections and strings copied below have a bounded geometry
 // before the snapshot constructor starts. The original must not contain hooks.
-export function aliasRequestGeometry(request) {
+export function aliasRequestGeometry(request: unknown) {
   if (!object(request)) invalid();
   let nodes = 0n, entries = 0n, units = 0n, depth = 0n;
-  const ancestors = [];
-  function visit(value, level) {
+  const ancestors: object[] = [];
+  function visit(value: unknown, level: number) {
     nodes++;
     if (nodes > 65536n || level > 64) invalid();
     if (BigInt(level) > depth) depth = BigInt(level);
@@ -53,24 +62,24 @@ export function aliasRequestGeometry(request) {
   return {nodes, entries, units, depth};
 }
 
-export function snapshotAliasRequest(request) {
+export function snapshotAliasRequest(request: unknown) {
   aliasRequestGeometry(request);
-  function copy(value) {
+  function copy(value: unknown): unknown {
     if (value === null || typeof value !== 'object') return value;
     if (Array.isArray(value)) return Object.freeze(value.map(copy));
     // Sorting gives exact JSON DATA identity independent of member insertion
     // order, without normalizing any user string or inserting absent fields.
     const result = {};
     for (const key of Object.keys(value).sort()) {
-      Object.defineProperty(result, key, {value: copy(value[key]), enumerable: true});
+      Object.defineProperty(result, key, {value: copy((value as AliasRequest)[key]), enumerable: true});
     }
     return Object.freeze(result);
   }
-  return copy(request);
+  return copy(request) as AliasRequest;
 }
 
-export function sourceAliasIdentityRow(entry) {
-  const row = [entry.name, entry.sourceRef, entry.sourceViewContractCid, entry.schemaContractCid];
+export function sourceAliasIdentityRow<Request>(entry: AliasIdentity<Request>) {
+  const row: (string | Request | undefined)[] = [entry.name, entry.sourceRef, entry.sourceViewContractCid, entry.schemaContractCid];
   if (Object.hasOwn(entry, 'request')) row.push(entry.request);
   return row;
 }
