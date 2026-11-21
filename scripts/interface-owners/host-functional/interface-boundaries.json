@@ -15250,7 +15250,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15f81cda70640c27c03b30c7e9d83babf97fcd90d9dceaf041d9ffd4276c16d8",
+      "sha256": "515644c03591dd72954aadb50dce01bfafd0e6f0b2ce7c4957e395daf11784d3",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -16018,9 +16018,9 @@
         "./completed-run-publication.mjs",
         "./durable-result-payload.mjs",
         "./execution-sites.mjs",
+        "./ledger-usage.mjs",
         "./managed-site-transfer.mjs",
         "./run-publication-preflight.mjs",
-        "./runtime-core.mjs",
         "./strategy-actions.mjs",
         "./task-observation.mjs"
       ],

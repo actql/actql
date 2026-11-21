@@ -1615,3 +1615,9 @@ target/
 /adapters/store-local/semantic-reader-custody.test.d.mts
 /adapters/store-local/store-contract-reader-custody.test.mjs
 /adapters/store-local/store-contract-reader-custody.test.d.mts
+/adapters/host-common/strategy-usage.test.mjs
+/adapters/host-common/strategy-usage.test.d.mts
+/adapters/host-node/ledger-usage-consumers.test.mjs
+/adapters/host-node/ledger-usage-consumers.test.d.mts
+/adapters/host-common/ledger-usage.mjs
+/adapters/host-common/ledger-usage.d.mts

@@ -2,32 +2,36 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import * as core from '../host-common/runtime-core.mjs';
+import type {AnyNode} from 'acorn';
+import * as core from '../host-common/ledger-usage.mjs';
 import {StrategyHostError} from '../host-common/strategy.mjs';
 
-function originalFunction(file, name, ports) {
+type AstValue = {start: number; end: number};
+function originalFunction<Callable extends (...args: never[]) => unknown>(
+  file: string, name: string, ports: Readonly<Record<string, unknown>>,
+): Callable {
   const text = readFileSync(new URL(file, import.meta.url), 'utf8');
-  let expression;
-  function visit(node) {
+  let expression: AstValue | null | undefined;
+  function visit(node: AnyNode | null) {
     if (node === null || typeof node !== 'object') return;
-    if (node.type === 'FunctionDeclaration' && node.id.name === name) expression = node;
-    if (node.type === 'VariableDeclarator' && node.id.name === name) expression = node.init;
+    if (node.type === 'FunctionDeclaration' && (node.id as {name?: string}).name === name) expression = node;
+    if (node.type === 'VariableDeclarator' && (node.id as {name?: string}).name === name) expression = node.init;
     for (const value of Object.values(node)) Array.isArray(value) ? value.forEach(visit) : visit(value);
   }
   visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert(expression, name);
-  return Function(...Object.keys(ports), `return (${text.slice(expression.start, expression.end)});`)(...Object.values(ports));
+  return Function(...Object.keys(ports), `return (${text.slice(expression.start, expression.end)});`)(...Object.values(ports)) as Callable;
 }
 
-function dispatchCleanup(values) {
+function dispatchCleanup(values: readonly bigint[]) {
   const setup = {}, entry = {pendingSetup: setup};
-  const calls = [];
-  const moon = {strategyHostStop(actual) {assert.equal(actual, setup); calls.push('stop');},
-    strategyHostCloseOutputs(actual) {assert.equal(actual, setup); calls.push('outputs');},
-    strategyHostUsage(actual) {assert.equal(actual, setup); calls.push('usage'); return values;}};
-  const cleanup = originalFunction('client-dispatch-owner.mjs', 'settleCleanup', {
+  const calls: string[] = [];
+  const moon = {strategyHostStop(actual: object) {assert.equal(actual, setup); calls.push('stop');},
+    strategyHostCloseOutputs(actual: object) {assert.equal(actual, setup); calls.push('outputs');},
+    strategyHostUsage(actual: object) {assert.equal(actual, setup); calls.push('usage'); return values;}};
+  const cleanup = originalFunction<(entry: object) => Promise<unknown>>('client-dispatch-owner.mjs', 'settleCleanup', {
     moon, ledgerUsageHasPendingResources: core.ledgerUsageHasPendingResources,
-    settleCleanupHandle: async actual => assert.equal(actual, entry),
+    settleCleanupHandle: async (actual: object) => assert.equal(actual, entry),
     observeStop() {assert.fail('no physical stop observation in this component');},
     observation: undefined,
   });
@@ -59,19 +63,19 @@ test('actual acquired-Effect and dispatch diagnostics preserve the complete same
     liveReservations:'105', liveDelegations:'106', transferredBytes:'107', uncertainTransferBytes:'108',
     reservedTransferBytes:'109', heldBytes:'110', reservedRetentionBytes:'111', reservedExecutionBytes:'112', peakRetentionBytes:'113'};
   const ledger = {}, host = {}, checkedHost = {}, runtime = {};
-  const moon = {clientProgramMultiCapturedLedgerUsage(actual) {assert.equal(actual, ledger); return values;},
-    clientProgramLocalEffectHostRuntime(actual) {assert.equal(actual, checkedHost); return runtime;},
-    strategyHostUsage(actual) {assert.equal(actual, runtime); return values;}};
-  const resourceUsage = originalFunction('client-dispatch-owner.mjs', 'resourceUsage', {
+  const moon = {clientProgramMultiCapturedLedgerUsage(actual: object) {assert.equal(actual, ledger); return values;},
+    clientProgramLocalEffectHostRuntime(actual: object) {assert.equal(actual, checkedHost); return runtime;},
+    strategyHostUsage(actual: object) {assert.equal(actual, runtime); return values;}};
+  const resourceUsage = originalFunction<(ledger: object) => unknown>('client-dispatch-owner.mjs', 'resourceUsage', {
     moon, ledgerUsageDiagnostic: core.ledgerUsageDiagnostic,
   });
   assert.deepEqual(resourceUsage(ledger), expected);
   for (const selectedLedger of [undefined, ledger]) {
-    const diagnostics = [];
-    const observeUsage = originalFunction('acquired-effect-computation.mjs', 'observeUsage', {
+    const diagnostics: {name: string; facts: unknown}[] = [];
+    const observeUsage = originalFunction<(name: string, inputs: Readonly<{host: object}>) => void>('acquired-effect-computation.mjs', 'observeUsage', {
       ledger: selectedLedger, checkedHost, moon,
       ledgerUsageDiagnostic: core.ledgerUsageDiagnostic,
-      diagnostic: (name, facts) => diagnostics.push({name, facts}),
+      diagnostic: (name: string, facts: unknown) => diagnostics.push({name, facts}),
     });
     observeUsage('same-original', {host});
     assert.deepEqual(diagnostics, [{name:'same-original', facts:{host, resourceUsage:expected}}]);
@@ -84,7 +88,11 @@ test('actual preflight cleanup retains every current counter while preserving sp
     values[index] = 1n;
     const setup = {}, active = new WeakSet([setup]), releasedPreflightSetups = new WeakSet();
     let stops = 0, outputs = 0;
-    const create = originalFunction('../host-common/strategy.mjs', 'preflightSetupCleanup', {
+    const create = originalFunction<(value: Readonly<{setup: object; core: Readonly<{
+      stop(actual: object): void;
+      closeOutputs(actual: object): void;
+      usage(actual: object): unknown;
+    }>}>) => Readonly<{cleanup(): boolean; cleanupPending(): boolean}>>('../host-common/strategy.mjs', 'preflightSetupCleanup', {
       StrategyHostError, active, releasedPreflightSetups,
       ledgerUsageSnapshotHasPendingResources: core.ledgerUsageSnapshotHasPendingResources,
     });

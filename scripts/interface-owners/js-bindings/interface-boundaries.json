@@ -16051,8 +16051,6 @@
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
-            "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
@@ -16988,20 +16986,7 @@
           }
         },
         {
-          "operations": [
-            "ledgerUsageDiagnostic",
-            "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
-            "ledgerUsageHasPendingResources",
-            "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
-            "ledgerUsageSnapshot",
-            "ledgerUsageSnapshot/ledgerUsageSnapshot",
-            "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
-            "ledgerUsageSnapshotHasPendingResources",
-            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
-            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
-            "spentUsageKeys/spentUsageKeys",
-            "spentUsageKeys/spentUsageKeys/spentUsageKeys"
-          ],
+          "operations": [],
           "exports": [
             "ledgerUsageDiagnostic",
             "ledgerUsageHasPendingResources",
@@ -27000,80 +26985,6 @@
           "async": false
         },
         {
-          "name": "ledgerUsageDiagnostic",
-          "parameters": [
-            "counts"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
-          "parameters": [
-            "name",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageHasPendingResources",
-          "parameters": [
-            "counts"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
-          "parameters": [
-            "name",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshot",
-          "parameters": [
-            "counts"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot",
-          "parameters": [
-            "bits",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
-          "parameters": [
-            "count",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshotHasPendingResources",
-          "parameters": [
-            "usage"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "outputExportControl",
           "parameters": [
             "moon",
@@ -35127,6 +35038,199 @@
             "value"
           ],
           "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "./compiler-binding.generated.mjs",
+        "./dispatch-failure-observation.mjs",
+        "./installation-preparation-metadata.mjs",
+        "./installed-effect-dependency-original.mjs",
+        "./ledger-usage.mjs",
+        "./local-signing-metadata.mjs",
+        "./publication-action.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "67e49b23042ba3945cbbcd224ea4aca8daf890b193d3029bc0eb2a56870c1199"
+    },
+    {
+      "module": "adapters/host-common/ledger-usage.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "ledgerUsageDiagnostic",
+            "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
+            "ledgerUsageHasPendingResources",
+            "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
+            "ledgerUsageSnapshot",
+            "ledgerUsageSnapshot/ledgerUsageSnapshot",
+            "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
+            "ledgerUsageSnapshotHasPendingResources",
+            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
+            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
+            "spentUsageKeys/spentUsageKeys",
+            "spentUsageKeys/spentUsageKeys/spentUsageKeys",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
+          ],
+          "exports": [
+            "ledgerUsageDiagnostic",
+            "ledgerUsageHasPendingResources",
+            "ledgerUsageSnapshot",
+            "ledgerUsageSnapshotHasPendingResources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source correspondence for the existing generated Ledger usage and diagnostic projection.",
+      "exports": [
+        "ledgerUsageDiagnostic",
+        "ledgerUsageHasPendingResources",
+        "ledgerUsageSnapshot",
+        "ledgerUsageSnapshotHasPendingResources"
+      ],
+      "operations": [
+        {
+          "name": "ledgerUsageDiagnostic",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageHasPendingResources",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot",
+          "parameters": [
+            "bits",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
+          "parameters": [
+            "count",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "spentUsageKeys/spentUsageKeys",
@@ -35160,20 +35264,11 @@
         }
       ],
       "imports": [
-        "../../packages/client-wire/index.mjs",
-        "./compiler-binding.generated.mjs",
-        "./dispatch-failure-observation.mjs",
-        "./installation-preparation-metadata.mjs",
-        "./installed-effect-dependency-original.mjs",
-        "./ledger-contract.generated.mjs",
-        "./local-signing-metadata.mjs",
-        "./publication-action.mjs",
-        "./result-output-limits.mjs",
-        "./runtime-result.mjs"
+        "./ledger-contract.generated.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
+      "sha256": "baa400a38a29baebb96fb3fe9047ad2a3f28d0cf637d91fbb63de8bd8ab1b767"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

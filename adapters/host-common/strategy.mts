@@ -43,8 +43,7 @@ import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
 import {ExecutionAuthorizationError, missingAuthorizationGate} from './authorization-gate.mjs';
 import {projectTaskObservation, projectTaskLogicalObservation} from './task-observation.mjs';
-// @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
-import {ledgerUsageSnapshotHasPendingResources} from './runtime-core.mjs';
+import {ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
 
 import type {SynchronousRuntimeData} from './runtime-result.mjs';
 import type {withManagedOutputRows} from '../store-local/managed-memory-representations.mjs';

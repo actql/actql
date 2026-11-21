@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+// @ts-expect-error TS7016: remove after migrating the authored Common runtime adapter.
 import {runtimeCore, ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from './runtime-core.mjs';
 import {ledgerUsageFields} from './ledger-contract.generated.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
 import {createExecutionSiteControlFixture} from './execution-site-control.fixture.mjs';
 
-const camel = name => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
+const camel = (name: string) => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
 
 test('strategy usage preserves every actual Core field and its original nonzero value', () => {
   const setup = {};
@@ -14,7 +15,7 @@ test('strategy usage preserves every actual Core field and its original nonzero 
   const original = [...values];
   let reads = 0;
   const core = runtimeCore({strategyRemoteManagedOutputEvidenceKind: () => 'unused fixture metadata',
-    strategyHostUsage(actual) {
+    strategyHostUsage(actual: object) {
     assert.strictEqual(actual, setup);
     reads++;
     return values;
@@ -54,8 +55,8 @@ test('shared usage adapter preserves each pending counter and only Core-owned sp
 });
 
 test('all shared usage projections refuse old sparse noninteger and out-of-range layouts', () => {
-  const malformed = [Array(9).fill(0n), Array(14).fill(0n), Array(13), {}];
-  for (const [index, value] of [[0, 1], [0, -1n], [0, 2147483648n], [12, 9223372036854775808n]]) {
+  const malformed: unknown[] = [Array(9).fill(0n), Array(14).fill(0n), Array(13), {}];
+  for (const [index, value] of [[0, 1], [0, -1n], [0, 2147483648n], [12, 9223372036854775808n]] as const) {
     const values = Array(13).fill(0n); values[index] = value; malformed.push(values);
   }
   for (const value of malformed) for (const project of [ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources]) {
@@ -65,26 +66,29 @@ test('all shared usage projections refuse old sparse noninteger and out-of-range
 
 // Driver protocol controls only. Actual captured-DAG hook/loan retirement is
 // exercised by the corresponding client_local_host component control.
-function completedCleanupFixture({waiting = false, stopFailure} = {}) {
+type StrategyOptions = Parameters<typeof runInstalledStrategy>[0];
+type StrategyRuntime = StrategyOptions['runtime'];
+
+function completedCleanupFixture({waiting = false, stopFailure}: {waiting?: boolean; stopFailure?: unknown} = {}) {
   const setup = {}, registration = {}, output = {};
-  const events = [];
+  const events: string[] = [];
   let complete = false, selected = false, stopped = false, stops = 0;
   const core = {
     siteControl: createExecutionSiteControlFixture(),
     count: () => 2,
     next: () => selected ? undefined : (selected = true, {index: 1}),
-    task: value => value.index,
+    task: (value: Readonly<{index: number}>) => value.index,
     registration: () => registration,
     taskCapacity: () => [0n, 0n],
     completed: () => complete,
     finished: () => complete,
-    stop(original) {
+    stop(original: object) {
       assert.strictEqual(original, setup);
       events.push('stop'); stops++;
       if (stopFailure !== undefined) throw stopFailure;
       stopped = true;
     },
-    closeOutputs(original) {assert.strictEqual(original, setup); events.push('core-output-close');},
+    closeOutputs(original: object) {assert.strictEqual(original, setup); events.push('core-output-close');},
     output: () => complete ? output : undefined,
     usage: () => ({}), explain: () => ({}),
   };
@@ -101,7 +105,7 @@ function completedCleanupFixture({waiting = false, stopFailure} = {}) {
 test('completed strategy close stops its original DAG before output and logical holder retirement', async () => {
   const f = completedCleanupFixture();
   const execution = await runInstalledStrategy({setup: f.setup,
-    runtime: {core: f.core, contributions: [f.contribution]}});
+    runtime: {core: f.core, contributions: [f.contribution]} as StrategyRuntime});
   assert.equal(execution.status, 'host-tasks-completed');
   assert.strictEqual(execution.output(1), f.output);
   assert.equal(f.stops(), 0, 'The successful output remains available until its owner closes');
@@ -123,7 +127,7 @@ test('completed strategy stop failure retains original cleanup authority while o
   const original = Object.assign(new Error('original completed stop failed'), {cleanupHandle});
   const f = completedCleanupFixture({stopFailure: original});
   const execution = await runInstalledStrategy({setup: f.setup,
-    runtime: {core: f.core, contributions: [f.contribution]}});
+    runtime: {core: f.core, contributions: [f.contribution]} as StrategyRuntime});
   assert.throws(() => execution.close(), error => error === original);
   assert.deepEqual(f.events, ['compute', 'stop', 'output-close', 'core-output-close']);
   assert.equal(execution.status, 'host-tasks-completed');
@@ -138,7 +142,7 @@ test('completed strategy stop failure retains original cleanup authority while o
 test('waiting strategy close does not add a completed-run stop or erase its original checkpoint', async () => {
   const f = completedCleanupFixture({waiting: true});
   const execution = await runInstalledStrategy({setup: f.setup,
-    runtime: {core: f.core, contributions: [f.contribution]}});
+    runtime: {core: f.core, contributions: [f.contribution]} as StrategyRuntime});
   assert.equal(execution.status, 'host-tasks-waiting');
   const originalCheckpoint = execution.checkpoint;
   assert.equal(f.stops(), 1, 'The existing checkpoint dispatch already owns its physical stop');
@@ -153,7 +157,7 @@ test('completed strategy stop without recovery authority remains pending after i
   const original = new Error('original stop without recovery');
   const f = completedCleanupFixture({stopFailure: original});
   const execution = await runInstalledStrategy({setup: f.setup,
-    runtime: {core: f.core, contributions: [f.contribution]}});
+    runtime: {core: f.core, contributions: [f.contribution]} as StrategyRuntime});
   assert.throws(() => execution.close(), error => error === original);
   assert.deepEqual(f.events, ['compute', 'stop', 'output-close', 'core-output-close']);
   assert.equal(await execution.cleanup(), false);
