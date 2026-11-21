@@ -1519,3 +1519,5 @@ target/
 /adapters/store-local/native-metadata-mutation-owner.d.mts
 /adapters/store-local/publication-metadata-deletion-markers.mjs
 /adapters/store-local/publication-metadata-deletion-markers.d.mts
+/adapters/store-local/publication-custody-records.mjs
+/adapters/store-local/publication-custody-records.d.mts

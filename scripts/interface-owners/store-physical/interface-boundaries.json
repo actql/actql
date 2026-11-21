@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "59541a035bec712f02ec16713d641f0d5c78edd07a23a8ec6bb48937a6783004",
+      "sha256": "eab6f462c310177656e6aa7ef65a900fcb8edcf2d16f874705fdc178af7d3b91",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6824,6 +6824,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
+          "parameters": [
+            "originals",
+            "retainPreparations"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
           "parameters": [
             "object"
@@ -6849,6 +6857,13 @@
           "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
@@ -6980,6 +6995,13 @@
             "accept"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
@@ -7358,6 +7380,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/custodyPath/custodyPath",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
           "parameters": [],
           "async": false
@@ -7710,10 +7739,22 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
+          "parameters": [
+            "materialCid"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
           "parameters": [
             "object"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -7809,6 +7850,15 @@
           "name": "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
           "parameters": [
             "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
           ],
           "async": false
         },
@@ -8397,44 +8447,12 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody",
-          "parameters": [
-            "custody"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/reclaimCustody",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/recoverPreparedCustodies/recoverPreparedCustodies",
           "parameters": [],
           "async": true
         },
@@ -8466,15 +8484,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/registerCustody/registerCustody",
-          "parameters": [
-            "cid",
-            "bytes",
-            "state"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
           "parameters": [
             "cid",
@@ -8498,6 +8507,15 @@
           "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
@@ -8571,13 +8589,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
-          "parameters": [
-            "custody"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
           "parameters": [
             "cid",
@@ -8626,6 +8637,13 @@
           "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
           "parameters": [
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
+          "parameters": [
+            "operation"
           ],
           "async": false
         },
@@ -9513,20 +9531,13 @@
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/reclaimCustody",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
-            "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
             "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
-            "openOriginalLocalPublicationStore/recoverPreparedCustodies/recoverPreparedCustodies",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
             "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
             "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
-            "openOriginalLocalPublicationStore/registerCustody/registerCustody",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
@@ -9544,7 +9555,6 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
-            "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
@@ -9594,7 +9604,16 @@
             "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
             "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
             "openOriginalLocalPublicationStore/metadataDeletionPath/metadataDeletionPath",
-            "openOriginalLocalPublicationStore/metadataFencesAreReady/metadataFencesAreReady"
+            "openOriginalLocalPublicationStore/metadataFencesAreReady/metadataFencesAreReady",
+            "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
+            "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
+            "openOriginalLocalPublicationStore/contractPath/contractPath",
+            "openOriginalLocalPublicationStore/custodyPath/custodyPath",
+            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
+            "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
+            "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
+            "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13311,6 +13330,7 @@
         "./prepared-holder-owner.mjs",
         "./prepared-publication-store-ownership.mjs",
         "./publication-commit-owner.mjs",
+        "./publication-custody-records.mjs",
         "./publication-metadata-deletion-markers.mjs",
         "./publication-metadata-inventory.mjs",
         "./publication-store-bootstrap.mjs",
@@ -13329,6 +13349,193 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-custody-records.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "a2b3e162f8522275b1f4af8a481b1b7a0210f6cbc2192e5c5155460e90eced75",
+      "exports": [
+        "createPublicationCustodyRecords"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationCustodyRecords",
+          "parameters": [
+            "configuration",
+            "custodyDirectory",
+            "objectsDirectory",
+            "contractsDirectory",
+            "custodyNamePattern",
+            "reclaimableCustodies",
+            "custodyPath",
+            "objectPath",
+            "contractPath",
+            "currentDeliveryIndex",
+            "materialRetentionCurrent",
+            "retainMaterialOperation",
+            "syncDirectory",
+            "writePhysicalHoldingRecord",
+            "physicalOriginal",
+            "confirmPhysicalCapacity",
+            "confirmPhysicalRemovals",
+            "rememberPhysicalRemoval",
+            "materialHasLiveReference",
+            "verifyObject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimCustody/reclaimCustody",
+          "parameters": [
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimCustody/reclaimCustody/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimCustody/reclaimCustody/reclaimCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationCustodyRecords/recoverPreparedCustodies/recoverPreparedCustodies",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationCustodyRecords/registerCustody/registerCustody",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationCustodyRecords/removeCustodyRecord/removeCustodyRecord",
+          "parameters": [
+            "custody"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationCustodyRecords",
+            "createPublicationCustodyRecords/reclaimCustody/reclaimCustody",
+            "createPublicationCustodyRecords/reclaimCustody/reclaimCustody/operation/operation",
+            "createPublicationCustodyRecords/reclaimCustody/reclaimCustody/reclaimCustody",
+            "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation",
+            "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
+            "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
+            "createPublicationCustodyRecords/recoverPreparedCustodies/recoverPreparedCustodies",
+            "createPublicationCustodyRecords/registerCustody/registerCustody",
+            "createPublicationCustodyRecords/removeCustodyRecord/removeCustodyRecord"
+          ],
+          "exports": [
+            "createPublicationCustodyRecords"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "export function createPublicationCustodyRecords("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "const ownsAllocation = String(state.dev) === custody.record.device &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "reclaimableCustodies.set(token, custody);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "retainMaterialOperation(operation.catch(() => {}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "fail('InvalidPublicationPreparedCustody');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "if (custody.settlingNative) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "await confirmPhysicalRemovals(new Map([[cid,custody.removal]]));"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "currentDeliveryIndex()!.pendingPhysicalObject(custody.nativePreparation)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "anchor": "failed final custody directory ACK cannot install the payload and remains recoverable"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "crash custody cannot reclaim a committed shared allocation"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original prepared custody registration and exact allocation recovery under the Store physical owner."
     },
     {
       "module": "adapters/store-local/publication-metadata-deletion-markers.mjs",
