@@ -282,6 +282,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           retained: 0L,
           workspace: 0L,
           source_snapshot: None,
+          source_copy: None,
         })
       }
       if entry == 0 && state.lookup is Some(lookup) {

@@ -151,6 +151,37 @@ test "Native first member retains one original capture before input and full rec
           "native.mock.file.capture", future,
         ).unwrap(),
       ).unwrap()
+      let construction : LocalNativeMockEffectImportConstruction = {
+        operation: child,
+        recipe: future,
+        retained: 0L,
+        workspace: 20L,
+        source_snapshot: None,
+        source_copy: Some(0L),
+      }
+      construction.reserve_source_row_copy(40L, 20L).unwrap()
+      assert_eq(construction.source_copy, Some(40L))
+      assert_eq(construction.workspace, 60L)
+      // The previous Source frame returned. The next copy begins at zero
+      // and uses the same reservation, including its earlier execution peak.
+      construction.source_copy = None
+      construction.source_copy = Some(0L)
+      construction.reserve_source_row_copy(30L, 20L).unwrap()
+      assert_eq(construction.source_copy, Some(30L))
+      assert_eq(construction.workspace, 60L)
+      assert_eq(construction.retained, 0L)
+      // Checked cap: 20000 E minus base 30, decoder 20, live copy 30.
+      assert_true(
+        construction.reserve_source_row_copy(19921L, 20L)
+        is Err(Managed(InsufficientCapacity)),
+      )
+      assert_eq(construction.source_copy, Some(30L))
+      assert_eq(construction.workspace, 60L)
+      construction.reserve_source_row_copy(19920L, 20L).unwrap()
+      assert_eq(construction.source_copy, Some(19950L))
+      assert_eq(construction.workspace, 19970L)
+      assert_eq(construction.retained, 0L)
+      construction.source_copy = None
       @local_values.complete_installed_effect_operation_construction(child).unwrap()
       None
     }

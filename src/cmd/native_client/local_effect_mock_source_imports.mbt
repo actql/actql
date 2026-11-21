@@ -23,7 +23,12 @@ fn LocalNativeMockEffectSourceImport::close_export(self : Self) -> Unit {
     self.snapshot = None
   }
   if self.receipt is Some(receipt) {
-    @execution.cancel_completed_relation_export_receipt(receipt)
+    // This Source import preserves the receipt's immutable identities and
+    // measurements. Only its temporary export had a row/reference view.
+    @execution.cancel_completed_relation_export_receipt(
+      receipt,
+      discard_reference_inventory=true,
+    )
     self.receipt = None
   }
   if self.stream is Some(stream) {
@@ -168,106 +173,113 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
       if @strategy.captured_effect_local_result_stage(result) != stage {
         continue
       }
-      let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
-          @strategy.captured_effect_local_result_borrow(result),
-        ) {
-        self.prepare_mock_effect_direct_result_export(state, held, index)
-      } else {
-        let managed = self.prepare_mock_effect_local_result_export(
-          state, held, index,
-        )
-        source.managed_export = Some(managed)
-        managed
-        .captured_export()
-        .unwrap_or_else(() => stop("LocalOriginalEffectImportsUnavailable"))
-      }
-      source.exported = Some(exported)
-      let preparation = @strategy.captured_effect_local_result_export_preparation(
-        exported,
-      )
-      while !@execution.advance_completed_result_relation_export(
-              preparation, 31,
-            )
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original).0 {
-        continue
-      }
-      let stream = @execution.finish_completed_result_relation_export_preparation(
-          preparation,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      source.stream = Some(stream)
-      while @execution.next_completed_output_export_canonical_row(
-              stream,
-              wire.max_nodes,
-              wire.max_depth,
-              limits.output_work,
-            )
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original)
-            is Some(_) {
-        continue
-      }
-      let (receipt, _) = @execution.finish_completed_relation_export(stream)
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      source.receipt = Some(receipt)
-      let name = @execution.managed_result_occurrence_name(
-        @strategy.captured_any_result_borrow_occurrence(
-          @strategy.captured_effect_local_result_borrow(result),
-        ),
-      )
-      let definition = @run_host.issue_client_effect_local_result_definition(
-          state._retained_prepared,
-          stage,
-          name,
-          16384,
-          1024,
-          20,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
-        .native_effect_proposal(self.original)
-      construction.retain_wire(
-        self.original,
-        @run_host.client_effect_local_result_definition_json(definition),
-      )
-      let artifact = @run_host.issue_acquired_client_effect_local_result_artifact(
-          state._retained_prepared,
-          held.inputs,
-          exported,
-          acquired,
-          definition,
-          receipt,
-          @run_host.client_effect_allowed_run_admission(state.first.allowed),
-          state.first.definition,
-          invocation,
-          observation,
-          16384,
-          1024,
-          20,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
-        .native_effect_proposal(self.original)
-      source.artifacts.push(artifact)
-      source.names.push(name)
-      for
-        retained_wire in [
-          @run_host.client_effect_local_result_artifact_json(artifact),
-          @run_host.client_effect_local_result_derivation_json(artifact),
-          @run_host.client_effect_local_result_ordering_json(artifact),
-        ] {
-        construction.retain_wire(self.original, retained_wire)
-      }
-      guard construction.source_snapshot is None else {
+      guard construction.source_copy is None &&
+        construction.source_snapshot is None else {
         stop("LocalOriginalEffectImportsUnavailable")
       }
-      construction.source_snapshot = Some(0L)
       fn capture_result() -> Unit raise ClientStop {
+        let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
+            @strategy.captured_effect_local_result_borrow(result),
+          ) {
+          self.prepare_mock_effect_direct_result_export(state, held, index)
+        } else {
+          construction.source_copy = Some(0L)
+          let managed = self.prepare_mock_effect_local_result_export(
+            state,
+            held,
+            index,
+            scoped_source_copy=true,
+          )
+          source.managed_export = Some(managed)
+          managed
+          .captured_export()
+          .unwrap_or_else(() => stop("LocalOriginalEffectImportsUnavailable"))
+        }
+        source.exported = Some(exported)
+        let preparation = @strategy.captured_effect_local_result_export_preparation(
+          exported,
+        )
+        while !@execution.advance_completed_result_relation_export(
+                preparation, 31,
+              )
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Completed(issue)
+              })
+              .native_effect_proposal(self.original).0 {
+          continue
+        }
+        let stream = @execution.finish_completed_result_relation_export_preparation(
+            preparation,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        source.stream = Some(stream)
+        while @execution.next_completed_output_export_canonical_row(
+                stream,
+                wire.max_nodes,
+                wire.max_depth,
+                limits.output_work,
+              )
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Completed(issue)
+              })
+              .native_effect_proposal(self.original)
+              is Some(_) {
+          continue
+        }
+        let (receipt, _) = @execution.finish_completed_relation_export(stream)
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        source.receipt = Some(receipt)
+        let name = @execution.managed_result_occurrence_name(
+          @strategy.captured_any_result_borrow_occurrence(
+            @strategy.captured_effect_local_result_borrow(result),
+          ),
+        )
+        let definition = @run_host.issue_client_effect_local_result_definition(
+            state._retained_prepared,
+            stage,
+            name,
+            16384,
+            1024,
+            20,
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::Definition(issue)
+          })
+          .native_effect_proposal(self.original)
+        construction.retain_wire(
+          self.original,
+          @run_host.client_effect_local_result_definition_json(definition),
+        )
+        let artifact = @run_host.issue_acquired_client_effect_local_result_artifact(
+            state._retained_prepared,
+            held.inputs,
+            exported,
+            acquired,
+            definition,
+            receipt,
+            @run_host.client_effect_allowed_run_admission(state.first.allowed),
+            state.first.definition,
+            invocation,
+            observation,
+            16384,
+            1024,
+            20,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
+          .native_effect_proposal(self.original)
+        source.artifacts.push(artifact)
+        source.names.push(name)
+        for
+          retained_wire in [
+            @run_host.client_effect_local_result_artifact_json(artifact),
+            @run_host.client_effect_local_result_derivation_json(artifact),
+            @run_host.client_effect_local_result_ordering_json(artifact),
+          ] {
+          construction.retain_wire(self.original, retained_wire)
+        }
+        construction.source_snapshot = Some(0L)
         let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
             stream, receipt,
           )
@@ -333,10 +345,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         source.close_export()
       }
       capture_result()
-      // The successful capture owns its immutable dependency bodies. The
-      // bare row text was dropped by close_export and the last local alias
-      // has returned. The Artifact still owns its Export receipt and refs.
+      // The successful capture owns its immutable dependency bodies and the
+      // Artifact's metadata receipt. Close cut the row/reference views;
+      // this return also ends the last local bridge, stream and snapshot
+      // aliases. Reuse their allowance without lowering the Ledger peak.
       construction.source_snapshot = None
+      construction.source_copy = None
     }
     source.manifest = Some(
       @run_host.issue_client_effect_local_manifest(

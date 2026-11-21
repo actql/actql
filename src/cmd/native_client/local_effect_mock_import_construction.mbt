@@ -10,6 +10,9 @@ priv struct LocalNativeMockEffectImportConstruction {
   // Borrowed only by one acquired Source snapshot. Failure leaves the active
   // extent on the original operation until command cleanup.
   mut source_snapshot : Int64?
+  // Live only inside one synchronous Source export, including on failure
+  // until that same operation's cleanup. Other exports are retained below.
+  mut source_copy : Int64?
 }
 
 ///|
@@ -201,11 +204,18 @@ fn native_mock_effect_import_workspace(
   high_water : Int64,
   live_snapshot : Int64,
   constructor_workspace : Int64,
+  source_copy? : Int64 = 0L,
 ) -> Int64? {
   let fixed_workspace = @execution.execution_capacity_execution_bytes(fixed) -
     @execution.execution_capacity_retained_bytes(fixed)
+  guard @execution.checked_preparation_add_product(
+      live_snapshot, source_copy, 1L,
+    )
+    is Some(live) else {
+    return None
+  }
   @execution.checked_preparation_add_product(
-    live_snapshot,
+    live,
     Int64::max(fixed_workspace, constructor_workspace),
     1L,
   ).map(required => Int64::max(high_water, required))
@@ -218,12 +228,18 @@ fn LocalNativeMockEffectImportConstruction::reserve_source_snapshot(
   additional : Int64,
   constructor_workspace : Int64,
 ) -> Bool {
+  let source_copy = self.source_copy.unwrap_or(0L)
   guard self.source_snapshot == Some(0L) &&
+    @execution.checked_preparation_add_product(
+      source_copy, constructor_workspace, 1L,
+    )
+    is Some(snapshot_peak) &&
     native_mock_effect_import_workspace(
       self.recipe[0],
-      Int64::max(self.workspace, constructor_workspace),
+      Int64::max(self.workspace, snapshot_peak),
       additional,
       0L,
+      source_copy~,
     )
     is Some(workspace) else {
     original.retain_primary(
@@ -269,6 +285,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_body_result(
       self.source_snapshot.unwrap_or(0L),
       @execution.execution_capacity_execution_bytes(body) -
       @execution.execution_capacity_retained_bytes(body),
+      source_copy=self.source_copy.unwrap_or(0L),
     )
     is Some(workspace) else {
     return Err(Managed(InsufficientCapacity))
@@ -377,6 +394,7 @@ fn LocalNativeMockEffectImportConstruction::reserve_row_copy(
       self.workspace,
       self.source_snapshot.unwrap_or(0L),
       decoder,
+      source_copy=self.source_copy.unwrap_or(0L),
     )
     is Some(workspace) else {
     return Err(Managed(InsufficientCapacity))
@@ -385,11 +403,43 @@ fn LocalNativeMockEffectImportConstruction::reserve_row_copy(
 }
 
 ///|
+// Source import closes this private copy before the enclosing constructor
+// returns. Charge its whole live prefix alongside the current scratch and
+// the retained artifacts, without accumulating earlier, closed copies.
+fn LocalNativeMockEffectImportConstruction::reserve_source_row_copy(
+  self : Self,
+  additional : Int64,
+  decoder : Int64,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  guard self.source_copy is Some(prior) &&
+    @execution.checked_preparation_add_product(prior, additional, 1L)
+    is Some(source_copy) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      self.workspace,
+      self.source_snapshot.unwrap_or(0L),
+      decoder,
+      source_copy~,
+    )
+    is Some(workspace) else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  match self.resize_result(self.recipe, self.retained, workspace) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      self.source_copy = Some(source_copy)
+      Ok(())
+    }
+  }
+}
+
+///|
 fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   self : Self,
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
   index : Int,
+  scoped_source_copy? : Bool = false,
 ) -> @local_values.LocalValuesEffectResultExport raise ClientStop {
   guard state.suffix is Some(execution) &&
     state.effect_capture is Some(captured) &&
@@ -400,6 +450,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   let wire = limits.identity.wire
   let bridge = held.bridge_limits
   let row = bridge.row
+  // The synchronous bridge first reserves its startup controls, then offers
+  // copied prefixes. Startup stays on the retained lane for every export.
+  let mut started = false
   execution
   .prepare_effect_result_export(
     captured,
@@ -421,9 +474,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
       max_batch_bytes: Int::min(wire.max_bytes, 16384),
     },
     reserve_row_copy=Some((bytes, decoder) => {
-      construction
-      .reserve_row_copy(bytes, decoder)
-      .retain_mock_effect_proposal_issue(issue => {
+      let result = if scoped_source_copy && started {
+        construction.reserve_source_row_copy(bytes, decoder)
+      } else {
+        construction.reserve_row_copy(bytes, decoder)
+      }
+      started = true
+      result.retain_mock_effect_proposal_issue(issue => {
         self.original.retain_primary(CommandBusinessEffectProposals(issue))
       })
     }),

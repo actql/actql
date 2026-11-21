@@ -336,7 +336,7 @@ pub fn cancel_completed_output_export_preparation(CompletedOutputExportPreparati
 
 pub fn cancel_completed_output_import(CompletedOutputImport) -> Bool
 
-pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) -> Unit
+pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt, discard_reference_inventory? : Bool) -> Unit
 
 pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Bool
 

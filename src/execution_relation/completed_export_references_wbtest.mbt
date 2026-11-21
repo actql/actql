@@ -176,6 +176,44 @@ test "completed Content identity projection keeps original occurrences and custo
 }
 
 ///|
+test "metadata-only receipt cancellation drops its original reference view" {
+  let (source, _, _) = reference_export_fixture(false, Ref(true), Ref(true))
+  let receipt = content_borrow_export(source)
+  let geometry = completed_relation_export_scalar_geometry(receipt)
+  let schema = completed_relation_export_schema_identity(receipt)
+  let logical = completed_relation_export_identity(receipt)
+  let references = receipt.rows.references.unwrap()
+  let sibling = content_borrow_export(source)
+  let transferred = take_completed_relation_content_references(sibling).unwrap()
+  let field = @schema.field_at(sibling.rows.content.schema, 1).unwrap()
+
+  cancel_completed_relation_export_receipt(
+    receipt,
+    discard_reference_inventory=true,
+  )
+  assert_true(receipt.rows.source is None)
+  assert_true(receipt.rows.references is None)
+  assert_true(references.revoked)
+  assert_eq(completed_relation_export_scalar_geometry(receipt), geometry)
+  assert_true(
+    physical_equal(completed_relation_export_schema_identity(receipt), schema),
+  )
+  assert_true(
+    physical_equal(completed_relation_export_identity(receipt), logical),
+  )
+  assert_true(completed_output_available(source))
+
+  cancel_completed_relation_export_receipt(
+    sibling,
+    discard_reference_inventory=true,
+  )
+  assert_true(
+    completed_content_reference_field(transferred, 0, field, 2, 100) is Ok(_),
+  )
+  assert_true(advance_release_completed_content_references(transferred, 64))
+}
+
+///|
 test "completed Content identity projection fences one original current callback" {
   let (source, _, _) = reference_export_fixture(false, Ref(true), Ref(true))
   let calls = Ref(0)

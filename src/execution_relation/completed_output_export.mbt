@@ -932,10 +932,17 @@ pub fn cancel_completed_export_receipt(
 }
 
 ///|
+/// Discard the already-revoked reference view when the caller retains only
+/// the receipt's immutable metadata. Transferred reference custody remains
+/// with the owner that already took it from the receipt.
 pub fn cancel_completed_relation_export_receipt(
   receipt : CompletedRelationExportReceipt,
+  discard_reference_inventory? : Bool = false,
 ) -> Unit {
   cancel_completed_export_receipt(receipt.rows)
+  if discard_reference_inventory {
+    receipt.rows.references = None
+  }
 }
 
 ///|

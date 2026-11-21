@@ -711,13 +711,15 @@ fn native_mock_effect_import_construction(
         // The Source snapshot phase adds one bounded optional extent and
         // one local constructor closure. Also cover a transient emitted
         // usage tuple and the current body's extent and depth options.
-        record_headers: 9L +
+        // The scoped Source copy adds its old and new optional counters and
+        // the synchronous bridge callback's startup flag and captured slot.
+        record_headers: 12L +
         extra_results +
         5L * units +
         5L * results +
         3L * imports +
         4L * 4096L * results,
-        reference_slots: 24L +
+        reference_slots: 27L +
         9L * extra_results +
         40L * units +
         24L * results +
@@ -727,7 +729,7 @@ fn native_mock_effect_import_construction(
         // dimensions until that Result's complete static list is consumed.
         scalar_words: 2L * documents +
         extra_results +
-        10L +
+        15L +
         3L * 4096L * results,
         // All static emitted Strings precede their parse callback. Their
         // existing shared byte budget bounds their total original text.
