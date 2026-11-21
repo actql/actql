@@ -7,6 +7,7 @@ let target_io_fixture_text = " {\"items\":[{\"id\":\"first\",\"value\":1},{\"id\
 fn target_io_fixture_provider(
   directory : String,
   name : String,
+  items? : String = "items",
 ) -> NativeRelationFilePreparedProvider {
   prepare_native_relation_file_provider(
     capture_fixture_declaration(),
@@ -14,7 +15,7 @@ fn target_io_fixture_provider(
       directory,
       name,
       resource: "records",
-      items_path: ["items"],
+      items_path: [items],
       key_path: None,
       primary_identity: "id",
     },

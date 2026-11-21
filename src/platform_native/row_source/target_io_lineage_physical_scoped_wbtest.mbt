@@ -39,10 +39,7 @@ fn target_io_fixture_lineage_work(directory : String, kind : Int) -> Unit raise 
   ).unwrap()
   target_io_fixture_run(first)
   let ack = first.replacement_acknowledgment().unwrap()
-  let first_wire = target_io_fixture_text.replace_all(
-    old="\"value\":1",
-    new="\"value\":9",
-  )
+  let first_wire = " {\"items\":[{\"id\":\"first\",\"value\":9},{\"id\":\"second\",\"value\":2}],\"other\":[{\"id\":\"middle\",\"value\":3}],\"keep\":\"untouched\"}\n"
   assert_eq(ack.replacement(), @utf8.encode(first_wire))
   assert_true(first.close().unwrap())
   assert_true(first.replacement_acknowledgment() is None)
@@ -59,6 +56,23 @@ fn target_io_fixture_lineage_work(directory : String, kind : Int) -> Unit raise 
           "{\"value\":8}", "foreign-stage",
         ),
       ),
+      predecessor=Some(ack),
+    )
+    is Err(ForeignOriginal),
+  )
+  let other_file = target_io_fixture_provider(
+    directory,
+    "another.json",
+    items="other",
+  )
+  let middle_version = "sha256:b024012acd960edcfa6462d2de838d0195cc6eb6f34cb8079bb79386bffebfc7"
+  assert_true(
+    prepare_native_relation_file_target_update_io(
+      other_file,
+      ["value"],
+      "middle",
+      (middle_version, "{\"value\":8}", "foreign-file-stage"),
+      _ => true,
       predecessor=Some(ack),
     )
     is Err(ForeignOriginal),
@@ -96,36 +110,64 @@ fn target_io_fixture_lineage_work(directory : String, kind : Int) -> Unit raise 
       0,
     )
   }
-  let second = prepare_native_relation_file_target_io(
-    provider,
+  let sibling = target_io_fixture_provider(directory, name, items="other")
+  let second = prepare_native_relation_file_target_update_io(
+    sibling,
     ["value"],
-    "second",
-    update=Some(
-      (
-        "sha256:86f081f20834cf21e140b97be1aa98187fd8b32e283921cf5b8cf4ee2db75a12",
-        "{\"value\":8}", "target-second-stage",
-      ),
-    ),
+    "middle",
+    (middle_version, "{\"value\":8}", "target-middle-stage"),
+    _ => true,
     predecessor=Some(ack),
   ).unwrap()
   assert_true(second.replacement_acknowledgment() is None)
   if kind == 4 {
     target_io_fixture_run(second)
-    let final_ack = second.replacement_acknowledgment().unwrap()
-    assert_eq(final_ack.identity(), "second")
+    let middle_ack = second.replacement_acknowledgment().unwrap()
+    assert_eq(middle_ack.identity(), "middle")
+    assert_eq(middle_ack.expected_version(), middle_version)
     assert_eq(
-      final_ack.expected_version(),
-      "sha256:86f081f20834cf21e140b97be1aa98187fd8b32e283921cf5b8cf4ee2db75a12",
-    )
-    assert_eq(
-      final_ack.replacement(),
-      @utf8.encode(first_wire.replace_all(old="\"value\":2", new="\"value\":8")),
+      middle_ack.replacement(),
+      @utf8.encode(first_wire.replace_all(old="\"value\":3", new="\"value\":8")),
     )
     assert_eq(
       second.byte_counts(),
       (first_wire.length().to_int64(), first_wire.length().to_int64()),
     )
     assert_true(second.replacement_attempted)
+    assert_true(second.close().unwrap())
+    let last_update = (
+      "sha256:86f081f20834cf21e140b97be1aa98187fd8b32e283921cf5b8cf4ee2db75a12",
+      "{\"value\":7}", "target-last-stage",
+    )
+    let stale = prepare_native_relation_file_target_update_io(
+      provider,
+      ["value"],
+      "second",
+      last_update,
+      _ => true,
+      predecessor=Some(ack),
+    ).unwrap()
+    assert_true(stale.advance() is Err(ForeignOriginal))
+    assert_eq(stale.byte_counts(), (0L, 0L))
+    assert_true(stale.close().unwrap())
+    let third = prepare_native_relation_file_target_update_io(
+      provider,
+      ["value"],
+      "second",
+      last_update,
+      _ => true,
+      predecessor=Some(middle_ack),
+    ).unwrap()
+    target_io_fixture_run(third)
+    let final_ack = third.replacement_acknowledgment().unwrap()
+    assert_eq(final_ack.identity(), "second")
+    assert_eq(
+      final_ack.replacement(),
+      @utf8.encode(
+        " {\"items\":[{\"id\":\"first\",\"value\":9},{\"id\":\"second\",\"value\":7}],\"other\":[{\"id\":\"middle\",\"value\":8}],\"keep\":\"untouched\"}\n",
+      ),
+    )
+    assert_true(third.close().unwrap())
   } else {
     let mut rejected = false
     for _ in 0..<100 {
@@ -156,8 +198,8 @@ fn target_io_fixture_lineage_work(directory : String, kind : Int) -> Unit raise 
     }
     // Refusal remains sticky; observing it again cannot advance or create IO.
     assert_true(second.advance() is Err(ForeignOriginal))
+    assert_true(second.close().unwrap())
   }
-  assert_true(second.close().unwrap())
   assert_true(second.predecessor is None)
   assert_true(second.replacement_acknowledgment() is None)
 }

@@ -212,6 +212,13 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => ()
     }
     if business.effect_model is Some(state) {
+      if state.source_review is Some(saved) {
+        match saved.close() {
+          Err(issue) => return Err(CommandBusinessModel(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.source_review = None
+        }
+      }
       for target in state.targets {
         match target.close() {
           Err(issue) => return Err(issue)
@@ -275,7 +282,6 @@ fn LocalCommandPreparationOriginal::close_business_children(
       state.model_output = None
       // The observation issuer owns its original publication backing. Cut
       // this caller alias before Work retires that issuer and its reservation.
-      state._retained_model_observation = None
       state._retained_local_model_observation = None
       state._retained_local_model_dependencies = None
       if state.model_use is Some(held) {
@@ -298,6 +304,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
     // Every Work above has already acknowledged its own child retirement.
     business.model_work.shrink_to_fit()
     if business.effect_model is Some(state) {
+      if !state.stop_mock_effect_direct_source_scan() {
+        return Err(CommandBusinessChildren)
+      }
       for failure in state.source_failures {
         match failure.retry_cleanup() {
           Err(issue) => return Err(CommandBusinessSource(issue))
@@ -394,7 +403,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             read,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
           ) {
           Err(_) => return Err(CommandBusinessChildren)
           Ok(_) => ()
@@ -404,7 +413,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             read,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
             true,
           ) {
           Err(_) => return Err(CommandBusinessChildren)
@@ -419,6 +428,10 @@ fn LocalCommandPreparationOriginal::close_business_children(
           Ok(_) => ()
         }
       }
+      match state.retire_mock_effect_direct_sources() {
+        Err(issue) => return Err(CommandBusinessSourceIdentity(issue))
+        Ok(_) => ()
+      }
       state.sources.clear()
       state.sources.shrink_to_fit()
       state.captured_inputs.clear()
@@ -431,7 +444,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             scope,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
             true,
           ) {
           Err(_) => return Err(CommandBusinessChildren)
