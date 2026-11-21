@@ -293,6 +293,7 @@ export async function verifyExternalInstalledFixture({directory,
     const result = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}],
       {signer: {...profiles.signer, authorityScopeCid: execution.ref.authorityScopeCid}});
     assert.deepEqual(result.results.map(item => item.status), ['committed']);
+    return {checkpoint, result};
   };
   let primaryFailure;
   try {
@@ -398,14 +399,39 @@ export async function verifyExternalInstalledFixture({directory,
     assert.equal(transport.state.updateWrites, 0);
     assert.deepEqual(transport.state.records, recordsBefore);
     assert.deepEqual(transport.state.requests.slice(start).map(({method, path}) => [method, path]),
-      [['GET', '/events/selected']]);
-    await approve(updater, update);
-    const final = await stateOf(update);
+      [['GET', '/events/selected'], ['GET', '/events/selected']],
+      'Capture read and current preflight both precede commit authorization');
+    const page = await updater.checkpoints({checkpointId: waiting.checkpoint.id});
+    assert.equal(page.items.length, 1);
+    const [summary] = page.items;
+    assert.equal(summary.kind, 'effect_set');
+    const review = await updater.reviewCheckpoint(summary);
+    const view = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+    assert.equal(view.authority_scope_cid, update.ref.authorityScopeCid);
+    assert.equal(view.displayed_rows.length, 1);
+    const [row] = view.displayed_rows;
+    assert.equal(row.target_row_identity, expectedRow.id);
+    assert.equal(row.before.state, 'present');
+    assert.equal(row.before.value.note, recordsBefore.selected.note);
+    assert.deepEqual(row.intended_changes, {state: 'present', value: {note: expectedRow.note}});
+    const {checkpoint: approved, result: resolution} = await approve(updater, update);
+    assert.deepEqual(approved, summary);
+    assert.equal(resolution.signed.length, 1);
+    const signed = JSON.parse(resolution.signed[0].resolutionWire);
+    assert.equal(signed.run_id, waiting.run_id);
+    assert.equal(signed.run_definition_cid, update.ref.runDefinitionCid);
+    assert.equal(signed.checkpoint_id, waiting.checkpoint.id);
+    assert.equal(signed.checkpoint_cid, summary.checkpointCid);
+    const final = await until(async () => {
+      const state = await update.status();
+      return terminal.includes(state.status) ? state : undefined;
+    });
     assert.equal(final.status, 'succeeded', JSON.stringify(final));
     assert.deepEqual(await update.result('rows').all(), [expectedRow]);
     assert.deepEqual(transport.state.records, {selected: expectedRow, control: recordsBefore.control});
     assert.deepEqual(transport.state.requests.slice(start).map(({method, path}) => [method, path]),
-      [['GET', '/events/selected'], ['GET', '/events/selected'], ['PUT', '/events/selected']]);
+      [['GET', '/events/selected'], ['GET', '/events/selected'],
+        ['GET', '/events/selected'], ['PUT', '/events/selected']]);
     await stopped(update, 'succeeded');
     await close(updater);
     updater = await open('effect', updateProfiles, 'update');
@@ -413,7 +439,7 @@ export async function verifyExternalInstalledFixture({directory,
     assert.deepEqual(await restored.result('rows').all(), [expectedRow]);
     assert.equal((await stateOf(restored)).status, 'succeeded');
     assert.equal(transport.state.updateWrites, 1);
-    assert.equal(transport.state.requests.length, start + 3);
+    assert.equal(transport.state.requests.length, start + 4);
     await close(updater);
 
     // Fail one real credential-journal close. The ordinary installed Host
