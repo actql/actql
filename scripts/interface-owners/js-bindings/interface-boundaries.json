@@ -22829,7 +22829,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -22863,7 +22863,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -42460,7 +42460,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -42494,7 +42494,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -53787,8 +53787,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -61003,8 +61003,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -107322,7 +107322,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -107356,7 +107356,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {

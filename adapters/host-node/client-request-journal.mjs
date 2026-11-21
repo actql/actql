@@ -1,9 +1,6 @@
-import {retainedBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import './host-journal-facility-fields.cjs';
-import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation}
-  from '../host-common/run-state-observation.mjs';
 import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {throwSqliteInitializationFailure} from
@@ -18,7 +15,7 @@ import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCu
   createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
   cid, instant, logicalPlanOriginalShape, retainedIdentity, retainedRunDefinition, retainedRunFacts,
-  createJournalKeyedLookupStorage, createJournalRunRecords, createJournalRunStart,
+  createJournalKeyedLookupStorage, createJournalRunRecords, createJournalRunStart, createJournalRunObservations,
   admitJournalRunDefinitionRow, readJournalRunDefinitionRow, retainJournalRunStateFrame, sameRunStateRow,
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
@@ -233,6 +230,14 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
     createJournalRunStart({select, selectRef, reserve, reservePhysicalStart, localExecutionOwnerInsert},
       {ensureOpen, transact, getDeliveredJournal: () => deliveredJournal, sourceOperations,
         ownedOriginal, captureOriginalLocalExecutionOwner, validLocalExecutionOwnerReceipt},
+      maxRunDefinitionWireBytes);
+
+  const {publishRunState, observeRunCancellation, observeStoppedLocalExecutionOwner, markPhysicalClose,
+    markPreDispatchFailure, recordReconciliationState, lookupReconciliationState} =
+    createJournalRunObservations(database,
+      {selectRef, selectedRequestStatement, localExecutionOwnerLookup, confirmPreDispatchFailure},
+      {ensureOpen, transact, runStateFrames, retainRunStateFrame, readRunDefinitionRow,
+        admitRunDefinitionRow, ownedOriginal, validLocalExecutionOwnerReceipt, originalLocalExecutionOwnerStopped},
       maxRunDefinitionWireBytes);
 
   const {requestCancellation, recordCancellationOperation, lookupCancellationOperation} =
@@ -581,113 +586,8 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
           }
         }});
     },
-    // Advance only published logical/control/availability facts. The same
-    // original accepted row, complete observation fence and confirmed COMMIT
-    // own this counter. Neither reading nor wall-clock time increments it.
-    publishRunState(frame, state, requestControl, publicationControl) {
-      ensureOpen();
-      const retained = runStateFrames.get(frame);
-      if (retained === undefined || retained.requestControl !== requestControl ||
-          retained.publicationControl !== publicationControl) fail('ForeignRunStateObservation');
-      const expected = retained.row;
-      if (!Number.isSafeInteger(expected.state_revision) || expected.state_revision < 0 ||
-          expected.state_observation_key !== null &&
-            (typeof expected.state_observation_key !== 'string' || expected.state_observation_key.length === 0)) {
-        fail('ClientRequestJournalCorrupt');
-      }
-      // The frame already admitted this complete original row. Reuse its
-      // typed Run/control facts, not a decode/encode/hash of identical bytes.
-      const control = issueInstalledRunControlObservation(requestControl, {
-          revision: frame.revision,
-          cancellationRequested: frame.cancellationRequested,
-          physicallyUnstarted: frame.physicalStartReserved === false,
-          preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
-          physicalCloseConfirmed: frame.physicalCloseConfirmed,
-        });
-      const runId = publicationControl.runDefinitionRunId(frame.runDefinition);
-      const originalMessage = retainedBudgetFailureMessage(expected.state_observation_key,
-        state, runId, control, publicationControl.executionFailureExplanation);
-      const projection = prepareInstalledRunStateObservation(requestControl, {
-        state: {...state, ...(originalMessage === undefined ? {} : {
-          terminal_error: {...state.terminal_error, message: originalMessage},
-        }), control}, runId,
-        revision: expected.state_revision, priorKey: expected.state_observation_key,
-      });
-      const currentRow = () => {
-        const row = readRunDefinitionRow(frame.ref, requestControl);
-        if (row === undefined || Object.keys(row).length !== Object.keys(expected).length ||
-            Object.keys(expected).some(key => row[key] !== expected[key])) {
-          fail('RunStateObservationChanged');
-        }
-        return row;
-      };
-      // This read follows projection/callback work and is the unchanged
-      // observation's linearization point. No mutation means no write TX or
-      // COMMIT. Changed observations still use the original atomic CAS below.
-      const observed = currentRow();
-      if (projection.key === observed.state_observation_key) return projection.wire;
-      return transact('run_state_observation', 'ClientRunStateObservationUnknown',
-        error => ['RunStateObservationChanged', 'ClientRequestJournalCorrupt',
-          'ForeignRunStateObservation', 'MoonBitHostFailure'].includes(error?.code), () => {
-          const row = currentRow();
-          if (projection.key !== row.state_observation_key) {
-            const result = database.prepare(`UPDATE client_requests SET
-              state_revision = ?, state_observation_key = ?
-              WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?
-                AND state_revision = ? AND state_observation_key IS ?`).run(
-              projection.revision, projection.key, row.namespace_id, row.authority_scope_cid,
-              row.run_definition_cid, row.state_revision, row.state_observation_key);
-            if (Number(result.changes) !== 1) fail('RunStateObservationChanged');
-          }
-          // transaction.run exposes this value only after confirmed COMMIT.
-          return projection.wire;
-        });
-    },
-    // One observation frame for an already selected Run, not an authority
-    // cache. Every call reads committed storage and checks connection health.
-    // Reuse admission only for an exactly unchanged complete row, including
-    // cancellation and payload bytes; revision alone is not sufficient.
-    observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {
-      const selected = Object.freeze({namespaceId: ref?.namespaceId,
-        authorityScopeCid: ref?.authorityScopeCid, runDefinitionCid: ref?.runDefinitionCid});
-      let previousRow;
-      let previousFacts;
-      if (originalFrame !== undefined) {
-        ensureOpen();
-        const retained = retainRunStateFrame(originalFrame,selected);
-        if (retained.requestControl !== requestControl ||
-            retained.publicationControl !== publicationControl) {
-          fail('ForeignRunStateObservation');
-        }
-        // The same observation already admitted this complete original row.
-        // The first probe still reads and compares every current scalar field.
-        previousRow = retained.row;
-        previousFacts = Object.freeze({revision: originalFrame.revision,
-          cancellationRequested: originalFrame.cancellationRequested});
-      }
-      return () => {
-        try {
-          const row = readRunDefinitionRow(selected, requestControl);
-          if (row === undefined) {
-            previousRow = previousFacts = undefined;
-            return undefined;
-          }
-          if (previousRow !== undefined && sameRunStateRow(row,previousRow)) {
-            return previousFacts;
-          }
-          const facts = admitRunDefinitionRow(row, requestControl, publicationControl);
-          previousRow = row;
-          // Do not expose cached mutable nested evidence or a Definition as
-          // permission. The caller receives only the current cancellation fact.
-          previousFacts = Object.freeze({revision: facts.revision,
-            cancellationRequested: facts.cancellationRequested});
-          return previousFacts;
-        } catch (error) {
-          previousRow = previousFacts = undefined;
-          throw error;
-        }
-      };
-    },
+    publishRunState,
+    observeRunCancellation,
     // Recover identity and Definition from one physical journal observation.
     // This internal owner must not be projected as a Client wire response.
     lookupOwnedDefinition(key, requestControl, publicationControl) {
@@ -770,145 +670,11 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
       return cancellationAttempt(journal, ref, attemptRef, options, requestControl, publicationControl);
     },
     lookupCancellationOperation,
-    // This observation is only available to the SAME original Store owner
-    // holding its stable lease. It never starts work, marks a stop or claims
-    // cleanup. The caller must still inspect publication and revalidate this
-    // nominal frame before recording the existing terminal observation.
-    observeStoppedLocalExecutionOwner(ref, originalFrame) {
-      ensureOpen();
-      const original = retainRunStateFrame(originalFrame, ref);
-      if (localExecutionOwnerLookup === undefined) return false;
-      const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-      if (!sameRunStateRow(row, original.row)) fail('ClientRunStopObservationChanged');
-      if (row.physical_start_reserved !== 1 || row.physical_close_confirmed !== 0 ||
-          row.observed_terminal_outcome !== null) return false;
-      const stored = localExecutionOwnerLookup.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-      if (stored === undefined) return false;
-      const receipt = {token: stored.owner_token, anchor: {identity: stored.anchor_identity,
-        device: stored.anchor_device, inode: stored.anchor_inode}};
-      if (!validLocalExecutionOwnerReceipt(receipt)) return false;
-      const stopped = originalLocalExecutionOwnerStopped(ownedOriginal, receipt);
-      // The native owner observation must not make a stale frame current.
-      if (!sameRunStateRow(selectRef.get(ref.namespaceId, ref.authorityScopeCid,
-        ref.runDefinitionCid), original.row)) fail('ClientRunStopObservationChanged');
-      return stopped === true;
-    },
-    // Only original execution custody may report a completed physical close.
-    // A successor needs the retained native lease, publication and cleanup
-    // observations; an empty worker map never establishes any of them.
-    markPhysicalClose(ref, terminalOutcome = null, originalFrame) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid) ||
-          terminalOutcome !== null &&
-            !['failed', 'cancelled'].includes(terminalOutcome)) {
-        fail('InvalidClientRunStopObservation');
-      }
-      const original=originalFrame===undefined?undefined:retainRunStateFrame(originalFrame,ref);
-      return transact('stop_observation', 'ClientRunStopObservationUnknown',
-        error => ['ClientRunStopObservationDenied','ClientRunStopObservationChanged'].includes(error?.code), () => {
-        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-        if(original!==undefined && !sameRunStateRow(row,original.row)) {
-          fail('ClientRunStopObservationChanged');
-        }
-        if (row === undefined || row.physical_start_reserved !== 1 ||
-            row.physical_close_confirmed === 1 &&
-              row.observed_terminal_outcome !== terminalOutcome) {
-          fail('ClientRunStopObservationDenied');
-        }
-        if (row.physical_close_confirmed === 0) {
-          const changed=database.prepare(`UPDATE client_requests SET
-            physical_close_confirmed = 1, observed_terminal_outcome = ?,
-            revision = revision + 1
-            WHERE namespace_id = ? AND authority_scope_cid = ? AND
-              run_definition_cid = ? AND physical_start_reserved = 1 AND
-              physical_close_confirmed = 0`).run(terminalOutcome,
-            ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-          if(Number(changed.changes)!==1)fail('ClientRunStopObservationChanged');
-        }
-      });
-    },
-    // Physical Host evidence only: a failure before invoking Site execution
-    // is confirmed. A lost reply or absent worker cannot call this method.
-    markPreDispatchFailure(ref) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid)) {
-        fail('InvalidClientRunFailureObservation');
-      }
-      return transact('failure_observation',
-        'ClientRunFailureObservationUnknown',
-        error => typeof error?.code === 'string' &&
-          (error.code.startsWith('ClientRun') ||
-            error.code.startsWith('ClientRequest')), () => {
-        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-        if (row === undefined || row.dispatch_reserved !== 1 ||
-            row.pre_dispatch_failure_confirmed === 0 &&
-            row.physical_start_reserved !== 0) {
-          fail('ClientRunFailureObservationDenied');
-        }
-        if (row.pre_dispatch_failure_confirmed === 0 &&
-            confirmPreDispatchFailure.run(ref.namespaceId,
-              ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
-          fail('ClientRequestJournalCorrupt');
-        }
-      });
-    },
-    // Keep the owner-issued `needs_reconciliation` state of a started Run
-    // whose Effect outcomes are unknown. It is recorded once and never
-    // replaced: a different state for the same Run is a conflict.
-    recordReconciliationState(ref, wire) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid) || typeof wire !== 'string' ||
-          Buffer.byteLength(wire, 'utf8') > maxRunDefinitionWireBytes) {
-        fail('InvalidClientRunReconciliation');
-      }
-      let state;
-      try { state = JSON.parse(wire); }
-      catch { fail('InvalidClientRunReconciliation'); }
-      if (state?.status !== 'needs_reconciliation' ||
-          state?.next_action?.kind !== 'reconcile') {
-        fail('InvalidClientRunReconciliation');
-      }
-      return transact('reconciliation', 'ClientRunReconciliationUnknown',
-        error => typeof error?.code === 'string' &&
-          error.code.startsWith('ClientRun'), () => {
-        const row = selectedRequestStatement(database.prepare(`SELECT physical_start_reserved,
-          reconciliation_state_wire FROM client_requests
-          WHERE namespace_id = ? AND authority_scope_cid = ? AND
-            run_definition_cid = ?`), 'run-definition', true).get(ref.namespaceId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-        if (row === undefined || row.physical_start_reserved !== 1) {
-          fail('ClientRunReconciliationDenied');
-        }
-        if (row.reconciliation_state_wire !== null &&
-            row.reconciliation_state_wire !== wire) {
-          fail('ClientRunReconciliationConflict');
-        }
-        if (row.reconciliation_state_wire === null) {
-          database.prepare(`UPDATE client_requests SET
-            reconciliation_state_wire = ?, revision = revision + 1
-            WHERE namespace_id = ? AND authority_scope_cid = ? AND
-              run_definition_cid = ?`).run(wire, ref.namespaceId,
-            ref.authorityScopeCid, ref.runDefinitionCid);
-        }
-      });
-    },
-    lookupReconciliationState(ref) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid)) {
-        fail('InvalidClientRunLookup');
-      }
-      const row = selectedRequestStatement(database.prepare(`SELECT reconciliation_state_wire
-        FROM client_requests WHERE namespace_id = ? AND
-          authority_scope_cid = ? AND run_definition_cid = ?`), 'run-definition', true).get(
-        ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-      return row?.reconciliation_state_wire ?? undefined;
-    },
+    observeStoppedLocalExecutionOwner,
+    markPhysicalClose,
+    markPreDispatchFailure,
+    recordReconciliationState,
+    lookupReconciliationState,
     close() {
       closed = true;
       if (!databaseClosed) {

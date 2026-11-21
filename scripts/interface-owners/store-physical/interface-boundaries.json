@@ -13715,7 +13715,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -13749,7 +13749,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -14790,7 +14790,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -14824,7 +14824,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {

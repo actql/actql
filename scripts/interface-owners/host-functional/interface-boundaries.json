@@ -12758,7 +12758,7 @@
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const retained = runStateFrames.get(frame);"
               },
               {
@@ -12788,7 +12788,7 @@
                 "anchor": "publish.call(journal, original, state"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               },
               {
@@ -12818,7 +12818,7 @@
                 "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "'ClientRunStateObservationUnknown'"
               },
               {
@@ -12844,7 +12844,7 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
@@ -13058,7 +13058,7 @@
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const retained = runStateFrames.get(frame);"
               },
               {
@@ -13088,7 +13088,7 @@
                 "anchor": "publish.call(journal, original, state"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               },
               {
@@ -13118,7 +13118,7 @@
                 "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "'ClientRunStateObservationUnknown'"
               },
               {
@@ -13144,7 +13144,7 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
@@ -13424,8 +13424,8 @@
                 "anchor": "# Scoped Owner observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -13446,7 +13446,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -13490,7 +13490,7 @@
                 "anchor": "### Client cancellation observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -13664,8 +13664,8 @@
                 "anchor": "# Scoped Owner observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -13686,7 +13686,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -13730,7 +13730,7 @@
                 "anchor": "### Client cancellation observations"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -28283,6 +28283,15 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
+          "parameters": [
+            "row",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
@@ -28436,13 +28445,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:lookupReconciliationState/init:lookupReconciliationState",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
           "parameters": [
             "ref",
@@ -28458,69 +28460,6 @@
             "ref",
             "requestControl",
             "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
-          "parameters": [
-            "ref",
-            "terminalOutcome",
-            "originalFrame"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
-          "parameters": [
-            "ref",
-            "requestControl",
-            "publicationControl",
-            "originalFrame"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner",
-          "parameters": [
-            "ref",
-            "originalFrame"
           ],
           "async": false
         },
@@ -28561,35 +28500,6 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
-          "parameters": [
-            "frame",
-            "state",
-            "requestControl",
-            "publicationControl"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
           "parameters": [
             "ref",
@@ -28598,26 +28508,6 @@
             "requestControl",
             "publicationControl"
           ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
-          "parameters": [
-            "ref",
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -28698,6 +28588,32 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
+          "parameters": [
+            "ref",
+            "requestControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/retainRunStateFrame/retainRunStateFrame",
+          "parameters": [
+            "frame",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement",
+          "parameters": [
+            "statement",
+            "selection",
+            "completeRef",
+            "completeRow"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
           "parameters": [
             "parameters"
@@ -28728,35 +28644,23 @@
             "openClientRequestJournal/journal/init:lookupDefinition/init:lookupDefinition",
             "openClientRequestJournal/journal/init:lookupIdentity/init:lookupIdentity",
             "openClientRequestJournal/journal/init:lookupOwnedDefinition/init:lookupOwnedDefinition",
-            "openClientRequestJournal/journal/init:lookupReconciliationState/init:lookupReconciliationState",
             "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
-            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
-            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
-            "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
-            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure",
-            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
-            "openClientRequestJournal/journal/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
-            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
-            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
-            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
-            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
-            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
-            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
             "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
-            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState",
-            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
-            "openClientRequestJournal/journal/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
             "openClientRequestJournal/journal/init:recordSubmissionAttempt/init:recordSubmissionAttempt/init:recordSubmissionAttempt",
             "openClientRequestJournal/journal/init:resolveDefinition/init:resolveDefinition",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+            "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
+            "openClientRequestJournal/readRunDefinitionRow/readRunDefinitionRow",
+            "openClientRequestJournal/retainRunStateFrame/retainRunStateFrame",
+            "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -28887,8 +28791,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -29003,8 +28907,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -29077,7 +28981,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -29221,7 +29125,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -30221,8 +30125,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -30329,8 +30233,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -30403,7 +30307,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -30543,7 +30447,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -30879,132 +30783,6 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openClientRequestJournal/journal/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const value = compiledRunTokens.get(compiled);"
-              },
-              {
-                "path": "src/run_publication_host/client_source_free_observation.mbt",
-                "anchor": "pub fn client_compiled_local_execution_owner("
-              },
-              {
-                "path": "adapters/connectors/local/site/root-filesystem.inc",
-                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
-              },
-              {
-                "path": "adapters/connectors/local/site/root-filesystem.inc",
-                "anchor": "static napi_value local_fs_lease_receipt("
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
-              },
-              {
-                "path": "adapters/store-local/publication-owner-lease.mts",
-                "anchor": "call('storeOwnerLeaseReceipt', lease)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
-              },
-              {
-                "path": "adapters/store-local/publication-owner-lease.mts",
-                "anchor": "if (leaseClose?.outcome !== 'closed')"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-request-journal-records.mts",
-                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
-              },
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-owner-lease.mts",
-                "anchor": "return undefined;"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (stored === undefined) return false;"
-              },
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
-              }
-            ],
-            "cancellation": {
-              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
-            },
-            "resources": [
-              {
-                "path": "adapters/host-node/host-journal-service-recipe.cts",
-                "anchor": "ownershipLease: record("
-              },
-              {
-                "path": "adapters/host-node/host-journal-service-recipe.cts",
-                "anchor": "ownershipLeaseDescriptors: 2"
-              },
-              {
-                "path": "adapters/store-local/publication-owner-lease.mts",
-                "anchor": "const close = () => {"
-              }
-            ],
-            "extension": {
-              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
-            },
-            "verification": [
-              {
-                "path": "adapters/host-node/client-source-operation.test.mts",
-                "anchor": "test('local execution owner receipt atomically binds the original start"
-              },
-              {
-                "path": "adapters/host-node/client-source-operation.test.mts",
-                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
-              },
-              {
-                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
-                "anchor": "test('Store lease locks the exact retained anchor"
-              },
-              {
-                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
-                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
               }
             ]
           }
@@ -31520,10 +31298,8 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/observation.mjs",
-        "../host-common/run-state-observation.mjs",
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
-        "./client-dispatch-diagnostic.mjs",
         "./client-request-journal-attempts.mjs",
         "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
@@ -33619,8 +33395,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -33743,8 +33519,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -33817,7 +33593,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -33965,7 +33741,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -35030,8 +34806,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35146,8 +34922,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35220,7 +34996,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -35360,7 +35136,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -35834,8 +35610,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35950,8 +35726,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -36024,7 +35800,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -36168,7 +35944,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -36987,8 +36763,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeStoppedLocalExecutionOwner(ref: WireRunRef, originalFrame: object)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -36997,8 +36773,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeStoppedLocalExecutionOwner(ref, originalFrame)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeStoppedLocalExecutionOwner(ref: WireRunRef, originalFrame: object)"
               }
             ],
             "identity": [
@@ -37019,7 +36795,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -37053,7 +36829,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -37562,6 +37338,7 @@
         "checkedRunDefinition",
         "cid",
         "createJournalKeyedLookupStorage",
+        "createJournalRunObservations",
         "createJournalRunRecords",
         "createJournalRunStart",
         "evidenceJson",
@@ -37742,6 +37519,146 @@
         },
         {
           "name": "createJournalKeyedLookupStorage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations",
+          "parameters": [
+            "database",
+            "selectRef",
+            "selectedRequestStatement",
+            "localExecutionOwnerLookup",
+            "confirmPreDispatchFailure",
+            "ensureOpen",
+            "transact",
+            "runStateFrames",
+            "retainRunStateFrame",
+            "readRunDefinitionRow",
+            "admitRunDefinitionRow",
+            "ownedOriginal",
+            "validLocalExecutionOwnerReceipt",
+            "originalLocalExecutionOwnerStopped",
+            "maxRunDefinitionWireBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:lookupReconciliationState/init:lookupReconciliationState",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose",
+          "parameters": [
+            "ref",
+            "terminalOutcome",
+            "originalFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:observeRunCancellation/init:observeRunCancellation",
+          "parameters": [
+            "ref",
+            "requestControl",
+            "publicationControl",
+            "originalFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner",
+          "parameters": [
+            "ref",
+            "originalFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:publishRunState/init:publishRunState",
+          "parameters": [
+            "frame",
+            "state",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:publishRunState/init:publishRunState/init:publishRunState",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:publishRunState/init:publishRunState/init:publishRunState#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState",
+          "parameters": [
+            "ref",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
           "parameters": [],
           "async": false
         },
@@ -38203,7 +38120,24 @@
             "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch",
             "createJournalRunStart/init:reserveDispatch/init:reserveDispatch/init:reserveDispatch#2",
             "createJournalRunStart/init:reservePhysicalStart/init:reservePhysicalStart",
-            "createJournalRunStart"
+            "createJournalRunStart",
+            "createJournalRunObservations/init:lookupReconciliationState/init:lookupReconciliationState",
+            "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose",
+            "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose",
+            "createJournalRunObservations/init:markPhysicalClose/init:markPhysicalClose/init:markPhysicalClose#2",
+            "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure",
+            "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure",
+            "createJournalRunObservations/init:markPreDispatchFailure/init:markPreDispatchFailure/init:markPreDispatchFailure#2",
+            "createJournalRunObservations/init:observeRunCancellation/init:observeRunCancellation",
+            "createJournalRunObservations/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
+            "createJournalRunObservations/init:publishRunState/init:publishRunState",
+            "createJournalRunObservations/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
+            "createJournalRunObservations/init:publishRunState/init:publishRunState/init:publishRunState",
+            "createJournalRunObservations/init:publishRunState/init:publishRunState/init:publishRunState#2",
+            "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState",
+            "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState",
+            "createJournalRunObservations/init:recordReconciliationState/init:recordReconciliationState/init:recordReconciliationState#2",
+            "createJournalRunObservations"
           ],
           "exports": [
             "admission",
@@ -38234,7 +38168,8 @@
             "sameRunStateRow",
             "createJournalRunRecords",
             "createJournalKeyedLookupStorage",
-            "createJournalRunStart"
+            "createJournalRunStart",
+            "createJournalRunObservations"
           ],
           "attributes": {
             "responsibility": [
@@ -38317,6 +38252,10 @@
               {
                 "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "export function createJournalRunStart({select, selectRef, reserve, reservePhysicalStart, localExecutionOwnerInsert}: RunStartStatements,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "export function createJournalRunObservations(database: Pick<JournalSqlConnection, 'prepare'>,"
               }
             ],
             "inputsOutputs": [
@@ -38373,8 +38312,8 @@
                 "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -38489,8 +38428,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -38563,7 +38502,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -38707,7 +38646,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -39263,12 +39202,140 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createJournalRunObservations/init:observeStoppedLocalExecutionOwner/init:observeStoppedLocalExecutionOwner"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeStoppedLocalExecutionOwner(ref: WireRunRef, originalFrame: object)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeStoppedLocalExecutionOwner(ref: WireRunRef, originalFrame: object)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/run-state-observation.mjs",
         "../host-common/runtime-result.mjs",
+        "./client-dispatch-diagnostic.mjs",
         "./client-request-journal-sql.mjs",
         "./local-account-config.mjs",
         "./local-values-capacity.mjs",
@@ -52377,7 +52444,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -52411,7 +52478,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -125085,7 +125152,7 @@
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const retained = runStateFrames.get(frame);"
               }
             ],
@@ -125095,7 +125162,7 @@
                 "anchor": "publish.call(journal, original, state"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               }
             ],
@@ -125105,13 +125172,13 @@
                 "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "'ClientRunStateObservationUnknown'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
@@ -125189,7 +125256,7 @@
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const retained = runStateFrames.get(frame);"
               }
             ],
@@ -125199,7 +125266,7 @@
                 "anchor": "publish.call(journal, original, state"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
               }
             ],
@@ -125209,13 +125276,13 @@
                 "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "'ClientRunStateObservationUnknown'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
@@ -139138,7 +139205,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {

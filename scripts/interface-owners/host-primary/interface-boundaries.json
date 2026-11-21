@@ -4435,7 +4435,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -4469,7 +4469,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
@@ -7637,8 +7637,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -7825,8 +7825,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -7951,7 +7951,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -8175,7 +8175,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -14699,8 +14699,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -14831,8 +14831,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -14921,7 +14921,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -15089,7 +15089,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -16951,8 +16951,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -17167,8 +17167,8 @@
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)",
-                "path": "adapters/host-node/client-request-journal.mjs"
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],",
+                "path": "adapters/host-node/client-request-journal-records.mts"
               },
               {
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));",
@@ -17301,7 +17301,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -17545,7 +17545,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -19177,8 +19177,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -19365,8 +19365,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -19487,7 +19487,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -19707,7 +19707,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -20457,8 +20457,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -20645,8 +20645,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -20767,7 +20767,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -20987,7 +20987,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -21737,8 +21737,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -21925,8 +21925,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -22047,7 +22047,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -22267,7 +22267,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -23017,8 +23017,8 @@
                 "anchor": "export function readLocalPreparationContext(originals) {"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "observeRunCancellation(ref: WireRunRef, requestControl: RequestIdentityRead,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -23205,8 +23205,8 @@
                 "anchor": "installedHostShutdown"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "publishRunState(frame: AdmittedRunFrame, state: Parameters<typeof retainedBudgetFailureMessage>[1],"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23327,7 +23327,7 @@
                 "anchor": "configuration is always explicit Host installation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
@@ -23547,7 +23547,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
@@ -32248,7 +32248,7 @@
                 "anchor": "static napi_value local_fs_lease_receipt("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
@@ -32282,7 +32282,7 @@
                 "anchor": "return undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (stored === undefined) return false;"
               },
               {
