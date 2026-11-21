@@ -2,12 +2,17 @@
 // listener bind or peer address. The application continues to own listen().
 import {Server, Socket, isIP} from 'node:net';
 
-export const isLoopbackSocketAddress = address => typeof address === 'string' &&
+// Node supplies these socket fields at the HTTP boundary. Their presence and
+// the actual Socket/Server instances remain checked below.
+type HttpSocket = Socket & Readonly<{encrypted?: unknown; server?: unknown}>;
+type HttpRequestSocket = Readonly<{socket?: HttpSocket}> | null | undefined;
+
+export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&
   (address === '::1' || isIP(address) === 4 && address.startsWith('127.'));
 
-export function isLoopbackHttpRequest(request) {
+export function isLoopbackHttpRequest(request: unknown) {
   try {
-    const socket = request?.socket;
+    const socket = (request as HttpRequestSocket)?.socket;
     if (!(socket instanceof Socket) || socket.encrypted === true ||
         !(socket.server instanceof Server)) return false;
     // Use the actual accepting Server's OS binding, not an application

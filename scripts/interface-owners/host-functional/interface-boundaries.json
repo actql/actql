@@ -86028,7 +86028,7 @@
     {
       "module": "adapters/host-node/loopback-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca5870ef31bc93418526e84bcc68e56bc4d732ec5539b8c527995f2ed5ba5b82",
+      "sha256": "47d87838c57ada82eb57b1339802a82cf20c8569b1f500c5fc71355dc100a3dd",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -86064,8 +86064,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -86078,8 +86078,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -86092,7 +86092,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "// Use the actual accepting Server's OS binding, not an application"
               },
               {
@@ -86106,8 +86106,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86120,8 +86120,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export function isLoopbackHttpRequest(request) {"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export function isLoopbackHttpRequest(request: unknown) {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -86134,7 +86134,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "} catch { return false; }"
               },
               {
@@ -86148,8 +86148,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86162,7 +86162,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "const bound = Server.prototype.address.call(socket.server);"
               },
               {
@@ -86176,8 +86176,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -86208,8 +86208,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -86222,8 +86222,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -86236,7 +86236,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "// Use the actual accepting Server's OS binding, not an application"
               },
               {
@@ -86250,8 +86250,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86264,8 +86264,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export function isLoopbackHttpRequest(request) {"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export function isLoopbackHttpRequest(request: unknown) {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -86278,7 +86278,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "} catch { return false; }"
               },
               {
@@ -86292,8 +86292,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86306,7 +86306,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
+                "path": "adapters/host-node/loopback-http.mts",
                 "anchor": "const bound = Server.prototype.address.call(socket.server);"
               },
               {
@@ -86320,8 +86320,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/loopback-http.mjs",
-                "anchor": "export const isLoopbackSocketAddress = address => typeof address === 'string' &&"
+                "path": "adapters/host-node/loopback-http.mts",
+                "anchor": "export const isLoopbackSocketAddress = (address: unknown) => typeof address === 'string' &&"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
