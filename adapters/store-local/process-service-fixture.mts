@@ -2,11 +2,14 @@ import {serveManagedExecution} from '../host-node/worker-channel.mjs';
 import {openDelegatedFile} from './delegated-file.mjs';
 import {consumeDelegatedFile} from './delegated-reader.mjs';
 
-const reads = [];
+type FixtureHandler = Parameters<typeof serveManagedExecution>[0];
+type FixtureRequest = {command: string; output?: string};
+type ReadProjection = {token: string};
+const reads: ReadProjection[] = [];
 
-serveManagedExecution(async (request, signal, context) => {
+serveManagedExecution((async (request: FixtureRequest, signal: AbortSignal, context: Parameters<FixtureHandler>[2]) => {
   if (request.command === 'open-read-pair') {
-    for (let i = 0; i < 2; i++) reads.push(await context.callHost({command: 'read', output: request.output}));
+    for (let i = 0; i < 2; i++) reads.push(await context.callHost({command: 'read', output: request.output}) as ReadProjection);
     return {tokens: reads.map(read => read.token)};
   }
   if (request.command === 'finish-one-read') {
@@ -28,4 +31,4 @@ serveManagedExecution(async (request, signal, context) => {
     const report = await writer.seal();
     return await context.callHost({command: 'seal', output: request.output, report});
   } finally { await writer.close(); }
-}, {maxBytes: 4096, maxNodes: 100, maxDepth: 10});
+}) as FixtureHandler, {maxBytes: 4096, maxNodes: 100, maxDepth: 10});

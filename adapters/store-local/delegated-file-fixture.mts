@@ -2,7 +2,10 @@ import { serveManagedExecution } from '../host-node/worker-channel.mjs';
 import { openDelegatedFile } from './delegated-file.mjs';
 import { consumeDelegatedFile } from './delegated-reader.mjs';
 
-serveManagedExecution(async (request, signal, context) => {
+type FixtureHandler = Parameters<typeof serveManagedExecution>[0];
+type FixtureRequest = {command: string; lease: {session: string}};
+
+serveManagedExecution((async (request: FixtureRequest, signal: AbortSignal, context: Parameters<FixtureHandler>[2]) => {
   if (request.command === 'exit') process.exit(7);
   if (request.command === 'read') {
     if (request.lease.session !== context.session) throw Error('Foreign reader session');
@@ -22,4 +25,4 @@ serveManagedExecution(async (request, signal, context) => {
     await writer.append('1]');
     return await writer.seal();
   } finally { await writer.close(); }
-}, { maxBytes: 4096, maxNodes: 100, maxDepth: 10 });
+}) as FixtureHandler, { maxBytes: 4096, maxNodes: 100, maxDepth: 10 });

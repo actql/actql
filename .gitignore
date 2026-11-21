@@ -1125,3 +1125,11 @@ target/
 /adapters/connectors/local/host/iceberg-process.d.mts
 /adapters/host-node/process-channel.test.mjs
 /adapters/host-node/process-channel.test.d.mts
+/adapters/store-local/delegated-file-fixture.mjs
+/adapters/store-local/delegated-file-fixture.d.mts
+/adapters/store-local/delegated-file.test.mjs
+/adapters/store-local/delegated-file.test.d.mts
+/adapters/store-local/process-service-fixture.mjs
+/adapters/store-local/process-service-fixture.d.mts
+/adapters/store-local/process-service.test.mjs
+/adapters/store-local/process-service.test.d.mts

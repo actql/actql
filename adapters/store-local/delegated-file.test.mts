@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {
   chmod,
@@ -17,7 +18,10 @@ import { openDelegatedFile } from './delegated-file.mjs';
 import { consumeDelegatedFile } from './delegated-reader.mjs';
 import { startManagedExecution } from '../host-node/process-channel.mjs';
 
-async function fixture(t, start = true) {
+type StoreWriter = ReturnType<Awaited<ReturnType<typeof createLocalRetainedStore>>['reserve']>;
+type WriteReport = NonNullable<Parameters<StoreWriter['finishDelegated']>[0]>;
+
+async function fixture(t: TestContext, start = true) {
   const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-delegated-test-'));
   const store = await createLocalRetainedStore({ parentDirectory, capacityBytes: 100, maxFrameBytes: 4 });
   t.after(async () => { store.close(); await store.cleanup(); await rmdir(parentDirectory); });
@@ -34,7 +38,7 @@ test('binary output stays in the execution process and seals the same physical h
     maxRequests: 1, graceMs: 100, startupMs: 5000,
   });
   t.after(() => worker.close());
-  const report = await worker.request({command: 'write-binary', lease: write.delegate(worker.identity().session)});
+  const report = await worker.request({command: 'write-binary', lease: write.delegate(worker.identity().session)}) as WriteReport;
   assert.deepEqual(Object.keys(report).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
   const expected = Buffer.from([0, 255, 128, 1, 2, 3]);
   const body = await write.finishDelegated(report);
@@ -42,7 +46,7 @@ test('binary output stays in the execution process and seals the same physical h
   assert.equal(worker.status().exited, true);
   assert.equal(body.available(), true);
   assert.equal(body.cid, `sha256:${createHash('sha256').update(expected).digest('hex')}`);
-  const chunks = [];
+  const chunks: Buffer[] = [];
   await body.consume(bytes => chunks.push(Buffer.from(bytes)));
   assert.deepEqual(Buffer.concat(chunks), expected);
   assert.equal(store.status().reservedBytes, 6);
@@ -65,7 +69,7 @@ test('native-created file is adopted without relaying its bytes through the Host
   assert.equal(store.status().reservedBytes, expected.length);
   assert.equal(store.status().admittedWriteBytes, expected.length);
   assert.equal(store.status().delegatedWriteBytes, 0);
-  const chunks = [];
+  const chunks: Buffer[] = [];
   await body.consume(bytes => chunks.push(Buffer.from(bytes)));
   assert.deepEqual(Buffer.concat(chunks), expected);
 });
@@ -127,7 +131,7 @@ test('stopped native creation keeps ownership across cleanup I/O failures',
         if (failure === 'open') await chmod(lease.path, 0o000);
         if (failure === 'unlink') await chmod(directory, 0o500);
         await assert.rejects(write.cleanupHandle.retry(), error =>
-          error?.code === 'EACCES' || error?.code === 'EPERM');
+          (error as NodeJS.ErrnoException | null | undefined)?.code === 'EACCES' || (error as NodeJS.ErrnoException | null | undefined)?.code === 'EPERM');
         assert.equal(store.status().reservedBytes, 20);
         assert.equal(store.status().cleanupPending, true);
       } finally {
@@ -194,11 +198,11 @@ test('control-owned inode survives writer process exit without body transfer', a
   });
   t.after(() => process.close());
   const lease = write.delegate(process.identity().session);
-  const report = await process.request({ command: 'write', lease });
+  const report = await process.request({ command: 'write', lease }) as WriteReport;
   assert.deepEqual(Object.keys(report).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
   const body = await write.finishDelegated(report);
   await assert.rejects(process.request({ command: 'exit' }), error =>
-    ['ExecutionExited', 'ExecutionChannelClosed'].includes(error.code));
+    ['ExecutionExited', 'ExecutionChannelClosed'].includes((error as {code: string}).code));
   assert.equal((await process.close()).code, 7);
   assert.equal(process.status().exited, true);
   assert.equal(body.available(), true);
@@ -212,7 +216,7 @@ test('control-owned inode survives writer process exit without body transfer', a
   const borrow = body.delegateRead(reader.identity().session);
   try {
     const readReport = await reader.request({ command: 'read', lease: borrow.descriptor });
-    assert.deepEqual(Object.keys(readReport).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
+    assert.deepEqual(Object.keys(readReport as object).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
     assert.equal(borrow.finish(readReport).cid, body.cid);
   } finally {
     await reader.close();
@@ -288,7 +292,7 @@ test('writer crash without terminal receipt retains capacity until actual exit i
   });
   const lease = write.delegate(process.identity().session);
   await assert.rejects(process.request({ command: 'crash-writing', lease }), error =>
-    ['ExecutionExited', 'ExecutionChannelClosed'].includes(error.code));
+    ['ExecutionExited', 'ExecutionChannelClosed'].includes((error as {code: string}).code));
   write.cancel();
   assert.equal(await write.cleanupHandle.retry(), false);
   assert.equal(store.status().reservedBytes, 20);
@@ -305,9 +309,9 @@ test('delegated borrow retains a closed body until reader stop, without publishi
   await write.append('[0]');
   const body = await write.seal({ bytes: 3, cid: `sha256:${createHash('sha256').update('[0]').digest('hex')}` });
   const borrow = body.delegateRead('reader');
-  let entered, resume;
-  const inside = new Promise(resolve => { entered = resolve; });
-  const gate = new Promise(resolve => { resume = resolve; });
+  let entered!: () => void, resume!: () => void;
+  const inside = new Promise<void>(resolve => { entered = resolve; });
+  const gate = new Promise<void>(resolve => { resume = resolve; });
   const reading = consumeDelegatedFile(borrow.descriptor, async () => { entered(); await gate; });
   await inside;
   body.close();

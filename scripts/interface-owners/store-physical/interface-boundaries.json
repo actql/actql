@@ -1065,7 +1065,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/delegated-file.test.mjs",
+                "path": "adapters/store-local/delegated-file.test.mts",
                 "anchor": "test("
               },
               {
@@ -3799,7 +3799,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/process-service.test.mjs",
+                "path": "adapters/store-local/process-service.test.mts",
                 "anchor": "test("
               }
             ]
@@ -4050,7 +4050,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/store-local/process-service.test.mjs",
+                "path": "adapters/store-local/process-service.test.mts",
                 "anchor": "test("
               }
             ]
