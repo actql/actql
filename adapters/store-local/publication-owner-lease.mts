@@ -118,8 +118,8 @@ export function openPublicationOwnerLease(path: string, inspector?: unknown, def
         }
         closeMetadata();
       },
-      matches(value: NativeReceipt) {current(); return anchor !== undefined && value?.identity === anchor.identity &&
-        value?.device === anchor.device && value?.inode === anchor.inode;}});
+      matches(value: unknown) {current(); return anchor !== undefined && (value as NativeReceipt)?.identity === anchor.identity &&
+        (value as NativeReceipt)?.device === anchor.device && (value as NativeReceipt)?.inode === anchor.inode;}});
   } catch (cause) {
     try {close();} catch (cleanupError) {
       throw Object.assign(new Error('PublicationStoreLeaseCleanupPending', {cause}),
