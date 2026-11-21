@@ -148,8 +148,11 @@ try {
         assert.match(summary, /StageName and NextStep on Opportunity in salesforce/u);
         assert.doesNotMatch(summary, /connector:\/\/|\baql_|Predicate form not projected/u);
         const computation = await page.locator('.story-computation').innerText();
-        assert.equal(beforeRun.story.occurrences.filter(step=>step.explanation.meaning.kind === 'join').length, 3);
-        assert.match(computation, /3 checked joins · matches on name/u);
+        const checkedJoins = beforeRun.story.occurrences.flatMap(({explanation})=>
+          explanation.meaning.kind === 'join' ? [explanation.meaning] : []);
+        assert.equal(checkedJoins.length, 3);
+        assert(checkedJoins.some(join=>join.keys.some(key=>key.left === 'name' && key.right === 'name')));
+        assert.match(computation, /3 checked joins, including a join on name/u);
         assert.match(computation, /Filter rows|Keep rows where/u);
         assert.doesNotMatch(computation, /\baql_|Predicate form not projected/u);
         const titles = await staticSteps.locator('summary > strong').allTextContents();
@@ -261,7 +264,15 @@ try {
         assert((await heading.boundingBox()).height < 230);
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
-        assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation']);
+        await page.getByLabel('Query options').click();
+        await page.getByLabel('Language', {exact: true}).selectOption('ja');
+        await page.getByLabel('Query options').click();
+        await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+        await page.locator('.story-computation').filter({hasText: /3回の結合（name で結合する箇所を含む）/u}).waitFor();
+        assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
+        await page.screenshot({path: join(evidence, 'installed-deal-review-narrow-ja.png')});
+        assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation',
+          '/api/read/static-explanation']);
         receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
           originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence,
           shownDirectInputs, drawnJoinEdges, groupedInputs, computation};

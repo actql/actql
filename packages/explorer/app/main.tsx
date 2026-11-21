@@ -58,7 +58,7 @@ function computationSummary(story: ExplanationStoryModel) {
   const ja = story.locale === 'ja';
   const joinText = joins.length ? (ja ? `${joins.length}回の結合` :
     `${joins.length} checked ${joins.length === 1 ? 'join' : 'joins'}`) +
-    (key ? (ja ? `（"${key.left}" で結合）` : ` · matches on "${key.left}"`) : '') : '';
+    (key ? (ja ? `（"${key.left}" で結合する箇所を含む）` : `, including a join on "${key.left}"`) : '') : '';
   const filterText = filter ? namedCondition ?? (ja ? '行を絞り込む' : 'Filter rows') : '';
   return [joinText, filterText].filter(Boolean).join(' · ');
 }

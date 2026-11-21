@@ -4598,7 +4598,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1a39f856a065ae5ed6e07697816e5d8aaef3893ca8ac438bb76f593fa8b412f3",
+      "sha256": "d41c97abfc07948d9b85c3ec110c91e78d81145c8a1fbb353f19737e3dd233d6",
       "exports": [],
       "operations": [
         {
