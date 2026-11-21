@@ -32,6 +32,7 @@ class PhysicalQueries:
         self.previous = sys.getprofile()
         self.query = _JournalCallbacks.query.__code__
         self.scans = self.points = self.cancel_scans = self.cancel_rows = 0
+        self.cancel_scan_body_bytes = 0
 
     def profile(self, frame, event, status):
         if event != 'return' or frame.f_code is not self.query or status not in (0, 1):
@@ -46,6 +47,9 @@ class PhysicalQueries:
                 self.cancel_scans += 1
                 if status == 0 and arguments['namespace'] == 'client_cancellations':
                     self.cancel_rows += 1
+                    # One candidate for the census decoder and witness hash.
+                    # Count its actual body length without retaining row data.
+                    self.cancel_scan_body_bytes += len(self.original.row[1].payload)
 
     def __enter__(self):
         assert self.previous is None
@@ -96,6 +100,7 @@ async def observe_read(host, result, stop_phase=None, *, totals=None):
                         'point_calls': queries.points, 'cancel_scan_calls': queries.cancel_scans}
                 if totals is not None:
                     beat['cancel_rows'] = queries.cancel_rows
+                    beat['cancel_scan_body_bytes'] = queries.cancel_scan_body_bytes
                 if physical is not None and physical.eof:
                     beat['physical_sha256'] = physical.hash.hexdigest()
                 if not beats or beats[-1] != beat:
@@ -120,7 +125,8 @@ async def observe_read(host, result, stop_phase=None, *, totals=None):
                     break
             if totals is not None:
                 totals.update(scan_calls=queries.scans, point_calls=queries.points,
-                              cancel_scan_calls=queries.cancel_scans, cancel_rows=queries.cancel_rows)
+                              cancel_scan_calls=queries.cancel_scans, cancel_rows=queries.cancel_rows,
+                              cancel_scan_body_bytes=queries.cancel_scan_body_bytes)
     assert sys.getprofile() is None
     assert carrier is not None and scope is not None and beats[0]['phase'] == 'core'
     assert core._host_operation_scope is None
