@@ -989,3 +989,5 @@ target/
 /scripts/packed-infer-source-acceptance.d.mts
 /scripts/fixtures/infer-source-expectation.mjs
 /scripts/fixtures/infer-source-expectation.d.mts
+/scripts/fixtures/graph-host-cases.mjs
+/scripts/fixtures/graph-host-cases.d.mts

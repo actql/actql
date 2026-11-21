@@ -31,5 +31,5 @@ export const graphPublicHostCases = Object.freeze(['local','remote'].flatMap(mod
       name:`${title} ${mode}${partition === 'basic' ? '' : ' (asymmetric)'}`}))
     : [Object.freeze({mode,profile,name:`${title} ${mode}`})])));
 
-export const graphPublicHostPattern = name => '^' +
+export const graphPublicHostPattern = (name: string) => '^' +
   name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&') + '$';
