@@ -39,7 +39,7 @@ import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createP
 import {createPhysicalHoldingLifecycle, createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
 import {createPublicationMetadataInventory} from './publication-metadata-inventory.mjs';
 import {createPublicationMetadataDeletionMarkers} from './publication-metadata-deletion-markers.mjs';
-import {createPublicationCustodyRecords} from './publication-custody-records.mjs';
+import {createEffectCaptureCustodyRecords, createPublicationCustodyRecords} from './publication-custody-records.mjs';
 import {createPublicationObjectVerifier} from './publication-object-verifier.mjs';
 import {createPublicationObjectConsumer} from './publication-object-consumer.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
@@ -5348,170 +5348,12 @@ async function openOriginalLocalPublicationStore(
       createPreparedObjectWriter, exactUtf8WireMatches, readSemanticBytes,
     });
 
-  // This is physical cleanup custody, not a completed capture or permission
-  // to execute. Persist before transferring any prepared object to a holding.
-  // Completion transfers responsibility to the admitted private capture.
-  const captureCustodyRun = run => {
-    const admitted = admitContract('run_definition', run?.wire);
-    if (admitted.identity !== run?.identity) {
-      fail('InvalidEffectCaptureCustody');
-    }
-    return admitted;
-  };
-  const captureCustodyPath = run => resolve(captureCustodyDirectory,
-    `${cidHex(run.identity)}.json`);
-  // One same-Store durability observation, not capture completion or authority.
-  let lastConfirmedEffectCaptureCustody;
-  const readEffectCaptureCustodyOriginal = async run => {
-    let bytes;
-    try { bytes = await readBounded(captureCustodyPath(run),
-      Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)); }
-    catch (error) { if (error?.code === 'ENOENT') return undefined; throw error; }
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) { fail('InvalidEffectCaptureCustody', error); }
-    if (!exactKeys(value, ['version', 'store_authority_cid',
-      'run_definition', 'holdings']) ||
-        value.version !== 'actql-effect-capture-custody/0.1' ||
-        value.store_authority_cid !== configuration.storeAuthorityCid ||
-        value.run_definition !== run.wire || !Array.isArray(value.holdings) ||
-        value.holdings.length > 4096) fail('InvalidEffectCaptureCustody');
-    const holdings = value.holdings.map(value =>
-      parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
-    if (new Set(holdings.map(value => value.holding_cid)).size !==
-        holdings.length || holdings.some(value =>
-        !['effect-source', 'effect-capture'].includes(value.namespace))) {
-      fail('InvalidEffectCaptureCustody');
-    }
-    return Object.freeze({...value, holdings: Object.freeze(holdings)});
-  };
-  const readEffectCaptureCustody = async suppliedRun => {
-    active();
-    return readEffectCaptureCustodyOriginal(captureCustodyRun(suppliedRun));
-  };
-  const retainEffectCaptureCustody = (suppliedRun, suppliedHoldings) => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
-    const holdings = suppliedHoldings.map(value =>
-      parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
-    return withSemanticCommit(async () => {
-      active();
-      const previous = await readEffectCaptureCustodyOriginal(run);
-      const records = new Map((previous?.holdings ?? []).map(value =>
-        [value.holding_cid, value]));
-      for (const holding of holdings) {
-        if (!['effect-source', 'effect-capture'].includes(holding.namespace)) {
-          fail('InvalidEffectCaptureCustody');
-        }
-        const old = records.get(holding.holding_cid);
-        if (old !== undefined && JSON.stringify(old) !== JSON.stringify(holding)) {
-          fail('EffectCaptureCustodyConflict');
-        }
-        records.set(holding.holding_cid, holding);
-      }
-      const wire = JSON.stringify({
-        version: 'actql-effect-capture-custody/0.1',
-        store_authority_cid: configuration.storeAuthorityCid,
-        run_definition: run.wire, holdings: [...records.values()],
-      });
-      const byteLength = Buffer.byteLength(wire, 'utf8');
-      if (records.size > 4096 || byteLength >
-          Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)) {
-        fail('EffectCaptureCustodyLimitExceeded');
-      }
-      const path = captureCustodyPath(run);
-      const confirmed = lastConfirmedEffectCaptureCustody;
-      if (previous !== undefined && confirmed?.wire === wire) {
-        const current = await lstat(path, {bigint: true});
-        if (current.isFile() &&
-            ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
-              .every(field => current[field] === confirmed.state[field])) return;
-      }
-      // A failed write/sync/close never publishes or preserves this observation.
-      // A changed body, replacement allocation or new Store uses real I/O.
-      lastConfirmedEffectCaptureCustody = undefined;
-      const bytes = Buffer.from(wire, 'utf8');
-      const staging = resolve(stagingDirectory, `object-${randomUUID()}`);
-      await writeExclusive(staging, bytes);
-      await rename(staging, path);
-      await syncDirectory(captureCustodyDirectory);
-      const state = await lstat(path, {bigint: true});
-      if (!state.isFile() || state.size !== BigInt(byteLength)) {
-        fail('InvalidEffectCaptureCustody');
-      }
-      lastConfirmedEffectCaptureCustody = {wire, state};
+  const {readEffectCaptureCustody, retainEffectCaptureCustody, listEffectCaptureCustodies,
+    forgetEffectCaptureCustody, retireEffectCaptureCustody, clearEffectCaptureCustodyObservation} =
+    createEffectCaptureCustodyRecords(configuration, captureCustodyDirectory, stagingDirectory, {
+      active, admitContract, cidHex, parsePhysicalHolding, withSemanticCommit, syncDirectory,
+      readPhysicalHolding, readPhysicalHoldingDeletion, retirePhysicalHolding,
     });
-  };
-  const listEffectCaptureCustodies = async ({after = '', limit = 100} = {}) => {
-    active();
-    if (typeof after !== 'string' || after !== '' && !cidPattern.test(after) ||
-        !Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
-      fail('InvalidEffectCaptureCustodyPage');
-    }
-    const names = await readdir(captureCustodyDirectory);
-    if (names.some(name => !/^[0-9a-f]{64}\.json$/u.test(name))) {
-      fail('InvalidEffectCaptureCustody');
-    }
-    const selected = names.sort().filter(name =>
-      `sha256:${name.slice(0, -5)}` > after).slice(0, limit);
-    const result = [];
-    for (const name of selected) {
-      let value;
-      try {
-        value = JSON.parse((await readBounded(resolve(captureCustodyDirectory,
-          name), Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)))
-          .toString('utf8'));
-      } catch (error) {
-        if (error?.code === 'ENOENT') continue;
-        fail('InvalidEffectCaptureCustody', error);
-      }
-      const run = admitContract('run_definition', value.run_definition);
-      if (`${cidHex(run.identity)}.json` !== name) {
-        fail('InvalidEffectCaptureCustody');
-      }
-      if (await readEffectCaptureCustodyOriginal(run) !== undefined) result.push(run);
-    }
-    return Object.freeze(result);
-  };
-  const forgetEffectCaptureCustodyOriginal = async run => {
-    active();
-    lastConfirmedEffectCaptureCustody = undefined;
-    try { await unlink(captureCustodyPath(run)); }
-    catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    await syncDirectory(captureCustodyDirectory);
-  };
-  const forgetEffectCaptureCustody = async suppliedRun => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
-    await readEffectCaptureCustodyOriginal(run);
-    return forgetEffectCaptureCustodyOriginal(run);
-  };
-  const retireEffectCaptureCustody = async suppliedRun => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
-    const record = await readEffectCaptureCustodyOriginal(run);
-    if (record === undefined) return false;
-    // Validate the entire exact inventory before deleting any holding. A
-    // missing record can be progress from an interrupted retirement pass.
-    for (const expected of record.holdings) {
-      const actual = await readPhysicalHolding(expected.holding_cid) ??
-        await readPhysicalHoldingDeletion(expected.holding_cid);
-      if (actual !== undefined && JSON.stringify(actual) !== JSON.stringify(expected)) {
-        fail('EffectCaptureCustodyConflict');
-      }
-    }
-    for (const holding of record.holdings) {
-      const retired = await retirePhysicalHolding(holding.holding_cid);
-      if (retired.cleanup.status().pending) {
-        const error = new PublicationStoreError('EffectCaptureCustodyCleanupPending');
-        error.cleanupPending = true;
-        error.cleanupHandle = retired.cleanup;
-        throw error;
-      }
-    }
-    await forgetEffectCaptureCustodyOriginal(run);
-    return true;
-  };
 
   const {registerCustody, removeCustodyRecord, reclaimCustody, reclaimNativePreparation, recoverPreparedCustodies} =
     createPublicationCustodyRecords(
@@ -6486,7 +6328,7 @@ async function openOriginalLocalPublicationStore(
         closed = true;
         configuration.privateEvidenceKey?.fill(0);
         originalInstallationPublicationStorageBinding = undefined;
-        lastConfirmedEffectCaptureCustody = undefined;
+        clearEffectCaptureCustodyObservation();
         return true;
       }).finally(() => { closeFlight = undefined; });
       return closeFlight;

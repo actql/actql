@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64e18afe6bb79ccb413e43c27f4153747e4424ee97cf7bc7a489d6c0120ba668",
+      "sha256": "a564832800d996b7700c54b3ae67c1b457e45f763c814842ec2d058fe22c7d45",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6243,6 +6243,14 @@
         {
           "name": "openOriginalLocalPublicationStore/active/active",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitContract/admitContract",
+          "parameters": [
+            "name",
+            "wire"
+          ],
           "async": false
         },
         {
@@ -7236,13 +7244,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
-          "parameters": [
-            "suppliedRun"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/init:close/init:close",
           "parameters": [],
           "async": false
@@ -7508,28 +7509,6 @@
           "parameters": [
             "left",
             "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies",
-          "parameters": [
-            "after",
-            "limit"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -8015,34 +7994,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody",
-          "parameters": [
-            "suppliedRun"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
           "parameters": [
             "cid",
@@ -8335,40 +8286,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody",
-          "parameters": [
-            "suppliedRun",
-            "suppliedHoldings"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
           "parameters": [
             "operation"
@@ -8405,13 +8322,6 @@
           "parameters": [
             "key",
             "resultDefinitionCid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retireEffectCaptureCustody/retireEffectCaptureCustody",
-          "parameters": [
-            "suppliedRun"
           ],
           "async": true
         },
@@ -8592,6 +8502,13 @@
           "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
+          "parameters": [
+            "operation"
           ],
           "async": false
         },
@@ -9031,7 +8948,6 @@
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
-            "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
@@ -9065,9 +8981,6 @@
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
             "openOriginalLocalPublicationStore/lookupCommittedIndex/lookupCommittedIndex",
             "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
@@ -9116,10 +9029,6 @@
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
             "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
@@ -9162,17 +9071,11 @@
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
             "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
-            "openOriginalLocalPublicationStore/retireEffectCaptureCustody/retireEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
@@ -9208,7 +9111,9 @@
             "cidHex/cidHex",
             "exactUtf8WireMatches/exactUtf8WireMatches",
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
-            "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath"
+            "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
+            "openOriginalLocalPublicationStore/admitContract/admitContract",
+            "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13253,11 +13158,133 @@
     {
       "module": "adapters/store-local/publication-custody-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2b3e162f8522275b1f4af8a481b1b7a0210f6cbc2192e5c5155460e90eced75",
+      "sha256": "4280b1d7b355363ced2f2cfa86ce29e07827d2ca1b796aa59b28ffcb4040d413",
       "exports": [
+        "createEffectCaptureCustodyRecords",
         "createPublicationCustodyRecords"
       ],
       "operations": [
+        {
+          "name": "createEffectCaptureCustodyRecords",
+          "parameters": [
+            "configuration",
+            "captureCustodyDirectory",
+            "stagingDirectory",
+            "active",
+            "admitContract",
+            "cidHex",
+            "parsePhysicalHolding",
+            "withSemanticCommit",
+            "syncDirectory",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "retirePhysicalHolding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
+          "parameters": [
+            "suppliedRun"
+          ],
+          "async": true
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/init:clearEffectCaptureCustodyObservation/init:clearEffectCaptureCustodyObservation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies",
+          "parameters": [
+            "after",
+            "limit"
+          ],
+          "async": true
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/readEffectCaptureCustody/readEffectCaptureCustody",
+          "parameters": [
+            "suppliedRun"
+          ],
+          "async": true
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody",
+          "parameters": [
+            "suppliedRun",
+            "suppliedHoldings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureCustodyRecords/retireEffectCaptureCustody/retireEffectCaptureCustody",
+          "parameters": [
+            "suppliedRun"
+          ],
+          "async": true
+        },
         {
           "name": "createPublicationCustodyRecords",
           "parameters": [
@@ -13355,9 +13382,26 @@
             "createPublicationCustodyRecords/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
             "createPublicationCustodyRecords/recoverPreparedCustodies/recoverPreparedCustodies",
             "createPublicationCustodyRecords/registerCustody/registerCustody",
-            "createPublicationCustodyRecords/removeCustodyRecord/removeCustodyRecord"
+            "createPublicationCustodyRecords/removeCustodyRecord/removeCustodyRecord",
+            "createEffectCaptureCustodyRecords",
+            "createEffectCaptureCustodyRecords/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
+            "createEffectCaptureCustodyRecords/init:clearEffectCaptureCustodyObservation/init:clearEffectCaptureCustodyObservation",
+            "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies",
+            "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
+            "createEffectCaptureCustodyRecords/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
+            "createEffectCaptureCustodyRecords/readEffectCaptureCustody/readEffectCaptureCustody",
+            "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
+            "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
+            "createEffectCaptureCustodyRecords/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
+            "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody",
+            "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
+            "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
+            "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
+            "createEffectCaptureCustodyRecords/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
+            "createEffectCaptureCustodyRecords/retireEffectCaptureCustody/retireEffectCaptureCustody"
           ],
           "exports": [
+            "createEffectCaptureCustodyRecords",
             "createPublicationCustodyRecords"
           ],
           "attributes": {
@@ -13371,6 +13415,10 @@
               {
                 "path": "adapters/store-local/publication-custody-records.mts",
                 "anchor": "export function createPublicationCustodyRecords("
+              },
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "export function createEffectCaptureCustodyRecords<"
               }
             ],
             "identity": [
@@ -13383,12 +13431,20 @@
               {
                 "path": "adapters/store-local/publication-custody-records.mts",
                 "anchor": "reclaimableCustodies.set(token, custody);"
+              },
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "clearEffectCaptureCustodyObservation() { lastConfirmedEffectCaptureCustody = undefined; }"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-custody-records.mts",
                 "anchor": "retainMaterialOperation(operation.catch(() => {}));"
+              },
+              {
+                "path": "adapters/store-local/publication-custody-records.mts",
+                "anchor": "await syncDirectory(captureCustodyDirectory);"
               }
             ],
             "failure": [
@@ -13423,6 +13479,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "crash custody cannot reclaim a committed shared allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effect capture retirement refuses final unlink after the same Store closes"
               }
             ]
           }
@@ -13431,7 +13491,8 @@
       "imports": [
         "./publication-store-io.mjs",
         "node:crypto",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
