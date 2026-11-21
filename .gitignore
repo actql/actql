@@ -1619,5 +1619,9 @@ target/
 /adapters/host-common/strategy-usage.test.d.mts
 /adapters/host-node/ledger-usage-consumers.test.mjs
 /adapters/host-node/ledger-usage-consumers.test.d.mts
+/adapters/host-common/effect-application-control.mjs
+/adapters/host-common/effect-application-control.d.mts
+/adapters/host-common/effect-application-control.test.mjs
+/adapters/host-common/effect-application-control.test.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts

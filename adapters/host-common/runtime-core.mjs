@@ -1,6 +1,7 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {effectApplicationControl} from './effect-application-control.mjs';
 import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
@@ -26,7 +27,6 @@ const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
 const remoteStandardSourceControls = new WeakMap();
 const remoteCredentialControls = new WeakMap();
-const effectApplicationControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
 
@@ -50,169 +50,6 @@ function inferQuantityCapacity(value) {
     per_attempt: {tokens: value.perAttempt.tokens, cost_units: value.perAttempt.costUnits,
       duration_ms: value.perAttempt.durationMs},
   };
-}
-
-function effectApplicationControl(moon) {
-  let control = effectApplicationControls.get(moon);
-  if (control !== undefined) return control;
-  control = Object.freeze({
-    logicalRequestScope: (...args) =>
-      checked(moon.strategyEffectLogicalRequestScope(...args)),
-    logicalRequestScopeCid: moon.strategyEffectLogicalRequestScopeCid,
-    dispatchKey: (...args) =>
-      checked(moon.strategyEffectDispatchKey(...args)),
-    dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
-    dispatchKeyCorrelationWire: moon.strategyEffectDispatchKeyCorrelationWire,
-    recoveredPreviewKeys: (...args) => checked(
-      moon.strategyEffectRecoveredPreviewKeys(...args)),
-    batchRowsShareMember: moon.strategyEffectBatchRowsShareMember,
-    logicalItemLocator: (...args) =>
-      checked(moon.strategyEffectLogicalItemLocator(...args)),
-    logicalItemLocatorCid: moon.strategyEffectLogicalItemLocatorCid,
-    applyKey: (...args) =>
-      checked(moon.strategyEffectApplyKey(...args)),
-    applyKeyCid: moon.strategyEffectApplyKeyCid,
-    recoveryAction: moon.strategyEffectRowRecoveryAction,
-    recoveryActionFromEntry: moon.strategyEffectRowRecoveryActionFromEntry,
-    setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
-    setFrontierFromLedger: (...args) => checked(
-      moon.strategyEffectSetFrontierFromLedger(...args)),
-    recoveredTargetGuards: (...args) => checked(
-      moon.clientProgramRecoverEffectTargetGuards(...args)),
-    setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
-    setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
-    setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
-    setFrontierReadyRow: moon.strategyEffectSetFrontierReadyRow,
-    checkSetFootprintConflicts: (...args) => checked(
-      moon.strategyEffectSetFootprintConflictsCheck(...args),
-    ),
-    checkPreviewFootprintConflicts: (...args) => checked(
-      moon.strategyEffectPreviewFootprintConflictsCheck(...args),
-    ),
-    derivePreviewIdentities: (...args) => checked(
-      moon.strategyEffectPreviewIdentities(...args),
-    ),
-    derivePreviewRowIdentities: (...args) => checked(
-      moon.strategyEffectPreviewRowIdentities(...args),
-    ),
-    admitPreviewApplyIdentity: (...args) => checked(
-      moon.strategyEffectPreviewApplyIdentityAdmit(...args),
-    ),
-    admitPreviewIdentity: (...args) => checked(
-      moon.strategyEffectPreviewApplyIdentity(...args),
-    ),
-    checkPreviewTargetGuards: (...args) => checked(
-      moon.strategyEffectPreviewTargetGuardsCheck(...args),
-    ),
-    admitCollectionBatch: (...args) => checked(
-      moon.strategyEffectCollectionBatchAdmit(...args),
-    ),
-    admitMemberRow: (...args) => checked(
-      moon.strategyEffectMemberRowAdmit(...args),
-    ),
-    previewMemberKind: moon.strategyEffectPreviewMemberKind,
-    previewOrderedRowCid: moon.strategyEffectPreviewOrderedRowCid,
-    recoveryBindings: (...args) => checked(
-      moon.strategyEffectRecoveryBindings(...args)),
-    recoveryBindingsFromKeys: (...args) => checked(
-      moon.clientProgramEffectRecoveryBindingsFromKeys(...args)),
-    recoveryBindingLocatorCid:
-      moon.strategyEffectRecoveryBindingLocatorCid,
-    recoverClaimsFromHeads: (...args) => checked(
-      moon.strategyEffectRecoverClaimsFromHeads(...args)),
-    recoveredClaimScope: moon.strategyEffectRecoveredClaimScope,
-    recoveredClaimLocator: moon.strategyEffectRecoveredClaimLocator,
-    recoveredClaimKey: moon.strategyEffectRecoveredClaimKey,
-    recoveredClaimBasis: moon.strategyEffectRecoveredClaimBasis,
-    recoveredClaimIntentFingerprintCid:
-      moon.strategyEffectRecoveredClaimIntentFingerprintCid,
-    recoveredClaimCanonicalRequestCid:
-      moon.strategyEffectRecoveredClaimCanonicalRequestCid,
-    issueRowOutcomeReceipt: (...args) => {
-      const value = checked(moon.strategyIssueEffectRowOutcomeReceipt(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
-      });
-    },
-    admitSavedResponseEvidence: (...args) => checked(
-      moon.strategyAdmitEffectSavedResponseEvidence(...args)),
-    issueRowOutcomeReceiptFromResponse: (...args) => {
-      const value = checked(
-        moon.strategyIssueEffectRowOutcomeReceiptFromResponse(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
-      });
-    },
-    admitRowOutcomeReceipt: (...args) => {
-      const value = checked(moon.strategyAdmitEffectRowOutcomeReceipt(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
-      });
-    },
-    admitRowOutcomeReceiptFromResponse: (...args) => {
-      const value = checked(
-        moon.strategyAdmitEffectRowOutcomeReceiptFromResponse(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
-      });
-    },
-    issueRowReceiptTerminalEntry: (...args) => checked(
-      moon.strategyIssueEffectRowReceiptTerminalEntry(...args),
-    ),
-    issueRowReceiptTerminalEntryFromResponse: (...args) => checked(
-      moon.strategyIssueEffectRowReceiptTerminalEntryFromResponse(...args),
-    ),
-    checkMemberReceiptRowPartitionEvidence: (...args) => checked(
-      moon.strategyCheckEffectMemberReceiptRowPartitionEvidence(...args),
-    ),
-    issueMemberReceiptFromRowPartition: (...args) => {
-      const value = checked(
-        moon.strategyIssueEffectMemberReceiptFromRowPartition(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-      });
-    },
-    issueSetReceiptFromMembers: (...args) => {
-      const value = checked(
-        moon.strategyIssueEffectSetApplyReceiptFromMembers(...args));
-      return Object.freeze({
-        identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value),
-      });
-    },
-    admitLedgerEntry: (...args) => checked(
-      moon.strategyEffectAdmitLedgerEntry(...args),
-    ),
-    ledgerEntryFollows: moon.strategyEffectLedgerEntryFollows,
-    ledgerEntryCid: moon.strategyEffectLedgerEntryCid,
-    ledgerEntryStateCode: moon.strategyEffectLedgerEntryStateCode,
-    ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
-    ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
-    ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
-    ledgerEntryAdmitsDispatch: moon.strategyEffectLedgerEntryAdmitsDispatch,
-    ledgerEntryMatchesBasis: moon.strategyEffectLedgerEntryMatchesBasis,
-    // Optional only for older component runtimes. The Ledger keeps its full
-    // codec path when this inert, allocation-free facts check is unavailable.
-    ledgerClaimFactsStatus: moon.strategyEffectLedgerClaimFactsStatus,
-    ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
-    issuePreparedLedgerEntry: (...args) => checked(
-      moon.strategyEffectIssuePreparedLedgerEntry(...args),
-    ),
-    issueNextLedgerEntry: (...args) => checked(
-      moon.strategyEffectIssueNextLedgerEntry(...args),
-    ),
-  });
-  effectApplicationControls.set(moon, control);
-  return control;
 }
 
 function siteControl(moon) {

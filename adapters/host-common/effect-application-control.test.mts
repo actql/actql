@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {effectApplicationControl} from './effect-application-control.mjs';
 import {canonicalJson} from './publication-contract-control.fixture.mjs';
 
-const effect = runtimeCore(moon).effectApplicationControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+const effect = (runtimeCore(moon) as {effectApplicationControl: ReturnType<typeof effectApplicationControl>})
+  .effectApplicationControl;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 
 test('standard Host bridge uses the portable logical Effect identities', () => {
   const scope = effect.logicalRequestScope(cid('a'), 'request-1', 32);
@@ -74,7 +78,8 @@ test('Host bridge distinguishes halted rows from one in-flight collection', () =
 });
 
 test('Host bridge rejects conflicting Effect members before mutation', () => {
-  const input = (targets, kinds = [0, 0], boundaries = [cid('a'), cid('a')]) => [
+  const input = (targets: string[][], kinds = [0, 0], boundaries = [cid('a'), cid('a')]):
+    Parameters<typeof effect.checkSetFootprintConflicts> => [
     ['first', 'second'], kinds,
     ['provider', 'provider'], boundaries,
     [cid('b'), cid('b')], ['Record', 'Record'], targets,
@@ -94,7 +99,7 @@ test('Host bridge rejects conflicting Effect members before mutation', () => {
 });
 
 test('Host derives set conflicts from the closed private Preview shape', () => {
-  const member = (effectId, target) => ({
+  const member = (effectId: string, target: string) => ({
     effect_id: effectId,
     effect_kind: 'update',
     target: 'Object',
@@ -123,7 +128,7 @@ test('Host derives set conflicts from the closed private Preview shape', () => {
     effect_member_preview_cid: cid('a'),
     executed: false,
   });
-  const preview = effects => canonicalJson({
+  const preview = (effects: readonly ReturnType<typeof member>[]) => canonicalJson({
     version: 'actql-effect-preview/0.1',
     sensitivity: 'private',
     retention_class: 'authority-evidence',
@@ -149,9 +154,9 @@ test('Host derives set conflicts from the closed private Preview shape', () => {
     executed: false,
     effect_preview_cid: cid('a'),
   });
-  const inventory = [['second', 'first'], [1, 0], [cid('a'), cid('a')]];
+  const inventory = [['second', 'first'], [1, 0], [cid('a'), cid('a')]] as const;
   const second = {...member('second', cid('2')), on_item_failure: 'continue'};
-  const limits = [8192, 256, 12, 2, 2, 100];
+  const limits = [8192, 256, 12, 2, 2, 100] as const;
   assert.equal(effect.checkPreviewFootprintConflicts(preview([
     member('first', cid('1')), second,
   ]), ...inventory, ...limits), true);
@@ -255,7 +260,7 @@ test('Host bridge admits Effect Preview identity and exact apply key', () => {
 test('Host preflight checks guards across unordered Effect members', () => {
   const scope = effect.logicalRequestScope(cid('a'), 'request-1', 32);
   const authoring = 'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
-  const member = (id, target, version, placeholder) => ({
+  const member = (id: string, target: string, version: string, placeholder: string) => ({
     effect_id: id, effect_kind: 'update', target: 'Object',
     mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('a'),
     effect_identity_cid: cid('a'), preview_strength: 'full_diff',

@@ -15293,6 +15293,424 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-common/effect-application-control.mjs",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectApplicationControl/createEffectApplicationControl",
+            "createEffectApplicationControl/createEffectApplicationControl#10",
+            "createEffectApplicationControl/createEffectApplicationControl#11",
+            "createEffectApplicationControl/createEffectApplicationControl#12",
+            "createEffectApplicationControl/createEffectApplicationControl#13",
+            "createEffectApplicationControl/createEffectApplicationControl#14",
+            "createEffectApplicationControl/createEffectApplicationControl#15",
+            "createEffectApplicationControl/createEffectApplicationControl#16",
+            "createEffectApplicationControl/createEffectApplicationControl#17",
+            "createEffectApplicationControl/createEffectApplicationControl#18",
+            "createEffectApplicationControl/createEffectApplicationControl#19",
+            "createEffectApplicationControl/createEffectApplicationControl#2",
+            "createEffectApplicationControl/createEffectApplicationControl#20",
+            "createEffectApplicationControl/createEffectApplicationControl#21",
+            "createEffectApplicationControl/createEffectApplicationControl#22",
+            "createEffectApplicationControl/createEffectApplicationControl#23",
+            "createEffectApplicationControl/createEffectApplicationControl#24",
+            "createEffectApplicationControl/createEffectApplicationControl#25",
+            "createEffectApplicationControl/createEffectApplicationControl#26",
+            "createEffectApplicationControl/createEffectApplicationControl#27",
+            "createEffectApplicationControl/createEffectApplicationControl#28",
+            "createEffectApplicationControl/createEffectApplicationControl#29",
+            "createEffectApplicationControl/createEffectApplicationControl#3",
+            "createEffectApplicationControl/createEffectApplicationControl#30",
+            "createEffectApplicationControl/createEffectApplicationControl#31",
+            "createEffectApplicationControl/createEffectApplicationControl#32",
+            "createEffectApplicationControl/createEffectApplicationControl#33",
+            "createEffectApplicationControl/createEffectApplicationControl#34",
+            "createEffectApplicationControl/createEffectApplicationControl#4",
+            "createEffectApplicationControl/createEffectApplicationControl#5",
+            "createEffectApplicationControl/createEffectApplicationControl#6",
+            "createEffectApplicationControl/createEffectApplicationControl#7",
+            "createEffectApplicationControl/createEffectApplicationControl#8",
+            "createEffectApplicationControl/createEffectApplicationControl#9",
+            "effectApplicationControl"
+          ],
+          "exports": [
+            "effectApplicationControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/effect-application-control.mts",
+                "anchor": "effectApplicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-common/effect-application-control.test.mts",
+                "anchor": "test('standard Host bridge uses the portable logical Effect identities'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing Common Effect application and receipt binding, with the original runtime cache and original Common checks.",
+      "exports": [
+        "effectApplicationControl"
+      ],
+      "operations": [
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#10",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#11",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#12",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#13",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#14",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#15",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#16",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#17",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#18",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#19",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#20",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#21",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#22",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#23",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#24",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#25",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#26",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#27",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#28",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#29",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#30",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#31",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#32",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#33",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#34",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#6",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#7",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#8",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectApplicationControl/createEffectApplicationControl#9",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectApplicationControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "b7841badc3b01e36262e13d23d56412bb3e8f0c4894cdeb7590cb5ac21304ee9"
+    },
+    {
       "module": "adapters/host-common/effect-preparation-result.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
@@ -16722,152 +17140,6 @@
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
                 "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "effectApplicationControl",
-            "effectApplicationControl/effectApplicationControl",
-            "effectApplicationControl/effectApplicationControl#10",
-            "effectApplicationControl/effectApplicationControl#11",
-            "effectApplicationControl/effectApplicationControl#12",
-            "effectApplicationControl/effectApplicationControl#13",
-            "effectApplicationControl/effectApplicationControl#14",
-            "effectApplicationControl/effectApplicationControl#15",
-            "effectApplicationControl/effectApplicationControl#16",
-            "effectApplicationControl/effectApplicationControl#17",
-            "effectApplicationControl/effectApplicationControl#18",
-            "effectApplicationControl/effectApplicationControl#19",
-            "effectApplicationControl/effectApplicationControl#2",
-            "effectApplicationControl/effectApplicationControl#20",
-            "effectApplicationControl/effectApplicationControl#21",
-            "effectApplicationControl/effectApplicationControl#22",
-            "effectApplicationControl/effectApplicationControl#23",
-            "effectApplicationControl/effectApplicationControl#24",
-            "effectApplicationControl/effectApplicationControl#25",
-            "effectApplicationControl/effectApplicationControl#26",
-            "effectApplicationControl/effectApplicationControl#27",
-            "effectApplicationControl/effectApplicationControl#28",
-            "effectApplicationControl/effectApplicationControl#29",
-            "effectApplicationControl/effectApplicationControl#3",
-            "effectApplicationControl/effectApplicationControl#30",
-            "effectApplicationControl/effectApplicationControl#31",
-            "effectApplicationControl/effectApplicationControl#32",
-            "effectApplicationControl/effectApplicationControl#33",
-            "effectApplicationControl/effectApplicationControl#34",
-            "effectApplicationControl/effectApplicationControl#4",
-            "effectApplicationControl/effectApplicationControl#5",
-            "effectApplicationControl/effectApplicationControl#6",
-            "effectApplicationControl/effectApplicationControl#7",
-            "effectApplicationControl/effectApplicationControl#8",
-            "effectApplicationControl/effectApplicationControl#9"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectApplicationControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
               }
             ]
           }
@@ -26726,251 +26998,6 @@
           "async": false
         },
         {
-          "name": "effectApplicationControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#10",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#11",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#12",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#13",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#14",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#15",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#16",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#17",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#18",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#19",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#2",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#20",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#21",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#22",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#23",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#24",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#25",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#26",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#27",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#28",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#29",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#3",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#30",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#31",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#32",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#33",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#34",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#4",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#5",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#6",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#7",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#8",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectApplicationControl/effectApplicationControl#9",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "inferQuantityCapacity/inferQuantityCapacity",
           "parameters": [
             "scope"
@@ -35044,6 +35071,7 @@
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
         "./dispatch-failure-observation.mjs",
+        "./effect-application-control.mjs",
         "./installation-preparation-metadata.mjs",
         "./installed-effect-dependency-original.mjs",
         "./ledger-usage.mjs",
@@ -35054,7 +35082,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "67e49b23042ba3945cbbcd224ea4aca8daf890b193d3029bc0eb2a56870c1199"
+      "sha256": "6b3f789006ae5a04bddc74358b686b53848b8bf1b14a4f88c2a6730627a5f70a"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
