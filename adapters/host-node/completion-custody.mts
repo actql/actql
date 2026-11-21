@@ -3,7 +3,8 @@
 // sealing. A record is not permission to run a consumer or publish a Result.
 import {completionRecordLimits, snapshotCompletionDescriptor, snapshotCompletionTask} from './completion-record.mjs';
 import {createCompletionReader} from './completion-reader.mjs';
-import type {CompletionBody, CompletionCall, CompletionChannel, CompletionEntry} from './completion-reader.mjs';
+import type {CompletionBody, CompletionCall, CompletionChannel, CompletionEntry, CompletionReadLease} from './completion-reader.mjs';
+import type {SynchronousAction} from './installed-host-cleanup.mjs';
 
 type CompletionRequest = Readonly<{
   command?: unknown;
@@ -12,17 +13,17 @@ type CompletionRequest = Readonly<{
   descriptor?: unknown;
   taskIdentity?: unknown;
 }>;
-type CompletionStore<Lease, Report, Cleanup, ServiceReport> = Readonly<{
+type CompletionStore<Lease extends CompletionReadLease, Cleanup, ServiceReport> = Readonly<{
   service: {invoke: (request: CompletionRequest | null | undefined, signal: AbortSignal, owner: CompletionCall) => ServiceReport};
-  observe: (channel: CompletionChannel) => unknown;
-  body: (output: string) => CompletionBody<Lease, Report> | undefined;
+  observe: (channel: CompletionChannel) => ReturnType<SynchronousAction>;
+  body: (output: string) => CompletionBody<Lease> | undefined;
   close: () => unknown;
   cleanupHandle?: Cleanup;
 }>;
 type Task = ReturnType<typeof snapshotCompletionTask>;
 
-export function createProcessCompletionCustody<Lease, Report, Cleanup, ServiceReport>(
-  store: CompletionStore<Lease, Report, Cleanup, ServiceReport>, options: unknown, expectedTasks: readonly unknown[]) {
+export function createProcessCompletionCustody<Lease extends CompletionReadLease, Cleanup, ServiceReport>(
+  store: CompletionStore<Lease, Cleanup, ServiceReport>, options: unknown, expectedTasks: readonly unknown[]) {
   const limits = completionRecordLimits(options);
   if (!Array.isArray(expectedTasks) || expectedTasks.length === 0 || expectedTasks.length > limits.maxCompletions) {
     throw new TypeError('InvalidCompletionTaskSet');
@@ -46,8 +47,8 @@ export function createProcessCompletionCustody<Lease, Report, Cleanup, ServiceRe
       typeof store.body !== 'function' || typeof store.close !== 'function') {
     throw new TypeError('InvalidCompletionStore');
   }
-  const entries = new Map<number, CompletionEntry<Lease, Report> & {readonly handle: object}>(),
-    bodies = new Set<CompletionBody<Lease, Report>>(), records = new WeakMap<object, CompletionEntry<Lease, Report>>();
+  const entries = new Map<number, CompletionEntry<Lease> & {readonly handle: object}>(),
+    bodies = new Set<CompletionBody<Lease>>(), records = new WeakMap<object, CompletionEntry<Lease>>();
   let identity: ReturnType<CompletionChannel['identity']> | undefined, stopped = false, closed = false;
   const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
   const exact = (owner: CompletionCall) => {

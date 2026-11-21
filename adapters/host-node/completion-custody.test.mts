@@ -9,6 +9,18 @@ import {consumeDelegatedFile} from '../store-local/delegated-reader.mjs';
 import {createProcessCompletionCustody} from './completion-custody.mjs';
 import {completionRecordLimits, snapshotCompletionDescriptor, snapshotCompletionTask} from './completion-record.mjs';
 
+import type {DelegatedReadLease} from '../store-local/files.mjs';
+import type {createProcessRetainedStore} from '../store-local/process-service.mjs';
+
+type Assert<Condition extends true> = Condition;
+type CustodyStore = Parameters<typeof createProcessCompletionCustody>[0];
+type ActualBorrow = ReturnType<NonNullable<ReturnType<CustodyStore['body']>>['delegateRead']>;
+type _AcceptRealStore = Assert<ReturnType<typeof createProcessRetainedStore> extends CustodyStore ? true : false>;
+type _RejectAsyncLease = Assert<Promise<DelegatedReadLease> extends ActualBorrow['descriptor'] ? false : true>;
+type _RejectAsyncVerify = Assert<(() => Promise<ReturnType<ActualBorrow['verify']>>) extends ActualBorrow['verify'] ? false : true>;
+type _RejectAsyncFinish = Assert<(() => Promise<ReturnType<ActualBorrow['finish']>>) extends ActualBorrow['finish'] ? false : true>;
+type _RejectAsyncObserve = Assert<(() => Promise<void>) extends CustodyStore['observe'] ? false : true>;
+
 const cid = `sha256:${'1'.repeat(64)}`;
 const descriptor = () => ({registry_cid: cid, values_contract_cid: cid, rows_cid: cid,
   output_step: 1, input_count: 1, columns: 1, rows: 1, bytes: 10, nodes: 4, depth: 3,

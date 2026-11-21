@@ -3,38 +3,43 @@
 // Only completion custody constructs it with its private, exact record.
 import {snapshotCompletionTask} from './completion-record.mjs';
 import type {completionRecordLimits, snapshotCompletionDescriptor} from './completion-record.mjs';
+import type {DelegatedReadLease} from '../store-local/files.mjs';
 
 type CompletionSession = Readonly<{session: string; run: string}>;
 export type CompletionCall = CompletionSession & Readonly<{sequence: number}>;
 export type CompletionChannel = Readonly<{
   identity: () => CompletionSession;
-  cleanupHandle: Readonly<{whenStopped: () => PromiseLike<unknown>}>;
+  cleanupHandle: Readonly<{whenStopped: () => Promise<unknown>}>;
 }>;
 type ReaderChannel = CompletionChannel & Readonly<{status: () => Readonly<{exited?: boolean}>}>;
 type CompletionReadRequest = Readonly<{command?: unknown; taskIdentity?: unknown; report?: unknown}>;
-type ReadBorrow<Lease, Report> = Readonly<{
+// These ports synchronously return DATA from the existing delegated file.
+export type CompletionReadLease = Pick<DelegatedReadLease, 'session' | 'bytes' | 'cid'> &
+  Readonly<{token: string; then?: never}>;
+type CompletionReadReport = Pick<DelegatedReadLease, 'bytes' | 'cid'> & Readonly<{then?: never}>;
+type ReadBorrow<Lease extends CompletionReadLease> = Readonly<{
   descriptor: Lease;
-  verify: (report: unknown) => Report;
-  finish: (report: unknown) => Report;
+  verify: (report: unknown) => CompletionReadReport;
+  finish: (report: unknown) => CompletionReadReport;
   confirmStopped: () => boolean | void;
 }>;
-export type CompletionBody<Lease, Report> = Readonly<{
+export type CompletionBody<Lease extends CompletionReadLease> = Readonly<{
   cid: string;
   bytes: number;
   available: () => boolean;
-  delegateRead: (session: string) => ReadBorrow<Lease, Report>;
+  delegateRead: (session: string) => ReadBorrow<Lease>;
 }>;
-export type CompletionEntry<Lease, Report> = Readonly<{
+export type CompletionEntry<Lease extends CompletionReadLease> = Readonly<{
   origin: CompletionSession & Readonly<{request: number; task: number; output: string}>;
-  body: CompletionBody<Lease, Report>;
+  body: CompletionBody<Lease>;
   descriptor: ReturnType<typeof snapshotCompletionDescriptor>;
   taskIdentity: ReturnType<typeof snapshotCompletionTask>;
 }>;
 
-export function createCompletionReader<Lease, Report>(entry: CompletionEntry<Lease, Report>,
+export function createCompletionReader<Lease extends CompletionReadLease>(entry: CompletionEntry<Lease>,
   limits: ReturnType<typeof completionRecordLimits>, available: () => boolean) {
   let identity: CompletionSession | undefined, channel: ReaderChannel | undefined,
-    stopped = false, used = false, sequence: number | undefined, borrow: ReadBorrow<Lease, Report> | undefined;
+    stopped = false, used = false, sequence: number | undefined, borrow: ReadBorrow<Lease> | undefined;
   const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
   const confirmStopped = () => {
     stopped = true;
