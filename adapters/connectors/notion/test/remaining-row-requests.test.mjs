@@ -14,6 +14,8 @@ import {prepareNotionUserListPages} from '../site/user-list-read.mjs';
 // namespace; these cases are not normal Host/Account/RowRun acceptance.
 const provider=await import(process.env.ACTQL_TEST_NOTION_URL??
   new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+const common=await import(process.env.ACTQL_TEST_COMMON_URL??
+  new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
 const usersOperation='notion:users:list',queryOperation='notion:data-sources:query';
 const managedReaders = new Set();
 test.afterEach(() => {
@@ -77,12 +79,13 @@ function fixture(family,{maxTotalRows=3,pages,loseCurrentAfterPage=false,names=[
     const factory=createInstalledCredentialSourceReader({capacity:{},originalSite:site,
       assertCurrent(){},operation:usersOperation,maxResponses:options.limits.maxPages,
       maxResponseBytes:options.limits.maxResponseBytes,maxSecretBytes:128,
-      preparePageReader({columns},apply){return prepareNotionUserListPages({moon:provider,
+      preparePageReader({columns},apply){return prepareNotionUserListPages({moon:provider,common,
         names:columns,limits:options.limits},apply);}});
     const reader=factory.prepare({resource:'users',columns:options.names,
       verifyRead:()=>options.current(usersOperation),
       authorizationFor:index=>options.authorizationFor({operation:usersOperation,index}),
-      chargePage:options.chargeResponse,consumePage:options.consumePage});
+      chargePage:options.chargeResponse,consumePage(){assert.fail('Expected checked page wire');},
+      consumePageWire:(wire,ticket)=>options.consumePage(JSON.parse(wire),ticket)});
     managedReaders.add({reader,factory});return reader;
   }:caller('data-source-read.mjs','createNotionDataSourceReader',transport);
   const reader=create({moon:provider,...(family==='users'?{names}:queryOriginals()),
@@ -123,10 +126,12 @@ for(const family of ['users','query']){
     assert.equal(f.rows.length,2,'only the earlier full page is retained');assert.equal(f.reader.observe().cleanupConfirmed,false);
   });
   test('Notion '+family+' original current refusal prevents another authorization or remaining-row request',async()=>{
-    const f=fixture(family,{loseCurrentAfterPage:true});
-    await assert.rejects(f.reader.read(),error=>error.cause===f.cause);
-    assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
-    assert.equal(f.rows.length,2);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    for(const maxTotalRows of [3,2]){
+      const f=fixture(family,{loseCurrentAfterPage:true,maxTotalRows});
+      await assert.rejects(f.reader.read(),error=>error.cause===f.cause);
+      assert.equal(f.requests.length,1);assert.equal(f.grants.length,1);assert.equal(f.charges.length,1);
+      assert.equal(f.rows.length,2);assert.equal(f.reader.observe().cleanupConfirmed,false);
+    }
   });
 }
 

@@ -71383,7 +71383,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "0821413f3e296fd8fee49e75a56ad86b03a575e03bf0f85b2e0c32994b866a00",
+      "sha256": "748d99fd6cd225f0e85c5b6bba0d5a8c6d578ca64d62bc91a30da55c88ea7ff3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -71400,6 +71400,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -71512,10 +71516,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -71526,8 +71532,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -71645,6 +71650,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -73350,7 +73363,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "cd1cc35555ceb1100ba5e67d5a7b3d8c4360f156b7cbf615c2b3b328fd496fdc",
+      "sha256": "59f5f12c53e05a6d1e411185542c8e00e52cc0bf814b2ff1add31726dad25c8a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -73367,6 +73380,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -73479,10 +73496,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -73493,8 +73512,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -73612,6 +73630,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -106366,15 +106392,23 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "ccc96409465a4d84b2d1acab2c56e57260c148dd69094337e1cfeb737277aade",
+      "sha256": "73d977ebb0a997f5b96218a118eedac329c4433d810bd6753ceddc725fd1cd4f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",
       "exports": [],
       "operations": [
         {
+          "name": "advance_checked_cursor",
+          "declaration": "advance_checked_cursor ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , remaining : Int , page_rows : Int , next : String ? , retain_exhausted_prefix ? : Bool"
+        },
+        {
           "name": "advance_row_source_cursor_progress",
           "declaration": "advance_row_source_cursor_progress ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : RowSourceProjectedJsonPage , rows : RowSourceProjectedJsonPage , ) - > Result [ Bool , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress_from_provider_page",
+          "declaration": "advance_row_source_cursor_progress_from_provider_page ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , next : String ? , ) - > Result [ Bool , RowSourceCursorIssue ]"
         },
         {
           "name": "prepare_row_source_cursor_progress",
@@ -106401,7 +106435,9 @@
         {
           "operations": [
             "<module>",
+            "advance_checked_cursor",
             "advance_row_source_cursor_progress",
+            "advance_row_source_cursor_progress_from_provider_page",
             "prepare_row_source_cursor_progress",
             "row_source_cursor_has_next",
             "row_source_cursor_next",
@@ -106528,6 +106564,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
