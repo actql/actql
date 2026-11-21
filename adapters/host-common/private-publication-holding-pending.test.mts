@@ -9,7 +9,6 @@ import {runInNewContext} from 'node:vm';
 import {mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-// @ts-expect-error TS7016: remove after migrating the publication contract fixture.
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
 // @ts-expect-error TS7016: remove after migrating the Local publication Store.

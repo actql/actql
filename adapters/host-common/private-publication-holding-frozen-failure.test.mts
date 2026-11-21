@@ -7,7 +7,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-// @ts-expect-error TS7016: remove after migrating the publication contract fixture.
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
 // @ts-expect-error TS7016: remove after migrating the Local publication Store.
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';

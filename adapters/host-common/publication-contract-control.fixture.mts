@@ -4,14 +4,33 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
+type JsonRecord = Record<string, unknown>;
+type Schema = Readonly<{
+  const?: unknown; enum?: readonly unknown[]; type?: string;
+  required?: readonly string[]; properties?: Readonly<Record<string, Schema>>;
+  additionalProperties?: boolean; items?: Schema;
+  minItems?: number; maxItems?: number; uniqueItems?: boolean;
+  minLength?: number; pattern?: string; minimum?: number; maximum?: number;
+  allOf?: readonly Readonly<{if?: Schema; then?: Schema; else?: Schema}>[];
+  not?: Schema;
+}>;
+type Schemas = Readonly<Record<string, Schema | undefined>>;
+type Inspection = Readonly<{name: string; identityField: string; identity: unknown; wire: string}>;
+type CommitArgs = [
+  runDefinition: Inspection, invocation: Inspection, definitions: readonly Inspection[],
+  artifacts: readonly Inspection[], derivations: readonly Inspection[], orderings: readonly Inspection[],
+  retentions: readonly Inspection[], durableBindings: readonly Inspection[], manifest: Inspection,
+  receipt: Inspection, capturedRun: Inspection, request: Inspection, attempt: Inspection, indexEntry: Inspection,
+];
+
 const registry = JSON.parse(readFileSync(
   new URL('../../spec/contracts/actql-run-publication.json', import.meta.url),
   'utf8',
-));
-const artifactSchemas = JSON.parse(readFileSync(
+)) as Readonly<{schemas: Schemas}>;
+const artifactSchemas = (JSON.parse(readFileSync(
   new URL('../../spec/contracts/actql-protocol-schemas.json', import.meta.url),
   'utf8',
-)).artifact_schemas;
+)) as Readonly<{artifact_schemas: Schemas}>).artifact_schemas;
 const fixtureArtifactIdentities = Object.freeze({
   result_manifest: 'result_manifest_cid',
   run_receipt: 'receipt_identity_cid',
@@ -35,18 +54,18 @@ const identityFields = Object.freeze({
 const timestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
-const fail = (code, path = '$') => {
+const fail: (code: string, path?: string) => never = (code, path = '$') => {
   throw Object.assign(new Error(code), {code, path});
 };
 
-function normalizedText(value, path) {
+function normalizedText(value: string, path: string) {
   if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
     fail('InvalidCanonicalText', path);
   }
   return value.normalize('NFC').replace(/\r\n?/gu, '\n');
 }
 
-export function canonicalJson(value, path = '$') {
+export function canonicalJson(value: unknown, path = '$'): string {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || Object.is(value, -0)) {
@@ -59,16 +78,16 @@ export function canonicalJson(value, path = '$') {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map((item, index) =>
+    return `[${value.map((item: unknown, index: number) =>
       canonicalJson(item, `${path}[${index}]`)).join(',')}]`;
   }
   if (value === null || typeof value !== 'object' ||
       Object.getPrototypeOf(value) !== Object.prototype) {
     fail('InvalidCanonicalValue', path);
   }
-  const entries = Object.entries(value).map(([key, item]) => [
+  const entries = Object.entries(value as JsonRecord).map(([key, item]) => [
     normalizedText(key, `${path}.<key>`), item,
-  ]);
+  ] as const);
   if (new Set(entries.map(([key]) => key)).size !== entries.length) {
     fail('CanonicalKeyCollision', path);
   }
@@ -78,16 +97,16 @@ export function canonicalJson(value, path = '$') {
   ).join(',')}}`;
 }
 
-export function canonicalCid(value) {
+export function canonicalCid(value: unknown) {
   return `sha256:${createHash('sha256').update(canonicalJson(value), 'utf8')
     .digest('hex')}`;
 }
 
-function equal(left, right) {
+function equal(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
 }
 
-function validateSchema(schema, value, path) {
+function validateSchema(schema: Schema, value: unknown, path: string) {
   if (schema.const !== undefined && !equal(schema.const, value)) {
     fail('PublicationContractConst', path);
   }
@@ -113,7 +132,7 @@ function validateSchema(schema, value, path) {
       }
     }
     for (const [key, child] of Object.entries(schema.properties ?? {})) {
-      if (Object.hasOwn(value, key)) validateSchema(child, value[key], `${path}.${key}`);
+      if (Object.hasOwn(value, key)) validateSchema(child, (value as JsonRecord)[key], `${path}.${key}`);
     }
   } else if (schema.type === 'array') {
     if (!Array.isArray(value)) fail('PublicationContractType', path);
@@ -124,12 +143,12 @@ function validateSchema(schema, value, path) {
       fail('PublicationContractMaximum', path);
     }
     if (schema.uniqueItems === true) {
-      const entries = value.map(item => canonicalJson(item));
+      const entries = value.map((item: unknown) => canonicalJson(item));
       if (new Set(entries).size !== entries.length) {
         fail('PublicationContractUnique', path);
       }
     }
-    value.forEach((item, index) =>
+    value.forEach((item: unknown, index: number) =>
       validateSchema(schema.items ?? {}, item, `${path}[${index}]`));
   } else if (schema.type === 'string') {
     if (typeof value !== 'string') fail('PublicationContractType', path);
@@ -142,10 +161,10 @@ function validateSchema(schema, value, path) {
     }
   } else if (schema.type === 'integer') {
     if (!Number.isSafeInteger(value)) fail('PublicationContractType', path);
-    if (schema.minimum !== undefined && value < schema.minimum) {
+    if (schema.minimum !== undefined && (value as number) < schema.minimum) {
       fail('PublicationContractMinimum', path);
     }
-    if (schema.maximum !== undefined && value > schema.maximum) {
+    if (schema.maximum !== undefined && (value as number) > schema.maximum) {
       fail('PublicationContractMaximum', path);
     }
   } else if (schema.type === 'boolean' && typeof value !== 'boolean') {
@@ -166,11 +185,11 @@ function validateSchema(schema, value, path) {
   }
 }
 
-function copy(value) {
+function copy(value: unknown): unknown {
   return JSON.parse(canonicalJson(value));
 }
 
-function freeze(value) {
+function freeze<T>(value: T): Readonly<T> {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) freeze(child);
     Object.freeze(value);
@@ -182,36 +201,36 @@ export function publicationContractNames() {
   return Object.freeze(Object.keys(identityFields));
 }
 
-export function publicationContractSchema(name) {
+export function publicationContractSchema(name: string) {
   const schema = registry.schemas[name];
   if (!schema || !Object.hasOwn(identityFields, name)) {
     fail('UnknownPublicationContract', `$.${name}`);
   }
-  return freeze(copy(schema));
+  return freeze(copy(schema) as Schema);
 }
 
-export function sealPublicationContract(name, supplied) {
+export function sealPublicationContract(name: string, supplied: unknown) {
   const schema = registry.schemas[name];
-  const identity = identityFields[name];
+  const identity = identityFields[name as keyof typeof identityFields];
   if (!schema || !identity || supplied === null ||
       typeof supplied !== 'object' || Array.isArray(supplied)) {
     fail('UnknownPublicationContract', `$.${name}`);
   }
-  const body = copy(supplied);
+  const body = copy(supplied) as JsonRecord;
   delete body[identity];
   const sealed = {...body, [identity]: canonicalCid(body)};
   validateSchema(schema, sealed, '$');
-  if (Object.hasOwn(supplied, identity) && supplied[identity] !== sealed[identity]) {
+  if (Object.hasOwn(supplied, identity) && (supplied as JsonRecord)[identity] !== sealed[identity]) {
     fail('PublicationIdentityMismatch', `$.${identity}`);
   }
   return freeze(sealed);
 }
 
-export function admitPublicationContract(name, supplied) {
+export function admitPublicationContract(name: string, supplied: unknown) {
   const schema = registry.schemas[name];
-  const identity = identityFields[name];
+  const identity = identityFields[name as keyof typeof identityFields];
   if (!schema || !identity) fail('UnknownPublicationContract', `$.${name}`);
-  const body = copy(supplied);
+  const body = copy(supplied) as JsonRecord;
   validateSchema(schema, body, '$');
   const preimage = {...body};
   delete preimage[identity];
@@ -221,16 +240,16 @@ export function admitPublicationContract(name, supplied) {
   return freeze(body);
 }
 
-export function publicationIdentityField(name) {
-  const field = identityFields[name];
+export function publicationIdentityField(name: string) {
+  const field = identityFields[name as keyof typeof identityFields];
   if (!field) fail('UnknownPublicationContract', `$.${name}`);
   return field;
 }
 
 export function createPublicationContractControlFixture() {
-  const tokens = new WeakMap();
-  const inspect = (name, value,
-    identityField = publicationIdentityField(name)) => {
+  const tokens = new WeakMap<Inspection, Readonly<JsonRecord>>();
+  const inspect = (name: string, value: Readonly<JsonRecord>,
+    identityField: string = publicationIdentityField(name)) => {
     const result = Object.freeze({
       name,
       identityField,
@@ -240,7 +259,7 @@ export function createPublicationContractControlFixture() {
     tokens.set(result, value);
     return result;
   };
-  const token = value => {
+  const token = (value: Inspection) => {
     const result = tokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign publication contract');
@@ -250,13 +269,13 @@ export function createPublicationContractControlFixture() {
   return Object.freeze({
     // Shape/identity-only adapter fixture, not the Core commit-chain verdict.
     // These closed artifact names deliberately do not extend publication APIs.
-    admitArtifactFixture(name, completeWire) {
+    admitArtifactFixture(name: string, completeWire: string) {
       if (!Object.hasOwn(fixtureArtifactIdentities, name)) {
         fail('UnknownPublicationFixtureArtifact');
       }
-      const identityField = fixtureArtifactIdentities[name];
-      const value = copy(JSON.parse(completeWire));
-      validateSchema(artifactSchemas[name], value, '$');
+      const identityField = fixtureArtifactIdentities[name as keyof typeof fixtureArtifactIdentities];
+      const value = copy(JSON.parse(completeWire)) as JsonRecord;
+      validateSchema(artifactSchemas[name]!, value, '$');
       const body = {...value};
       delete body[identityField];
       if (value[identityField] !== canonicalCid(body)) {
@@ -264,14 +283,14 @@ export function createPublicationContractControlFixture() {
       }
       return inspect(name, freeze(value), identityField);
     },
-    seal(name, bodyWire) {
+    seal(name: string, bodyWire: string) {
       return inspect(name, sealPublicationContract(name, JSON.parse(bodyWire)));
     },
-    admit(name, completeWire) {
+    admit(name: string, completeWire: string) {
       return inspect(name,
         admitPublicationContract(name, JSON.parse(completeWire)));
     },
-    recordTransition(previous, next, uncommittedConfirmed) {
+    recordTransition(previous: Inspection | undefined, next: Inspection, uncommittedConfirmed?: boolean) {
       const current = token(next);
       const prior = previous === undefined ? undefined : token(previous);
       if (next.name !== 'publication_record' ||
@@ -285,25 +304,25 @@ export function createPublicationContractControlFixture() {
       }
       if (current.publication_attempt_cid !==
           prior.publication_attempt_cid ||
-          current.sequence !== prior.sequence + 1 ||
+          current.sequence !== (prior.sequence as number) + 1 ||
           current.prior_record_cid !== prior.publication_record_cid) {
         return false;
       }
       const allowed = prior.state === 'preparing'
         ? ['preparing', 'committing', 'failed', 'cancelled']
-        : ['committing', 'publication_unknown'].includes(prior.state)
+        : ['committing', 'publication_unknown'].includes(prior.state as string)
           ? ['publication_unknown', 'succeeded', 'failed', 'cancelled']
           : [];
-      return allowed.includes(current.state) &&
-        (!['committing', 'publication_unknown'].includes(prior.state) ||
-          !['failed', 'cancelled'].includes(current.state) ||
+      return allowed.includes(current.state as string) &&
+        (!['committing', 'publication_unknown'].includes(prior.state as string) ||
+          !['failed', 'cancelled'].includes(current.state as string) ||
           uncommittedConfirmed === true);
     },
-    recordAllowsCommit(record) {
+    recordAllowsCommit(record: Inspection) {
       return record.name === 'publication_record' &&
         token(record).state === 'committing';
     },
-    publicIndexSameCommittedContent(committed, candidate) {
+    publicIndexSameCommittedContent(committed: Inspection | undefined, candidate: Inspection | undefined) {
       if (committed?.name !== 'public_index_entry' ||
           candidate?.name !== 'public_index_entry') return false;
       const left = token(committed);
@@ -316,27 +335,27 @@ export function createPublicationContractControlFixture() {
         equal(left.durable_result_binding_cids,
           right.durable_result_binding_cids);
     },
-    effectFreeStoredCommitValid(...args) {
+    effectFreeStoredCommitValid(...args: [...CommitArgs, requireCurrent: () => undefined]) {
       const requireCurrent = args.pop();
       if (typeof requireCurrent !== 'function') throw new TypeError('Missing Store fixture owner');
       requireCurrent();
-      return this.effectFreeCommitValid(...args);
+      return this.effectFreeCommitValid(...(args as unknown as CommitArgs));
     },
     effectFreeCommitValid(
-      runDefinition,
-      invocation,
-      definitions,
-      artifacts,
-      derivations,
-      orderings,
-      retentions,
-      durableBindings,
-      manifest,
-      receipt,
-      capturedRun,
-      request,
-      attempt,
-      indexEntry,
+      runDefinition: Inspection,
+      invocation: Inspection,
+      definitions: readonly Inspection[],
+      artifacts: readonly Inspection[],
+      derivations: readonly Inspection[],
+      orderings: readonly Inspection[],
+      retentions: readonly Inspection[],
+      durableBindings: readonly Inspection[],
+      manifest: Inspection,
+      receipt: Inspection,
+      capturedRun: Inspection,
+      request: Inspection,
+      attempt: Inspection,
+      indexEntry: Inspection,
     ) {
       const contracts = [
         runDefinition,
@@ -356,7 +375,7 @@ export function createPublicationContractControlFixture() {
       ];
       return contracts.every(contract => token(contract) !== undefined);
     },
-    deliveryTransition(previous, next) {
+    deliveryTransition(previous: Inspection | undefined, next: Inspection) {
       const current = token(next);
       const prior = previous === undefined ? undefined : token(previous);
       if (next.name !== 'delivery_record' ||
@@ -368,12 +387,12 @@ export function createPublicationContractControlFixture() {
           !Object.hasOwn(current, 'prior_record_cid');
       }
       return current.delivery_attempt_cid === prior.delivery_attempt_cid &&
-        current.sequence === prior.sequence + 1 &&
+        current.sequence === (prior.sequence as number) + 1 &&
         current.prior_record_cid === prior.delivery_record_cid &&
         prior.state === 'streaming' &&
-        current.confirmed_byte_count >= prior.confirmed_byte_count;
+        (current.confirmed_byte_count as number) >= (prior.confirmed_byte_count as number);
     },
-    deliverySuccessValid(attempt, receipt, record) {
+    deliverySuccessValid(attempt: Inspection, receipt: Inspection, record: Inspection) {
       const attemptValue = token(attempt);
       const receiptValue = token(receipt);
       const recordValue = token(record);
@@ -388,7 +407,7 @@ export function createPublicationContractControlFixture() {
           receiptValue.delivered_byte_count &&
         recordValue.delivered_sha256 === receiptValue.delivered_sha256;
     },
-    trustedClockNotBefore(previous, observedAt) {
+    trustedClockNotBefore(previous: unknown, observedAt: unknown) {
       return (previous === undefined ||
           typeof previous === 'string' && timestampPattern.test(previous)) &&
         typeof observedAt === 'string' &&

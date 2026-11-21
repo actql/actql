@@ -5,7 +5,7 @@ import {canonicalCid, canonicalJson, admitPublicationContract,
   publicationIdentityField, sealPublicationContract} from
   './publication-contract-control.fixture.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 
 test('fixture registry covers every fixed publication schema', () => {
   assert.deepEqual(publicationContractNames(), [
@@ -17,7 +17,7 @@ test('fixture registry covers every fixed publication schema', () => {
   ]);
   for (const name of publicationContractNames()) {
     const schema = publicationContractSchema(name);
-    assert(schema.required.includes(publicationIdentityField(name)));
+    assert(schema.required!.includes(publicationIdentityField(name)));
     assert.equal(schema.additionalProperties, false);
     assert(Object.isFrozen(schema));
   }

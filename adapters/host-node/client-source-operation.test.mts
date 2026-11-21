@@ -9,7 +9,6 @@ import type {TestContext} from 'node:test';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 // @ts-expect-error TS7016: remove after publication-store has an authored TypeScript entry.
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: remove after publication-contract-control.fixture has an authored TypeScript entry.
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {bindClientSourceOperation, bindClientSourceOperationRowRun}
   from './client-source-operation.mjs';
