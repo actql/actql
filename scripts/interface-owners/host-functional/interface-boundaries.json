@@ -25345,7 +25345,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25359,7 +25359,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25429,7 +25429,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25489,7 +25489,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25503,7 +25503,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25573,7 +25573,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-observation-journal.mts",
-                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
+                "anchor": "export function openClientObservationStorage(database: ObservationDatabase,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",

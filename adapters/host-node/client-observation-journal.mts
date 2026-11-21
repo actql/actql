@@ -1,11 +1,24 @@
 // Optional telemetry custody shares the request journal's database, but not
 // its semantic transactions or identities. Missing/corrupt custody disables
 // additional observations; it never resets an admitted Run's consumption.
-import type {DatabaseSync} from 'node:sqlite';
+import type {StatementSync} from 'node:sqlite';
 import type {ObservationContext} from '../../packages/local-node/observation.js';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 // @ts-expect-error TS7016: remove after observation has an authored TypeScript entry.
 import {snapshotObservationContext} from '../host-common/observation.mjs';
+
+type ObservationSqlValue = number | string | null;
+type ObservationStatement = Readonly<{
+  all(...values: ObservationSqlValue[]): ReturnType<StatementSync['all']>;
+  get(...values: ObservationSqlValue[]): ReturnType<StatementSync['get']>;
+  run(...values: ObservationSqlValue[]): ReturnType<StatementSync['run']>;
+}>;
+// The execution-bounded Journal returns just these synchronous statement operations.
+type ObservationDatabase = Readonly<{
+  exec(sql: string): SynchronousRuntimeData;
+  prepare(sql: string): ObservationStatement;
+}>;
 
 type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
 type BoundObservation = Readonly<{ref: RunReference; scope: string; revision: string}>;
@@ -28,7 +41,7 @@ const fail = () => { throw new Error('ObservationBudgetUnavailable'); };
 const factKey = (value: unknown) => typeof value === 'string' && value.length <= 64 &&
   /^[a-z_]{1,24};(?:0|[1-9][0-9]{0,15});[01?];[01?]$/u.test(value);
 
-export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,
+export function openClientObservationStorage(database: ObservationDatabase,
   transaction: Pick<ReturnType<typeof createSqliteTransaction>, 'run'>) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE
     type = 'table' AND name IN ('client_observation_format', 'client_observation_runs')`).all();
