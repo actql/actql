@@ -73,12 +73,28 @@ test('declarative Notion request keeps original version and caps requested rows 
   const limits = Object.fromEntries(['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth',
     'maxRows', 'maxPages', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes', 'maxValueNodes',
     'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'].map(name => [name, 100]));
-  const pages = prepareNotionUserListPages({moon, names: ['id'], limits: {...limits, maxTotalRows: 3, pageSize: 10}},
+  const progress = Object.freeze({});
+  const exhausted = Object.freeze({});
+  const common = {
+    clientProgramRowSourcePrepareCursorProgress(...args) {
+      assert.deepEqual(args,[100,1,10,100]);return {$tag:1,_0:progress};
+    },
+    clientProgramRowSourceCursorRemainingRows(original,index,count) {
+      assert.equal(original,progress);
+      if (index===0&&count===0) return {$tag:1,_0:1};
+      assert.deepEqual([index,count],[1,1]);return {$tag:0,_0:exhausted};
+    },
+    clientProgramRowSourceCursorHasNext(original) {assert.equal(original,progress);return false;},
+    clientProgramRowSourceCursorNext: unused,
+    clientProgramRowSourceAdvanceProviderPageCursor: unused,
+    clientProgramRowSourceCursorIssueCode(original) {assert.equal(original,exhausted);return 'RestSourceRowLimit';},
+  };
+  const pages = prepareNotionUserListPages({moon, common, names: ['id'], limits: {...limits, maxTotalRows: 1, pageSize: 10}},
     (method, receiver, args) => Reflect.apply(method, receiver, args));
-  const request = pages.fetchPage({pageIndex: 0, rowCount: 2});
+  const request = pages.fetchPage({pageIndex: 0, rowCount: 0});
   assert.equal(requestTarget(request.path, request.query), '/v1/users?page_size=1');
   assert.deepEqual(request.headers, [['accept', 'application/json'], ['notion-version', '2026-03-11']]);
-  assert.throws(() => pages.fetchPage({pageIndex: 1, rowCount: 3}), {code: 'NotionUserListRowLimit'});
+  assert.throws(() => pages.fetchPage({pageIndex: 1, rowCount: 1}), {code: 'NotionUserListRowLimit'});
 });
 
 // Actual pure page adapter; compiled parsing/schema results are explicit
