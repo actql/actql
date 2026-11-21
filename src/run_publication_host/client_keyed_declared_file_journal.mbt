@@ -714,7 +714,7 @@ fn prepare_declared_file_lookup_dependencies(
     max_nodes,
     max_depth,
     fn() {
-      match reserve_keyed_dependency_serial_controls(lookup, max_depth) {
+      match reserve_keyed_dependency_serial_controls(lookup) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -750,7 +750,7 @@ fn prepare_declared_file_lookup_dependencies(
             before(bytes, nodes, depth, serial_cursor)
           }),
           bodies => {
-            match cursor.record_body(bodies, max_nodes, max_depth) {
+            match cursor.record_body(bodies, max_nodes) {
               Ok(_) => true
               Err(issue) => {
                 primary.val = Some(issue)

@@ -548,11 +548,12 @@ fn prepare_client_effect_keyed_generic_dependencies(
     fn() {
       // New temporary receiver H1/R4 + Some H1/R1/W1; Catalog geometry
       // callback H1/R4 + Some H1/R1/W1 + three scalar Refs H3/W3;
-      // returned body/byte tuple and Result H2/R2/W2. Total H9/R12/W7.
+      // returned body/byte tuple and Result H2/R2/W2. The regular quote
+      // closure also captures the shared quote function (H1/R1).
       // The same original reservation covers this peak before any closure/Ref.
       let controls = @execution.preparation_representation_cost({
-        record_headers: 9L,
-        reference_slots: 12L,
+        record_headers: 10L,
+        reference_slots: 13L,
         scalar_words: 7L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -568,12 +569,17 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match reserve_keyed_dependency_serial_controls(lookup, max_depth) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
+      // Each Generic Request can admit at most one serial body. Without
+      // a second Request there is no following admission that can reuse it.
+      let serial_cursor = if lookup.known.length() > 1 {
+        match reserve_keyed_dependency_serial_controls(lookup) {
+          Ok(_) => Some(new_keyed_dependency_serial_cursor())
+          Err(issue) => return Err(issue)
+        }
+      } else {
+        None
       }
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let cursor = new_keyed_dependency_serial_cursor()
 
       let before = (
         bytes : Int,
@@ -602,23 +608,26 @@ fn prepare_client_effect_keyed_generic_dependencies(
           }
         }
       }
-      let serial_cursor = Some(cursor)
-      let serial = Some(
-        (
-          Some((bytes, nodes, depth) => {
-            before(bytes, nodes, depth, serial_cursor)
-          }),
-          bodies => {
-            match cursor.record_body(bodies, max_nodes, max_depth) {
-              Ok(_) => true
-              Err(issue) => {
-                primary.val = Some(issue)
-                false
-              }
-            }
-          },
-        ),
-      )
+      let serial = match serial_cursor {
+        None => None
+        Some(cursor) =>
+          Some(
+            (
+              Some((bytes, nodes, depth) => {
+                before(bytes, nodes, depth, serial_cursor)
+              }),
+              bodies => {
+                match cursor.record_body(bodies, max_nodes) {
+                  Ok(_) => true
+                  Err(issue) => {
+                    primary.val = Some(issue)
+                    false
+                  }
+                }
+              },
+            ),
+          )
+      }
       let bodies = match
         build_client_effect_keyed_generic_dependency_bodies(
           parent,
@@ -637,7 +646,10 @@ fn prepare_client_effect_keyed_generic_dependencies(
         keyed_protocol_built(
           bodies,
           dependency_bodies=Some(bodies),
-          measured_bodies=cursor.measured,
+          measured_bodies=match serial_cursor {
+            Some(cursor) => cursor.measured
+            None => None
+          },
         ),
       )
     },

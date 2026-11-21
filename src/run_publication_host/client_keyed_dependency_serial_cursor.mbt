@@ -17,6 +17,8 @@ priv struct KeyedDependencySerialCursor {
   mut available_execution : Int64
   mut pending_retained : Int64
   mut pending_execution : Int64
+  mut pending_depth : Int
+  mut extent_workspace_depth : Int
   mut measured : KeyedDependencyMeasuredBodies?
 }
 
@@ -27,6 +29,8 @@ fn new_keyed_dependency_serial_cursor() -> KeyedDependencySerialCursor {
     available_execution: 0L,
     pending_retained: -1L,
     pending_execution: 0L,
+    pending_depth: -1,
+    extent_workspace_depth: -1,
     measured: None,
   }
 }
@@ -36,7 +40,6 @@ fn KeyedDependencySerialCursor::record_body(
   self : KeyedDependencySerialCursor,
   bodies : Array[@publication.CapturedEffectDependencyBody],
   max_nodes : Int,
-  max_depth : Int,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   let end = bodies.length()
   guard self.pending_retained >= 0L && bodies.get(end - 1) is Some(body) else {
@@ -52,7 +55,7 @@ fn KeyedDependencySerialCursor::record_body(
     }
   }
   let bytes = match
-    keyed_dependency_body_extent_cost(body, max_nodes, max_depth) {
+    keyed_dependency_body_extent_cost(body, max_nodes, self.pending_depth) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -76,6 +79,7 @@ fn KeyedDependencySerialCursor::record_body(
   self.available_execution += self.pending_execution - keep
   self.pending_retained = -1L
   self.pending_execution = 0L
+  self.pending_depth = -1
   self.measured = Some({ bodies, start, end, bytes: total, })
   Ok(())
 }
@@ -83,16 +87,13 @@ fn KeyedDependencySerialCursor::record_body(
 ///|
 fn reserve_keyed_dependency_serial_controls(
   lookup : ClientKeyedLookupInput,
-  max_depth : Int,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
-  // The same bounded immutable extent walk used at protocol completion.
   // One body and one range certificate, plus the old/new certificate overlap
-  // while updating the serial state. This funding is live throughout building.
-  let frames = 4L * (max_depth.to_int64() + 1L) + 20L
+  // while updating the serial state. The extent stack is funded separately.
   guard @execution.preparation_representation_cost({
-      record_headers: 28L + frames,
-      reference_slots: 44L + 4L * frames,
-      scalar_words: 48L + 4L * frames,
+      record_headers: 28L,
+      reference_slots: 44L,
+      scalar_words: 50L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -150,12 +151,34 @@ fn grow_keyed_dependency_body(
   guard @execution.execution_capacity(grow_r, grow_e) is Some(capacity) else {
     return Err(Assembly("capacity_overflow"))
   }
+  // The same conservative traversal recipe as protocol completion, bounded
+  // by this admission's proved node/depth bound. A smaller later body reuses
+  // the funded stack. A deeper body grows it before any constructor runs.
+  let stack_growth = match serial {
+    Some(value) if depth > value.extent_workspace_depth => {
+      let frames = 4L *
+        (depth.to_int64() - value.extent_workspace_depth.to_int64()) +
+        (if value.extent_workspace_depth < 0 { 20L } else { 0L })
+      guard @execution.preparation_representation_cost({
+          record_headers: frames,
+          reference_slots: 4L * frames,
+          scalar_words: 4L * frames,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        })
+        is Some(bytes) else {
+        return Err(Assembly("capacity_overflow"))
+      }
+      bytes
+    }
+    _ => 0L
+  }
   match
     keyed_lookup_body_grow(
       lookup,
       lookup.retained_bytes,
       lookup.execution_bytes,
-      0L,
+      stack_growth,
       Some(capacity),
       check_unchanged=true,
     ) {
@@ -167,6 +190,11 @@ fn grow_keyed_dependency_body(
           (grow_e - needed_e)
         value.pending_retained = retained
         value.pending_execution = execution
+        value.pending_depth = depth
+        value.extent_workspace_depth = Int::max(
+          value.extent_workspace_depth,
+          depth,
+        )
       }
       Ok(())
     }

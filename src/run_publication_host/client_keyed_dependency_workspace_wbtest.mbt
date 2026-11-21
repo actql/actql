@@ -74,9 +74,9 @@ test "dependency extent refusal keeps its constructor backing until original cle
 
 ///|
 test "serial dependency admission retains adopted extent and reuses completed workspace at exact and one short" {
-  for short in [0L, 1L] {
+  for (deeper, short) in [(false, 0L), (false, 1L), (true, 0L), (true, 1L)] {
     let (lookup, cleanup) = keyed_wire_usage_fixture()
-    reserve_keyed_dependency_serial_controls(lookup, 8).unwrap()
+    reserve_keyed_dependency_serial_controls(lookup).unwrap()
     let r = lookup.retained_bytes
     let e = lookup.execution_bytes
     let cursor = new_keyed_dependency_serial_cursor()
@@ -107,15 +107,21 @@ test "serial dependency admission retains adopted extent and reuses completed wo
     // Independent quote from the original tariff and fixture geometry.
     let first_retained = 2L * 3L * 256L + 10L * 7L * 8L + 4096L
     let first_cursor = (2L + 1L) * 2L * 256L
-    assert_eq(lookup.retained_bytes, r + first_retained)
-    assert_eq(lookup.execution_bytes, e + first_retained + first_cursor)
+    // One root frame plus the bounded depth-two stack and conversion carriers.
+    let first_stack = (4L * (2L + 1L) + 20L) * (16L + 4L * 8L + 4L * 8L)
+    assert_eq(cursor.extent_workspace_depth, 2)
+    assert_eq(lookup.retained_bytes, r + first_stack + first_retained)
+    assert_eq(
+      lookup.execution_bytes,
+      e + first_stack + first_retained + first_cursor,
+    )
     assert_eq(cursor.available_execution, 0L)
     assert_true(
       grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor))
       is Err(Assembly("live_dependency_cursor")),
     )
     let bodies = [first]
-    cursor.record_body(bodies, 32, 8).unwrap()
+    cursor.record_body(bodies, 32).unwrap()
     // Body/node, usage and empty edge Array (9H/9R/7W), plus the
     // two-node object, two strings and its one backing pair (8H/7R/6W).
     let first_extent = 17L * 16L + 16L * 8L + 13L * 8L + 96L * 2L
@@ -127,10 +133,24 @@ test "serial dependency admission retains adopted extent and reuses completed wo
     )
     let charged = @resources.ledger_usage(lookup.ledger)
     let limits = @resources.ledger_limits(lookup.ledger)
-    let second_retained = 3L * 256L + 2L * 7L * 8L + 4096L
+    let (wire, cid, second_bytes, second_nodes) = if deeper {
+      (
+        "{\"x\":{\"y\":\"é\"}}", "sha256:75a66b3f24b3ab631f3c1a7582c6da55ec0d4fa59a64227accbc3a66ba94c760",
+        16, 3,
+      )
+    } else {
+      (
+        "{}", "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        2, 1,
+      )
+    }
+    let second_retained = second_nodes.to_int64() * 3L * 256L +
+      second_bytes.to_int64() * 7L * 8L +
+      4096L
+    let second_stack = if deeper { 4L * (16L + 4L * 8L + 4L * 8L) } else { 0L }
     let requested_r = second_retained - (first_retained - first_keep)
     let requested_e = second_retained +
-      2L * 2L * 256L -
+      (second_nodes.to_int64() + 1L) * 2L * 256L -
       (first_retained + first_cursor - first_keep)
     let grown_e = Int64::max(requested_r, requested_e)
     let blocker = @resources.reserve_capacity(
@@ -138,44 +158,51 @@ test "serial dependency admission retains adopted extent and reuses completed wo
       0L,
       limits.execution_bytes -
       charged.reserved_execution_bytes -
-      grown_e +
+      grown_e -
+      second_stack +
       short,
     ).unwrap()
     let second = admit_client_effect_dependency_capture_body(
       "request_values",
-      Some(
-        "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-      ),
-      "{}",
+      Some(cid),
+      wire,
       1024,
       32,
       8,
       prepare,
       () => true,
-      wire_extent=Some((2, 1)),
+      wire_extent=Some((second_bytes, second_nodes)),
     )
     if short == 0L {
       let (body, bytes) = second.unwrap()
-      assert_eq(bytes, 2)
-      assert_eq(@publication.captured_effect_dependency_body_json(body), "{}")
-      assert_eq(lookup.retained_bytes, r + first_retained + requested_r)
+      assert_eq(bytes, second_bytes)
+      assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
+      assert_eq(
+        lookup.retained_bytes,
+        r + first_stack + first_retained + requested_r + second_stack,
+      )
       assert_eq(
         lookup.execution_bytes,
-        e + first_retained + first_cursor + grown_e,
+        e + first_stack + first_retained + first_cursor + grown_e + second_stack,
       )
       assert_true(
         grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor))
         is Err(Assembly("live_dependency_cursor")),
       )
       bodies.push(body)
-      cursor.record_body(bodies, 32, 8).unwrap()
+      cursor.record_body(bodies, 32).unwrap()
       assert_eq(cursor.measured.unwrap().end, 2)
+      assert_eq(cursor.extent_workspace_depth, if deeper { 3 } else { 2 })
     } else {
       assert_true(second is Err(ConstructionRefused))
       assert_true(primary.val is Some(Physical(@resources.ExecutionLimit)))
-      assert_eq(lookup.retained_bytes, r + first_retained)
-      assert_eq(lookup.execution_bytes, e + first_retained + first_cursor)
+      assert_eq(lookup.retained_bytes, r + first_stack + first_retained)
+      assert_eq(
+        lookup.execution_bytes,
+        e + first_stack + first_retained + first_cursor,
+      )
       assert_eq(cursor.pending_retained, -1L)
+      assert_eq(cursor.extent_workspace_depth, 2)
     }
     assert_eq(
       @publication.captured_effect_dependency_body_json(first),
@@ -194,7 +221,7 @@ test "measured dependency extent binds the adopted collector Array before settle
     let basis_r = lookup.retained_bytes
     let basis_e = lookup.execution_bytes
     let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
-    reserve_keyed_dependency_serial_controls(lookup, 8).unwrap()
+    reserve_keyed_dependency_serial_controls(lookup).unwrap()
     let cursor = new_keyed_dependency_serial_cursor()
     let body = admit_client_effect_dependency_capture_body(
         "request_values",
@@ -213,7 +240,7 @@ test "measured dependency extent binds the adopted collector Array before settle
         wire_extent=Some((10, 2)),
       ).unwrap().0
     let bodies = [body]
-    cursor.record_body(bodies, 32, 8).unwrap()
+    cursor.record_body(bodies, 32).unwrap()
     let adopted = if foreign { [body] } else { bodies }
     let peak_r = lookup.retained_bytes
     let peak_e = lookup.execution_bytes
