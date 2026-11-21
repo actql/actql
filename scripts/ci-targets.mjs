@@ -6,6 +6,8 @@ import {snapshotDirectories, snapshotFiles} from '../proofs/relation-pipeline/in
 import {focusedPattern, eligibleFocusedChanges, readFocusedTests, validateFocusedTests} from './ci-focused-tests.mjs';
 import {appendFileSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+import {isDeepStrictEqual} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {moonGraphCandidate, readMoonTestPlan, validateMoonTestPlan, nonMoonRequirements} from './ci-moon-test-plan.mjs';
 import {readmeQuickstart} from './readme-quickstart.mjs';
@@ -60,7 +62,7 @@ export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'c
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
-// every core target and macOS. New/unclassified areas also default to full.
+// every core target. The Mac workloads and wheels have separate inputs.
 const sensitive = /^(?:\.github\/|vendor\/|proofs\/|spec\/|portability\/|docs\/(?:spec|reviews)\/)|^(?:toolchain\.json|moon\.mod|package(?:-lock)?\.json)$|(?:^|\/)(?:moon\.pkg|package(?:-lock)?\.json|[^/]*(?:build|link)[^/]*|[^/]*(?:native|wasm|_js\.|ffi|identity|canonical|custody|ownership|owner|owned|publication|lifetime|recovery|capacity|resource|memory|allocation|cleanup|retained|scratch|sqlite|sha256)[^/]*)|^src\/(?:cmd\/|platform_native\/|managed_[^/]+\/|bounded_[^/]+\/|execution_relation\/|connectors\/local\/|(?:encode|decode)_[^/]+\/|value_(?:contract|admission)\/)|\.(?:c|h|cc|cpp|a|so|dylib|wasm)$/iu;
 // Eligibility is an exact, reviewed inventory, never a directory or extension
 // heuristic. New files and configuration files stay full until reviewed here.
@@ -124,6 +126,70 @@ const pythonWheelInputs = new Set([
   'scripts/python_interface_inventory.py', 'scripts/release-version.mjs',
   'scripts/setup-moonbit.mjs', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
 ]);
+const wheelPlatforms = Object.freeze([
+  Object.freeze({platform: 'linux-x64', runner: 'ubuntu-24.04', system: 'Linux', architecture: 'x86_64'}),
+  Object.freeze({platform: 'darwin-arm64', runner: 'macos-15', system: 'Darwin', architecture: 'arm64'}),
+]);
+const platformBuildInputs = new Set([
+  '.github/actions/setup-toolchain/action.yml',
+  'scripts/setup-moonbit.mjs', 'scripts/moonbit-installation.mjs',
+  'toolchain.json', 'moon.mod', 'moon.lock',
+]);
+const wheelBuildInputs = new Set([
+  'scripts/ci-python-wheels.py', 'scripts/ci-supported-python.py',
+  'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
+  'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
+  'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
+  'scripts/python_interface_inventory.py', 'scripts/python_wasm_table_geometry.py',
+  'scripts/release-version.mjs', 'spec/contracts/core-wasm-abi.generated.json',
+]);
+const ciWorkflow = '.github/workflows/ci.yml';
+
+function darwinWheelInput(path) {
+  return platformBuildInputs.has(path) || wheelBuildInputs.has(path)
+    || /^src\/client_host_wasm\//u.test(path)
+    || /^packages\/local-node\/MOONBIT-CORE-(?:LICENSE|NOTICE)$/u.test(path)
+    || /^packages\/python-(?:sdk|product)\/pyproject\.toml$/u.test(path)
+    || /^packages\/python-local-runtime\/(?:native\/|[^/]+\.(?:toml|json)$|WASMTIME-LICENSE$)/u.test(path)
+    || /^packages\/python-sdk\/src\/actql_sdk\/_local_(?:core|distribution|engine|image_recipe|native(?:_[^/]+)?|wasm_abi|worker_slot)\.py$/u.test(path);
+}
+
+function darwinWorkloadInput(path) {
+  return platformBuildInputs.has(path)
+    || /^src\/(?:platform_native\/|native_[^/]+\/|cmd\/native_[^/]+\/)/u.test(path)
+    || /^(?:src|adapters|vendor)\/.*\.(?:c|cc|cpp|h|inc|s|a|dylib)$/iu.test(path)
+    || /^src\/.+\/moon\.pkg$/u.test(path)
+    || /^adapters\/(?:host-node\/native\/|connectors\/duckdb\/node\/)/u.test(path)
+    || /^packages\/python-local-runtime\/native\/(?:crypto|sqlite)-component\//u.test(path)
+    || /^scripts\/(?:ci-native-background-groups\.|local-checks(?:-guard|-policy|-hook)?\.|verification-actions\.mjs$|(?:prepare-|produce-|test-)?native-)/u.test(path);
+}
+
+// The shared workflow also changes when unrelated job routing is edited. Check
+// the exact old/new execution steps and environment of the two Mac consumers.
+function readDarwinWorkflowChanges(base, head, git) {
+  try {
+    const {parse} = createRequire(import.meta.url)('yaml');
+    const [before, after] = [base, head].map(revision => parse(git(['show', `${revision}:${ciWorkflow}`])));
+    const changed = job => {
+      const inputs = workflow => {
+        const {steps, env, defaults, container, services} = workflow.jobs[job];
+        assert(Array.isArray(steps) && steps.length);
+        return [workflow.env, workflow.defaults, steps, env, defaults, container, services];
+      };
+      return !isDeepStrictEqual(inputs(before), inputs(after));
+    };
+    return {wheels: changed('python-wheels'), workloads: changed('native-macos-workloads')};
+  } catch {
+    // Unsupported, removed or unavailable workflow preimages retain both jobs.
+    return {wheels: true, workloads: true};
+  }
+}
+
+export function pythonWheelMatrix(selection) {
+  if (!pythonWheelAcceptanceRequired(selection)) return {include: []};
+  return {include: selection.darwinWheels ? wheelPlatforms : wheelPlatforms.slice(0, 1)};
+}
+
 export function pythonWheelAcceptanceRequired(selection) {
   validateSelection(selection);
   if (selection.profile === 'full') return true;
@@ -145,13 +211,20 @@ export function pullRequestDraft(event, payload) {
 }
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
   targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null,
-  moonTests = null, moonGraphFailure = null} = {}) {
+  moonTests = null, moonGraphFailure = null, darwinWorkflowChanges = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const focusedPaths = validPaths ? partitionFocusedPaths(paths, maintenanceChanges) : null;
-  const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
-    profile: 'full', event, paths: validPaths && !failure ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
+  const changedPaths = validPaths && !failure ? [...paths] : [];
+  const unknown = changedPaths.length === 0;
+  const workflowChanged = changedPaths.includes(ciWorkflow);
+  const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], reason,
+    macos: event !== 'pull_request' || unknown || changedPaths.some(darwinWorkloadInput)
+      || workflowChanged && darwinWorkflowChanges?.workloads !== false,
+    darwinWheels: event !== 'pull_request' || unknown || changedPaths.some(darwinWheelInput)
+      || workflowChanged && darwinWorkflowChanges?.wheels !== false,
+    profile: 'full', event, paths: changedPaths, maintenanceChanges: null, focusedChanges: null, focusedTests: null});
   const docs = () => ({...full('Reviewed prose-only modifications: document validation, links, metadata and current-source admission; no runtime evidence'),
-    profile: 'documentation', targets: ['js'], macos: false, maintenanceChanges});
+    profile: 'documentation', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges});
   const docsOnly = !failure && validPaths && eligibleDocumentation(paths, maintenanceChanges);
   // A main push may omit runtime work only for the same exact regular-file
   // modifications admitted on PRs. Manual/scheduled and unknown inputs stay full.
@@ -170,7 +243,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
         try { validateFocusedTests(focusedPaths, focusedChanges, focusedTests); focused = true; } catch {}
       }
       return {...full('Draft preparation with targeted Python acceptance when applicable; full verification deferred until ready_for_review; not mergeable'),
-        profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false,
+        profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false, darwinWheels: false,
         maintenanceChanges: focused ? maintenanceChanges : null,
         focusedChanges: focused ? focusedChanges : null, focusedTests: focused ? focusedTests : null};
     }
@@ -185,12 +258,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
   if (docsOnly) return docs();
   if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
-    profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
+    profile: 'maintenance', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges};
   if (focusedTests && focusedPaths && eligibleFocusedChanges(focusedPaths, focusedChanges)) {
     try { validateFocusedTests(focusedPaths, focusedChanges, focusedTests); }
     catch { return full('Invalid focused test family inventory'); }
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
-      profile: 'focused-tests', targets: ['js'], macos: false, maintenanceChanges, focusedChanges, focusedTests};
+      profile: 'focused-tests', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges, focusedChanges, focusedTests};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   if (moonTests && moonGraphCandidate(paths)) {
@@ -204,7 +277,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     const owners = nonMoonRequirements(paths).map(owner => owner.name);
     return full(`Target-sensitive or unclassified input: ${path}${owners.length ? `; retained owners: ${owners.join(', ')}` : ''}`);
   }
-  return {...full(''), targets: ['js'], macos: false,
+  return {...full(''), targets: ['js'], macos: false, darwinWheels: false,
     reason: 'Reviewed portable paths: PR core uses JS; full targets run on main integration; optional macOS can be requested manually'};
 }
 function eligibleMaintenance(paths, changes) {
@@ -234,19 +307,20 @@ function partitionFocusedPaths(paths, maintenanceChanges) {
 }
 
 export function validateSelection(selection) {
-  assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
+  assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'darwinWheels', 'reason',
     'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests',
     ...(Object.hasOwn(selection ?? {}, 'moonTests') ? ['moonTests'] : [])].sort(), 'Invalid selection fields');
   assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
+  assert.equal(typeof selection.darwinWheels, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
   assert(['full', 'documentation', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
   if (Object.hasOwn(selection, 'moonTests')) {
     assert.equal(selection.profile, 'full'); assert.equal(selection.event, 'pull_request');
-    assert.deepEqual(selection.targets, all); assert.equal(selection.macos, true);
+    assert.deepEqual(selection.targets, all);
     assert(moonGraphCandidate(selection.paths)); validateMoonTestPlan(selection.moonTests);
   }
   if (selection.profile === 'documentation') assert(['pull_request', 'push'].includes(selection.event), 'Documentation requires a PR or main push');
@@ -272,6 +346,18 @@ export function validateSelection(selection) {
     assert.equal(selection.focusedChanges, null, 'Unexpected focused change inventory');
     assert.equal(selection.focusedTests, null, 'Unexpected focused family');
   }
+  if (selection.profile !== 'full' || selection.targets.length === 1) {
+    assert.equal(selection.darwinWheels, false);
+    assert.equal(selection.macos, false);
+  } else {
+    const nonPR = selection.event !== 'pull_request';
+    if (nonPR || !selection.paths.length || selection.paths.some(darwinWheelInput)) {
+      assert.equal(selection.darwinWheels, true);
+    }
+    if (!nonPR && (!selection.paths.length || selection.paths.some(darwinWorkloadInput))) {
+      assert.equal(selection.macos, true);
+    }
+  }
   if (selection.event !== 'pull_request' && selection.profile === 'full') {
     assert.deepEqual(selection.targets, all, 'Non-PR targets must remain full');
     if (selection.event !== 'workflow_dispatch') assert.equal(selection.macos, true);
@@ -289,6 +375,14 @@ export function verifyGate(plan, needs, {event, sourceRevision, draft = null}) {
     const required = gateJobRequired(selection, name);
     const expected = required ? 'success' : 'skipped';
     assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
+    if (name === 'python-wheels' && required) {
+      const selected = pythonWheelMatrix(selection).include;
+      for (const row of wheelPlatforms) {
+        const requiredRevision = selected.includes(row) ? sourceRevision : '';
+        assert.equal(needs[name].outputs?.[row.platform] ?? '', requiredRevision,
+          `${name} (${row.platform}): missing, foreign or unexpected acceptance result`);
+      }
+    }
     lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
   }
   assert(draft !== true && !selection.profile.startsWith('draft'),
@@ -337,7 +431,8 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       targetSensitiveDiff ||= [base, head].some(revision => boundary.test(git(['show', `${revision}:${path}`])));
     } catch { targetSensitiveDiff = true; }
   }
-  return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head};
+  const darwinWorkflowChanges = paths.includes(ciWorkflow) ? readDarwinWorkflowChanges(base, head, git) : null;
+  return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head, darwinWorkflowChanges};
 }
 
 function readModificationIdentities(paths, base, head, git) {
@@ -435,13 +530,15 @@ async function main() {
       process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.GITHUB_REF === 'refs/heads/main',
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges,
-    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, moonTests, moonGraphFailure}));
+    focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, moonTests, moonGraphFailure,
+    darwinWorkflowChanges: changes.darwinWorkflowChanges}));
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nmoon_test_selection=${Boolean(selected.moonTests)}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
+  const wheelMatrix = pythonWheelMatrix(selected);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nmoon_test_selection=${Boolean(selected.moonTests)}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${wheelMatrix.include.length > 0}\npython_wheel_matrix=${JSON.stringify(wheelMatrix)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nDeep proof campaigns: ${deepProofRequired(selected) ? "required" : "not applicable to changed inputs"}.\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
+    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS workloads: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${wheelMatrix.include.map(row => row.platform).join(", ") || "not selected"}\n\n${selected.reason}\n\nDeep proof campaigns: ${deepProofRequired(selected) ? "required" : "not applicable to changed inputs"}.\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();
