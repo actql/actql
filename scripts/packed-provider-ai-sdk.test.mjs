@@ -86,6 +86,7 @@ async function fixture(t) {
     phaseCalls.push({case: caseId, phase, profile, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
     return {pid, stdout: JSON.stringify({phase,
       firstCloseReturned: true, aliveScopedFD0: true,
+      ...(profile.usage === 'reported' ? {maxCalls: 1} : {}),
       calls: ['cold', 'missing-key'].includes(phase) ? 0 : phase === 'warm' ? 2 : 1,
       ...(phase === 'missing-key' ? {credentialRefused: true} : {}),
       ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
@@ -120,6 +121,10 @@ test('optional usage consumers retain separate fresh installations and warm shar
   const usage = f.phaseCalls.filter(row => row.phase.startsWith('usage-'));
   assert.equal(warm.cwd, cold.cwd); assert.notEqual(warm.pid, cold.pid);
   assert.equal(warm.modulesInode, cold.modulesInode);
+  const [oneCall, savedOneCall] = f.phaseCalls.filter(row => row.case === 'usage-reported');
+  assert.equal(oneCall.cwd, savedOneCall.cwd);
+  assert.equal(oneCall.modulesInode, savedOneCall.modulesInode);
+  assert.notEqual(oneCall.pid, savedOneCall.pid);
   for (const value of usage) {
     assert.notEqual(value.cwd, warm.cwd); assert.notEqual(value.modulesInode, warm.modulesInode);
     const mode = value.phase.slice(6), actual = result.phases.find(row => row.case === value.case && row.phase === value.phase).actual;
@@ -139,7 +144,7 @@ test('optional timeout originals retain independent installations and same-profi
   const f = await fixture(t), result = await withFixtureGitHubSource(f.source.sha,
     () => runPackedProviderAI(join(f.root, 'timeouts'), f));
   const required = [['warm', ['warm', 'cold']], ['missing-key', ['missing-key']], ['rate-limit', ['rate-limit', 'cold']],
-    ['usage-reported', ['usage-reported']],
+    ['usage-reported', ['usage-reported', 'cold']],
     ['usage-zero', ['usage-zero']], ['usage-absent', ['usage-absent']],
     ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']],
     ['timeout-call', ['timeout-call', 'cold']]];
@@ -249,7 +254,7 @@ test('optional timeout completion rechecks every independent installed package i
   const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'], changed = new Set(), consumers = new Set();
   await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
     const result = await f.command(cmd, args, options);
-    if (args[1] === 'cold' || args[1] === 'missing-key' || args[1]?.startsWith('usage-')) {
+    if (args[1] === 'cold' || ['missing-key', 'usage-zero', 'usage-absent'].includes(args[1])) {
       const index = f.preparations.findIndex(prepared => prepared.cwd === options.cwd);
       assert(index >= 0); assert(!consumers.has(options.cwd)); consumers.add(options.cwd);
       const name = packages[index % packages.length]; changed.add(name);
