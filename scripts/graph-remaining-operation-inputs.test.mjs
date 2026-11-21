@@ -133,7 +133,7 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   assert.ok(corpus.includes('graphRemainingOperationCohortInputs(profile.inputs).flatMap(publicQueryCohorts)'));
   assert.ok(corpus.includes('saved.expectedSampleNames = [...boundaryNames]'));
   assert.ok(corpus.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
-  const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  const reader = await readFile(new URL('./fixtures/string-values-restart.mts', import.meta.url), 'utf8');
   assert.ok(reader.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
   assert.ok(reader.includes('cohort.samples.length >= 1 && cohort.samples.length <= 2'));
   assert.ok(reader.includes('observeRetainedGraphDispatch(cohort.authorization, physicalDispatches)'));

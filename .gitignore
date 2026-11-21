@@ -1007,3 +1007,7 @@ target/
 /scripts/fixtures/packed-query-restart-transports.d.mts
 /scripts/fixtures/packed-query-worker.mjs
 /scripts/fixtures/packed-query-worker.d.mts
+/scripts/fixtures/string-values-restart.mjs
+/scripts/fixtures/string-values-restart.d.mts
+/scripts/fixtures/retained-graph-observer.mjs
+/scripts/fixtures/retained-graph-observer.d.mts

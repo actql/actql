@@ -1,5 +1,6 @@
 import {generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
+import type {HostInstallation} from '@actql/local-node';
 
 // Private acceptance credentials, never a real service credential.
 // Initial execution and fresh-process reading use the same complete Host
@@ -31,13 +32,15 @@ export function createRetainedGraphAuthorization() {
   };
 }
 
-export function observeRetainedGraphDispatch(authorization, physicalDispatches) {
+export function observeRetainedGraphDispatch(
+  authorization: HostInstallation['authorization'], physicalDispatches: string[],
+) {
   if (!Array.isArray(authorization?.reviewers) || authorization.reviewers.length !== 1 ||
-      typeof authorization?.hostKey?.privateKey !== 'string' ||
+      typeof (authorization?.hostKey as {privateKey?: unknown} | undefined)?.privateKey !== 'string' ||
       typeof authorization?.accountConfiguration !== 'string') {
     throw new Error('MissingRetainedGraphAuthorization');
   }
-  return {...authorization, faultInjection(name) {
+  return {...authorization, faultInjection(name: string) {
     if (['physical_start_reserved', 'computed', 'local_compute_advanced'].includes(name)) {
       physicalDispatches.push(name);
     }
