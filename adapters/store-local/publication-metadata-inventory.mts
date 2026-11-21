@@ -27,7 +27,7 @@ type MetadataInventory = MetadataIdentity & Readonly<{
   contract_objects: readonly MetadataContractObject[];
   physical_holding_cids: readonly unknown[];
 }>;
-type InventoryOriginal = Readonly<{public_index_cid: unknown; inventory_wire: string}>;
+export type InventoryOriginal = Readonly<{public_index_cid: unknown; inventory_wire: string}>;
 type InventoryIndex = Readonly<{
   nativePublicationInventory(cid: unknown, readDemand?: MetadataReadDemand): InventoryOriginal | undefined;
 }>;

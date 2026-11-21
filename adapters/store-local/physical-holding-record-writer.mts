@@ -10,7 +10,7 @@ type RecordWriterCleanup = Readonly<{
   status(): CleanupStatus;
   retry(): Promise<CleanupStatus>;
 }>;
-type ActivePhysicalRecordWriter = {
+export type ActivePhysicalRecordWriter = {
   cleanup: RecordWriterCleanup | undefined;
   failed: boolean;
 };

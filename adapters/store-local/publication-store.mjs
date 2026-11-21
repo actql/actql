@@ -37,6 +37,7 @@ import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createP
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
 import {createPublicationMetadataInventory, metadataContractObject} from './publication-metadata-inventory.mjs';
+import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
@@ -659,89 +660,9 @@ async function openOriginalLocalPublicationStore(
   const readPhysicalHoldingDeletion = (holdingCid, readDemand) =>
     readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid, readDemand);
 
-  const stageMetadataInventory = (original, native) => {
-    const index = deliveryIndex;
-    const stage = native ? index.stageNativePublicationInventory : index.stagePublicationInventory;
-    const writer = {failed: false, cleanup: undefined};
-    activePhysicalRecordWriters.add(writer);
-    try { Reflect.apply(stage, index, [original]); }
-    catch (primary) {
-      if (primary?.outcome !== 'unknown') {
-        activePhysicalRecordWriters.delete(writer);
-        throw primary;
-      }
-      // stage() precedes the Index commit's payload-custody owner. Keep its
-      // SAME native mutation here, not only inside an inaccessible DB latch.
-      // Finalization confirms storage only; it never publishes or reruns a Run.
-      writer.failed = true;
-      let pending = true, flight;
-      const failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown', primary);
-      const status = () => Object.freeze({pending});
-      writer.cleanup = Object.freeze({status, retry() {
-        if (flight !== undefined) return flight;
-        flight = Promise.resolve().then(() => {
-          if (pending) {
-            Reflect.apply(stage, index, [original]);
-            pending = false;
-            activePhysicalRecordWriters.delete(writer);
-          }
-          return status();
-        }).finally(() => {
-          failure.cleanupPending = pending;
-          flight = undefined;
-        });
-        return flight;
-      }});
-      failure.outcome = 'unknown';
-      failure.primaryFailure = primary;
-      failure.cleanupPending = true;
-      failure.cleanupHandle = writer.cleanup;
-      throw failure;
-    }
-    activePhysicalRecordWriters.delete(writer);
-  };
-
-  const writeNativeIndexOriginal = (method, args, acknowledge, reservation) => {
-    const metadataKey = args[0].metadata_key;
-    for (const retained of activePhysicalRecordWriters) {
-      if (retained.nativeIndexKey === metadataKey && retained.failed) {
-        reservation?.release();
-        throw retained.failure;
-      }
-    }
-    const index = deliveryIndex, writer = {failed:false,cleanup:undefined,nativeIndexKey:metadataKey};
-    let pending = true, flight, failure;
-    const status = () => Object.freeze({pending});
-    const finish = () => {
-      const result = Reflect.apply(method,index,args);
-      acknowledge(result);
-      reservation?.release();
-      pending = false;
-      activePhysicalRecordWriters.delete(writer);
-      return result;
-    };
-    writer.cleanup = Object.freeze({status,retry() {
-      if (flight !== undefined) return flight;
-      flight = Promise.resolve().then(() => {
-        if (pending) finish();
-        return status();
-      }).finally(() => {if (failure !== undefined) failure.cleanupPending = pending; flight = undefined;});
-      return flight;
-    }});
-    activePhysicalRecordWriters.add(writer);
-    try {return finish();}
-    catch (primary) {
-      if (primary?.outcome !== 'unknown') {
-        reservation?.release(); pending = false; activePhysicalRecordWriters.delete(writer); throw primary;
-      }
-      writer.failed = true;
-      failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',primary);
-      failure.outcome = 'unknown'; failure.primaryFailure = primary;
-      failure.cleanupPending = true; failure.cleanupHandle = writer.cleanup;
-      writer.failure = failure;
-      throw failure;
-    }
-  };
+  const currentDeliveryIndex = () => deliveryIndex;
+  const {stageMetadataInventory, writeNativeIndexOriginal} =
+    createNativeMetadataMutationOwner(currentDeliveryIndex, activePhysicalRecordWriters);
 
   const readMetadataDeletion = async (keyHash, readDemand) => {
     let bytes;
@@ -811,7 +732,6 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(value);
   };
 
-  const currentDeliveryIndex = () => deliveryIndex;
   const {readMetadataInventory, readCommittedMetadataInventory, requireCommittedMetadataInventory,
     publicationRecoveryOriginal, publicationRecoveryValue, ensureMetadataInventory,
     restoreMetadataInventory, recoverMetadataInventory} = createPublicationMetadataInventory(

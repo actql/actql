@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f0b1532fe5a0fe1cfb80b9935996b1034861f3dbae3ea3ce899548c05281ae64",
+      "sha256": "992f2ac529541c978437a236183ac37a5213fac9e0a60e8274c6a7fcd4651684",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8809,34 +8809,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory",
-          "parameters": [
-            "original",
-            "native"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
           "parameters": [],
           "async": true
@@ -9007,26 +8979,6 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
           "parameters": [],
           "async": false
         }
@@ -9679,10 +9631,6 @@
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
-            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
@@ -9702,16 +9650,11 @@
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
             "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
-            "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
-            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory"
+            "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion"
           ],
           "exports": [
             "PublicationStoreError",
@@ -9982,8 +9925,8 @@
                 "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const stageMetadataInventory = (original, native) => {"
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "const stageMetadataInventory = (original: InventoryOriginal, native: boolean) => {"
               },
               {
                 "path": "adapters/host-common/run-state-access.mts",
@@ -10116,7 +10059,7 @@
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
                 "anchor": "Reflect.apply(stage, index, [original]);"
               },
               {
@@ -13419,6 +13362,7 @@
         "../host-common/managed-failure.mjs",
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
+        "./native-metadata-mutation-owner.mjs",
         "./object-writer-owner.mjs",
         "./physical-holding-record-reader.mjs",
         "./physical-holding-record-writer.mjs",
@@ -13444,6 +13388,177 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/native-metadata-mutation-owner.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "a9e3f2a188a641b67e0db508b2898aa9f6bdf5176c778003d372ea5b693dd4a8",
+      "exports": [
+        "createNativeMetadataMutationOwner"
+      ],
+      "operations": [
+        {
+          "name": "createNativeMetadataMutationOwner",
+          "parameters": [
+            "currentDeliveryIndex",
+            "activePhysicalRecordWriters"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory",
+          "parameters": [
+            "original",
+            "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal",
+          "parameters": [
+            "method",
+            "args",
+            "acknowledge",
+            "reservation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNativeMetadataMutationOwner",
+            "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory",
+            "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
+            "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
+            "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
+            "createNativeMetadataMutationOwner/stageMetadataInventory/stageMetadataInventory/status/status",
+            "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal",
+            "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
+            "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
+            "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
+            "createNativeMetadataMutationOwner/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status"
+          ],
+          "exports": [
+            "createNativeMetadataMutationOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "storage-only, single-flight finalizer with the original Unknown failure"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "export function createNativeMetadataMutationOwner("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "Reflect.apply(stage, index, [original]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "failure.primaryFailure = primary;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "failure.cleanupHandle = writer.cleanup;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "reservation?.release();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/native-metadata-mutation-owner.mts",
+                "anchor": "const result = Reflect.apply(method,index,args);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Unknown acknowledgement at the Store boundary"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "concurrent native Index confirmation retains one original lost-reply writer"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing native inventory and Index mutation ownership through original acknowledgement and cleanup."
     },
     {
       "module": "adapters/store-local/publication-metadata-inventory.mjs",
