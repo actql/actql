@@ -32619,7 +32619,7 @@
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "call('storeOwnerLeaseReceipt', lease)"
               }
             ],
@@ -32629,7 +32629,7 @@
                 "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "if (leaseClose?.outcome !== 'closed')"
               }
             ],
@@ -32645,7 +32645,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "return undefined;"
               },
               {
@@ -32674,7 +32674,7 @@
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "const close = () => {"
               }
             ],
@@ -45891,7 +45891,7 @@
                 "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "call('storeOwnerLeaseReceipt', lease)"
               }
             ],
@@ -45901,7 +45901,7 @@
                 "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "if (leaseClose?.outcome !== 'closed')"
               }
             ],
@@ -45917,7 +45917,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "return undefined;"
               },
               {
@@ -45946,7 +45946,7 @@
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "const close = () => {"
               }
             ],
@@ -132602,7 +132602,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-files-native.mjs",
+                "path": "adapters/host-node/local-files-native.mts",
                 "anchor": "export function localProjectFilesystem()"
               },
               {
@@ -132612,13 +132612,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-files-native.mjs",
+                "path": "adapters/host-node/local-files-native.mts",
                 "anchor": "export function localProjectFilesystem()"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-files-native.mjs",
+                "path": "adapters/host-node/local-files-native.mts",
                 "anchor": "process.platform === 'linux' && process.arch === 'x64'"
               }
             ],
@@ -132628,7 +132628,7 @@
                 "anchor": "return entry.recoveryReady === true && entry.ownership.priorExecutionStopped(receipt);"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "if (leaseClose?.outcome !== 'closed')"
               }
             ],
@@ -132644,7 +132644,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "return undefined;"
               },
               {
@@ -132673,7 +132673,7 @@
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
-                "path": "adapters/store-local/publication-owner-lease.mjs",
+                "path": "adapters/store-local/publication-owner-lease.mts",
                 "anchor": "const close = () => {"
               }
             ],

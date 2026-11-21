@@ -1333,3 +1333,7 @@ target/
 /adapters/host-node/host-journal-directory.d.mts
 /adapters/host-node/host-journal-directory.test.mjs
 /adapters/host-node/host-journal-directory.test.d.mts
+/adapters/store-local/publication-owner-lease.mjs
+/adapters/store-local/publication-owner-lease.d.mts
+/adapters/host-node/local-files-native.mjs
+/adapters/host-node/local-files-native.d.mts

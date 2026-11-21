@@ -1,37 +1,47 @@
 // One native child of the existing exclusive Store owner. Unsupported normal
 // native delivery supplies no proof, never a substitute pathname/PID lease.
 import {randomUUID} from 'node:crypto';
+import type {BigIntStats} from 'node:fs';
 import {localProjectFilesystem} from '../host-node/local-files-native.mjs';
 import {hostJournalDirectoryNative} from '../host-node/host-journal-directory.mjs';
-const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+type NativeMethod = (...args: unknown[]) => unknown;
+type CloseOutcome = Readonly<{outcome?: unknown}> | null | undefined;
+type NativeReceipt = Readonly<{identity?: unknown; device?: unknown; inode?: unknown}> | null | undefined;
+type LeaseAnchor = Readonly<{identity: string; device: string; inode: string}>;
+type Inode = Readonly<Pick<BigIntStats, 'dev' | 'ino'>>;
+type MetadataIdentity = Readonly<Pick<BigIntStats, 'dev' | 'ino' | 'size' | 'mtimeNs' | 'ctimeNs'>>;
+type CodedCause = Readonly<{code?: string}> | null | undefined;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
 const operations = ['openFileRoot', 'fileRootCurrent', 'fileRootClose',
   'openStoreOwnerLease', 'storeOwnerLeaseReceipt', 'publishStoreOwnerDirectory',
-  'openFileDirectory', 'replaceStoreOwnerMetadata'];
-export function openPublicationOwnerLease(path, inspector, deferred = false) {
-  let native, assertCurrent = () => {};
+  'openFileDirectory', 'replaceStoreOwnerMetadata'] as const;
+export function openPublicationOwnerLease(path: string, inspector?: unknown, deferred = false) {
+  let native: unknown, assertCurrent: ReturnType<typeof hostJournalDirectoryNative>['assertCurrent'] = () => {};
   try {
     if (inspector === undefined) native = localProjectFilesystem();
     else ({native, assertCurrent} = hostJournalDirectoryNative(inspector));
   }
   catch (cause) {
-    if (['LocalFilesNativeUnavailable','ERR_DLOPEN_FAILED','MODULE_NOT_FOUND'].includes(cause?.code)) return undefined;
+    if (['LocalFilesNativeUnavailable','ERR_DLOPEN_FAILED','MODULE_NOT_FOUND'].includes((cause as CodedCause)?.code as string)) return undefined;
     throw cause;
   }
   const methods = Object.fromEntries(operations.map(name => [name,
-    Object.getOwnPropertyDescriptor(native, name)?.value]));
+    Object.getOwnPropertyDescriptor(native as object, name)?.value])) as Readonly<Record<typeof operations[number], unknown>>;
   if (operations.some(name => typeof methods[name] !== 'function')) return undefined;
-  const call = (name, ...args) => {
+  const call = (name: typeof operations[number], ...args: unknown[]) => {
     if (name !== 'fileRootClose') assertCurrent();
-    return Reflect.apply(methods[name], native, args);
+    return Reflect.apply(methods[name] as NativeMethod, native, args);
   };
-  let root, lease, rootClose, leaseClose, anchor, closing = false;
-  const closeOne = (original, previous) => {
+  let root: unknown, lease: unknown, rootClose: CloseOutcome, leaseClose: CloseOutcome,
+    anchor: LeaseAnchor | undefined, closing = false;
+  const closeOne = (original: unknown, previous: CloseOutcome): CloseOutcome => {
     if (previous !== undefined) return previous;
     // Native close consumes its descriptor before the syscall. An unknown
     // acknowledgement is retained, never retried through a recycled integer.
-    return call('fileRootClose', original);
+    return call('fileRootClose', original) as CloseOutcome;
   };
-  let metadataDirectory, metadataDirectoryClose;
+  let metadataDirectory: unknown, metadataDirectoryClose: CloseOutcome;
   const closeMetadata = () => {
     if (metadataDirectory === undefined) return;
     metadataDirectoryClose = closeOne(metadataDirectory, metadataDirectoryClose);
@@ -57,9 +67,9 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
     if (closing || root === undefined) fail('PublicationStoreLeaseChanged');
     call('fileRootCurrent', root);
     if (lease === undefined) return;
-    const value = call('storeOwnerLeaseReceipt', lease);
-    if (value?.identity !== anchor.identity || String(value.device) !== anchor.device ||
-        String(value.inode) !== anchor.inode) fail('PublicationStoreLeaseChanged');
+    const value = call('storeOwnerLeaseReceipt', lease) as NativeReceipt;
+    if (value?.identity !== anchor!.identity || String(value!.device) !== anchor!.device ||
+        String(value!.inode) !== anchor!.inode) fail('PublicationStoreLeaseChanged');
   };
   try {
     root = call('openFileRoot', path); call('fileRootCurrent', root);
@@ -68,7 +78,7 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
       try {
         current();
         lease = call('openStoreOwnerLease', root, randomUUID());
-        const value = call('storeOwnerLeaseReceipt', lease);
+        const value = call('storeOwnerLeaseReceipt', lease) as NativeReceipt;
         if (typeof value?.identity !== 'string' || typeof value.device !== 'bigint' ||
             typeof value.inode !== 'bigint') fail('PublicationStoreLeaseUnavailable');
         anchor = Object.freeze({identity: value.identity, device: String(value.device), inode: String(value.inode)});
@@ -76,7 +86,7 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
         return true;
       } catch (cause) {
         if (!['PublicationStoreLeaseUnavailable', 'ForeignPublicationOwnerRoot',
-          'LocalFileOriginalChanged'].includes(cause?.code)) throw cause;
+          'LocalFileOriginalChanged'].includes((cause as CodedCause)?.code as string)) throw cause;
         // The same old unsupported-qualification fallback is allowed only
         // after the original lease/root acknowledge close. Busy never falls back.
         close();
@@ -86,10 +96,11 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
     if (!deferred && !qualify()) return undefined;
     return Object.freeze({current, close, qualify, drainMetadata: closeMetadata,
       get anchor() {return anchor;},
-      publishDirectory(name, original) {
+      publishDirectory(name: string, original: Inode) {
         current(); call('publishStoreOwnerDirectory', root, name, original.dev, original.ino);
       },
-      replaceMetadata(name, before, staged, originalDirectory, committed) {
+      replaceMetadata(name: string, before: MetadataIdentity, staged: Inode,
+        originalDirectory: Inode, committed: () => undefined) {
         current();
         metadataDirectory = call('openFileDirectory', root, 'owner', 2);
         try {
@@ -107,7 +118,7 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
         }
         closeMetadata();
       },
-      matches(value) {current(); return anchor !== undefined && value?.identity === anchor.identity &&
+      matches(value: NativeReceipt) {current(); return anchor !== undefined && value?.identity === anchor.identity &&
         value?.device === anchor.device && value?.inode === anchor.inode;}});
   } catch (cause) {
     try {close();} catch (cleanupError) {
@@ -120,7 +131,7 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
     // both actual native originals acknowledge close may this opening retain
     // ordinary behavior without an execution-stop proof. Busy never downgrades.
     if (['PublicationStoreLeaseUnavailable', 'ForeignPublicationOwnerRoot',
-      'LocalFileOriginalChanged'].includes(cause?.code)) return undefined;
+      'LocalFileOriginalChanged'].includes((cause as CodedCause)?.code as string)) return undefined;
     throw cause;
   }
 }

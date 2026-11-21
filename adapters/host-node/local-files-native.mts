@@ -2,7 +2,7 @@
 import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
 const require = createRequire(import.meta.url);
-export function localProjectFilesystem() {
+export function localProjectFilesystem(): unknown {
   // Normal native delivery and Node's ABI checks, not a selected-preload image
   // recipe. Load failure stays a supported-backend gap; it never selects a
   // weaker pathname reader or another installation's resource original.
