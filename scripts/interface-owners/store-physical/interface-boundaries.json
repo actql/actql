@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3c88eab150b7659d7a9973b1a8d9d7a7b9064c779b4e3b38c9740518d8ff4958",
+      "sha256": "06a052ca07049e30024319c739f71be28f4ee3ab8016a76fe05bdc20ac6de66e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6301,20 +6301,6 @@
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
-          "parameters": [
-            "holder"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
-          "parameters": [
-            "holder"
-          ],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
@@ -7382,6 +7368,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
+          "parameters": [
+            "semanticCid",
+            "excludedPublicIndexEntryCid"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
           "parameters": [
             "object"
@@ -7478,13 +7472,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
-          "parameters": [
-            "part"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
           "parameters": [
             "holdingCid"
@@ -7520,18 +7507,10 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
-          "parameters": [],
+          "name": "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
+          "parameters": [
+            "token"
+          ],
           "async": false
         },
         {
@@ -7654,30 +7633,6 @@
           "parameters": [
             "supplied"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
-          "parameters": [
-            "wire",
-            "semanticCid",
-            "runDefinitionCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
-          "parameters": [],
           "async": false
         },
         {
@@ -7994,18 +7949,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
-          "parameters": [
-            "group"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
           "parameters": [
             "objects"
@@ -8018,23 +7961,6 @@
             "cid",
             "holder"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -8680,8 +8606,6 @@
             "<module>",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
@@ -8798,17 +8722,15 @@
             "openOriginalLocalPublicationStore/lookupCommittedIndex/lookupCommittedIndex",
             "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
+            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
             "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
             "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
-            "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
+            "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
             "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
@@ -8827,10 +8749,6 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
             "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
@@ -8856,12 +8774,7 @@
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
-            "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
@@ -9135,7 +9048,7 @@
                 "anchor": "const admitPublicationContracts = (supplied, originals) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "const original = await readSemanticOriginal(semanticCid, false, true);"
               },
               {
@@ -9159,7 +9072,7 @@
                 "anchor": "const publicationRecoveryOriginal = (value: InventorySource) => Object.freeze({"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "const names = await readdir(preparedSchemasDirectory);"
               },
               {
@@ -9191,7 +9104,7 @@
                 "anchor": "const accountPhysicalUsage = usage => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "generation = original.generation;"
               },
               {
@@ -9269,7 +9182,7 @@
                 "anchor": "const contract = admitOriginalContract(input.name, input.wire, input.original);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "if (original.physicalCid !== physicalCid ||"
               },
               {
@@ -9293,7 +9206,7 @@
                 "anchor": "const publicationRecoveryValue = (original: InventoryOriginal) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "const record = parsePreparedSchema(await readBounded("
               },
               {
@@ -9387,7 +9300,7 @@
                 "anchor": "original: originals ? input : undefined});"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "path: group.removable || activePhysicalRecordWriters.size !== 0"
               },
               {
@@ -9505,7 +9418,7 @@
                 "anchor": "const stored = await putSemanticBatch(admitted.filter(({contract}) =>"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);"
               },
               {
@@ -9529,7 +9442,7 @@
                 "anchor": "durability acknowledgement and schema adoption. At that point the same Store may"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "if (names.length === 0) return Object.freeze([]);"
               },
               {
@@ -9745,7 +9658,7 @@
                 "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
                 "anchor": "if (holder.path !== undefined) {"
               },
               {
@@ -12666,6 +12579,234 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/prepared-publication-schema-owner.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ee54c070fe991d41d1a6525eb5dd7398aae1f964d5a5a04f40dc49b928585d48",
+      "exports": [
+        "createPreparedSchemaOwner"
+      ],
+      "operations": [
+        {
+          "name": "createPreparedSchemaOwner",
+          "parameters": [
+            "configuration",
+            "preparedSchemasDirectory",
+            "contractsDirectory",
+            "objectsDirectory",
+            "custodyNamePattern",
+            "preparedSchemas",
+            "preparedObjects",
+            "reclaimableCustodies",
+            "activePhysicalRecordWriters",
+            "active",
+            "cidHex",
+            "contractPath",
+            "objectPath",
+            "preparedSchemaPath",
+            "syncDirectory",
+            "withSemanticCommit",
+            "currentDeliveryIndex",
+            "confirmPhysicalRemovals",
+            "rememberPhysicalRemoval",
+            "metadataContractHasLiveReference",
+            "materialHasLiveReference",
+            "putSemantic",
+            "readSemanticOriginal",
+            "exactUtf8WireMatches"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas",
+          "parameters": [
+            "cids",
+            "runDefinitionCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema",
+          "parameters": [
+            "wire",
+            "semanticCid",
+            "runDefinitionCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/recoverPreparedSchemas/recoverPreparedSchemas",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
+          "parameters": [
+            "group"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPreparedSchemaOwner",
+            "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas",
+            "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
+            "createPreparedSchemaOwner/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
+            "createPreparedSchemaOwner/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
+            "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
+            "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
+            "createPreparedSchemaOwner/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
+            "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema",
+            "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
+            "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
+            "createPreparedSchemaOwner/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
+            "createPreparedSchemaOwner/recoverPreparedSchemas/recoverPreparedSchemas",
+            "createPreparedSchemaOwner/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
+            "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/flight/flight",
+            "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
+            "createPreparedSchemaOwner/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2"
+          ],
+          "exports": [
+            "createPreparedSchemaOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "const record = parsePreparedSchema(await readBounded("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "group.generation.device !== generation.device"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "holder.runDefinitionCid === runDefinitionCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "await syncDirectory(preparedSchemasDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "failure.primaryFailure = error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "if (holder.releasing !== undefined) return holder.releasing;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-publication-schema-owner.mts",
+                "anchor": "await confirmPhysicalRemovals(new Map([[group.record.physical_cid, removal]]));"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "restart settles prepared schema physical capacity after unlink before directory ACK"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-object-consumer.mjs",

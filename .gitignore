@@ -1525,3 +1525,5 @@ target/
 /adapters/store-local/publication-object-verifier.d.mts
 /adapters/store-local/publication-object-consumer.mjs
 /adapters/store-local/publication-object-consumer.d.mts
+/adapters/store-local/prepared-publication-schema-owner.mjs
+/adapters/store-local/prepared-publication-schema-owner.d.mts
