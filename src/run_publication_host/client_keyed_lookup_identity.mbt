@@ -754,17 +754,24 @@ fn finish_keyed_lookup_protocol_metadata(
         let ordered = Array(capacity=keyed_dependency_measured_range_capacity)
         let mut limit = bodies.length()
         let mut current = Some(last)
-        while current is Some(original) {
+        while current is Some(range) {
+          let ReturnedKeyedDependencyRange(
+            bodies=original,
+            start~,
+            end~,
+            previous~,
+            ..
+          ) = range
           guard ordered.length() < keyed_dependency_measured_range_capacity &&
-            physical_equal(original.bodies, bodies) &&
-            original.start >= 0 &&
-            original.start < original.end &&
-            original.end <= limit else {
+            physical_equal(original, bodies) &&
+            start >= 0 &&
+            start < end &&
+            end <= limit else {
             return Err(Assembly("foreign_dependency_body_extent"))
           }
-          ordered.push(original)
-          limit = original.start
-          current = original.previous
+          ordered.push(range)
+          limit = start
+          current = previous
         }
         Some(ordered)
       }
@@ -778,18 +785,15 @@ fn finish_keyed_lookup_protocol_metadata(
     while index < bodies.length() {
       if next_range >= 0 &&
         ranges is Some(ordered) &&
-        ordered[next_range].start == index {
-        let original = ordered[next_range]
-        guard @execution.checked_preparation_add_product(
-            retained,
-            original.bytes,
-            1L,
-          )
+        ordered[next_range]
+        is ReturnedKeyedDependencyRange(start~, end~, bytes~, ..) &&
+        start == index {
+        guard @execution.checked_preparation_add_product(retained, bytes, 1L)
           is Some(next) else {
           return Err(Assembly("capacity_overflow"))
         }
         retained = next
-        index = original.end
+        index = end
         next_range -= 1
         continue
       }

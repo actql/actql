@@ -191,7 +191,8 @@ test "serial dependency admission retains adopted extent and reuses completed wo
       )
       bodies.push(body)
       cursor.record_body(bodies, 32).unwrap()
-      assert_eq(cursor.measured.unwrap().end, 2)
+      let ReturnedKeyedDependencyRange(end~, ..) = cursor.measured.unwrap()
+      assert_eq(end, 2)
       assert_eq(cursor.extent_workspace_depth, if deeper { 3 } else { 2 })
     } else {
       assert_true(second is Err(ConstructionRefused))
@@ -333,16 +334,16 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
   let execution = retained + (3L + 1L) * 2L * 256L
   assert_eq(cursor.pending_retained, 2L * retained)
   assert_eq(cursor.pending_execution, 2L * execution)
-  assert_eq(cursor.measured.unwrap().end, 1)
+  let ReturnedKeyedDependencyRange(end~, ..) = cursor.measured.unwrap()
+  assert_eq(end, 1)
   assert_eq(cursor.available_retained, 0L)
   assert_eq(cursor.available_execution, 0L)
   cursor.record_body(bodies, 32).unwrap()
   let measured = cursor.measured.unwrap()
-  assert_eq((measured.start, measured.end), (2, 3))
-  assert_eq(
-    (measured.previous.unwrap().start, measured.previous.unwrap().end),
-    (0, 1),
-  )
+  let ReturnedKeyedDependencyRange(start~, end~, previous~, ..) = measured
+  assert_eq((start, end), (2, 3))
+  let ReturnedKeyedDependencyRange(start~, end~, ..) = previous.unwrap()
+  assert_eq((start, end), (0, 1))
   assert_eq(cursor.pending_retained, -1L)
   finish_keyed_lookup_protocol_metadata(
     lookup,
