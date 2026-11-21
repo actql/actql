@@ -52675,7 +52675,7 @@
                 "anchor": "selected async filesystem replacement is rejected and restoration does not revive it"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
               },
               {
@@ -52795,7 +52795,7 @@
                 "anchor": "selected async filesystem replacement is rejected and restoration does not revive it"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root forwards earlier native bindings and rejects a foreign filesystem operation before subject acquisition"
               },
               {
@@ -89066,11 +89066,11 @@
                 "anchor": "test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "selected Journal adapter and actual Store retain the same ownership through both ACKs"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
               },
               {
@@ -89214,11 +89214,11 @@
                 "anchor": "test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "selected Journal adapter and actual Store retain the same ownership through both ACKs"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
               },
               {
@@ -92249,19 +92249,19 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root refuses missing disposition before subject read or native constructor"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "Root and adopted Store keep the same exclusion until both original physical duties acknowledge"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "secondary native close failure stays pending and retries the same captured receiver"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "selected Journal adapter uses the captured Root format original"
               },
               {

@@ -24665,7 +24665,7 @@
                 "anchor": "test('selected Journal uses the captured original factory and receiver exactly once',async()=>{"
               },
               {
-                "path": "adapters/host-node/host-journal-root-custody.test.mjs",
+                "path": "adapters/host-node/host-journal-root-custody.test.mts",
                 "anchor": "test('actual Store adopts its same earlier ordinary ownership'"
               },
               {

@@ -1479,3 +1479,5 @@ target/
 /adapters/host-node/client-request-journal.d.mts
 /adapters/host-node/fixtures/selected-host-journal-adapter.fixture.mjs
 /adapters/host-node/fixtures/selected-host-journal-adapter.fixture.d.mts
+/adapters/host-node/host-journal-root-custody.test.mjs
+/adapters/host-node/host-journal-root-custody.test.d.mts
