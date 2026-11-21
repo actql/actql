@@ -28,7 +28,7 @@ const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUp
     if (name === 'submitted') originalRef = value.ref;
     await save(name, value);
   },
-  observeClose: observation === undefined && replyLossExpectation === undefined ? undefined
+  observeClose: observation === undefined && replyLossExpectation === undefined && selected.decision !== 'rejected' ? undefined
     : value => writeFile(`${prefix}.${phase}.close-${value.stage}.json`,
       JSON.stringify({...value, ...(observation === undefined ? {}
         : {workObservation: observation.forOriginal(originalRef)})}) + '\n', {mode: 0o600, flag: 'wx'}),

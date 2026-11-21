@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, lstat, readdir, realpath} from 'node:fs/promises';
 import {join, resolve, dirname, isAbsolute, basename, relative, sep} from 'node:path';
-import {inventory, verifyPackageRelease} from './package-release.mjs';
+import {inventory, nodePackages, nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {verifyReleaseSet} from './release-set.mjs';
 import {releaseVersion} from './release-version.mjs';
 
@@ -129,8 +129,7 @@ export async function verifyPublicNodeReleaseBinding(selection) {
   assert.equal(manifest.cohort.packageVersion, fixed.manifest.release.version);
   assert.equal(manifest.cohort.registry, target.destination);
   assert.deepEqual(target.packages, manifest.packages.map(value => value.name));
-  assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node'],
-    'This existing consumer qualifies only the original four-package Node/SDK route');
+  nodeReleaseIncludesProvider(manifest.cohort.packages);
   await verifyReleaseSet(supplied.directory, {expectedSha256: supplied.manifestSha256});
   assert.deepEqual(await readFile(join(selection.directory, 'release.json')), original);
   return {manifestSha256: fixed.sha256, targetId: target.id, cohortManifestSha256: cohort.sha256,
@@ -158,12 +157,17 @@ export function publicConsumerEnvironment(parent, root, node = process.execPath)
 
 export function publicInstallCommand(manifest, entry) {
   assert.equal(manifest.version, 'actql-package-release/0.1');
-  assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
-  assert.equal(manifest.cohort.registry, publicNpmRegistry); assert(['node', 'sdk'].includes(entry));
-  const item = manifest.packages.find(value => value.name === `@actql/${entry}`); assert(item);
-  assert.equal(item.version, manifest.cohort.packageVersion);
+  const includesProvider = nodeReleaseIncludesProvider(manifest.cohort.packages);
+  assert.equal(manifest.cohort.registry, publicNpmRegistry);
+  assert(['node', 'sdk'].includes(entry) || (includesProvider && entry === 'provider-ai-sdk'));
+  const entries = entry === 'provider-ai-sdk' ? ['node', entry] : [entry];
+  const selectors = entries.map(name => {
+    const item = manifest.packages.find(value => value.name === `@actql/${name}`);
+    assert.equal(item?.version, manifest.cohort.packageVersion);
+    return `@actql/${name}@${item.version}`;
+  });
   return ['install', '--save-exact', '--ignore-scripts', '--engine-strict', '--no-audit', '--no-fund', '--registry', publicNpmRegistry,
-    `@actql/${entry}@${item.version}`];
+    ...selectors];
 }
 
 function publicResolved(value) {
@@ -175,15 +179,18 @@ function publicResolved(value) {
 }
 
 export async function verifyPublicConsumer(root, manifest, entry) {
-  const names = entry === 'node' ? manifest.cohort.packages : ['client-wire', 'sdk'];
   publicInstallCommand(manifest, entry);
+  const provider = entry === 'provider-ai-sdk';
+  const names = provider ? manifest.cohort.packages : entry === 'node' ? nodePackages : ['client-wire', 'sdk'];
   const lockPath = join(root, 'package-lock.json'), lockStat = await lstat(lockPath);
   assert(lockStat.isFile() && !lockStat.isSymbolicLink());
   const original = await readFile(lockPath), lock = JSON.parse(original);
   assert.equal(lock.lockfileVersion, 3, 'Public acceptance requires the selected modern npm lock format');
   assert(lock.packages && typeof lock.packages === 'object' && !Array.isArray(lock.packages));
-  assert.deepEqual(lock.packages['']?.dependencies, {[`@actql/${entry}`]: manifest.cohort.packageVersion},
-    'The consumer must name only its exact public entry, without manually adding internal packages');
+  const entries = provider ? ['node', entry] : [entry];
+  assert.deepEqual(lock.packages['']?.dependencies,
+    Object.fromEntries(entries.map(name => [`@actql/${name}`, manifest.cohort.packageVersion])),
+    'The consumer must name only its selected exact public entries');
   const selected = names.map(name => `node_modules/@actql/${name}`).sort();
   const actual = Object.keys(lock.packages).filter(path => /(?:^|\/)node_modules\/@actql\//u.test(path)).sort();
   assert.deepEqual(actual, selected, 'Unexpected or nested ActQL dependency in public consumer');

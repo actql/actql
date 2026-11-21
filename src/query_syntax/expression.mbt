@@ -39,6 +39,7 @@ pub(all) enum ExpressionKind {
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
+  SimpleCase(Int, Array[(Int, Int)], Int)
   Cast(Int, CastType)
   Interval(Int, String)
 } derive(Eq, Debug)
@@ -111,6 +112,8 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
     Predicate(op, args) => Predicate(op, args.copy())
     SearchedCase(branches, otherwise) =>
       SearchedCase(branches.copy(), otherwise)
+    SimpleCase(operand, branches, otherwise) =>
+      SimpleCase(operand, branches.copy(), otherwise)
     kind => kind
   }
   Some({ ..node, kind, })
@@ -180,7 +183,10 @@ fn expression_subtree(
         for (_, child) in fields {
           pending.push(child)
         }
-      SearchedCase(branches, otherwise) => {
+      SearchedCase(branches, otherwise) | SimpleCase(_, branches, otherwise) => {
+        if expression.nodes[next].kind is SimpleCase(operand, _, _) {
+          pending.push(operand)
+        }
         pending.push(otherwise)
         for branch in branches {
           pending.push(branch.0)
@@ -231,6 +237,12 @@ fn expression_subtree(
             branches.map(branch => (remap[branch.0], remap[branch.1])),
             remap[otherwise],
           )
+        SimpleCase(operand, branches, otherwise) =>
+          SimpleCase(
+            remap[operand],
+            branches.map(branch => (remap[branch.0], remap[branch.1])),
+            remap[otherwise],
+          )
         Reference(path) => Reference(path.copy())
         ContextualIntegerReference(path, name) =>
           ContextualIntegerReference(path.copy(), name)
@@ -270,11 +282,25 @@ priv enum ExpressionFrame {
   InItem(Int, Bool, Array[Int], Int, Int)
   InUnnest(Int, Bool, Int, Int)
   IsDistinct(Int, Bool, Int, Int)
-  CaseCondition(Array[(Int, Int)], Int, Int)
-  CaseValue(Array[(Int, Int)], Int, Int, Int)
-  CaseElse(Array[(Int, Int)], Int)
+  CaseOperand(Int, Int)
+  CaseCondition(Int, Array[(Int, Int)], Int, Int)
+  CaseValue(Int, Array[(Int, Int)], Int, Int, Int)
+  CaseElse(Int, Array[(Int, Int)], Int)
   CastTarget(Int)
   IntervalUnit(Int)
+}
+
+///|
+fn case_expression(
+  operand : Int,
+  branches : Array[(Int, Int)],
+  otherwise : Int,
+) -> ExpressionKind {
+  if operand < 0 {
+    SearchedCase(branches, otherwise)
+  } else {
+    SimpleCase(operand, branches, otherwise)
+  }
 }
 
 ///|
@@ -369,8 +395,11 @@ fn ExpressionParser::add(
       for (_, child) in fields {
         child_depth = child_depth.max(self.depths[child])
       }
-    SearchedCase(branches, otherwise) => {
+    SearchedCase(branches, otherwise) | SimpleCase(_, branches, otherwise) => {
       child_depth = self.depths[otherwise]
+      if kind is SimpleCase(operand, _, _) {
+        child_depth = child_depth.max(self.depths[operand])
+      }
       for (condition, value) in branches {
         child_depth = child_depth
           .max(self.depths[condition])
@@ -387,6 +416,15 @@ fn ExpressionParser::add(
   // constructor, not another source/token/AST discovery traversal.
   if kind is Call(path, _) && integer_context_call_name(path) {
     self.source.integer_context_required = true
+  }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+    index + 1,
+  )
+  if kind is Reference(_) {
+    self.source.namespace_references = namespace_count_add(
+      self.source.namespace_references,
+      1,
+    )
   }
   self.nodes.push({ kind, start, end, })
   self.depths.push(child_depth + 1)
@@ -721,8 +759,12 @@ fn ExpressionParser::expression(
             frames.push(Enter(1, depth + 1))
           }
           Word(name) if upper_ascii(name) == "CASE" => {
-            self.require_keyword("WHEN")
-            frames.push(CaseCondition([], t.start, depth))
+            if keyword(self.peek(), "WHEN") {
+              self.require_keyword("WHEN")
+              frames.push(CaseCondition(-1, [], t.start, depth))
+            } else {
+              frames.push(CaseOperand(t.start, depth))
+            }
             frames.push(Enter(1, depth + 1))
           }
           Word(name) if upper_ascii(name) == "NOT" => {
@@ -1005,23 +1047,32 @@ fn ExpressionParser::expression(
         )
         frames.push(Tail(result, minimum, depth))
       }
-      CaseCondition(branches, start, depth) => {
-        self.require_keyword("THEN")
-        frames.push(CaseValue(branches, result, start, depth))
+      CaseOperand(start, depth) => {
+        self.require_keyword("WHEN")
+        frames.push(CaseCondition(result, [], start, depth))
         frames.push(Enter(1, depth + 1))
       }
-      CaseValue(branches, condition, start, depth) => {
+      CaseCondition(operand, branches, start, depth) => {
+        self.require_keyword("THEN")
+        frames.push(CaseValue(operand, branches, result, start, depth))
+        frames.push(Enter(1, depth + 1))
+      }
+      CaseValue(operand, branches, condition, start, depth) => {
         branches.push((condition, result))
         let next = self.advance()
         if keyword(next, "WHEN") {
-          frames.push(CaseCondition(branches, start, depth))
+          frames.push(CaseCondition(operand, branches, start, depth))
           frames.push(Enter(1, depth + 1))
         } else if keyword(next, "ELSE") {
-          frames.push(CaseElse(branches, start))
+          frames.push(CaseElse(operand, branches, start))
           frames.push(Enter(1, depth + 1))
         } else if keyword(next, "END") {
           let otherwise = self.add(Null, next.start, next.end)
-          result = self.add(SearchedCase(branches, otherwise), start, next.end)
+          result = self.add(
+            case_expression(operand, branches, otherwise),
+            start,
+            next.end,
+          )
         } else {
           raise ExpressionAbort("Expected WHEN, ELSE or END", next.start)
         }
@@ -1078,10 +1129,14 @@ fn ExpressionParser::expression(
         }
         result = self.add(Cast(result, target), start, close.end)
       }
-      CaseElse(branches, start) => {
+      CaseElse(operand, branches, start) => {
         let next = self.peek()
         self.require_keyword("END")
-        result = self.add(SearchedCase(branches, result), start, next.end)
+        result = self.add(
+          case_expression(operand, branches, result),
+          start,
+          next.end,
+        )
       }
       IntervalUnit(start) => {
         let token = self.advance()

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-import {resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {realpathSync} from 'node:fs';
+import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {initRestConnector, writeRestConnector} from './connector-authoring.mjs';
 import {durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
-import {readRestConformanceInput} from './fixtures/external-rest/conformance-input.mjs';
+import {readRestConformanceInput} from './connector-conformance-input.mjs';
+import {isInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
 
 const usage = 'Usage: connector.mjs init <directory> <id> | build|test <connector.json> <output> | conformance <normal-input.json> --timeout-seconds <seconds>';
 
@@ -13,16 +15,21 @@ export function connectorConformancePlan(root, args) {
   if (args.length !== 3 || args[1] !== '--timeout-seconds') throw new Error(usage);
   const timeoutSeconds = durationSeconds(args[2]);
   const input = resolve(args[0]);
-  readRestConformanceInput(input);
+  const selected = readRestConformanceInput(input);
+  const installed = isInstalledAuthoringToolkit(root);
+  const testRunner = installed ? pathToFileURL(join(root, 'scripts/test-execution.mjs')).href
+    : './scripts/test-execution.mjs';
+  const testFile = 'scripts/fixtures/external-rest/normal-case.test.mjs';
   return {
-    root: resolve(root), heavy: true,
+    root: installed ? dirname(selected.outputRoot) : resolve(root), heavy: true,
     heavyResources: {memoryBytes: 4 * 1024 ** 3, diskBytes: 1024 ** 3, cpuThreads: 1},
     timeoutSeconds, graceSeconds: 5,
     steps: [{name: 'ordinary installed REST conformance and original cold Saved',
       command: process.execPath,
       args: ['--input-type=module', '-e',
-        "import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('node',process.argv.slice(1),{cwd:process.cwd(),expectedTests:1});",
-        'scripts/fixtures/external-rest/normal-case.test.mjs'],
+        `import {runFocusedTests} from ${JSON.stringify(testRunner)};` +
+        "process.exitCode=runFocusedTests('node',process.argv.slice(1),{cwd:process.cwd(),expectedTests:1});",
+        installed ? join(root, testFile) : testFile],
       env: {ACTQL_REST_CONFORMANCE_INPUT: input}}],
   };
 }
@@ -36,11 +43,15 @@ export function connectorCommand(args) {
     // test is the existing manifest projection/freshness layer only. Normal
     // installed SDK/Host conformance is a distinct actual runtime selection.
     return writeRestConnector({definitionPath: resolve(rest[0]),
-      outputRoot: resolve(rest[1]), check: command === 'test'});
+      outputRoot: resolve(rest[1]), check: command === 'test',
+      installedToolkit: isInstalledAuthoringToolkit(fileURLToPath(new URL('../', import.meta.url)))});
   }
   throw new Error(usage);
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+let invoked = false;
+try { invoked = realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); }
+catch { /* import without a main file */ }
+if (invoked) {
   try {
     const [command, ...args] = process.argv.slice(2);
     if (command === 'conformance') {

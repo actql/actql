@@ -221,3 +221,71 @@ test "Native cold Checkpoint preserves the admitted one MiB plaintext boundary" 
   assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, 0L)
   reopened.close().unwrap() |> ignore
 }
+
+///|
+test "Native exact Capture read authenticates the cold Run holding and refuses replacement" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) &&
+    native_payload_fixture("capture-cold-exact", 262144L)
+    is Some((store, authority, library, root)) else {
+    abort("Native cold Capture requires physical Crypto and SQLite")
+  }
+  let crypto = @signature.load_library(path).unwrap()
+  let key = Bytes::makei(32, i => i.to_byte())
+  let original = native_commit_fixture(
+    store, authority, "capture-cold-original",
+  )
+  let captured = original.captured_run
+  let wire = @publication.publication_contract_json(captured)
+  let cid = @publication.publication_contract_identity(captured)
+  let holding = @publication.effect_computation_record_holding_cid(
+    original.run_definition,
+    authority,
+  ).unwrap()
+  // Install the original encrypted body through the same independent durable
+  // Capture writer. This control targets Store custody, not Effect approval.
+  let child = prepare_private_effect_custody(
+    store, holding, "effect_capture", cid, wire, "effect_capture_custody", "effect-capture",
+    "{\"cleanup_complete\":true}", crypto, key,
+  ).unwrap()
+  child.persist().unwrap()
+  let usage = store.capacity_usage().unwrap()
+  assert_true(store.close().unwrap())
+  let reopened = open_store(library, root, authority, 262144L, 8L, 65536L).unwrap()
+  let (extent, layout) = reopened
+    .effect_capture_restore_construction(original.run_definition, cid)
+    .unwrap()
+  assert_true(layout.retained.owned_utf16_units >= wire.length().to_int64())
+  assert_eq(extent.read_original_wire(crypto, key).unwrap(), wire)
+  let (foreign, _) = reopened
+    .effect_capture_restore_construction(
+      original.run_definition,
+      "sha256:" + "f".repeat(64),
+    )
+    .unwrap()
+  assert_true(
+    foreign.read_original_wire(crypto, key) is Err(PrivateEvidence(_)),
+  )
+  assert_eq(
+    reopened.capacity_usage().unwrap().reserved_bytes,
+    usage.reserved_bytes,
+  )
+  assert_eq(
+    reopened.capacity_usage().unwrap().reserved_objects,
+    usage.reserved_objects,
+  )
+  let reopened_child = { ..child, store: reopened, }
+  assert_true(reopened_child.retry_cleanup().unwrap())
+  assert_true(extent.read_original_wire(crypto, key) is Err(Database(_)))
+  assert_true(
+    reopened.effect_capture_restore_construction(original.run_definition, cid)
+    is Err(RecoveryRequired),
+  )
+  assert_true(reopened.close().unwrap())
+  crypto.close_checked().unwrap()
+  // The stock SQLite library can remain resident until the fixture process
+  // exits. Both exact Store/Database closes above have acknowledged.
+  assert_true(
+    library.close_checked()
+    is Err(@sqlite.Physical("original SQLite Library cleanup pending")),
+  )
+}

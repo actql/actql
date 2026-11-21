@@ -8,6 +8,7 @@ fn keyed_lookup_body_grow(
   basis_execution : Int64,
   controls : Int64,
   scan : @execution.ExecutionCapacity?,
+  check_unchanged? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   let r = scan.map(@execution.execution_capacity_retained_bytes).unwrap_or(0L)
   let e = scan.map(@execution.execution_capacity_execution_bytes).unwrap_or(0L)
@@ -25,7 +26,11 @@ fn keyed_lookup_body_grow(
     lookup.execution_bytes,
     basis_execution + controls + e,
   )
-  if retained > lookup.retained_bytes || execution > lookup.execution_bytes {
+  // A completely backed admission still crosses the same Ledger current
+  // fence as an admission that needs more bytes.
+  if check_unchanged ||
+    retained > lookup.retained_bytes ||
+    execution > lookup.execution_bytes {
     let outer_growing = lookup.growing
     lookup.growing = true
     let result = @resources.grow_execution_reservation_capacity(

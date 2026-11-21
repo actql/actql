@@ -16,6 +16,7 @@ pub fn file_list_selector(query : Query) -> FileListSelector? {
 fn QueryParser::file_listing_source(
   self : QueryParser,
 ) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool, FileListSelector?) raise QueryAbort {
+  self.source.published_namespace_possible = true
   self.keyword("LIST_FILES")
   self.symbol(40)
   let at = self.peek().start

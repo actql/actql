@@ -1,9 +1,11 @@
 // Build-time author DATA projection. Existing Source declarations and Host
 // manifests remain the semantic and installation authorities.
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {dirname, join, parse, resolve, sep} from 'node:path';
-import {checkHostBundle, generateInstallations} from './connector-host-bundles.mjs';
+import {checkHostBundle, renderHostInstallations} from './connector-host-bundle-contract.mjs';
 import {createRequire} from 'node:module';
+import {releaseVersion} from './release-version.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const shape = (value, required, optional = []) => record(value) &&
@@ -25,8 +27,16 @@ const freeze = value => {
   return value;
 };
 
-const selectedHostVersion = JSON.parse(readFileSync(new URL('../packages/local-node/package.json',
-  import.meta.url), 'utf8')).version;
+function installedHostVersion(entry) {
+  try {
+    const manifest = JSON.parse(readFileSync(join(dirname(entry), 'package.json'), 'utf8'));
+    if (manifest?.name !== '@actql/local-node') throw new Error('Unexpected author validator package');
+    return manifest.version === '0.0.0-development' ? manifest.version : releaseVersion(manifest.version).version;
+  } catch (cause) {
+    throw Object.assign(new Error('RestAuthoringValidatorUnavailable: invalid selected Host manifest', {cause}),
+      {code: 'RestAuthoringValidatorUnavailable'});
+  }
+}
 
 function installedReadValidator(authorRoot) {
   // CLI callers resolve the author's explicitly installed dependency. The
@@ -35,8 +45,13 @@ function installedReadValidator(authorRoot) {
   const selected = authorRoot === undefined
     ? new URL('../packages/local-node/package.json', import.meta.url)
     : join(resolve(authorRoot), 'package.json');
-  let namespace;
-  try {namespace = createRequire(selected)('@actql/local-node/connector-authoring');}
+  const require = createRequire(selected);
+  let namespace, version;
+  try {
+    const entry = require.resolve('@actql/local-node/connector-authoring');
+    version = installedHostVersion(entry);
+    namespace = require('@actql/local-node/connector-authoring');
+  }
   catch (cause) {
     if (cause?.code === 'MODULE_NOT_FOUND' || cause?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
       throw Object.assign(new Error('RestAuthoringValidatorUnavailable: install a matching @actql/local-node in the author project'),
@@ -48,7 +63,7 @@ function installedReadValidator(authorRoot) {
   if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
     throw Object.assign(new Error('RestAuthoringValidatorUnavailable'), {code: 'RestAuthoringValidatorUnavailable'});
   }
-  return method.value.bind(namespace);
+  return {validateRead: method.value.bind(namespace), version};
 }
 
 // The packed author runner uses the same manifest contract as the generator
@@ -60,7 +75,7 @@ export function restConnectorPackageMetadata(id, hostPackageVersion) {
     exports: {'.': './index.mjs'}, files: ['index.mjs', 'src/connectors', 'adapters/connectors']};
 }
 
-export function projectRestConnector(definition, {hostPackageVersion = selectedHostVersion, authorRoot} = {}) {
+export function projectRestConnector(definition, {hostPackageVersion, authorRoot} = {}) {
   if (!shape(definition, ['version', 'id', 'origin', 'auth', 'sources'], ['transform']) ||
       definition.version !== 'actql-rest-connector/0.1' || !name(definition.id) ||
       !shape(definition.auth, ['kind']) || definition.auth.kind !== 'bearer' ||
@@ -72,7 +87,8 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
       origin.username || origin.password) fail('origin');
   if (definition.transform !== undefined && (!relative(definition.transform) ||
       !definition.transform.endsWith('.mjs'))) fail('transform');
-  const validateRead = installedReadValidator(authorRoot);
+  const {validateRead, version} = installedReadValidator(authorRoot);
+  if (hostPackageVersion !== undefined && hostPackageVersion !== version) fail('host version');
   const sources = Object.entries(definition.sources).map(([resource, source]) => {
     if (!name(resource) || !shape(source, ['fields', 'read', 'pagination', 'limits']) ||
         !Array.isArray(source.fields) || source.fields.length === 0 || !record(source.read)) fail('source');
@@ -120,7 +136,7 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
     `export const publish = installation.publish;\n` +
     `export const load = installation.load;\n`;
   return freeze({registration: id, profileVersion, manifest,
-    files: {'package.json': JSON.stringify(restConnectorPackageMetadata(id, hostPackageVersion), null, 2) + '\n',
+    files: {'package.json': JSON.stringify(restConnectorPackageMetadata(id, version), null, 2) + '\n',
       [`src/connectors/${id}/host-bundle.json`]: JSON.stringify(manifest, null, 2) + '\n',
       [definitionPath]: JSON.stringify(projected, null, 2) + '\n',
       [viewsPath]: JSON.stringify({views: sources.map(({resource, resource_kind, fields}) =>
@@ -145,11 +161,10 @@ function unaliasedOutput(path) {
   }
 }
 
-export function writeRestConnector({definitionPath, outputRoot, check = false}) {
+export function writeRestConnector({definitionPath, outputRoot, check = false, installedToolkit = false}) {
   const authorRoot = dirname(resolve(definitionPath)), root = resolve(outputRoot);
-  const host = JSON.parse(readFileSync(new URL('../packages/local-node/package.json', import.meta.url), 'utf8'));
   const projection = projectRestConnector(JSON.parse(readFileSync(definitionPath, 'utf8')),
-    {hostPackageVersion: host.version, authorRoot});
+    {authorRoot});
   const files = {...projection.files};
   if (projection.transform !== undefined) {
     let path = authorRoot;
@@ -157,7 +172,14 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
       path = join(path, part);
       if (lstatSync(path).isSymbolicLink()) fail('aliased transform');
     }
-    files[projection.transform.destination] = readFileSync(path, 'utf8');
+    const transform = readFileSync(path, 'utf8');
+    if (installedToolkit) {
+      const checked = spawnSync(process.execPath, ['--input-type=module', '--check'],
+        {input: transform, stdio: ['pipe', 'ignore', 'ignore']});
+      if (checked.error) throw checked.error;
+      if (checked.status !== 0) fail('transform syntax');
+    }
+    files[projection.transform.destination] = transform;
   }
   // Validate every selected destination before the first write, including
   // dangling links and aliases above a new output directory.
@@ -172,18 +194,25 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
       mkdirSync(dirname(destination), {recursive: true}); writeFileSync(destination, contents);
     }
   }
-  // Reuse the original manifest loader/table generator, including its finite
-  // implementation inventory and lazy export mapping. The application can
-  // supply this table through normal installation.connectorTable; no custom
-  // Host package or connector Common compilation is needed for registration.
   const entry = checkHostBundle(root, projection.registration,
     join(root, `src/connectors/${projection.registration}/host-bundle.json`));
-  const registration = generateInstallations([entry], join(root, 'index.mjs'), root);
+  const index = join(root, 'index.mjs');
+  let registration;
+  if (installedToolkit) {
+    // The installed standard generator owns its entry and the one selected
+    // transform. It uses the same Host renderer over that finite inventory.
+    const modules = [entry.source.module];
+    if (projection.transform !== undefined) modules.push(projection.transform.destination);
+    registration = renderHostInstallations([entry], index, root, {implementationModules: () => modules});
+  } else {
+    const {generateInstallations} = createRequire(import.meta.url)('./connector-host-bundles.mjs');
+    registration = generateInstallations([entry], index, root);
+  }
   if (check) {
-    if (!existsSync(join(root, 'index.mjs')) || readFileSync(join(root, 'index.mjs'), 'utf8') !== registration) {
+    if (!existsSync(index) || readFileSync(index, 'utf8') !== registration) {
       throw new Error('StaleRestConnectorProjection:index.mjs');
     }
-  } else writeFileSync(join(root, 'index.mjs'), registration);
+  } else writeFileSync(index, registration);
   return Object.freeze({registration: projection.registration,
     files: Object.freeze([...Object.keys(files), 'index.mjs'].sort()),
     authorFiles: Object.freeze(['connector.json', ...(projection.transform ? [projection.transform.source] : [])]),

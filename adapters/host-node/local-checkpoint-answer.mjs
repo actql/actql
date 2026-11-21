@@ -16,7 +16,7 @@ const names = ['clientLocalCheckpointProofPrepare', 'clientLocalCheckpointProofP
 
 // The existing Host signing reader borrows its restored parent through the
 // consumer and releases it once. Only the Journal may recognize its own
-// one-way physical-stop progression; no signing original is reconstructed.
+// one-way physical-stop/status progressions; no signing original is reconstructed.
 export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid, moon, control, journal,
   restoreEffectManagedPreparation, recoverEffectCapture, localSigningRecoveries,
   assertCurrent, releaseLocalSigningRecovery, clientOperationError}) {
@@ -43,7 +43,7 @@ export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid
         recovered.assertUpdateSelectionCurrent?.();
         const next = journal.lookupRunDefinition(ref, moon, control, retained);
         if (next === undefined || next.cancellationRequested || next !== retained &&
-            !journal.canReinspectRunAfterPhysicalClose(retained, next)) {
+            !journal.canReinspectRunForSigning(retained, next)) {
           throw clientOperationError('LocalSigningOriginalConflict');
         }
         retained = next;

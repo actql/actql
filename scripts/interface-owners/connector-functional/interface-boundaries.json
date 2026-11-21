@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "f4b0a9ce00cf150cc13b46b8357027042dd9a73500f56d225724982545acb9de",
+      "sha256": "ef37f2f4f1aa0acddfb1505cf9c15dac4f8d99cad6d14c059d4150ef01ebb0fa",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4303,6 +4303,7 @@
         "installedRowEffectUpdateObservation",
         "installedRowEffectUpdateObservations",
         "installedRowEffectUpdateTargetReadAccess",
+        "prepareInstalledTargetPlanRecipes",
         "resolveInstalledRowEffectConstruction",
         "retainInstalledRowEffectAdapter",
         "validateInstalledUpdateOwnerSelections"
@@ -4607,12 +4608,20 @@
             "managedPlanDefinition",
             "managedPlanRecipe",
             "managedPlanRecipes",
+            "managedTargetPlanRecipes",
             "managedPlanConstruction"
           ],
           "async": true
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#2",
           "parameters": [
             "item"
           ],
@@ -6325,6 +6334,21 @@
           "async": false
         },
         {
+          "name": "prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "mappings",
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
           "parameters": [],
           "async": false
@@ -6400,6 +6424,7 @@
             "contractCidOf/contractCidOf",
             "createInstalledRowEffect",
             "createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffect/createInstalledRowEffect#2",
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
@@ -7098,6 +7123,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.test.mjs",
                 "anchor": "test('declared UPDATE requires a pure write preparation and an installed credential recipe'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }
@@ -7381,9 +7410,13 @@
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields/fields",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
-            "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
+            "prepareInstalledTargetPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
           ],
-          "exports": [],
+          "exports": [
+            "prepareInstalledTargetPlanRecipes"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -7476,6 +7509,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ]
           }

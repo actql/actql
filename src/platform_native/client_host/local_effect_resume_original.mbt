@@ -1,4 +1,20 @@
 ///|
+fn NativeLocalEffectResumeOriginal::prepare_effect_journal_route(
+  self : Self,
+) -> Result[NativeLocalJournalCapture?, NativeLocalInitialHostAttestationIssue] {
+  match self.subject {
+    Some(SavedSigningSubject(read)) => {
+      let capture = read.owner.capture
+      match capture.retain_effect_journal_route_controls() {
+        Ok(_) => Ok(Some(capture))
+        Err(issue) => Err(HostAttestationOriginal(issue))
+      }
+    }
+    _ => Ok(None)
+  }
+}
+
+///|
 // Original acknowledged Resolution material in the existing Local Host.
 // This is not another signer, Run, grant, Resource or cleanup Owner. The
 // existing Journal alone issues/fences the durable continuation lease.
@@ -276,40 +292,43 @@ pub fn NativeLocalEffectResumeOriginal::claim(
     return Err(HostAttestationUnavailable)
   }
   self.attempted = true
+  let capture = match self.prepare_effect_journal_route() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard self.record.checkpoint is Some(checkpoint) &&
     self.host_key is Some(key) &&
     self.authority_current() else {
     return Err(HostAttestationUnavailable)
   }
-  let result = self.host.journal.claim_effect_resume(
-    self.request,
-    self.crypto,
-    self.authentication,
-    [
-      {
-        key_id: self.registration.key_id,
-        reviewer_id: self.registration.reviewer_id,
-      },
-    ],
-    [{ key_id: key.public_key.cid(), public_key_pem: key.public_key_pem, }],
-    key.public_key.cid(),
-    lease_ms,
-    checkpoint.binding,
-    () => self.authority_current(),
-    () => {
-      let now = @env.now().reinterpret_as_int64()
-      (@values.epoch_milliseconds_timestamp(now).unwrap_or(""), now)
-    },
-  )
-  match result {
-    Ok(action) => {
-      self.action = Some(action)
-      Ok(action)
-    }
-    Err(issue) => {
-      self.issue = Some(issue)
-      Err(HostAttestationJournal(issue))
-    }
+  match capture {
+    Some(capture) =>
+      match
+        capture.with_current_adoption_material_in_original_read((
+          host,
+          _material,
+          operations,
+        ) => {
+          if !physical_equal(host, self.host) {
+            return Err(CustodyLost)
+          }
+          self
+          .claim_in_original_journal(
+            key,
+            checkpoint.binding,
+            lease_ms,
+            Some(operations),
+          )
+          .map_err(issue => Journal(issue))
+        }) {
+        Ok(value) => Ok(value)
+        Err(Journal(issue)) => Err(HostAttestationJournal(issue))
+        Err(issue) => Err(HostAttestationOriginal(issue))
+      }
+    None =>
+      self
+      .claim_in_original_journal(key, checkpoint.binding, lease_ms, None)
+      .map_err(issue => HostAttestationJournal(issue))
   }
 }
 
@@ -328,11 +347,34 @@ pub fn NativeLocalEffectResumeOriginal::fence(
     Some(Claimed(value)) | Some(SettlementOnly(value)) => value
     _ => return Err(HostAttestationUnavailable)
   }
-  self.host.journal
-  .effect_resume_fence(claim, () => self.authority_current(), () => {
-    @env.now().reinterpret_as_int64()
-  })
-  .map_err(issue => HostAttestationJournal(issue))
+  let capture = match self.prepare_effect_journal_route() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match capture {
+    Some(capture) =>
+      match
+        capture.with_current_adoption_material_in_original_read((
+          host,
+          _material,
+          operations,
+        ) => {
+          if !physical_equal(host, self.host) {
+            return Err(CustodyLost)
+          }
+          self
+          .fence_in_original_journal(claim, Some(operations))
+          .map_err(issue => Journal(issue))
+        }) {
+        Ok(value) => Ok(value)
+        Err(Journal(issue)) => Err(HostAttestationJournal(issue))
+        Err(issue) => Err(HostAttestationOriginal(issue))
+      }
+    None =>
+      self
+      .fence_in_original_journal(claim, None)
+      .map_err(issue => HostAttestationJournal(issue))
+  }
 }
 
 ///|
@@ -388,16 +430,40 @@ pub fn NativeLocalEffectResumeOriginal::dispatch_row(
   }
   // Journal rechecks the actual lease generation and current original around
   // its clock observation and commits prepared+dispatching with the Run witness.
-  self.host.journal
-  .record_effect_row_dispatch(
-    claim,
-    locator,
-    key,
-    basis,
-    () => self.authority_current(),
-    () => @env.now().reinterpret_as_int64(),
-  )
-  .map_err(issue => HostAttestationJournal(issue))
+  let capture = match self.prepare_effect_journal_route() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match capture {
+    Some(capture) =>
+      match
+        capture.with_current_adoption_material_in_original_read((
+          host,
+          _material,
+          operations,
+        ) => {
+          if !physical_equal(host, self.host) {
+            return Err(CustodyLost)
+          }
+          self
+          .dispatch_in_original_journal(
+            claim,
+            locator,
+            key,
+            basis,
+            Some(operations),
+          )
+          .map_err(issue => Journal(issue))
+        }) {
+        Ok(value) => Ok(value)
+        Err(Journal(issue)) => Err(HostAttestationJournal(issue))
+        Err(issue) => Err(HostAttestationOriginal(issue))
+      }
+    None =>
+      self
+      .dispatch_in_original_journal(claim, locator, key, basis, None)
+      .map_err(issue => HostAttestationJournal(issue))
+  }
 }
 
 ///|
@@ -409,4 +475,79 @@ pub fn NativeLocalEffectResumeOriginal::retire_read_aliases(
   self.subject = None
   self.host_key = None
   self.action = None
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::claim_in_original_journal(
+  self : Self,
+  key : NativeLocalInitialHostSigningOriginal,
+  binding : @checkpoint.ResumeBinding,
+  lease_ms : Int64,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
+  let result = self.host.journal.claim_effect_resume_with_operations(
+    self.request,
+    self.crypto,
+    self.authentication,
+    [
+      {
+        key_id: self.registration.key_id,
+        reviewer_id: self.registration.reviewer_id,
+      },
+    ],
+    [{ key_id: key.public_key.cid(), public_key_pem: key.public_key_pem, }],
+    key.public_key.cid(),
+    lease_ms,
+    binding,
+    () => self.authority_current(),
+    () => {
+      let now = @env.now().reinterpret_as_int64()
+      (@values.epoch_milliseconds_timestamp(now).unwrap_or(""), now)
+    },
+    operations,
+  )
+  match result {
+    Ok(action) => {
+      self.action = Some(action)
+      Ok(action)
+    }
+    Err(issue) => {
+      self.issue = Some(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::fence_in_original_journal(
+  self : Self,
+  claim : NativeClientEffectResumeClaim,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectResumeFence, NativeClientRunJournalIssue] {
+  self.host.journal.effect_resume_fence_with_operations(
+    claim,
+    () => self.authority_current(),
+    () => @env.now().reinterpret_as_int64(),
+    operations,
+  )
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::dispatch_in_original_journal(
+  self : Self,
+  claim : NativeClientEffectResumeClaim,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  basis : @effect.EffectLedgerBasis,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientEffectRowDispatchAction, NativeClientRunJournalIssue] {
+  self.host.journal.record_effect_row_dispatch_with_operations(
+    claim,
+    locator,
+    key,
+    basis,
+    () => self.authority_current(),
+    () => @env.now().reinterpret_as_int64(),
+    operations,
+  )
 }

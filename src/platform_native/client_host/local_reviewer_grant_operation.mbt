@@ -238,6 +238,7 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) else { return Err(ChangedIntent) }
   let scope = @credential.local_signing_credential_grant_scope(grant)
@@ -245,7 +246,12 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
   let mut observed = 0L
   while true {
     let row = match
-      self.database.scan_after("client_local_grant_originals", cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_local_grant_originals",
+        cursor,
+        reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => return Ok(())
       Err(issue) => return Err(Physical(issue))
@@ -302,6 +308,7 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
             self,
             prior,
             history.original_use(),
+            reads~,
           ) {
           Ok((signature, Some(evidence))) => (signature, evidence)
           _ => return Err(Checkpoint(NeedsOriginalContinuation))

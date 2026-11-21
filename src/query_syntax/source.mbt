@@ -72,6 +72,19 @@ struct Tokens {
   // Set only while constructing actual scalar Call nodes from this source.
   // Shared CTE/set expressions retain this same parser-owned token original.
   mut integer_context_required : Bool
+  // Count original unnamed outputs during their bounded construction.
+  mut anonymous_output_demands : Int
+  // Saturation31 already exceeds every positive Int-sized builder node bound.
+  // This is construction DATA, never a cardinality or language policy limit.
+  mut anonymous_star_growth : Int
+  // Original constructor geometry. These are bounded DATA counters, not limits.
+  mut namespace_events : Int
+  mut namespace_seed_fields : Int
+  mut namespace_field_factor : Int
+  mut namespace_added_fields : Int
+  mut namespace_references : Int
+  // Set only at parser-owned source/peer selection, never from a caller hint.
+  mut published_namespace_possible : Bool
 }
 
 ///|
@@ -167,6 +180,14 @@ fn scan_tokens(
       usage: budget.used,
       identifiers,
       integer_context_required: false,
+      anonymous_output_demands: 0,
+      anonymous_star_growth: 0,
+      namespace_events: 0,
+      namespace_seed_fields: 0,
+      namespace_field_factor: 1,
+      namespace_added_fields: 0,
+      namespace_references: 0,
+      published_namespace_possible: false,
     })
   } catch {
     LexicalAbort(issue, at) =>
@@ -226,4 +247,11 @@ pub fn token_origin(tokens : Tokens, index : Int) -> @origin.Origin? {
     Some(t) => Some(@origin.range(tokens.document, t.start, t.end).unwrap())
     None => None
   }
+}
+
+///|
+// Every represented field/array count is Int-indexed. Saturation retains a
+// conservative construction ceiling; it never rejects syntax or grants space.
+fn namespace_count_add(left : Int, right : Int) -> Int {
+  (left.to_int64() + right.to_int64()).min(2147483647L).to_int()
 }

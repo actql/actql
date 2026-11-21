@@ -2355,6 +2355,20 @@ export function openClientRequestJournal(directory, {
   const sameRunStateRow = (row, original) => row!==undefined &&
     Object.keys(row).length===Object.keys(original).length &&
     Object.keys(row).every(key=>row[key]===original[key]);
+  const statePublicationAdvanced = (old, next) =>
+    Number.isSafeInteger(old.state_revision) && old.state_revision >= 0 &&
+    Number.isSafeInteger(next.state_revision) &&
+    (next.state_revision > old.state_revision || old.state_observation_key === null &&
+      old.state_revision === 0 && next.state_revision === 0) &&
+    (old.state_observation_key === null || typeof old.state_observation_key === 'string' && old.state_observation_key.length > 0) &&
+    typeof next.state_observation_key === 'string' && next.state_observation_key.length > 0 &&
+    next.state_observation_key !== old.state_observation_key;
+  const physicalCloseAdvanced = (old, next) =>
+    Number.isSafeInteger(old.revision) && old.revision >= 0 &&
+    Number.isSafeInteger(next.revision) && next.revision === old.revision + 1 &&
+    old.physical_start_reserved === 1 && old.physical_close_confirmed === 0 &&
+    next.physical_close_confirmed === 1 && old.cancellation_requested === 0 &&
+    old.observed_terminal_outcome === null;
   const admitRunDefinitionRow = (row, requestControl, publicationControl) => {
     const retained = retainedIdentity(row, requestControl);
     if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
@@ -3728,12 +3742,7 @@ export function openClientRequestJournal(directory, {
       if(before===undefined||after===undefined||beforeFrame===afterFrame||
           before.requestControl!==after.requestControl||before.publicationControl!==after.publicationControl) return false;
       const old=before.row,next=after.row;
-      return Number.isSafeInteger(old.state_revision)&&old.state_revision>=0&&
-        Number.isSafeInteger(next.state_revision)&&
-        (next.state_revision>old.state_revision||old.state_observation_key===null&&old.state_revision===0&&next.state_revision===0)&&
-        (old.state_observation_key===null||typeof old.state_observation_key==='string'&&old.state_observation_key.length>0)&&
-        typeof next.state_observation_key==='string'&&next.state_observation_key.length>0&&
-        next.state_observation_key!==old.state_observation_key&&
+      return statePublicationAdvanced(old, next) &&
         Object.keys(old).length===Object.keys(next).length&&
         Object.keys(old).every(key=>key==='state_revision'||key==='state_observation_key'||old[key]===next[key]);
     },
@@ -3746,13 +3755,30 @@ export function openClientRequestJournal(directory, {
       if (before === undefined || after === undefined || beforeFrame === afterFrame ||
           before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
       const old = before.row, next = after.row;
-      return Number.isSafeInteger(old.revision) && old.revision >= 0 &&
-        Number.isSafeInteger(next.revision) && next.revision === old.revision + 1 &&
-        old.physical_start_reserved === 1 && old.physical_close_confirmed === 0 &&
-        next.physical_close_confirmed === 1 && old.cancellation_requested === 0 &&
-        old.observed_terminal_outcome === null &&
+      return physicalCloseAdvanced(old, next) &&
         Object.keys(old).length === Object.keys(next).length &&
         Object.keys(old).every(key => key === 'revision' || key === 'physical_close_confirmed' || old[key] === next[key]);
+    },
+    // A signing recovery can span both the original physical close and its
+    // public status publication. Compose those same one-way progressions;
+    // every other complete admitted column remains exact. No copied frame or
+    // changed cancellation, terminal, authority or retained body is accepted.
+    canReinspectRunForSigning(beforeFrame, afterFrame) {
+      ensureOpen();
+      const before = runStateFrames.get(beforeFrame), after = runStateFrames.get(afterFrame);
+      if (before === undefined || after === undefined || beforeFrame === afterFrame ||
+          before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
+      const old = before.row, next = after.row;
+      const samePhysical = old.revision === next.revision &&
+        old.physical_close_confirmed === next.physical_close_confirmed;
+      const samePublication = old.state_revision === next.state_revision &&
+        old.state_observation_key === next.state_observation_key;
+      return old.cancellation_requested === 0 && old.observed_terminal_outcome === null &&
+        (samePhysical || physicalCloseAdvanced(old, next)) &&
+        (samePublication || statePublicationAdvanced(old, next)) &&
+        Object.keys(old).length === Object.keys(next).length &&
+        Object.keys(old).every(key => key === 'revision' || key === 'physical_close_confirmed' ||
+          key === 'state_revision' || key === 'state_observation_key' || old[key] === next[key]);
     },
     // Private original-content projection for this journal's admitted Run.
     // It grants neither current authorization nor a physical/resume claim.

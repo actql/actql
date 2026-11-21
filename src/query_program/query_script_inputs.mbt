@@ -6,6 +6,9 @@ priv struct ScriptSources {
   bound : Map[String, Input]
   unshared : Array[String]
   ranges : Map[String, JoinChainScope]
+  // Compiler DATA: evaluated slots and their original optional SQL names.
+  // This never registers a display label or retains checking authority.
+  mut result_columns : Map[String, Array[ResultColumn]]?
   value_tables : Map[String, JoinChainScope]
   binding_ranges : Array[ScriptBindingRange]
   carriers : Map[String, @carrier.Carrier]

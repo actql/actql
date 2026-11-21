@@ -18,11 +18,12 @@ fn resume_test_claim(
   before_commit? : () -> Unit = () => (),
   installed? : Bool = true,
   resolution_mode? : String = "APPROVE",
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   let wire = @env.get_env_var(
     "ACTQL_TEST_CLIENT_" + resolution_mode + "_RESOLUTION_WIRE",
   ).unwrap()
-  journal.claim_effect_resume(
+  journal.claim_effect_resume_with_operations(
     request,
     epoch_test_crypto(),
     {
@@ -55,6 +56,7 @@ fn resume_test_claim(
       before_commit()
       ("2026-10-10T00:03:00.000Z", at)
     },
+    operations,
   )
 }
 
@@ -576,5 +578,208 @@ test "Native resume custody rejects missing inconsistent or noncanonical retaine
     ),
     None,
   )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Resume original operations preserve claim fence and construction on the same SQLite" {
+  let database = epoch_test_database("resume-original-operations")
+  let (journal, request, approved) = resume_test_approved(database)
+  let calls : Array[String] = []
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    before_construction: Some((_, _, _) => {
+      calls.push("construct")
+      Ok(())
+    }),
+  }
+  guard resume_test_claim(
+      journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      operations=Some(access),
+    )
+    is Ok(Claimed(claim)) else {
+    fail("original routed claim missing")
+  }
+  assert_true(calls.contains("construct"))
+  assert_true(
+    calls.any(value => value.has_prefix("compare_exchange:client_runs:")),
+  )
+  assert_eq(calls[calls.length() - 1], "commit")
+  guard journal.lookup(request, true) is Ok(Retained(saved)) else {
+    fail("Run missing")
+  }
+  assert_eq(saved.revision, approved.revision + 1L)
+  calls.clear()
+  assert_true(
+    journal.effect_resume_fence_with_operations(
+      claim,
+      () => true,
+      () => 1099L,
+      Some(access),
+    )
+    is Ok(Current),
+  )
+  assert_true(calls.any(value => value.has_prefix("read:client_runs:")))
+  assert_true(calls.contains("begin"))
+  assert_eq(calls[calls.length() - 1], "commit")
+  assert_true(
+    journal.effect_resume_fence_with_operations(
+      claim,
+      () => true,
+      () => 1100L,
+      Some(access),
+    )
+    is Ok(Stale),
+  )
+  // The unchanged public/None entrance observes the exact same original claim.
+  assert_true(
+    journal.effect_resume_fence(claim, () => true, () => 1099L) is Ok(Current),
+  )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Resume original construction refusal rollback current and foreign access never claim" {
+  let database = epoch_test_database("resume-original-refusal")
+  let foreign = epoch_test_database("resume-original-foreign")
+  let (journal, request, approved) = resume_test_approved(database)
+  let calls : Array[String] = []
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    before_construction: Some((_, _, _) => {
+      calls.push("construct-refused")
+      Err(@host.ClientJournalEncodingIssue::CapacityExceeded)
+    }),
+  }
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      operations=Some(access),
+    )
+    is Err(CapacityExceeded),
+  )
+  assert_true(calls.contains("construct-refused"))
+  assert_eq(calls[calls.length() - 1], "rollback")
+  assert_false(
+    calls.any(value => value.has_prefix("compare_exchange:client_runs:")),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(saved)) else {
+    fail("Run missing")
+  }
+  assert_eq(saved.revision, approved.revision)
+  assert_eq(
+    saved.checkpoint.unwrap().resume_intent,
+    approved.checkpoint.unwrap().resume_intent,
+  )
+  let foreign_calls : Array[String] = []
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      operations=Some(journal_test_operation_access(foreign, foreign_calls)),
+    )
+    is Err(CustodyLost),
+  )
+  assert_eq(foreign_calls.length(), 0)
+  calls.clear()
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => false,
+      operations=Some(access),
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_eq(calls.length(), 0)
+  foreign.close_checked().unwrap()
+  database.close_checked().unwrap()
+}
+
+///|
+test "Resume original lost COMMIT returns Unknown without a dispatch handle or replacement claim" {
+  let database = epoch_test_database("resume-original-unknown")
+  let (journal, request, approved) = resume_test_approved(database)
+  let calls : Array[String] = []
+  let ordinary = journal_test_read_access(database, calls)
+  let access = {
+    ..journal_test_operation_access(database, calls),
+    reads: {
+      ..ordinary,
+      transaction: operation => {
+        if operation is JournalCommit && calls.contains("claim-cas") {
+          database.commit().unwrap()
+          calls.push("commit-reply-lost")
+          Err(@sqlite.Busy)
+        } else {
+          (ordinary.transaction)(operation)
+        }
+      },
+    },
+    compare_exchange: (table, key, revision, body) => {
+      if table == "client_runs" {
+        calls.push("claim-cas")
+      }
+      database.compare_exchange(table, key, revision, body)
+    },
+  }
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      operations=Some(access),
+    )
+    is Err(TransactionUnknown),
+  )
+  assert_true(calls.contains("commit-reply-lost"))
+  assert_true(journal.fenced)
+  assert_true(database.transaction_fenced())
+  let row = database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  let saved = read_run_record(row).unwrap()
+  assert_eq(saved.revision, approved.revision + 1L)
+  assert_eq(saved.checkpoint.unwrap().resume_intent.unwrap().generation, 1L)
+  let before = calls.length()
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "host-replacement",
+      1001L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      operations=Some(access),
+    )
+    is Err(Fenced),
+  )
+  assert_eq(calls.length(), before)
   database.close_checked().unwrap()
 }

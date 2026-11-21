@@ -36,21 +36,31 @@ fn saved_effect_review_fields_from_cursor(
   let names = [
     "version", "provider", "request_scope_cid", "authority_scope_cid", "request_id",
     "run_definition_wire", "invocation_wire", "result_manifest_wire", "computation_receipt_wire",
-    "captured_run_wire", "review_wire", "authoring_context_cid", "result_definition_wires",
-    "result_artifact_wires", "result_derivation_wires", "result_ordering_wires",
-    "result_retention_wires", "result_schema_wires", "result_codec_cids",
+    "review_wire", "authoring_context_cid", "captured_run_wire", "captured_run_cid",
+    "result_definition_wires", "result_artifact_wires", "result_derivation_wires",
+    "result_ordering_wires", "result_retention_wires", "result_schema_wires", "result_codec_cids",
   ]
   let fields = match @decode.closed_object(cursor, names) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  for index in 0..<12 {
+  for index in 0..<11 {
     guard epoch_text(fields, names[index]) is Some(text) && !text.is_empty() else {
       return Err(CustodyLost)
     }
   }
-  if epoch_text(fields, "version") !=
-    Some("actql-native-local-effect-review/0.1") ||
+  let capture_valid = match epoch_text(fields, "version") {
+    Some("actql-native-local-effect-review/0.1") =>
+      @decode.lookup(fields, "captured_run_cid") is None &&
+      epoch_text(fields, "captured_run_wire") is Some(wire) &&
+      !wire.is_empty()
+    Some("actql-native-local-effect-review-reference/0.1") =>
+      @decode.lookup(fields, "captured_run_wire") is None &&
+      epoch_text(fields, "captured_run_cid") is Some(cid) &&
+      saved_effect_capture_cid_valid(cid)
+    _ => false
+  }
+  if !capture_valid ||
     epoch_text(fields, "provider") != Some("native-local-project-mock") {
     return Err(CustodyLost)
   }
@@ -120,6 +130,20 @@ fn saved_effect_review_texts(
     result.push(value)
   }
   Ok(result)
+}
+
+///|
+fn saved_effect_capture_cid_valid(cid : String) -> Bool {
+  if cid.length() != 71 || !cid.has_prefix("sha256:") {
+    return false
+  }
+  for index in 7..<71 {
+    let unit = cid[index].to_int()
+    if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -263,6 +287,7 @@ fn saved_effect_approval_original_from_fields(
   effect_limits : @host.ClientEffectComputationLimits,
   publication_present : Bool,
   schema_cursors? : Array[@decode.Cursor] = [],
+  capture_wire? : String? = None,
 ) -> Result[NativeLocalSavedEffectApprovalOriginal, NativeLocalAdoptionIssue] {
   if epoch_text(fields, "run_definition_wire") !=
     Some(@publication.publication_contract_json(materials.run_definition)) {
@@ -352,10 +377,30 @@ fn saved_effect_approval_original_from_fields(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
-  let captured = match
-    saved_effect_review_contract(
-      fields, "captured_run_wire", "captured_run", wire_limits,
-    ) {
+  let captured_result = match capture_wire {
+    None =>
+      saved_effect_review_contract(
+        fields, "captured_run_wire", "captured_run", wire_limits,
+      )
+    Some(wire) => {
+      guard epoch_text(fields, "captured_run_cid") is Some(cid) else {
+        return Err(Journal(CustodyLost))
+      }
+      match
+        @publication.admit_publication_contract(
+          "captured_run",
+          wire,
+          wire_limits.max_wire_bytes,
+          wire_limits.max_nodes,
+          wire_limits.max_depth,
+        ) {
+        Ok(value) if @publication.publication_contract_identity(value) == cid &&
+          @publication.publication_contract_json(value) == wire => Ok(value)
+        _ => Err(CustodyLost)
+      }
+    }
+  }
+  let captured = match captured_result {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }

@@ -520,3 +520,114 @@ test "initial issue changed preimage and operation cannot bypass original claime
     assert_eq(original_use.revision, 0L)
   }
 }
+
+///|
+// Explicit real-SQLite operation ports; not an installed capture, Account or
+// public approval. The higher captured caller must supply its original bundle.
+test "Signing grant custody routes older Run construction through the same database access" {
+  let (key, request, scope) = initial_issue_storage_fixture("grant-routed-run")
+  let host = key.original.host
+  initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap()
+  |> ignore
+  let calls : Array[String] = []
+  let decoded = Ref(0)
+  let access = journal_test_operation_access(host.database, calls)
+  let access = {
+    ..access,
+    reads: {
+      ..access.reads,
+      before_run_decode: Some(_ => {
+        decoded.val += 1
+        Ok(())
+      }),
+    },
+  }
+  let before = host.database
+    .read("client_local_grant_custody", "issued")
+    .unwrap()
+  let expected = host.journal
+    .transaction(() => host.local_grant_custody(host.epoch.crypto))
+    .unwrap()
+  let actual = host.journal
+    .transaction_with_reads(
+      () => host.local_grant_custody(host.epoch.crypto, operations=Some(access)),
+      reads=Some(access.reads),
+    )
+    .unwrap()
+  assert_eq((actual.0, actual.1), (expected.0, expected.1))
+  let logical = @host.client_request_scope_cid(request)
+  assert_eq(actual.2.get(logical), expected.2.get(logical))
+  assert_true(decoded.val > 0)
+  assert_true(calls.contains("read:client_runs:" + logical))
+  assert_true(calls.contains("capacity:client_local_grant_originals"))
+  assert_true(calls.contains("reserve:client_local_grant_originals:" + logical))
+  let after = host.database
+    .read("client_local_grant_custody", "issued")
+    .unwrap()
+  assert_eq((after.body, after.revision), (before.body, before.revision))
+  let crypto = host.epoch.crypto
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "Signing grant custody retains a routed constructor refusal without rewriting custody" {
+  let (key, request, scope) = initial_issue_storage_fixture(
+    "grant-routed-refusal",
+  )
+  let host = key.original.host
+  initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap()
+  |> ignore
+  let calls : Array[String] = []
+  let decoded = Ref(0)
+  let access = journal_test_operation_access(host.database, calls)
+  let access = {
+    ..access,
+    reads: {
+      ..access.reads,
+      before_run_decode: Some(_ => {
+        decoded.val += 1
+        Err(@host.ClientJournalDecodingIssue::CustodyLost)
+      }),
+    },
+  }
+  let before = host.database
+    .read("client_local_grant_custody", "issued")
+    .unwrap()
+  let result = host.journal.transaction_with_reads(
+    () => host.local_grant_custody(host.epoch.crypto, operations=Some(access)),
+    reads=Some(access.reads),
+  )
+  assert_true(result is Err(CustodyLost))
+  assert_eq(decoded.val, 1)
+  assert_false(calls.contains("capacity:client_local_grant_originals"))
+  let after = host.database
+    .read("client_local_grant_custody", "issued")
+    .unwrap()
+  assert_eq((after.body, after.revision), (before.body, before.revision))
+  let crypto = host.epoch.crypto
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "Signing grant custody refuses foreign database access before its callbacks" {
+  let (key, request, scope) = initial_issue_storage_fixture(
+    "grant-routed-foreign",
+  )
+  let host = key.original.host
+  initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap()
+  |> ignore
+  let foreign = epoch_test_database("grant-routed-foreign-database")
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(foreign, calls)
+  let result = host.journal.transaction(() => {
+    host.local_grant_custody(host.epoch.crypto, operations=Some(access))
+  })
+  assert_true(result is Err(CustodyLost))
+  assert_eq(calls.length(), 0)
+  foreign.close_checked().unwrap()
+  let crypto = host.epoch.crypto
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}

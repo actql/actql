@@ -105,7 +105,7 @@ propagation is not supported.
 | Literals | strings (single, double, triple-quoted, raw `r'…'`, adjacent chunks concatenate), integers (decimal, hex), finite doubles, `TRUE`/`FALSE`, `NULL`, arrays `[…]`, `ARRAY[…]` and `ARRAY<T>[]` (the empty array needs its element type) |
 | Parameters | `@name`, declared by the Program; never interpolated |
 | Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN`, `LIKE`, `NOT LIKE` |
-| Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
+| Conditionals | Searched `CASE WHEN … THEN … END`, simple `CASE value WHEN … THEN … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| INT64 \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
@@ -212,7 +212,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
 | `TIMESTAMP '…'` and `DATE '…'` typed literals | Not selected literal spellings. Timestamp conversion uses the canonical `CAST` grammar above; this does not add a Date cast. |
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
-| Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
+| Unaliased computed SELECT items | Use explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
 | `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |

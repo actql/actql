@@ -387,3 +387,52 @@ test "Native accepted Effect with lost original Run custody refuses selected loo
   )
   database.close_checked().unwrap()
 }
+
+///|
+test "Native Effect first admission retains its original computation Plan after reopen" {
+  let (database, journal, authority, reference) = submitted_test_setup(
+    "effect-plan-first-admission",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let (intent, preparation, request, allowed, definition) = native_client_effect_fixture_input(
+    reference, "effect-plan-first-admission-run",
+  )
+  journal
+  .record_submitted_intent(authority, reference, intent, scope, true, 1001.0)
+  .unwrap()
+  |> ignore
+  journal
+  .accept_submitted_effect_run(
+    authority, reference, preparation, request, allowed, definition, scope, true,
+    1002.0,
+  )
+  .unwrap()
+  |> ignore
+  guard journal.lookup(request, true) is Ok(Retained(before)) &&
+    before.observation_original is Some(observation) &&
+    observation.plan is Some(plan) else {
+    fail("first Effect acceptance omitted the original Plan")
+  }
+  let original_view = plan.view
+  assert_eq(
+    @publication.publication_contract_identity(plan.plan),
+    @publication.publication_contract_identity(
+      @host.client_effect_compilation_compiled_plan(allowed.compilation),
+    ),
+  )
+  assert_false(before.dispatch_reserved)
+  assert_false(before.physical_start_claimed)
+  database.close_checked().unwrap()
+  let database = epoch_test_database("effect-plan-first-admission")
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  guard journal.lookup(request, true) is Ok(Retained(after)) &&
+    after.observation_original is Some(restored) &&
+    restored.plan is Some(saved) else {
+    fail("cold Effect acceptance lost its original Plan")
+  }
+  assert_eq(saved.view, original_view)
+  assert_eq(after.run_observation_originals, before.run_observation_originals)
+  assert_false(after.dispatch_reserved)
+  assert_false(after.physical_start_claimed)
+  database.close_checked().unwrap()
+}
