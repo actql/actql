@@ -6,13 +6,25 @@ import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {checkoutState} from './packed-client-packages.mjs';
+import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 
-const directory = resolve(process.argv[2] ?? '');
-assert(process.argv.length === 3, 'usage: test-explorer-release-install.mjs <Explorer-RC-directory>');
+const [input, selection, evidenceInput] = process.argv.slice(2);
+const savedContext = selection === '--saved-context';
+assert(input && (process.argv.length === 3 || savedContext && evidenceInput && process.argv.length === 5),
+  'usage: test-explorer-release-install.mjs <Explorer-RC-directory> [--saved-context <evidence-directory>]');
+const directory = resolve(input);
+const evidence = evidenceInput === undefined ? directory : resolve(evidenceInput);
+const harness = savedContext ? checkoutState(fileURLToPath(new URL('../', import.meta.url))) : undefined;
+if (savedContext) {
+  assert(harness.clean, 'Saved Context acceptance requires clean test source');
+  await mkdir(evidence);
+}
 const manifest = await verifyPackageRelease(directory);
 assert.equal(manifest.cohort.version, 'actql-explorer-release-cohort/0.1');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-explorer-install-',
@@ -63,16 +75,26 @@ try {
   assert.equal(JSON.parse(await readFile(join(consumer, 'node_modules/react/package.json'))).version, '19.3.0');
   results.push(await run('npm', ['ls', 'react', 'react-dom', '--all', '--json']));
   auditPackedPackages(consumer, manifest.cohort.packages);
-  results.push(await run(join(consumer, 'node_modules/.bin/actql-explorer'), ['--help']));
-  await copyFile(new URL('./fixtures/explorer-installed-readonly.mjs', import.meta.url), join(consumer, 'read-only.mjs'));
-  results.push(await run(process.execPath, ['read-only.mjs']));
+  if (savedContext) {
+    const project = scaffoldProject(join(consumer, 'saved-project'), 'churn-risk-mock');
+    const fixture = join(consumer, 'saved-context.mjs');
+    await copyFile(new URL('./fixtures/packed-explorer-saved-context.mjs', import.meta.url), fixture);
+    for (const phase of ['produce', 'restore']) {
+      results.push(await run(process.execPath, [fixture, phase, project.directory, evidence]));
+    }
+  } else {
+    results.push(await run(join(consumer, 'node_modules/.bin/actql-explorer'), ['--help']));
+    await copyFile(new URL('./fixtures/explorer-installed-readonly.mjs', import.meta.url), join(consumer, 'read-only.mjs'));
+    results.push(await run(process.execPath, ['read-only.mjs']));
+  }
   assert(manifest.packages.every(p => registry.requested.includes(`archives/${p.file}`)));
   const receipt = {version: 'actql-explorer-install-acceptance/0.1', sourceSha: manifest.sourceSha,
+    ...(harness === undefined ? {} : {harnessSourceSha: harness.revision}),
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     consumer, node: process.version, platform: process.platform, arch: process.arch,
     registry: 'fixed-ActQL-loopback-and-normal-third-party-registry', publicPublication: false,
     installLockSha256: createHash('sha256').update(await readFile(join(consumer, 'package-lock.json'))).digest('hex'),
-    browserInteractiveAcceptance: false, results};
-  await writeFile(join(directory, `explorer-install-${Date.now()}.json`), JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx'});
+    browserInteractiveAcceptance: savedContext, results};
+  await writeFile(join(evidence, `explorer-install-${Date.now()}.json`), JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx'});
   scratch.passed(); console.log(`Installed Explorer read-only package acceptance passed: ${consumer}`);
 } finally {await registry.close();}
