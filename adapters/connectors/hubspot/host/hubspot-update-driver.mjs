@@ -7,7 +7,8 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
-import {assertInstalledRowUpdateClaim, restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
+import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
+  restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
 import {createHubSpotUpdateObservationAdapter} from './hubspot-update-observations.mjs';
 import {projectHubSpotRecordWriteObservation} from '../site/hubspot-record-write.mjs';
@@ -145,11 +146,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       const member = members[index]; selected(member);
       const changes = body?.effects?.[index]?.changes,
         claims = recorded.members[index]?.claims;
-      if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-          Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-          !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-          claims.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
-      const value = JSON.parse(saved.wire);
+      const value = unpackInstalledRowUpdateRecovery(saved, recoveryKind, maxRecoveryBytes,
+        changes, claims, maxRows, 'InvalidHubSpotUpdateRecovery');
       if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
           Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
           encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
@@ -212,14 +210,10 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     },
     recoveryEntry({member, entries}) {
       selected(member);
-      if (!Array.isArray(entries) || entries.length > maxRows) fail('InvalidHubSpotUpdateRecovery');
-      const wires = entries.map(entry => {
-        if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignHubSpotUpdateRequest');
-        return requests.savedWire(entry.request);
-      });
-      const wire = encode({version: recoveryVersion, binding, member: memberFacts(member), requests: wires});
-      if (Buffer.byteLength(wire) > maxRecoveryBytes) fail('HubSpotUpdateRecoveryLimit');
-      return Object.freeze({kind: recoveryKind, observationCid: wireCid(wire), wire});
+      const wires = installedRowUpdateRequestWires(entries, maxRows, requests,
+        'InvalidHubSpotUpdateRecovery', 'ForeignHubSpotUpdateRequest');
+      return packInstalledRowUpdateRecovery(recoveryKind, {version: recoveryVersion, binding,
+        member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'HubSpotUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
     async send({member, request, current, authorization, credential, signal, callResource}) {

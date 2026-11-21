@@ -7348,14 +7348,17 @@
     },
     {
       "module": "adapters/host-common/installed-row-update-recovery.mjs",
-      "sha256": "f172d26e606b7f8f3715a728ad206aacd2a22c05f435c4ea9a2600100e4d353e",
+      "sha256": "897c802a4b037d029e970791b177483028045c4e146508d8956e6d667666f6bf",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Row Effect saved update member selection",
       "referenceQualification": "Source and retained-codec component references for exact original member selection",
       "exports": [
         "assertInstalledRowUpdateClaim",
-        "restoreInstalledRowUpdateMembers"
+        "installedRowUpdateRequestWires",
+        "packInstalledRowUpdateRecovery",
+        "restoreInstalledRowUpdateMembers",
+        "unpackInstalledRowUpdateRecovery"
       ],
       "operations": [
         {
@@ -7367,6 +7370,34 @@
             "changes",
             "row",
             "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires",
+          "parameters": [
+            "entries",
+            "maxRows",
+            "requests",
+            "invalidCode",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "packInstalledRowUpdateRecovery",
+          "parameters": [
+            "kind",
+            "recovery",
+            "maxRecoveryBytes",
+            "limitCode"
           ],
           "async": false
         },
@@ -7395,10 +7426,24 @@
             "offset"
           ],
           "async": false
+        },
+        {
+          "name": "unpackInstalledRowUpdateRecovery",
+          "parameters": [
+            "saved",
+            "kind",
+            "maxRecoveryBytes",
+            "changes",
+            "claims",
+            "maxRows",
+            "invalidCode"
+          ],
+          "async": false
         }
       ],
       "imports": [
-        "../../packages/sdk/host-port.mjs"
+        "../../packages/sdk/host-port.mjs",
+        "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -7407,13 +7452,20 @@
           "operations": [
             "<module>",
             "assertInstalledRowUpdateClaim",
+            "installedRowUpdateRequestWires",
+            "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
             "restoreInstalledRowUpdateMembers",
             "restoreInstalledRowUpdateMembers/indexes/indexes",
-            "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers"
+            "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
           ],
           "exports": [
             "assertInstalledRowUpdateClaim",
-            "restoreInstalledRowUpdateMembers"
+            "installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
+            "restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
           ],
           "attributes": {
             "responsibility": [
@@ -7436,6 +7488,10 @@
               {
                 "path": "adapters/host-common/installed-row-update-recovery.mjs",
                 "anchor": "rebuilt.requestCid !== claims[row].canonicalRequestCid"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "wireCid(saved.wire) !== saved.observationCid"
               }
             ],
             "ownership": [
@@ -7470,6 +7526,10 @@
               {
                 "path": "adapters/host-common/installed-row-update-recovery.mjs",
                 "anchor": "const requests = new Array(indexes.length);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Buffer.byteLength(wire) > maxRecoveryBytes"
               }
             ],
             "extension": [
@@ -7486,6 +7546,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
                 "anchor": "test('HubSpot cold row driver refuses changed approved value target dispatch binding and claim rather than sending'"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery keeps the exact bounded provider wire"
               }
             ]
           }

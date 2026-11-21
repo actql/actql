@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "81a6028a3f1970909ae1081b9ae3a37518d31245cf16bbf9dbc59384f02985b8",
+      "sha256": "3adfc1dda5e75ae91bfdb7fb6fd23afca80668851d2da5459462135bf0800607",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -8658,13 +8658,6 @@
             "member",
             "current",
             "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
-          "parameters": [
-            "entry"
           ],
           "async": false
         },
@@ -8813,7 +8806,6 @@
             "kintoneUpdateDriver/init:project/init:project",
             "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
             "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
             "kintoneUpdateDriver/init:send/init:send",
             "kintoneUpdateDriver/kintoneUpdateDriver",
             "kintoneUpdateDriver/kintoneUpdateDriver#2",

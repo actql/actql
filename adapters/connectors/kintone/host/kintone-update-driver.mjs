@@ -6,7 +6,8 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
-import {assertInstalledRowUpdateClaim, restoreInstalledRowUpdateMembers} from '../../../host-common/installed-row-update-recovery.mjs';
+import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
+  restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
@@ -148,11 +149,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         const member = members[index]; selected(member);
         const changes = body?.effects?.[index]?.changes,
           claims = recorded.members[index]?.claims;
-        if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-            Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-            !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-            claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
-        const value = JSON.parse(saved.wire);
+        const value = unpackInstalledRowUpdateRecovery(saved, recoveryKind, maxRecoveryBytes,
+          changes, claims, maxRows, 'InvalidKintoneUpdateRecovery');
         if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
             Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
             !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
@@ -233,14 +231,10 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     },
     recoveryEntry({member, current, entries}) {
       const original = frame(member, current);
-      if (!Array.isArray(entries) || entries.length > original.maxRows) fail('InvalidKintoneUpdateRecovery');
-      const wires = entries.map(entry => {
-        if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');
-        return requests.savedWire(entry.request);
-      });
-      const wire = encode({version: recoveryVersion, binding, member: memberFacts(member), requests: wires});
-      if (Buffer.byteLength(wire) > maxRecoveryBytes) fail('KintoneUpdateRecoveryLimit');
-      return Object.freeze({kind: recoveryKind, observationCid: wireCid(wire), wire});
+      const wires = installedRowUpdateRequestWires(entries, original.maxRows, requests,
+        'InvalidKintoneUpdateRecovery', 'ForeignKintoneUpdateRequest');
+      return packInstalledRowUpdateRecovery(recoveryKind, {version: recoveryVersion, binding,
+        member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'KintoneUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
     async send({member, request, current, authorization, credential, signal, callResource}) {

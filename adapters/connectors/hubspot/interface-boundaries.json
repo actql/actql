@@ -2129,7 +2129,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "742ba7ecde7a4f7ed06c567f147128af7cb59c36dec810c30ebec5d0f1262ff4",
+      "sha256": "323efe1c3cc31e58db85f6e3ed58b6a1f7cef696cd8c220a7a277a8551627b90",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2265,13 +2265,6 @@
           "async": false
         },
         {
-          "name": "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
           "name": "hubspotUpdateDriver/init:send/init:send",
           "parameters": [
             "member",
@@ -2398,7 +2391,6 @@
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests",
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests/check/check",
             "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
             "hubspotUpdateDriver/init:send/init:send",
             "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",

@@ -1,6 +1,8 @@
+import {createHash} from 'node:crypto';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
 const encode = value => canonicalJson(value, {dataKeys: true});
+const wireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
 
 function fail(code) {
   throw Object.assign(new Error(code), {code});
@@ -38,4 +40,31 @@ export function assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, r
   if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
       encode(facts.value) !== encode(changes[row].after?.value) ||
       encode(facts.target) !== encode(changes[row].target_row_identity)) fail(foreignCode);
+}
+
+// The enclosing capture owns the original members and request codec.
+export function installedRowUpdateRequestWires(entries, maxRows, requests, invalidCode, foreignCode) {
+  if (!Array.isArray(entries) || entries.length > maxRows) fail(invalidCode);
+  return entries.map(entry => {
+    if (entry.requestCid !== requests.requestCid(entry.request)) fail(foreignCode);
+    return requests.savedWire(entry.request);
+  });
+}
+
+// Retain the bounded canonical wire with its original digest.
+export function packInstalledRowUpdateRecovery(kind, recovery, maxRecoveryBytes, limitCode) {
+  const wire = encode(recovery);
+  if (Buffer.byteLength(wire) > maxRecoveryBytes) fail(limitCode);
+  return Object.freeze({kind, observationCid: wireCid(wire), wire});
+}
+
+// Check the common custody envelope before decoding. The caller's original
+// codec still validates the provider version, binding and per-row wire.
+export function unpackInstalledRowUpdateRecovery(saved, kind, maxRecoveryBytes,
+  changes, claims, maxRows, invalidCode) {
+  if (saved?.kind !== kind || typeof saved.wire !== 'string' ||
+      Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
+      !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
+      claims.length !== changes.length) fail(invalidCode);
+  return JSON.parse(saved.wire);
 }
