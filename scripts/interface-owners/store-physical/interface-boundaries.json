@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bd02f0b5954899e88983de391c49ce85ddd8301a2f82e9de93bdc6d43233fee6",
+      "sha256": "3d4a9f5ad365837b5186f86bd1f437f23d60bd2b507e5a4c0bae61e8be6335c6",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9345,26 +9345,6 @@
           "async": false
         },
         {
-          "name": "retainStoreOpeningFailure/retry/retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainStoreOpeningFailure/retry/retry/retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "retainStoreOpeningFailure/retry/retry/retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainStoreOpeningFailure/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "storeBootstrapAcquisition/readDirectory/readDirectory",
           "parameters": [
             "path"
@@ -9404,47 +9384,6 @@
             "path"
           ],
           "async": true
-        },
-        {
-          "name": "syncDirectoryPath",
-          "parameters": [
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "syncDirectoryPath/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "syncDirectoryPath/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "syncDirectoryPath/syncDirectoryPath",
-          "parameters": [
-            "name"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -10155,24 +10094,13 @@
             "retainPrivateWriterCleanup/release/release/release",
             "retainPrivateWriterCleanup/release/release/release#2",
             "retainPrivateWriterCleanup/release/release/release#3",
-            "retainStoreOpeningFailure/retry/retry",
-            "retainStoreOpeningFailure/retry/retry/retry",
-            "retainStoreOpeningFailure/retry/retry/retry#2",
-            "retainStoreOpeningFailure/status/status",
             "storeBootstrapAcquisition/readDirectory/readDirectory",
             "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
             "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
             "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
             "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
             "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
-            "storeBootstrapAcquisition/readMetadata/readMetadata",
-            "syncDirectoryPath",
-            "syncDirectoryPath/cleanup/init:retry/init:retry",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
-            "syncDirectoryPath/status/status",
-            "syncDirectoryPath/syncDirectoryPath"
+            "storeBootstrapAcquisition/readMetadata/readMetadata"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13929,12 +13857,16 @@
     {
       "module": "adapters/store-local/publication-store-io.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "be03b782c926b2277a7a1c50ff77d58012e34449795901933a9c5bc5203b8df6",
+      "sha256": "e7e13fbb977b7d3a4484cc1467bd9468808cdaec7101f8e866dbaab8c404bac9",
       "exports": [
         "PublicationStoreError",
         "fail",
+        "localDurability",
         "quantity",
-        "readBounded"
+        "readBounded",
+        "retainStoreOpeningFailure",
+        "syncDirectoryPath",
+        "writeExclusive"
       ],
       "operations": [
         {
@@ -14005,6 +13937,84 @@
           "name": "readBounded/status/status",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainStoreOpeningFailure",
+          "parameters": [
+            "cause",
+            "ownership",
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "retainStoreOpeningFailure/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainStoreOpeningFailure/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainStoreOpeningFailure/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainStoreOpeningFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/syncDirectoryPath",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "writeExclusive",
+          "parameters": [
+            "path",
+            "bytes"
+          ],
+          "async": true
         }
       ],
       "role": "physical-io",
@@ -14022,13 +14032,30 @@
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
             "readBounded/cleanup/init:retry/init:retry/init:retry#3",
             "readBounded/readBounded",
-            "readBounded/status/status"
+            "readBounded/status/status",
+            "retainStoreOpeningFailure",
+            "retainStoreOpeningFailure/retry/retry",
+            "retainStoreOpeningFailure/retry/retry/retry",
+            "retainStoreOpeningFailure/retry/retry/retry#2",
+            "retainStoreOpeningFailure/status/status",
+            "syncDirectoryPath",
+            "syncDirectoryPath/cleanup/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+            "syncDirectoryPath/status/status",
+            "syncDirectoryPath/syncDirectoryPath",
+            "writeExclusive"
           ],
           "exports": [
             "PublicationStoreError",
             "fail",
+            "localDurability",
             "quantity",
-            "readBounded"
+            "readBounded",
+            "retainStoreOpeningFailure",
+            "syncDirectoryPath",
+            "writeExclusive"
           ],
           "attributes": {
             "responsibility": [
@@ -14063,12 +14090,24 @@
               {
                 "path": "adapters/store-local/publication-store-io.mts",
                 "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "adapters/store-local/publication-store-io.mts",
+                "anchor": "await directory.sync();"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store-io.mts",
                 "anchor": "const primary = readFailed ? readFailure : closeFailure;"
+              },
+              {
+                "path": "adapters/store-local/publication-store-io.mts",
+                "anchor": "const primary = syncFailed ? syncFailure : closeFailure;"
+              },
+              {
+                "path": "adapters/store-local/publication-store-io.mts",
+                "anchor": "failure.primaryFailure = cause !== null"
               }
             ],
             "cancellation": [
@@ -14097,6 +14136,14 @@
               {
                 "path": "adapters/store-local/bounded-metadata-read.test.mjs",
                 "anchor": "metadata read pins the FD and requests only the declared bytes plus probe"
+              },
+              {
+                "path": "adapters/store-local/opening-custody.test.mjs",
+                "anchor": "opening cleanup preserves frozen primary and closes failed original reader before ownership"
+              },
+              {
+                "path": "adapters/store-local/opening-directory-close.test.mjs",
+                "anchor": "failed owner sync plus"
               }
             ]
           }
@@ -14108,7 +14155,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "referenceQualification": "Existing Store metadata I/O and original same-descriptor cleanup only. No new Store, release authority or installed acceptance."
+      "referenceQualification": "Existing Store metadata I/O, original durability and same-owner opening cleanup. No new Store, release authority or installed acceptance."
     },
     {
       "module": "adapters/store-local/representations.mjs",

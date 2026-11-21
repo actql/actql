@@ -185,3 +185,129 @@ export async function readBounded(path: Parameters<typeof open>[0], maximum: unk
     closed?.();
   }
 }
+
+export async function syncDirectoryPath(path: Parameters<typeof open>[0]) {
+  const directory = await open(path, constants.O_RDONLY);
+  let syncFailure: unknown, syncFailed = false;
+  try { await directory.sync(); }
+  catch (cause) { syncFailed = true; syncFailure = cause; }
+  try {
+    if ((await directory.close() as unknown) === false) fail('PublicationDirectorySyncCleanupPending');
+  } catch (closeFailure) {
+    // Keep this already-acquired FD, not a pathname reopen or repeated sync.
+    // Its initialization/publication caller still owns all surrounding duty.
+    let original: FileHandle | undefined = directory, flight: Promise<MetadataStatus> | undefined;
+    const status = () => Object.freeze({pending: original !== undefined});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      if (original === undefined) return Promise.resolve(status());
+      flight = Promise.resolve().then(() => original!.close() as Promise<unknown>).then(result => {
+        if (result === false) fail('PublicationDirectorySyncCleanupPending');
+        original = undefined;
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    const primary = syncFailed ? syncFailure : closeFailure;
+    let failure;
+    try {
+      failure = primary !== null && typeof primary === 'object' &&
+        Object.isExtensible(primary) && (primary as {cleanupHandle?: unknown}).cleanupHandle === undefined &&
+        ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+          const field = Object.getOwnPropertyDescriptor(primary, name);
+          return field === undefined || field.writable === true;
+        }) ? primary : new Error('PublicationDirectorySyncCleanupPending', {cause: primary});
+      Object.defineProperties(failure, {
+        cleanupHandle: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupHandle') ??
+          {writable: true, enumerable: true, configurable: true}), value: cleanup},
+        cleanupPending: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupPending') ??
+          {writable: true, enumerable: true, configurable: true}), value: true},
+        cleanupError: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupError') ??
+          {writable: true, enumerable: true, configurable: true}), value: closeFailure},
+      });
+      if (failure !== primary) Object.defineProperty(failure, 'primaryFailure', {value: primary});
+    } catch {
+      // Presentation must never mask raw thrown values or original FD duty.
+      failure = Object.assign(new Error('PublicationDirectorySyncCleanupPending', {cause: primary}),
+        {code: 'PublicationDirectorySyncCleanupPending', primaryFailure: primary,
+          cleanupHandle: cleanup, cleanupPending: true, cleanupError: closeFailure});
+    }
+    throw failure;
+  }
+  if (syncFailed) throw syncFailure;
+}
+
+export const localDurability = Object.freeze({syncDirectory: syncDirectoryPath});
+
+export async function writeExclusive(path: Parameters<typeof open>[0], bytes: Uint8Array) {
+  const handle = await open(path, constants.O_CREAT | constants.O_EXCL |
+    constants.O_WRONLY, 0o600);
+  try {
+    let offset = 0;
+    while (offset < bytes.byteLength) {
+      const {bytesWritten} = await handle.write(
+        bytes, offset, bytes.byteLength - offset, offset,
+      );
+      if (bytesWritten === 0) fail('IncompletePublicationWrite');
+      offset += bytesWritten;
+    }
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+type OpeningFailureCause = {
+  code?: unknown;
+  primaryFailure?: unknown;
+  cleanupHandle?: Readonly<{status(): Readonly<{pending?: unknown}>; retry(): unknown}>;
+};
+type OpeningCleanupFailure = Error & {
+  code?: unknown;
+  primaryFailure?: unknown;
+  cleanupPending?: true;
+  cleanupError?: unknown;
+  cleanupHandle?: Readonly<{status(): MetadataStatus; retry(): Promise<MetadataStatus>}>;
+};
+
+// An opener can fail after acquiring the existing Store owner but before it
+// returns a Store. Keep that SAME ownership and any failed physical reader;
+// retry only cleanup, never reopen initialization or invent completed custody.
+export async function retainStoreOpeningFailure(cause: unknown,
+  ownership: {release(): unknown} | undefined, key: Uint8Array | undefined) {
+  let original = ownership;
+  const reader = (cause as OpeningFailureCause | null | undefined)?.cleanupHandle;
+  let flight: Promise<MetadataStatus> | undefined, cleanupError: unknown;
+  const status = () => Object.freeze({pending: original !== undefined ||
+    reader?.status().pending === true});
+  const retry = () => {
+    if (flight !== undefined) return flight;
+    if (!status().pending) { key?.fill(0); return Promise.resolve(status()); }
+    flight = Promise.resolve().then(async () => {
+      if (reader?.status().pending) {
+        await reader.retry();
+        if (reader.status().pending) fail('PublicationStoreCleanupPending');
+      }
+      if (original !== undefined) {
+        const released = await original.release();
+        // Absence/false is not proof of this opener's successful cleanup.
+        if (released !== true) fail('PublicationStoreOwnershipLost');
+        original = undefined;
+      }
+      key?.fill(0);
+      return status();
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  try { await retry(); }
+  catch (error) { cleanupError = error; }
+  if (!status().pending) return cause;
+  const failure: OpeningCleanupFailure = new Error('PublicationStoreOpeningCleanupPending', {cause});
+  failure.code = (cause as OpeningFailureCause | null | undefined)?.code ?? 'PublicationStoreOpeningCleanupPending';
+  failure.primaryFailure = cause !== null && typeof cause === 'object' &&
+    Object.hasOwn(cause, 'primaryFailure') ? (cause as OpeningFailureCause).primaryFailure : cause;
+  failure.cleanupPending = true;
+  failure.cleanupError = cleanupError;
+  failure.cleanupHandle = Object.freeze({status, retry});
+  return failure;
+}

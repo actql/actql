@@ -17,7 +17,7 @@ function section(from, to) {
   return source.slice(start, end);
 }
 const bounded = Function.prototype.toString.call(readBounded);
-const keys = section('const exactKeys =', '\nasync function syncDirectoryPath(');
+const keys = section('const exactKeys =', '\nasync function processIsAlive(');
 const current = section('  let lastClockObservation;', '\n  const observeTrustedClock =');
 const clock = `sha256:${'c'.repeat(64)}`;
 const time = '2026-10-12T00:00:00.000Z';

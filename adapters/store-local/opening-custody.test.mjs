@@ -3,18 +3,10 @@ import {chmod, lstat, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/prom
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {runInNewContext} from 'node:vm';
-import {parse} from 'acorn';
+import {retainStoreOpeningFailure as retain} from './publication-store-io.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
-const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retainStoreOpeningFailure');
-assert(declaration !== undefined);
-const retain = runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
-  fail: code => { throw Object.assign(new Error(code), {code}); },
-});
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-store-opening-custody-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
