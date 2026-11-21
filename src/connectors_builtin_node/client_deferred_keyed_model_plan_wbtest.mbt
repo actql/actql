@@ -510,6 +510,103 @@ test "Static Effect Facts keep the original Source JOINs and INFER join-back" {
 }
 
 ///|
+test "Portable narrative renders the original deal-review Facts and Context in both languages" {
+  let (owner, _, model) = deferred_keyed_model_fixture()
+  let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
+  let (original, _) = @publication_host.capture_client_static_effect_explanation_original(
+    owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let writer = @encode.writer(65536, 8192, 64)
+  @publication_host.write_client_static_effect_explanation_context(
+    original, owner, compiled, writer, 10000,
+  ).unwrap()
+  let context = @publication.parse_interactive_run_control_shape(
+    "explanation_context",
+    @encode.finish(writer),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let facts_wire = @publication_host.seal_client_static_effect_explanation_facts(
+    original, owner, compiled, 65536, 8192, 64,
+  ).unwrap()
+  let facts = @publication.parse_interactive_run_control_shape(
+    "explanation_facts",
+    @publication.run_evidence_value_json(facts_wire),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let english = @publication_host.render_client_explanation_narrative(
+    facts,
+    context,
+    English,
+    65536,
+  )
+  let japanese = @publication_host.render_client_explanation_narrative(
+    facts,
+    context,
+    Japanese,
+    65536,
+  )
+  assert_eq(english.context.length(), 6)
+  assert_eq(japanese.context.length(), 6)
+  assert_true(english.context[0].contains("\"salesforce\".\"Opportunity\""))
+  assert_true(english.context[1].contains("\"drive\".\"files\""))
+  assert_true(english.context[2].contains("\"drive\".\"contents\""))
+  assert_eq(
+    english.context[3],
+    "Apply model task \"model-task:deal-review.v1\" to each input row",
+  )
+  assert_eq(
+    japanese.context[3],
+    "モデルタスク \"model-task:deal-review.v1\" を各入力行に適用",
+  )
+  assert_eq(english.context[4], "Declare Result \"updates\"")
+  assert_true(
+    english.context[5].contains("\"connector://salesforce/Opportunity\""),
+  )
+  assert_true(english.context[5].contains("\"StageName\""))
+  assert_true(english.context[5].contains("\"NextStep\""))
+  assert_true(english.context[5].contains("Current decision unknown"))
+  assert_true(japanese.context[5].contains("現在の判断は不明"))
+  assert_eq(english.steps.length(), japanese.steps.length())
+  assert_true(
+    english.steps.any(line => {
+      line.contains("join on: left.\"name\" = right.\"name\"")
+    }),
+  )
+  assert_true(
+    english.steps.any(line => {
+      line.contains("right.\"resource\"") && line.contains("right.\"version\"")
+    }),
+  )
+  let repeated = @publication_host.render_client_explanation_narrative(
+    facts,
+    context,
+    English,
+    65536,
+  )
+  assert_eq(repeated.context, english.context)
+  assert_eq(repeated.steps, english.steps)
+  let short = try {
+    ignore(
+      @publication_host.render_client_explanation_narrative(
+        facts,
+        context,
+        English,
+        1,
+      ),
+    )
+    false
+  } catch {
+    @publication_host.ExplanationPresentationLimit => true
+    _ => false
+  }
+  assert_true(short)
+}
+
+///|
 // Inspect the original exported Array representation without a conversion.
 #warnings("-deprecated")
 extern "js" fn direct_source_coordinates_js_arrays(

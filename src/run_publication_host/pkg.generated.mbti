@@ -2803,6 +2803,8 @@ pub fn release_recovered_client_effect_command_content(RecoveredClientEffectComm
 
 pub fn release_recovered_client_effect_source_command_content(RecoveredClientEffectSourceCommandContent) -> Unit
 
+pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, ClientExplanationLanguage, Int) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
+
 pub fn[E] reobserve_client_saved_submission_original(ClientSavedSubmissionSnapshot, (String, String) -> Result[ClientJournalPhysicalRow?, E]) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]
@@ -3008,6 +3010,10 @@ pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> Prep
 pub fn write_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
 // Errors
+pub(all) suberror ClientExplanationNarrativeIssue {
+  InvalidExplanation
+  ExplanationPresentationLimit
+} derive(@debug.Debug)
 
 // Types and methods
 pub struct CapturedClientResultTransformation {
@@ -3803,6 +3809,11 @@ pub(all) enum ClientExplanationFactsIssue {
   Evidence(@run_publication.RunEvidenceValueIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientExplanationLanguage {
+  English
+  Japanese
+}
+
 pub enum ClientExplanationMeaning {
   InputOutput
   Values(row_count~ : Int, schema~ : @relation_schema.Schema)
@@ -3810,6 +3821,11 @@ pub enum ClientExplanationMeaning {
   Projection(@relation_typing.CheckedOperation)
   Join(@relation_join_shape.CheckedJoin)
   NotProjected
+}
+
+pub struct ClientExplanationNarrative {
+  context : Array[String]
+  steps : Array[String]
 }
 
 pub(all) struct ClientExplanationOccurrence {
