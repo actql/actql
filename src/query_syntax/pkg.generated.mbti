@@ -114,6 +114,8 @@ pub fn relation(Query) -> Array[NamePart]
 
 pub fn relation_alias(Query) -> NamePart?
 
+pub fn rollup_item_count(Query) -> Int
+
 pub fn same_relation_name(NamePart, NamePart) -> Bool
 
 pub fn script_document(QueryScript) -> @frontend_source_map.Document
@@ -379,6 +381,7 @@ pub(all) struct GraphQuery {
 pub(all) enum GroupingScope {
   SqlSelect
   SqlSelectAll
+  SqlRollup(Array[Int])
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 

@@ -316,6 +316,8 @@ declared `NUMBER` columns are not implicitly promoted. Explicit FLOAT64/NUMBER
 to INT64 casts round to nearest with ties away from zero and reject overflow.
 INT64 Result values use canonical decimal strings on the existing wire.
 
+SQL `GROUP BY ROLLUP` returns each prefix subtotal and the grand total with typed NULLs for omitted grouping keys.
+
 ## Not accepted
 
 These are refused at check time with a named reason. They are either outside
@@ -343,7 +345,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
 | `REGEXP_EXTRACT` with position or occurrence arguments | The selected two-argument String signature uses the first match. |
 | `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
-| Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
+| Comma joins | Use the documented explicit joins. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
 | String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |

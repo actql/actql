@@ -1304,6 +1304,16 @@ physical result slot. SELECT siblings still see the input key; HAVING and final
 ORDER see the evaluated alias. Private keys and aggregate slots are removed by
 ordinary projection before Result publication.
 
+SQL `GROUP BY ROLLUP(a, b)` groups the same input by each prefix, including
+the empty prefix. A parenthesized item set such as `ROLLUP(a, (b, c))` keeps
+those keys together, so it produces `(a, b, c)`, `(a)` and `()`. Omitted keys
+return a typed NULL. All groups are retained, even when an input NULL or a
+repeated grouping item makes two output rows equal. The empty prefix includes
+one grand total on empty input. Existing grouped projection, HAVING and final
+ORDER consume the combined relation. The Common checker applies the existing
+key, aggregate and capacity rules to these groups.
+[GoogleSQL GROUP BY ROLLUP](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#group_by_rollup).
+
 In a grouped SELECT, a grouping expression may occur inside a larger scalar
 expression. Its input references must resolve to the same pre-group value slots
 and property members as the grouping key. The evaluated key is reused; retaining

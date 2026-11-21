@@ -113,7 +113,9 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | [ "INNER" ], "JOIN", unnest_source, [ "ON", expression ] ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | rollup | expression, { ",", expression } ) ;
+rollup        = "ROLLUP", "(", grouping_item, { ",", grouping_item }, ")" ;
+grouping_item = expression | "(", expression, ",", expression, { ",", expression }, ")" ;
 pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
 pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
 pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )

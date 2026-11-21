@@ -79,6 +79,7 @@ pub(all) struct SortTerm {
 pub(all) enum GroupingScope {
   SqlSelect
   SqlSelectAll
+  SqlRollup(Array[Int])
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -680,6 +681,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           match scope {
             SqlSelect => SqlSelect
             SqlSelectAll => SqlSelectAll
+            SqlRollup(ends) => SqlRollup(ends.copy())
             PipeAggregate(names, embedded) =>
               PipeAggregate(names.copy(), embedded.copy())
           },
@@ -2021,6 +2023,76 @@ fn QueryParser::group_keys(
 }
 
 ///|
+// A comma at the first pair of parentheses distinguishes a grouping item
+// set from a parenthesized scalar. All tokens visited here spend parser work.
+fn QueryParser::rollup_item_set(self : QueryParser) -> Bool raise QueryAbort {
+  if self.peek().value != Symbol(40) {
+    return false
+  }
+  let mut depth = 1
+  for index in (self.index + 1)..<self.source.tokens.length() {
+    self.spend(1)
+    match self.source.tokens[index].value {
+      Symbol(40) | Symbol(91) => depth += 1
+      Symbol(41) | Symbol(93) => {
+        depth -= 1
+        if depth == 0 {
+          return false
+        }
+      }
+      Symbol(44) if depth == 1 => return true
+      End => return false
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+fn QueryParser::rollup_keys(
+  self : QueryParser,
+) -> (Array[Expression], Array[Int]) raise QueryAbort {
+  self.keyword("GROUP")
+  self.keyword("BY")
+  self.keyword("ROLLUP")
+  self.symbol(40)
+  let keys : Array[Expression] = []
+  let ends : Array[Int] = []
+  while true {
+    let item_set = self.rollup_item_set()
+    if item_set {
+      self.symbol(40)
+    }
+    while true {
+      self.node()
+      keys.push(self.expression())
+      if !item_set || self.peek().value != Symbol(44) {
+        break
+      }
+      self.symbol(44)
+    }
+    if item_set {
+      self.symbol(41)
+    }
+    ends.push(keys.length())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    self.symbol(44)
+  }
+  self.symbol(41)
+  self.source.rollup_items += ends.length()
+  (keys, ends)
+}
+
+///|
+/// Count authored grouping items across the original parsed source, including
+/// nested queries. A parenthesized item set contributes one prefix boundary.
+pub fn rollup_item_count(query : Query) -> Int {
+  query.source.rollup_items
+}
+
+///|
 fn QueryParser::order_suffix(
   self : QueryParser,
 ) -> (String, String) raise QueryAbort {
@@ -2480,6 +2552,14 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       self.keyword("BY")
       self.keyword("ALL")
       operations.push(Group([], group_projections, SqlSelectAll))
+    } else if self.source.tokens
+      .get(self.index + 2)
+      .map(token => keyword(token, "ROLLUP"))
+      .unwrap_or(false) &&
+      self.source.tokens.get(self.index + 3).map(token => token.value) ==
+      Some(Symbol(40)) {
+      let (keys, ends) = self.rollup_keys()
+      operations.push(Group(keys, group_projections, SqlRollup(ends)))
     } else {
       operations.push(Group(self.group_keys(), group_projections, SqlSelect))
     }
@@ -2865,8 +2945,8 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       })[0]
     for operation in term.operations {
       match operation {
-        Group(keys, projections, scope) if scope == SqlSelect ||
-          scope == SqlSelectAll => {
+        Group(keys, projections, scope) if scope
+          is (SqlSelect | SqlSelectAll | SqlRollup(_)) => {
           operations.push(Group(keys, projections + hidden, scope))
           grouped = true
         }

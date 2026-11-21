@@ -1,11 +1,11 @@
 ///|
-test "parser integer-context need scalar is funded before constructing the same Tokens" {
-  // 15 original input units at 332 bytes/unit, plus exactly one stored word.
+test "parser lowering facts are funded before constructing the same Tokens" {
+  // 15 original input units at 332 bytes/unit, plus exactly two stored words.
   // Existing coheld explicit lexical-limit controls remain a separate152 bytes.
-  assert_eq(request_query_syntax_data_bytes("SELECT 1 AS id"), Some(4988L))
+  assert_eq(request_query_syntax_data_bytes("SELECT 1 AS id"), Some(4996L))
   assert_eq(
     request_query_syntax_data_bytes("SELECT 1 AS id", lexical_work=Some(64)),
-    Some(5140L),
+    Some(5148L),
   )
 }
 

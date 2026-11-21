@@ -72,6 +72,7 @@ struct Tokens {
   // Set only while constructing actual scalar Call nodes from this source.
   // Shared CTE/set expressions retain this same parser-owned token original.
   mut integer_context_required : Bool
+  mut rollup_items : Int
 }
 
 ///|
@@ -176,6 +177,7 @@ fn scan_tokens(
       usage: budget.used,
       identifiers,
       integer_context_required: false,
+      rollup_items: 0,
     })
   } catch {
     LexicalAbort(issue, at) =>

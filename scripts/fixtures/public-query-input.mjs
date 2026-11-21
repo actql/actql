@@ -646,6 +646,23 @@ export const makeDateOriginal = {name: 'date-constructor', format: 'sql',
   expected: [{constructed: '2026-01-02', leap_day: '2000-02-29'}],
   columns: ['constructed', 'leap_day'].map(name => ({name,
     contract: {type: 'date', nullable: false}})), sourceReadCount: 0};
+export const groupingRollupOriginal = {name: 'grouping-rollup-original', format: 'sql',
+  text: "WITH t AS (SELECT 'a' AS k, CAST(NULL AS STRING) AS s, 10 AS v "
+    + "UNION ALL SELECT 'a' AS k, 'x' AS s, 20 AS v UNION ALL SELECT 'b' AS k, 'x' AS s, 30 AS v) "
+    + 'SELECT k, s, SUM(v) AS total, COUNT(*) AS n FROM t GROUP BY ROLLUP(k, s)',
+  results: {main: {unordered: true, rows: [
+    {k: 'a', s: null, total: 10, n: 1},
+    {k: 'a', s: 'x', total: 20, n: 1},
+    {k: 'b', s: 'x', total: 30, n: 1},
+    {k: 'a', s: null, total: 30, n: 2},
+    {k: 'b', s: null, total: 30, n: 1},
+    {k: null, s: null, total: 60, n: 3},
+  ], columns: [
+    {name: 'k', contract: {type: 'string', nullable: true}},
+    {name: 's', contract: {type: 'string', nullable: true}},
+    {name: 'total', contract: {type: 'number', nullable: true}},
+    {name: 'n', contract: {type: 'number', nullable: false}},
+  ]}}, sourceReadCount: 0};
 const dateCalendarOriginal = {name: 'date-calendar-boundaries', format: 'sql',
   text: "WITH t AS (SELECT DATE '2000-02-29' AS a, DATE '2000-03-01' AS b) "
     + 'SELECT DATE_ADD(a, INTERVAL 1 DAY) AS next_day, DATE_DIFF(a, b, DAY) AS days, '
@@ -927,6 +944,7 @@ export const sourceFreeSuccesses = [
   extractTimestampOriginal,
   makeDateOriginal,
   dateCalendarOriginal,
+  groupingRollupOriginal,
   currentDateOriginal,
   arrayConcatOriginal,
   arrayToStringOriginal,

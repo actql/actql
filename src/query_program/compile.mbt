@@ -4118,8 +4118,12 @@ fn compile_steps(
         let projections = expand_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        sql_group_projection = grouping_scope == @query.SqlSelect ||
-          grouping_scope == @query.SqlSelectAll
+        let rollup = match grouping_scope {
+          SqlRollup(ends) => Some(ends)
+          _ => None
+        }
+        sql_group_projection = grouping_scope
+          is (SqlSelect | SqlSelectAll | SqlRollup(_))
         let all = grouping_scope == @query.SqlSelectAll
         let keys = if all {
           inferred_group_keys(
@@ -4260,14 +4264,15 @@ fn compile_steps(
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
         let key_aliases = match grouping_scope {
-          SqlSelect | SqlSelectAll => []
+          SqlSelect | SqlSelectAll | SqlRollup(_) => []
           PipeAggregate(names, _) => names
         }
         let pipe_embedded = match grouping_scope {
-          SqlSelect | SqlSelectAll => []
+          SqlSelect | SqlSelectAll | SqlRollup(_) => []
           PipeAggregate(_, names) => names
         }
         let by : Array[@builder.Node] = []
+        let key_introductions = rollup.map(_ => ([] : Array[Int]))
         let mut key_reuse_work = max_work
         let resolve_key_input = path => {
           if scoped {
@@ -4304,6 +4309,9 @@ fn compile_steps(
                 continue
               }
               key_names.push(column.1)
+              if key_introductions is Some(indices) {
+                indices.push(index)
+              }
               key_display_names.push(column.0)
               by.push(construction.text(column.1))
               // A positional reference is not the literal expression at that
@@ -4425,6 +4433,9 @@ fn compile_steps(
             }
           }
           key_names.push(name)
+          if key_introductions is Some(indices) {
+            indices.push(index)
+          }
           key_display_names.push(
             match key_aliases.get(index).bind(value => value) {
               Some(output_name) => output_name.value
@@ -4884,15 +4895,28 @@ fn compile_steps(
           derive_step.push(("derive", construction.object(fields)))
           step_entries.push(derive_step)
         }
-        entries.push(
-          (
-            "group",
-            construction.object([
-              ("by", construction.array(by)),
-              ("aggregates", construction.object(aggregates)),
-            ]),
-          ),
-        )
+        if rollup is Some(ends) && key_introductions is Some(indices) {
+          let names = reserved_bindings +
+            nearest_inputs.map(input => input.name) +
+            [input.name, input_from, final_alias]
+          if retained is Some(results) {
+            names.append(results.map(result => result.from))
+          }
+          append_rollup_groups(
+            construction, step_entries, entries, input_from, names, reserved_bindings,
+            ends, indices, key_names, by, aggregates, key_reuse_work,
+          )
+        } else {
+          entries.push(
+            (
+              "group",
+              construction.object([
+                ("by", construction.array(by)),
+                ("aggregates", construction.object(aggregates)),
+              ]),
+            ),
+          )
+        }
         active_fields = result_fields.copy()
         output = result_fields
         if sql_group_projection &&
