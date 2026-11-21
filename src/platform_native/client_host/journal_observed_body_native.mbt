@@ -6,16 +6,7 @@ fn journal_submitted_retained(
   bytes : Int,
   text_units : Int64,
 ) -> @execution.PreparationRepresentationUnits {
-  {
-    // Row/intent/reference/admission/state projection and optional carriers.
-    record_headers: 32L,
-    reference_slots: 64L,
-    scalar_words: 32L,
-    // Body copy during parsing; only the actual accepted output text survives
-    // canonical comparison. Parser/source/builder alternatives belong to E.
-    owned_utf16_units: text_units + 71L,
-    owned_wire_bytes: bytes.to_int64(),
-  }
+  @host.client_submitted_journal_retained_inventory(bytes, text_units)
 }
 
 ///|
