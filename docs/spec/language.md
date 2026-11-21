@@ -4780,7 +4780,7 @@ static type checking alone.
 ```
 
 <!-- requirement-block: group.every-aggregate-must-have-an-output-name group.every-function-except-row-count-count-must-name-an-input-expression group.every-array-agg-must-declare-the-same-non-empty-order-by-the-compiler -->
-Supported aggregate functions are `count`, `count_if`, `sum`, `avg`, `min`,
+Supported aggregate functions are `count`, `count_if`, `any_value`, `sum`, `avg`, `min`,
 `max`, `array_agg`, and the [ordered and statistical aggregates](#additional-aggregates).
 Every aggregate MUST have an output name. Every
 function except row-count `count` MUST name an input expression or field.
@@ -4794,8 +4794,9 @@ aggregates evaluate in canonical output-name order; each consumes rows in its
 specified input order. Every `array_agg` MUST declare its own non-empty
 `order_by`; these orders may differ between aggregates. The compiler applies
 each after its own filter, without imposing one aggregate's order or demand
-on another. Group
-results are canonically ordered by the group keys in ascending AoA order,
+on another. `any_value` returns one original non-null contributor of the declared
+argument type, or NULL if none qualifies. Its result is nullable and no authored
+row order is required. Group results are canonically ordered by the group keys in ascending AoA order,
 including reference identity order ([Opaque reference values](#opaque-references)).
 The key tuple is compared lexicographically in authored `by` order, with
 NULLS FIRST independently at every component: two null components compare
@@ -11308,14 +11309,14 @@ AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
   filter?: Expression, distinct?: Boolean, order_by?: [OrderKey, ...],
   max_items?: PositiveIntegerValue, max_bytes?: PositiveIntegerValue,
   delimiter?: String, fraction?: FractionValue}
-AggregateFunction := count | count_if | sum | avg | min | max | array_agg |
+AggregateFunction := count | count_if | any_value | sum | avg | min | max | array_agg |
   string_agg | first | last | percentile_disc | percentile_cont |
   var_pop | var_samp | stddev_pop | stddev_samp
 AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
   functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
 AnalyticCall := {fn: row_number | rank | dense_rank}
   | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue}
-  | {fn: first_value | last_value, expr: Expression} | AggregateCall
+  | {fn: first_value | last_value, expr: Expression} | AggregateCall excluding any_value
 RowsFrame := {start: FrameBoundary, end: FrameBoundary}
 FrameBoundary := unbounded_preceding | current_row | unbounded_following
   | {preceding: PositiveIntegerValue} | {following: PositiveIntegerValue}
@@ -11675,7 +11676,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:71d79e4f240e6fe499d0a0fb6da4aa0254b9e392b5958c099bce77ee65f898f0
+../../spec/contracts/actql-aoa.json# sha256:71b7db2e3d9c759be48941429bea68819b8b40ffb8f53e7ea107b782ff3d618a
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11684,11 +11685,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:40000a7db5c20e0d8fe6f2055ff647760c455718d04885e1138274efc8c34f59
+../../spec/contracts/actql-expressions.json# sha256:717ffbd2e92c5cac1939bbef97735d92dd7973a946cf96591f594e4567f5cb1c
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:7c18b83700d0d3366f48f71de33a5f203ae9c62e982d9cba34a895f83a848ec4
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:2bc8687059261ca73892dae2e20b1b883fc856aeb9859e1e7b731e94737a5200
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:a92674fdfd41bd01586a2e1cc4df618ef9eea31ff2ddff48429ab84867c610d3
+../../spec/contracts/actql-expressions.json#/laws sha256:46d27c33a230f3543dbdf12a435dd16a894c5f698c5341d36d89264eba754beb
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:50c160a3b82ff8f3ed262faddff5857ec8f60bc10bd61dd19d6d5a8ccc5feb4a
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:7e4e6cdd14365098d848d906012f2c5726aae83c913134fe8b8cb1a0815c1dd7
 ```

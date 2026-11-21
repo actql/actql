@@ -648,3 +648,41 @@ test "Boolean logical aggregate folds ignore NULL and keep typed empty results" 
     )
   }
 }
+
+///|
+test "ANY_VALUE selects an original non-null value and preserves empty and filtered groups" {
+  for
+    (rows, expected) in [
+      ("[{\"v\":null},{\"v\":11},{\"v\":17}]", Number(11)),
+      ("[{\"v\":null}]", Null),
+      ("[]", Null),
+    ] {
+    let owner = bound_pipeline(
+      "[{\"values\":{\"schema\":{\"v\":{\"type\":\"number\",\"nullable\":true}},\"rows\":" +
+      rows +
+      "},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"excluded\":{\"fn\":\"any_value\",\"field\":\"v\",\"filter\":{\"literal\":false}},\"selected\":{\"fn\":\"any_value\",\"field\":\"v\"}}}}]",
+    )
+    let sequence = prepared_sequence(owner)
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      sequence,
+      [sequence_fragment_context(sequence, 1, 3L)],
+      ["group_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let completed = execute_generated_sequence(generated, [], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    }).unwrap()
+    let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+    assert_eq(table.names, ["excluded", "selected"])
+    assert_eq(table.rows.length(), 1)
+    assert_true(table.rows[0][0] is Null)
+    assert_eq(
+      object_result_wire(table.rows[0][1]),
+      object_result_wire(expected),
+    )
+  }
+}

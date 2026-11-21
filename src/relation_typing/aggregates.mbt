@@ -2,6 +2,7 @@
 pub(all) enum AggregateFunction {
   Count
   CountIf
+  AnyValue
   Sum
   Avg
   Min
@@ -188,6 +189,7 @@ fn aggregate_function_name(
   match name {
     "count" => Count
     "count_if" => CountIf
+    "any_value" => AnyValue
     "sum" => Sum
     "avg" => Avg
     "min" => Min
@@ -352,6 +354,9 @@ fn check_aggregate(
   let function = aggregate_function_name(
     decoded(@decode.required(obj, "fn"), source),
   )
+  if analytic && function is AnyValue {
+    fail(source, InvalidAggregate("any_value"))
+  }
   let ordered = match function {
     ArrayAgg | StringAgg | First | Last => true
     _ => false

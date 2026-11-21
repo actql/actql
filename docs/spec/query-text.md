@@ -897,6 +897,14 @@ return a nullable Boolean, with NULL for an empty or all-NULL group.
 The selected forms apply to SQL SELECT and Pipe AGGREGATE.
 [GoogleSQL Boolean aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#logical_and)
 
+Grouped `ANY_VALUE(expression)` returns an original non-NULL value among the
+rows eligible for the call, or NULL when none exists. The result has the
+argument's type and is nullable. Selection requires no authored row order,
+and the selected row is unspecified. The grouped SQL and Pipe forms allow
+the existing per-call `WHERE` filter. `HAVING MAX/MIN` and `OVER` variants
+are outside this signature.
+[GoogleSQL ANY_VALUE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#any_value)
+
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
 `STDDEV_SAMP`) lower to the existing common aggregate functions. They work in

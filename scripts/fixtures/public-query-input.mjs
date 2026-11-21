@@ -695,6 +695,18 @@ const logicalAggregateSuccesses = [
     expected: [{k: 1, all_true: false, any_true: true}, {k: 2, all_true: null, any_true: null}],
     columns: [numberColumn('k'), ...logicalAggregateColumns], sourceReadCount: 0},
 ];
+const anyValueSuccesses = [
+  {name: 'any-value-original', format: 'sql',
+    text: 'SELECT ANY_VALUE(1) AS result',
+    expected: [{result: 1}], columns: [{name: 'result', contract: {type: 'number', nullable: true}}], sourceReadCount: 0},
+  {name: 'any-value-grouped', format: 'sql',
+    text: 'WITH f AS (SELECT 1 AS k, CAST(NULL AS INT64) AS v UNION ALL '
+      + 'SELECT 1 AS k, CAST(7 AS INT64) AS v UNION ALL SELECT 2 AS k, CAST(11 AS INT64) AS v) '
+      + 'SELECT k, ANY_VALUE(v WHERE k = 1) AS result FROM f GROUP BY k ORDER BY k',
+    expected: [{k: 1, result: '7'}, {k: 2, result: null}],
+    columns: [numberColumn('k'), {name: 'result', contract: {type: 'int64', nullable: true}}],
+    sourceReadCount: 0},
+];
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -792,6 +804,7 @@ export const sourceFreeSuccesses = [
   arrayConcatOriginal,
   arrayToStringOriginal,
   ...logicalAggregateSuccesses,
+  ...anyValueSuccesses,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

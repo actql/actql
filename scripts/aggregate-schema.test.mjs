@@ -7,7 +7,7 @@ import {parameterPrograms} from './parameter-schema.mjs';
 test('aggregate schema has closed argument and modifier matrices for all functions', () => {
   for (const analytic of [false,true]) {
     const schema=aggregateSchema(analytic);
-    assert.deepEqual(schema.oneOf.map(s=>s.properties.fn.const),functions);
+    assert.deepEqual(schema.oneOf.map(s=>s.properties.fn.const),functions.filter(fn => !analytic || fn !== 'any_value'));
     for(const call of schema.oneOf) {
       const fn=call.properties.fn.const;
       assert.equal(call.additionalProperties,false);
@@ -15,7 +15,7 @@ test('aggregate schema has closed argument and modifier matrices for all functio
       assert.equal(Object.hasOwn(call.properties,'order_by'),!analytic&&['array_agg','string_agg','first','last'].includes(fn));
       assert.equal(Object.hasOwn(call.properties,'fraction'),fn.startsWith('percentile_'));
       if (['min','max'].includes(fn)) assert.deepEqual(call.properties.distinct,{const:false});
-      if (['count_if','first','last','percentile_disc','percentile_cont','var_pop','var_samp','stddev_pop','stddev_samp'].includes(fn)) assert.equal(call.properties.distinct,undefined);
+      if (['count_if','any_value','first','last','percentile_disc','percentile_cont','var_pop','var_samp','stddev_pop','stddev_samp'].includes(fn)) assert.equal(call.properties.distinct,undefined);
     }
   }
   const s=groupSchema();

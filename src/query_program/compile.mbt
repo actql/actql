@@ -1453,6 +1453,7 @@ fn aggregate_function_key(name : String) -> String? {
     "MAX" => Some("max")
     "LOGICAL_AND" => Some("logical_and")
     "LOGICAL_OR" => Some("logical_or")
+    "ANY_VALUE" => Some("any_value")
     "VAR_POP" => Some("var_pop")
     "VAR_SAMP" | "VARIANCE" => Some("var_samp")
     "STDDEV_POP" => Some("stddev_pop")

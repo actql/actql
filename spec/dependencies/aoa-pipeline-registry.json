@@ -32,7 +32,7 @@
       "ordered_bindings": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.derive.ordered",
-        "cid": "sha256:1163706f2462828a9c9fc683308a810432bdb55efd458db2df09250c9a8bb8de"
+        "cid": "sha256:982bb4e1a5e58be82ce4a43d23ab75c36f8f8da513a548d33f10d755de89774b"
       }
     }
   },
@@ -482,7 +482,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-      "cid": "sha256:46244e0a86e9944f9071a47c18999f7621afe1574ee0312df7d26dfd373167ff"
+      "cid": "sha256:1d371c16d5c703da5d38663277fc289f5359fb2aeb1e03929de7bdc0f3db99bf"
     }
   },
   "TEA.calendar.bucket": {

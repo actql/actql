@@ -297,6 +297,7 @@ pub enum AggregateArgument {
 pub(all) enum AggregateFunction {
   Count
   CountIf
+  AnyValue
   Sum
   Avg
   Min

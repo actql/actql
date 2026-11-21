@@ -617,6 +617,7 @@ fn group_aggregate_function_name(
   match function {
     Count => "count"
     CountIf => "count_if"
+    AnyValue => "any_value"
     Sum => "sum"
     Avg => "avg"
     Min => "min"

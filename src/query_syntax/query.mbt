@@ -1844,7 +1844,7 @@ fn query_aggregate_function_name(name : String) -> Bool {
   [
     "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG", "VAR_POP",
     "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "LOGICAL_AND",
-    "LOGICAL_OR",
+    "LOGICAL_OR", "ANY_VALUE",
   ].contains(upper_ascii(name))
 }
 
