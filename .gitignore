@@ -1113,3 +1113,7 @@ target/
 /adapters/host-node/process-frames.test.d.mts
 /adapters/host-node/process-accounting.test.mjs
 /adapters/host-node/process-accounting.test.d.mts
+/adapters/host-node/process-channel.mjs
+/adapters/host-node/process-channel.d.mts
+/adapters/host-node/worker-channel.mjs
+/adapters/host-node/worker-channel.d.mts

@@ -87952,7 +87952,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -87966,7 +87966,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -87980,7 +87980,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// Count attempted writes and every received byte, including rejected frames."
               },
               {
@@ -87994,7 +87994,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88008,7 +88008,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88022,7 +88022,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88036,7 +88036,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88050,7 +88050,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88068,7 +88068,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// The optional interpreter is trusted installation configuration, never a"
               },
               {
@@ -88110,7 +88110,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88128,7 +88128,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88146,7 +88146,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// Count attempted writes and every received byte, including rejected frames."
               },
               {
@@ -88164,7 +88164,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88182,7 +88182,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88200,7 +88200,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88218,7 +88218,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88236,7 +88236,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88254,7 +88254,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// The optional interpreter is trusted installation configuration, never a"
               },
               {
@@ -88298,7 +88298,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88312,7 +88312,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88326,7 +88326,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// Count attempted writes and every received byte, including rejected frames."
               },
               {
@@ -88340,7 +88340,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88354,7 +88354,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
               },
               {
@@ -88368,7 +88368,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88382,7 +88382,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "status: hostService?.cleanupHandle?.status,"
               },
               {
@@ -88396,7 +88396,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
               },
               {
@@ -88410,7 +88410,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/process-channel.mjs",
+                "path": "adapters/host-node/process-channel.mts",
                 "anchor": "// The optional interpreter is trusted installation configuration, never a"
               },
               {

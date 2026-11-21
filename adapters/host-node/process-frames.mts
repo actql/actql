@@ -5,6 +5,15 @@ import type {SynchronousAction} from './installed-host-cleanup.mjs';
 export type FrameLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
 type FrameObject = {[key: string]: ProcessFrameValue};
 export type ProcessFrameValue = null | boolean | number | string | FrameObject | ProcessFrameValue[];
+// Unchecked projections for the two installed endpoints' existing envelope checks.
+type FrameEnvelopeBody = ProcessFrameValue & Readonly<{
+  terminal?: unknown; usage?: unknown; call?: unknown; payload?: unknown;
+  resourceLimits?: unknown; value?: ProcessFrameValue;
+}>;
+export type UncheckedProcessEnvelope = ProcessFrameValue & Readonly<{
+  protocol: unknown; session: string; run: string; kind: string; sequence: number;
+  body: FrameEnvelopeBody | null;
+}>;
 type BodyGeometry = Readonly<{nodes: number; fields: number; objects: number; arrays: number; utf16Units: number}>;
 type SynchronousObserver<T> = (value: T) => ReturnType<SynchronousAction>;
 
