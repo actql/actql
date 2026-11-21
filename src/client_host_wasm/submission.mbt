@@ -1,4 +1,15 @@
 ///|
+// Replace the original optional plan payload slot, without another normal
+// holder. Ready has the old Some(plan) shape; Decoding's extra payload is paid
+// before construction and retains the same original debt and previous plan.
+priv enum StoredSubmissionAppend {
+  Idle
+  Decoding(@resources.CapacityReservation, StoredSubmissionAppend)
+  DecodedRows(@resources.CapacityReservation, StoredSubmissionAppend, Int64)
+  Ready(@host.ClientSubmittedJournalAppendPlan)
+}
+
+///|
 /// Invocation custody only. Epoch authentication and durable clock custody
 /// belong to the physical Host; Run admission remains a separate Owner call.
 priv struct StoredSubmissionProjection {
@@ -8,7 +19,7 @@ priv struct StoredSubmissionProjection {
   slot : @buffers.BufferSlot
   mut saved_result : StoredSavedResultRead?
   mut saved_snapshot : @host.ClientSavedSubmissionSnapshot?
-  mut append_plan : @host.ClientSubmittedJournalAppendPlan?
+  mut append_plan : StoredSubmissionAppend
   mut failure_preparation : Int?
   mut failure_plan : (@host.ClientJournalPhysicalRow, Bytes)?
   mut cancellation_append : StoredCancellationAppend?
@@ -96,7 +107,7 @@ pub fn reserve_submission_projection(
     slot,
     saved_result: None,
     saved_snapshot: None,
-    append_plan: None,
+    append_plan: Idle,
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,
@@ -281,7 +292,7 @@ pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) &&
     record.kind == 3 &&
     record.produced &&
-    record.append_plan is Some(_) else {
+    record.append_plan is Ready(_) else {
     return -2
   }
   if value.commit_exports.values().any(child => child.publication == handle) ||
@@ -315,6 +326,10 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
     .values()
     .any(restoration => restoration.sdk_submission == Some(handle)) {
     return -9
+  }
+  let decoded = close_submission_decode_prefix(value, record)
+  if decoded != 0 {
+    return decoded
   }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))

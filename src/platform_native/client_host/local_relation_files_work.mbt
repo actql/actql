@@ -186,10 +186,11 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
             original,
             @local.installed_whole_source_original(input.capacity),
           ) ||
+          !input.matches_provider(acquisition) ||
           !@local.check_installed_whole_source_capacity(
             capacity,
             acquisition,
-            input.provider.capacity(),
+            input.provider_capacity(),
           ) {
           return refuse(Configuration)
         }
@@ -235,18 +236,30 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
       }
       ManagedWholeRelationFiles(_, inputs) => {
         let input = inputs[index]
-        @row_file.prepare_native_managed_relation_file_input_capture(
-          entry.original.host,
-          execution,
-          input.declaration,
-          reads[index],
-          input.capacity,
-          input.provider.capacity(),
-          occurrence,
-          input.selection,
-          input.limits,
-          prepared_provider=Some(input.provider),
-        )
+        match input.listing {
+          Some(listing) =>
+            @row_file.prepare_native_managed_relation_file_listing_capture(
+              entry.original.host,
+              execution,
+              reads[index],
+              input.capacity,
+              listing,
+              occurrence,
+            )
+          None =>
+            @row_file.prepare_native_managed_relation_file_input_capture(
+              entry.original.host,
+              execution,
+              input.declaration,
+              reads[index],
+              input.capacity,
+              input.provider.capacity(),
+              occurrence,
+              input.selection,
+              input.limits,
+              prepared_provider=Some(input.provider),
+            )
+        }
       }
       _ => return refuse(Configuration)
     }

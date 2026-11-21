@@ -32,7 +32,7 @@ async function writeKeys(root, role) {
 
 export async function createInstalledFamilyScenario(t, {scratchParent, scenario,
   accountConfigurationWire, accountConfigurationForKeys,
-  routes = [], faults = [], provider, maxRequestBytes, secretPresentation = 'bearer'} = {}) {
+  routes = [], faults = [], provider, maxRequestBytes, port, secretPresentation = 'bearer'} = {}) {
   if (typeof scratchParent !== 'string' || !isAbsolute(scratchParent)) {
     throw new TypeError('InstalledFamilyScratchParentRequired');
   }
@@ -87,7 +87,7 @@ export async function createInstalledFamilyScenario(t, {scratchParent, scenario,
   const https = await openHttpsExchangeFixture(t, {
     routes: providerRoute === undefined ? routes : [providerRoute], faults,
     ...(secretPresentation === 'kintone-api-token' ? {expectedKintoneApiToken} : {expectedAuthorization}),
-    maxRequestBytes,
+    maxRequestBytes, port,
     scratchParent: root, preserveScratch: true});
   const projectOriginal = await realpath(project);
   return Object.freeze({

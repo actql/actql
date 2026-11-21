@@ -6,6 +6,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
   original : NativeLocalGrantOriginal,
   expected_run : String,
   capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) &&
     original.initial_issue is Some(_) else {
@@ -16,6 +17,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
       grant,
       original.request,
       expected_run,
+      reads~,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -23,6 +25,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
   self.check_initial_host_attestation_grant_after_submission_locked(
     original,
     capture~,
+    reads~,
   )
 }
 
@@ -34,6 +37,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_after_submiss
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) &&
     original.initial_issue is Some(_) else {
@@ -41,7 +45,12 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_after_submiss
   }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   let control = match
-    self.database.read("client_local_installation_custody", "host") {
+    read_client_journal_value(
+      self.database,
+      "client_local_installation_custody",
+      "host",
+      reads,
+    ) {
     Ok(value) if value.revision == 0L => value
     _ => return Err(CustodyLost)
   }
@@ -204,14 +213,17 @@ fn local_initial_host_prepared_body(
 fn local_initial_host_prepared_locked(
   host : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
   }
   let row = match
-    host.database.read(
+    read_client_journal_value(
+      host.database,
       "client_local_signing_candidate_originals",
       local_initial_host_prepared_key(original),
+      reads,
     ) {
     Ok(value) if value.revision == 0L && value.body.length() <= 65536 => value
     _ => return Err(CustodyLost)

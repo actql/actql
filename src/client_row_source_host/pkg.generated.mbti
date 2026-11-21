@@ -67,6 +67,8 @@ pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPage
 
 pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]
 
+pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]
+
 pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
 
 pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]

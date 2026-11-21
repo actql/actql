@@ -126,10 +126,59 @@ pub fn advance_row_source_cursor_progress(
     !physical_equal(rows.origin, projected_json_page_origin) {
     return Err(ForeignPage)
   }
-  if rows.row_count < 0 || rows.row_count > remaining {
+  advance_checked_cursor(
+    progress,
+    page_index,
+    row_count,
+    remaining,
+    rows.row_count,
+    envelope.next_cursor,
+  )
+}
+
+///|
+/// Join scalar facts projected from an original finite provider page. Its
+/// codec owns the response envelope and row data. Progress retains only the
+/// next cursor and applies the same bounds as the generic JSON path.
+pub fn advance_row_source_cursor_progress_from_provider_page(
+  progress : RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  page_rows : Int,
+  next : String?,
+) -> Result[Bool, RowSourceCursorIssue] {
+  let remaining = match
+    row_source_cursor_remaining_rows(progress, page_index, row_count) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // This provider family consumes its valid prefix and checks currentness
+  // before asking for the next page. A full prefix still cannot authorize or
+  // send another request: remaining_rows refuses before that boundary.
+  advance_checked_cursor(
+    progress,
+    page_index,
+    row_count,
+    remaining,
+    page_rows,
+    next,
+    retain_exhausted_prefix=true,
+  )
+}
+
+///|
+fn advance_checked_cursor(
+  progress : RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  remaining : Int,
+  page_rows : Int,
+  next : String?,
+  retain_exhausted_prefix? : Bool = false,
+) -> Result[Bool, RowSourceCursorIssue] {
+  if page_rows < 0 || page_rows > remaining {
     return Err(RowLimit)
   }
-  let next = envelope.next_cursor
   if next is Some(cursor) {
     if @scalar.admit_utf8_length(cursor, progress.max_cursor_bytes) is Err(_) {
       return Err(CursorLimit)
@@ -140,14 +189,14 @@ pub fn advance_row_source_cursor_progress(
     if page_index >= progress.max_pages - 1 {
       return Err(PageLimit)
     }
-    if rows.row_count >= progress.max_rows - row_count {
+    if !retain_exhausted_prefix && page_rows >= progress.max_rows - row_count {
       return Err(RowLimit)
     }
     progress.seen[cursor] = true
   }
   // The checked subtraction above bounds both additions without overflow.
   progress.page_index = page_index + 1
-  progress.row_count = row_count + rows.row_count
+  progress.row_count = row_count + page_rows
   progress.cursor = next
   progress.done = next is None
   Ok(progress.done)

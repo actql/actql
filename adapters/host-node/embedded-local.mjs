@@ -121,7 +121,8 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
-import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes,
+  isModelCredentialRefusal} from './infer-operation.mjs';
 import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -2789,7 +2790,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
     authorize: hostConnection,
     readOriginal: request => preparation.readStaticPlan(request, environment,
-      verifyRequestValuePolicy, request.signal)});
+      verifyRequestValuePolicy, request.signal, modelInstallation)});
   const staticEffectExplanation = preparation !== undefined &&
     ['clientProgramReadRequestCheckedStaticEffectExplanation',
       'clientProgramStaticEffectExplanationPlanWire', 'clientProgramStaticEffectExplanationFactsWire',
@@ -2804,7 +2805,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       },
       withOriginal(request, visit) {
         return preparation.readStaticEffectExplanation(request, environment,
-          verifyRequestValuePolicy, request.signal, visit);
+          verifyRequestValuePolicy, request.signal, visit, modelInstallation);
       },
     }) : undefined;
   Object.freeze(check);
@@ -2906,10 +2907,15 @@ async function openInstalledHost(originalInstallation, preparation) {
           state = continuation.runState;
         } else {
           const liveExecution = dispatchOwner.live(ref);
+          // A definite pre-Entry refusal can have a settled execution promise
+          // while its original stop/cleanup is still being confirmed. Only
+          // this exact retained failure uses the pending path. A durable
+          // unresolved Entry or claim above still wins.
           const executionUnknown = retained.dispatchReserved &&
             !retained.preDispatchFailureConfirmed &&
             retained.physicalStartReserved !== false &&
-            retained.observedTerminalOutcome === null && !liveExecution;
+            retained.observedTerminalOutcome === null && !liveExecution &&
+            !dispatchOwner.credentialRefusalPending(ref);
           state = issueInstalledUnpublishedRunState(moon, {
             runId, observedAt: now(), resultNames: retained.resultNames,
             dispatchReserved: retained.dispatchReserved,
@@ -2931,7 +2937,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (afterContinuation?.version !== continuation.version) continue;
       }
       if (state.status === 'running' && !dispatchOwner.live(ref) &&
-          retained.physicalStartReserved === true) {
+          retained.physicalStartReserved === true && !dispatchOwner.credentialRefusalPending(ref)) {
         continue;
       }
       // Only this revision-stable common Owner projection supplies status.
@@ -3132,7 +3138,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const changed = new Promise(resolve => { wake = resolve; });
       const subscriptions = new Map();
       const captureWork = () => {
-        for (const promise of [dispatchOwner.operation(ref),
+        for (const promise of [dispatchOwner.credentialRefusalPending(ref) ? undefined : dispatchOwner.operation(ref),
           effectResumeFlights.get(ref.runDefinitionCid),
           modelResumeFlights.get(ref.runDefinitionCid)]) {
           if (promise !== undefined && !subscriptions.has(promise)) {
@@ -3152,6 +3158,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         const decision = installedRunWaitDecision(moon, current, since);
         if (decision === 'ready') return current;
         if (decision !== 'pending') throw clientOperationError(decision);
+        // Only after the original authorized observation may this wait join
+        // the same failed dispatch's cleanup. Abort only ends observation.
+        const cleanup = dispatchOwner.settleCredentialRefusal(ref);
+        if (cleanup !== undefined) {
+          await observeStep(cleanup);
+          if (!dispatchOwner.credentialRefusalPending(ref)) continue;
+        }
         // Also retain work that started during observation. The unchanged
         // fallback observes other-process changes and later local work; neither
         // a notification nor a settled Promise is a completion/cleanup receipt.
@@ -6328,7 +6341,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
               return;
             }
-            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
+            if ((code === 'ModelSavedTerminalFailure' || isModelCredentialRefusal(error?.primaryFailure ?? error)) &&
+                stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
                 !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
@@ -7441,19 +7455,20 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       return current;
     },
-    readStaticPlan(request, environment, originalVerifier, signal) {
+    readStaticPlan(request, environment, originalVerifier, signal, modelInstallation) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('ClientOperationUnavailable');
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request),
-        environment, originalVerifier, signal, undefined, request);
+        environment, originalVerifier, signal, undefined, request, modelInstallation,
+        record.managedSourceProfile?.fileReadDeclarations);
     },
     assertStaticEffectExplanationOriginal(request) {
       // Only the same mapped, live ingress Request may touch metadata policy.
       originalSourceManagedHostRequest(originals, request);
     },
-    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit) {
+    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined || typeof manager.withOriginalStaticEffectExplanation !== 'function') {
         throw clientOperationError('ClientOperationUnavailable');
@@ -7468,7 +7483,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ClientOperationUnavailable');
       }
       return manager.withOriginalStaticEffectExplanation(original, environment, originalVerifier, signal,
-        request, Number(planning), visit);
+        request, Number(planning), visit, modelInstallation, record.managedSourceProfile?.fileReadDeclarations);
     },
     fundedPreparation(request, environment, originalVerifier, signal, journal) {
       const manager = sourceManaged ?? computeManaged;

@@ -102,6 +102,45 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
   (@publication.PublicationContract, @effect.EffectLedgerEntry),
   NativeClientRunJournalIssue,
 ] {
+  self.record_effect_row_receipt_with_operations(
+    dispatch,
+    preview,
+    member_index,
+    row_index,
+    locator,
+    key,
+    canonical_request_cid,
+    outcome_wire,
+    current,
+    max_response_bytes,
+    None,
+  )
+}
+
+///|
+fn NativeClientRunJournal::record_effect_row_receipt_with_operations(
+  self : NativeClientRunJournal,
+  dispatch : NativeClientEffectDispatchClaim,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  outcome_wire : String,
+  current : () -> Bool,
+  max_response_bytes : Int,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeClientRunJournalIssue,
+] {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+
   if !current() {
     return Err(AuthorizationDenied)
   }
@@ -109,129 +148,149 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
     max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
-  self.transaction(() => {
-    let record = match self.require_effect_dispatch_locked(dispatch) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let checkpoint = record.checkpoint.unwrap()
-    match
-      require_client_effect_receipt_binding(
-        record, dispatch, preview, member_index, row_index, locator, key, canonical_request_cid,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let dispatch_cid = @effect.effect_ledger_entry_cid(dispatch.dispatching)
-    let response = match
-      read_client_effect_response_record(self.database, dispatch_cid) {
-      Ok(Some(value)) if value.body.length() <= max_response_bytes => value
-      Ok(Some(_)) => return Err(Physical(@sqlite.BodyTooLarge))
-      Ok(None) => return Err(Checkpoint(NeedsOriginalContinuation))
-      Err(issue) => return Err(issue)
-    }
-    let bounds = native_client_effect_ledger_limits()
-    let receipt = match
-      response.row_receipt(
-        preview, member_index, row_index, dispatch_cid, outcome_wire, max_response_bytes,
-        bounds,
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(Checkpoint(InvalidMaterial))
-    }
-    let history = checkpoint.effect_ledger.filter(entry => {
-      @effect.effect_ledger_entry_locator_cid(entry) ==
-      @effect.effect_ledger_entry_locator_cid(dispatch.dispatching)
-    })
-    if history.is_empty() {
-      return Err(CustodyLost)
-    }
-    let head = history[history.length() - 1]
-    let terminal = match
-      response.terminal_entry(
-        preview,
-        member_index,
-        row_index,
-        @host.client_request_logical_scope(record.request),
-        locator,
-        key,
-        canonical_request_cid,
-        head,
-        history,
-        dispatch_cid,
-        @publication.publication_contract_json(receipt),
-        max_response_bytes,
-        bounds,
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(Checkpoint(InvalidMaterial))
-    }
-    // Authority may change during caller observation. It confers neither
-    // write permission nor authority to disclose another Run's saved bytes.
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    if terminal.cid == head.cid {
-      let saved = match read_client_effect_receipt(self.database, terminal) {
+  self.transaction_with_reads(
+    () => {
+      let record = match self.require_effect_dispatch_locked(dispatch, reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      if @publication.publication_contract_json(saved) !=
-        @publication.publication_contract_json(receipt) {
+      let checkpoint = record.checkpoint.unwrap()
+      match
+        require_client_effect_receipt_binding(
+          record, dispatch, preview, member_index, row_index, locator, key, canonical_request_cid,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let dispatch_cid = @effect.effect_ledger_entry_cid(dispatch.dispatching)
+      let response = match
+        read_client_effect_response_record(self.database, dispatch_cid, reads~) {
+        Ok(Some(value)) if value.body.length() <= max_response_bytes => value
+        Ok(Some(_)) => return Err(Physical(@sqlite.BodyTooLarge))
+        Ok(None) => return Err(Checkpoint(NeedsOriginalContinuation))
+        Err(issue) => return Err(issue)
+      }
+      let bounds = native_client_effect_ledger_limits()
+      let receipt = match
+        response.row_receipt(
+          preview, member_index, row_index, dispatch_cid, outcome_wire, max_response_bytes,
+          bounds,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Checkpoint(InvalidMaterial))
+      }
+      let history = checkpoint.effect_ledger.filter(entry => {
+        @effect.effect_ledger_entry_locator_cid(entry) ==
+        @effect.effect_ledger_entry_locator_cid(dispatch.dispatching)
+      })
+      if history.is_empty() {
         return Err(CustodyLost)
       }
-      return Ok((saved, terminal))
-    }
-    if checkpoint.effect_ledger.length() >= 128 {
-      return Err(CapacityExceeded)
-    }
-    let receipt_cid = @publication.publication_contract_identity(receipt)
-    let bytes = @utf8.encode(@publication.publication_contract_json(receipt))
-    match self.database.read("client_effect_row_receipt", receipt_cid) {
-      Err(@sqlite.NotFound) => ()
-      Err(issue) => return Err(Physical(issue))
-      // No unattached original is adopted into a new terminal transition.
-      Ok(_) => return Err(CustodyLost)
-    }
-    let entries = checkpoint.effect_ledger.copy()
-    entries.push(terminal)
-    let next = {
-      ..record,
-      checkpoint: Some({ ..checkpoint, effect_ledger: entries, }),
-    }
-    let witness = match
-      self.database.read(
-        "client_effect_custody",
-        @host.client_request_scope_cid(record.request),
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Physical(issue))
-    }
-    match
-      self.database.insert("client_effect_row_receipt", receipt_cid, bytes) {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    let (body, _) = match
-      effect_ledger_custody_with_responses(self.database, next) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    match
-      self.database.compare_exchange(
-        "client_effect_custody",
-        @host.client_request_scope_cid(record.request),
-        witness.revision,
-        body,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    match self.save(next) {
-      Ok(_) => Ok((receipt, terminal))
-      Err(issue) => Err(issue)
-    }
-  })
+      let head = history[history.length() - 1]
+      let terminal = match
+        response.terminal_entry(
+          preview,
+          member_index,
+          row_index,
+          @host.client_request_logical_scope(record.request),
+          locator,
+          key,
+          canonical_request_cid,
+          head,
+          history,
+          dispatch_cid,
+          @publication.publication_contract_json(receipt),
+          max_response_bytes,
+          bounds,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Checkpoint(InvalidMaterial))
+      }
+      // Authority may change during caller observation. It confers neither
+      // write permission nor authority to disclose another Run's saved bytes.
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      if terminal.cid == head.cid {
+        let saved = match
+          read_client_effect_receipt(self.database, terminal, reads~) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if @publication.publication_contract_json(saved) !=
+          @publication.publication_contract_json(receipt) {
+          return Err(CustodyLost)
+        }
+        return Ok((saved, terminal))
+      }
+      if checkpoint.effect_ledger.length() >= 128 {
+        return Err(CapacityExceeded)
+      }
+      let receipt_cid = @publication.publication_contract_identity(receipt)
+      let bytes = @utf8.encode(@publication.publication_contract_json(receipt))
+      match
+        read_client_journal_value(
+          self.database,
+          "client_effect_row_receipt",
+          receipt_cid,
+          reads,
+        ) {
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => return Err(Physical(issue))
+        // No unattached original is adopted into a new terminal transition.
+        Ok(_) => return Err(CustodyLost)
+      }
+      let entries = checkpoint.effect_ledger.copy()
+      entries.push(terminal)
+      let next = {
+        ..record,
+        checkpoint: Some({ ..checkpoint, effect_ledger: entries, }),
+      }
+      let witness = match
+        read_client_journal_value(
+          self.database,
+          "client_effect_custody",
+          @host.client_request_scope_cid(record.request),
+          reads,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      match
+        insert_client_journal_value(
+          self.database,
+          "client_effect_row_receipt",
+          receipt_cid,
+          bytes,
+          operations,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      let (body, _) = match
+        effect_ledger_custody_with_responses(self.database, next, reads~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        compare_exchange_client_journal_value(
+          self.database,
+          "client_effect_custody",
+          @host.client_request_scope_cid(record.request),
+          witness.revision,
+          body,
+          operations,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      match self.save_with_operations(next, operations~) {
+        Ok(_) => Ok((receipt, terminal))
+        Err(issue) => Err(issue)
+      }
+    },
+    reads~,
+  )
 }
 
 ///|

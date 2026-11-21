@@ -28409,7 +28409,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9428942b5e4a5c26fd6229601aa6e7cbd0b5ee2903ce45dcfc1c4dd52d688db0",
+      "sha256": "9aca91e7c8ea5d054804dc7cbe6888094648c39723010396aeef96c210d49b23",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29121,6 +29121,21 @@
         },
         {
           "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+          "parameters": [
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
           "parameters": [
             "key"
           ],
@@ -30112,7 +30127,9 @@
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose"
+            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -30929,6 +30946,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
               }
             ]
           }
@@ -110034,7 +110055,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -113806,7 +113827,12 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2"
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#5",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#6",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#7",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#8",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#9"
           ],
           "exports": [],
           "attributes": {
@@ -113845,7 +113871,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -113892,6 +113918,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "// Actual imported installed static service"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"static Model Plan consumes only the same original graph and retains its input through refusal\""
               }
             ]
           }
@@ -113909,7 +113943,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "async withOriginalStaticEffectExplanation(request, environment, originalVerifier, signal, limits, maxWork, visit) {"
+                "anchor": "visit, modelInstallation, fileReadDeclarations) {"
               }
             ],
             "inputsOutputs": [
@@ -114424,6 +114458,8 @@
             "signal",
             "journal",
             "staticPlan",
+            "staticModelInstallation",
+            "staticFileReadDeclarations",
             "staticExplanation",
             "maxWork"
           ],
@@ -114452,22 +114488,57 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
           "parameters": [
-            "method"
+            "args"
           ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#4",
           "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#5",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#6",
+          "parameters": [
             "name",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#8",
+          "parameters": [
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#9",
+          "parameters": [],
           "async": false
         },
         {
@@ -115323,7 +115394,9 @@
             "signal",
             "limits",
             "maxWork",
-            "visit"
+            "visit",
+            "modelInstallation",
+            "fileReadDeclarations"
           ],
           "async": true
         },
@@ -115361,6 +115434,7 @@
         "./client-program-preparation.mjs",
         "./client-request-journal.mjs",
         "./infer-operation.mjs",
+        "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
@@ -115370,7 +115444,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "47d50db49b394727ccb5bdb5039caa8bfdf77d5a088e84000fa05bf8d169022a"
+      "sha256": "ecde39f2ecdde320c68f640952e33a1065c123c6efe08ea4996c598740e7d753"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -118435,7 +118509,7 @@
     },
     {
       "module": "adapters/host-node/local-checkpoint-answer.mjs",
-      "sha256": "c95f61ceeed28b47155d19a1cbe5e650ca56468494096cdaae5f44dd6e1b8814",
+      "sha256": "f766a1a82018cd77d72297a4f2317cbec6c301aa6da6c6644b5bd0d0579e4480",
       "exports": [
         "createLocalCheckpointAnswer",
         "createLocalSigningOriginalReader"
@@ -119786,7 +119860,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit) {"
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {"
               }
             ],
             "identity": [
@@ -137347,7 +137421,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5511,
+    "operations": 5513,
     "exports": 1194,
     "explicitContractGroups": 550
   },

@@ -1,6 +1,6 @@
 {
-  "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "2b548dc0278f65d1bbfcc7f0944cbcd119df6eb8f351634f3e0f33244d85bdf7",
+  "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
+  "syntaxProjectionSha256": "72f8810dd5f5a925a33931405103379006541470e46ad7c7d88a21fd99774cc0",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -80871,7 +80871,7 @@
     },
     {
       "module": "src/client_host_wasm/submission.mbt",
-      "sha256": "891873b7d3cb63e354b76773e0e4a0fed85e586777c6ceeed396ac1da2b93cde",
+      "sha256": "c0ac2cff7c37d1875d0cbe9d75b95d68d6cb75a219b734cc1b2244d4c14e176d",
       "exports": [],
       "operations": [
         {
@@ -80928,6 +80928,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "inputsOutputs": [
@@ -80938,6 +80942,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "identity": [
@@ -80948,6 +80956,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "ownership": [
@@ -80958,6 +80970,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "fn required_number(object : @decode.ObjectView, name : String) -> Double? {"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "synchronization": [
@@ -80968,6 +80984,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _commit_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "failure": [
@@ -80978,6 +80998,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
                 "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "cancellation": [
@@ -80988,6 +81012,10 @@
               {
                 "path": "src/client_host_wasm/preparation.mbt",
                 "anchor": "pub fn close_preparation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "resources": [
@@ -80998,6 +81026,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "@buffers.reserve_output_buffer("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "extension": [
@@ -81008,6 +81040,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_journal_record.mbt",
                 "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "verification": [
@@ -81022,6 +81058,10 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
@@ -81030,12 +81070,16 @@
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "3474871241e350760694f1f056f35f6dccfdff19bd7e72ff17b63fc5847d4b62",
+      "sha256": "4c788a9df144d4d9f5c1ad649de35319a74ab70e9c404a79520215c80eb74bc7",
       "exports": [],
       "operations": [
         {
           "name": "observe_submission_append",
           "declaration": "observe_submission_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , original_run ? : Int ?"
+        },
+        {
+          "name": "observe_submission_append_body",
+          "declaration": "observe_submission_append_body ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , decoding_original : @ resources . CapacityReservation , original_run ? : Int ?"
         },
         {
           "name": "observe_submission_preparation_failure",
@@ -81059,7 +81103,7 @@
         },
         {
           "name": "submission_append_current",
-          "declaration": "submission_append_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+          "declaration": "submission_append_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , decoding_original ? : @ resources . CapacityReservation ?"
         },
         {
           "name": "submission_append_run_inspection",
@@ -81122,6 +81166,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "inputsOutputs": [
@@ -81132,6 +81180,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "identity": [
@@ -81142,6 +81194,10 @@
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "ownership": [
@@ -81152,6 +81208,10 @@
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "synchronization": [
@@ -81162,6 +81222,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _commit_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "failure": [
@@ -81176,6 +81240,10 @@
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
                 "anchor": "if observation_construction_issue != 0"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "cancellation": [
@@ -81186,6 +81254,10 @@
               {
                 "path": "src/client_host_wasm/preparation.mbt",
                 "anchor": "pub fn close_preparation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "resources": [
@@ -81200,6 +81272,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Same-frame typed observation originals"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "extension": [
@@ -81210,6 +81286,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_journal_record.mbt",
                 "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "verification": [
@@ -81224,6 +81304,10 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
@@ -81586,6 +81670,110 @@
               {
                 "path": "src/client_local_run/task_material_original_reuse_wbtest.mbt",
                 "anchor": "test \"retained material alias keeps same Plan capture and foreign Plan refusal\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observe_submission_append_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append_body("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
@@ -82811,12 +82999,24 @@
     },
     {
       "module": "src/run_publication_host/client_submitted_journal_record.mbt",
-      "sha256": "f328048fe1aba908966e4ebe9be249ae1edf189075dbd8e4f32314e04c9cc41d",
+      "sha256": "aca17022e6de4d9ca3dc17b04fac62edfb8bc2be0192546a1fa505dc44d0e2e2",
       "exports": [],
       "operations": [
         {
+          "name": "client_submitted_journal_retained_inventory",
+          "declaration": "client_submitted_journal_retained_inventory ( bytes : Int , text_units : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
           "name": "decode_client_submitted_journal_row",
-          "declaration": "decode_client_submitted_journal_row ( body : Bytes , ) - > Result [ ClientSubmittedJournalEncoding , ClientJournalDecodingIssue ]"
+          "declaration": "decode_client_submitted_journal_row ( body : Bytes , before_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "decode_client_submitted_journal_row_profile",
+          "declaration": "decode_client_submitted_journal_row_profile ( body : Bytes , observed : Bool , before_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "restore_observed_client_submitted_intent",
+          "declaration": "restore_observed_client_submitted_intent ( wire : String , row_bytes : Int , other_text_units : Int64 , reserve : ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] , ) - > Result [ ClientSubmittedIntent , ClientJournalDecodingIssue ]"
         },
         {
           "name": "validate_client_submitted_retained_run",
@@ -82831,7 +83031,9 @@
           "operations": [
             "<module>",
             "decode_client_submitted_journal_row",
-            "validate_client_submitted_retained_run"
+            "validate_client_submitted_retained_run",
+            "decode_client_submitted_journal_row_profile",
+            "restore_observed_client_submitted_intent"
           ],
           "exports": [],
           "attributes": {
@@ -82937,6 +83139,114 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_submitted_journal_retained_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_record.mbt",
+                "anchor": "pub fn client_submitted_journal_retained_inventory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
+              },
+              {
+                "path": "src/run_publication_host/client_scanned_submission_wbtest.mbt",
+                "anchor": "test \"scanned row key revision and complete bytes cannot be substituted\""
               }
             ]
           }
@@ -86233,7 +86543,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "7fdfc0a0d68cec27d24797e7e06b8fbe270fbaf75b2e1a24e99ddb22096735a5",
+      "sha256": "bdd3e430e7dc88eb1b9da6b6030f1a60325f879580adaba2fb5b3c3a34b7e1be",
       "exports": [],
       "operations": [
         {
@@ -93306,7 +93616,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "5ea0e38389d6fae0e3731db16b23db50fa9c3ca28721e2ce1251fa726bb8992c",
+      "sha256": "6491a03c43bb239fed76e2bce2af6755ba98c406a4416565ae137bb264e9810c",
       "exports": [],
       "operations": [
         {
@@ -93336,6 +93646,14 @@
         {
           "name": "[Plan,E]read_client_saved_submission_with_task_original",
           "declaration": "[ Plan , E ] read_client_saved_submission_with_task_original ( reference : ClientSubmissionReferenceRecord , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , custody_lost : E , task_original : ClientTaskMaterialsOriginal [ Plan ] ? , before_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "[Plan,E]read_client_scanned_submission_with_task_original",
+          "declaration": "[ Plan , E ] read_client_scanned_submission_with_task_original ( scanned : ClientJournalPhysicalRow , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , custody_lost : E , task_original : ClientTaskMaterialsOriginal [ Plan ] ? , before_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "[Plan,E]read_decoded_client_saved_submission_row",
+          "declaration": "[ Plan , E ] read_decoded_client_saved_submission_row ( row : ClientJournalPhysicalRow , record : ClientSubmittedJournalEncoding , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , custody_lost : E , task_original : ClientTaskMaterialsOriginal [ Plan ] ? , expected_reference ? : ClientSubmissionReferenceRecord ?"
         },
         {
           "name": "client_saved_submission_record",
@@ -93503,6 +93821,115 @@
               {
                 "path": "src/client_local_run/task_material_original_reuse_wbtest.mbt",
                 "anchor": "test \"retained material alias keeps same Plan capture and foreign Plan refusal\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[Plan,E]read_client_scanned_submission_with_task_original",
+            "[Plan,E]read_decoded_client_saved_submission_row"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot.mbt",
+                "anchor": "pub fn[Plan, E] read_client_scanned_submission_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
+              },
+              {
+                "path": "src/run_publication_host/client_scanned_submission_wbtest.mbt",
+                "anchor": "test \"scanned row key revision and complete bytes cannot be substituted\""
               }
             ]
           }
@@ -94412,6 +94839,364 @@
               {
                 "path": ".github/workflows/ci.yml",
                 "anchor": "journal_decode_originals_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/submission_decode_prefix.mbt",
+      "sha256": "6e1be8af1d3fe1f62f2eee5ec27cdc18f7ca01c06105a73a4dbeeffeeb9abf54",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[Plan]read_scanned_submission_for_projection",
+          "declaration": "[ Plan ] read_scanned_submission_for_projection ( value : Instance , record : StoredSubmissionProjection , capacity : @ resources . CapacityReservation , row : @ host . ClientJournalPhysicalRow , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , inspect_run : ( @ host . ClientJournalPhysicalRow ) - > Result [ @ host . ClientRunJournalInspection , Int , ] , task_original : @ host . ClientTaskMaterialsOriginal [ Plan ] ? , ) - > Result [ @ host . ClientSavedSubmissionSnapshot , Int ]"
+        },
+        {
+          "name": "close_submission_decode_prefix",
+          "declaration": "close_submission_decode_prefix ( value : Instance , record : StoredSubmissionProjection , ) - > Int"
+        },
+        {
+          "name": "finish_submission_decode_observation",
+          "declaration": "finish_submission_decode_observation ( value : Instance , record : StoredSubmissionProjection , result : Result [ @ host . ClientSubmittedJournalAppendPlan , Int ] , ) - > Result [ @ host . ClientSubmittedJournalAppendPlan , Int ]"
+        },
+        {
+          "name": "open_submission_decode_prefix",
+          "declaration": "open_submission_decode_prefix ( value : Instance , record : StoredSubmissionProjection , ) - > Result [ @ resources . CapacityReservation , Int ]"
+        },
+        {
+          "name": "prepare_submission_decode_prefix",
+          "declaration": "prepare_submission_decode_prefix ( value : Instance , record : StoredSubmissionProjection , capacity : @ resources . CapacityReservation , bytes : Int , ) - > Int"
+        },
+        {
+          "name": "submission_decode_controller_capacity",
+          "declaration": "submission_decode_controller_capacity ( ) - > Int64"
+        },
+        {
+          "name": "submission_decode_prefix_capacity",
+          "declaration": "submission_decode_prefix_capacity ( ) - > Int64 ?"
+        },
+        {
+          "name": "submission_decode_prefix_current",
+          "declaration": "submission_decode_prefix_current ( value : Instance , record : StoredSubmissionProjection , capacity : @ resources . CapacityReservation , ) - > Bool"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing submitted-row codec and same original projection/Root purpose Owners; no new authority or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[Plan]read_scanned_submission_for_projection",
+            "close_submission_decode_prefix",
+            "finish_submission_decode_observation",
+            "open_submission_decode_prefix",
+            "prepare_submission_decode_prefix",
+            "submission_decode_controller_capacity",
+            "submission_decode_prefix_capacity",
+            "submission_decode_prefix_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/client_host_wasm/submission.mbt",
+                "anchor": "priv enum StoredSubmissionAppend {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "finish_submission_decode_observation(value, record, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "Err(code) => Err(code)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "@resources.grow_capacity_reservation(value.root, capacity, amount, amount)"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix exact existing geometry and one-short refusal before codec IO\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix.mbt",
+                "anchor": "fn open_submission_decode_prefix("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix restores same previous Ready plan after original-token settlement\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix stays owned after callback return through record consumption\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix admits quote carriers before first geometry construction\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/journal_observed_body_native.mbt",
+      "sha256": "ee2b3e3717afc9eb2921f36b6370b9291f44044c1344d639d2537d18fe8d9cf7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "journal_submitted_decode_working",
+          "declaration": "journal_submitted_decode_working ( stage : @ host . ClientSubmittedJournalConstruction , outer_nodes ? : Int"
+        },
+        {
+          "name": "journal_submitted_retained",
+          "declaration": "journal_submitted_retained ( bytes : Int , text_units : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "NativeLocalJournalReadQueries::prepare_run_decode",
+          "declaration": "NativeLocalJournalReadQueries : : prepare_run_decode ( self : NativeLocalJournalReadQueries , stage : @ host . ClientRunJournalConstruction , ) - > Result [ Unit , @ host . ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "NativeLocalJournalReadQueries::prepare_submitted_copy",
+          "declaration": "NativeLocalJournalReadQueries : : prepare_submitted_copy ( self : NativeLocalJournalReadQueries , bytes : Int64 , ) - > Result [ Unit , @ host . ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "NativeLocalJournalReadQueries::prepare_submitted_decode",
+          "declaration": "NativeLocalJournalReadQueries : : prepare_submitted_decode ( self : NativeLocalJournalReadQueries , stage : @ host . ClientSubmittedJournalConstruction , ) - > Result [ Unit , @ host . ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "NativeLocalJournalReadQueries::prepare_submitted_working",
+          "declaration": "NativeLocalJournalReadQueries : : prepare_submitted_working ( self : NativeLocalJournalReadQueries , working : ( Int64 , Int64 , Int64 ) , ) - > Result [ Unit , @ host . ClientJournalDecodingIssue ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing submitted-row codec and same original projection/Root purpose Owners; no new authority or physical ACK",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "journal_submitted_decode_working",
+            "journal_submitted_retained",
+            "NativeLocalJournalReadQueries::prepare_run_decode",
+            "NativeLocalJournalReadQueries::prepare_submitted_copy",
+            "NativeLocalJournalReadQueries::prepare_submitted_decode",
+            "NativeLocalJournalReadQueries::prepare_submitted_working"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "self.original.interrupted"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "self.original.interrupted"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "self.original.interrupted"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "self.original.interrupted"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              },
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "self.original.host.prepare_domain_original_read_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native.mbt",
+                "anchor": "fn journal_submitted_retained("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/client_host/journal_observed_body_native_wbtest.mbt",
+                "anchor": "test \"observed submitted codec keeps finite full overlap and exact Native constructor geometry\""
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix exact existing geometry and one-short refusal before codec IO\""
               }
             ]
           }

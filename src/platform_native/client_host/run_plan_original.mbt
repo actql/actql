@@ -125,6 +125,96 @@ fn capture_native_run_plan_original(
 }
 
 ///|
+// One Tasks variant (header/reference) plus its reservation closure
+// (header/reference/two scalar words). This immutable quotation is prepared
+// at module load, never allocated by the unbacked request constructor.
+let native_effect_plan_projection_hold_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// Capture the SAME Effect compiler's computation Plan at first acceptance.
+// Reading its original Task component issues no Effect-free Run, permission,
+// authorization or replacement compiler. Saved can only read this stored view.
+// Both callers first obtain the actual checked observation from the existing
+// Core binding. Keep those SAME evidence objects; do not allocate another
+// bound Effect Run merely to inspect metadata before its construction quote.
+fn capture_native_effect_run_plan_original(
+  prepared : @host.PreparedClientEffectComputation,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  observation : @host.ClientRunObservationOriginals,
+  before_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
+) -> Result[NativeClientCapturedRunPlan, NativeClientRunJournalIssue] {
+  let task = allowed.compilation.compiled
+  if !physical_equal(allowed.compilation.owner, prepared) ||
+    !physical_equal(observation.prepared(), allowed.prepared) ||
+    !physical_equal(observation.authorization(), allowed.authorization) ||
+    !@publication.saved_compiled_plan_matches_definition(
+      task.compiled_plan,
+      definition,
+      None,
+    ) {
+    return Err(ForeignRun)
+  }
+  let view = match before_construction {
+    None =>
+      @host.client_task_static_plan_view(task.owner, task, 65536, 8192, 64).map_err(_ => {
+          UnsupportedPreparation
+        },
+      )
+    Some(reserve) => {
+      let held = native_effect_plan_projection_hold_bytes
+      match reserve(held, held, static_plan_quote_raw) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let retain_variant = (r, e, raw) => {
+        if r < 0L ||
+          e < r ||
+          r > 9223372036854775807L - held ||
+          e > 9223372036854775807L - held {
+          Err(CapacityExceeded)
+        } else {
+          reserve(r + held, e + held, raw)
+        }
+      }
+      native_funded_static_compilation_plan_view(
+        task.owner,
+        @host.Tasks(task),
+        retain_variant,
+      )
+    }
+  }
+  let view = match view {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  Ok({
+    program_cid: @host.prepared_client_effect_identity(prepared).program_definition_cid,
+    definition_cid: @publication.publication_contract_identity(definition),
+    prepared: @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_prepared(allowed),
+    ),
+    authorization: @publication.run_evidence_value_json(
+      @host.client_effect_allowed_run_authorization(allowed),
+    ),
+    original: {
+      plan: @host.client_effect_compilation_compiled_plan(allowed.compilation),
+      view,
+    },
+  })
+}
+
+///|
 fn native_run_plan_original_wire(
   original : NativeClientRunPlanOriginal,
   before_construction? : ((Int64, Int64, Int64) -> Result[

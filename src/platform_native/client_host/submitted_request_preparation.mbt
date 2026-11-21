@@ -96,6 +96,30 @@ pub fn return_native_client_submitted_request_body(
 }
 
 ///|
+/// Borrow only the SAME completed Request's original Plan input. Static
+/// explanation and submitted execution share this existing typed custody;
+/// this does not manufacture an intent, preparation identity or Run.
+pub fn[I] borrow_native_client_request_plan_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  NativeClientSubmittedRequestBody,
+  NativeClientSubmittedPreparationIssue,
+] {
+  match @local.request_prepared_computation_kind(owner, input) {
+    Err(issue) => Err(RequestPreparation(issue))
+    Ok(@local.Pure) =>
+      @local.borrow_request_program_plan_input(owner, input)
+      .map(value => Program(value))
+      .map_err(issue => RequestPreparation(issue))
+    Ok(@local.Effect) =>
+      @local.borrow_request_effect_plan_input(owner, input)
+      .map(value => Effect(value))
+      .map_err(issue => RequestPreparation(issue))
+  }
+}
+
+///|
 /// The ordinary Native command's SAME intent and retained Request. The shared
 /// source preflight funds original native decoding before this caller enters
 /// it; the shared checker/compiler then consumes that original input once.

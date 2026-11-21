@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "b33142b1cabe0f790190ac14e3ed352aa9d7238cf7eb7d96c814409da7754b0a",
+      "sha256": "9f0d4d10dd83c4d2757b1f2bc5e092a95a000f4cb5c6abcf9f634f0897ba96a1",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -24,6 +24,7 @@
           "name": "prepareNotionUserListPages",
           "parameters": [
             "moon",
+            "common",
             "names",
             "limits",
             "capturedRequest",
@@ -71,6 +72,13 @@
           "async": false
         },
         {
+          "name": "prepareNotionUserListPages/prepareNotionUserListPages#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareNotionUserListPages/provider/provider",
           "parameters": [
             "name"
@@ -107,6 +115,7 @@
             "prepareNotionUserListPages/init:onError/init:onError",
             "prepareNotionUserListPages/prepareNotionUserListPages",
             "prepareNotionUserListPages/prepareNotionUserListPages#2",
+            "prepareNotionUserListPages/prepareNotionUserListPages#3",
             "prepareNotionUserListPages/provider/provider",
             "prepareNotionUserListPages/provider/provider/provider"
           ],
@@ -192,6 +201,14 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "original current refusal prevents another authorization or remaining-row request"
               }
             ]
           }
@@ -1423,7 +1440,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "2c2504b2ec977d2883ad8217eab6e51c7cc17dd1ea40a9753c583f9b7e1aa45e",
+      "sha256": "3a7f40888478d3b9dad40e80b2c34bf50a19bc5e22aac4e11c92017768511221",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1609,12 +1626,12 @@
             "loadInstalledNotionSource/implementation/implementation",
             "loadInstalledNotionSource/preparePageReader",
             "loadInstalledNotionSource/publish",
+            "loadInstalledNotionSource/request/init:capacity/init:capacity",
+            "loadInstalledNotionSource/request/init:project/init:project",
             "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
             "readInputs/binding/binding",
-            "readInputs/reads/reads",
-            "loadInstalledNotionSource/request/init:capacity/init:capacity",
-            "loadInstalledNotionSource/request/init:project/init:project"
+            "readInputs/reads/reads"
           ],
           "exports": [
             "INSTALLED_NOTION_SITE_VERSION",
@@ -1698,6 +1715,14 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "original current refusal prevents another authorization or remaining-row request"
               }
             ]
           }

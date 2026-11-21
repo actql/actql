@@ -59,6 +59,9 @@ export function normalProviderDiagnostics({phase, work, write}) {
       if (dispatchFailures.length === 2) {note(Error('NormalDiagnosticDispatchLimit'));return;}
       try {
         const record = {};
+        if (ownData(detail, 'primaryCode') === 'OpenAIProjectCredentialUnavailable') {
+          record.credentialRefusal = 'OpenAIProjectCredentialUnavailable';
+        }
         const primary = diagnosticScalars(ownData(detail, 'primaryDiagnostic'));
         const cleanup = diagnosticScalars(ownData(detail, 'cleanupDiagnostic'), true);
         if (primary !== undefined) record.primary = primary;
