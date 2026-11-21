@@ -136,6 +136,43 @@ test('author child resolves its installed consumer validator and preserves origi
   assert.deepEqual(readdirSync(scratch),['consumer']);
 });
 
+test('author projections and freshness use the selected Host package version', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-host-version-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const author=join(scratch,'author'),output=join(scratch,'output');
+  const cli=join(root,'scripts/connector.mjs');
+  const invoke=(...args)=>spawnSync(process.execPath,[cli,...args],{cwd:scratch,encoding:'utf8',timeout:10000});
+  const init=invoke('init',author,'acme');
+  assert.equal(init.status,0,init.stderr);
+  const definition=join(author,'connector.json');
+  const host=join(author,'node_modules','@actql','local-node');
+  mkdirSync(host,{recursive:true});
+  const manifest=version=>writeFileSync(join(host,'package.json'),JSON.stringify({name:'@actql/local-node',
+    version,type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
+  // A test-owned public validation port isolates peer selection. It does not
+  // stand in for the existing compiled Common validation controls.
+  writeFileSync(join(host,'author.mjs'),'export function validateRestReadDeclaration(wire) {return wire;}\n');
+  manifest('0.2.1-rc.3');
+  const build=invoke('build',definition,output);
+  assert.equal(build.status,0,build.stderr);
+  const generated=join(output,'package.json');
+  const original=readFileSync(generated,'utf8');
+  assert.deepEqual(JSON.parse(original).peerDependencies,{'@actql/local-node':'0.2.1-rc.3'});
+  const fresh=invoke('test',definition,output);
+  assert.equal(fresh.status,0,fresh.stderr);
+  manifest('0.2.2');
+  const stale=invoke('test',definition,output);
+  assert.equal(stale.status,1);
+  assert.match(stale.stderr,/StaleRestConnectorProjection:package\.json/u);
+  assert.equal(readFileSync(generated,'utf8'),original);
+  manifest('*');
+  const refused=invoke('build',definition,output);
+  assert.equal(refused.status,1);
+  assert.match(refused.stderr,/RestAuthoringValidatorUnavailable: invalid selected Host manifest/u);
+  assert.equal(readFileSync(generated,'utf8'),original);
+});
+
 test('author conformance selects the installed reference case without creating an installation', t => {
   const root=fileURLToPath(new URL('../',import.meta.url));
   const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-rest-author-normal-plan-'));
