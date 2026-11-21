@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3651522baf75115acf9360e484718ae7329c5581fdc7f9b198acd9e50e2344c",
+      "sha256": "f2792d9ada66da426109ffe9b133cee43e75575c06ed47ee43fbd97bf464f475",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6264,6 +6264,14 @@
           "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
           "parameters": [
             "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal",
+          "parameters": [
+            "native",
+            "expectedKey"
           ],
           "async": false
         },
@@ -7126,60 +7134,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:inspectAllocation/init:inspectAllocation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:markReclaiming/init:markReclaiming",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:releaseCapacity/init:releaseCapacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:retention/init:retention",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
-          "parameters": [
-            "run"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
-          "parameters": [
-            "clearReclaiming"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
           "parameters": [],
           "async": false
@@ -7629,6 +7583,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/parseContract/parseContract",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
           "parameters": [
             "part"
@@ -7987,6 +7948,15 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/readContract/readContract",
+          "parameters": [
+            "cid",
+            "contractName",
+            "readOriginal"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
           "parameters": [
             "cid",
@@ -8153,8 +8123,10 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
-          "parameters": [],
+          "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
+          "parameters": [
+            "objects"
+          ],
           "async": true
         },
         {
@@ -8263,6 +8235,16 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
+          "parameters": [
+            "key",
+            "resultDefinitionCid",
+            "publication",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
           "parameters": [
             "cid",
@@ -8278,6 +8260,21 @@
         {
           "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
+          "parameters": [
+            "keyHash"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
+          "parameters": [
+            "keyHash",
+            "resultDefinitionCid"
+          ],
           "async": false
         },
         {
@@ -8320,14 +8317,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
-          "parameters": [
-            "key",
-            "resultDefinitionCid"
-          ],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
           "parameters": [
             "field"
@@ -8355,6 +8344,13 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
@@ -8658,7 +8654,8 @@
         {
           "operations": [
             "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
-            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension"
+            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
+            "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -8918,16 +8915,6 @@
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#3",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:inspectAllocation/init:inspectAllocation",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:markReclaiming/init:markReclaiming",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:releaseCapacity/init:releaseCapacity",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:retention/init:retention",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
@@ -9029,7 +9016,6 @@
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
             "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
-            "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
             "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
@@ -9054,7 +9040,6 @@
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
-            "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
@@ -9094,7 +9079,14 @@
             "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
             "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation"
+            "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
+            "openOriginalLocalPublicationStore/parseContract/parseContract",
+            "openOriginalLocalPublicationStore/readContract/readContract",
+            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
+            "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
+            "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
+            "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
           ],
           "exports": [
             "PublicationStoreError",
@@ -17265,9 +17257,10 @@
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5bcaaad0423ca2cd703f6433b8d6124b512f5086bb799e3b033fe8e01191c961",
+      "sha256": "9edd83bf42405619e5bcf6a5856057bdffdf30cb2fa37cfe4abc28c350fc8367",
       "exports": [
-        "createResultDeletionOwner"
+        "createResultDeletionOwner",
+        "createResultRetirement"
       ],
       "operations": [
         {
@@ -17298,6 +17291,115 @@
           "name": "createResultDeletionOwner/status/status",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "createResultRetirement",
+          "parameters": [
+            "configuration",
+            "deletionsDirectory",
+            "indexesDirectory",
+            "active",
+            "cidHex",
+            "currentDeliveryIndex",
+            "resultDeletionDirectory",
+            "resultDeletionPath",
+            "readOpeningDirectory",
+            "readMetadataDeletion",
+            "admitNativeIndexOriginal",
+            "admitContract",
+            "parseContract",
+            "readContract",
+            "requireCommittedResultBinding",
+            "syncDirectory",
+            "materialRetentionCurrent",
+            "retainMaterialOperation",
+            "activeResultReaders",
+            "preparedObjects",
+            "pendingResultDeletions",
+            "reclaimingMaterialCids",
+            "materialHasLiveReference",
+            "objectPath",
+            "rememberPhysicalRemoval",
+            "syncPhysicalRemovals",
+            "releasePhysicalCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:inspectAllocation/init:inspectAllocation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:markReclaiming/init:markReclaiming",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:releaseCapacity/init:releaseCapacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:retention/init:retention",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
+          "parameters": [
+            "clearReclaiming"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultRetirement/readResultDeletion/readResultDeletion",
+          "parameters": [
+            "keyHash",
+            "resultDefinitionCid",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createResultRetirement/recoverRetiredResults/recoverRetiredResults",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createResultRetirement/retireCommittedResult/retireCommittedResult",
+          "parameters": [
+            "key",
+            "resultDefinitionCid"
+          ],
+          "async": true
         }
       ],
       "role": "physical-io",
@@ -17310,10 +17412,25 @@
             "createResultDeletionOwner/init:retry/init:retry",
             "createResultDeletionOwner/init:retry/init:retry/init:retry",
             "createResultDeletionOwner/settle/settle",
-            "createResultDeletionOwner/status/status"
+            "createResultDeletionOwner/status/status",
+            "createResultRetirement",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#2",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#3",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:inspectAllocation/init:inspectAllocation",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:markReclaiming/init:markReclaiming",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:releaseCapacity/init:releaseCapacity",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:retention/init:retention",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
+            "createResultRetirement/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
+            "createResultRetirement/readResultDeletion/readResultDeletion",
+            "createResultRetirement/recoverRetiredResults/recoverRetiredResults",
+            "createResultRetirement/retireCommittedResult/retireCommittedResult"
           ],
           "exports": [
-            "createResultDeletionOwner"
+            "createResultDeletionOwner",
+            "createResultRetirement"
           ],
           "attributes": {
             "responsibility": [
@@ -17346,6 +17463,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.mts",
+                "anchor": "export function createResultRetirement<"
               }
             ],
             "identity": [
@@ -17354,7 +17475,7 @@
                 "anchor": "operations.ensureMarker()"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/result-deletion-owner.mts",
                 "anchor": "rememberPhysicalRemoval(materialCid,expectedBytes,state);"
               },
               {
@@ -17374,6 +17495,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.mts",
+                "anchor": "pendingResultDeletions.set(deletionKey, cleanup);"
               }
             ],
             "synchronization": [
@@ -17388,6 +17513,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.mts",
+                "anchor": "await syncDirectory(directory);"
               }
             ],
             "failure": [
@@ -17458,13 +17587,21 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result retirement retains capacity until object durability retry"
               }
             ]
           }
         }
       ],
       "imports": [
-        "../host-common/managed-failure.mjs"
+        "../host-common/managed-failure.mjs",
+        "./publication-store-inputs.mjs",
+        "./publication-store-io.mjs",
+        "node:fs/promises",
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

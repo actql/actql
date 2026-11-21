@@ -45,7 +45,7 @@ import {createPublicationObjectConsumer} from './publication-object-consumer.mjs
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
-import {createResultDeletionOwner} from './result-deletion-owner.mjs';
+import {createResultRetirement} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
@@ -3708,33 +3708,6 @@ async function openOriginalLocalPublicationStore(
     return previous;
   };
 
-  const readResultDeletion = async (keyHash, resultDefinitionCid, readDemand) => {
-    let directory;
-    try {directory = await lstat(resultDeletionDirectory(keyHash));}
-    catch (error) {if (error?.code === 'ENOENT') return undefined; throw error;}
-    if (!directory.isDirectory() || directory.isSymbolicLink()) fail('InvalidPublicationDeletionStore');
-    const path = resultDeletionPath(keyHash, resultDefinitionCid);
-    let bytes;
-    try { bytes = await readBounded(path, configuration.maxObjectBytes, undefined, undefined, false, readDemand); }
-    catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
-      throw error;
-    }
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) { fail('InvalidPublicationDeletionStore', error); }
-    if (!exactKeys(value, [
-      'version', 'public_index_entry_cid', 'result_definition_cid',
-      'material_generation_cid',
-    ]) || value.version !== 'actql-local-result-deletion/0.1' ||
-        !cidPattern.test(value.public_index_entry_cid) ||
-        value.result_definition_cid !== resultDefinitionCid ||
-        !cidPattern.test(value.material_generation_cid)) {
-      fail('InvalidPublicationDeletionStore');
-    }
-    return Object.freeze(value);
-  };
-
   const requireCommittedResultBinding = async (
     key,
     resultDefinitionCid,
@@ -5432,198 +5405,14 @@ async function openOriginalLocalPublicationStore(
       metadataRetentionCurrent, retainMetadataOperation,
     });
 
-  const ensureResultDeletionMarker = async (
-    keyHash,
-    resultDefinitionCid,
-    value,
-  ) => {
-    // Persist recovery intent before any marker or physical cleanup. Native
-    // close alone cannot seal it; the Store waits for every original child.
-    deliveryIndex.beginResultDeletionLifetime();
-    const directory = resultDeletionDirectory(keyHash);
-    let createdDirectory = false;
-    try {
-      await mkdir(directory, {mode: 0o700});
-      createdDirectory = true;
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      if (!(await lstat(directory)).isDirectory()) {
-        fail('InvalidPublicationDeletionStore');
-      }
-    }
-    if (createdDirectory) await syncDirectory(deletionsDirectory);
-    const path = resultDeletionPath(keyHash, resultDefinitionCid);
-    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
-    if (bytes.byteLength > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    try { await writeExclusive(path, bytes); }
-    catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readBounded(
-        path, configuration.maxObjectBytes,
-      );
-      if (!existing.equals(bytes)) fail('PublicationDeletionConflict');
-    }
-    await syncDirectory(directory);
-    return path;
-  };
-
-  const createResultDeletionCleanup = async (
-    keyHash,
-    resultDefinitionCid,
-    marker,
-    expectedBytes,
-  ) => {
-    const materialCid = marker.material_generation_cid;
-    const deletionKey = `${keyHash}/${cidHex(resultDefinitionCid)}`;
-    const existing = pendingResultDeletions.get(deletionKey);
-    if (existing !== undefined) {
-      return Object.freeze({marker, cleanup: existing, deleted: false});
-    }
-    let physicalRemoval;
-    const cleanup = createResultDeletionOwner({
-      serialize(run) {
-        const operation = materialRetentionBusy.then(run);
-        materialRetentionBusy = operation.catch(() => {});
-        return operation;
-      },
-      ensureMarker: () => ensureResultDeletionMarker(
-        keyHash, resultDefinitionCid, marker,
-      ),
-      async retention() {
-        if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return 'wait';
-        const prepared = preparedObjects.get(materialCid);
-        if (prepared !== undefined &&
-            (prepared.holders.size !== 0 ||
-              prepared.commitOwners.size !== 0)) return 'wait';
-        if (await materialHasLiveReference(materialCid)) {
-          return 'settled';
-        }
-        const currentPrepared = preparedObjects.get(materialCid);
-        return currentPrepared !== undefined &&
-          (currentPrepared.holders.size !== 0 ||
-            currentPrepared.commitOwners.size !== 0) ? 'wait' : 'free';
-      },
-      markReclaiming() { reclaimingMaterialCids.add(materialCid); },
-      async inspectAllocation() {
-        let state;
-        try { state = await lstat(objectPath(materialCid)); }
-        catch (error) {
-          if (error?.code !== 'ENOENT') throw error;
-        }
-        if (state === undefined) {
-          physicalRemoval = await rememberPhysicalRemoval(materialCid,expectedBytes);
-          return physicalRemoval === undefined ? 'missing' : 'missing-unconfirmed';
-        }
-        if (!state.isFile() || state.size !== expectedBytes) {
-          fail('PublicationDurableBindingMismatch');
-        }
-        // Other Store-owned references can share this inode. Keep the base
-        // name and capacity charge while any physical link remains.
-        if(state.nlink>1)return 'shared';
-        physicalRemoval = await rememberPhysicalRemoval(materialCid,expectedBytes,state);
-        return 'exclusive';
-      },
-      unlink: () => physicalRemoval.unlinkOriginal(),
-      syncObjects: () => syncPhysicalRemovals(new Map([[materialCid, physicalRemoval]])),
-      releaseCapacity() {
-        return releasePhysicalCapacity(new Map([[materialCid, physicalRemoval]]));
-      },
-      settle(clearReclaiming) {
-        pendingResultDeletions.delete(deletionKey);
-        if (clearReclaiming) reclaimingMaterialCids.delete(materialCid);
-      },
+  const {readResultDeletion, retireCommittedResult, recoverRetiredResults} =
+    createResultRetirement(configuration, deletionsDirectory, indexesDirectory, {
+      active, cidHex, currentDeliveryIndex, resultDeletionDirectory, resultDeletionPath,
+      readOpeningDirectory, readMetadataDeletion, admitNativeIndexOriginal, admitContract, parseContract,
+      readContract, requireCommittedResultBinding, syncDirectory, materialRetentionCurrent, retainMaterialOperation,
+      activeResultReaders, preparedObjects, pendingResultDeletions, reclaimingMaterialCids, materialHasLiveReference,
+      objectPath, rememberPhysicalRemoval, syncPhysicalRemovals, releasePhysicalCapacity,
     });
-    pendingResultDeletions.set(deletionKey, cleanup);
-    try { await cleanup.retry(); }
-    catch {}
-    return Object.freeze({
-      marker,
-      cleanup,
-      deleted: cleanup.status().pending === false,
-    });
-  };
-
-  const retireCommittedResult = async (key, resultDefinitionCid) => {
-    active();
-    const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid,
-    );
-    const expectedBytes = selected.value.byte_count;
-    if (!quantity(expectedBytes)) fail('InvalidPublicationDurableBinding');
-    return createResultDeletionCleanup(
-      indexKey(key),
-      resultDefinitionCid,
-      Object.freeze({
-        version: 'actql-local-result-deletion/0.1',
-        public_index_entry_cid: selected.entry.public_index_entry_cid,
-        result_definition_cid: resultDefinitionCid,
-        material_generation_cid: selected.value.material_generation_cid,
-      }),
-      expectedBytes,
-    );
-  };
-
-  const recoverRetiredResults = async () => {
-    active();
-    const recovered = [];
-    if (!deliveryIndex.resultDeletionRecoveryRequired()) return Object.freeze(recovered);
-    for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
-      if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
-          !(await lstat(resultDeletionDirectory(keyHash))).isDirectory()) {
-        fail('InvalidPublicationDeletionStore');
-      }
-      let indexBytes;
-      const nativeIndex = deliveryIndex.nativePublicationIndex(keyHash);
-      try {
-        if (nativeIndex === undefined) indexBytes = await readBounded(
-          resolve(indexesDirectory, `${keyHash}.json`), configuration.maxObjectBytes);
-      } catch (error) {
-        if (error?.code === 'ENOENT' &&
-            await readMetadataDeletion(keyHash) !== undefined) continue;
-        throw error;
-      }
-      const nativeOriginal = nativeIndex === undefined ? undefined : admitNativeIndexOriginal(nativeIndex);
-      const indexContract = nativeOriginal?.contract ?? admitContract('public_index_entry',indexBytes.toString('utf8'));
-      const entry = nativeOriginal?.entry ?? parseContract(indexContract);
-      for (const name of await readOpeningDirectory(resultDeletionDirectory(keyHash))) {
-        if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-            !(await lstat(resolve(resultDeletionDirectory(keyHash), name))).isFile()) {
-          fail('InvalidPublicationDeletionStore');
-        }
-        const resultDefinitionCid = `sha256:${name.slice(0, -5)}`;
-        const marker = await readResultDeletion(
-          keyHash, resultDefinitionCid,
-        );
-        if (marker.public_index_entry_cid !== indexContract.identity) {
-          fail('InvalidPublicationDeletionStore');
-        }
-        const matches = [];
-        for (const bindingCid of entry.durable_result_binding_cids) {
-          const binding = parseContract((await readContract(
-            bindingCid, 'durable_result_binding',
-          )).contract);
-          if (binding.result_definition_cid === resultDefinitionCid) {
-            matches.push(binding);
-          }
-        }
-        if (matches.length !== 1 ||
-            matches[0].material_generation_cid !==
-              marker.material_generation_cid ||
-            !quantity(matches[0].byte_count)) {
-          fail('InvalidPublicationDeletionStore');
-        }
-        recovered.push(await createResultDeletionCleanup(
-          keyHash,
-          resultDefinitionCid,
-          marker,
-          matches[0].byte_count,
-        ));
-      }
-    }
-    return Object.freeze(recovered);
-  };
 
   const createMetadataDeletionCleanup = async (keyHash, marker) => {
     const existing = pendingMetadataDeletions.get(keyHash);
