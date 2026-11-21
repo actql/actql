@@ -741,6 +741,77 @@ test "Native Project Mock reads exact public declarations and retains same typed
 }
 
 ///|
+test "Native shared-file Mock admits an empty registry and still requires answers for selected Tasks" {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap()
+  for operation in ["adopt", "check"] {
+    let args = if operation == "adopt" {
+      ["adopt", "--initialize-signing"]
+    } else {
+      ["check", "never-read.aql"]
+    }
+    let matches = command().parse(argv=args)
+    let project = local_project_read_from(
+        matches,
+        root + "/shared-file-empty-models",
+      )
+      .unwrap()
+      .unwrap()
+    let selected = local_project_read_execution_bindings(
+        Some(project),
+        operation,
+      )
+      .unwrap()
+      .unwrap()
+    let original = selected.mock_declarations.unwrap()
+    defer original.retire()
+    assert_true(
+      physical_equal(project.metadata, original._retained_project.metadata),
+    )
+    assert_eq(original._retained_registry.unwrap().task_count(), 0)
+    assert_eq(original._retained_tasks.length(), 0)
+    assert_true(original._retained_data_file.has_suffix("/mock/data.json"))
+    assert_false(original.sources_started)
+    assert_false(original.model_started)
+    original.prepare_source_declarations().unwrap()
+    let mut clocks = 0
+    original
+    .prepare_models(
+      local_project_mock_task_limits(),
+      local_project_mock_answer_limits(),
+      () => {
+        clocks += 1
+        "2026-01-01T00:00:00Z"
+      },
+    )
+    .unwrap()
+    assert_eq(clocks, 0)
+    assert_eq(original.models.length(), 0)
+    let (subjects, targets) = original
+      .account_subjects(_ => true)
+      .unwrap()
+      .unwrap()
+    assert_eq(subjects.model_tasks, [])
+    assert_eq(targets.length(), 2)
+    assert_true(targets.contains(("salesforce", "Account")))
+    assert_true(targets.contains(("salesforce", "Contact")))
+    let missing = local_project_read_from(
+        matches,
+        root + "/shared-file-missing-answers",
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(
+      try {
+        ignore(local_project_read_execution_bindings(Some(missing), operation))
+        false
+      } catch {
+        ClientStop(reason) => reason == "InvalidProjectBindings"
+      },
+    )
+  }
+}
+
+///|
 test "Native Project Mock preserves missing Reader and rejects foreign registered Task" {
   let configuration = "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./model-tasks.json\",\"mock\":{\"catalog\":\"./mock/catalog.json\",\"data\":\"./mock/data.json\",\"answers\":{\"model-task:deal-review.v1\":\"./mock/deal-review.v1.answers.yaml\"}}}"
   let missing = project_bindings_fixture(

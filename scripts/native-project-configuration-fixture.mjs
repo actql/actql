@@ -5,6 +5,7 @@ import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -144,6 +145,21 @@ export function nativeProjectConfigurationFixture(namespace) {
       }
       mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
       write(path, relative, body);
+    }
+  }
+  const sharedFile = threeWriteMockProject().files;
+  const modelFixture = projectTemplateFiles('deal-review-mock');
+  for (const name of ['shared-file-empty-models', 'shared-file-missing-answers']) {
+    const path = directory(name);
+    const missingAnswers = name === 'shared-file-missing-answers';
+    mkdirSync(join(path, 'mock'), {mode: 0o700});
+    for (const file of ['actql.config.json', 'connectors.json', 'mock/catalog.json']) {
+      write(path, file, sharedFile[file]);
+    }
+    write(path, 'model-tasks.json', missingAnswers ? modelFixture['model-tasks.json'] : sharedFile['model-tasks.json']);
+    if (missingAnswers) {
+      mkdirSync(join(path, 'model-tasks'), {mode: 0o700});
+      write(path, 'model-tasks/deal-review.v1.yaml', modelFixture['model-tasks/deal-review.v1.yaml']);
     }
   }
   // Independent oracle for the SAME public File-facts consumer. The missing

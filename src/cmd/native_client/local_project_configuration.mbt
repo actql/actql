@@ -394,19 +394,15 @@ fn local_project_read_execution_bindings(
   // Intake the exact public Mock documents independently of installation.
   // The later execution gate requires the same retained Command and prepared
   // Source/Model originals; declaration DATA cannot select a live installation.
+  // An explicitly selected registry can have zero Tasks. The declaration
+  // reader matches every registered Task against its original answer file.
   let metadata = project.metadata
   if project.profile == Some("mock") &&
     metadata.lock_file() is None &&
     metadata.connectors_file() is Some(_) &&
     metadata.mock_catalog_file() is Some(_) &&
     metadata.mock_data_file() is Some(_) &&
-    (
-      write_metadata_only ||
-      (
-        metadata.model_tasks_file() is Some(_) &&
-        metadata.mock_answer_count() > 0
-      )
-    ) {
+    (write_metadata_only || metadata.model_tasks_file() is Some(_)) {
     return match
       local_project_read_mock_declarations(
         project,
