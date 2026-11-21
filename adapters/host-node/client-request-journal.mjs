@@ -40,6 +40,7 @@ import {keyedLookupOriginalTable, explanationOriginalTable, admitJournalDirector
   assertJournalNameCustody, authenticateJournalName, assertJournalCancellationCustody,
   inspectJournalNativeStorage} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
+import {createJournalAttempts, validCancellationRef, ownedCancellationRef} from './client-request-journal-attempts.mjs';
 export {validateSourceInventory};
 
 const pathText = value => typeof value === 'string' && value.length > 0;
@@ -219,110 +220,8 @@ export function openClientRequestJournal(directory, {
     primaryCurrent?.();
     transaction.assertUsable();
   };
-  // Only an explicit semantic rejection from this Owner, followed by a
-  // confirmed rollback of initial admission, can certify this invocation.
-  // An error code copied from another operation carries no such custody.
-  const cancellationRejectionCandidates = new WeakMap();
-  const cancellationRejections = new WeakMap();
-  const submissionRejectionCandidates = new WeakMap();
-  const submissionRejections = new WeakMap();
-  let activeSubmissionAttempt;
-  const rejectSubmission = (code, kind, reason) => {
-    const error = Object.assign(new Error(code), {code});
-    submissionRejectionCandidates.set(error, Object.freeze({kind, reason,
-      ticket: activeSubmissionAttempt}));
-    throw error;
-  };
-  const submissionTransaction = action => {
-    try {return transaction.run(action);}
-    catch (error) {
-      const rejection = submissionRejectionCandidates.get(error);
-      if (rejection !== undefined && rejection.ticket === activeSubmissionAttempt &&
-          error.outcome !== 'unknown' && transaction.connectionUsable) {
-        // transaction.run returns the original semantic error only after a
-        // successful rollback. Commit and rollback failures wrap that error.
-        submissionRejections.set(error, rejection);
-      }
-      throw error;
-    }
-  };
-  const submissionAttempt = (submissionRef, intent, options, control, action, kind) => {
-    ensureOpen();
-    const attemptRef = options.attemptRef;
-    if (!validSubmissionRef(submissionRef) || attemptRef === null ||
-        typeof attemptRef !== 'object' ||
-        Object.keys(attemptRef).sort().join(',') !== 'attemptId,operation' ||
-        attemptRef.operation !== 'submit' || !text(attemptRef.attemptId) ||
-        !attemptRef.attemptId.isWellFormed() || typeof options.currentAuthorization !== 'boolean') {
-      fail('InvalidClientSubmissionAttempt');
-    }
-    const ownedAttempt = Object.freeze({operation: 'submit', attemptId: attemptRef.attemptId});
-    if (!options.currentAuthorization) return Object.freeze({kind: 'refused',
-      attemptRef: ownedAttempt, guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'});
-    const original = originalIntent(intent, control, submissionRef.epoch);
-    const ownedRef = Object.freeze({...submissionRef, epoch: Object.freeze({...submissionRef.epoch})});
-    const ticket = {}, previous = activeSubmissionAttempt;
-    activeSubmissionAttempt = ticket;
-    try {
-      const result = action();
-      return Object.freeze({kind, attemptRef: ownedAttempt,
-        ...(kind === 'checked' ? {requestId: result.requestId} : {submission: result,
-          attemptKind: result.observation})});
-    } catch (error) {
-      const rejection = submissionRejections.get(error);
-      if (rejection === undefined || rejection.ticket !== ticket) throw error;
-      return Object.freeze({kind: rejection.kind, reason: rejection.reason, attemptRef: ownedAttempt,
-        submissionRef: ownedRef, intentCid: original.identity,
-        ...(rejection.kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {})});
-    } finally {activeSubmissionAttempt = previous;}
-  };
-  const rejectSubmissionEpoch = validity => {
-    const reason = validity === 'expired' ? 'epoch_expired' : 'epoch_not_yet_valid';
-    const code = validity === 'expired' ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid';
-    const error = Object.assign(new Error(code), {code});
-    // This decision follows a successful transaction which confirmed that
-    // this fresh identity has no retained receipt. The clock observation is
-    // durable, but no intent custody was consumed by this invocation.
-    submissionRejections.set(error, Object.freeze({kind: 'refused', reason,
-      ticket: activeSubmissionAttempt}));
-    throw error;
-  };
-  let activeCancellationAttempt;
-  const rejectCancellation = (code, kind, reason) => {
-    const error = Object.assign(new Error(code), {code});
-    cancellationRejectionCandidates.set(error, Object.freeze({kind, reason,
-      ticket: activeCancellationAttempt}));
-    throw error;
-  };
-  const transact = (operation, unknownCode, known, action) => {
-    try { return transaction.run(action); }
-    catch (error) {
-      const transactionFailure = [
-        'ClientRequestJournalCommitOutcomeUnknown',
-        'ClientRequestJournalRollbackFailed',
-        'ClientRequestJournalConnectionUnusable',
-      ].includes(error?.code);
-      if (!transactionFailure && known(error) &&
-          error.outcome !== 'unknown' &&
-          transaction.connectionUsable) {
-        const rejection = cancellationRejectionCandidates.get(error);
-        if (operation === 'cancel_admission' && rejection !== undefined &&
-            rejection.ticket === activeCancellationAttempt) {
-          cancellationRejections.set(error, rejection);
-        }
-        throw error;
-      }
-      throw Object.assign(new Error(unknownCode, {
-        cause: error.cause ?? error,
-      }), {
-        code: unknownCode, operation,
-        outcome: error.outcome ?? 'failed',
-        rollbackCause: error.rollbackCause,
-        stateCause: error.stateCause,
-        connectionUsable: transaction.connectionUsable,
-      });
-    }
-  };
+  const {rejectSubmission, submissionTransaction, submissionAttempt, rejectSubmissionEpoch,
+    rejectCancellation, transact, cancellationAttempt} = createJournalAttempts(transaction, ensureOpen);
   let observationProjection;
   // Count only rows actually returned by these selected native reads. This
   // neither visits other Runs nor measures SQLite's internal page traversal.
@@ -758,13 +657,6 @@ export function openClientRequestJournal(directory, {
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
 
-  const validCancellationRef = ref => text(ref?.namespaceId) &&
-    cid(ref?.authorityScopeCid) && cid(ref?.runDefinitionCid) &&
-    text(ref?.cancelId) && Number.isInteger(ref?.expectedRevision) &&
-    ref.expectedRevision >= 0 && ref.expectedRevision <= 2147483647;
-  const ownedCancellationRef = ref => Object.freeze({namespaceId: ref.namespaceId,
-    authorityScopeCid: ref.authorityScopeCid, runDefinitionCid: ref.runDefinitionCid,
-    cancelId: ref.cancelId, expectedRevision: ref.expectedRevision});
   const cancellationKnownFailure = error => [
     'ClientCancellationDenied', 'ClientCancellationIntentConflict',
     'ClientCancellationRevisionConflict', 'ClientRequestJournalCapacity',
@@ -1163,7 +1055,7 @@ export function openClientRequestJournal(directory, {
     },
     resolveNamedSubmissionAttempt(name, intent, options, control) {
       return submissionAttempt(options.submissionRef, intent, options, control,
-        () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded');
+        () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded', originalIntent);
     },
     checkSubmittedIntent(submissionRef, intent, {authorityScopeCid,
       currentAuthorization, unresolvedHistory, actorId}, control) {
@@ -1218,11 +1110,11 @@ export function openClientRequestJournal(directory, {
     // never replacement receipts or proof that another invocation did not run.
     checkSubmissionAttempt(submissionRef, intent, options, control) {
       return submissionAttempt(submissionRef, intent, options, control,
-        () => journal.checkSubmittedIntent(submissionRef, intent, options, control), 'checked');
+        () => journal.checkSubmittedIntent(submissionRef, intent, options, control), 'checked', originalIntent);
     },
     recordSubmissionAttempt(submissionRef, intent, options, control) {
       return submissionAttempt(submissionRef, intent, options, control,
-        () => journal.recordSubmittedIntent(submissionRef, intent, options, control), 'recorded');
+        () => journal.recordSubmittedIntent(submissionRef, intent, options, control), 'recorded', originalIntent);
     },
     lookupSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization}, control, expected) {
       ensureOpen();
@@ -2193,37 +2085,7 @@ export function openClientRequestJournal(directory, {
     // own the same cancellation. Pending custody and uncertain COMMIT never
     // produce this certificate. The durable original remains unchanged.
     recordCancellationAttempt(ref, {attemptRef, ...options}, requestControl, publicationControl) {
-      ensureOpen();
-      if (attemptRef === null || typeof attemptRef !== 'object' ||
-          Object.keys(attemptRef).sort().join(',') !== 'attemptId,operation' ||
-          attemptRef.operation !== 'cancel' || !text(attemptRef.attemptId) ||
-          !attemptRef.attemptId.isWellFormed() ||
-          !validCancellationRef({...ref, cancelId: options.cancelId,
-            expectedRevision: options.expectedRevision}) ||
-          typeof options.currentAuthorization !== 'boolean') {
-        fail('InvalidClientCancellationAttempt');
-      }
-      const ownedAttempt = Object.freeze({operation: 'cancel', attemptId: attemptRef.attemptId});
-      if (!options.currentAuthorization) return Object.freeze({
-        kind: 'refused', attemptRef: ownedAttempt,
-        guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization',
-      });
-      const ticket = {};
-      const previousAttempt = activeCancellationAttempt;
-      activeCancellationAttempt = ticket;
-      try {
-        const result = journal.recordCancellationOperation(ref, options, requestControl, publicationControl);
-        return Object.freeze({kind: result.cancellation.kind === 'accepted'
-          ? 'accepted' : 'already_satisfied', attemptRef: ownedAttempt,
-          cancellation: result.cancellation, recorded: result.recorded});
-      } catch (error) {
-        const rejection = cancellationRejections.get(error);
-        if (rejection === undefined || rejection.ticket !== ticket) throw error;
-        return Object.freeze({kind: rejection.kind, reason: rejection.reason, attemptRef: ownedAttempt,
-          ...(rejection.kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {}),
-          cancelRef: ownedCancellationRef({...ref, cancelId: options.cancelId,
-            expectedRevision: options.expectedRevision})});
-      } finally { activeCancellationAttempt = previousAttempt; }
+      return cancellationAttempt(journal, ref, attemptRef, options, requestControl, publicationControl);
     },
     // An exact, authorized observation. It never fences, starts execution or
     // completes a pending operation; absent custody is not proof of rejection.

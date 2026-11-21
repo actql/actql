@@ -29034,6 +29034,15 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/originalIntent/originalIntent",
+          "parameters": [
+            "intent",
+            "control",
+            "epoch"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead",
           "parameters": [
             "ref"
@@ -29073,16 +29082,6 @@
           "name": "openClientRequestJournal/sourceOperations/sourceOperations",
           "parameters": [
             "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/transact/transact",
-          "parameters": [
-            "operation",
-            "unknownCode",
-            "known",
-            "action"
           ],
           "async": false
         },
@@ -29187,7 +29186,6 @@
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
-            "openClientRequestJournal/transact/transact",
             "openClientRequestJournal/verifyEpoch/verifyEpoch",
             "openClientRequestJournal/verifyEpoch/verifyEpoch/verifyEpoch",
             "openClientRequestJournal/verifyEpochLocked/verifyEpochLocked",
@@ -29198,7 +29196,8 @@
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
-            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+            "openClientRequestJournal/originalIntent/originalIntent"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -31970,6 +31969,7 @@
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
+        "./client-request-journal-attempts.mjs",
         "./client-request-journal-facility.mjs",
         "./client-request-journal-format.mjs",
         "./client-request-journal-records.mjs",
@@ -31985,6 +31985,228 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-request-journal-attempts.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c471d089db79f5f92745bf159a3dad14a469b3d97cdc3e1d439d264e7b023155",
+      "role": "physical-io",
+      "owner": "Existing Client request/Run/submission Owners and same physical journal",
+      "exports": [
+        "createJournalAttempts",
+        "ownedCancellationRef",
+        "validCancellationRef"
+      ],
+      "operations": [
+        {
+          "name": "createJournalAttempts",
+          "parameters": [
+            "transaction",
+            "ensureOpen"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/cancellationAttempt/cancellationAttempt",
+          "parameters": [
+            "journal",
+            "ref",
+            "attemptRef",
+            "options",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/rejectCancellation/rejectCancellation",
+          "parameters": [
+            "code",
+            "kind",
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/rejectSubmission/rejectSubmission",
+          "parameters": [
+            "code",
+            "kind",
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/rejectSubmissionEpoch/rejectSubmissionEpoch",
+          "parameters": [
+            "validity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/submissionAttempt/submissionAttempt",
+          "parameters": [
+            "submissionRef",
+            "intent",
+            "options",
+            "control",
+            "action",
+            "kind",
+            "originalIntent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/submissionTransaction/submissionTransaction",
+          "parameters": [
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalAttempts/transact/transact",
+          "parameters": [
+            "operation",
+            "unknownCode",
+            "known",
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedCancellationRef/ownedCancellationRef",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "validCancellationRef/validCancellationRef",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "./client-request-journal-records.mjs",
+        "./client-request-journal-sql.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createJournalAttempts",
+            "createJournalAttempts/cancellationAttempt/cancellationAttempt",
+            "createJournalAttempts/rejectCancellation/rejectCancellation",
+            "createJournalAttempts/rejectSubmission/rejectSubmission",
+            "createJournalAttempts/rejectSubmissionEpoch/rejectSubmissionEpoch",
+            "createJournalAttempts/submissionAttempt/submissionAttempt",
+            "createJournalAttempts/submissionTransaction/submissionTransaction",
+            "createJournalAttempts/transact/transact",
+            "ownedCancellationRef/ownedCancellationRef",
+            "validCancellationRef/validCancellationRef"
+          ],
+          "exports": [
+            "createJournalAttempts",
+            "ownedCancellationRef",
+            "validCancellationRef"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Original pre-admission refusal consumption"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "export function createJournalAttempts(transaction:"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "export const validCancellationRef ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "if (rejection === undefined || rejection.ticket !== ticket) throw error;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "const submissionRejectionCandidates = new WeakMap<Error, Rejection<SubmissionReason>>();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "const cancellationRejectionCandidates = new WeakMap<Error, Rejection<CancellationReason>>();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "const submissionTransaction = <Result extends SynchronousRuntimeData>"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "if (operation === 'cancel_admission' && rejection !== undefined &&"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "'ClientRequestJournalCommitOutcomeUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "outcome: (error as ObservedFailure).outcome ?? 'failed',"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal-attempts.mts",
+                "anchor": "const cancellationAttempt = <RequestControl, PublicationControl, Result extends RecordedCancellation>"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Indexed submission retention usage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Effect cancellation observation lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-submission-attempt.test.mjs",
+                "anchor": "Submission Conflict requires confirmed rollback rather than its exception code"
+              },
+              {
+                "path": "adapters/host-node/client-cancellation-operation.test.mjs",
+                "anchor": "a Model fence error cannot become an initial-admission refusal or conflict"
+              },
+              {
+                "path": "adapters/host-node/client-cancellation-operation.test.mjs",
+                "anchor": "failed final cancellation transaction retains pending identity without accepted fact"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/client-request-journal-facility.mjs",
