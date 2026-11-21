@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {qualifyCompositeReleaseSource} from './composite-release-source-qualification.mjs';
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'composite-source-qualification-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  const git = (...args) => execFileSync('git', ['-c', 'user.name=Fixture',
+  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=Fixture',
     '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false',
     ...args], {cwd: root, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']}).trim();
   git('init', '-q');
-  const edit = async path => {
+  const edit = async (path: string) => {
     await mkdir(dirname(join(root, path)), {recursive: true});
     await writeFile(join(root, path), 'independent synthetic input\n');
   };
@@ -34,9 +34,13 @@ test('Composite acceptance qualifies the same exact clean artifact source', asyn
 test('Composite acceptance retains artifact source while qualifying only the closed audit harness child', async t => {
   const f = await fixture(t);
   const paths = ['scripts/packed-package-boundaries.mjs',
+    'scripts/packed-package-boundaries.mts',
     'scripts/packed-package-boundaries.test.mjs',
+    'scripts/packed-package-boundaries.test.mts',
     'scripts/composite-release-source-qualification.mjs',
+    'scripts/composite-release-source-qualification.mts',
     'scripts/composite-release-source-qualification.test.mjs',
+    'scripts/composite-release-source-qualification.test.mts',
     'scripts/test-package-release-composite-vector.mjs'];
   for (const path of paths) await f.edit(path);
   const head = f.commit();
@@ -54,7 +58,7 @@ test('Composite acceptance rejects runtime package contract lock fixture and ora
     'scripts/fixtures/composite-vector-source-input.mjs',
     'scripts/fixtures/composite-vector-installed-source.mjs',
     'reviews/2026-10-14-composite-vector-release-matrix/public-audit.mjs',
-    'scripts/unreviewed-harness.mjs',
+    'scripts/unreviewed-harness.mjs', 'scripts/unreviewed-harness.mts',
     'reviews/synthetic/README.md', 'reviews/synthetic/evidence.json']) {
     const f = await fixture(t);
     await f.edit(path); f.commit();

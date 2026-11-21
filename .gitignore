@@ -937,3 +937,11 @@ target/
 /scripts/revision-regression-support.d.mts
 /scripts/revision-regression-support.test.mjs
 /scripts/revision-regression-support.test.d.mts
+/scripts/packed-package-boundaries.mjs
+/scripts/packed-package-boundaries.d.mts
+/scripts/packed-package-boundaries.test.mjs
+/scripts/packed-package-boundaries.test.d.mts
+/scripts/composite-release-source-qualification.mjs
+/scripts/composite-release-source-qualification.d.mts
+/scripts/composite-release-source-qualification.test.mjs
+/scripts/composite-release-source-qualification.test.d.mts

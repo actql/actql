@@ -3,19 +3,25 @@ import assert from 'node:assert/strict';
 import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isBuiltin, createRequire} from 'node:module';
 import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
-import {buildSync} from 'esbuild';
-import {parse} from 'acorn';
+import {buildSync, type Metafile} from 'esbuild';
+import {parse, type ImportDeclaration, type ExportNamedDeclaration, type ExportAllDeclaration} from 'acorn';
 
-const inside = (parent, path) => {
+type ExportTarget = string | {[condition: string]: ExportTarget};
+type Manifest = {name: string; exports: ExportTarget; dependencies?: Record<string, unknown>;
+  peerDependencies?: Record<string, unknown>; peerDependenciesMeta?: Record<string, {optional?: boolean}>};
+type Input = Metafile['inputs'][string];
+type AuthoredImport = ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration;
+
+const inside = (parent: string, path: string) => {
   const child = relative(parent, path);
   return child === '' || !child.startsWith('..') && !isAbsolute(child);
 };
-const targets = entry => typeof entry === 'string' ? [entry]
+const targets = (entry: ExportTarget): string[] => typeof entry === 'string' ? [entry]
   : Object.values(entry).flatMap(targets);
-const packageName = specifier => specifier.startsWith('@')
+const packageName = (specifier: string) => specifier.startsWith('@')
   ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
 
-function compilerRuntimeImport(imported, metadata, path) {
+function compilerRuntimeImport(imported: Input['imports'][number], metadata: Input, path: string) {
   if (imported.path !== '<runtime>' || imported.kind !== 'import-statement' ||
       metadata.format !== 'cjs' || Object.hasOwn(imported, 'original')) return false;
   // esbuild adds this helper for CommonJS require properties (for example
@@ -25,15 +31,15 @@ function compilerRuntimeImport(imported, metadata, path) {
     sourceType: 'script', allowReturnOutsideFunction: true, allowImportExportEverywhere: true});
   return !syntax.body.some(node =>
     ['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration'].includes(node.type) &&
-    node.source?.value === '<runtime>');
+    (node as AuthoredImport).source?.value === '<runtime>');
 }
 
-export function auditPackedPackages(root, names) {
+export function auditPackedPackages(root: string, names: readonly string[]) {
   const owned = realpathSync(root);
   for (const name of names) {
     const directory = join(root, 'node_modules', '@actql', name);
     assert.ok(inside(owned, realpathSync(directory)), `External package link: ${name}`);
-    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as Manifest;
     const exported = targets(manifest.exports);
     for (const target of exported) {
       assert.ok(target.startsWith('./'), `Nonlocal export: ${name}/${target}`);
@@ -64,12 +70,12 @@ export function auditPackedPackages(root, names) {
         // Inspect absence before resolution: Node can cache missing package
         // metadata across the optional peer's subsequent normal installation.
         // A present package still must resolve its exact entry/subpath.
-        if (optional && require.resolve.paths(dependency).every(directory => {
+        if (optional && require.resolve.paths(dependency)!.every(directory => {
           try {
             lstatSync(join(directory, dependency));
             return false;
           } catch (failure) {
-            if (failure.code === 'ENOENT') return true;
+            if ((failure as NodeJS.ErrnoException).code === 'ENOENT') return true;
             throw failure;
           }
         })) continue;

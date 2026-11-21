@@ -5,13 +5,17 @@ import {checkoutState} from './packed-client-packages.mjs';
 
 const harnessChanges = new Set([
   'scripts/packed-package-boundaries.mjs',
+  'scripts/packed-package-boundaries.mts',
   'scripts/packed-package-boundaries.test.mjs',
+  'scripts/packed-package-boundaries.test.mts',
   'scripts/composite-release-source-qualification.mjs',
+  'scripts/composite-release-source-qualification.mts',
   'scripts/composite-release-source-qualification.test.mjs',
+  'scripts/composite-release-source-qualification.test.mts',
   'scripts/test-package-release-composite-vector.mjs',
 ]);
 
-export function qualifyCompositeReleaseSource(root, artifactSourceSha) {
+export function qualifyCompositeReleaseSource(root: string, artifactSourceSha: string) {
   assert.match(artifactSourceSha, /^[a-f0-9]{40}$/u);
   const source = checkoutState(root);
   assert(source.clean, 'Composite fixtures require clean committed source');

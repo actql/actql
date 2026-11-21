@@ -4,11 +4,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
-async function peerFixture(t, {optional = true, declared = true} = {}) {
+type PackEntry = {name?: string; filename?: string};
+
+async function peerFixture(t: TestContext, {optional = true, declared = true} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'packed-package-peer-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const entry = join(root, 'node_modules/@actql/entry');
@@ -110,7 +112,7 @@ test('installed graph refuses undeclared dependencies even when separately insta
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 
-async function commonJSFixture(t, code, {esmEntry = false} = {}) {
+async function commonJSFixture(t: TestContext, code: string, {esmEntry = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'packed-package-cjs-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const entry = join(root, 'node_modules/@actql/entry');
@@ -163,7 +165,7 @@ test('normal SDK tarball resolves every shipped relative module outside the chec
   const repository = fileURLToPath(new URL('../', import.meta.url));
   const env = {...process.env, npm_config_cache: join(root, 'npm-cache'),
     npm_config_offline: 'true'};
-  const run = (args, cwd) => {
+  const run = (args: readonly string[], cwd: string) => {
     const result = spawnSync('npm', args, {cwd, env, encoding: 'utf8', timeout: 30_000});
     assert.equal(result.status, 0, JSON.stringify({args, status: result.status,
       signal: result.signal, stdout: result.stdout, stderr: result.stderr}));
@@ -173,17 +175,18 @@ test('normal SDK tarball resolves every shipped relative module outside the chec
     const tarballs = [];
     for (const name of ['client-wire', 'sdk']) {
       const packed = parseNpmPackJson(run(normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', root]),
-        join(repository, 'packages', name)));
+        join(repository, 'packages', name))) as PackEntry[] | Record<string, PackEntry>;
       const entries = Array.isArray(packed) ? packed : Object.values(packed);
       assert.equal(entries.length, 1, JSON.stringify(packed));
       assert.equal(entries[0].name, `@actql/${name}`);
       assert.equal(typeof entries[0].filename, 'string');
-      tarballs.push(join(root, entries[0].filename));
+      tarballs.push(join(root, entries[0].filename!));
     }
     await writeFile(join(root, 'package.json'), JSON.stringify({private: true, type: 'module'}));
     run(['install', '--ignore-scripts', '--no-audit', '--no-fund', ...tarballs], root);
     auditPackedPackages(root, ['sdk', 'client-wire']);
-    const sdk = await import(pathToFileURL(join(root, 'node_modules/@actql/sdk/index.mjs')));
+    // Keep the original dynamic import's URL-to-string coercion.
+    const sdk = await import(pathToFileURL(join(root, 'node_modules/@actql/sdk/index.mjs')) as unknown as string);
     assert.equal(typeof sdk.connect, 'function');
   } finally { await rm(root, {recursive: true, force: true}); }
 });
