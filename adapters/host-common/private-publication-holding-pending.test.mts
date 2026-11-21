@@ -11,7 +11,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
-// @ts-expect-error TS7016: remove after migrating the Local publication Store.
 import {openLocalPublicationStore, PublicationStoreError} from '../store-local/publication-store.mjs';
 
 type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];

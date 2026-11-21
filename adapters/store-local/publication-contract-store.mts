@@ -45,7 +45,8 @@ type ContractStorePorts<Contract extends PublicationContract> = Readonly<{
   currentDeliveryIndex(): PublicationIndex | undefined;
   nativePublicationContract(name: string): boolean;
   contractPath(cid: string): string;
-  readSemanticOriginal: ReturnType<typeof createPublicationSemanticReader<Contract>>['readSemanticOriginal'];
+  readSemanticOriginal(cid: string, includeNative: false):
+    ReturnType<ReturnType<typeof createPublicationSemanticReader<Contract>>['readSemanticOriginal']>;
   exactUtf8WireMatches(bytes: Buffer, wire: string): boolean;
   reserveObjectCapacity(bytes: number): Reservation;
   accountNativePublication(usage: NativePublicationUsage): void;

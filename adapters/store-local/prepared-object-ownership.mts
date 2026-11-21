@@ -10,7 +10,7 @@ import type {createPublicationObjectWrites} from './publication-object-writes.mj
 import {fail} from './publication-store-io.mjs';
 
 type Custody = Awaited<ReturnType<ReturnType<typeof createPublicationCustodyRecords>['registerCustody']>>;
-type RemovalOwner = Readonly<{unlinkOriginal(): Promise<unknown>}>;
+export type RemovalOwner = Readonly<{unlinkOriginal(): Promise<unknown>}>;
 type PreparedHolder = {
   active: boolean;
   releasing: Promise<boolean> | undefined;
@@ -231,9 +231,9 @@ export function createPreparedObjectOwnership<Removal extends RemovalOwner>(
 
   // A durable witness can make an original holder releasable, but it cannot
   // choose that holder's terminal transition. The handle still owns release.
-  const confirmPreparedMaterials = async (cids: Iterable<string>) => {
-    for (const cid of new Set(cids)) await withPreparedCustody(cid, () => {
-      const group = preparedObjects.get(cid);
+  const confirmPreparedMaterials = async (cids: Iterable<unknown>) => {
+    for (const cid of new Set(cids)) await withPreparedCustody(cid as string, () => {
+      const group = preparedObjects.get(cid as string);
       if (group !== undefined) group.committed = true;
     });
   };

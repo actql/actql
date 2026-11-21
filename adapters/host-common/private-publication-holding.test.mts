@@ -5,7 +5,6 @@ import {join} from 'node:path';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
 import {openLocalPublicationStore} from
-  // @ts-expect-error TS7016: remove after migrating the Local publication Store.
   '../store-local/publication-store.mjs';
 // @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {runtimeCore} from './runtime-core.mjs';

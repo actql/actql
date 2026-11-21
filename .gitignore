@@ -1573,3 +1573,5 @@ target/
 /adapters/store-local/publication-store-interface.d.mts
 /adapters/store-local/publication-physical-accounting.mjs
 /adapters/store-local/publication-physical-accounting.d.mts
+/adapters/store-local/publication-store.mjs
+/adapters/store-local/publication-store.d.mts

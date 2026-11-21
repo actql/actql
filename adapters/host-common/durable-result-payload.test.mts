@@ -15,7 +15,6 @@ import {
 // @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {runtimeCore} from './runtime-core.mjs';
 import {openLocalPublicationStore} from
-  // @ts-expect-error TS7016: remove after migrating the Local publication Store.
   '../store-local/publication-store.mjs';
 
 type PayloadControl = Parameters<typeof storeCompletedResultPublicationPayload>[1];

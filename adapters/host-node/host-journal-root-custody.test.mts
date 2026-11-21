@@ -20,7 +20,6 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
-// @ts-expect-error TS7016: remove when the original Publication Store is authored in TypeScript.
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';

@@ -234,6 +234,9 @@ export function createPublicationPhysicalAccounting(
     capacityUsage: {get storedBytes() {return storedBytes;}, get objectCount() {return objectCount;}},
     unconfirmedPhysicalInstalls, physicalRemovalOriginals, physicalRemovalAcquisitions, physicalRetirementFences,
     physicalOriginal, accountPhysicalUsage, accountPhysicalInstall, settlePhysicalInstalls, confirmPhysicalCapacity,
-    rememberPhysicalRemoval, releasePhysicalCapacity, syncPhysicalRemovals, confirmPhysicalRemovals, accountNativePublication,
+    // A supplied stat is either matched to an original removal or refused.
+    rememberPhysicalRemoval: rememberPhysicalRemoval as
+      ((cid: unknown, bytes: number, state: Stats) => Promise<Removal>) & typeof rememberPhysicalRemoval,
+    releasePhysicalCapacity, syncPhysicalRemovals, confirmPhysicalRemovals, accountNativePublication,
   };
 }

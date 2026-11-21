@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import type {WireRunRef} from '../../packages/client-wire/index.js';
 import type {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
 import type {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
-import type {createPreparedObjectOwnership} from './prepared-object-ownership.mjs';
+import type {createPreparedObjectOwnership, RemovalOwner} from './prepared-object-ownership.mjs';
 import type {createPreparedSchemaOwner} from './prepared-publication-schema-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 import type {createPublicationContractStore, PublicationContract} from './publication-contract-store.mjs';
@@ -22,10 +22,6 @@ import {indexKey} from './publication-store-inputs.mjs';
 import {cidPattern, exactKeys, fail, PublicationStoreError} from './publication-store-io.mjs';
 
 type CodedCause = Readonly<{code?: unknown}> | null | undefined;
-type CommitEntry = PublicationIndexEntry & Readonly<{
-  invocation_cid: string; result_manifest_cid: string; run_receipt_cid: string;
-  captured_run_cid: string; publication_request_cid: string; publication_attempt_cid: string;
-}>;
 type Evidence<Contract extends PublicationContract> = ReturnType<typeof createPublicationEvidence<Contract>>;
 type FreeEvidence<Contract extends PublicationContract> = Parameters<Evidence<Contract>['verifyCommitEvidence']>[2];
 type EffectEvidence<Contract extends PublicationContract> = Parameters<Evidence<Contract>['inspectEffectfulStoredEvidence']>[0];
@@ -33,8 +29,8 @@ type SemanticReadPorts<Contract extends PublicationContract> = ReturnType<typeof
 type ReadSemantic<Contract extends PublicationContract> = SemanticReadPorts<Contract>['readSemanticOriginal'];
 type SemanticOriginal<Contract extends PublicationContract> = Awaited<ReturnType<ReadSemantic<Contract>>>;
 type SemanticSelection<Contract extends PublicationContract> = NonNullable<Parameters<ReadSemantic<Contract>>[1]>;
-type PreparedOwners = ReturnType<typeof createPreparedObjectOwnership>;
-type PreparedOriginal = Parameters<PreparedOwners['adoptPreparedObjects']>[0][number];
+type PreparedOwners<Removal extends RemovalOwner> = ReturnType<typeof createPreparedObjectOwnership<Removal>>;
+type PreparedOriginal<Removal extends RemovalOwner> = Parameters<PreparedOwners<Removal>['adoptPreparedObjects']>[0][number];
 type ReserveObjectCapacity = ReturnType<typeof createPublicationObjectWrites>['reserveObjectCapacity'];
 type NativeIndexKey = Readonly<{metadata_key: string; namespace_id: string; authority_scope_cid: string; run_cid: string}>;
 type NativeIndexBody = Readonly<{semantic_cid: string; name: 'public_index_entry'; wire: string; byte_count: number}>;
@@ -57,7 +53,7 @@ type CommitControl<Contract> = Readonly<{
   recordAllowsCommit(previous: Contract): unknown;
   publicIndexSameCommittedContent(existing: Contract, candidate: Contract): boolean;
 }>;
-type CommitPorts<Contract extends PublicationContract> =
+type CommitPorts<Contract extends PublicationContract, Removal extends RemovalOwner> =
   Pick<ReturnType<typeof createPublicationContractStore<Contract>>, 'admitOriginalContract' | 'parseContract'> &
   Pick<SemanticReadPorts<Contract>, 'readContract' | 'readSemanticOriginal'> &
   Pick<ReturnType<typeof createPublicationProgress<Contract>>, 'latestRecordContract'> &
@@ -65,7 +61,7 @@ type CommitPorts<Contract extends PublicationContract> =
   Pick<ReturnType<typeof createPublicationMetadataInventory>, 'readCommittedMetadataInventory' | 'publicationRecoveryOriginal' | 'ensureMetadataInventory'> &
   Pick<ReturnType<typeof createRunMetadataInventory<Contract>>, 'bindMetadataContractObjects'> &
   Pick<ReturnType<typeof createPreparedSchemaOwner>, 'adoptPreparedSchemas'> &
-  Pick<PreparedOwners, 'beginPreparedCommit' | 'confirmPreparedMaterials' | 'adoptPreparedObjects'> &
+  Pick<PreparedOwners<Removal>, 'beginPreparedCommit' | 'confirmPreparedMaterials' | 'adoptPreparedObjects'> &
   Pick<Evidence<Contract>, 'verifyCommitEvidence' | 'inspectEffectfulStoredEvidence' | 'confirmCapturedContentHoldings'> &
   Pick<ReturnType<typeof createPublicationSemanticWrites>, 'putSemanticBatch'> &
   Pick<ReturnType<typeof createNativeMetadataMutationOwner>, 'writeNativeIndexOriginal'> & Readonly<{
@@ -73,18 +69,18 @@ type CommitPorts<Contract extends PublicationContract> =
     currentDeliveryIndex(): NativeCommitIndex | undefined;
     contractPath(cid: string): string;
     syncDirectory(path: string): unknown;
-    confirmCommittedIndex(key: WireRunRef): Promise<CommitEntry | undefined>;
+    confirmCommittedIndex(key: WireRunRef): Promise<PublicationIndexEntry | undefined>;
     readResultDeletion: ReturnType<typeof createResultRetirement>['readResultDeletion'];
     reserveObjectCapacity: ReserveObjectCapacity;
     accountNativePublication(usage: NativeUsage): void;
     withSemanticCommit<Result>(operation: () => Promise<Result>): Promise<Result>;
   }>;
 
-export function createPublicationIndexCommit<Contract extends PublicationContract>(
+export function createPublicationIndexCommit<Contract extends PublicationContract, Removal extends RemovalOwner>(
   configuration: Readonly<{maxObjectBytes: number}>,
   indexesDirectory: string,
   contractControl: CommitControl<Contract>,
-  preparedObjectOwners: Pick<ReturnType<typeof createPreparedHolderRegistry<PreparedOriginal>>, 'select'>,
+  preparedObjectOwners: Pick<ReturnType<typeof createPreparedHolderRegistry<PreparedOriginal<Removal>>>, 'select'>,
   durablyConfirmedIndexes: Map<string, string>,
   {active, currentDeliveryIndex, contractPath, syncDirectory, confirmCommittedIndex, readResultDeletion,
     reserveObjectCapacity, accountNativePublication, withSemanticCommit,
@@ -92,7 +88,7 @@ export function createPublicationIndexCommit<Contract extends PublicationContrac
     readCommittedMetadataInventory, publicationRecoveryOriginal, ensureMetadataInventory, bindMetadataContractObjects,
     adoptPreparedSchemas, beginPreparedCommit, confirmPreparedMaterials, adoptPreparedObjects,
     verifyCommitEvidence, inspectEffectfulStoredEvidence, confirmCapturedContentHoldings, putSemanticBatch,
-    writeNativeIndexOriginal}: CommitPorts<Contract>,
+    writeNativeIndexOriginal}: CommitPorts<Contract, Removal>,
 ) {
   const commitIndexInternal = async (
     suppliedWire: string,
@@ -111,7 +107,7 @@ export function createPublicationIndexCommit<Contract extends PublicationContrac
     const admitted = admitOriginalContract('public_index_entry', suppliedWire, indexOriginal);
     if (indexOriginal !== undefined && (admitted.identity !== indexOriginal.identity ||
         admitted.identityField !== indexOriginal.identityField)) fail('InvalidPublicationCommitEvidence');
-    const entry = parseContract(admitted) as CommitEntry;
+    const entry = parseContract(admitted) as PublicationIndexEntry;
     const key = {
       namespaceId: entry.namespace_id,
       authorityScopeCid: entry.authority_scope_cid,
@@ -391,7 +387,7 @@ export function createPublicationIndexCommit<Contract extends PublicationContrac
   const validateCommittedEffectfulEvidence = async (preparation: EffectEvidence<Contract>) => {
     active();
     const inspected = await inspectEffectfulStoredEvidence(preparation);
-    const entry = parseContract(inspected.index) as CommitEntry;
+    const entry = parseContract(inspected.index) as PublicationIndexEntry;
     const committed = await confirmCommittedIndex({
       namespaceId: entry.namespace_id,
       authorityScopeCid: entry.authority_scope_cid,

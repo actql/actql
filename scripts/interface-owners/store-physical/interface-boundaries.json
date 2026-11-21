@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb70bd660c8e99ce4bf92104858296b7f0d7e16ac4cad872f2253031636d1747",
+      "sha256": "bf2cfa9e3aa77b8284e09a00d5ef17530b2042125bfd63465e8e3e14f2332669",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7234,7 +7234,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "PublicationStoreError"
               },
               {
@@ -7444,7 +7444,7 @@
                 "anchor": "contract read. Selection and the physical verifier reuse that same private body"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
               },
               {
@@ -8640,8 +8640,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "operationalCurrent,"
+                "path": "adapters/store-local/publication-store.mts",
+                "anchor": "operationalCurrent?: () => unknown,"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -8830,7 +8830,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "export async function openLocalPublicationStore("
               },
               {
@@ -8882,7 +8882,7 @@
                 "anchor": "prepared.phase = 'adopting';"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
               },
               {
@@ -9823,7 +9823,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9833,7 +9833,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9843,7 +9843,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9853,7 +9853,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9863,7 +9863,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9873,7 +9873,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9883,7 +9883,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9893,7 +9893,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9903,7 +9903,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "physicalContentReadWindowBytes"
               },
               {
@@ -9957,7 +9957,7 @@
     {
       "module": "adapters/store-local/publication-physical-accounting.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d1c8cc5b4b30f69f12bd0a0821ceddf01e84651a3aa9787caa8f209c28f82238",
+      "sha256": "edefc3ac44bd4071ae9dcb36ace2ac319ba55af590de982b913e806ef8519339",
       "exports": [
         "createPublicationPhysicalAccounting"
       ],
@@ -11443,7 +11443,7 @@
                 "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
               },
               {
@@ -11967,7 +11967,7 @@
                 "anchor": "cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
               },
               {
@@ -15394,8 +15394,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const activePhysicalRecordWriters = new Set();"
+                "path": "adapters/store-local/publication-store.mts",
+                "anchor": "const activePhysicalRecordWriters = new Set<ActivePhysicalRecordWriter>();"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -15501,7 +15501,7 @@
     {
       "module": "adapters/store-local/publication-semantic-reader.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5eeccee94aada9e7164d1fbf5ae642cff5a3f7fa2efeb28317d0ed6d362c4879",
+      "sha256": "52fe683df0aecf50a3021852fa6ee16a85dd24e1c91434f28353283c2c4218e5",
       "exports": [
         "createPublicationSemanticReader"
       ],
@@ -17443,7 +17443,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "currentDeliveryIndex, stageMetadataInventory, readPhysicalHolding, readPhysicalHoldingDeletion,"
               },
               {
@@ -18661,7 +18661,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "export async function openLocalPublicationStore("
               },
               {
@@ -18713,7 +18713,7 @@
                 "anchor": "prepared.phase = 'adopting';"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store.mts",
                 "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
               },
               {

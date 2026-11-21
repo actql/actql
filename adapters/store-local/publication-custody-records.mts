@@ -10,7 +10,7 @@ import type {createPhysicalHoldingLifecycle} from './physical-holding-record-wri
 
 type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 type RecordIdentity = Readonly<{device: string; inode: string; byte_count: number}>;
-type PhysicalOriginal = RecordIdentity & Readonly<{cid: unknown}>;
+type PhysicalOriginal = RecordIdentity & Readonly<{cid: string}>;
 type NativePreparation = PhysicalOriginal & Readonly<{cid: string; semantic_cid?: string}>;
 type CustodyRecord = RecordIdentity & Readonly<{
   material_generation_cid: unknown;
@@ -44,7 +44,7 @@ type CustodyServices = Readonly<{
   retainMaterialOperation(operation: Promise<unknown>): unknown;
   syncDirectory(path: string): unknown;
   writePhysicalHoldingRecord(path: string, bytes: Buffer, exclusive: boolean, finalDirectory: string): Promise<void>;
-  physicalOriginal(cid: unknown, bytes: number, state: Stats): PhysicalOriginal;
+  physicalOriginal(cid: string, bytes: number, state: Stats): PhysicalOriginal;
   confirmPhysicalCapacity(originals: PhysicalOriginal[], retainPreparations?: boolean): unknown;
   confirmPhysicalRemovals(objects: Map<unknown, Removal | undefined>): Promise<unknown>;
   rememberPhysicalRemoval(cid: unknown, bytes: number, state: Stats): Promise<Removal>;
@@ -170,7 +170,7 @@ export function createPublicationCustodyRecords(
         // reads. This also settles its lost native COMMIT reply without
         // replaying a payload write, link, business operation or authority.
         await syncDirectory(objectsDirectory);
-        confirmPhysicalCapacity([physicalOriginal(cid,custody.record.byte_count,state)],
+        confirmPhysicalCapacity([physicalOriginal(cid as string,custody.record.byte_count,state)],
           custody.nativePreparation !== undefined);
         custody.accounted = true;
         const semanticCid = custody.nativePreparation?.semantic_cid;
@@ -256,9 +256,9 @@ export function createPublicationCustodyRecords(
         String(state.ino) === record.inode;
       if(accounted) {
         await syncDirectory(objectsDirectory);
-        confirmPhysicalCapacity([physicalOriginal(record.material_generation_cid,record.byte_count,state!)]);
+        confirmPhysicalCapacity([physicalOriginal(record.material_generation_cid as string,record.byte_count,state!)]);
       } else if(state===undefined) {
-        const retained=currentDeliveryIndex()!.physicalObject(record.material_generation_cid);
+        const retained=currentDeliveryIndex()!.physicalObject(record.material_generation_cid as string);
         accounted=retained!==undefined && retained.byte_count===record.byte_count &&
           retained.device===record.device && retained.inode===record.inode;
       }

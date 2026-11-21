@@ -13,7 +13,14 @@ export type PublicationIndexEntry = Parameters<RequireInventory>[0] & Readonly<{
   run_definition_cid: string;
   public_index_entry_cid: string;
   durable_result_binding_cids: readonly string[];
+  invocation_cid: string;
+  result_manifest_cid: string;
+  run_receipt_cid: string;
+  captured_run_cid: string;
+  publication_request_cid: string;
+  publication_attempt_cid: string;
 }>;
+type IndexKey = Readonly<{namespaceId: string; authorityScopeCid: unknown; runDefinitionCid: unknown}>;
 type IndexContract = Readonly<{identity: string; wire: string}>;
 type NativeIndexOriginal = Readonly<{
   metadata_key: string;
@@ -58,7 +65,7 @@ export function createPublicationIndexReader<Contract extends IndexContract>(
   {active, currentDeliveryIndex, admitContract, parseContract, readSemanticBytes, exactUtf8WireMatches,
     readMetadataDeletion, requireCommittedMetadataInventory, syncDirectory, writeNativeIndexOriginal}: IndexPorts<Contract>,
 ) {
-  const admitNativeIndexOriginal = (native: NativeIndexOriginal, expectedKey?: WireRunRef) => {
+  const admitNativeIndexOriginal = (native: NativeIndexOriginal, expectedKey?: IndexKey) => {
     const admitted = admitContract('public_index_entry',native.body.wire), entry = parseContract(admitted) as PublicationIndexEntry;
     const key = {namespaceId:entry.namespace_id,authorityScopeCid:entry.authority_scope_cid,runDefinitionCid:entry.run_definition_cid};
     if (native.body.semantic_cid !== admitted.identity || indexKey(key) !== native.metadata_key ||
@@ -71,7 +78,7 @@ export function createPublicationIndexReader<Contract extends IndexContract>(
   };
 
   const readCommittedIndexRaw = async (
-    key: WireRunRef, original?: IndexOriginal<Contract>, readDemand?: IndexReadDemand<Contract>,
+    key: IndexKey, original?: IndexOriginal<Contract>, readDemand?: IndexReadDemand<Contract>,
   ): Promise<IndexOriginal<Contract> | undefined> => {
     active();
     const keyHash = indexKey(key), path = resolve(indexesDirectory, `${keyHash}.json`);
@@ -111,7 +118,7 @@ export function createPublicationIndexReader<Contract extends IndexContract>(
     return {entry, bytes, contract: admitted};
   };
 
-  const inspectCommittedIndexRaw = async (key: WireRunRef) =>
+  const inspectCommittedIndexRaw = async (key: IndexKey) =>
     (await readCommittedIndexRaw(key))?.entry;
 
   const inspectCommittedIndex = async (key: WireRunRef) => {
@@ -122,7 +129,7 @@ export function createPublicationIndexReader<Contract extends IndexContract>(
     return entry;
   };
 
-  const confirmCommittedIndexOriginal = async (key: WireRunRef, readDemand?: IndexReadDemand<Contract>) => {
+  const confirmCommittedIndexOriginal = async (key: IndexKey, readDemand?: IndexReadDemand<Contract>) => {
     active();
     const keyHash = indexKey(key);
     if (await readMetadataDeletion(keyHash, readDemand) !== undefined) return undefined;
@@ -156,7 +163,7 @@ export function createPublicationIndexReader<Contract extends IndexContract>(
     return original;
   };
 
-  const confirmCommittedIndex = async (key: WireRunRef, readDemand?: IndexReadDemand<Contract>, slot = 5) => {
+  const confirmCommittedIndex = async (key: IndexKey, readDemand?: IndexReadDemand<Contract>, slot = 5) => {
     const original = await confirmCommittedIndexOriginal(key, readDemand);
     if (original === undefined) return undefined;
     readDemand?.retain(slot, original.contract, 0);

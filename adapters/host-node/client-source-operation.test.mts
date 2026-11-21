@@ -6,7 +6,6 @@ import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-// @ts-expect-error TS7016: remove after publication-store has an authored TypeScript entry.
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership} from '../store-local/prepared-publication-store-ownership.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';

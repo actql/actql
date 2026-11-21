@@ -65,6 +65,7 @@ import {createPreparedSchemaOwner} from './prepared-publication-schema-owner.mjs
 import {createResultRetirement} from './result-deletion-owner.mjs';
 import {createPublicationIndexCommit} from './publication-index-commit.mjs';
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
+// @ts-expect-error -- The native delivery Index still has its authored JavaScript entry.
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {cidPattern, exactKeys, fail, localDurability, PublicationStoreError, quantity, readBounded,
   retainStoreOpeningFailure, syncDirectoryPath, writeExclusive} from './publication-store-io.mjs';
@@ -76,6 +77,59 @@ import {indexKey, validateConfiguration, validateContractControl} from './public
 import {admitExistingStoreFormat, createOriginalStoreStorageBindings, createStoreContract} from './publication-store-format.mjs';
 import {createPrivatePublicationEvidence} from './publication-store-private-evidence.mjs';
 import {createPublicationStoreInterface} from './publication-store-interface.mjs';
+import type {StoredProgress} from './delivery-attempt-store.mjs';
+import type {ActivePhysicalRecordWriter} from './physical-holding-record-writer.mjs';
+import type {PublicationContract} from './publication-contract-store.mjs';
+import type {PublicationIndexEntry, SelectedIndex} from './publication-index-reader.mjs';
+import type {SemanticReader} from './publication-object-verifier.mjs';
+
+type ContractControl = Parameters<typeof createPublicationContractStore<PublicationContract>>[1] &
+  Parameters<typeof createDeliveryRecordStore<PublicationContract>>[3] &
+  Parameters<typeof createPublicationProgress<PublicationContract>>[3] &
+  Parameters<typeof createPublicationTrustedClock>[2] &
+  Parameters<typeof createPublicationEvidence<PublicationContract>>[1] &
+  Parameters<typeof createPublicationIndexCommit<PublicationContract, Removal>>[2] &
+  Parameters<typeof createOriginalStoreStorageBindings>[3] &
+  Readonly<{readIssuedDeliveryAttempt?: Parameters<typeof createDeliveryAttemptStore<PublicationContract>>[4]}>;
+
+type IndexFrom<Ports extends {currentDeliveryIndex(): unknown}> = NonNullable<ReturnType<Ports['currentDeliveryIndex']>>;
+type IndexStartup = Parameters<typeof createPublicationIndexStartup<PublicationContract>>;
+type Removal = NonNullable<Awaited<ReturnType<ReturnType<typeof createPublicationPhysicalAccounting>['rememberPhysicalRemoval']>>>;
+type IndexOriginal = Parameters<ReturnType<typeof createPublicationIndexReader<PublicationContract>>['admitNativeIndexOriginal']>[0];
+type StoreIndex = NonNullable<IndexStartup[3]['deliveryIndex']> &
+  NonNullable<ReturnType<Parameters<typeof createPublicationPhysicalAccounting>[2]>> &
+  NonNullable<ReturnType<Parameters<typeof createNativeMetadataMutationOwner>[0]>> &
+  NonNullable<ReturnType<Parameters<typeof createPublicationMetadataDeletionMarkers>[4]>> &
+  NonNullable<ReturnType<Parameters<typeof createPublicationMetadataInventory>[4]>> &
+  IndexFrom<Parameters<typeof createPublicationObjectWrites>[6]> &
+  IndexFrom<Parameters<typeof createPublicationSemanticWrites>[5]> &
+  IndexFrom<Parameters<typeof createPublicationContractStore<PublicationContract>>[4]> &
+  IndexFrom<Parameters<typeof createPublicationSemanticReader<PublicationContract>>[3]> &
+  IndexFrom<Parameters<typeof createPublicationProgress<PublicationContract>>[4]> &
+  IndexFrom<Parameters<typeof createDeliveryAttemptStore<PublicationContract>>[8]> &
+  IndexFrom<Parameters<typeof createDeliveryRecordStore<PublicationContract>>[5]> &
+  IndexFrom<Parameters<typeof createPublicationIndexReader<PublicationContract>>[4]> &
+  IndexFrom<Parameters<typeof createPublicationIndexCommit<PublicationContract, Removal>>[5]> &
+  IndexFrom<Parameters<typeof createRunMetadataInventory<PublicationContract>>[5]> &
+  IndexFrom<Parameters<typeof createPublicationReferenceOwner<PublicationContract, Removal>>[3]> &
+  IndexFrom<Parameters<typeof createPublicationCustodyRecords>[6]> &
+  IndexFrom<Parameters<typeof createPreparedSchemaOwner<Removal>>[9]> &
+  IndexFrom<Parameters<typeof createUncommittedPublicationCleanup<Removal>>[2]> &
+  IndexFrom<Parameters<typeof createResultRetirement<IndexOriginal, PublicationContract, Removal>>[3]> &
+  IndexFrom<Parameters<typeof createPublicationMetadataRetirement<PublicationIndexEntry, Removal>>[6]> &
+  IndexFrom<Parameters<typeof recoverPublicationStoreOnOpen>[2]> &
+  IndexFrom<Parameters<typeof createPublicationStoreInterface<PublicationContract>>[7]> &
+  Readonly<{retainFailure(primary: unknown): unknown}>;
+
+type ReadSemanticOriginal = ReturnType<typeof createPublicationSemanticReader<PublicationContract>>['readSemanticOriginal'];
+type DeliveryRecordRead = ReturnType<typeof createDeliveryRecordStore<PublicationContract>>['readLatestDeliveryRecordContract'];
+type ReadPrivateEvidence = ReturnType<typeof createPrivatePublicationEvidence>['readPrivateEvidence'];
+type CommitPhysicalHolding = ReturnType<typeof createPhysicalHoldingLifecycle>['commitPhysicalHolding'];
+type ResultDeletionRead = ReturnType<typeof createResultRetirement<IndexOriginal, PublicationContract, Removal>>['readResultDeletion'];
+type PreparedObjectOriginal = Parameters<Parameters<typeof createPreparedObjectOwnership<Removal>>[1]['register']>[1];
+type PreparedAdoption = ReturnType<typeof beginPreparedStoreAdoption>;
+type ReleaseOwnership = Pick<Awaited<ReturnType<typeof acquireStoreOwnership>>, 'release'>;
+type FacilityBindings = Readonly<Record<string, Readonly<Record<string, unknown>> | undefined>>;
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
   assertOriginalPreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner,
@@ -95,15 +149,15 @@ const originalApply = Reflect.apply;
 
 // Read-only facility correspondence for the selected startup. Matching these
 // actual imports does not issue a service, key, capacity or permission.
-export function assertOriginalLocalPublicationStoreFacilityCurrent(bindings) {
+export function assertOriginalLocalPublicationStoreFacilityCurrent(bindings: FacilityBindings | undefined) {
   const originals = {promises: {lstat, link, mkdir, open, opendir, readdir, readFile,
     rename, rm, rmdir, unlink, writeFile},
     crypto: {createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID},
     buffer: {alloc: OriginalBuffer.alloc, allocUnsafe: OriginalBuffer.allocUnsafe,
       allocUnsafeSlow: OriginalBuffer.allocUnsafeSlow, byteLength: originalByteLength,
       concat: OriginalBuffer.concat, from: OriginalBuffer.from, isBuffer: OriginalBuffer.isBuffer}};
-  for (const group of Object.keys(originals)) for (const name of Object.keys(originals[group])) {
-    if (bindings?.[group]?.[name] !== originals[group][name]) fail('PublicationStoreFacilityChanged');
+  for (const group of Object.keys(originals)) for (const name of Object.keys(originals[group as keyof typeof originals])) {
+    if (bindings?.[group]?.[name] !== (originals[group as keyof typeof originals] as Readonly<Record<string, unknown>>)[name]) fail('PublicationStoreFacilityChanged');
   }
 }
 // Physical holdings: Transfer material, Effect source/capture custody,
@@ -128,8 +182,8 @@ const nativeDeliveryContractNames = Object.freeze([
 // publication contracts may live in the same Store's native metadata table.
 const filePublicationContractNames = Object.freeze(['public_index_entry','schema',
   ...nativeDeliveryContractNames]);
-const nativePublicationContract = name => !filePublicationContractNames.includes(name);
-const nativeContractRead = name => name === 'public_index_entry' ||
+const nativePublicationContract = (name: string) => !filePublicationContractNames.includes(name);
+const nativeContractRead = (name: string) => name === 'public_index_entry' ||
   nativePublicationContract(name) ? 'publication' : nativeDeliveryContractNames.includes(name);
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
@@ -137,7 +191,7 @@ const custodyNamePattern =
 const timestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
-const cidHex = value => {
+const cidHex = (value: unknown) => {
   const match = typeof value === 'string' ? cidPattern.exec(value) : null;
   if (!match) fail('InvalidPublicationObjectCid');
   return match[1];
@@ -145,7 +199,7 @@ const cidHex = value => {
 // Keep this comparison workspace synchronous and dedicated: a short wire
 // must not borrow an unrelated Buffer pool backing across the Store phase.
 // Compare encoded bytes, not decoded replacement text or normalized strings.
-const exactUtf8WireMatches = (bytes, wire) => {
+const exactUtf8WireMatches = (bytes: Buffer, wire: string) => {
   const length = Buffer.byteLength(wire, 'utf8');
   if (bytes.byteLength !== length) return false;
   const expected = Buffer.allocUnsafeSlow(length);
@@ -154,12 +208,12 @@ const exactUtf8WireMatches = (bytes, wire) => {
 };
 
 export async function openLocalPublicationStore(
-  supplied,
-  suppliedControl,
-  durability = localDurability,
-  suppliedBootstrap,
-  preparedOriginal,
-  operationalCurrent,
+  supplied: unknown,
+  suppliedControl: unknown,
+  durability: unknown = localDurability,
+  suppliedBootstrap?: unknown,
+  preparedOriginal?: unknown,
+  operationalCurrent?: () => unknown,
 ) {
   if (operationalCurrent !== undefined) {
     if (typeof operationalCurrent !== 'function') fail('InvalidPublicationStoreCurrent');
@@ -176,16 +230,17 @@ export async function openLocalPublicationStore(
 }
 
 async function openOriginalLocalPublicationStore(
-  supplied,
-  suppliedControl,
-  durability,
-  suppliedBootstrap,
-  prepared,
-  operationalCurrent,
+  supplied: unknown,
+  suppliedControl: unknown,
+  durability: unknown,
+  suppliedBootstrap: unknown,
+  prepared: PreparedAdoption,
+  operationalCurrent: (() => unknown) | undefined,
 ) {
   operationalCurrent?.();
-  const configuration = validateConfiguration(supplied);
-  const contractControl = validateContractControl(suppliedControl);
+  const configuration = validateConfiguration(supplied) as
+    ReturnType<typeof validateConfiguration> & Readonly<{storeAuthorityCid: string}>;
+  const contractControl = validateContractControl(suppliedControl) as ContractControl;
   const readDeliveryOriginal = contractControl.readIssuedDeliveryAttempt;
   const deliveryStartTransition = contractControl.deliveryTransition;
   const openingBootstrap = suppliedBootstrap === undefined ? undefined
@@ -196,16 +251,16 @@ async function openOriginalLocalPublicationStore(
   const bootstrap = prepared?.directoryBootstrap === undefined ? openingBootstrap : Object.freeze({
     readDirectory: prepared.directoryBootstrap.readDirectory,
     readMetadata: openingBootstrap?.readMetadata ??
-      (path => readBounded(path, configuration.maxObjectBytes)),
+      ((path: string) => readBounded(path, configuration.maxObjectBytes)),
   });
   const readOpeningDirectory = bootstrap?.readDirectory ?? readdir;
   const readOpeningMetadata = bootstrap?.readMetadata ??
-    (path => readBounded(path, configuration.maxObjectBytes));
+    ((path: string) => readBounded(path, configuration.maxObjectBytes));
   if (!exactKeys(durability, ['syncDirectory']) ||
       typeof durability.syncDirectory !== 'function') {
     fail('InvalidPublicationStoreDurability');
   }
-  const syncDirectory = durability.syncDirectory;
+  const syncDirectory = durability.syncDirectory as (path: string) => unknown;
   const contractLimits = Object.freeze({
     maxWireBytes: configuration.maxObjectBytes,
     maxNodes: configuration.maxContractNodes,
@@ -213,7 +268,7 @@ async function openOriginalLocalPublicationStore(
   });
   const root = configuration.directory;
   if (prepared !== undefined && prepared.root !== root) fail('PublicationStoreOwnershipLost');
-  if (prepared !== undefined) await prepared.ownership.assertCurrent();
+  if (prepared !== undefined) await prepared.ownership!.assertCurrent();
   const objectsDirectory = resolve(root, 'objects');
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
@@ -257,8 +312,8 @@ async function openOriginalLocalPublicationStore(
   const createdStore = await createStoreContract(root, storeContractPath, storeContractBytes,
     configuration, readOpeningMetadata, syncDirectory);
 
-  let assertPriorPhysicalUnborrowed = () => fail('PublicationStoreCleanupPending');
-  const currentDeliveryIndex = () => deliveryIndex;
+  let assertPriorPhysicalUnborrowed: Parameters<typeof createPublicationPhysicalAccounting>[3] = () => fail('PublicationStoreCleanupPending');
+  const currentDeliveryIndex = (): StoreIndex | undefined => deliveryIndex;
   const {capacityUsage, unconfirmedPhysicalInstalls, physicalRemovalOriginals, physicalRemovalAcquisitions,
     physicalRetirementFences, physicalOriginal, accountPhysicalUsage, accountPhysicalInstall,
     settlePhysicalInstalls, confirmPhysicalCapacity, rememberPhysicalRemoval, releasePhysicalCapacity,
@@ -269,14 +324,14 @@ async function openOriginalLocalPublicationStore(
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  let ownership, deliveryIndex;
+  let ownership: ReleaseOwnership, deliveryIndex: StoreIndex | undefined;
   // This is file-preparation progress, never cached authorization or durable
   // ACK. A failed same-lifetime preparation remains unresolved until restart.
-  const deliveryStarts = new Map();
+  const deliveryStarts = new Map<string, StoredProgress<PublicationContract>>();
   if (prepared === undefined) {
     ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
   } else {
-    await prepared.ownership.assertCurrent();
+    await prepared.ownership!.assertCurrent();
     if (prepared.phase !== 'adopting' || prepared.closing || prepared.ownership === undefined) {
       fail('PublicationStoreOwnershipLost');
     }
@@ -291,29 +346,29 @@ async function openOriginalLocalPublicationStore(
 
   let reservedBytes = 0;
   let reservedObjects = 0;
-  const lifecycleState = {closed: false, closeRequested: false, closeFlight: undefined};
+  const lifecycleState: Parameters<typeof createPublicationStoreInterface>[1] = {closed: false, closeRequested: false, closeFlight: undefined};
   const preparedObjects = new Map();
   const preparedSchemas = new Map();
-  const preparedObjectOwners = createPreparedHolderRegistry(() => fail('InvalidPublicationPreparedOwner'));
+  const preparedObjectOwners = createPreparedHolderRegistry<PreparedObjectOriginal>(() => fail('InvalidPublicationPreparedOwner'));
   const reclaimableCustodies = new Map();
   const withPreparedCustody = createPreparedCustodyQueue();
-  let semanticCommitBusy = Promise.resolve();
-  const withSemanticCommit = operation => {
+  let semanticCommitBusy: Promise<unknown> = Promise.resolve();
+  const withSemanticCommit = <Result,>(operation: () => Promise<Result>) => {
     const flight = semanticCommitBusy.then(operation);
     semanticCommitBusy = flight.catch(() => {});
     return flight;
   };
   const durablyConfirmedIndexes = new Map();
-  let materialRetentionBusy = Promise.resolve();
-  let metadataRetentionBusy = Promise.resolve();
+  let materialRetentionBusy: Promise<unknown> = Promise.resolve();
+  let metadataRetentionBusy: Promise<unknown> = Promise.resolve();
   const activeResultReaders = new Map();
   const activePhysicalHoldingReaders = new Map();
   // Same Store lifetime only, not another capacity grant or semantic authority.
   // Keep the original read/failed-close custody until that exact FD closes.
-  const activeSemanticReaders = new Set();
+  const activeSemanticReaders = new Set<SemanticReader>();
   // The same Store retains an unfinished metadata writer's original FD and
   // staging alias. Neither a failed write nor caller error disposal retires it.
-  const activePhysicalRecordWriters = new Set();
+  const activePhysicalRecordWriters = new Set<ActivePhysicalRecordWriter>();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
   const pendingMetadataDeletionMarkers = new Map();
@@ -322,7 +377,7 @@ async function openOriginalLocalPublicationStore(
   let metadataFencesReady = false;
   const pendingPhysicalHoldingDeletions = new Map();
   const pendingUncommittedMetadataCleanups = new Map();
-  const reclaimingMaterialCids = new Set();
+  const reclaimingMaterialCids = new Set<unknown>();
   assertPriorPhysicalUnborrowed = (cid, original) => {
     const prepared = preparedObjects.get(cid);
     if (reservedObjects !== 0 || activePhysicalRecordWriters.size !== 0 ||
@@ -331,27 +386,27 @@ async function openOriginalLocalPublicationStore(
         prepared !== undefined && (prepared.holders.size !== 0 || prepared.commitOwners.size !== 0)) {
       fail('PublicationStoreCleanupPending');
     }
-    const prior = deliveryIndex.physicalObject(cid,{priorLifetime:true});
+    const prior = (deliveryIndex as StoreIndex | undefined)!.physicalObject(cid,{priorLifetime:true});
     if (prior?.byte_count !== original.byte_count || prior?.device !== original.device ||
         prior?.inode !== original.inode) fail('PublicationObjectAccountingMismatch');
   };
 
-  const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
-  const custodyPath = token => resolve(custodyDirectory, `${token}.json`);
-  const preparedSchemaPath = token =>
+  const objectPath = (cid: unknown) => resolve(objectsDirectory, cidHex(cid));
+  const custodyPath = (token: string) => resolve(custodyDirectory, `${token}.json`);
+  const preparedSchemaPath = (token: string) =>
     resolve(preparedSchemasDirectory, `${token}.json`);
-  const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
-  const publicationAttemptPath = cid =>
+  const contractPath = (cid: unknown) => resolve(contractsDirectory, `${cidHex(cid)}.json`);
+  const publicationAttemptPath = (cid: unknown) =>
     resolve(attemptsDirectory, cidHex(cid));
-  const deliveryAttemptPath = cid =>
+  const deliveryAttemptPath = (cid: unknown) =>
     resolve(deliveriesDirectory, cidHex(cid));
-  const metadataInventoryPath = publicIndexEntryCid =>
+  const metadataInventoryPath = (publicIndexEntryCid: unknown) =>
     resolve(metadataInventoriesDirectory, `${cidHex(publicIndexEntryCid)}.json`);
-  const metadataDeletionPath = keyHash =>
+  const metadataDeletionPath = (keyHash: string) =>
     resolve(metadataDeletionsDirectory, `${keyHash}.json`);
-  const physicalHoldingPath = holdingCid =>
+  const physicalHoldingPath = (holdingCid: unknown) =>
     resolve(physicalHoldingsDirectory, `${cidHex(holdingCid)}.json`);
-  const physicalHoldingDeletionPath = holdingCid => resolve(
+  const physicalHoldingDeletionPath = (holdingCid: unknown) => resolve(
     physicalHoldingDeletionsDirectory,
     `${cidHex(holdingCid)}.json`,
   );
@@ -359,19 +414,19 @@ async function openOriginalLocalPublicationStore(
   const writePhysicalHoldingRecord = createPhysicalHoldingRecordWriter(
     stagingDirectory, syncDirectory, activePhysicalRecordWriters,
   );
-  const retentionExtensionDirectory = keyHash =>
+  const retentionExtensionDirectory = (keyHash: string) =>
     resolve(retentionExtensionsDirectory, keyHash);
   const retentionExtensionResultDirectory = (
-    keyHash,
-    resultDefinitionCid,
+    keyHash: string,
+    resultDefinitionCid: unknown,
   ) =>
     resolve(
       retentionExtensionDirectory(keyHash),
       cidHex(resultDefinitionCid),
     );
-  const resultDeletionDirectory = keyHash =>
+  const resultDeletionDirectory = (keyHash: string) =>
     resolve(deletionsDirectory, keyHash);
-  const resultDeletionPath = (keyHash, resultDefinitionCid) =>
+  const resultDeletionPath = (keyHash: string, resultDefinitionCid: unknown) =>
     resolve(
       resultDeletionDirectory(keyHash),
       `${cidHex(resultDefinitionCid)}.json`,
@@ -386,11 +441,12 @@ async function openOriginalLocalPublicationStore(
   const {parsePhysicalHolding, readPhysicalHoldingAt, admitPhysicalHolding} =
     createPhysicalHoldingRecordReader(configuration, physicalHoldingNamespaces);
 
-  const readPhysicalHolding = (holdingCid, readDemand) =>
-    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid, readDemand);
+  type HoldingReadAt = ReturnType<typeof createPhysicalHoldingRecordReader>['readPhysicalHoldingAt'];
+  const readPhysicalHolding = (holdingCid: unknown, readDemand?: Parameters<HoldingReadAt>[2]) =>
+    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid as string, readDemand);
 
-  const readPhysicalHoldingDeletion = (holdingCid, readDemand) =>
-    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid, readDemand);
+  const readPhysicalHoldingDeletion = (holdingCid: unknown, readDemand?: Parameters<HoldingReadAt>[2]) =>
+    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid as string, readDemand);
 
   const {stageMetadataInventory, writeNativeIndexOriginal} =
     createNativeMetadataMutationOwner(currentDeliveryIndex, activePhysicalRecordWriters);
@@ -439,7 +495,7 @@ async function openOriginalLocalPublicationStore(
   );
 
   const {createPreparedObjectWriter, confirmPreparedMaterials, adoptPreparedObjects, beginPreparedCommit} =
-    createPreparedObjectOwnership(preparedObjects, preparedObjectOwners, withPreparedCustody, writeState, {
+    createPreparedObjectOwnership<Removal>(preparedObjects, preparedObjectOwners, withPreparedCustody, writeState, {
       createObjectWriter, objectPath, confirmPhysicalRemovals, rememberPhysicalRemoval, verifyObject,
       removeCustodyRecord: (...args) => removeCustodyRecord(...args),
       reclaimCustody: (...args) => reclaimCustody(...args),
@@ -461,14 +517,14 @@ async function openOriginalLocalPublicationStore(
   const {admitContract, parseContract, admitOriginalContract, putAdmittedPublicationContract, putPublicationContract,
     putNativePublicationContracts, admitPublicationContracts, putAdmittedPublicationContracts,
     putPublicationContracts, putOriginalPublicationContracts} =
-    createPublicationContractStore(configuration, contractControl, contractLimits, activePhysicalRecordWriters, {
+    createPublicationContractStore<PublicationContract>(configuration, contractControl, contractLimits, activePhysicalRecordWriters, {
       active, currentDeliveryIndex, nativePublicationContract, contractPath,
-      readSemanticOriginal: (...args) => readSemanticOriginal(...args), exactUtf8WireMatches,
+      readSemanticOriginal: (...args): ReturnType<ReadSemanticOriginal> => readSemanticOriginal(...args), exactUtf8WireMatches,
       reserveObjectCapacity, accountNativePublication, putSemantic, putSemanticBatch,
     });
 
   const {nativeDeliveryContract, readSemanticOriginal, readSemanticBytes, readContract, readJsonObject} =
-    createPublicationSemanticReader(configuration, activeSemanticReaders, physicalContentReadWindowBytes, {
+    createPublicationSemanticReader<PublicationContract>(configuration, activeSemanticReaders, physicalContentReadWindowBytes, {
       contractPath, objectPath, active, currentDeliveryIndex, admitContract, admitOriginalContract,
       nativeContractRead, parseContract,
     });
@@ -486,21 +542,23 @@ async function openOriginalLocalPublicationStore(
 
   const {readFileDeliveryAttemptContract, readDeliveryAttemptContract, deliveryIndexRow, admitDeliveryClaim, restoreDeliveryClaim,
     enqueueDeliveryAdmission, createDeliveryAttempt, beginDeliveryAttempt, lookupDeliveryAttempt, selectDeliveryAttempt} =
-    createDeliveryAttemptStore(configuration, deliveriesDirectory, recordNamePattern, contractControl, readDeliveryOriginal,
+    createDeliveryAttemptStore<PublicationContract>(configuration, deliveriesDirectory, recordNamePattern, contractControl, readDeliveryOriginal,
       deliveryStartTransition, deliveryStarts, activePhysicalRecordWriters, {
         active, currentDeliveryIndex, contractPath, deliveryAttemptPath, exactUtf8WireMatches, syncDirectory,
         runMetadataDeletionStarted, putSemanticBatch, admitContract, parseContract, nativeDeliveryContract, readContract,
-        readSemanticBytes, readLatestDeliveryRecordContract: (...args) => readLatestDeliveryRecordContract(...args),
+        readSemanticBytes, readLatestDeliveryRecordContract: (...args): ReturnType<DeliveryRecordRead> => readLatestDeliveryRecordContract(...args),
       });
 
   const initializeDeliveryIndex = createPublicationIndexStartup(
     configuration, {root, deliveryCoveragePath, deliveryIndexPath, stagingDirectory, objectsDirectory, deliveriesDirectory,
       metadataInventoriesDirectory, metadataDeletionsDirectory}, createdStore, {
       get deliveryIndex() {return deliveryIndex;},
-      set deliveryIndex(index) {deliveryIndex = index;},
-      set metadataFencesReady(ready) {metadataFencesReady = ready;},
+      set deliveryIndex(index) {deliveryIndex = index as StoreIndex | undefined;},
+      set metadataFencesReady(ready: boolean) {metadataFencesReady = ready;},
     }, writeState, metadataDeletionIntents, openingMetadataDeletionNames, {
-      openDeliveryAttemptIndex, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
+      openDeliveryAttemptIndex: openDeliveryAttemptIndex as (
+        ...args: Parameters<IndexStartup[7]['openDeliveryAttemptIndex']>
+      ) => Promise<StoreIndex>, bootstrap, readOpeningDirectory, writePhysicalHoldingRecord,
       syncDirectory, physicalOriginal, accountPhysicalUsage, accountNativePublication,
       confirmCommittedIndex: (...args) => confirmCommittedIndex(...args), metadataDeletionPath,
       readFileDeliveryAttemptContract, deliveryIndexRow, restoreDeliveryClaim, parseContract, readSemanticOriginal, readContract,
@@ -522,7 +580,7 @@ async function openOriginalLocalPublicationStore(
       readDeliveryAttemptContract, readContract, readSemanticBytes,
     });
 
-  const selectedPublicationReads = new WeakMap();
+  const selectedPublicationReads = new WeakMap<SelectedIndex<PublicationContract>, PublicationIndexEntry>();
   const {admitNativeIndexOriginal, inspectCommittedIndexRaw, inspectCommittedIndex, confirmCommittedIndex,
     confirmSelectedCommittedIndex, readCommittedPublication, lookupCommittedIndex} =
     createPublicationIndexReader(configuration, indexesDirectory, durablyConfirmedIndexes, selectedPublicationReads, {
@@ -539,16 +597,16 @@ async function openOriginalLocalPublicationStore(
       active, admitContract, parseContract, readContract, readSemanticOriginal, nativeContractRead,
       verifyDurableResultBinding, confirmCommittedIndex, readCommittedMetadataInventory,
       inspectPhysicalHolding: (...args) => inspectPhysicalHolding(...args),
-      commitPhysicalHolding: (...args) => commitPhysicalHolding(...args),
+      commitPhysicalHolding: (...args: Parameters<CommitPhysicalHolding>): ReturnType<CommitPhysicalHolding> => commitPhysicalHolding(...args),
       confirmPrivateEvidence: (...args) => confirmPrivateEvidence(...args),
-      readPrivateEvidence: (...args) => readPrivateEvidence(...args),
+      readPrivateEvidence: ((...args: Parameters<ReadPrivateEvidence>) => readPrivateEvidence(...args)) as ReadPrivateEvidence,
     });
 
   const {commitIndex, commitEffectfulIndex, validateCommittedEffectfulEvidence} =
-    createPublicationIndexCommit(configuration, indexesDirectory, contractControl, preparedObjectOwners,
+    createPublicationIndexCommit<PublicationContract, Removal>(configuration, indexesDirectory, contractControl, preparedObjectOwners,
       durablyConfirmedIndexes, {
         active, currentDeliveryIndex, contractPath, syncDirectory, confirmCommittedIndex,
-        readResultDeletion: (...args) => readResultDeletion(...args),
+        readResultDeletion: (...args): ReturnType<ResultDeletionRead> => readResultDeletion(...args),
         reserveObjectCapacity, accountNativePublication, withSemanticCommit,
         admitOriginalContract, parseContract, readContract, readSemanticOriginal, latestRecordContract, readMetadataDeletion,
         readCommittedMetadataInventory, publicationRecoveryOriginal, ensureMetadataInventory,
@@ -583,7 +641,7 @@ async function openOriginalLocalPublicationStore(
       indexesDirectory}, preparedSchemas, {
       currentDeliveryIndex, accountNativePublication, contractPath, objectPath, syncDirectory, rememberPhysicalRemoval,
       confirmPhysicalRemovals, withSemanticCommit, admitNativeIndexOriginal,
-      readResultDeletion: (...args) => readResultDeletion(...args), admitContract, parseContract, readContract,
+      readResultDeletion: (...args): ReturnType<ResultDeletionRead> => readResultDeletion(...args), admitContract, parseContract, readContract,
       readMetadataInventory, publicationRecoveryValue, readMetadataDeletion, readPhysicalHoldingAt,
     });
 
@@ -595,11 +653,11 @@ async function openOriginalLocalPublicationStore(
       verifyPhysicalHoldingObjects, activePhysicalHoldingReaders, consumeObject);
 
   const materialRetentionCurrent = () => materialRetentionBusy;
-  const retainMaterialOperation = operation => { materialRetentionBusy = operation; };
+  const retainMaterialOperation = (operation: Promise<unknown>) => { materialRetentionBusy = operation; };
 
   const {commitPhysicalHolding, sharePhysicalHolding, confirmPhysicalHoldingDirectory,
     retirePhysicalHolding, recoverPhysicalHoldingDeletions} =
-    createPhysicalHoldingLifecycle(configuration, physicalHoldingsDirectory, physicalHoldingDeletionsDirectory, {
+    createPhysicalHoldingLifecycle<PreparedObjectOriginal, Removal>(configuration, physicalHoldingsDirectory, physicalHoldingDeletionsDirectory, {
       active, cidHex, admitPhysicalHolding, readPhysicalHoldingAt, readPhysicalHolding, readPhysicalHoldingDeletion,
       verifyPhysicalHoldingObjects, preparedObjectOwners, preparedObjects, confirmPreparedMaterials, adoptPreparedObjects,
       writePhysicalHoldingRecord, physicalHoldingPath, physicalHoldingDeletionPath, objectPath, syncDirectory,
@@ -646,7 +704,7 @@ async function openOriginalLocalPublicationStore(
   );
 
   const metadataRetentionCurrent = () => metadataRetentionBusy;
-  const retainMetadataOperation = operation => { metadataRetentionBusy = operation; };
+  const retainMetadataOperation = (operation: Promise<unknown>) => { metadataRetentionBusy = operation; };
   const {retireUncommittedPublication, recoverUncommittedPublications} =
     createUncommittedPublicationCleanup(metadataInventoriesDirectory, pendingUncommittedMetadataCleanups, {
       active, cidHex, currentDeliveryIndex, publicationRecoveryOriginal, publicationRecoveryValue,
@@ -661,13 +719,13 @@ async function openOriginalLocalPublicationStore(
     createPublicationResultMetadata(configuration, retentionExtensionsDirectory, recordNamePattern, timestampPattern,
       selectedPublicationReads, {
         active, cidHex, confirmSelectedCommittedIndex, runMetadataDeletionStarted,
-        readResultDeletion: (...args) => readResultDeletion(...args),
+        readResultDeletion: (...args): ReturnType<ResultDeletionRead> => readResultDeletion(...args),
         readContract, readSemanticOriginal, readSemanticBytes, retentionExtensionDirectory, retentionExtensionResultDirectory,
         syncDirectory, putPublicationContract, materialRetentionCurrent, retainMaterialOperation,
       });
 
   const {readResultDeletion, createResultDeletionCleanup, retireCommittedResult, recoverRetiredResults} =
-    createResultRetirement(configuration, deletionsDirectory, indexesDirectory, {
+    createResultRetirement<IndexOriginal, PublicationContract, Removal>(configuration, deletionsDirectory, indexesDirectory, {
       active, cidHex, currentDeliveryIndex, resultDeletionDirectory, resultDeletionPath,
       readOpeningDirectory, readMetadataDeletion, admitNativeIndexOriginal, admitContract, parseContract,
       readContract, requireCommittedResultBinding, syncDirectory, materialRetentionCurrent, retainMaterialOperation,
@@ -676,7 +734,7 @@ async function openOriginalLocalPublicationStore(
     });
 
   const {retireCommittedPublicationMetadata, recoverRetiredMetadata} =
-    createPublicationMetadataRetirement(configuration, indexesDirectory, deletionsDirectory, metadataInventoriesDirectory,
+    createPublicationMetadataRetirement<PublicationIndexEntry, Removal>(configuration, indexesDirectory, deletionsDirectory, metadataInventoriesDirectory,
       metadataDeletionsDirectory, timestampPattern, {
         active, currentDeliveryIndex, pendingMetadataDeletions, pendingMetadataDeletionMarkers,
         pendingMetadataFenceCompletions, metadataDeletionIntents, metadataRetentionCurrent, retainMetadataOperation,
@@ -699,10 +757,10 @@ async function openOriginalLocalPublicationStore(
 
   // Qualification follows Store startup, before this Store can reach
   // any physical start. Fresh-format failures never leave a lease-only prefix.
-  await (prepared?.ownership ?? ownership).qualifyExecutionOwner();
+  await ((prepared?.ownership ?? ownership) as Awaited<ReturnType<typeof acquireStoreOwnership>>).qualifyExecutionOwner();
   if (prepared !== undefined) prepared.recoveryReady = true;
   const {privateEvidenceWireLimit, readPublicationContract, inspectEffectfulStoredEvidence: inspectStoredEffectEvidence,
-    publicationCapacitySupports, status, close} = createPublicationStoreInterface(
+    publicationCapacitySupports, status, close} = createPublicationStoreInterface<PublicationContract>(
     configuration, lifecycleState, writeState, trustedClock, storageBindings, ownership, {
       physicalRemovalOriginals, physicalRemovalAcquisitions, preparedObjects, preparedSchemas, reclaimableCustodies,
       pendingResultDeletions, pendingMetadataDeletions, pendingUncommittedMetadataCleanups, pendingPhysicalHoldingDeletions,
@@ -801,7 +859,7 @@ async function openOriginalLocalPublicationStore(
     close,
   });
   } catch (cause) {
-    const primary = deliveryIndex === undefined ? cause : deliveryIndex.retainFailure(cause);
+    const primary = deliveryIndex === undefined ? cause : (deliveryIndex as StoreIndex).retainFailure(cause);
     throw await retainStoreOpeningFailure(primary, ownership,
       configuration.privateEvidenceKey);
   }

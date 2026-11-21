@@ -16,6 +16,9 @@ type SemanticOriginal<Contract> = Readonly<{bytes: Buffer}> & (
   Readonly<{native: Contract; publication: boolean; physicalCid?: never; generation?: never}> |
   Readonly<{native?: never; publication?: never; physicalCid: string; generation?: Readonly<{device: string; inode: string}>}>
 );
+type PhysicalSemanticOriginal = Extract<SemanticOriginal<never>, {physicalCid: string}>;
+type NamedContractRead<Contract> = (cid: unknown, name: string) =>
+  Promise<Readonly<{wire: string; value: unknown; contract: Contract}>>;
 type SemanticIndex = Readonly<{
   publicationContract(cid: string, readDemand?: ReadDemand): NativeContractRow | undefined;
   contract(cid: string, readDemand?: ReadDemand): NativeContractRow | undefined;
@@ -216,5 +219,12 @@ export function createPublicationSemanticReader<Contract extends SemanticContrac
   const readJsonObject = async (cid: string, contractName?: string) =>
     (await readContract(cid, contractName)).value;
 
-  return {nativeDeliveryContract, readSemanticOriginal, readSemanticBytes, readContract, readJsonObject};
+  return {
+    nativeDeliveryContract,
+    readSemanticOriginal: readSemanticOriginal as
+      ((cid: string, includeNative: false, retainGeneration: true) => Promise<PhysicalSemanticOriginal>) & typeof readSemanticOriginal,
+    readSemanticBytes,
+    readContract: readContract as NamedContractRead<Contract> & typeof readContract,
+    readJsonObject,
+  };
 }

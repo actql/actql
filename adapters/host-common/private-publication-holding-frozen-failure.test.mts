@@ -8,7 +8,6 @@ import {join} from 'node:path';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
-// @ts-expect-error TS7016: remove after migrating the Local publication Store.
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
 
