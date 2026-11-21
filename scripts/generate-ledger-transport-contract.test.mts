@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {projectCoreLedger, renderLedgerTransportContract, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic, renderLedgerAccountingValues} from './generate-ledger-transport-contract.mjs';
+import {projectCoreLedger, renderLedgerTransportContract, renderLedgerTransportDeclaration, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic, renderLedgerAccountingValues} from './generate-ledger-transport-contract.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 type UncheckedFixtureCodec = {
@@ -30,6 +30,8 @@ test('actual Core owns the complete current limits and thirteen-field usage cont
   assert.equal(contract.limits.length, 6);
   assert.equal(renderLedgerTransportContract(core), readFileSync(
     new URL('../adapters/host-common/ledger-contract.generated.mjs', import.meta.url), 'utf8'));
+  assert.equal(renderLedgerTransportDeclaration(core), readFileSync(
+    new URL('../adapters/host-common/ledger-contract.generated.d.mts', import.meta.url), 'utf8'));
 });
 
 test('adding a Core field mechanically reaches the generated transport without another schema edit', async () => {
@@ -44,6 +46,7 @@ test('adding a Core field mechanically reaches the generated transport without a
     new URL('../adapters/host-node/process-accounting.mjs', import.meta.url)));
   const module = await import(pathToFileURL(join(scratch.path, 'host-common/ledger-contract.generated.mjs')).href) as {ledgerUsageFields: readonly unknown[]};
   assert.deepEqual(module.ledgerUsageFields[0], {name: 'future_count', bits: 32});
+  assert.match(renderLedgerTransportDeclaration(changed), /readonly name: "future_count"; readonly bits: 32/u);
   assert.equal(module.ledgerUsageFields.length, 14);
   assert(Object.isFrozen(module.ledgerUsageFields));
   assert(module.ledgerUsageFields.every(Object.isFrozen));
