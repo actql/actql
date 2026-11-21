@@ -8,8 +8,58 @@ import {captureSourcePreparation, sourcePreparationPort} from
 import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
+import type {RunReference} from '../../packages/sdk/index.d.ts';
 
-export function installedHostShutdown(host) {
+type HostPort = Parameters<typeof connectInProcess>[1];
+type PortPerform = Parameters<HostPort['perform']>;
+type PortAnswer = Parameters<NonNullable<HostPort['answerCheckpoint']>>;
+type SourcePreparation = NonNullable<ReturnType<typeof captureSourcePreparation>>;
+type ShutdownInput = Parameters<typeof createInstalledHostShutdown>[0];
+type InitialControl = NonNullable<ShutdownInput['initialControl']>;
+type Shutdown = ReturnType<typeof createInstalledHostShutdown>;
+type InitializationFailure = Awaited<ReturnType<typeof retainInstalledHostInitializationFailure>>;
+type CloseOwner = {close: () => unknown};
+type CheckpointOwner = {close: ShutdownInput['checkpoint']; stop: ShutdownInput['stop']};
+type ShutdownHost = {
+  initialControl?: InitialControl; retireModelRuntime?: ShutdownInput['retire'];
+  prepareShutdown?: ShutdownInput['stop']; stopModelRuntime?: ShutdownInput['stop'];
+  runAcceptance?: CheckpointOwner; checkpoints?: CheckpointOwner;
+  dispatchOwner?: {drain: ShutdownInput['drain']}; retireTerminalEffects?: ShutdownInput['retire'];
+  journal: CloseOwner; store: CloseOwner; sourceProfile?: CloseOwner; installedEffect?: CloseOwner;
+  closePublicationStore?: ShutdownInput['store']; closeRequestJournal?: ShutdownInput['journal'];
+  closePublicationOwnership?: ShutdownInput['publicationOwnership']; diagnostic?: CloseOwner;
+  observation?: CloseOwner; ownerViews?: CloseOwner;
+};
+type EmbeddedHost = ShutdownHost & {port: HostPort};
+type RequestRecord = {
+  request?: object; pending?: Promise<unknown>; owner?: RegistryEntry; generation?: object;
+};
+type RegistryEntry = {
+  originalHost?: object; originalInstallation?: object; generation?: object;
+  preparing?: boolean; preparationRetired?: boolean; closing: boolean; finalized?: boolean;
+  leases: number; accepting: number; handling: Map<Promise<unknown>, RequestRecord | undefined>;
+  requestIndex?: WeakMap<object, RequestRecord>; hostJournalPreparation?: object; mockPreparation?: object;
+  identity?: unknown; host?: Promise<EmbeddedHost>; shutdown?: Shutdown; failure?: unknown;
+  initializationPending?: boolean; initializationStatus?: () => {pending: unknown};
+  sourceProducerPending?: number;
+};
+type ObservedFailure = {
+  code?: string; primaryFailure?: unknown; cleanupPending?: unknown;
+  cleanupHandle?: {status?: () => {pending: unknown}};
+};
+type ManagedRun = {
+  value?: unknown; runtime?: {clientProgramInstalledManagedRunAccounting?: unknown};
+  usage?: unknown; retire?: (value: unknown) => unknown; original?: unknown;
+  manager?: {retireSeveredPreparation(original: unknown): unknown};
+  closed?: boolean; finalAccounting?: readonly bigint[];
+};
+type ComputeRegistry = {
+  computeLiveRuns: Set<ManagedRun>; computeRuns?: WeakMap<object, ManagedRun>;
+  computeRunObservations?: Map<string, ManagedRun>;
+};
+
+
+export function installedHostShutdown(host: ShutdownHost) {
   const retireRuntime = host.retireModelRuntime;
   const initialControl = host.initialControl;
   const prepareShutdown = host.prepareShutdown;
@@ -29,9 +79,9 @@ export function installedHostShutdown(host) {
       return (host.runAcceptance ?? host.checkpoints)?.stop();
     },
     drain: () => prepareShutdown === undefined
-      ? host.dispatchOwner.drain() : host.dispatchOwner?.drain(),
+      ? host.dispatchOwner!.drain() : host.dispatchOwner?.drain(),
     retire: () => prepareShutdown === undefined
-      ? host.retireTerminalEffects() : host.retireTerminalEffects?.(),
+      ? host.retireTerminalEffects!() : host.retireTerminalEffects?.(),
     checkpoint: () => (host.runAcceptance ?? host.checkpoints)?.close(),
     journal: closeRequestJournal === undefined ? () => host.journal.close() :
       () => Reflect.apply(closeRequestJournal, host, []),
@@ -42,10 +92,10 @@ export function installedHostShutdown(host) {
     ...(closePublicationOwnership === undefined ? {} : {publicationOwnership:
       () => Reflect.apply(closePublicationOwnership, host, [])}),
     ...(host.diagnostic === undefined ? {} :
-      {diagnostic: () => host.diagnostic.close()}),
+      {diagnostic: () => host.diagnostic!.close()}),
     ...(host.observation === undefined ? {} :
-      {observation: () => host.observation.close()}),
-    ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
+      {observation: () => host.observation!.close()}),
+    ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews!.close()}),
     ...(initialControl === undefined ? {} : {initialControl}),
     ...(retireRuntime === undefined ? {} : {finalize: async () => {
       await Reflect.apply(retireRuntime, host, []);
@@ -60,13 +110,13 @@ export function installedHostShutdown(host) {
 const closing = () => Object.assign(new Error('ClientHostClosing'),
   {code: 'ClientHostClosing'});
 
-export function createEmbeddedHostRegistry(sameInstallation) {
-  const profiles = new Map();
-  const preparationChanged = () => {
+export function createEmbeddedHostRegistry(sameInstallation: (original: unknown, selected: unknown) => boolean) {
+  const profiles = new Map<unknown, RegistryEntry>();
+  const preparationChanged: () => never = () => {
     throw Object.assign(new Error('InstalledHostPreparationChanged'),
       {code: 'InstalledHostPreparationChanged'});
   };
-  function preparationFor(host, installation, generation) {
+  function preparationFor(host: unknown, installation: unknown, generation: unknown) {
     const entry = profiles.get(host);
     if (entry === undefined || entry.originalHost !== host ||
         entry.originalInstallation !== installation ||
@@ -74,7 +124,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         entry.preparationRetired) preparationChanged();
     return entry;
   }
-  const forget = (root, entry) => {
+  const forget = (root: unknown, entry: RegistryEntry) => {
     if (profiles.get(root) === entry) profiles.delete(root);
     if (entry.originalHost !== undefined && profiles.get(entry.originalHost) === entry) {
       profiles.delete(entry.originalHost);
@@ -85,30 +135,30 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     entry.hostJournalPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
-  function originalRequestRecord(entry, request) {
-    const original = entry.requestIndex.get(request);
+  function originalRequestRecord(entry: RegistryEntry, request: object) {
+    const original = entry.requestIndex!.get(request);
     if (original === undefined || original.owner !== entry ||
         original.generation !== entry.generation || original.request === undefined ||
-        entry.handling.get(original.pending) !== original) preparationChanged();
+        entry.handling.get(original.pending!) !== original) preparationChanged();
     return original;
   }
-  function assertUnboundRequest(entry, request) {
+  function assertUnboundRequest(entry: RegistryEntry, request: unknown): asserts request is object {
     if (request === null || typeof request !== 'object' ||
-        entry.requestIndex.has(request)) preparationChanged();
+        entry.requestIndex!.has(request)) preparationChanged();
   }
-  function retainRequestRecord(entry, request, pending) {
-    const original = {request, pending, owner: entry, generation: entry.generation};
-    entry.requestIndex.set(request, original);
+  function retainRequestRecord(entry: RegistryEntry, request: object, pending: Promise<unknown>) {
+    const original: RequestRecord = {request, pending, owner: entry, generation: entry.generation};
+    entry.requestIndex!.set(request, original);
     entry.handling.set(pending, original);
     return original;
   }
-  function retireRequestRecord(entry, pending, original) {
+  function retireRequestRecord(entry: RegistryEntry, pending: Promise<unknown>, original: RequestRecord) {
     if (entry.handling.get(pending) === original) entry.handling.delete(pending);
     // Weak aliases may outlive this call. Their tombstone retains no request,
     // Promise, Host or generation, and cannot bind to a different original.
     original.request = original.pending = original.owner = original.generation = undefined;
   }
-  function originalSourceRequest(host, installation, generation, request) {
+  function originalSourceRequest(host: unknown, installation: unknown, generation: unknown, request: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         request === null || typeof request !== 'object') preparationChanged();
@@ -118,7 +168,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   // A candidate belongs to this SAME registry, before Project discovery. It
   // has no root lease or physical Host yet and issues no capacity/permission.
   // The selected startup must independently admit its prior control envelope.
-  registerPreparation(host, installation, generation) {
+  registerPreparation(host: unknown, installation: unknown, generation: unknown) {
     if (host === null || typeof host !== 'object' || Array.isArray(host) ||
         installation === null || typeof installation !== 'object' ||
         Array.isArray(installation) || generation !== host || profiles.has(host)) {
@@ -128,26 +178,26 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       generation, preparing: true, leases: 0, accepting: 0, closing: false,
       handling: new Map(), requestIndex: new WeakMap()});
   },
-  assertPreparation(host, installation, generation) {
+  assertPreparation(host: unknown, installation: unknown, generation: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
   },
   // An already admitted Run retains this same Host through graceful drain.
   // This identity-only check cannot admit a new Request or preparation.
-  assertRetainedPreparation(host, installation, generation) {
+  assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.failure !== undefined) preparationChanged();
   },
   // The actual Host retains this one original before its first root/Journal
   // operation. This association is not a native facility, issuer or grant.
-  retainHostJournalPreparation(host, installation, generation, view) {
+  retainHostJournalPreparation(host: unknown, installation: unknown, generation: unknown, view: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         entry.hostJournalPreparation !== undefined || view === null ||
         typeof view !== 'object' || !Object.isFrozen(view)) preparationChanged();
     entry.hostJournalPreparation = view;
   },
-  hostJournalPreparation(host, installation, generation) {
+  hostJournalPreparation(host: unknown, installation: unknown, generation: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         entry.hostJournalPreparation === undefined) preparationChanged();
@@ -155,19 +205,19 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   },
   // Retain only this original Host's prepared mock view. This existing
   // registry association is not the Source supplier or a DATA admission.
-  retainMockPreparation(host, installation, generation, view) {
+  retainMockPreparation(host: unknown, installation: unknown, generation: unknown, view: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined || entry.mockPreparation !== undefined ||
         view === null || typeof view !== 'object') preparationChanged();
     entry.mockPreparation = view;
   },
-  mockPreparation(host, installation, generation, allowMissing = false) {
+  mockPreparation(host: unknown, installation: unknown, generation: unknown, allowMissing = false) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         entry.mockPreparation === undefined && !allowMissing) preparationChanged();
     return entry.mockPreparation;
   },
-  retainedMockPreparation(host, installation, generation) {
+  retainedMockPreparation(host: unknown, installation: unknown, generation: unknown) {
     // Cleanup may outlive new-operation currentness. Keep the exact registry
     // pair while closing; this projection cannot admit another preparation.
     return preparationFor(host, installation, generation).mockPreparation;
@@ -179,7 +229,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   originalSourceRequest,
   // Both ingresses retain their actual pending operation in this SAME Host
   // registry. This association neither prepares a Program nor admits capacity.
-  retainRequest(host, installation, generation, request, pending) {
+  retainRequest(host: unknown, installation: unknown, generation: unknown, request: unknown, pending: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined || request === null ||
         typeof request !== 'object' || !(pending instanceof Promise) || entry.handling.has(pending)) {
@@ -189,15 +239,15 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     const original = retainRequestRecord(entry, request, pending);
     pending.finally(() => retireRequestRecord(entry, pending, original)).catch(() => {});
   },
-  assertSourceRequest(host, installation, generation, request) {
+  assertSourceRequest(host: unknown, installation: unknown, generation: unknown, request: unknown) {
     originalSourceRequest(host, installation, generation, request);
   },
-  bindSourceRequest(host, installation, generation, parent, derived) {
+  bindSourceRequest(host: unknown, installation: unknown, generation: unknown, parent: unknown, derived: unknown) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined || parent === null ||
         typeof parent !== 'object' || derived === null || typeof derived !== 'object') preparationChanged();
     const selected = originalRequestRecord(entry, parent);
-    const bound = entry.requestIndex.get(derived);
+    const bound = entry.requestIndex!.get(derived);
     if (bound !== undefined) {
       if (bound !== selected) preparationChanged();
       return;
@@ -205,17 +255,18 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     // Alias identity is weak: the active operation/dispatch owns its payload.
     // The same strong handling inventory remains the physical drain owner.
     // This index grants no capacity or authority and never changes a packet.
-    entry.requestIndex.set(derived, selected);
+    entry.requestIndex!.set(derived, selected);
   },
-  retirePreparation(host, installation, generation) {
+  retirePreparation(host: unknown, installation: unknown, generation: unknown) {
     const entry = preparationFor(host, installation, generation);
     // An adopted candidate belongs to its Host's existing shutdown. An
     // unadopted candidate may cut only its own managed registry references.
     if (!entry.preparing) preparationChanged();
     forget(undefined, entry);
   },
-  async connect(root, identity, open, options, preparedHost, releaseUnadopted,
-    initialControl) {
+  async connect(root: unknown, identity: unknown, open: () => EmbeddedHost | PromiseLike<EmbeddedHost>,
+    options: Parameters<typeof connectInProcess>[0], preparedHost?: object,
+    releaseUnadopted?: () => unknown, initialControl?: InitialControl) {
     const retainedControl = initialControl === undefined ? undefined :
       Object.freeze({close: originalInitialControlClose(initialControl)});
     const prepared = preparedHost === undefined ? undefined : profiles.get(preparedHost);
@@ -246,14 +297,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         opened.shutdown = installedHostShutdown(host);
         if (preparedHost !== undefined && host !== preparedHost) {
           const failure = Object.assign(new Error('InstalledHostPreparationChanged'),
-            {code: 'InstalledHostPreparationChanged'});
-          try { await opened.shutdown.close(); }
+            {code: 'InstalledHostPreparationChanged'}) as Error & ObservedFailure;
+          try { await opened.shutdown!.close(); }
           catch (cause) {
             failure.cause = cause;
             failure.cleanupPending = true;
             failure.cleanupHandle = Object.freeze({
-              status: () => Object.freeze({pending: opened.shutdown.status().pending.length !== 0}),
-              retry: opened.shutdown.close,
+              status: () => Object.freeze({pending: opened.shutdown!.status().pending.length !== 0}),
+              retry: opened.shutdown!.close,
             });
           }
           throw failure;
@@ -268,7 +319,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         const error = prepared === undefined ? owned :
           retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));
         if (retainedControl !== undefined && prepared !== undefined &&
-            error === owned && owned.cleanupHandle.status().pending === false) {
+            error === owned && (owned as InitializationFailure).cleanupHandle.status().pending === false) {
           // Both original cleanup and registry retirement completed. Preserve
           // the refusal itself without re-reading an arbitrary thrown value.
           opened.failure = cause;
@@ -276,8 +327,8 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           throw cause;
         }
         opened.failure = error;
-        opened.initializationPending = error?.cleanupPending === true;
-        const handle = error?.cleanupHandle;
+        opened.initializationPending = (error as ObservedFailure | null | undefined)?.cleanupPending === true;
+        const handle = (error as ObservedFailure | null | undefined)?.cleanupHandle;
         opened.initializationStatus = typeof handle?.status === 'function'
           ? handle.status.bind(handle) : undefined;
         if (!opened.initializationPending) forget(root, opened);
@@ -307,9 +358,9 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     entry.leases++;
     entry.accepting++;
     const opened = entry;
-    let sealed = false, released = false, finished = false, flight;
-    const handling = new Set();
-    const sourceProducers = new Map();
+    let sealed = false, released = false, finished = false, flight: Promise<void> | undefined;
+    const handling = new Set<Promise<unknown>>();
+    const sourceProducers = new Map<unknown, {pending: Promise<void>; settled: () => void}>();
     function seal() {
       if (sealed) return;
       sealed = true;
@@ -335,14 +386,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             {code: 'InstalledSourceProducerCleanupPending'});
         }
         if (opened.leases !== 0) { finished = true; return; }
-        const host = await opened.host;
+        const host = await opened.host!;
         await Promise.allSettled([...opened.handling.keys()]);
         if ((opened.sourceProducerPending ?? 0) !== 0) {
           throw Object.assign(new Error('InstalledSourceProducerCleanupPending'),
             {code: 'InstalledSourceProducerCleanupPending'});
         }
         try {
-          await opened.shutdown.close();
+          await opened.shutdown!.close();
           if (!opened.finalized) {
             // The existing shutdown owner also retains observation close.
             // Retire this generation only after every child has settled.
@@ -353,18 +404,18 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         } catch (cause) {
           // Retry through this lease, so final release also retires exactly
           // this registry generation. Never reopen adapters to clean them up.
-          const error = Object.assign(new Error(cause?.code ?? 'InstalledHostCleanupPending',
-            {cause}), {code: cause?.code ?? 'InstalledHostCleanupPending',
-            primaryFailure: cause?.primaryFailure ?? cause,
+          const error = Object.assign(new Error((cause as ObservedFailure | null | undefined)?.code ?? 'InstalledHostCleanupPending',
+            {cause}), {code: (cause as ObservedFailure | null | undefined)?.code ?? 'InstalledHostCleanupPending',
+            primaryFailure: (cause as ObservedFailure | null | undefined)?.primaryFailure ?? cause,
             cleanupPending: true,
-            cleanupHandle: Object.freeze({status: opened.shutdown.status, retry: close})});
+            cleanupHandle: Object.freeze({status: opened.shutdown!.status, retry: close})});
           throw error;
         }
       }).finally(() => { flight = undefined; });
       return flight;
     }
-    let host;
-    try { host = await opened.host; }
+    let host: EmbeddedHost;
+    try { host = await opened.host!; }
     catch (error) {
       // Initialization itself retains cleanup; there is no returned Host.
       released = true;
@@ -387,21 +438,21 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     if (answer !== undefined && typeof answer !== 'function') {
       throw new TypeError('InvalidLocalCheckpointAnswerPort');
     }
-    const retainSourceProducer = receipt => {
+    const retainSourceProducer = (receipt: unknown) => {
       if (sourceProducers.has(receipt)) {
         throw Object.assign(new Error('InstalledSourceProducerAlreadyPending'),
           {code: 'InstalledSourceProducerAlreadyPending'});
       }
-      let settled;
-      const pending = new Promise(resolve => {settled = resolve;});
+      let settled!: () => void;
+      const pending = new Promise<void>(resolve => {settled = resolve;});
       sourceProducers.set(receipt, {pending, settled});
       opened.sourceProducerPending = (opened.sourceProducerPending ?? 0) + 1;
       handling.add(pending);
       opened.handling.set(pending, undefined);
       return receipt;
     };
-    const port = Object.freeze({
-      ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze({
+    const port: HostPort = Object.freeze({
+      ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze<SourcePreparation>({
         beforeSourceSnapshot(kind, input, options, originalConnection) {
           if (sealed || opened.closing) throw closing();
           return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options, originalConnection));
@@ -459,7 +510,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             // cuts only producer aliases; it grants no physical cleanup ACK.
             const result = sourcePreparation.finishSourceProducer(receipt, terminal);
             sourceProducers.delete(receipt);
-            opened.sourceProducerPending--;
+            opened.sourceProducerPending!--;
             return result;
           } finally {
             producer.settled();
@@ -469,7 +520,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         },
       })}),
       ...(answer === undefined ? {} : {
-        answerCheckpoint: (summary, decision, signal) => {
+        answerCheckpoint: (summary: PortAnswer[0], decision: PortAnswer[1], signal?: PortAnswer[2]) => {
             if (sealed || opened.closing) return Promise.reject(closing());
             const pending = Promise.resolve().then(() => {
               if (sealed || opened.closing) throw closing();
@@ -486,7 +537,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             return pending;
         },
       }),
-      perform(operation, request, signal) {
+      perform(operation: PortPerform[0], request: PortPerform[1], signal?: PortPerform[2]) {
         if (sealed || opened.closing) return Promise.reject(closing());
         // Refuse rebinding before scheduling any physical operation.
         try { assertUnboundRequest(opened, request); }
@@ -510,7 +561,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         // No Client was returned to own retry. Expose only this connection's
         // recovery operation; provider causes and internal handles stay here.
         const failure = Object.assign(new Error('InstalledLocalConnectionCleanupPending'),
-          {code: 'InstalledLocalConnectionCleanupPending', cleanupPending: true});
+          {code: 'InstalledLocalConnectionCleanupPending', cleanupPending: true}) as Error & ObservedFailure;
         const status = () => Object.freeze({pending: !finished});
         failure.cleanupHandle = Object.freeze({status, async retry() {
           try { await close(); }
@@ -529,11 +580,11 @@ export function createEmbeddedHostRegistry(sameInstallation) {
 // Resource owner, and retirement publishes only inert final Ledger scalars.
 // Separate lexical scope: this continuation retains only the same run, record
 // and two scalar-state slots; it cannot capture a retiring method's Request.
-export function managedPreparationRetirementContinuation(run, record) {
-  let retired = false, finalAccounting;
+export function managedPreparationRetirementContinuation(run: ManagedRun, record: ComputeRegistry) {
+  let retired = false, finalAccounting: readonly bigint[] | undefined;
   return () => {
     if (!retired) {
-      let observed;
+      let observed: readonly bigint[] | undefined;
       // The original input/control children have returned before this final
       // cut. Core drops its Ledger on success; late Result observation keeps
       // only these exact immutable scalars, never a live/current witness.
@@ -550,23 +601,23 @@ export function managedPreparationRetirementContinuation(run, record) {
                 numeric = false; break;
               }
             }
-            if (numeric) observed = Object.freeze(values);
+            if (numeric) observed = Object.freeze(values as bigint[]);
           }
         } catch { /* Optional metadata cannot replace original cleanup. */ }
       }
-      checked(Reflect.apply(run.retire,run.runtime,[run.value]));
+      checked(Reflect.apply(run.retire!,run.runtime,[run.value]));
       finalAccounting = observed;
       retired = true;
     }
-    run.manager.retireSeveredPreparation(run.original);
+    run.manager!.retireSeveredPreparation(run.original);
     record.computeLiveRuns.delete(run);
-    for(const key of Object.keys(run)) run[key]=undefined;
+    for(const key of Object.keys(run)) (run as Record<string, unknown>)[key]=undefined;
     run.closed=true;
     if (finalAccounting !== undefined) run.finalAccounting = finalAccounting;
   };
 }
 
-export function bindManagedComputeRunObservation(record, prepared, ref, clientOperationError) {
+export function bindManagedComputeRunObservation(record: ComputeRegistry, prepared: object, ref: RunReference, clientOperationError: (code: string) => unknown) {
   const run = record.computeRuns?.get(prepared);
   if (run === undefined || run.value === undefined || run.closed) return;
   // Index only an actually admitted Run's existing holding. This does
@@ -578,10 +629,10 @@ export function bindManagedComputeRunObservation(record, prepared, ref, clientOp
   index.set(key, run);
   // Capture the same native method without sampling or extending the
   // Core Run lifetime. Final retirement supplies its last live DATA.
-  if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
+  if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime!.clientProgramInstalledManagedRunAccounting;
     }
 
-export function managedComputeUsageReader(record, ref) {
+export function managedComputeUsageReader(record: ComputeRegistry, ref: RunReference) {
   const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
   if (record.computeRunObservations?.get(key) === undefined) return undefined;
   // Capture only the public key and existing installation bag. Final
@@ -592,7 +643,7 @@ export function managedComputeUsageReader(record, ref) {
     if (run === undefined) return undefined;
     if (run.closed) return run.finalAccounting;
     if (run.value === undefined) return undefined;
-    if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
+    if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime!.clientProgramInstalledManagedRunAccounting;
     if (typeof run.usage !== 'function') return undefined;
     return checked(Reflect.apply(run.usage, run.runtime, [run.value]));
   };

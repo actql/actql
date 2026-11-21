@@ -1033,3 +1033,5 @@ target/
 /adapters/host-node/installed-runtime-retirement-unit.test.d.mts
 /scripts/vector-scalar-installed-source.test.mjs
 /scripts/vector-scalar-installed-source.test.d.mts
+/adapters/host-node/embedded-local-lifecycle.mjs
+/adapters/host-node/embedded-local-lifecycle.d.mts

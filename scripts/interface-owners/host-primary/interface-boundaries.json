@@ -15507,7 +15507,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// An already admitted Run retains this same Host through graceful drain."
               }
             ],
@@ -15531,8 +15531,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "failure": [
@@ -24399,8 +24399,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24453,7 +24453,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
@@ -24491,7 +24491,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -24551,7 +24551,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -29038,7 +29038,7 @@
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mjs",
+        "./embedded-local-lifecycle.mts",
         "./entry.mjs",
         "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",

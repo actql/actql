@@ -5396,7 +5396,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -5418,7 +5418,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -5548,7 +5548,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -5562,7 +5562,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -7006,7 +7006,7 @@
                 "anchor": "assertSubmittedIntent(prepared, intent)"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -7044,7 +7044,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -7263,7 +7263,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -7281,7 +7281,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -8631,7 +8631,7 @@
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -8653,7 +8653,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -8790,7 +8790,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -8804,7 +8804,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -9251,7 +9251,7 @@
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -9273,7 +9273,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -9403,7 +9403,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -9417,7 +9417,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -11962,7 +11962,7 @@
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -11992,7 +11992,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {

@@ -42320,11 +42320,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "beforeSourceQuery(format, text, parameters, options, originalConnection) {"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "beforeResultRead(schemaOrOptions, options) {"
               }
             ],
@@ -42336,17 +42336,17 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "const retainSourceProducer = receipt => {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "const retainSourceProducer = (receipt: unknown) => {"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "sourceProducers.set(receipt, {pending, settled});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options, originalConnection));"
               }
             ],
@@ -42430,8 +42430,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -42462,14 +42462,14 @@
                 "anchor": "export function assertInitialControlHostPreparation(originals) {"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// Builtin Local supplies its already captured initial-control owner on"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -42492,7 +42492,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
@@ -42506,7 +42506,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// A failed/partial retirement still owns the original callback."
               },
               {
@@ -42538,13 +42538,13 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// only leases its in-process connection and retains its physical close retry."
               },
               {
@@ -42556,7 +42556,7 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -42576,11 +42576,11 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const closeRequestJournal = host.closeRequestJournal;"
               },
               {
@@ -42590,8 +42590,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -42606,7 +42606,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
@@ -42618,7 +42618,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -42626,13 +42626,13 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await Reflect.apply(prepareShutdown,host,[]);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const closing = () => Object.assign(new Error('ClientHostClosing'),"
               },
               {
@@ -42674,7 +42674,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// only leases its in-process connection and retains its physical close retry."
               },
               {
@@ -42702,7 +42702,7 @@
                 "anchor": "await attempt('stop', stop);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -42712,8 +42712,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -42744,13 +42744,13 @@
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "const sourceProducers = new Map();"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "const sourceProducers = new Map<unknown, {pending: Promise<void>; settled: () => void}>();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The existing installed Host owns execution and durable data. This registry"
               },
               {
@@ -42887,7 +42887,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -42901,7 +42901,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -43013,12 +43013,12 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "entry.handling.get(original.pending) !== original) preparationChanged();"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "entry.handling.get(original.pending!) !== original) preparationChanged();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -43031,15 +43031,15 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "entry.hostJournalPreparation = view;"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "entry.mockPreparation = view;"
               },
               {
@@ -43049,7 +43049,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -43077,7 +43077,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -43169,7 +43169,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43179,7 +43179,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43189,7 +43189,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43199,7 +43199,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43209,7 +43209,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43219,7 +43219,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43229,7 +43229,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43239,7 +43239,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43249,7 +43249,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "publishSourceSnapshot(receipt, body, publication)"
               },
               {
@@ -43273,8 +43273,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -43307,8 +43307,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -43331,7 +43331,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
@@ -43345,7 +43345,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// A failed/partial retirement still owns the original callback."
               },
               {
@@ -43377,13 +43377,13 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// only leases its in-process connection and retains its physical close retry."
               },
               {
@@ -43395,7 +43395,7 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -43415,18 +43415,18 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const closeRequestJournal = host.closeRequestJournal;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -43441,7 +43441,7 @@
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
@@ -43453,7 +43453,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -43461,13 +43461,13 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await Reflect.apply(prepareShutdown,host,[]);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const closing = () => Object.assign(new Error('ClientHostClosing'),"
               },
               {
@@ -43505,7 +43505,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// only leases its in-process connection and retains its physical close retry."
               },
               {
@@ -43533,7 +43533,7 @@
                 "anchor": "await attempt('stop', stop);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -43543,8 +43543,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function installedHostShutdown(host) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function installedHostShutdown(host: ShutdownHost) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -43575,13 +43575,13 @@
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "const sourceProducers = new Map();"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "const sourceProducers = new Map<unknown, {pending: Promise<void>; settled: () => void}>();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The existing installed Host owns execution and durable data. This registry"
               },
               {
@@ -43677,14 +43677,14 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// An already admitted Run retains this same Host through graceful drain."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "identity": [
@@ -43701,8 +43701,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "failure": [
@@ -43763,14 +43763,14 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function bindManagedComputeRunObservation(record, prepared, ref, clientOperationError) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function bindManagedComputeRunObservation(record: ComputeRegistry, prepared: object, ref: RunReference, clientOperationError: (code: string) => unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "export function managedPreparationRetirementContinuation(run, record) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "export function managedPreparationRetirementContinuation(run: ManagedRun, record: ComputeRegistry) {"
               }
             ],
             "synchronization": [
@@ -43793,7 +43793,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const length = ledgerLimitsFields.length + ledgerUsageFields.length;"
               },
               {
@@ -66317,7 +66317,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
@@ -66363,8 +66363,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -66397,7 +66397,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
@@ -66443,7 +66443,7 @@
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -66523,7 +66523,7 @@
                 "anchor": "await attempt('stop', stop);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -66867,7 +66867,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               }
             ],
@@ -67001,7 +67001,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               }
             ],
@@ -67145,8 +67145,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -67155,13 +67155,13 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -67181,7 +67181,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -67348,7 +67348,7 @@
                 "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "const initialControl = host.initialControl;"
               },
               {
@@ -67394,8 +67394,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -67428,7 +67428,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
@@ -67474,7 +67474,7 @@
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -67554,7 +67554,7 @@
                 "anchor": "await attempt('stop', stop);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -68994,8 +68994,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -69024,7 +69024,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
@@ -69050,7 +69050,7 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -69102,7 +69102,7 @@
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -69263,8 +69263,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -69285,7 +69285,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
@@ -69303,7 +69303,7 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -69339,7 +69339,7 @@
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -69445,8 +69445,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -69455,13 +69455,13 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -69481,7 +69481,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -69601,8 +69601,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               }
             ],
             "ownership": [
@@ -69631,7 +69631,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
@@ -69657,7 +69657,7 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -69709,7 +69709,7 @@
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -112358,7 +112358,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// An already admitted Run retains this same Host through graceful drain."
               }
             ],
@@ -112382,8 +112382,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "failure": [
@@ -132388,7 +132388,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "function originalSourceRequest("
               },
               {
