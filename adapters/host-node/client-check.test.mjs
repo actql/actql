@@ -6349,10 +6349,20 @@ for (const [entrance, open] of Object.entries(entrances)) {
       'SELECT LEAD(amount, (1 + 1)) OVER (ORDER BY id) AS next FROM records',
       'SELECT LAG(amount, -1) OVER (ORDER BY id) AS previous FROM records',
     ];
-    const unsupported = [
-      'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
+    const supported = [
       'SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS n FROM records',
       'SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS value FROM records',
+    ];
+    for (const text of supported) {
+      const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+      assert.equal(checked.outcome, 'completed', text);
+      assert.equal(checked.report.verdict, 'verified', text);
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []}, text);
+    }
+    client.assertNoExecution();
+    const unsupported = [
+      'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
+      unsupportedSourceQuery,
     ];
     for (const [texts, verdict, expectedProblem, reasonCode] of [
       [syntaxInvalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_syntax_invalid'],
