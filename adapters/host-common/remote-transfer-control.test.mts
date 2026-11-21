@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {remoteTransferControl} from './remote-transfer-control.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const control = runtimeCore(moon).remoteTransferControl;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
 
-const request = route => Object.freeze({
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const control = (runtimeCore(moon) as {remoteTransferControl: ReturnType<typeof remoteTransferControl>})
+  .remoteTransferControl;
+
+const request = (route: string) => Object.freeze({
   coordinatorAuthority: 'coordinator-a',
   transferAttemptId: 'transfer-a',
   route,
@@ -38,7 +43,7 @@ const request = route => Object.freeze({
   routeCapabilityCid: cid('6'),
 });
 
-const commit = transition => control.commitTransition(transition, true);
+const commit = (transition: unknown) => control.commitTransition(transition, true);
 
 test('Remote Transfer control binds route without adapter-owned identity', () => {
   const direct = control.prepare(request('direct'));
@@ -146,7 +151,7 @@ test('Store use state keeps reader stop separate from destination receipt',
       cid('5'),
     ]);
     const record = control.storeUse.open(storeUse);
-    const commit = transition => control.storeUse.commitTransition(
+    const commit = (transition: unknown) => control.storeUse.commitTransition(
       transition,
       true,
     );
@@ -184,7 +189,7 @@ test('direct Transfer commits only after durable stop and integrity', () => {
   assert.throws(() => control.prepareDestinationCommit(record));
   commit(control.prepareSourceSettled(record, true, false));
   const completion = control.prepareDestinationCommit(record);
-  const [expected, next] = control.transitionProjection(completion);
+  const [expected, next] = control.transitionProjection(completion)!;
   assert.deepEqual(expected, [2, 1, 0, 1, 0, 1, 0, 1, 0]);
   assert.deepEqual(next, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
   assert.throws(() => control.commitTransition(completion, false));

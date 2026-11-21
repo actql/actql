@@ -1,4 +1,5 @@
 import {DatabaseSync} from 'node:sqlite';
+import type {SQLInputValue, SQLOutputValue, StatementSync} from 'node:sqlite';
 import {
   closeSync,
   existsSync,
@@ -11,22 +12,75 @@ import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 
-const fail = (code, cause) => {
+import type {remoteTransferControl} from '../host-common/remote-transfer-control.mjs';
+
+type TransferControl = ReturnType<typeof remoteTransferControl>;
+type JournalControl = Pick<TransferControl,
+  'identity' | 'requestJson' | 'manifestJson' | 'admitJson' | 'journalKey' |
+  'open' | 'restore' | 'recordProjection' | 'revision' | 'transitionProjection' |
+  'transitionKey' | 'commitTransition'>;
+type RequestControl = JournalControl & Pick<TransferControl, 'requestProjection'>;
+type ReceiptAdmission = JournalControl & Pick<TransferControl, 'admitDestinationReceiptJson'>;
+type ReceiptControl = RequestControl & ReceiptAdmission & Pick<TransferControl,
+  'destinationReceiptJson' | 'destinationReceiptIdentity' | 'destinationReceiptProjection' |
+  'prepareDestinationCommit'>;
+type JournalOptions = Readonly<{
+  destinationSiteKey?: string;
+  destinationSiteGeneration?: number;
+  maxTransfers?: number;
+  maxRequestBytes?: number;
+  maxManifestBytes?: number;
+  maxChunks?: number;
+  maxReferencedBytes?: bigint;
+}>;
+
+// The selected STRICT columns narrow the row data on the native statements.
+export type TransferJournalRows<Row extends Record<string, SQLOutputValue>> = {
+  get(...parameters: SQLInputValue[]): Row | undefined;
+  all(...parameters: SQLInputValue[]): Row[];
+} & StatementSync;
+type TransferRow = Readonly<{
+  coordinator_authority: string;
+  destination_site_key: string;
+  destination_site_generation: number;
+  transfer_attempt: string;
+  request_cid: string;
+  request_json: string;
+  manifest_cid: string;
+  manifest_json: string;
+  revision: number;
+  attempt_state: number;
+  object_state: number;
+  integrity_state: number;
+  cleanup_state: number;
+  source_access_stopped: number;
+  destination_temporary_reclaimed: number;
+  object_use_released: number;
+  destination_material_available: number;
+}>;
+type ReceiptRow = Readonly<{
+  request_cid: string;
+  receipt_cid: string;
+  receipt_json: string;
+}>;
+type CountRow = Readonly<{count: number}>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const count = value => Number.isSafeInteger(value) && value >= 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 
-function syncDirectory(path) {
+function syncDirectory(path: string) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
 }
 
-const equal = (left, right) => left.length === right.length &&
+const equal = (left: readonly unknown[], right: readonly unknown[]) => left.length === right.length &&
   left.every((value, index) => value === right[index]);
 
-export function openSqliteTransferJournal(root, {
+export function openSqliteTransferJournal(root: string, {
   destinationSiteKey,
   destinationSiteGeneration,
   maxTransfers = 100_000,
@@ -34,7 +88,7 @@ export function openSqliteTransferJournal(root, {
   maxManifestBytes = 65_536,
   maxChunks = 4096,
   maxReferencedBytes = 9_007_199_254_740_991n,
-} = {}) {
+}: JournalOptions = {}) {
   if (!text(root) || !text(destinationSiteKey) ||
       !count(destinationSiteGeneration) || !count(maxTransfers) ||
       maxTransfers === 0 || !count(maxRequestBytes) || maxRequestBytes === 0 ||
@@ -160,11 +214,11 @@ export function openSqliteTransferJournal(root, {
     SELECT * FROM transfers
     WHERE coordinator_authority = ? AND destination_site_key = ?
       AND destination_site_generation = ? AND transfer_attempt = ?
-  `);
+  `) as TransferJournalRows<TransferRow>;
   const selectAll = database.prepare(`
     SELECT * FROM transfers ORDER BY rowid
-  `);
-  const total = database.prepare('SELECT COUNT(*) AS count FROM transfers');
+  `) as TransferJournalRows<TransferRow>;
+  const total = database.prepare('SELECT COUNT(*) AS count FROM transfers') as TransferJournalRows<CountRow>;
   const insert = database.prepare(`
     INSERT INTO transfers (
       coordinator_authority,
@@ -210,7 +264,7 @@ export function openSqliteTransferJournal(root, {
     FROM destination_receipts
     WHERE coordinator_authority = ? AND destination_site_key = ?
       AND destination_site_generation = ? AND transfer_attempt = ?
-  `);
+  `) as TransferJournalRows<ReceiptRow>;
   const insertDestinationReceipt = database.prepare(`
     INSERT INTO destination_receipts (
       coordinator_authority,
@@ -227,7 +281,7 @@ export function openSqliteTransferJournal(root, {
     if (closed) fail('RemoteTransferJournalClosed');
     transaction.assertUsable();
   };
-  const state = row => Object.freeze([
+  const state = (row: TransferRow) => Object.freeze([
     row.revision,
     row.attempt_state,
     row.object_state,
@@ -238,7 +292,7 @@ export function openSqliteTransferJournal(root, {
     row.object_use_released,
     row.destination_material_available,
   ]);
-  const checkedKey = (request, control) => {
+  const checkedKey = (request: unknown, control: JournalControl) => {
     const key = control.journalKey(request);
     if (!Array.isArray(key) || key.length !== 4 ||
         key.some(value => !text(value)) ||
@@ -248,7 +302,7 @@ export function openSqliteTransferJournal(root, {
     }
     return Object.freeze({key, generation: Number(key[2])});
   };
-  const requireControl = control => {
+  const requireControl = (control: JournalControl) => {
     if (control === null || typeof control !== 'object' ||
         typeof control.identity !== 'function' ||
         typeof control.requestJson !== 'function' ||
@@ -265,7 +319,7 @@ export function openSqliteTransferJournal(root, {
       fail('MissingRemoteTransferControl');
     }
   };
-  const restore = (row, control) => {
+  const restore = (row: TransferRow, control: JournalControl) => {
     const request = control.admitJson(
       row.request_json,
       row.manifest_json,
@@ -278,7 +332,7 @@ export function openSqliteTransferJournal(root, {
 
   return Object.freeze({
     path,
-    accept(request, control) {
+    accept(request: unknown, control: RequestControl) {
       ensureOpen();
       requireControl(control);
       const {key, generation} = checkedKey(request, control);
@@ -303,7 +357,7 @@ export function openSqliteTransferJournal(root, {
           }
           return Object.freeze({...restore(existing, control), created: false});
         }
-        const foundTotal = Number(total.get().count);
+        const foundTotal = Number(total.get()!.count);
         if (!count(foundTotal) || foundTotal >= maxTransfers) {
           fail('RemoteTransferJournalCapacityExceeded');
         }
@@ -323,7 +377,7 @@ export function openSqliteTransferJournal(root, {
         return Object.freeze({request, record, created: true});
       });
     },
-    advance(transition, control) {
+    advance(transition: unknown, control: JournalControl) {
       ensureOpen();
       requireControl(control);
       const projection = control.transitionProjection(transition);
@@ -367,7 +421,7 @@ export function openSqliteTransferJournal(root, {
       }
       return record;
     },
-    commitDestinationReceipt(receipt, request, control) {
+    commitDestinationReceipt(receipt: unknown, request: unknown, control: ReceiptControl) {
       ensureOpen();
       requireControl(control);
       if (typeof control.destinationReceiptJson !== 'function' ||
@@ -429,7 +483,7 @@ export function openSqliteTransferJournal(root, {
         );
       });
     },
-    inspectDestinationReceipt(request, control) {
+    inspectDestinationReceipt(request: unknown, control: ReceiptAdmission) {
       ensureOpen();
       requireControl(control);
       if (typeof control.admitDestinationReceiptJson !== 'function') {
@@ -449,12 +503,12 @@ export function openSqliteTransferJournal(root, {
         row.receipt_cid,
       );
     },
-    recover(control) {
+    recover(control: JournalControl) {
       ensureOpen();
       requireControl(control);
       return Object.freeze(selectAll.all().map(row => restore(row, control)));
     },
-    inspect(request, control) {
+    inspect(request: unknown, control: JournalControl) {
       ensureOpen();
       requireControl(control);
       const {key, generation} = checkedKey(request, control);

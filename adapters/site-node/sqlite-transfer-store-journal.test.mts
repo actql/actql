@@ -3,14 +3,20 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteTransferControl} from '../host-common/remote-transfer-control.mjs';
 import {openSqliteTransferStoreJournal} from
   './sqlite-transfer-store-journal.mjs';
 
-const control = runtimeCore(moon).remoteTransferControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const control = (runtimeCore(moon) as {remoteTransferControl: ReturnType<typeof remoteTransferControl>})
+  .remoteTransferControl;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 
 function request(attempt = 'transfer-a') {
   return control.prepare(Object.freeze({
@@ -46,7 +52,7 @@ function request(attempt = 'transfer-a') {
   }));
 }
 
-async function fixture(t, options = {}) {
+async function fixture(t: TestContext, options: Parameters<typeof openSqliteTransferStoreJournal>[1] = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-transfer-store-journal-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const open = () => openSqliteTransferStoreJournal(root, {
@@ -95,7 +101,7 @@ test('Store use bytes and receipt survive restart', async t => {
     control,
   );
   assert.deepEqual(
-    reopened.inspect(recovered[0].storeUse, control).state,
+    reopened.inspect(recovered[0].storeUse, control)!.state,
     [
       '5',
       '2',

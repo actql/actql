@@ -8638,7 +8638,7 @@
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eed669ee5c2a02eec0a72fb1054233f4a73cdb0ea285f4fd0774ea7cdea6404e",
+      "sha256": "78fdd3b38d32c1947dc7fc5f5ac466f86e945e54a3a83801c0b89fce1b08a592",
       "exports": [
         "openSqliteTransferJournal"
       ],

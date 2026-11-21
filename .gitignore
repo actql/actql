@@ -1657,5 +1657,17 @@ target/
 /adapters/site-node/runtime-bundle-operations.d.mts
 /adapters/site-node/runtime-bundle-operations.test.mjs
 /adapters/site-node/runtime-bundle-operations.test.d.mts
+/adapters/host-common/remote-transfer-control.mjs
+/adapters/host-common/remote-transfer-control.d.mts
+/adapters/host-common/remote-transfer-control.test.mjs
+/adapters/host-common/remote-transfer-control.test.d.mts
+/adapters/site-node/sqlite-transfer-journal.mjs
+/adapters/site-node/sqlite-transfer-journal.d.mts
+/adapters/site-node/sqlite-transfer-journal.test.mjs
+/adapters/site-node/sqlite-transfer-journal.test.d.mts
+/adapters/site-node/sqlite-transfer-store-journal.mjs
+/adapters/site-node/sqlite-transfer-store-journal.d.mts
+/adapters/site-node/sqlite-transfer-store-journal.test.mjs
+/adapters/site-node/sqlite-transfer-store-journal.test.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts

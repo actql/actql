@@ -12,27 +12,63 @@ import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 
-const fail = (code, cause) => {
+import type {remoteTransferControl} from '../host-common/remote-transfer-control.mjs';
+import type {TransferJournalRows} from './sqlite-transfer-journal.mjs';
+
+type TransferControl = ReturnType<typeof remoteTransferControl>;
+type JournalControl = Pick<TransferControl, 'identity' | 'requestJson' | 'manifestJson' | 'admitJson'> &
+  Readonly<{storeUse: Pick<TransferControl['storeUse'],
+    'prepare' | 'identity' | 'projection' | 'open' | 'restore' | 'recordProjection' |
+    'transitionProjection' | 'transitionKey' | 'commitTransition'>}>;
+type RequestControl = JournalControl & Pick<TransferControl, 'requestProjection'>;
+type JournalOptions = Readonly<{
+  maxUses?: number;
+  maxRequestBytes?: number;
+  maxManifestBytes?: number;
+  maxChunks?: number;
+  maxReferencedBytes?: bigint;
+}>;
+type TransferRow = Readonly<{
+  use_cid: string;
+  request_cid: string;
+  request_json: string;
+  manifest_cid: string;
+  manifest_json: string;
+  use_id: string;
+  destination_site_key: string;
+  destination_site_generation: number;
+  destination_grant_cid: string;
+  revision: number;
+  attempt_state: number;
+  cleanup_state: number;
+  confirmed_chunks: number;
+  confirmed_bytes: string;
+  reader_stopped: number;
+  destination_receipt_cid: string;
+}>;
+type CountRow = Readonly<{count: number}>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const count = value => Number.isSafeInteger(value) && value >= 0;
-const equal = (left, right) => left.length === right.length &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const equal = (left: readonly unknown[], right: readonly unknown[]) => left.length === right.length &&
   left.every((value, index) => value === right[index]);
 
-function syncDirectory(path) {
+function syncDirectory(path: string) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
 }
 
-export function openSqliteTransferStoreJournal(root, {
+export function openSqliteTransferStoreJournal(root: string, {
   maxUses = 100_000,
   maxRequestBytes = 65_536,
   maxManifestBytes = 65_536,
   maxChunks = 4096,
   maxReferencedBytes = 9_007_199_254_740_991n,
-} = {}) {
+}: JournalOptions = {}) {
   if (!text(root) || !count(maxUses) || maxUses === 0 ||
       !count(maxRequestBytes) || maxRequestBytes === 0 ||
       !count(maxManifestBytes) || maxManifestBytes === 0 ||
@@ -100,11 +136,11 @@ export function openSqliteTransferStoreJournal(root, {
   try {
   const select = database.prepare(
     'SELECT * FROM store_uses WHERE use_cid = ?',
-  );
+  ) as TransferJournalRows<TransferRow>;
   const selectAll = database.prepare(
     'SELECT * FROM store_uses ORDER BY rowid',
-  );
-  const total = database.prepare('SELECT COUNT(*) AS count FROM store_uses');
+  ) as TransferJournalRows<TransferRow>;
+  const total = database.prepare('SELECT COUNT(*) AS count FROM store_uses') as TransferJournalRows<CountRow>;
   const insert = database.prepare(`
     INSERT INTO store_uses (
       use_cid,
@@ -143,7 +179,7 @@ export function openSqliteTransferStoreJournal(root, {
     if (closed) fail('RemoteTransferStoreJournalClosed');
     transaction.assertUsable();
   };
-  const requireControl = control => {
+  const requireControl = (control: JournalControl) => {
     const storeUse = control?.storeUse;
     if (typeof control?.identity !== 'function' ||
         typeof control?.requestJson !== 'function' ||
@@ -163,7 +199,7 @@ export function openSqliteTransferStoreJournal(root, {
     }
     return storeUse;
   };
-  const state = row => Object.freeze([
+  const state = (row: TransferRow) => Object.freeze([
     String(row.revision),
     String(row.attempt_state),
     String(row.cleanup_state),
@@ -172,7 +208,7 @@ export function openSqliteTransferStoreJournal(root, {
     String(row.reader_stopped),
     row.destination_receipt_cid,
   ]);
-  const restore = (row, control) => {
+  const restore = (row: TransferRow, control: JournalControl) => {
     const request = control.admitJson(
       row.request_json,
       row.manifest_json,
@@ -194,7 +230,7 @@ export function openSqliteTransferStoreJournal(root, {
 
   return Object.freeze({
     path,
-    accept(request, useId, control) {
+    accept(request: unknown, useId: string, control: RequestControl) {
       active();
       const storeUseControl = requireControl(control);
       const storeUse = storeUseControl.prepare(request, useId);
@@ -226,7 +262,7 @@ export function openSqliteTransferStoreJournal(root, {
           }
           return restore(existing, control);
         }
-        if (Number(total.get().count) >= maxUses) {
+        if (Number(total.get()!.count) >= maxUses) {
           fail('RemoteTransferStoreJournalCapacityExceeded');
         }
         const record = storeUseControl.open(storeUse);
@@ -245,7 +281,7 @@ export function openSqliteTransferStoreJournal(root, {
         return Object.freeze({request, storeUse, record});
       });
     },
-    advance(transition, control) {
+    advance(transition: unknown, control: JournalControl) {
       active();
       const storeUseControl = requireControl(control);
       const projection = storeUseControl.transitionProjection(transition);
@@ -285,12 +321,12 @@ export function openSqliteTransferStoreJournal(root, {
       }
       return record;
     },
-    recover(control) {
+    recover(control: JournalControl) {
       active();
       requireControl(control);
       return Object.freeze(selectAll.all().map(row => restore(row, control)));
     },
-    inspect(storeUse, control) {
+    inspect(storeUse: unknown, control: JournalControl) {
       active();
       const storeUseControl = requireControl(control);
       const row = select.get(storeUseControl.identity(storeUse));

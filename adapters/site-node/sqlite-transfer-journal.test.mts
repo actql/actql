@@ -3,13 +3,19 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import type {TestContext} from 'node:test';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {remoteTransferControl} from '../host-common/remote-transfer-control.mjs';
 import {openSqliteTransferJournal} from './sqlite-transfer-journal.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const control = runtimeCore(moon).remoteTransferControl;
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const control = (runtimeCore(moon) as {remoteTransferControl: ReturnType<typeof remoteTransferControl>})
+  .remoteTransferControl;
 
 const request = (
   transferAttemptId = 'transfer-a',
@@ -45,7 +51,7 @@ const request = (
   routeCapabilityCid: cid('6'),
 }));
 
-async function fixture(t, options = {}) {
+async function fixture(t: TestContext, options: Parameters<typeof openSqliteTransferJournal>[1] = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-transfer-journal-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const open = () => openSqliteTransferJournal(root, {
@@ -72,7 +78,7 @@ test('Transfer request and lifecycle recover from exact durable state',
     );
     journal.advance(control.prepareStart(accepted.record), control);
     assert.deepEqual(
-      journal.inspect(transfer, control).state,
+      journal.inspect(transfer, control)!.state,
       [1, 1, 0, 0, 0, 0, 0, 1, 0],
     );
     journal.close();
@@ -121,7 +127,7 @@ test('Transfer transition remains recoverable when control commit throws',
       {code: 'InjectedControlFailure'},
     );
     assert.deepEqual(
-      journal.inspect(request(), control).state,
+      journal.inspect(request(), control)!.state,
       [1, 1, 0, 0, 0, 0, 0, 1, 0],
     );
     const committed = journal.advance(transition, control);
@@ -168,7 +174,7 @@ test('destination commit evidence is durable before lifecycle commit',
       control,
     );
     assert.deepEqual(
-      reopened.inspect(transfer, control).state,
+      reopened.inspect(transfer, control)!.state,
       [3, 2, 3, 1, 0, 1, 1, 0, 1],
     );
   });
@@ -200,7 +206,7 @@ test('rejected integrity remains rejected after journal restart', async t => {
     control,
   );
   assert.deepEqual(
-    reopened.inspect(transfer, control).state,
+    reopened.inspect(transfer, control)!.state,
     [4, 3, 0, 2, 1, 1, 1, 1, 0],
   );
 });

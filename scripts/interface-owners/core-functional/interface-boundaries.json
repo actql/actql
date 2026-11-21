@@ -137,6 +137,512 @@
       "sha256": "236396748ba0f14df744026adb1862005e2fd5d9ef9e7d4284db7727bedcac79"
     },
     {
+      "module": "adapters/host-common/remote-transfer-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRemoteTransferControl/createRemoteTransferControl",
+            "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl",
+            "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl#2",
+            "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl#3",
+            "createRemoteTransferControl/createRemoteTransferControl#10",
+            "createRemoteTransferControl/createRemoteTransferControl#11",
+            "createRemoteTransferControl/createRemoteTransferControl#12",
+            "createRemoteTransferControl/createRemoteTransferControl#13",
+            "createRemoteTransferControl/createRemoteTransferControl#14",
+            "createRemoteTransferControl/createRemoteTransferControl#15",
+            "createRemoteTransferControl/createRemoteTransferControl#16",
+            "createRemoteTransferControl/createRemoteTransferControl#17",
+            "createRemoteTransferControl/createRemoteTransferControl#18",
+            "createRemoteTransferControl/createRemoteTransferControl#19",
+            "createRemoteTransferControl/createRemoteTransferControl#2",
+            "createRemoteTransferControl/createRemoteTransferControl#20",
+            "createRemoteTransferControl/createRemoteTransferControl#21",
+            "createRemoteTransferControl/createRemoteTransferControl#22",
+            "createRemoteTransferControl/createRemoteTransferControl#23",
+            "createRemoteTransferControl/createRemoteTransferControl#24",
+            "createRemoteTransferControl/createRemoteTransferControl#25",
+            "createRemoteTransferControl/createRemoteTransferControl#26",
+            "createRemoteTransferControl/createRemoteTransferControl#27",
+            "createRemoteTransferControl/createRemoteTransferControl#28",
+            "createRemoteTransferControl/createRemoteTransferControl#29",
+            "createRemoteTransferControl/createRemoteTransferControl#3",
+            "createRemoteTransferControl/createRemoteTransferControl#30",
+            "createRemoteTransferControl/createRemoteTransferControl#31",
+            "createRemoteTransferControl/createRemoteTransferControl#32",
+            "createRemoteTransferControl/createRemoteTransferControl#33",
+            "createRemoteTransferControl/createRemoteTransferControl#34",
+            "createRemoteTransferControl/createRemoteTransferControl#35",
+            "createRemoteTransferControl/createRemoteTransferControl#36",
+            "createRemoteTransferControl/createRemoteTransferControl#37",
+            "createRemoteTransferControl/createRemoteTransferControl#38",
+            "createRemoteTransferControl/createRemoteTransferControl#4",
+            "createRemoteTransferControl/createRemoteTransferControl#5",
+            "createRemoteTransferControl/createRemoteTransferControl#6",
+            "createRemoteTransferControl/createRemoteTransferControl#7",
+            "createRemoteTransferControl/createRemoteTransferControl#8",
+            "createRemoteTransferControl/createRemoteTransferControl#9",
+            "createRemoteTransferControl/requestFields/requestFields/requestFields",
+            "createRemoteTransferControl/requestFields/requestFields/requestFields#2",
+            "createRemoteTransferControl/requestFields/requestFields/requestFields#3",
+            "createRemoteTransferControl/requestFields/requestFields/requestFields#4",
+            "remoteTransferControl"
+          ],
+          "exports": [
+            "remoteTransferControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "export function remoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "export function remoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "export function remoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "export function remoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/remote-transfer-control.mts",
+                "anchor": "function createRemoteTransferControl(moon: CommonTransferBindings)"
+              },
+              {
+                "path": "adapters/host-common/remote-transfer-control.test.mts",
+                "anchor": "test('direct Transfer commits only after durable stop and integrity"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "remoteTransferControl"
+      ],
+      "operations": [
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl#2",
+          "parameters": [
+            "cid",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl/createRemoteTransferControl#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#10",
+          "parameters": [
+            "body",
+            "request",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#11",
+          "parameters": [
+            "request",
+            "useId",
+            "kind",
+            "complete"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#12",
+          "parameters": [
+            "body",
+            "request",
+            "useId",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#13",
+          "parameters": [
+            "request",
+            "useId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#14",
+          "parameters": [
+            "body",
+            "request",
+            "useId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#15",
+          "parameters": [
+            "request",
+            "materialGeneration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#16",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#17",
+          "parameters": [
+            "body",
+            "request",
+            "claimedReceiptCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#18",
+          "parameters": [
+            "request",
+            "useId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#19",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#20",
+          "parameters": [
+            "record",
+            "confirmedChunks",
+            "confirmedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#21",
+          "parameters": [
+            "record",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#22",
+          "parameters": [
+            "record",
+            "readerStopped"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#23",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#24",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#25",
+          "parameters": [
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#26",
+          "parameters": [
+            "transition",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#27",
+          "parameters": [
+            "storeUse",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#28",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#29",
+          "parameters": [
+            "request",
+            "trustedNowMilliseconds"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#30",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#31",
+          "parameters": [
+            "value",
+            "integrityVerified",
+            "objectSealed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#32",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#33",
+          "parameters": [
+            "value",
+            "cancelled",
+            "sourceAccessStopped"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#34",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#35",
+          "parameters": [
+            "value",
+            "sourceAccessStopped",
+            "destinationTemporaryReclaimed",
+            "objectUseReleased"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#36",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#37",
+          "parameters": [
+            "value",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#38",
+          "parameters": [
+            "request",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#4",
+          "parameters": [
+            "body",
+            "manifestBody",
+            "claimedRequestCid",
+            "claimedManifestCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#6",
+          "parameters": [
+            "body",
+            "claimedRequestCid",
+            "claimedManifestCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#8",
+          "parameters": [
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/createRemoteTransferControl#9",
+          "parameters": [
+            "request",
+            "kind",
+            "nextChunk",
+            "sealed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/requestFields/requestFields/requestFields",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/requestFields/requestFields/requestFields#2",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/requestFields/requestFields/requestFields#3",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRemoteTransferControl/requestFields/requestFields/requestFields#4",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteTransferControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "6d1ddb30e762058998afab9194ac9144905fb9181f2fddd587223f6332d9f92f"
+    },
+    {
       "module": "adapters/host-common/remote-bundle-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -1108,8 +1614,8 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/host-common/remote-transfer-control.test.mjs",
-                "anchor": "const [expected, next] = control.transitionProjection(completion);"
+                "path": "adapters/host-common/remote-transfer-control.test.mts",
+                "anchor": "const [expected, next] = control.transitionProjection(completion)!;"
               }
             ]
           }
@@ -3559,52 +4065,6 @@
             "remoteSiteControl/remoteSiteControl#97",
             "remoteSiteControl/remoteSiteControl#98",
             "remoteSiteControl/remoteSiteControl#99",
-            "remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl#10",
-            "remoteTransferControl/remoteTransferControl#11",
-            "remoteTransferControl/remoteTransferControl#12",
-            "remoteTransferControl/remoteTransferControl#13",
-            "remoteTransferControl/remoteTransferControl#14",
-            "remoteTransferControl/remoteTransferControl#15",
-            "remoteTransferControl/remoteTransferControl#16",
-            "remoteTransferControl/remoteTransferControl#17",
-            "remoteTransferControl/remoteTransferControl#18",
-            "remoteTransferControl/remoteTransferControl#19",
-            "remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl#20",
-            "remoteTransferControl/remoteTransferControl#21",
-            "remoteTransferControl/remoteTransferControl#22",
-            "remoteTransferControl/remoteTransferControl#23",
-            "remoteTransferControl/remoteTransferControl#24",
-            "remoteTransferControl/remoteTransferControl#25",
-            "remoteTransferControl/remoteTransferControl#26",
-            "remoteTransferControl/remoteTransferControl#27",
-            "remoteTransferControl/remoteTransferControl#28",
-            "remoteTransferControl/remoteTransferControl#29",
-            "remoteTransferControl/remoteTransferControl#3",
-            "remoteTransferControl/remoteTransferControl#30",
-            "remoteTransferControl/remoteTransferControl#31",
-            "remoteTransferControl/remoteTransferControl#32",
-            "remoteTransferControl/remoteTransferControl#33",
-            "remoteTransferControl/remoteTransferControl#34",
-            "remoteTransferControl/remoteTransferControl#35",
-            "remoteTransferControl/remoteTransferControl#36",
-            "remoteTransferControl/remoteTransferControl#37",
-            "remoteTransferControl/remoteTransferControl#38",
-            "remoteTransferControl/remoteTransferControl#4",
-            "remoteTransferControl/remoteTransferControl#5",
-            "remoteTransferControl/remoteTransferControl#6",
-            "remoteTransferControl/remoteTransferControl#7",
-            "remoteTransferControl/remoteTransferControl#8",
-            "remoteTransferControl/remoteTransferControl#9",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
-            "remoteTransferControl/requestFields/requestFields/requestFields",
-            "remoteTransferControl/requestFields/requestFields/requestFields#2",
-            "remoteTransferControl/requestFields/requestFields/requestFields#3",
-            "remoteTransferControl/requestFields/requestFields/requestFields#4",
             "runtimeCore",
             "runtimeCore/init:resultInventory/init:resultInventory",
             "runtimeCore/init:resultInventory/init:resultInventory/init:resultInventory",
@@ -19383,371 +19843,6 @@
           "async": false
         },
         {
-          "name": "remoteTransferControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-          "parameters": [
-            "cid",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#10",
-          "parameters": [
-            "body",
-            "request",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#11",
-          "parameters": [
-            "request",
-            "useId",
-            "kind",
-            "complete"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#12",
-          "parameters": [
-            "body",
-            "request",
-            "useId",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#13",
-          "parameters": [
-            "request",
-            "useId"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#14",
-          "parameters": [
-            "body",
-            "request",
-            "useId"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#15",
-          "parameters": [
-            "request",
-            "materialGeneration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#16",
-          "parameters": [
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#17",
-          "parameters": [
-            "body",
-            "request",
-            "claimedReceiptCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#18",
-          "parameters": [
-            "request",
-            "useId"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#19",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#20",
-          "parameters": [
-            "record",
-            "confirmedChunks",
-            "confirmedBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#21",
-          "parameters": [
-            "record",
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#22",
-          "parameters": [
-            "record",
-            "readerStopped"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#23",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#24",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#25",
-          "parameters": [
-            "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#26",
-          "parameters": [
-            "transition",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#27",
-          "parameters": [
-            "storeUse",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#28",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#29",
-          "parameters": [
-            "request",
-            "trustedNowMilliseconds"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#30",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#31",
-          "parameters": [
-            "value",
-            "integrityVerified",
-            "objectSealed"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#32",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#33",
-          "parameters": [
-            "value",
-            "cancelled",
-            "sourceAccessStopped"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#34",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#35",
-          "parameters": [
-            "value",
-            "sourceAccessStopped",
-            "destinationTemporaryReclaimed",
-            "objectUseReleased"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#36",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#37",
-          "parameters": [
-            "value",
-            "durable"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#38",
-          "parameters": [
-            "request",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#4",
-          "parameters": [
-            "body",
-            "manifestBody",
-            "claimedRequestCid",
-            "claimedManifestCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#6",
-          "parameters": [
-            "body",
-            "claimedRequestCid",
-            "claimedManifestCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#7",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#8",
-          "parameters": [
-            "body",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/remoteTransferControl#9",
-          "parameters": [
-            "request",
-            "kind",
-            "nextChunk",
-            "sealed"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/requestFields/requestFields/requestFields",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/requestFields/requestFields/requestFields#2",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/requestFields/requestFields/requestFields#3",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteTransferControl/requestFields/requestFields/requestFields#4",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore",
           "parameters": [
             "moon"
@@ -19984,6 +20079,7 @@
         "./remote-bundle-control.mjs",
         "./remote-credential-control.mjs",
         "./remote-standard-source-control.mjs",
+        "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs",
         "./runtime-tuple.mjs",
@@ -19991,7 +20087,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "50fdfdb49a868b900deb017876d24eaa0a98a913dddc736d34a38c5fe3a1273d"
+      "sha256": "0fbaa78f773b0ca0ec554191321af56c4d4c2849cb05a1dd7e6eb7579831851b"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
