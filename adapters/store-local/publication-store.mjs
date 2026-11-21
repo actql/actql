@@ -32,8 +32,6 @@ import {
 } from 'node:crypto';
 import {resolve} from 'node:path';
 import {Buffer as OriginalBuffer} from 'node:buffer';
-import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
-  from '../host-node/host-journal-directory.mjs';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
@@ -43,8 +41,9 @@ import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
-import {fail, localDurability, PublicationStoreError, quantity, readBounded,
+import {exactKeys, fail, localDurability, PublicationStoreError, quantity, readBounded,
   retainStoreOpeningFailure, syncDirectoryPath, writeExclusive} from './publication-store-io.mjs';
+import {processIsAlive, removeOpeningTree, storeBootstrapAcquisition} from './publication-store-bootstrap.mjs';
 
 export {PublicationStoreError};
 
@@ -112,10 +111,6 @@ const cidHex = value => {
   if (!match) fail('InvalidPublicationObjectCid');
   return match[1];
 };
-const exactKeys = (value, keys) => value !== null &&
-  typeof value === 'object' && !Array.isArray(value) &&
-  Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-
 // Keep this comparison workspace synchronous and dedicated: a short wire
 // must not borrow an unrelated Buffer pool backing across the Store phase.
 // Compare encoded bytes, not decoded replacement text or normalized strings.
@@ -240,127 +235,6 @@ function retainPrivateRawCleanup(descriptor, content) {
     async retry() { await release(); return cleanup.status(); },
   });
   return cleanup;
-}
-
-async function processIsAlive(pid) {
-  if (!Number.isSafeInteger(pid) || pid < 1) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    if (error?.code === 'ESRCH') return false;
-    if (error?.code === 'EPERM') return true;
-    throw error;
-  }
-}
-
-// One physical opening's acquisition controls, not a capacity Owner/grant.
-// Names and metadata are conservatively kept in this opening's raw footprint
-// until it completes: no earlier Buffer/String/Promise retirement is assumed.
-// The original Host envelope separately funds decode/tree/backing, the one
-// excess Dirent/EOF probe, FD/Dir/cleanup controls and generated Host baseline.
-function storeBootstrapAcquisition(supplied, maxMetadataBytes, directoryInspection) {
-  if (!exactKeys(supplied, ['maxWireBytes', 'maxDirectoryEntries']) ||
-      !quantity(supplied.maxWireBytes) || supplied.maxWireBytes === 0 ||
-      !quantity(supplied.maxDirectoryEntries)) {
-    fail('InvalidPublicationStoreBootstrapBounds');
-  }
-  // Capture before I/O. A mutated argument never widens this opening.
-  const {maxWireBytes, maxDirectoryEntries} = supplied;
-  if (directoryInspection !== undefined) {
-    assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);
-  }
-  let entries = 0, rawBytes = 0;
-  const readMetadata = async path => {
-    const bytes = await readBounded(path,
-      Math.min(maxMetadataBytes, maxWireBytes - rawBytes));
-    rawBytes += bytes.byteLength;
-    return bytes;
-  };
-  const readDirectory = async path => {
-    if (directoryInspection !== undefined) {
-      // The same Root owns this nominal native view and its cumulative scan
-      // allowance before acquisition. A whole scan's retained names/backing
-      // precedes these Store processing bounds; it is not a stock Dir lease.
-      // Unknown close propagates the view's original cleanup duty unchanged.
-      const names = inspectHostJournalDirectory(directoryInspection, path, maxDirectoryEntries);
-      for (const name of names) {
-        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
-        entries++;
-        const bytes = originalApply(originalByteLength, OriginalBuffer, [name, 'utf8']);
-        if (!Number.isSafeInteger(bytes) || bytes < name.length || bytes > maxWireBytes - rawBytes) {
-          fail('PublicationStoreBootstrapWireLimit');
-        }
-        rawBytes += bytes;
-      }
-      return names;
-    }
-    const directory = await opendir(path, {encoding: 'buffer', bufferSize: 1});
-    let primary, failed = false;
-    try {
-      const names = [];
-      for (;;) {
-        const entry = await directory.read();
-        if (entry === null) break;
-        // Count every actually acquired entry, before filtering or descent.
-        // The one excess native Dirent is a separately funded refusal probe.
-        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
-        entries++;
-        if (!(entry.name instanceof Uint8Array) ||
-            entry.name.byteLength > maxWireBytes - rawBytes) {
-          fail('PublicationStoreBootstrapWireLimit');
-        }
-        rawBytes += entry.name.byteLength;
-        let name;
-        try { name = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(entry.name); }
-        catch (cause) { fail('InvalidPublicationStoreDirectoryName', cause); }
-        names.push(name);
-      }
-      return names;
-    } catch (cause) { primary = cause; failed = true; throw cause; }
-    finally {
-      try {
-        if (await directory.close() === false) fail('PublicationStoreBootstrapCleanupPending');
-      }
-      catch (closeFailure) {
-        let original = directory, flight;
-        const status = () => Object.freeze({pending: original !== undefined});
-        const cleanup = Object.freeze({status, retry() {
-          if (flight !== undefined) return flight;
-          if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(result => {
-            if (result === false) fail('PublicationStoreBootstrapCleanupPending');
-            original = undefined;
-            return status();
-          }).finally(() => { flight = undefined; });
-          return flight;
-        }});
-        const reason = failed ? primary : closeFailure;
-        const failure = reason !== null && typeof reason === 'object' &&
-          Object.isExtensible(reason) && reason.cleanupHandle === undefined
-          ? reason : new Error('PublicationStoreBootstrapCleanupPending', {cause: reason});
-        failure.cleanupHandle = cleanup;
-        failure.cleanupPending = true;
-        failure.cleanupError = closeFailure;
-        throw failure;
-      }
-    }
-  };
-  return Object.freeze({readMetadata, readDirectory});
-}
-
-// Use the same cumulative opening scan for old temporary trees too. Native
-// recursive rm would acquire their entries behind the physical clamp. This
-// retains existing cleanup semantics; it creates no new cleanup authority.
-async function removeOpeningTree(path, bootstrap) {
-  if (bootstrap === undefined) return rm(path, {recursive: true, force: false});
-  const state = await lstat(path);
-  if (state.isDirectory() && !state.isSymbolicLink()) {
-    for (const name of await bootstrap.readDirectory(path)) {
-      await removeOpeningTree(resolve(path, name), bootstrap);
-    }
-    await rmdir(path);
-  } else await unlink(path);
 }
 
 async function acquireStoreOwnership(root, bootstrap, key, fresh = false, directoryInspection) {

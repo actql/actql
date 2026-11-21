@@ -28,6 +28,7 @@ import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
+import {exactKeys} from './publication-store-io.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore,
@@ -939,7 +940,7 @@ test('Effectful commit inspection consumes only its original private Index obser
   // Execute the real inspector's pre-I/O admission prefix and its actual
   // helpers. This is not complete Effect evidence or physical commit coverage.
   const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-  const wanted = new Set(['exactKeys', 'admitContract', 'parseContract', 'inspectEffectfulStoredEvidence']);
+  const wanted = new Set(['admitContract', 'parseContract', 'inspectEffectfulStoredEvidence']);
   const declarations = new Map();
   function visit(node) {
     if (!node || typeof node !== 'object') return;
@@ -959,7 +960,7 @@ test('Effectful commit inspection consumes only its original private Index obser
   const boundary = inspector.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'request'));
   assert(boundary);
-  const helpers = ['exactKeys','admitContract','parseContract'].map(name => {
+  const helpers = ['admitContract','parseContract'].map(name => {
     const node = declarations.get(name).node; return text.slice(node.start,node.end);
   }).join('\n');
   let admissions = 0, active = 0;
@@ -969,10 +970,10 @@ test('Effectful commit inspection consumes only its original private Index obser
       .map(name=>[name,()=>assert.fail('No semantic or physical callback in the admission prefix')]))};
   const prefix = compileFunction(helpers + '\nreturn (' + text.slice(inspector.start,inspector.body.start+1) +
     text.slice(inspector.body.start+1,boundary.start) + '\nreturn {contract:admittedIndex,entry};});',
-    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal','cidPattern'])(
+    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal','cidPattern','exactKeys'])(
     {maxObjectBytes:limits.maxWireBytes}, control, limits,
     code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
-    ()=>assert.fail('No physical read in the admission prefix'), /^sha256:[a-f0-9]{64}$/u);
+    ()=>assert.fail('No physical read in the admission prefix'), /^sha256:[a-f0-9]{64}$/u, exactKeys);
   const invocationValue = invocation();
   const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
   const attempt = publicationAttempt(request);

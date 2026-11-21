@@ -1497,3 +1497,5 @@ target/
 /adapters/host-node/host-journal-writer-exclusion.test.d.mts
 /adapters/store-local/publication-store-io.mjs
 /adapters/store-local/publication-store-io.d.mts
+/adapters/store-local/publication-store-bootstrap.mjs
+/adapters/store-local/publication-store-bootstrap.d.mts

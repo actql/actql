@@ -22,6 +22,11 @@ export const fail: (code: string, cause?: unknown) => never = (code, cause) => {
 };
 export const quantity = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 
+export const exactKeys = <Key extends string>(value: unknown, keys: readonly Key[]):
+  value is Record<Key, unknown> => value !== null &&
+  typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+
 export async function readBounded(path: Parameters<typeof open>[0], maximum: unknown,
   closed?: () => void, signal?: AbortSignal, ownerOnly = false, readDemand?: (size: number) => undefined) {
   if (!quantity(maximum)) {

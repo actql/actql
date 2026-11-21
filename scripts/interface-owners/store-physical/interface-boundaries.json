@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3d4a9f5ad365837b5186f86bd1f437f23d60bd2b507e5a4c0bae61e8be6335c6",
+      "sha256": "e4391e14e57a6fba944f7a0a4bbacefeb80dcd73b344244233cbb73144173ec5",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9343,47 +9343,6 @@
           "name": "retainPrivateWriterCleanup/release/release/release#3",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storeBootstrapAcquisition/readMetadata/readMetadata",
-          "parameters": [
-            "path"
-          ],
-          "async": true
         }
       ],
       "role": "physical-io",
@@ -10093,14 +10052,7 @@
             "retainPrivateWriterCleanup/release/release",
             "retainPrivateWriterCleanup/release/release/release",
             "retainPrivateWriterCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/release/release/release#3",
-            "storeBootstrapAcquisition/readDirectory/readDirectory",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
-            "storeBootstrapAcquisition/readMetadata/readMetadata"
+            "retainPrivateWriterCleanup/release/release/release#3"
           ],
           "exports": [
             "PublicationStoreError",
@@ -11944,7 +11896,7 @@
                 "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
                 "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
               },
               {
@@ -13833,7 +13785,6 @@
       ],
       "imports": [
         "../host-common/managed-failure.mjs",
-        "../host-node/host-journal-directory.mjs",
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
@@ -13842,6 +13793,7 @@
         "./prepared-holder-owner.mjs",
         "./publication-commit-owner.mjs",
         "./publication-owner-lease.mjs",
+        "./publication-store-bootstrap.mjs",
         "./publication-store-io.mjs",
         "./result-deletion-owner.mjs",
         "node:buffer",
@@ -13857,9 +13809,10 @@
     {
       "module": "adapters/store-local/publication-store-io.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7e13fbb977b7d3a4484cc1467bd9468808cdaec7101f8e866dbaab8c404bac9",
+      "sha256": "67da399622de5eeb8880d57fda928d2af0890471e11a0a79cd9d529ea8896bec",
       "exports": [
         "PublicationStoreError",
+        "exactKeys",
         "fail",
         "localDurability",
         "quantity",
@@ -13869,6 +13822,14 @@
         "writeExclusive"
       ],
       "operations": [
+        {
+          "name": "exactKeys/exactKeys",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -14023,6 +13984,7 @@
         {
           "operations": [
             "<module>",
+            "exactKeys/exactKeys",
             "fail/fail",
             "PublicationStoreError/constructor:constructor/constructor:constructor",
             "quantity/quantity",
@@ -14049,6 +14011,7 @@
           ],
           "exports": [
             "PublicationStoreError",
+            "exactKeys",
             "fail",
             "localDurability",
             "quantity",
@@ -14156,6 +14119,180 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Existing Store metadata I/O, original durability and same-owner opening cleanup. No new Store, release authority or installed acceptance."
+    },
+    {
+      "module": "adapters/store-local/publication-store-bootstrap.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "115b57eb6cab469380e2bbb57f18b90cfcece27d6ce6c37b3939c3ed31d835d2",
+      "exports": [
+        "processIsAlive",
+        "removeOpeningTree",
+        "storeBootstrapAcquisition"
+      ],
+      "operations": [
+        {
+          "name": "processIsAlive",
+          "parameters": [
+            "pid"
+          ],
+          "async": true
+        },
+        {
+          "name": "removeOpeningTree",
+          "parameters": [
+            "path",
+            "bootstrap"
+          ],
+          "async": true
+        },
+        {
+          "name": "storeBootstrapAcquisition",
+          "parameters": [
+            "supplied",
+            "maxMetadataBytes",
+            "directoryInspection"
+          ],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storeBootstrapAcquisition/readMetadata/readMetadata",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "processIsAlive",
+            "removeOpeningTree",
+            "storeBootstrapAcquisition",
+            "storeBootstrapAcquisition/readDirectory/readDirectory",
+            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
+            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
+            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
+            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
+            "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
+            "storeBootstrapAcquisition/readMetadata/readMetadata"
+          ],
+          "exports": [
+            "processIsAlive",
+            "removeOpeningTree",
+            "storeBootstrapAcquisition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "return Object.freeze({readMetadata, readDirectory});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "let original: DirectoryBufferView | undefined = directory,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "const reason = failed ? primary : closeFailure;"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Opening has no independent cancellation signal; every acquired descriptor and failed close stays with its own Store opener."
+            },
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-bootstrap.mts",
+                "anchor": "if (entries === maxDirectoryEntries) fail("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/bootstrap-acquisition.test.mjs",
+                "anchor": "Store bootstrap nested scans share the cumulative ceiling"
+              },
+              {
+                "path": "adapters/store-local/bootstrap-acquisition.test.mjs",
+                "anchor": "Store bootstrap false Dir close is pending"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-node/host-journal-directory.mjs",
+        "./publication-store-io.mjs",
+        "node:buffer",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing opening scan bounds, native directory correspondence and same-Dir cleanup only. No new Store or installed acceptance."
     },
     {
       "module": "adapters/store-local/representations.mjs",
