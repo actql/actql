@@ -171,7 +171,9 @@ fn append_set_final_steps(
   left_fields : Array[String],
   steps : Array[@builder.Node],
   prefix : String,
+  column_profiles? : Array[ResultColumn]? = None,
 ) -> String raise Abort {
+  let mut profiles = column_profiles
   let mut current = input
   let order_windows : Array[(String, String)] = []
   for index in 0..<@query.final_operation_count(query) {
@@ -213,19 +215,53 @@ fn append_set_final_steps(
         }
         let derives : Array[(String, @builder.Node)] = []
         let evaluated : Array[(@query.Expression, String)] = []
+        // Keep the physical labels aligned with profiles. The resolver reads
+        // each original optional SQL name without relabelling its value slot.
         let visible = left_fields.map(field => (field, field))
+        let input_profiles = profiles
+        let resolve = path => {
+          profiled_pipe_slot(path, visible, [], input_profiles)
+        }
+        let namespace_check : ((@query.Expression) -> NamespaceView? raise Abort)? = input_profiles.map(_ => {
+            expression => {
+              resolved_namespace_before_reuse(
+                expression,
+                resolve,
+                [],
+                input_profiles,
+                limits.max_expression_work,
+              )
+            }
+          },
+        )
+        let namespace_columns : Array[(String, NamespaceView)]? = input_profiles.map(_ => {
+            []
+          },
+        )
         let bodies = groups.map(group => {
           lower_analytic(
             construction,
             group,
-            path => pipe_slot(path, visible, []),
+            resolve,
             limits.max_expression_work,
             limits.max_collection_bytes,
             reserved,
             evaluated,
             derives,
+            namespace_check~,
+            namespace_columns~,
           )
         })
+        if namespace_columns is Some(columns) {
+          for (slot, view) in columns {
+            profiles = retain_column_view(
+              profiles,
+              { value: slot, quoted: true, },
+              slot,
+              Some(view),
+            )
+          }
+        }
         if !derives.is_empty() {
           let derived = prefix + "aql_set_window_input_" + index.to_string()
           steps.push(
@@ -270,9 +306,17 @@ fn append_set_final_steps(
         let visible = order_windows +
           left_fields
           .filter(field => {
-            !order_windows.any(window => {
-              ascii_upper(window.0) == ascii_upper(field)
-            })
+            match result_column_profile(profiles, field, field) {
+              Some({ name: None, .. }) => false
+              Some({ name: Some(name), .. }) =>
+                !order_windows.any(window => {
+                  ascii_upper(window.0) == ascii_upper(name.value)
+                })
+              None =>
+                !order_windows.any(window => {
+                  ascii_upper(window.0) == ascii_upper(field)
+                })
+            }
           })
           .map(field => (field, field))
         for term in terms {
@@ -288,7 +332,7 @@ fn append_set_final_steps(
             ordinal
           } else {
             match root.kind {
-              Reference(path) => pipe_slot(path, visible, [])
+              Reference(path) => profiled_pipe_slot(path, visible, [], profiles)
               _ => None
             }
           }
@@ -314,6 +358,7 @@ fn append_set_final_steps(
                     visible,
                     [],
                     limits.max_expression_work,
+                    column_profiles=profiles,
                   )
                   derives.push((field, value))
                   hidden.push((term.expression, field))

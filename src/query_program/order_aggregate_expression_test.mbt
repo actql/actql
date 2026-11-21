@@ -222,6 +222,10 @@ test "ORDER aggregate expression keeps implicit star inputs distinct from privat
       context,
       construction_limits(),
     ).unwrap()
-    assert_eq(semantic(program), semantic(expected), msg=source)
+    assert_eq(
+      semantic(program),
+      semantic(expected),
+      msg=source + ": " + semantic(program),
+    )
   }
 }

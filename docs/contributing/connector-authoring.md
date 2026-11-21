@@ -126,6 +126,8 @@ npm pack /absolute/acme-package --pack-destination /absolute/artifacts
 
 `init` needs no runtime library. `build` and `test` require the author's
 explicitly installed `@actql/local-node/connector-authoring` public entry.
+The generated connector pins the exact version of the package that supplies
+that entry. Freshness checks also compare this peer version.
 Its bounded, nonsecret JSON validation executes the package's same shipped
 pure Common codec; it creates no Host, session, Source, secret resolver or
 I/O authority. Missing exports or an older Common refuse with

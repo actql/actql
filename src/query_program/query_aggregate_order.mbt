@@ -82,10 +82,14 @@ fn aggregate_order_fields(
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
   max_work : Int,
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
 ) -> Array[String] raise Abort {
   let fields : Array[String] = []
   for term in call.order_by {
     let expression = term.expression
+    if namespace_check is Some(check) {
+      ignore(check(expression))
+    }
     let mut root = @query.expression_node(
       expression,
       @query.expression_root(expression),

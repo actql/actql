@@ -162,16 +162,32 @@ test "Pipe PIVOT accepts duplicate and NULL rows from a parenthesized UNION ALL"
 
 ///|
 test "anonymous positional set fields do not supply public or BY NAME aliases" {
-  for source in ["SELECT 1 AS id UNION ALL BY NAME SELECT 2", "SELECT 2"] {
-    assert_true(
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        values_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT 1 AS id UNION ALL BY NAME SELECT 2",
+        syntax_limits(),
+      ).unwrap(),
+      values_context(),
+      construction_limits(),
     )
+    is Err(UnsupportedProjection),
+  )
+}
+
+///|
+test "standalone unnamed SELECT retains its value without supplying a BY NAME alias" {
+  let program = compile(
+    @query.parse_query("SELECT 2", syntax_limits()).unwrap(),
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(anonymous_result_fields(program), ["f0_"])
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the original scalar SELECT control is closed")
   }
 }
 

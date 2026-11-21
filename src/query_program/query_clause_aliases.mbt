@@ -18,6 +18,8 @@ fn materialize_clause_aliases(
   slot_prefix : String,
   reject_window_aliases : Bool,
   aggregate_outputs? : Array[(String, String)] = [],
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
+  namespace_columns? : Array[(String, NamespaceView)]? = None,
 ) -> Array[(@query.NamePart, String)] raise Abort {
   let aliases : Array[(@query.NamePart, String)] = []
   for projection in projections {
@@ -87,6 +89,7 @@ fn materialize_clause_aliases(
       continue
     }
     let expression = projection.expression.unwrap()
+    let name_view = namespace_check.bind(check => check(expression))
     let cached = qualify_cached_slot(expression, cached_values + qualify_values)
     let direct = match
       @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
@@ -107,6 +110,9 @@ fn materialize_clause_aliases(
         active_fields.push(slot)
         slot
       }
+    }
+    if namespace_columns is Some(columns) && name_view is Some(view) {
+      columns.push((slot, view))
     }
     aliases.push((name, slot))
   }

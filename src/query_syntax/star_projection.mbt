@@ -5,6 +5,8 @@ pub fn star_column_projection(
   query : Query,
   projection : Projection,
   column : String,
+  object_field? : Bool = false,
+  anonymous? : Bool = false,
 ) -> Projection {
   let name : NamePart = { value: column, quoted: true, }
   for value in projection.replacements {
@@ -21,14 +23,21 @@ pub fn star_column_projection(
     }
   }
   if projection.expression is Some(receiver) &&
-    !(receiver.nodes[receiver.root].kind is Reference(_)) {
+    (object_field || !(receiver.nodes[receiver.root].kind is Reference(_))) {
     let nodes = receiver.nodes.copy()
     nodes.push({ kind: Property(receiver.root, name), start: 0, end: 0, })
+    if anonymous {
+      nodes.push({ kind: Parenthesized(nodes.length() - 1), start: 0, end: 0, })
+    }
     return {
       expression: Some({ ..receiver, nodes, root: nodes.length() - 1, }),
       aggregate: None,
       analytic: None,
-      name: Some(name),
+      name: if anonymous {
+        None
+      } else {
+        Some(name)
+      },
       star: None,
       except_columns: [],
       replacements: [],
