@@ -32,7 +32,7 @@ export const focusedFixtureObjects = Object.freeze({
   'src/query_integration/pinned_engine_contracts_wbtest.mbt': '27e525b45fc98f161dc47263cd1dacd7ffa73355',
   'src/query_integration/query_capture_wbtest.mbt': '4075ab85106806651f9f625575506310d1ce0586',
   'src/query_integration/query_catalog_fixture_wbtest.mbt': 'cbbc97ea6f6bbb4ae75b98a2ac16f153b9fb0655',
-  'src/query_integration/query_evidence_bodies_wbtest.mbt': '1636d8352dc037b9d433b2e4a6e063ce9a71e3f0',
+  'src/query_integration/query_evidence_bodies_wbtest.mbt': 'bbf3f36d6aec372b3df536a5233d839f08bdc81f',
   'src/query_integration/query_guards_wbtest.mbt': '6043c24abc394d9eccd159415a1c736f942fcb3d',
   'src/query_integration/query_issuer_wbtest.mbt': '06f7dad70324dd01879c13f9ff234ec56eb0fec5',
   'src/query_integration/query_material_wbtest.mbt': '06b9f70be63a31efcaf50a1c80303c155cd62a85',
