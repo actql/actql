@@ -929,3 +929,11 @@ target/
 /scripts/layout-measurement-support.test.d.mts
 /scripts/native-mock-campaign.mjs
 /scripts/native-mock-campaign.d.mts
+/scripts/layout-statistics.mjs
+/scripts/layout-statistics.d.mts
+/scripts/layout-statistics.test.mjs
+/scripts/layout-statistics.test.d.mts
+/scripts/revision-regression-support.mjs
+/scripts/revision-regression-support.d.mts
+/scripts/revision-regression-support.test.mjs
+/scripts/revision-regression-support.test.d.mts

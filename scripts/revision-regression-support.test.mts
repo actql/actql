@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { regressionMetric, revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
 
-const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
+// Preserve the existing JSON reader and its runtime Buffer coercion.
+const manifest = JSON.parse(
+  readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)) as unknown as string,
+) as Parameters<typeof revisionCells>[0];
 test('bounded diagnosis fixes four workloads, two modes and native/JS at seven pairs', () => {
   const cells = diagnosticRevisionCells(manifest);
   assert.equal(cells.length, 16);

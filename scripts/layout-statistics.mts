@@ -9,13 +9,13 @@ export const bootstrapMethod = Object.freeze({
   directionThreshold: 'ceil(6*n/7) paired samples',
 });
 
-function median(values) {
+function median(values: readonly number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : sorted[middle - 1] / 2 + sorted[middle] / 2;
 }
 
-export function pairedSummary(baseline, candidate) {
+export function pairedSummary(baseline: readonly number[], candidate: readonly number[]) {
   if (!Array.isArray(baseline) || !Array.isArray(candidate) ||
       baseline.length !== candidate.length || baseline.length < bootstrapMethod.minimumPairs ||
       [...baseline, ...candidate].some(n => !Number.isFinite(n) || n <= 0)) {

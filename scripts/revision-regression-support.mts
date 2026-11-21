@@ -2,6 +2,10 @@
 import { legacySchedule, additionalSchedule } from './layout-measurement-support.mjs';
 import { pairedSummary } from './layout-statistics.mjs';
 
+type MetricDecision = {decision: string};
+type CellDecision = {metrics: readonly MetricDecision[]; screening?: readonly MetricDecision[]};
+type LayoutManifest = Parameters<typeof additionalSchedule>[0];
+
 export const regressionPolicy = Object.freeze({
   initialPairs: 7,
   maximumPairs: 21,
@@ -9,11 +13,11 @@ export const regressionPolicy = Object.freeze({
   rssRatio: 1.10,
 });
 
-export function revisionMustStop(metrics) {
+export function revisionMustStop(metrics: readonly MetricDecision[]) {
   return metrics.some(m => m.decision === 'inconclusive');
 }
 
-export function revisionGate(decisions) {
+export function revisionGate(decisions: readonly CellDecision[]) {
   if (!decisions.length) throw new Error('No completed cells');
   const observations = decisions.flatMap(d => [...(d.screening ?? []), ...d.metrics]);
   if (observations.some(m => m.decision === 'regression')) return 'regression';
@@ -21,12 +25,12 @@ export function revisionGate(decisions) {
   return 'within_tolerance';
 }
 
-export function revisionCells(manifest) {
+export function revisionCells(manifest: LayoutManifest) {
   if (manifest.sampling.measured_repetitions !== regressionPolicy.initialPairs) {
     throw new Error('Historical inventory must retain seven-pair sampling');
   }
   return ['native', 'js', 'wasm'].flatMap(target =>
-    [['legacy', legacySchedule], ['additional', additionalSchedule]].flatMap(([family, schedule]) =>
+    ([['legacy', legacySchedule], ['additional', additionalSchedule]] as const).flatMap(([family, schedule]) =>
       schedule(manifest, target, false)
         .filter(s => s.candidate === 'A' && s.repeat === 0)
         .flatMap(s => ['e2e', 'prepared'].map(mode => ({
@@ -46,13 +50,13 @@ export function supplementalRevisionCells() {
 }
 
 // Fixed diagnostic subset, not a replacement for the full admission gate.
-export function diagnosticRevisionCells(manifest) {
+export function diagnosticRevisionCells(manifest: LayoutManifest) {
   return [...revisionCells(manifest), ...supplementalRevisionCells()].filter(c =>
     c.target !== 'wasm' && (c.family === 'supplemental' ||
       (c.family === 'additional' && c.case_index === 0)));
 }
 
-export function revisionPairs(cell, from = 0, until = regressionPolicy.initialPairs) {
+export function revisionPairs<Cell extends object>(cell: Cell, from = 0, until: number = regressionPolicy.initialPairs) {
   if (!Number.isInteger(from) || !Number.isInteger(until) || from < 0 ||
       until <= from || until > regressionPolicy.maximumPairs) {
     throw new Error('Invalid fixed pair range');
@@ -64,11 +68,11 @@ export function revisionPairs(cell, from = 0, until = regressionPolicy.initialPa
   }).flat();
 }
 
-export function regressionMetric(baseline, candidate, metric) {
+export function regressionMetric(baseline: readonly number[], candidate: readonly number[], metric: string) {
   const threshold = metric === 'time' ? regressionPolicy.timeRatio
     : metric === 'rss' ? regressionPolicy.rssRatio : null;
   if (threshold === null) throw new Error('Unknown regression metric');
-  if (![regressionPolicy.initialPairs, regressionPolicy.maximumPairs].includes(baseline.length)) {
+  if (!([regressionPolicy.initialPairs, regressionPolicy.maximumPairs] as readonly number[]).includes(baseline.length)) {
     throw new Error('A decision requires exactly seven or twenty-one pairs');
   }
   const stats = pairedSummary(baseline, candidate);
