@@ -151,38 +151,27 @@ pub fn NativeClientMockModelWork::claim_start_in_original_read(
     self.closed {
     return Err(ForeignOriginal)
   }
-  let result = self.capture.with_current_adoption_material_in_original_read((
-    host,
-    material,
-    operations,
-  ) => {
-    let current = () => {
-      !self.closing &&
-      !self.closed &&
-      self.capture.operation_scope(host, material, self.principal, connection)
-      is Ok(scope) &&
-      scope == @host.client_request_authority_scope_cid(self.request) &&
-      self.capture.operation_account(host, material, {
-        principal: self.principal,
-        connection,
-        resource: "run",
-        operation: "submit",
-      })
-      is Ok(@authorization.Allow(_))
-    }
-    let token = match
-      claim_native_client_retained_work_first_start_with_operations(
-        host.journal,
-        self.request,
-        current,
-        operations=Some(operations),
-      ) {
-      Ok(value) => value
-      Err(issue) => return Ok(Err(NativeClientMockModelIssue::Start(issue)))
-    }
-    self.first_start = Some(token)
-    Ok(Ok(()))
-  })
+  let result = self.capture.with_local_effect_start_authority(
+    self.request,
+    self.principal,
+    connection,
+    () => !self.closing && !self.closed,
+    None,
+    (journal, operations, current) => {
+      let token = match
+        claim_native_client_retained_work_first_start_with_operations(
+          journal,
+          self.request,
+          current,
+          operations=Some(operations),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Ok(Err(NativeClientMockModelIssue::Start(issue)))
+      }
+      self.first_start = Some(token)
+      Ok(Ok(()))
+    },
+  )
   match result {
     Ok(value) => value
     Err(issue) => Err(Original(issue))
@@ -201,48 +190,25 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
   guard self.first_start is Some(first) && !self.closing && !self.closed else {
     return Err(ForeignOriginal)
   }
-  let result = self.capture.with_current_adoption_material_in_original_read((
-    host,
-    material,
-    operations,
-  ) => {
-    let current = () => {
-      !self.closing &&
-      !self.closed &&
-      self.capture.operation_scope(
-        host,
-        material,
-        self.principal,
-        control_connection,
+  let result = self.capture.with_local_effect_start_authority(
+    self.request,
+    self.principal,
+    control_connection,
+    () => !self.closing && !self.closed,
+    Some((source_connection, resource)),
+    (journal, operations, current) => {
+      Ok(
+        first
+        .require_current(
+          journal,
+          self.request,
+          current,
+          reads=Some(operations.reads),
+        )
+        .map_err(issue => NativeClientMockModelIssue::Start(issue)),
       )
-      is Ok(scope) &&
-      scope == @host.client_request_authority_scope_cid(self.request) &&
-      self.capture.operation_account(host, material, {
-        principal: self.principal,
-        connection: control_connection,
-        resource: "run",
-        operation: "submit",
-      })
-      is Ok(@authorization.Allow(_)) &&
-      self.capture.operation_account(host, material, {
-        principal: self.principal,
-        connection: source_connection,
-        resource,
-        operation: "read",
-      })
-      is Ok(@authorization.Allow(_))
-    }
-    Ok(
-      first
-      .require_current(
-        host.journal,
-        self.request,
-        current,
-        reads=Some(operations.reads),
-      )
-      .map_err(issue => NativeClientMockModelIssue::Start(issue)),
-    )
-  })
+    },
+  )
   match result {
     Ok(value) => value
     Err(issue) => Err(Original(issue))
