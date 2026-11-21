@@ -28283,27 +28283,16 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openClientRequestJournal/ensureOpen/ensureOpen",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/insertExplanationOriginal/insertExplanationOriginal",
+          "parameters": [
+            "ref",
+            "original"
+          ],
           "async": false
         },
         {
@@ -28935,6 +28924,13 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/readExplanationOriginal/readExplanationOriginal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection",
           "parameters": [
             "ref",
@@ -28961,9 +28957,6 @@
         {
           "operations": [
             "openClientRequestJournal",
-            "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
-            "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
-            "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
             "openClientRequestJournal/ensureOpen/ensureOpen",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
@@ -29154,8 +29147,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -29224,11 +29217,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -29360,8 +29353,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -29430,7 +29423,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -29446,7 +29439,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -29626,7 +29619,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
@@ -30491,8 +30484,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -30557,11 +30550,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -30689,8 +30682,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -30759,7 +30752,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -30775,7 +30768,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -30951,7 +30944,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
@@ -31369,7 +31362,9 @@
         },
         {
           "operations": [
-            "openClientRequestJournal/journal/init:lookupRunExplanationOriginal/init:lookupRunExplanationOriginal"
+            "openClientRequestJournal/journal/init:lookupRunExplanationOriginal/init:lookupRunExplanationOriginal",
+            "openClientRequestJournal/insertExplanationOriginal/insertExplanationOriginal",
+            "openClientRequestJournal/readExplanationOriginal/readExplanationOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -31807,7 +31802,6 @@
         "./client-source-operation.mjs",
         "./host-journal-facility-fields.cjs",
         "./local-account-config.mjs",
-        "./local-values-capacity.mjs",
         "node:crypto",
         "node:fs",
         "node:path"
@@ -33662,8 +33656,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -33740,11 +33734,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -33876,8 +33870,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -33950,7 +33944,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -33966,7 +33960,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -34146,7 +34140,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               },
               {
@@ -35073,8 +35067,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35147,11 +35141,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -35279,8 +35273,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -35349,7 +35343,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -35365,7 +35359,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -35541,7 +35535,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
@@ -35877,8 +35871,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35947,11 +35941,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -36083,8 +36077,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -36153,7 +36147,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -36169,7 +36163,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -36349,7 +36343,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
@@ -37608,6 +37602,7 @@
         "checkedIdentity",
         "checkedRunDefinition",
         "cid",
+        "createJournalRunRecords",
         "evidenceJson",
         "freezeAdmissionEvidence",
         "instant",
@@ -37714,6 +37709,91 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords",
+          "parameters": [
+            "select",
+            "selectRun",
+            "requestUsage",
+            "submissionIssued",
+            "cancellationUsage",
+            "cancellationIssued",
+            "intentSelect",
+            "insert",
+            "advanceSubmissionCustody",
+            "ensureOpen",
+            "transact",
+            "checkSubmissionBinding",
+            "refuseEpoch",
+            "retainedIntent",
+            "assertJournalSubmissionCustody",
+            "assertJournalCancellationCustody",
+            "readExplanationOriginal",
+            "insertExplanationOriginal",
+            "maxRecords",
+            "maxRunDefinitionWireBytes",
+            "updateOriginalControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/acceptRecord/acceptRecord",
+          "parameters": [
+            "identity",
+            "namespaceId",
+            "runDefinitionCid",
+            "runDefinitionWire",
+            "resultNames",
+            "runAdmissionEvidence",
+            "revision",
+            "lookupExpiresAt",
+            "submission",
+            "control",
+            "originalExplanation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/acceptRecord/acceptRecord/acceptRecord",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/lookupRecord/lookupRecord",
+          "parameters": [
+            "namespaceId",
+            "authorityScopeCid",
+            "requestId",
+            "control",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createJournalRunRecords/resolveOriginalDefinition/resolveOriginalDefinition",
+          "parameters": [
+            "identity",
+            "fields",
+            "namespaceId",
+            "requestControl",
+            "publicationControl"
           ],
           "async": false
         },
@@ -38003,7 +38083,14 @@
             "reinspectJournalRunStopAfterStatePublication/reinspectJournalRunStopAfterStatePublication",
             "retainJournalRunStateFrame",
             "sameRunStateRow/sameRunStateRow",
-            "sameRunStateRow/sameRunStateRow/sameRunStateRow"
+            "sameRunStateRow/sameRunStateRow/sameRunStateRow",
+            "createJournalRunRecords",
+            "createJournalRunRecords/acceptRecord/acceptRecord",
+            "createJournalRunRecords/acceptRecord/acceptRecord/acceptRecord",
+            "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome",
+            "createJournalRunRecords/acceptRecord/acceptRecord/outcome/outcome#2",
+            "createJournalRunRecords/lookupRecord/lookupRecord",
+            "createJournalRunRecords/resolveOriginalDefinition/resolveOriginalDefinition"
           ],
           "exports": [
             "admission",
@@ -38031,7 +38118,8 @@
             "reinspectJournalRunForSigning",
             "reinspectJournalRunStopAfterStatePublication",
             "retainJournalRunStateFrame",
-            "sameRunStateRow"
+            "sameRunStateRow",
+            "createJournalRunRecords"
           ],
           "attributes": {
             "responsibility": [
@@ -38102,6 +38190,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Shared binding observation of original intents"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "export function createJournalRunRecords({select, selectRun, requestUsage, submissionIssued, cancellationUsage,"
               }
             ],
             "inputsOutputs": [
@@ -38154,8 +38246,8 @@
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const resolveOriginalDefinition = (identity: unknown, fields: RequestFields, namespaceId: string,"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -38224,11 +38316,11 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               },
               {
@@ -38360,8 +38452,8 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -38430,7 +38522,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
@@ -38446,7 +38538,7 @@
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               },
               {
@@ -38626,7 +38718,7 @@
                 "anchor": "const intent = control.clientSubmittedIntent(wire as string, bytes, bytes, bytes);"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
@@ -38848,6 +38940,18 @@
               {
                 "path": "adapters/host-node/client-run-stop-observation.test.mjs",
                 "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.test.mjs",
+                "anchor": "admit-or-lookup skips issuance after ACK loss and rejects changed intent"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.test.mjs",
+                "anchor": "racing issuers return one atomic Run acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "associated explanation insertion failure rolls back the same first Run admission"
               }
             ]
           }
@@ -38896,8 +39000,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -38906,7 +39010,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {

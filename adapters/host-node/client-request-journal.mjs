@@ -15,14 +15,13 @@ import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
-import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {clientSourceOperationStorage} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 import {fail, applyOriginal, operationDescriptors, operationKeys, guardJournalCurrentness,
   createJournalPrimaryConnection, createJournalObservationConnection} from './client-request-journal-sql.mjs';
 import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSourceInventory, checkedIdentity, checkedRunDefinition,
-  cid, evidenceJson, freezeAdmissionEvidence, instant, logicalPlanOriginalShape, retainedEvidence,
-  retainedIdentity, retainedResultNames, retainedRunDefinition, retainedRunFacts,
+  cid, instant, logicalPlanOriginalShape, retainedIdentity, retainedRunDefinition, retainedRunFacts,
+  createJournalRunRecords,
   admitJournalRunDefinitionRow, readJournalRunDefinitionRow, retainJournalRunStateFrame, sameRunStateRow,
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
@@ -246,215 +245,12 @@ export function openClientRequestJournal(directory, options = {}, ownedOriginal)
   const insertExplanationOriginal = (ref, original) =>
     insertJournalExplanationOriginal(database, ref, original);
 
-  const acceptRecord = (identity, {namespaceId, runDefinitionCid,
-    runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt,
-    submission}, control, originalExplanation) => {
-    ensureOpen();
-    if (!control || typeof control.clientRequestAdmitRecord !== 'function' ||
-        typeof control.clientRequestRelation !== 'function') {
-      fail('InvalidClientRequestJournalControl');
-    }
-    const fields = checkedIdentity(identity, control);
-    if (!text(namespaceId) || !cid(runDefinitionCid) ||
-        runDefinitionWire !== undefined &&
-          (typeof runDefinitionWire !== 'string' ||
-            Buffer.byteLength(runDefinitionWire, 'utf8') >
-              maxRunDefinitionWireBytes) ||
-        !Number.isSafeInteger(revision) || revision < 0 ||
-        resultNames !== undefined && (!Array.isArray(resultNames) ||
-          resultNames.some(name => typeof name !== 'string' || !name) ||
-          new Set(resultNames).size !== resultNames.length ||
-          Buffer.byteLength(JSON.stringify(resultNames), 'utf8') > maxRunDefinitionWireBytes) ||
-        !instant(lookupExpiresAt) ||
-        Date.parse(lookupExpiresAt) <= Date.now()) {
-      fail('InvalidClientRequestAdmission');
-    }
-    const capturedAdmissionEvidence = evidenceJson(runAdmissionEvidence,
-      maxRunDefinitionWireBytes, updateOriginalControl);
-    const admissionEvidence = capturedAdmissionEvidence?.wire ?? null;
-    const admittedEvidence = capturedAdmissionEvidence?.value;
-    assertKeyedInventoryRequest(admittedEvidence?.sourceInventory, fields);
-    if (admittedEvidence?.valuesHostPolicyOriginal !== undefined &&
-        (typeof runDefinitionWire !== 'string' ||
-         JSON.parse(runDefinitionWire).authorization_context_cid !==
-           valuesExecutionContextCid(fields.authorityScopeCid,
-             admittedEvidence.valuesHostPolicyOriginal))) {
-      fail('InvalidClientRunAdmissionEvidence');
-    }
-    if (admittedEvidence?.modelOriginalRunWire !== undefined &&
-        capturedAdmissionEvidence.modelRunDefinitionWire !== runDefinitionWire) {
-      fail('InvalidClientRunAdmissionEvidence');
-    }
-    // Retain observed expiry even if another admission fact later conflicts
-    // and rolls its transaction back. The atomic check below still decides
-    // whether this particular Run may be inserted.
-    checkSubmissionBinding(fields, submission, control);
-    const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',
-      error => typeof error?.code === 'string' &&
-        (error.code.startsWith('ClientRequest') || error.code.startsWith('ClientSubmission')), () => {
-      const retainedCount = assertJournalSubmissionCustody(requestUsage, submissionIssued);
-      const existing = select.get(fields.authorityScopeCid,
-        fields.requestId);
-      if (existing !== undefined) {
-        // An expired identity may still identify its retained outcome. This
-        // path performs no new issuance; authenticate the original binding.
-        checkSubmissionBinding(fields, submission, control, true);
-        if (existing.namespace_id !== namespaceId) {
-          fail('ClientRequestOwnerMismatch');
-        }
-        const relation = control.clientRequestRelation(identity,
-          retainedIdentity(existing, control));
-        if (relation !== 1) {
-          fail(relation === 2 ? 'ClientRequestIntentConflict' :
-            'ClientRequestJournalCorrupt');
-        }
-        if (runDefinitionWire !== undefined &&
-            existing.run_definition_wire === null) {
-          fail('ClientRequestDefinitionMissing');
-        }
-        if (resultNames !== undefined &&
-            existing.result_names_json !== null &&
-            existing.result_names_json !== JSON.stringify(resultNames)) {
-          fail('ClientRequestResultInventoryMismatch');
-        }
-        const existingEvidence = retainedEvidence(existing, updateOriginalControl, capturedAdmissionEvidence);
-        assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
-          runAdmissionEvidence: existingEvidence}, admittedEvidence?.sourceInventory);
-        const proposedPlan = admittedEvidence?.logicalPlanOriginal;
-        if (proposedPlan !== undefined) {
-          const originalPlan = existingEvidence?.logicalPlanOriginal;
-          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
-          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
-              originalPlan.planViewWire !== proposedPlan.planViewWire) {
-            fail('ClientRequestPlanEvidenceMismatch');
-          }
-        }
-        if (originalExplanation !== undefined) {
-          const original = readExplanationOriginal({namespaceId,
-            authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
-          if (original === undefined) fail('ClientRequestExplanationEvidenceMissing');
-          if (original.factsWire !== originalExplanation.factsWire) fail('ClientRequestExplanationEvidenceMismatch');
-        }
-        const proposedInfer = admittedEvidence?.inferRunOriginal;
-        if (proposedInfer !== undefined) {
-          const original = existingEvidence?.inferRunOriginal;
-          if (original === undefined) fail('ClientRequestInferEvidenceMissing');
-          if (canonicalValueJson(original) !== canonicalValueJson(proposedInfer)) {
-            fail('ClientRequestInferEvidenceMismatch');
-          }
-        }
-        return Object.freeze({inserted: false, ...admission(existing),
-          runAdmissionEvidence: existingEvidence,
-          ...(runDefinitionWire === undefined ? {} :
-            {runDefinitionWire: existing.run_definition_wire}),
-          resultNames: retainedResultNames(existing, maxRunDefinitionWireBytes)});
-      }
-      const epochValidity = checkSubmissionBinding(fields, submission, control, true);
-      if (epochValidity !== 'admissible') {
-        // Commit the expiry watermark without admitting a Run. Throwing inside
-        // this transaction would roll the watermark back and let a backwards
-        // clock revive the identity after an awaited issuance.
-        return {epochRejected: epochValidity};
-      }
-      if (retainedCount + assertJournalCancellationCustody(cancellationUsage, cancellationIssued) >= maxRecords) {
-        fail('ClientRequestJournalCapacity');
-      }
-      if (selectRun.get(runDefinitionCid) !== undefined) {
-        fail('ClientRequestRunAlreadyAssigned');
-      }
-      // Only this original acceptance transaction may associate submitted
-      // content with a new Run. Equal caller CIDs or later configuration are
-      // not a way to attach a restriction to an already issued Run.
-      let originalAdmissionEvidence = admissionEvidence;
-      if (submission?.intentCid !== undefined && admittedEvidence !== undefined) {
-        const original = retainedIntent(intentSelect.get(fields.requestId), control, submission.epoch);
-        if (admittedEvidence.submittedIntentCid !== undefined &&
-            admittedEvidence.submittedIntentCid !== original.intentCid) {
-          fail('ClientRequestSubmittedIntentMismatch');
-        }
-        if (!cid(original.intentCid)) fail('InvalidClientRunAdmissionEvidence');
-        originalAdmissionEvidence = JSON.stringify({...admittedEvidence,
-          submittedIntentCid: original.intentCid});
-        if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {
-          fail('InvalidClientRunAdmissionEvidence');
-        }
-      } else if (admittedEvidence?.submittedIntentCid !== undefined) {
-        fail('ClientRequestSubmittedIntentMismatch');
-      }
-      insert.run(fields.authorityScopeCid, fields.requestId,
-        fields.logicalRequestScopeCid, fields.intentFingerprintCid,
-        fields.programDefinitionCid, fields.parameterValuesCid,
-        fields.callerInputIntentCid, namespaceId, runDefinitionCid,
-        runDefinitionWire ?? null, revision, lookupExpiresAt,
-        resultNames === undefined ? null : JSON.stringify(resultNames),
-        originalAdmissionEvidence);
-      if (originalExplanation !== undefined) insertExplanationOriginal({namespaceId,
-        authorityScopeCid: fields.authorityScopeCid, runDefinitionCid}, originalExplanation);
-      if (Number(advanceSubmissionCustody.run(retainedCount).changes) !== 1) {
-        fail('ClientRequestSubmissionCustodyLost');
-      }
-      return Object.freeze({inserted: true, ref: Object.freeze({
-        namespaceId, authorityScopeCid: fields.authorityScopeCid,
-        runDefinitionCid,
-      }), durability: 'durable', revision, lookupExpiresAt,
-      ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
-      resultNames, runAdmissionEvidence: originalAdmissionEvidence === null ? undefined :
-        freezeAdmissionEvidence(JSON.parse(originalAdmissionEvidence))});
-    });
-    if (outcome.epochRejected !== undefined) refuseEpoch(outcome.epochRejected);
-    return outcome;
-  };
-
-  const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control, original) => {
-    ensureOpen();
-    if (!text(namespaceId) || !cid(authorityScopeCid) || !text(requestId) ||
-        !control || typeof control.clientRequestAdmitRecord !== 'function') {
-      fail('InvalidClientRequestLookup');
-    }
-    let row;
-    try { row = select.get(authorityScopeCid, requestId); }
-    catch (error) { fail('ClientRequestLookupUnknown', error); }
-    if (row === undefined || row.namespace_id !== namespaceId) return undefined;
-    const identity = original !== undefined &&
-        row.authority_scope_cid === original.fields.authorityScopeCid &&
-        row.caller_request_id === original.fields.requestId &&
-        row.logical_request_scope_cid === original.fields.logicalRequestScopeCid &&
-        row.intent_fingerprint_cid === original.fields.intentFingerprintCid &&
-        row.program_definition_cid === original.fields.programDefinitionCid &&
-        row.parameter_values_cid === original.fields.parameterValuesCid &&
-        row.caller_input_intent_cid === original.fields.callerInputIntentCid
-      ? original.identity : retainedIdentity(row, control);
-    if (control.clientRequestScopeCid(identity) !==
-        row.logical_request_scope_cid) {
-      fail('ClientRequestJournalCorrupt');
-    }
-    return Object.freeze({row, identity, found: Object.freeze({
-      requestId: row.caller_request_id,
-      ...admission(row),
-    })});
-  };
-
-  const resolveOriginalDefinition = (identity, fields, namespaceId,
-    requestControl, publicationControl) => {
-    if (typeof requestControl.clientRequestRelation !== 'function') {
-      fail('InvalidClientRequestLookup');
-    }
-    const retained = lookupRecord({namespaceId,
-      authorityScopeCid: fields.authorityScopeCid,
-      requestId: fields.requestId}, requestControl, {identity, fields});
-    if (retained === undefined) return undefined;
-    // Exact saved identity fields reuse this entry's already admitted request.
-    // A distinct saved identity still follows lookupRecord's full admission.
-    const relation = requestControl.clientRequestRelation(identity, retained.identity);
-    if (relation !== 1) {
-      fail(relation === 2 ? 'ClientRequestIntentConflict' :
-        'ClientRequestJournalCorrupt');
-    }
-    return Object.freeze({...retained.found,
-      ...retainedRunFacts(retained.row, publicationControl,
-        maxRunDefinitionWireBytes, updateOriginalControl),
-    });
-  };
+  const {acceptRecord, lookupRecord, resolveOriginalDefinition} =
+    createJournalRunRecords({select, selectRun, requestUsage, submissionIssued, cancellationUsage,
+      cancellationIssued, intentSelect, insert, advanceSubmissionCustody},
+    {ensureOpen, transact, checkSubmissionBinding, refuseEpoch, retainedIntent,
+      assertJournalSubmissionCustody, assertJournalCancellationCustody,
+      readExplanationOriginal, insertExplanationOriginal}, configuration);
 
   const observationConnection = createJournalObservationConnection(path, ensureOpen, primaryCurrent,
     primarySqlLimits, primaryExecutionLimits, walFrames, maxDatabaseBytes);

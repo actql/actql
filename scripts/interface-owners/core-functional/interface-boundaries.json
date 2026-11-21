@@ -3426,8 +3426,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -3440,7 +3440,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-records.mts",
                 "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
               },
               {
