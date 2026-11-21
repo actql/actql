@@ -266,9 +266,6 @@ test('semantic refusal fixtures retain 21 exact invalid-input policies', () => {
     assert.equal(matches.length, 1, name);
     assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
   }
-  assert.equal(windowScalarRefusals.find(value => value.name ===
-    'window-scalar-refuse-aggregate-operand-missing-frame').expectedCode,
-  'ClientProgramImplementationLimit', 'the valid missing-frame connection remains unsupported');
   const unsafe = groupSelectScopeRefusals.find(value => value.name ===
     'group-select-scope-numeric-unsafe-integer');
   assert.equal(Object.hasOwn(unsafe, 'expectedCode'), false,
@@ -340,8 +337,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // The original positional CTE query returns its two values under the left name.
   // The original simple CASE adds one ordinary standard-profile success.
   assert.equal(pin.totalCases, 4297);
-  assert.deepEqual(pin.counts, {"successes":2715,"executionFailures":53,"refusals":1529});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2660,"executionFailures":51,"refusals":1491}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":14,"executionFailures":0,"refusals":6}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2718,"executionFailures":53,"refusals":1526});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2663,"executionFailures":51,"refusals":1488}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":14,"executionFailures":0,"refusals":6}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},

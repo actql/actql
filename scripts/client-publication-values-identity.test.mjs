@@ -14,9 +14,9 @@ const canonical = value => JSON.stringify(sorted(value));
 test('current Values publication fixture follows the complete normative Unit preimage', () => {
   const expected = valuesDependencyOracle();
   assert.equal(expected.unit,
-    'sha256:eb4ecf6fad0795452a9234a08827ff0a4dc725a763666f5f42ee7cb13f479f5e');
+    'sha256:5b5f3a9ee3145e0e9602ccaeb07813bf9a1d39f39c146602004b604eea8296b9');
   assert.equal(expected.resultPlan,
-    'sha256:d169b6165792c42ffa2efb3521b7795778ce7d97589199d43187a28d9f82abcb');
+    'sha256:d8dba03466c7ef348d94790338d53c526e47bfd3161b158410f42e246d9094af');
   const plan = valuesResultPlan(expected.unit);
   assert.equal(plan.result_plan_logical_cid, expected.resultPlan);
   const document = source.split('\n').find(line => line.includes('#|{"version":"actql/0.1"'));

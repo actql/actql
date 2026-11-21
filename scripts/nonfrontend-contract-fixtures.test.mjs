@@ -77,7 +77,7 @@ test('current Program roots pin the normative closed source schema', () => {
   const body = json('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   const expected = cid(body);
-  assert.equal(expected, 'sha256:b8a2b45d00aa9ca0691cdd87efff171887c5c7ed98f146d15cf0a7c5d399648d');
+  assert.equal(expected, 'sha256:0cae914984b86d4ab4f5abb9e41b8009aad051ffdacd607d204f7c1889d7d466');
   hasPin('src/pipeline_check_context/core_contracts_test.mbt', expected);
 });
 

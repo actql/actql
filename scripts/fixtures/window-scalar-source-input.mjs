@@ -98,6 +98,10 @@ export const windowScalarSuccesses = [
     + '(ORDER BY amount NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n '
     + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY amount NULLS LAST',
     {columns: groupedColumns, expected: sumRows}),
+  success('aggregate-operand-default-frame',
+    'SELECT SUM(SUM(id)) OVER (ORDER BY amount) AS n FROM records GROUP BY amount',
+    {results: {main: {columns: [{name: 'n', contract: nullable}],
+      rows: [{n: 6}, {n: 9}, {n: 15}, {n: 15}], unordered: true}}}),
   success('aggregate-operand-countif', 'SELECT amount, COUNTIF(COUNT(*) > 1) OVER '
     + '(ORDER BY amount NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n '
     + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY amount NULLS LAST',
@@ -143,8 +147,6 @@ export const windowScalarRefusals = [
     text: 'SELECT amount AS invented, LAG(SUM(invented)) OVER (ORDER BY id) AS n FROM records GROUP BY id, amount'},
   {name: 'aggregate-operand-pipe-implicit-group', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
     text: 'FROM records |> SELECT LAG(COUNT(*)) OVER (ORDER BY id) AS n'},
-  {name: 'aggregate-operand-missing-frame', expectedCode: 'ClientProgramImplementationLimit',
-    text: 'SELECT SUM(SUM(id)) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
   {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramInvalidInput',
     text: 'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
 ].map(item => ({format: 'sql', ...item, name: 'window-scalar-refuse-' + item.name}));
@@ -452,6 +454,9 @@ const whereRows = [{amount: 20, id: 2}, {amount: 10, id: 3}, {amount: 20, id: 4}
 const whereWindowHead = 'FROM records |> WHERE id > 0 |> WHERE ';
 const whereWindowDirect = whereWindowHead + `ROW_NUMBER() OVER (${window}) <= 3 |> ORDER BY id`;
 windowScalarSuccesses.push(
+  success('where-window-default-frame',
+    'FROM records |> WHERE SUM(amount) OVER (ORDER BY id) > 0',
+    {format: 'aql-text', results: {main: {columns: whereColumns, rows: sourceRows, unordered: true}}}),
   success('where-window-json', JSON.stringify(pipeWhereWindowProgram), {format: 'json', columns: whereColumns, expected: whereRows}),
   success('where-window-direct', whereWindowDirect, {format: 'aql-text', columns: whereColumns, expected: whereRows}),
   success('where-window-parameter', whereWindowHead + `ROW_NUMBER() OVER (${window}) <= @top |> ORDER BY id`,
@@ -479,9 +484,7 @@ windowScalarRefusals.push(...[
   ['where-window-dropped-range', 'FROM records AS old |> AS current |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0'],
   ['where-window-declaration-leak', 'FROM records |> SELECT id, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id) |> WHERE ROW_NUMBER() OVER w = 1'],
 ].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
-  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
-{name: 'window-scalar-refuse-where-window-missing-frame', format: 'aql-text',
-  text: 'FROM records |> WHERE SUM(amount) OVER (ORDER BY id) > 0', expectedCode: 'ClientProgramImplementationLimit'});
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})));
 
 // Independent SET control keeps the captured row and replaces only amount.
 export const pipeSetWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_set_window',
@@ -501,6 +504,11 @@ const setRows = [{amount: 4, id: 1}, {amount: 1, id: 2}, {amount: 3, id: 3},
 const setWindowHead = 'FROM records |> WHERE id > 0 |> SET amount = ';
 const setWindowDirect = setWindowHead + `ROW_NUMBER() OVER (${window}) |> ORDER BY id`;
 windowScalarSuccesses.push(
+  success('set-window-default-frame',
+    'FROM records |> SET amount = SUM(amount) OVER (ORDER BY id)',
+    {format: 'aql-text', results: {main: {columns: whereColumns, unordered: true,
+      rows: [{id: 0, amount: 999}, {id: 1, amount: 999}, {id: 2, amount: 1019},
+        {id: 3, amount: 1029}, {id: 4, amount: 1049}, {id: 5, amount: 1049}]}}}),
   success('set-window-json', JSON.stringify(pipeSetWindowProgram), {format: 'json', columns: setColumns, expected: setRows}),
   success('set-window-direct', setWindowDirect, {format: 'aql-text', columns: setColumns, expected: setRows}),
   success('set-window-operand', setWindowHead + `ROW_NUMBER() OVER (${window}) + 1 |> ORDER BY id`,
@@ -534,9 +542,7 @@ windowScalarRefusals.push(...[
   ['set-window-private-slot', 'FROM records |> SET amount = ROW_NUMBER() OVER (ORDER BY id) |> SELECT aql_pipe_set_window_0'],
   ['set-window-declaration-leak', 'FROM records |> SELECT id, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id) |> SET id = ROW_NUMBER() OVER w'],
 ].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
-  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
-{name: 'window-scalar-refuse-set-window-missing-frame', format: 'aql-text',
-  text: 'FROM records |> SET amount = SUM(amount) OVER (ORDER BY id)', expectedCode: 'ClientProgramImplementationLimit'});
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})));
 
 windowScalarRefusals.push({name: 'window-scalar-refuse-implicit-member-set', format: 'aql-text',
   text: pipePrivateHead + pipePrivateOperations.set + ' |> ORDER BY id DESC',
