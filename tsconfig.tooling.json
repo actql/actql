@@ -41,6 +41,7 @@
     "adapters/store-local/**/*.mts",
     "adapters/workers/**/*.mts",
     "adapters/connectors/duckdb/node/**/*.mts",
+    "adapters/connectors/local/host/**/*.mts",
     "packages/client-wire/**/*.mts",
     "packages/explorer/**/*.mts",
     "packages/explorer-ui/**/*.mts",

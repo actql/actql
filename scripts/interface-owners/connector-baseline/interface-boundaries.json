@@ -7357,7 +7357,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/iceberg-process.mjs",
+                "path": "adapters/connectors/local/host/iceberg-process.mts",
                 "anchor": "signal"
               }
             ],

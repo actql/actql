@@ -1121,3 +1121,5 @@ target/
 /adapters/host-node/process-fixture.d.mts
 /adapters/host-node/foreign-process-fixture.mjs
 /adapters/host-node/foreign-process-fixture.d.mts
+/adapters/connectors/local/host/iceberg-process.mjs
+/adapters/connectors/local/host/iceberg-process.d.mts
