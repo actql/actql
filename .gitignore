@@ -1103,3 +1103,5 @@ target/
 /adapters/store-local/process-service.d.mts
 /adapters/store-local/process-client.mjs
 /adapters/store-local/process-client.d.mts
+/adapters/store-local/direct-file.test.mjs
+/adapters/store-local/direct-file.test.d.mts

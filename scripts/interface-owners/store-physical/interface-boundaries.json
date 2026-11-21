@@ -1282,7 +1282,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/store-local/direct-file.test.mjs",
+                "path": "adapters/store-local/direct-file.test.mts",
                 "anchor": "test("
               },
               {

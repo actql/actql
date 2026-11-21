@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, rmdir, readFile, writeFile, rename, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -7,7 +8,7 @@ import {createHash} from 'node:crypto';
 import {createLocalRetainedStore} from './files.mjs';
 import {withVerifiedDelegatedFile} from './direct-file.mjs';
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-direct-file-'));
   const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 100, maxFrameBytes: 4});
   const writer = store.reserve(100);
