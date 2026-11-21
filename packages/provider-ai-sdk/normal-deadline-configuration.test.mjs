@@ -7,6 +7,7 @@ const options = () => ({providerId: 'fixture', modelId: 'fixture', apiKeyFile: '
   budget: {maxCalls: 1n, maxRows: 1, maxTokens: 4n, maxCostUnits: 1n, maxDurationMs: 2000n}});
 const settings = {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100};
 const stop = Error('StopBeforeRuntimeIdentityAndIO');
+const transfer = {clientProgramStandardInferModelTransferBytes: attempts => attempts * 131072n};
 // Explicit context/quote doubles isolate configuration selection. The actual
 // initial Resource, Common tariff and normal distribution have separate checks.
 function context(captured) {
@@ -21,7 +22,7 @@ test('normal deadline adds only the actual Common R/E quote and preserves unsele
     let quotes = 0;
     const captured = [], config = options();
     if (enabled) config.transportTimeouts = settings;
-    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+    const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
       clientProgramInstalledNodeModelDeadlineCapacity() {quotes++; return [456n, 456n];}};
     await assert.rejects(createOpenAIChatProvider(config)(moon, context(captured)), error => error === stop);
     assert.equal(quotes, enabled ? 1 : 0);
@@ -38,7 +39,7 @@ test('normal deadline adds only the actual Common R/E quote and preserves unsele
 
 test('normal deadline missing invalid overflow or over-budget quote refuses before IO', async () => {
   for (const quote of [undefined, [], [1n, 0n], [2147483647n, 2147483647n], [1, 1]]) {
-    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+    const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
       ...(quote === undefined ? {} : {clientProgramInstalledNodeModelDeadlineCapacity() {return quote;}})};
     const captured = [];
     await assert.rejects(createOpenAIChatProvider({...options(), transportTimeouts: settings})(moon, context(captured)),
@@ -51,7 +52,7 @@ test('normal deadline missing invalid overflow or over-budget quote refuses befo
 
 test('SDK profile demand keeps retained wires and serial workspace distinct before any IO',async()=>{
   const captured=[];let calls=0;
-  const moon={clientProgramInstalledNodeModelSdkV4RequestCapacity(...bounds){
+  const moon={...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(...bounds){
     assert.deepEqual(bounds,[2,32768,4096,32]);calls++;return [123n,789n];}};
   const config=options();config.budget.maxRows=2;
   await assert.rejects(createOpenAIChatProvider(config)(moon,context(captured)),error=>error===stop);
@@ -64,11 +65,22 @@ test('SDK profile demand keeps retained wires and serial workspace distinct befo
 
 test('missing invalid or overflowing SDK profile quote refuses before secret semantic or Task work',async()=>{
   for(const quote of [undefined,[],[1n,0n],[2147483647n,2147483647n],[1,1]]){
-    const moon=quote===undefined?{}:{clientProgramInstalledNodeModelSdkV4RequestCapacity(){return quote;}};
+    const moon={...transfer, ...(quote===undefined?{}:{clientProgramInstalledNodeModelSdkV4RequestCapacity(){return quote;}})};
     const captured=[];
     await assert.rejects(createOpenAIChatProvider(options())(moon,context(captured)),
       {code:'OpenAIProviderRequestCapacityUnavailable'});
     assert.equal(captured.length,0);
+  }
+});
+
+test('missing or invalid Common transfer projection refuses before I/O', async () => {
+  for (const value of [undefined, -1n, 0n, 9007199254740992n, 131072]) {
+    await assert.rejects(createOpenAIChatProvider(options())({
+      ...(value === undefined ? {} : {clientProgramStandardInferModelTransferBytes(attempts) {
+        assert.equal(attempts, 1n);
+        return value;
+      }}),
+    }, context([])), {code:'OpenAIProviderTransferCapacityUnavailable'});
   }
 });
 
@@ -83,7 +95,11 @@ test('normal binding profile and original Read recipe consume the same separate 
     modelSelector:'fixture',promptPayloadWire:'{}'};
   const selected={tasks:[task],
     async responseProfileFor(name,project){assert.equal(name,'task');taskProfile=JSON.parse(project());return {profile};},
-    async executionOriginalsFor(name){assert.equal(name,'task');},
+    async executionOriginalsFor(name, policy){
+      assert.equal(name,'task');
+      assert.equal(policy.maxAttempts, 1n);
+      assert.equal(policy.maxWireBytes, 131072n);
+    },
     bindingOriginalsFor(id){assert.equal(id,'fixture');return bindingOriginals;},
     providerEntries(project){return project();}};
   const f={...context([]),runtimeIdentity:async()=>cid,artifactIdentity:async()=>cid,
@@ -96,6 +112,7 @@ test('normal binding profile and original Read recipe consume the same separate 
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat'];
   const moon=Object.fromEntries(hooks.map(name=>[name,()=>assert.fail('No Model or physical work')]));
+  moon.clientProgramStandardInferModelTransferBytes = transfer.clientProgramStandardInferModelTransferBytes;
   moon.clientProgramInstalledNodeModelSdkV4RequestCapacity=(...bounds)=>{
     assert.deepEqual(bounds,[1,32768,4096,32]);quoteCalls++;return [123n,789n];};
   moon.clientProgramModelResponseProfileTransportMatches=actual=>{assert.equal(actual,profile);return true;};
