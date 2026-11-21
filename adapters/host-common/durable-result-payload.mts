@@ -33,15 +33,17 @@ type PreparedOwner = CleanupHandle & Readonly<{release(): Awaitable<unknown>}>;
 type CleanupOwner = Readonly<{pending(): boolean; retry?(): Awaitable<unknown>}>;
 type Physical = Readonly<{cid: string; bytes: number; created: boolean}>;
 type PreparedSchema = Readonly<{semanticCid: string; physical: Physical; created: boolean; prepared: PreparedOwner}>;
-type ObjectWriter = Readonly<{
+type SealedPhysical = Physical & Readonly<{prepared?: PreparedOwner}>;
+type PreparedPhysical = Physical & Readonly<{prepared: PreparedOwner}>;
+type ObjectWriter<Sealed extends SealedPhysical = SealedPhysical> = Readonly<{
   append(batch: string): Awaitable<unknown>;
-  seal(expectedCid: string): Awaitable<Physical & Readonly<{prepared?: PreparedOwner}>>;
+  seal(expectedCid: string): Awaitable<Sealed>;
   cancel(): Awaitable<unknown>;
   status(): Readonly<{reservationHeld?: boolean; custodyPending?: boolean}>;
 }>;
 type PayloadStore = Readonly<{
   createObjectWriter(maxBytes: number): ObjectWriter;
-  createPreparedObjectWriter?(maxBytes: number): ObjectWriter;
+  createPreparedObjectWriter?(maxBytes: number): ObjectWriter<PreparedPhysical>;
   putPreparedResultSchema?(wire: string, semanticCid: string, runDefinitionCid: string): Awaitable<PreparedSchema>;
   storeAuthorityCid?: string;
 }>;
