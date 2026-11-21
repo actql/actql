@@ -28,6 +28,7 @@ pub(all) enum ExpressionKind {
   StringLiteral(String)
   JsonLiteral(String)
   DateLiteral(String)
+  DatePart(String)
   TimestampLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
@@ -339,6 +340,32 @@ fn timestamp_unit_call(path : Array[NamePart], arguments : Int) -> String? {
     name.length() == 14 &&
     upper_ascii(name) == "TIMESTAMP_DIFF" {
     Some("TIMESTAMP_DIFF")
+  } else {
+    None
+  }
+}
+
+///|
+fn date_part_operand(
+  path : Array[NamePart],
+  arguments : Int,
+  token : Token,
+) -> String? {
+  guard path is [{ value: name, .. }] && token.value is Word(part) else {
+    return None
+  }
+  if arguments == 2 &&
+    name.length() == 9 &&
+    part.length() == 3 &&
+    upper_ascii(name) == "DATE_DIFF" &&
+    upper_ascii(part) == "DAY" {
+    Some("d")
+  } else if arguments == 1 &&
+    name.length() == 10 &&
+    part.length() == 5 &&
+    upper_ascii(name) == "DATE_TRUNC" &&
+    upper_ascii(part) == "MONTH" {
+    Some("month")
   } else {
     None
   }
@@ -1245,6 +1272,19 @@ fn ExpressionParser::expression(
             )
           }
           args.push(self.add(StringLiteral(unit), part.start, part.end))
+          result = self.add(Call(path, args), start, close.end)
+        } else if token.value == Symbol(44) &&
+          date_part_operand(path, args.length(), self.peek()) is Some(unit) {
+          if depth >= self.limits.max_depth {
+            raise ExpressionAbort("Expression depth limit", self.peek().start)
+          }
+          self.spend()
+          let part = self.advance()
+          let close = self.advance()
+          if close.value != Symbol(41) {
+            raise ExpressionAbort("Expected closing parenthesis", close.start)
+          }
+          args.push(self.add(DatePart(unit), part.start, part.end))
           result = self.add(Call(path, args), start, close.end)
         } else if token.value == Symbol(44) {
           frames.push(Argument(path, args, start, depth))

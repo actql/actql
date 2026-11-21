@@ -401,7 +401,10 @@ pub fn binary(
   match op {
     DecimalDivide(_) | Utf8Truncate | ParseTimestamp | FormatTimestamp | Like =>
       Err(InvalidOperand)
-    DateTruncate | TimestampTruncate | ExtractTimestamp =>
+    DateTruncate
+    | TimestampTruncate
+    | DateBoundaryTruncate
+    | ExtractTimestamp =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -548,6 +551,7 @@ pub fn binary(
         | Like
         | DateTruncate
         | TimestampTruncate
+        | DateBoundaryTruncate
         | ExtractTimestamp
         | DecimalDivide(_)
         | Utf8Truncate
@@ -642,6 +646,7 @@ fn binary_comparison_result(
     | Like
     | DateTruncate
     | TimestampTruncate
+    | DateBoundaryTruncate
     | ExtractTimestamp
     | DecimalDivide(_)
     | Utf8Truncate
@@ -700,6 +705,8 @@ pub fn boolean_pair(
     | DateDifference
     | MakeDate
     | TimestampDifference
+    | DateBoundaryDifference
+    | DateIntervalAddition
     | DateAddition
     | TimestampAddition
     | TimestampSubtraction

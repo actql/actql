@@ -131,6 +131,7 @@ pub(all) enum BinaryOperator {
   Like
   DateTruncate
   TimestampTruncate
+  DateBoundaryTruncate
   ExtractTimestamp
   DecimalDivide(String)
   Utf8Truncate
@@ -164,6 +165,8 @@ pub(all) enum ManyOperator {
   TimestampAddition
   TimestampSubtraction
   TimestampDifference
+  DateBoundaryDifference
+  DateIntervalAddition
   MakeDate
 } derive(Eq, Debug)
 
@@ -462,6 +465,9 @@ fn expression_tag(
     | "timestamp_add"
     | "timestamp_sub"
     | "timestamp_trunc"
+    | "date_boundary_trunc"
+    | "date_boundary_diff"
+    | "date_interval_add"
     | "extract_timestamp"
     | "date_trunc" => ()
     "array"
@@ -1345,6 +1351,9 @@ fn lower_typed_expression_measured(
         "timestamp_add" => Many(TimestampAddition, args)
         "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
+        "date_interval_add" => Many(DateIntervalAddition, args)
+        "date_boundary_diff" => Many(DateBoundaryDifference, args)
+        "date_boundary_trunc" => Binary(DateBoundaryTruncate, args[0], args[1])
         "timestamp_trunc" => Binary(TimestampTruncate, args[0], args[1])
         "extract_timestamp" => Binary(ExtractTimestamp, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])

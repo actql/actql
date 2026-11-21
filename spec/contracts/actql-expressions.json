@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "9ced33d38b2e2e24432821b5650d7da878327809dba3277482252dad849bcd05",
+  "grammar_sha256": "33ef486e2667918f9d2837efbcc48fd5b29da126b362447f6c559cbcb5767071",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2960,6 +2960,108 @@
                     "$ref": "#/$defs/expression"
                   },
                   "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_interval_add"
+              ],
+              "properties": {
+                "date_interval_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_diff"
+              ],
+              "properties": {
+                "date_boundary_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_trunc"
+              ],
+              "properties": {
+                "date_boundary_trunc": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             },
@@ -9475,6 +9577,132 @@
                     "$ref": "#/$defs/expression"
                   },
                   "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_interval_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_trunc"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             },
@@ -21920,6 +22148,108 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "date_interval_add"
+              ],
+              "properties": {
+                "date_interval_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_diff"
+              ],
+              "properties": {
+                "date_boundary_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_trunc"
+              ],
+              "properties": {
+                "date_boundary_trunc": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "make_date"
               ],
               "properties": {
@@ -27514,6 +27844,132 @@
                     "$ref": "#/$defs/machine_expression"
                   },
                   "maxItems": 3
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_interval_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_trunc"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             },
@@ -35931,6 +36387,108 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "date_interval_add"
+              ],
+              "properties": {
+                "date_interval_add": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_diff"
+              ],
+              "properties": {
+                "date_boundary_diff": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "date_boundary_trunc"
+              ],
+              "properties": {
+                "date_boundary_trunc": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "literal"
+                      ],
+                      "properties": {
+                        "literal": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "make_date"
               ],
               "properties": {
@@ -41537,6 +42095,132 @@
               ],
               "properties": {
                 "op": {
+                  "const": "date_interval_add"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_diff"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "d"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "date_boundary_trunc"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": false,
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "op",
+                        "body"
+                      ],
+                      "properties": {
+                        "op": {
+                          "const": "literal"
+                        },
+                        "body": {
+                          "const": "month"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "make_date"
                 },
                 "body": {
@@ -46220,6 +46904,24 @@
       "signature": "SQL MOD and DIV select exact int64/Decimal operand domains. Integer-spelled original SQL literals, including CTE/UNION producer columns required by these signatures, are typed from the original lexeme before binary64 lowering. Existing Number, floating-spelled literals and declared Number parameters/columns are not implicitly int64.",
       "value": "MOD returns the exact remainder with dividend sign; DIV truncates the exact quotient toward zero. NULL propagates after demanded operands. Zero divisor and quotient overflow fail. MIN_INT64 MOD -1 is zero; MIN_INT64 DIV -1 overflows. Decimal operands retain coefficient/scale arithmetic; mixed int64/Decimal has Decimal result. DIV Decimal result has scale zero; MOD has maximum operand scale. No binary64 modulo or quotient intermediary.",
       "demand": "Both original children use existing checked contracts, work/control charges, workspace, cancellation, current and failed-child cleanup. Context selection uses original query-local producer syntax, never observed rows or provider ordering."
+    },
+    "date_interval_add": {
+      "signature": "One Date, one signed64 day count and the mandatory literal d. Result is Date with strict operand nullability.",
+      "source": "DATE_ADD(date, INTERVAL amount DAY) retains the original exact integer amount and original Date.",
+      "value": "Add signed calendar days in the admitted Gregorian range. A result outside that range fails with ArithmeticFailure.",
+      "demand": "Retain original eager child order, strict NULL, child failure, enclosing lazy demand, work, workspace and cancellation."
+    },
+    "date_boundary_diff": {
+      "signature": "Two Date operands and the mandatory literal d. Result is signed64 with strict operand nullability.",
+      "source": "DATE_DIFF(end, start, DAY) retains the original operand order.",
+      "value": "Return the number of Gregorian day boundaries from start to end with its sign.",
+      "demand": "Retain original eager child order, strict NULL, child failure, enclosing lazy demand, work and cancellation."
+    },
+    "date_boundary_trunc": {
+      "signature": "One Date and the mandatory literal month. Result is Date with the original operand nullability.",
+      "source": "DATE_TRUNC(date, MONTH) retains the original Date operand.",
+      "value": "Return the first day of the month containing the original Date.",
+      "demand": "Retain original eager child order, strict NULL, child failure, enclosing lazy demand, work and cancellation."
     }
   },
   "regex_ast_contract": {

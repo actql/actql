@@ -285,7 +285,7 @@ fn scalar_call(
     "TIMESTAMP_DIFF" => ("TIMESTAMP_DIFF", "timestamp_diff", 3, 3)
     "TIMESTAMP_TRUNC" => ("TIMESTAMP_TRUNC", "timestamp_trunc", 2, 2)
     "EXTRACT" => ("EXTRACT", "extract_timestamp", 2, 2)
-    "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
+    "DATE_ADD" => ("DATE_ADD", "date_add", 2, 3)
     "DATE" => ("DATE", "make_date", 3, 3)
     "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
@@ -488,7 +488,9 @@ fn append_resolved(
     let selected_interval = match node.kind {
       Binary("+" | "-", _, right) => interval_roots[right]
       Call(path, args) if path.length() == 1 &&
-        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) &&
+        ["TIMESTAMP_ADD", "TIMESTAMP_SUB", "DATE_ADD"].contains(
+          upper(path[0].value),
+        ) &&
         args.length() == 2 => interval_roots[args[1]]
       _ => None
     }
@@ -592,6 +594,7 @@ fn append_resolved(
               ("value", lowering.add(String(text))),
             ]),
           )
+        DatePart(unit) => lowering.form("literal", lowering.add(String(unit)))
         DateLiteral(text) =>
           lowering.form("date_literal", lowering.add(String(text)))
         TimestampLiteral(text) => {
@@ -820,8 +823,18 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if ["timestamp_add", "timestamp_sub"].contains(name) &&
-                intervals[args[1]] is None {
+              let name = match name {
+                "date_add" if args.length() == 2 => "date_interval_add"
+                "date_diff" if @query.expression_node(ast, args[2])
+                  is Some({ kind: DatePart(_), .. }) => "date_boundary_diff"
+                "date_trunc" if @query.expression_node(ast, args[1])
+                  is Some({ kind: DatePart(_), .. }) => "date_boundary_trunc"
+                _ => name
+              }
+              let interval_call = [
+                "timestamp_add", "timestamp_sub", "date_interval_add",
+              ].contains(name)
+              if interval_call && intervals[args[1]] is None {
                 raise Abort(InvalidArguments)
               }
               if ["to_decimal", "try_decimal"].contains(name) &&
@@ -856,8 +869,12 @@ fn append_resolved(
                 current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
-              if ["timestamp_add", "timestamp_sub"].contains(name) {
+              if interval_call {
                 let unit = intervals[args[1]].unwrap()
+                if name == "date_interval_add" && unit != "d" {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
                 lowering.arguments(name, [
                   nodes[args[0]],
                   nodes[args[1]],

@@ -1221,6 +1221,7 @@ pub(all) enum BinaryOperator {
   Like
   DateTruncate
   TimestampTruncate
+  DateBoundaryTruncate
   ExtractTimestamp
   DecimalDivide(String)
   Utf8Truncate
@@ -1630,6 +1631,8 @@ pub(all) enum ManyOperator {
   TimestampAddition
   TimestampSubtraction
   TimestampDifference
+  DateBoundaryDifference
+  DateIntervalAddition
   MakeDate
 } derive(Eq, @debug.Debug)
 

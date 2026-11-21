@@ -646,6 +646,16 @@ export const makeDateOriginal = {name: 'date-constructor', format: 'sql',
   expected: [{constructed: '2026-01-02', leap_day: '2000-02-29'}],
   columns: ['constructed', 'leap_day'].map(name => ({name,
     contract: {type: 'date', nullable: false}})), sourceReadCount: 0};
+const dateCalendarOriginal = {name: 'date-calendar-boundaries', format: 'sql',
+  text: "WITH t AS (SELECT DATE '2000-02-29' AS a, DATE '2000-03-01' AS b) "
+    + 'SELECT DATE_ADD(a, INTERVAL 1 DAY) AS next_day, DATE_DIFF(a, b, DAY) AS days, '
+    + 'DATE_TRUNC(a, MONTH) AS first_day FROM t',
+  expected: [{next_day: '2000-03-01', days: '-1', first_day: '2000-02-01'}],
+  columns: [
+    {name: 'next_day', contract: {type: 'date', nullable: false}},
+    {name: 'days', contract: {type: 'int64', nullable: false}},
+    {name: 'first_day', contract: {type: 'date', nullable: false}},
+  ], sourceReadCount: 0};
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -738,6 +748,7 @@ export const sourceFreeSuccesses = [
   timestampTruncOriginal,
   extractTimestampOriginal,
   makeDateOriginal,
+  dateCalendarOriginal,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

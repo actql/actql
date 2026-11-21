@@ -8,8 +8,8 @@
       "receiptPrefixes": []
     },
     "portable-2": {
-      "totalCases": 1366,
-      "inventorySha256": "2855b5fa6ba5b48efe32c7b8ac1c726ee6b442b4cd945c7993ce2b94f4a58949",
+      "totalCases": 1367,
+      "inventorySha256": "53d9899c423d409a7eda1fea35d8952c9534238801441c76e7e4325cc98c2fa7",
       "receiptPrefixes": [
         "time-series-primary",
         "carrier-continuation",
@@ -22,7 +22,7 @@
     },
     "portable-3": {
       "totalCases": 1366,
-      "inventorySha256": "d8058a7575b1f5d66e358c5cb7df9c43be86de8ba97a8bfa9fcab9e4b8675213",
+      "inventorySha256": "6a07c5361fd8177e56389c703b8ecfcc0df29f3b2dfe0d039a199f414049bebb",
       "receiptPrefixes": [
         "carrier-continuation",
         "ranking-fusion",

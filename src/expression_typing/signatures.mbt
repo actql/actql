@@ -1057,8 +1057,18 @@ fn infer(
       }
       typed(t, @contract.with_nullability(target, nullable), source)
     }
-    "timestamp_add" | "timestamp_sub" => {
-      let value = require_type(t, nodes, node.children[0], "timestamp")
+    "timestamp_add" | "timestamp_sub" | "date_interval_add" => {
+      let date = tag == "date_interval_add"
+      let value = require_type(
+        t,
+        nodes,
+        node.children[0],
+        if date {
+          "date"
+        } else {
+          "timestamp"
+        },
+      )
       let amount = nodes[node.children[1]]
       // The interval's immediate canonical integer atom receives only this
       // consumer's exact int64 context. Text fields/expressions do not promote.
@@ -1080,7 +1090,27 @@ fn infer(
       }
       let amount = require_type(t, nodes, node.children[1], "int64")
       ignore(require_type(t, nodes, node.children[2], "string"))
-      primitive(t, TimestampType, value.nullable || amount.nullable, source)
+      primitive(
+        t,
+        if date {
+          DateType
+        } else {
+          TimestampType
+        },
+        value.nullable || amount.nullable,
+        source,
+      )
+    }
+    "date_boundary_diff" => {
+      let end = require_type(t, nodes, node.children[0], "date")
+      let start = require_type(t, nodes, node.children[1], "date")
+      ignore(require_type(t, nodes, node.children[2], "string"))
+      primitive(t, Signed64Type, end.nullable || start.nullable, source)
+    }
+    "date_boundary_trunc" => {
+      let date = require_type(t, nodes, node.children[0], "date")
+      ignore(require_type(t, nodes, node.children[1], "string"))
+      primitive(t, DateType, date.nullable, source)
     }
     "extract_timestamp" => {
       let value = require_type(t, nodes, node.children[0], "timestamp")

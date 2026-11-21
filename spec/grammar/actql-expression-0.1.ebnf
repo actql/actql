@@ -100,6 +100,7 @@ function_name = "array_offset" | "array_safe_offset" | "current_timestamp" | "le
               | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "translate" | "instr" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff" | "make_date"
+              | "date_interval_add" | "date_boundary_diff" | "date_boundary_trunc"
               | "timestamp_add" | "timestamp_sub" | "timestamp_diff" | "timestamp_trunc"
               | "extract_timestamp"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"

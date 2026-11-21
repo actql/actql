@@ -213,6 +213,14 @@ fn finish(
         )) {
         invalid(cursor, origin, InvalidArguments)
       }
+      if (tag == "date_interval_add" || tag == "date_boundary_diff") &&
+        !(literal(args[2]) is Some({ value: @map.String("d"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if tag == "date_boundary_trunc" &&
+        !(literal(args[1]) is Some({ value: @map.String("month"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
         let index = if tag == "date_trunc" { 0 } else { 2 }
         if !(literal(args[index])

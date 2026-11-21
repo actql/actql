@@ -170,6 +170,11 @@ input as described above.
 supports years 0001 through 9999 and checks the actual number of days in the
 month. An out-of-range or impossible date fails evaluation.
 
+`DATE_ADD(date, INTERVAL n DAY)` adds signed INT64 days. `DATE_DIFF(end, start, DAY)`
+counts signed day boundaries and returns INT64. `DATE_TRUNC(date, MONTH)` returns
+the first day of that month as a Date. These forms require Date operands and
+propagate NULL after the original operands are evaluated.
+
 `EXTRACT(YEAR FROM value)` reads the UTC year of a Timestamp and returns INT64.
 The same form supports QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR, MINUTE,
 SECOND, MILLISECOND and MICROSECOND.
@@ -248,7 +253,7 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
 | Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
 | `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
-| `DATE` conversion overloads and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
+| `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |

@@ -779,6 +779,8 @@ fn advance_expression_frame_impl(
             if op == @lower.DateDifference ||
               op == @lower.MakeDate ||
               op == @lower.TimestampDifference ||
+              op == @lower.DateBoundaryDifference ||
+              op == @lower.DateIntervalAddition ||
               op == @lower.DateAddition ||
               op == @lower.TimestampAddition ||
               op == @lower.TimestampSubtraction {
@@ -900,6 +902,8 @@ fn advance_expression_frame_impl(
               | DateDifference
               | MakeDate
               | TimestampDifference
+              | DateBoundaryDifference
+              | DateIntervalAddition
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction
@@ -1130,7 +1134,10 @@ fn advance_expression_frame_impl(
                   })
               }
               let addition = args.operation
-                is (DateAddition | TimestampAddition | TimestampSubtraction)
+                is (DateAddition
+                | DateIntervalAddition
+                | TimestampAddition
+                | TimestampSubtraction)
               if addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
                 return Err({
                   kind: WorkspaceLimit,
@@ -1151,6 +1158,15 @@ fn advance_expression_frame_impl(
                   )
                 DateAddition =>
                   temporal_addition(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                  )
+                DateBoundaryDifference =>
+                  date_boundary_difference(unit, args.values[0], args.values[1])
+                DateIntervalAddition =>
+                  date_interval_addition(
                     args.expression,
                     unit,
                     args.values[0],
@@ -1881,6 +1897,8 @@ fn advance_expression_frame_impl(
               | DateDifference
               | MakeDate
               | TimestampDifference
+              | DateBoundaryDifference
+              | DateIntervalAddition
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction =>

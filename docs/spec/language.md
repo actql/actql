@@ -2529,6 +2529,28 @@ Date Value. Out-of-range coordinates fail under existing InvalidOperand
 semantics. Preserve original child failures, enclosing lazy demand, work,
 workspace and cancellation under the existing expression owner.
 
+### Date day arithmetic and month boundaries
+
+<!-- requirement-block: scalar-expressions.date-calendar-boundaries -->
+The ordered Date calendar forms MUST evaluate their original operands eagerly
+from left to right before strict NULL propagation. Retain original operand
+failures, enclosing lazy demand and the existing work, workspace and
+cancellation boundaries. The forms are:
+
+- `{date_interval_add: [date, amount, {literal: d}]}` adds an exact signed64
+  day count to the admitted Gregorian Date. An out-of-range result fails
+  with ArithmeticFailure.
+- `{date_boundary_diff: [end, start, {literal: d}]}` counts signed calendar-day
+  boundaries from the original start Date to the end Date. The result is
+  signed64.
+- `{date_boundary_trunc: [date, {literal: month}]}` returns the first day
+  of the containing Gregorian month as a Date.
+
+Each machine body uses the same operation name and operand order. These
+forms use the existing four-digit Date Value range. They preserve the
+separate three-argument Number-duration addition, quoted-unit difference
+and unit-first fixed-duration truncation contracts.
+
 ### Numeric UTC Timestamp parts
 
 <!-- requirement-block: scalar-expressions.utc-timestamp-extract -->
@@ -11618,7 +11640,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:507e3e81fc1a91ce6d860e771eda90eeb321fdb1c601ba2dac3dab2fed7a413c
+../../spec/contracts/actql-aoa.json# sha256:1ec56c903418a33bc05a91b6c1a96376c390187c5d0bb9627308601ac59ec616
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11627,13 +11649,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:28e1278377c1953906eac250eb77760ce6834eece5a8806a6d6dc264959255bf
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:d9a0d70daff9631fd3a8fc7c130aeddeba1b95f5a851da1eb70f3aabe8b7f85c
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:ef7b9d474b327c03c787ace91bfe51d77fae473641c514128692070e53916480
+../../spec/contracts/actql-expressions.json# sha256:ac0575f3e363e817ff005401fda550b3469d23767f5bf8bc2e232e6b505b3074
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:16afd05883e2bcdf21123f17e0a5bd2e8b458378ccdcc4ed5a90da741e37638c
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:aa6f73fdbc9b4ee6efe4d7a2bc4d27c23ccc69b3ce27d11d0035017427323cbd
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:407142205952750b4c3aad7f7adf7dbed88b2a07bddbad89adcc9288fa5dd315
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6dd4ecdf07f50a9728e9d5966f93346eb4414153123bc71b86cf38f4b9bd6836
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0faeb2c1dbc1f175ca5f3c68bbb3b92c8ac76331f033b8bd407f680725e8e1dd
+../../spec/contracts/actql-expressions.json#/laws sha256:ea4f701bcba078ff175aed56bddc799d5b7b33b23c18bb1d5f7570020e6dc883
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:a0b2e7c55b4b52690ad4844a536fcba649f5270c610e9bfec1ba5bfe46ef3965
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e7a452567669421a1e96eec44bff56071784e1a0fd95603a9e395a8c2a8168a2
 ```
 
 <!-- stage-contract-pins:start -->

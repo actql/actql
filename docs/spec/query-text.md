@@ -367,6 +367,16 @@ path for original integer-spelled SQL literals and their derived CTE columns.
 Explicitly typed INT64 fields and Parameters keep their checked types.
 The ordered Common body is `{make_date: [year, month, day]}`.
 
+`DATE_ADD(date, INTERVAL amount DAY)` lowers to `date_interval_add` with
+the original Date, exact INT64 amount and literal `d`, in order. The signed
+interval has the same exact integer syntax as a fixed Timestamp interval.
+`DATE_DIFF(end, start, DAY)` retains the two original Date operands followed
+by literal `d`, selecting `date_boundary_diff` with an INT64 result.
+`DATE_TRUNC(date, MONTH)` retains the original Date followed by literal
+`month`, selecting `date_boundary_trunc` with a Date result. In the last two
+forms the unit is a bare keyword in its argument position. The separate
+quoted-unit forms keep their existing types and behavior.
+
 `EXTRACT(part FROM value)` selects numeric UTC fields of a Timestamp.
 The unquoted part is YEAR, QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR,
 MINUTE, SECOND, MILLISECOND or MICROSECOND. Lower the original value and
