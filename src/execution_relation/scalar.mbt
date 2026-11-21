@@ -408,6 +408,7 @@ pub fn binary(
     DecimalDivide(_)
     | Utf8Truncate
     | ParseTimestamp
+    | TryPatternedTimestamp
     | FormatTimestamp
     | RegexMatch
     | Like => Err(InvalidOperand)
@@ -566,6 +567,7 @@ pub fn binary(
         | DecimalDivide(_)
         | Utf8Truncate
         | ParseTimestamp
+        | TryPatternedTimestamp
         | FormatTimestamp
         | RegexMatch => Err(InvalidOperand)
       }
@@ -662,6 +664,7 @@ fn binary_comparison_result(
     | DecimalDivide(_)
     | Utf8Truncate
     | ParseTimestamp
+    | TryPatternedTimestamp
     | FormatTimestamp
     | RegexMatch => Err(InvalidOperand)
   }

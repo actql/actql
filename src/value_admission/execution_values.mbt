@@ -70,6 +70,43 @@ pub struct TimestampInstant {
 } derive(Eq, Debug)
 
 ///|
+fn timestamp_leap_year(year : Int) -> Bool {
+  year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+///|
+/// Check decoded UTC components before a caller constructs timestamp text.
+/// This is the same calendar domain as the canonical Value reader.
+pub fn timestamp_components_valid(
+  year : Int,
+  month : Int,
+  day : Int,
+  hour : Int,
+  minute : Int,
+  second : Int,
+) -> Bool {
+  if year < 0 ||
+    year > 9999 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59 ||
+    second < 0 ||
+    second > 59 {
+    return false
+  }
+  day <=
+  (match month {
+    2 => if timestamp_leap_year(year) { 29 } else { 28 }
+    4 | 6 | 9 | 11 => 30
+    _ => 31
+  })
+}
+
+///|
 /// Read only canonical UTC Value spelling, without host dates or binary64.
 pub fn timestamp_instant(text : String) -> TimestampInstant? {
   let length = text.length()
@@ -94,31 +131,10 @@ pub fn timestamp_instant(text : String) -> TimestampInstant? {
     timestamp_digits(text, 20, length - 1) is Some(fraction) else {
     return None
   }
-  if month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59 {
+  if !timestamp_components_valid(year, month, day, hour, minute, second) {
     return None
   }
-  let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-  let month_lengths = [
-    31,
-    if leap {
-      29
-    } else {
-      28
-    },
-    31,
-    30,
-    31,
-    30,
-    31,
-    31,
-    30,
-    31,
-    30,
-    31,
-  ]
-  if day < 1 || day > month_lengths[month - 1] {
-    return None
-  }
+  let leap = timestamp_leap_year(year)
   let before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
   let leap_day = if leap && month > 2 { 1 } else { 0 }
   let days = 365 * year +

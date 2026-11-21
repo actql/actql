@@ -1831,6 +1831,7 @@ fn advance_expression_frame_impl(
               continue
             }
             if op == @lower.ParseTimestamp ||
+              op == @lower.TryPatternedTimestamp ||
               op == @lower.FormatTimestamp ||
               op == @lower.Utf8Truncate ||
               op == @lower.Contains ||
@@ -1853,6 +1854,8 @@ fn advance_expression_frame_impl(
                   [left_root, frame.current_root],
                   if op == @lower.ParseTimestamp {
                     TextParseTimestamp
+                  } else if op == @lower.TryPatternedTimestamp {
+                    TextTryPatternedTimestamp
                   } else if op == @lower.FormatTimestamp {
                     TextFormatTimestamp
                   } else if op == @lower.Utf8Truncate {

@@ -337,9 +337,9 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // portable-1 digests include those five preimages, not unrelated fixtures.
   // The window-group unresolved-order refusal retains its Program and uses
   // its named order code in the full and portable-1 corpus preimages.
-  assert.equal(pin.totalCases, 4288);
-  assert.deepEqual(pin.counts, {"successes":2703,"executionFailures":53,"refusals":1532});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2649,"executionFailures":51,"refusals":1493}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.equal(pin.totalCases, 4291);
+  assert.deepEqual(pin.counts, {"successes":2705,"executionFailures":53,"refusals":1533});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2651,"executionFailures":51,"refusals":1494}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},

@@ -252,6 +252,8 @@ pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
 pub fn text_value(String, Int) -> Value?
 
+pub fn timestamp_components_valid(Int, Int, Int, Int, Int, Int) -> Bool
+
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 pub fn timestamp_instant(String) -> TimestampInstant?

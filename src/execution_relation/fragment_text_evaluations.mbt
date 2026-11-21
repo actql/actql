@@ -40,8 +40,8 @@ fn evaluation_position(
   }
   guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
     [
-      "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp", "format_timestamp",
-      "regex_match", "regex_extract", "regex_replace",
+      "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp", "try_timestamp",
+      "format_timestamp", "regex_match", "regex_extract", "regex_replace",
     ].contains(operation) &&
     @identity.object_field(source, operation) is Some(arguments) else {
     return None
@@ -71,6 +71,21 @@ fn evaluation_child(
     }
     _ => @identity.object_field(value, key)
   }
+}
+
+///|
+fn emit_text_envelope_pattern(
+  out : @encode.Writer,
+  cid : String,
+  original_bytes : Int,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(out, "pattern")
+  @encode.begin_object(out)
+  @encode.key(out, "ast_cid")
+  @encode.string_value(out, cid)
+  @encode.key(out, "max_pattern_bytes")
+  @encode.number_value(out, original_bytes.to_double())
+  @encode.end_object(out)
 }
 
 ///|
@@ -154,6 +169,7 @@ fn emit_text_evaluation_envelope(
       CaseFold => "case_fold"
       Utf8Truncate(_) => "utf8_truncate"
       ParseTimestamp => "parse_timestamp"
+      TryTimestamp => "try_timestamp"
       FormatTimestamp(_) => "format_timestamp"
       RegexMatch => "regex_match"
       RegexExtract => "regex_extract"
@@ -184,15 +200,15 @@ fn emit_text_evaluation_envelope(
     }
     _ => None
   }
-  if pattern is Some(pattern) {
+  if operation is (ParseTimestamp | TryTimestamp | FormatTimestamp(_)) {
+    guard @lower.text_bound_timestamp_pattern(original) is Some(pattern) else {
+      raise @encode.InvalidStructure
+    }
+    let (pattern_bytes, _, _, _) = @timestamp.usage(pattern)
+    emit_text_envelope_pattern(out, @timestamp.cid(pattern), pattern_bytes)
+  } else if pattern is Some(pattern) {
     let (pattern_bytes, _, _) = @regex.usage(pattern)
-    @encode.key(out, "pattern")
-    @encode.begin_object(out)
-    @encode.key(out, "ast_cid")
-    @encode.string_value(out, @regex.cid(pattern))
-    @encode.key(out, "max_pattern_bytes")
-    @encode.number_value(out, pattern_bytes.to_double())
-    @encode.end_object(out)
+    emit_text_envelope_pattern(out, @regex.cid(pattern), pattern_bytes)
   }
   if operation is RegexReplace(replacement) {
     let stats = @replacement.stats(replacement)
@@ -259,6 +275,7 @@ fn prepare_fragment_evaluations(
         | Nfkc
         | CaseFold
         | ParseTimestamp
+        | TryTimestamp
         | FormatTimestamp(_)
         | RegexMatch
         | RegexExtract

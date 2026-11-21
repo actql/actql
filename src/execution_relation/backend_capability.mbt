@@ -188,6 +188,7 @@ fn check_backend_capabilities(
             | DecimalDivide(_)
             | Utf8Truncate
             | ParseTimestamp
+            | TryPatternedTimestamp
             | FormatTimestamp
             | RegexMatch => ()
           }

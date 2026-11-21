@@ -45,6 +45,7 @@ priv enum TextFunctionKind {
   TextLike
   TextUtf8Truncate
   TextParseTimestamp
+  TextTryPatternedTimestamp
   TextFormatTimestamp
 } derive(Eq)
 
@@ -211,6 +212,7 @@ fn start_text_function(
     }
   }
   let timestamp_pattern = if kind == TextParseTimestamp ||
+    kind == TextTryPatternedTimestamp ||
     kind == TextFormatTimestamp {
     guard values.length() == 2 &&
       values[1] is Text(_) &&
@@ -221,13 +223,14 @@ fn start_text_function(
     let operation = @text_bounds.output_operation(
       @lower.text_bound_output(original),
     )
-    if !(if kind == TextParseTimestamp {
-        operation is @text_bounds.ParseTimestamp &&
-        @timestamp.mode(pattern) == @timestamp.Parse
-      } else {
-        operation is @text_bounds.FormatTimestamp(bound) &&
-        physical_equal(bound, pattern) &&
-        @timestamp.mode(pattern) == @timestamp.Format
+    if !(match (kind, operation) {
+        (TextParseTimestamp, @text_bounds.ParseTimestamp)
+        | (TextTryPatternedTimestamp, @text_bounds.TryTimestamp) =>
+          @timestamp.mode(pattern) == @timestamp.Parse
+        (TextFormatTimestamp, @text_bounds.FormatTimestamp(bound)) =>
+          physical_equal(bound, pattern) &&
+          @timestamp.mode(pattern) == @timestamp.Format
+        _ => false
       }) {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }

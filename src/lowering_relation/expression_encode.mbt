@@ -51,6 +51,7 @@ fn binary_name(op : BinaryOperator) -> String {
     DecimalDivide(_) => "decimal_divide"
     Utf8Truncate => "utf8_truncate"
     ParseTimestamp => "parse_timestamp"
+    TryPatternedTimestamp => "try_timestamp"
     FormatTimestamp => "format_timestamp"
     RegexMatch => "regex_match"
     StartsWith => "starts_with"
@@ -349,6 +350,7 @@ fn emit_frames(
             )
           }
           Binary(op, value, pattern) if op == ParseTimestamp ||
+            op == TryPatternedTimestamp ||
             op == FormatTimestamp => {
             pending.push(Op(binary_name(op)))
             @encode.begin_object(output)

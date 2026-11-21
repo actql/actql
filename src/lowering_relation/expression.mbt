@@ -138,6 +138,7 @@ pub(all) enum BinaryOperator {
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp
+  TryPatternedTimestamp
   FormatTimestamp
   RegexMatch
 } derive(Eq, Debug)
@@ -562,7 +563,7 @@ fn expression_children(
         @decode.lookup(obj, "right").unwrap(),
       ]
     }
-    "parse_timestamp" | "format_timestamp" | "regex_match" => {
+    "parse_timestamp" | "try_timestamp" | "format_timestamp" | "regex_match" => {
       let obj = @decode.open_object(body).unwrap()
       let value = @decode.lookup(obj, "value").unwrap()
       if @decode.lookup(obj, "pattern") is Some(pattern) {
@@ -589,13 +590,6 @@ fn expression_children(
         @decode.lookup(obj, "pattern").unwrap(),
         @decode.lookup(obj, "replacement").unwrap(),
       ]
-    }
-    "try_timestamp" => {
-      let obj = @decode.open_object(body).unwrap()
-      if @decode.lookup(obj, "pattern") is Some(_) {
-        expression_fail(body, ExpressionNotImplemented("try_timestamp pattern"))
-      }
-      [@decode.lookup(obj, "value").unwrap()]
     }
     "cast" | "try_decimal" | "quantize" | "try_number" => {
       let obj = @decode.open_object(body).unwrap()
@@ -1069,7 +1063,9 @@ fn lower_typed_expression_measured(
               bound=original_context,
             ) {
             Some(@context.Pattern(@context.Timestamp(_))) =>
-              ["parse_timestamp", "format_timestamp"].contains(operation)
+              ["parse_timestamp", "try_timestamp", "format_timestamp"].contains(
+                operation,
+              )
             Some(@context.Pattern(@context.Regex(regex))) =>
               regex_resolution_matches(operation, regex)
             Some(@context.Pattern(@context.Like(pattern))) if operation ==
@@ -1108,7 +1104,8 @@ fn lower_typed_expression_measured(
           }
           if [
               "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
-              "format_timestamp", "regex_match", "regex_extract", "regex_replace",
+              "try_timestamp", "format_timestamp", "regex_match", "regex_extract",
+              "regex_replace",
             ].contains(operation) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
@@ -1359,7 +1356,12 @@ fn lower_typed_expression_measured(
         "try_number" => Unary(TryNumber, args[0])
         "nfkc" => Unary(Nfkc, args[0])
         "case_fold" => Unary(CaseFold, args[0])
-        "try_timestamp" => Unary(TryTimestamp, args[0])
+        "try_timestamp" =>
+          if args.get(1) is Some(pattern) {
+            Binary(TryPatternedTimestamp, args[0], pattern)
+          } else {
+            Unary(TryTimestamp, args[0])
+          }
         "parse_timestamp" => Binary(ParseTimestamp, args[0], args[1])
         "format_timestamp" => Binary(FormatTimestamp, args[0], args[1])
         "regex_match" => Binary(RegexMatch, args[0], args[1])
@@ -1710,7 +1712,8 @@ fn original_expression_text_bound(
   }
   let pattern = match @typing.node_form(typed, obligation.node_index) {
     Some(@typing.Expression(operation, _)) if [
-        "parse_timestamp", "format_timestamp", "regex_match", "regex_extract", "regex_replace",
+        "parse_timestamp", "try_timestamp", "format_timestamp", "regex_match", "regex_extract",
+        "regex_replace",
       ].contains(operation) =>
       match
         original_expression_discharge(
@@ -1723,7 +1726,9 @@ fn original_expression_text_bound(
         Some(@context.Pattern(pattern)) => {
           let matches = match pattern {
             @context.Timestamp(_) =>
-              operation == "parse_timestamp" || operation == "format_timestamp"
+              ["parse_timestamp", "try_timestamp", "format_timestamp"].contains(
+                operation,
+              )
             @context.Regex(regex) => regex_resolution_matches(operation, regex)
             @context.Like(_) => false
           }

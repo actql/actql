@@ -726,6 +726,18 @@ const regexpReplaceBound = {name: 'regexp-replace-bound', format: 'sql',
   parameters: {pattern: 'a(b)c', replacement: 'e\u0301\r\n\\1$'},
   expected: [{result: 'e\u0301\r\nb$'}], columns: [{name: 'result',
     contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
+const tryTimestampPatterned = {name: 'try-timestamp-patterned', format: 'sql',
+  text: "SELECT TRY_TIMESTAMP('2000-02-29', 'yyyy-MM-dd') AS valid, "
+    + "TRY_TIMESTAMP('1900-02-29', 'yyyy-MM-dd') AS invalid, "
+    + "TRY_TIMESTAMP(NULL, 'yyyy-MM-dd') AS absent",
+  expected: [{valid: '2000-02-29T00:00:00.000Z', invalid: null, absent: null}],
+  columns: ['valid', 'invalid', 'absent'].map(name => ({name,
+    contract: {type: 'timestamp', nullable: true}})), sourceReadCount: 0};
+const tryTimestampPatternedBound = {name: 'try-timestamp-patterned-bound', format: 'sql',
+  text: "SELECT TRY_TIMESTAMP('29/02/2000', @pattern) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}}, parameters: {pattern: 'dd/MM/yyyy'},
+  expected: [{result: '2000-02-29T00:00:00.000Z'}], columns: [{name: 'result',
+    contract: {type: 'timestamp', nullable: true}}], sourceReadCount: 0};
 export const jsonValueOriginals = [
   {name: 'json-value-original', format: 'sql',
     text: "SELECT JSON_VALUE('{}', '$.n') AS result",
@@ -928,6 +940,8 @@ export const sourceFreeSuccesses = [
   regexpExtractBound,
   regexpReplaceOriginal,
   regexpReplaceBound,
+  tryTimestampPatterned,
+  tryTimestampPatternedBound,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
@@ -936,6 +950,9 @@ export const sourceFreeSuccesses = [
   ...aggregateDefaultFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
+  {name: 'try-timestamp-patterned-invalid', format: 'sql',
+    text: "SELECT TRY_TIMESTAMP(NULL, 'yyyy') AS result",
+    expectedCode: 'ClientProgramInvalidInput'},
   {name: 'regexp-replace-invalid-escape', format: 'sql',
     text: String.raw`SELECT REGEXP_REPLACE(NULL, 'a', r'\x') AS result`,
     expectedCode: 'ClientProgramInvalidInput'},
