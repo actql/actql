@@ -657,7 +657,7 @@ export function localStrategyContribution(moon: LocalBindings, setup: unknown,
         throw stopped;
       }
     },
-    async run(task: unknown, signal?: AbortSignal, completionPermit?: Readonly<{assertAvailable?(): void}>) {
+    async run(task: unknown, signal?: AbortSignal, completionPermit?: Readonly<{assertAvailable?(): undefined}>) {
       signal?.throwIfAborted();
       const operations = checked(moon.strategyModule_local_Dispatch(setup, task)) as MaterializingExecution;
       const failureProgress = beginManagedFailureProgress(
