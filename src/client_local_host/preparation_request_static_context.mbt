@@ -69,7 +69,11 @@ fn[I, T] with_request_static_effect_explanation(
   guard owner.input is Some(held) && physical_equal(held, input) else {
     return Err(Preparation(ForeignOriginal))
   }
-  guard owner.phase == EffectCompiled &&
+  let phase = owner.phase
+  guard (
+      phase == EffectCompiled ||
+      (phase == EffectPlanReserved && owner.effect_plan is None)
+    ) &&
     owner.effect_capacity is Some(capacity) &&
     owner.compiled_effect is Some(prepared) else {
     return Err(Preparation(WrongPhase))
@@ -108,7 +112,7 @@ fn[I, T] with_request_static_effect_explanation(
           }
       }
     },
-    () => if owner.phase == Selecting { owner.phase = EffectCompiled },
+    () => if owner.phase == Selecting { owner.phase = phase },
   )
 }
 
@@ -307,16 +311,139 @@ pub fn[I] construct_request_static_effect_explanation(
     max_depth,
     max_work,
     (capacity, prepared, current, limits) => {
-      let context = match
-        construct_static_effect_context_working(
-          capacity, input, original, prepared, compiled, current, limits, max_work,
+      construct_static_effect_explanation_working(
+        capacity, input, original, prepared, compiled, current, limits, max_work,
+      )
+    },
+  )
+}
+
+///|
+fn[I] construct_static_effect_explanation_working(
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+  input : I,
+  original : @publication_host.ClientStaticEffectExplanationOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientEffectCompilation,
+  current : () -> Bool,
+  limits : (Int, Int, Int),
+  max_work : Int,
+) -> Result[(String, String), ClientRequestStaticContextIssue] {
+  let context = match
+    construct_static_effect_context_working(
+      capacity, input, original, prepared, compiled, current, limits, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  construct_static_effect_facts_working(
+    capacity, input, original, prepared, compiled, current, limits,
+  ).map(facts => (facts, context))
+}
+
+///|
+/// Closed structural wires returned together from the original preparation.
+/// The Host still owns its disclosure and total transport-byte policy.
+pub struct ClientRequestStaticEffectExplanation {
+  plan : String
+  facts : String
+  context : String
+}
+
+///|
+// During capture both original codecs and their returned wires can coexist.
+// Count the retained Map/declared members as part of the same inner value,
+// plus fixed capture/return wrappers. The legacy Plan writer has its own
+// earlier quote; this is the held projection/validation overlap.
+fn static_effect_plan_capture_construction(limits : (Int, Int, Int)) -> Int64? {
+  let (bytes, nodes, depth) = limits
+  guard explanation_read_codec_cost("plan_view", bytes, nodes, depth)
+    is Some(plan) &&
+    explanation_read_codec_cost(
+      "effectful_static_plan_view", bytes, nodes, depth,
+    )
+    is Some(effect) &&
+    @execution.preparation_representation_cost(
+      static_plan_quote_units(8L, 18L, 10L),
+    )
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(plan, effect, 1L) is Some(codecs) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(codecs, controls, 1L)
+}
+
+///|
+/// Issue one static Plan through the original working Effect Request, retaining
+/// that issuer's Map while projecting Facts and Context. The prepared input
+/// may carry the same metadata-only Model plans used by the static compiler.
+/// This private compiler binding is not a public explanation capability.
+pub fn[I] request_prepared_static_effect_explanation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+) -> Result[
+  ClientRequestStaticEffectExplanation,
+  ClientRequestStaticContextIssue,
+] {
+  guard owner.program_data is Some(data) else {
+    return Err(Preparation(WrongPhase))
+  }
+  with_request_static_effect_explanation(
+    owner,
+    input,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    (capacity, prepared, current, limits) => {
+      let graph = @strategy.checked_effect_computation_graph(
+        @publication_host.prepared_client_effect_computation_graph(prepared),
+      )
+      let (bytes, nodes, depth) = limits
+      match
+        reserve_native_static_plan_capacity(
+          capacity, input, data, graph, bytes, nodes, depth,
         ) {
+        Err(issue) => return Err(Preparation(issue))
+        Ok(_) => ()
+      }
+      let entry = client_static_plan_quote_construction_bytes()
+      match reserve_static_context_construction(capacity, input, entry) {
         Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard current() else { return Err(Preparation(ForeignOriginal)) }
+      guard static_effect_plan_capture_construction(limits) is Some(capture) else {
+        return Err(Preparation(Policy))
+      }
+      match reserve_static_context_construction(capacity, input, capture) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard current() else { return Err(Preparation(ForeignOriginal)) }
+      let compiled = match
+        issue_request_static_effect_plan_compilation(
+          prepared, manifests, limits, infers,
+        ) {
+        Err(issue) => return Err(Preparation(issue))
         Ok(value) => value
       }
-      construct_static_effect_facts_working(
-        capacity, input, original, prepared, compiled, current, limits,
-      ).map(facts => (facts, context))
+      let (original, plan) = match
+        @publication_host.capture_client_static_effect_explanation_original(
+          prepared, compiled, bytes, nodes, depth,
+        ) {
+        Err(issue) => return Err(Context(issue))
+        Ok(value) => value
+      }
+      construct_static_effect_explanation_working(
+        capacity, input, original, prepared, compiled, current, limits, max_work,
+      ).map(value => { plan, facts: value.0, context: value.1, })
     },
   )
 }

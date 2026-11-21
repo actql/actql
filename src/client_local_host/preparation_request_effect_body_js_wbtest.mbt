@@ -686,3 +686,135 @@ test "static Effect Explanation pairs Facts and Context with one Plan and final 
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "prepared static Effect reader issues one Plan with both structural facets" {
+  let (parent, input, _) = request_effect_compile_fixture()
+  let (legacy, legacy_input, _) = request_effect_compile_fixture()
+  let checks = parent._observed_semantic_check_calls
+  let compiles = parent._observed_program_compile_calls
+  let manifests = request_program_module_manifests()
+  let value = match
+    request_prepared_static_effect_explanation(
+      parent, input, manifests, 65536, 8192, 64, 10000,
+    ) {
+    Err(issue) => fail(@debug.to_string(issue))
+    Ok(result) => result
+  }
+  assert_eq(
+    value.plan,
+    request_prepared_static_plan_view(
+      legacy, legacy_input, manifests, 65536, 8192, 64,
+    ).unwrap(),
+  )
+  let parse = (name, wire) => {
+    @publication.parse_interactive_run_control_shape(
+      name, wire, 65536, 8192, 64,
+    ).unwrap()
+  }
+  let plan = parse("effectful_static_plan_view", value.plan)
+  let component = @identity.object_field(plan, "computation").unwrap()
+  let view = @identity.object_field(component, "plan_view").unwrap()
+  let map = @identity.object_field(view, "logical_map").unwrap()
+  let facts = parse("explanation_facts", value.facts)
+  let context = parse("explanation_context", value.context)
+  let binding = @identity.object_field(context, "binding").unwrap()
+  guard @identity.object_field(view, "compiled_plan_cid")
+    is Some(@identity.String(plan_cid)) &&
+    @identity.object_field(map, "self_cid") is Some(@identity.String(map_cid)) else {
+    fail("the original Plan and map identities must be present")
+  }
+  for facet in [facts, binding] {
+    assert_true(
+      @identity.object_field(facet, "compiled_plan_cid")
+      is Some(@identity.String(value)) &&
+      value == plan_cid,
+    )
+    assert_true(
+      @identity.object_field(facet, "logical_map_cid")
+      is Some(@identity.String(value)) &&
+      value == map_cid,
+    )
+  }
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(parent.effect_plan is None)
+  assert_true(parent.submitted_intent is None)
+  assert_eq(parent._observed_semantic_check_calls, checks)
+  assert_eq(parent._observed_program_compile_calls, compiles)
+  abort_request_preparation_after_cleanup(legacy).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "prepared static Effect Explanation reuses its borrowed singleton or composed Model plans" {
+  for plural in [false, true] {
+    let (parent, input, holder) = request_effect_model_material_fixture(plural~)
+    let prepared = @resources.preparation_body_borrow_value(holder).unwrap()
+    let occurrences = @publication_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap()
+    let model_count = if plural { 2 } else { 1 }
+    assert_eq(occurrences.length(), model_count)
+    let infers = occurrences.map(occurrence => {
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        65536,
+        8192,
+        64,
+      ).unwrap()
+    })
+    let value = match
+      request_prepared_static_effect_explanation(
+        parent,
+        input,
+        request_program_module_manifests(),
+        65536,
+        8192,
+        64,
+        10000,
+        infers~,
+      ) {
+      Ok(output) => output
+      Err(issue) => fail(@debug.to_string(issue))
+    }
+    let context = @publication.parse_interactive_run_control_shape(
+      "explanation_context",
+      value.context,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    guard @identity.object_field(context, "items")
+      is Some(@identity.Array(items)) else {
+      fail("Context must contain its original item inventory")
+    }
+    let mut found = 0
+    for index in 0..<@identity.array_count(items) {
+      let item = @identity.array_at(items, index).unwrap()
+      if @identity.object_field(item, "kind")
+        is Some(@identity.String("model_task")) {
+        assert_true(
+          @identity.object_field(item, "task_id")
+          is Some(@identity.String("model-task:risk-score.v1")),
+        )
+        found += 1
+      }
+    }
+    assert_eq(found, model_count)
+    assert_true(parent.phase == EffectPlanReserved)
+    assert_true(parent.effect_plan is None)
+    assert_true(parent.submitted_intent is None)
+    assert_true(
+      physical_equal(
+        @resources.preparation_body_borrow_value(holder).unwrap(),
+        prepared,
+      ),
+    )
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}

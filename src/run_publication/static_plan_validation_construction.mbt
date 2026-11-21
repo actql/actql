@@ -160,6 +160,11 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
   ("logical_map", true, static_plan_validation_profile("logical_map", true)),
   ("plan_view", true, static_plan_validation_profile("plan_view", true)),
   (
+    "effectful_static_plan_view",
+    true,
+    static_plan_validation_profile("effectful_static_plan_view", true),
+  ),
+  (
     "explanation_facts",
     false,
     static_plan_validation_profile("explanation_facts", false),

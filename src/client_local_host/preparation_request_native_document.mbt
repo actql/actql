@@ -542,15 +542,11 @@ pub fn[I] request_prepared_static_plan_view(
             return Err(Preparation(Policy))
           }
           let compiled = match
-            @publication_host.issue_prepared_client_effect_compilation(
+            issue_request_static_effect_plan_compilation(
               prepared,
               manifests,
-              @publication_host.client_standard_values_sequence_limits(),
-              1000,
-              1000,
-              bytes,
-              nodes,
-              depth,
+              (bytes, nodes, depth),
+              [],
             ) {
             Err(_) => return Err(Preparation(Policy))
             Ok(value) => value
@@ -608,4 +604,32 @@ fn[I, P] reserve_native_static_plan_capacity(
   @resources.reserve_working_preparation_phase(capacity, input, r, e).map_err(issue => {
     ClientRequestPreparationIssue::Capacity(issue)
   })
+}
+
+///|
+// Both static readers issue the same compiler Plan. The metadata-only Model
+// originals belong to the checked Effect; the compiler verifies identity and
+// scope. Its singleton and composed branches have distinct inputs.
+fn issue_request_static_effect_plan_compilation(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  manifests : @publication_host.ClientCompilationManifests,
+  limits : (Int, Int, Int),
+  infers : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientRequestPreparationIssue,
+] {
+  let (bytes, nodes, depth) = limits
+  @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    bytes,
+    nodes,
+    depth,
+    infer=if infers.length() == 1 { Some(infers[0]) } else { None },
+    infers=if infers.length() == 1 { [] } else { infers },
+  ).map_err(_ => Policy)
 }
