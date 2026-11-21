@@ -41,7 +41,7 @@ fn evaluation_position(
   guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
     [
       "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp", "format_timestamp",
-      "regex_match", "regex_extract",
+      "regex_match", "regex_extract", "regex_replace",
     ].contains(operation) &&
     @identity.object_field(source, operation) is Some(arguments) else {
     return None
@@ -140,10 +140,15 @@ fn emit_text_evaluation_envelope(
   @encode.end_object(out)
   @encode.key(out, "max_output_bytes")
   @encode.number_value(out, @text_bounds.output_bytes(bound).to_double())
+  if @text_bounds.output_replacements(bound) is Some(count) {
+    @encode.key(out, "max_replacements")
+    @encode.number_value(out, count.to_double())
+  }
+  let operation = @text_bounds.output_operation(bound)
   @encode.key(out, "operation")
   @encode.string_value(
     out,
-    match @text_bounds.output_operation(bound) {
+    match operation {
       TryNumber => "try_number"
       Nfkc => "nfkc"
       CaseFold => "case_fold"
@@ -152,10 +157,11 @@ fn emit_text_evaluation_envelope(
       FormatTimestamp(_) => "format_timestamp"
       RegexMatch => "regex_match"
       RegexExtract => "regex_extract"
+      RegexReplace(_) => "regex_replace"
       _ => raise @encode.InvalidStructure
     },
   )
-  let pattern = match @text_bounds.output_operation(bound) {
+  let pattern = match operation {
     RegexMatch => {
       guard @lower.text_bound_regex_pattern(original) is Some((pattern, _)) else {
         raise @encode.InvalidStructure
@@ -164,6 +170,14 @@ fn emit_text_evaluation_envelope(
     }
     RegexExtract => {
       guard @lower.text_bound_regex_extract(original) is Some((pattern, _, _)) else {
+        raise @encode.InvalidStructure
+      }
+      Some(pattern)
+    }
+    RegexReplace(expected) => {
+      guard @lower.text_bound_regex_replace(original)
+        is Some((pattern, _, replacement)) &&
+        physical_equal(expected, replacement) else {
         raise @encode.InvalidStructure
       }
       Some(pattern)
@@ -178,6 +192,20 @@ fn emit_text_evaluation_envelope(
     @encode.string_value(out, @regex.cid(pattern))
     @encode.key(out, "max_pattern_bytes")
     @encode.number_value(out, pattern_bytes.to_double())
+    @encode.end_object(out)
+  }
+  if operation is RegexReplace(replacement) {
+    let stats = @replacement.stats(replacement)
+    @encode.key(out, "replacement")
+    @encode.begin_object(out)
+    @encode.key(out, "ast_cid")
+    @encode.string_value(out, @replacement.cid(replacement))
+    @encode.key(out, "capture_reference_count")
+    @encode.number_value(out, stats.capture_reference_count.to_double())
+    @encode.key(out, "literal_utf8_bytes")
+    @encode.number_value(out, stats.literal_utf8_bytes.to_double())
+    @encode.key(out, "max_capture_index")
+    @encode.number_value(out, stats.max_capture_index.to_double())
     @encode.end_object(out)
   }
   @encode.key(out, "semantic_step_id")
@@ -233,7 +261,8 @@ fn prepare_fragment_evaluations(
         | ParseTimestamp
         | FormatTimestamp(_)
         | RegexMatch
-        | RegexExtract)) {
+        | RegexExtract
+        | RegexReplace(_))) {
         return Err(GeneratedDecodeFailure)
       }
       let pointer = match

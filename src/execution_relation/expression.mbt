@@ -130,6 +130,7 @@ priv enum Evaluation {
   RegexMatching(RegexMatchFrame)
   RegexExtracting(TextFunctionState, RegexMatchFrame, Int, Int64)
   RegexCaptureText(TextFunctionState, RegexCaptureText)
+  RegexReplacing(RegexReplaceFrame)
   ArrayTextJoin(TextFunctionState, ArrayTextJoin)
   FormatText(TextFunctionState, FormatStrings)
   SqlJsonText(TextFunctionState, SqlJsonCursor)
@@ -441,6 +442,13 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
       if state.search is Some(search) {
         search.cancel()
       }
+    RegexReplacing(state) => {
+      if state.search.search is Some(search) {
+        search.cancel()
+      }
+      state.selected = None
+      state.output.builder = None
+    }
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -893,6 +901,7 @@ fn advance_expression_frame_impl(
               op == @lower.ToJsonString ||
               op == @lower.JsonValue ||
               op == @lower.RegexExtract ||
+              op == @lower.RegexReplace ||
               op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
@@ -914,7 +923,9 @@ fn advance_expression_frame_impl(
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
-              } else if op == @lower.Replace || op == @lower.Translate {
+              } else if op == @lower.Replace ||
+                op == @lower.Translate ||
+                op == @lower.RegexReplace {
                 children.length() == 3
               } else if op == @lower.LeftString ||
                 op == @lower.RightString ||
@@ -938,6 +949,8 @@ fn advance_expression_frame_impl(
                     TextJsonValue
                   } else if op == @lower.RegexExtract {
                     TextRegexExtract
+                  } else if op == @lower.RegexReplace {
+                    TextRegexReplace
                   } else if op == @lower.Split {
                     TextSplit
                   } else if op == @lower.Repeat {
@@ -990,7 +1003,8 @@ fn advance_expression_frame_impl(
               | FormatStrings
               | ToJsonString
               | JsonValue
-              | RegexExtract => Null
+              | RegexExtract
+              | RegexReplace => Null
               Concat
               | ConcatStrict
               | Replace
@@ -1356,6 +1370,11 @@ fn advance_expression_frame_impl(
               }
               if state.kind == TextRegexExtract {
                 match start_regex_extract(frame, state, args.values) {
+                  Ok(_) => ()
+                  Err(issue) => return Err(issue)
+                }
+              } else if state.kind == TextRegexReplace {
+                match start_regex_replace(frame, state, args.values) {
                   Ok(_) => ()
                   Err(issue) => return Err(issue)
                 }
@@ -2089,6 +2108,7 @@ fn advance_expression_frame_impl(
               | ToJsonString
               | JsonValue
               | RegexExtract
+              | RegexReplace
               | Substring
               | LeftString
               | RightString
@@ -2367,6 +2387,13 @@ fn advance_expression_frame_impl(
       RegexCaptureText(state, selected) => {
         frame.active = state.expression
         match advance_regex_capture(frame, state, selected) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      RegexReplacing(state) => {
+        frame.active = state.output.expression
+        match advance_regex_replace(frame, state) {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }

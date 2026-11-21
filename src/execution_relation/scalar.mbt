@@ -714,6 +714,7 @@ pub fn boolean_pair(
     | ToJsonString
     | JsonValue
     | RegexExtract
+    | RegexReplace
     | Substring
     | LeftString
     | RightString

@@ -3,6 +3,7 @@ fn original_string_fragment_request(
   expression? : String = "try_number(text)",
   max_pattern_bytes? : Int = 1,
   max_output_bytes? : Int = 64,
+  max_replacements? : Int = 1,
   structured? : Bool = false,
 ) -> @lower.FragmentRequest {
   let unsigned =
@@ -14,6 +15,10 @@ fn original_string_fragment_request(
   let unsigned = unsigned.replace(
     old="\"max_output_bytes\":64",
     new="\"max_output_bytes\":" + max_output_bytes.to_string(),
+  )
+  let unsigned = unsigned.replace(
+    old="\"max_replacements\":1",
+    new="\"max_replacements\":" + max_replacements.to_string(),
   )
   let cid = "sha256:" + @sha.hex(@utf8.encode(unsigned))
   let wire = unsigned.replace(

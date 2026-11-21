@@ -163,6 +163,7 @@ pub(all) enum ManyOperator {
   ToJsonString
   JsonValue
   RegexExtract
+  RegexReplace
   Substring
   LeftString
   RightString
@@ -470,6 +471,7 @@ fn expression_tag(
     | "format_timestamp"
     | "regex_match"
     | "regex_extract"
+    | "regex_replace"
     | "nfkc"
     | "case_fold"
     | "utf8_truncate"
@@ -579,6 +581,14 @@ fn expression_children(
         children.push(capture)
       }
       children
+    }
+    "regex_replace" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "pattern").unwrap(),
+        @decode.lookup(obj, "replacement").unwrap(),
+      ]
     }
     "try_timestamp" => {
       let obj = @decode.open_object(body).unwrap()
@@ -1098,7 +1108,7 @@ fn lower_typed_expression_measured(
           }
           if [
               "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
-              "format_timestamp", "regex_match", "regex_extract",
+              "format_timestamp", "regex_match", "regex_extract", "regex_replace",
             ].contains(operation) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
@@ -1354,6 +1364,7 @@ fn lower_typed_expression_measured(
         "format_timestamp" => Binary(FormatTimestamp, args[0], args[1])
         "regex_match" => Binary(RegexMatch, args[0], args[1])
         "regex_extract" => Many(RegexExtract, args)
+        "regex_replace" => Many(RegexReplace, args)
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
@@ -1675,7 +1686,7 @@ fn regex_resolution_matches(
   match @context.regex_pattern_operation(regex) {
     Match => operation == "regex_match"
     Extract(_) => operation == "regex_extract"
-    Replace(_) => false
+    Replace(_) => operation == "regex_replace"
   }
 }
 
@@ -1699,7 +1710,7 @@ fn original_expression_text_bound(
   }
   let pattern = match @typing.node_form(typed, obligation.node_index) {
     Some(@typing.Expression(operation, _)) if [
-        "parse_timestamp", "format_timestamp", "regex_match", "regex_extract",
+        "parse_timestamp", "format_timestamp", "regex_match", "regex_extract", "regex_replace",
       ].contains(operation) =>
       match
         original_expression_discharge(

@@ -77,3 +77,22 @@ pub fn text_bound_regex_extract(
     None
   }
 }
+
+///|
+/// Both ASTs and the flags belong to the original checked occurrence.
+pub fn text_bound_regex_replace(
+  value : ExpressionTextBound,
+) -> (@regex.Pattern, String?, @replacement.Replacement)? {
+  if value.pattern is Some(@context.Regex(pattern)) &&
+    @context.regex_pattern_operation(pattern) is @context.Replace(replacement) {
+    Some(
+      (
+        @context.regex_pattern_ast(pattern),
+        @context.regex_pattern_flags(pattern),
+        replacement,
+      ),
+    )
+  } else {
+    None
+  }
+}

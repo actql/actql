@@ -413,6 +413,28 @@ fn emit_frames(
               pending.push(Expr(capture))
             }
           }
+          Many(RegexReplace, args) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_replace(bound) is Some((_, flags, _)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_replace"))
+            @encode.begin_object(output)
+            if flags is Some(flags) {
+              @encode.key(output, "flags")
+              @encode.string_value(output, flags)
+            }
+            pending.push(
+              ObjectExpressions(
+                [
+                  ("pattern", args[1]),
+                  ("replacement", args[2]),
+                  ("value", args[0]),
+                ],
+                0,
+              ),
+            )
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -435,7 +457,7 @@ fn emit_frames(
                   FormatStrings => "format_strings"
                   ToJsonString => "to_json_string"
                   JsonValue => "json_value"
-                  RegexExtract => raise @encode.InvalidStructure
+                  RegexExtract | RegexReplace => raise @encode.InvalidStructure
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

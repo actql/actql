@@ -28,6 +28,7 @@ priv enum TextFunctionKind {
   TextSqlJson
   TextJsonValue
   TextRegexExtract
+  TextRegexReplace
   TextSubstring
   TextLeft
   TextRight
@@ -347,6 +348,10 @@ fn start_text_function(
     } else if kind == TextRegexExtract {
       // The retained text state and the fixed capture span/copy cursor.
       3
+    } else if kind == TextRegexReplace {
+      // Fund the text frame and the replacement continuation, including
+      // simultaneous old and new phase tags and the borrowed copy interval.
+      4
     } else if kind == TextUtf8Truncate {
       6
     } else if kind == TextLike {
@@ -484,7 +489,7 @@ fn start_text_function(
       kind == TextSqlJson ||
       kind == TextJsonValue {
       values.length() * 3 + 1 + reserved
-    } else if kind == TextRegexExtract {
+    } else if kind == TextRegexExtract || kind == TextRegexReplace {
       values.length() * 2 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||

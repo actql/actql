@@ -146,6 +146,15 @@ fn advance_regex_search(
     state.bytes += width.to_int64()
     return Ok(RegexSearching)
   }
+  begin_regex_search(state, 0).map(_ => RegexSearching)
+}
+
+///|
+fn begin_regex_search(
+  state : RegexMatchFrame,
+  from : Int,
+) -> Result[Unit, EvalIssue] {
+  let expression = state.expression
   // The physical reserve gates every backing increase. Entry limits only
   // prevent index overflow. Expression control work meters every transition.
   let workspace = state.workspace
@@ -154,7 +163,7 @@ fn advance_regex_search(
       state.pattern,
       state.input,
       {
-        from: 0,
+        from,
         multiline: state.flags.contains("m"),
         dot_all: state.flags.contains("s"),
         max_entries: 2147483647,
@@ -163,9 +172,9 @@ fn advance_regex_search(
     ) {
     Ok(search) => {
       state.search = Some(search)
-      Ok(RegexSearching)
+      Ok(())
     }
     Err(SearchWorkspaceLimit) => Err({ kind: WorkspaceLimit, expression, })
-    Err(_) => Err(invalid)
+    Err(_) => Err({ kind: Scalar(InvalidOperand), expression, })
   }
 }
