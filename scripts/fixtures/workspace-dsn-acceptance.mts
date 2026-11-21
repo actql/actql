@@ -9,6 +9,21 @@ import {createServer as createHttpServer} from 'node:http';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import type {IncomingMessage, ServerResponse, Server} from 'node:http';
+import type {AddressInfo} from 'node:net';
+import type {Client, ClientError, SubmissionLookup} from '@actql/sdk';
+import type * as Sdk from '@actql/sdk';
+import type * as NodeClient from '@actql/node';
+import type {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+
+type Workspace = 'A' | 'B';
+type WorkspacePorts = {
+  directory: string; sdk: Pick<typeof Sdk, 'connect' | 'getSubmissionInput'>;
+  node: Pick<typeof NodeClient, 'connect'>; openHost: typeof openInstalledRemoteHttpHost;
+  loopbackHttp?: boolean; address?: string;
+};
+type Host = Awaited<ReturnType<typeof openInstalledRemoteHttpHost>>;
+type CloseObservation = {storeCleanupPending: boolean; authorizationCleanupPending: boolean; pendingRetention: readonly unknown[]};
 
 const program = {version: 'actql/0.1', id: 'workspace-connection-values',
   stages: [{id: 'source', inputs: {}, steps: [{values: {
@@ -17,8 +32,8 @@ const program = {version: 'actql/0.1', id: 'workspace-connection-values',
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 
 export async function exerciseWorkspaceConnection({directory, sdk, node, openHost,
-  loopbackHttp = false, address = '127.0.0.1'}) {
-  let key, cert;
+  loopbackHttp = false, address = '127.0.0.1'}: WorkspacePorts) {
+  let key: Buffer | undefined, cert: Buffer | undefined;
   if (!loopbackHttp) {
     execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -26,18 +41,18 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(directory, name))));
   }
   const originalCAs = loopbackHttp ? undefined : getCACertificates('default');
-  if (originalCAs !== undefined) setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
+  if (originalCAs !== undefined) setDefaultCACertificates([...originalCAs, cert!.toString('utf8')]);
   const originalFetch = globalThis.fetch;
   if (loopbackHttp) globalThis.fetch = () => {throw new Error('LoopbackUsedGlobalFetch');};
   const keys = generateKeyPairSync('ed25519');
   const principal = userInfo().username;
   const counts = {A: 0, B: 0};
-  const credentials = new Map([
+  const credentials = new Map<string, Workspace>([
     ['fixture-A:+/@?#%', 'A'], ['fixture-A-refreshed', 'A'], ['fixture-B', 'B'],
   ]);
-  const clients = [], hosts = [];
-  let server;
-  const authorization = label => ({
+  const clients: Client[] = [], hosts: Host[] = [];
+  let server: Server | undefined;
+  const authorization = (label: Workspace) => ({
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: 'workspace-fixture', entries: [
         {entry_id: 'host-read', outcome: 'allow', principal: {any_of: [principal]},
@@ -49,32 +64,32 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: principal,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    observe(event) {if (event === 'computed') counts[label]++;},
+    observe(event: string) {if (event === 'computed') counts[label]++;},
   });
   try {
-    for (const label of ['A', 'B']) {
+    for (const label of ['A', 'B'] as const) {
       hosts.push(await openHost({directory: join(directory, `host-${label}`),
         workspaceId: `workspace-${label}`, authorization: authorization(label), loopbackHttp,
-        authenticate: header => credentials.get(header?.slice('Bearer '.length)) === label
+        authenticate: header => credentials.get(header?.slice('Bearer '.length)!) === label
           ? principal : undefined}));
     }
-    const handler = (request, response) => {
+    const handler = (request: IncomingMessage, response: ServerResponse) => {
       // Select the existing installed owner from the verified fixture
       // credential's immutable scope, never from the submitted assertion.
-      const label = credentials.get(request.headers.authorization?.slice('Bearer '.length));
+      const label = credentials.get(request.headers.authorization?.slice('Bearer '.length)!);
       return hosts[label === 'B' ? 1 : 0].handler(request, response);
     };
     server = loopbackHttp ? createHttpServer(handler) : createServer({key, cert}, handler);
-    await new Promise((resolve, reject) => {
-      server.once('error', reject);
-      server.listen({port: 0, host: address}, () => {server.off('error', reject); resolve();});
+    await new Promise<void>((resolve, reject) => {
+      server!.once('error', reject);
+      server!.listen({port: 0, host: address}, () => {server!.off('error', reject); resolve();});
     });
     const literal = address === '::1' ? '[::1]' : address;
     const authority = loopbackHttp && address === '::1' ? '[::1]' : 'localhost';
     const query = loopbackHttp ? '?transport=http' : '';
-    const endpoint = `${loopbackHttp ? 'http' : 'https'}://${loopbackHttp ? literal : 'localhost'}:${server.address().port}/`;
-    const uri = label => `actql://${authority}:${server.address().port}/workspace-${label}${query}`;
-    const secretDsn = `actql://token:${encodeURIComponent('fixture-A:+/@?#%')}@${authority}:${server.address().port}/workspace-A${query}`;
+    const endpoint = `${loopbackHttp ? 'http' : 'https'}://${loopbackHttp ? literal : 'localhost'}:${(server!.address() as AddressInfo).port}/`;
+    const uri = (label: Workspace) => `actql://${authority}:${(server!.address() as AddressInfo).port}/workspace-${label}${query}`;
+    const secretDsn = `actql://token:${encodeURIComponent('fixture-A:+/@?#%')}@${authority}:${(server!.address() as AddressInfo).port}/workspace-A${query}`;
     const a = await node.connect(secretDsn); clients.push(a);
     let refreshed = 'fixture-A-refreshed';
     const rotating = await sdk.connect(uri('A'), {token: async () => refreshed}); clients.push(rotating);
@@ -97,20 +112,20 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     assert.deepEqual(await runA.result('answer').all(), [{id: 1}, {id: 2}]);
     assert.deepEqual(await runB.result('answer').all(), [{id: 1}, {id: 2}]);
     assert.deepEqual(counts, {A: 1, B: 1});
-    const original = sdk.getSubmissionInput(runA);
+    const original = sdk.getSubmissionInput(runA)!;
     assert.equal(original.lookupContext.endpoint, endpoint);
     assert.equal(original.connection.workspaceId, 'workspace-A');
     assert.deepEqual(original.submissionRef, submissionA);
     assert.equal(JSON.stringify(original).includes('fixture-A'), false);
-    assert.deepEqual((await rotating.lookupSubmission(submissionA)).admission.ref, runA.ref);
+    assert.deepEqual((await rotating.lookupSubmission(submissionA) as Extract<SubmissionLookup, {kind: 'ready'}>).admission.ref, runA.ref);
     assert.deepEqual((await rotating.attach(runA.ref)).ref, runA.ref);
     // A refreshed credential for the same authenticated principal but another
     // Workspace cannot retarget a new submit, request lookup or saved Run.
     refreshed = 'fixture-B';
-    await assert.rejects(rotating.start(program, {submissionRef: rejectedSubmission}), error => {
+    await assert.rejects(rotating.start(program, {submissionRef: rejectedSubmission}), (error: ClientError) => {
       assert.equal(error.code, 'SubmissionUnknown');
-      assert.equal(error.cause?.code, 'ClientConnectionDenied');
-      assert.deepEqual(sdk.getSubmissionInput(error).submissionRef, rejectedSubmission);
+      assert.equal((error.cause as ClientError | undefined)?.code, 'ClientConnectionDenied');
+      assert.deepEqual(sdk.getSubmissionInput(error)!.submissionRef, rejectedSubmission);
       return true;
     });
     for (const operation of [
@@ -142,10 +157,10 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
   } finally {
     for (const client of clients) await client.close();
     if (server !== undefined) {
-      server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+      server.closeAllConnections(); await new Promise<Error | undefined>(resolve => server!.close(resolve));
     }
     for (const host of hosts) {
-      const closed = await host.close();
+      const closed = await host.close() as CloseObservation;
       assert.equal(closed.storeCleanupPending, false);
       assert.equal(closed.authorizationCleanupPending, false);
       assert.deepEqual(closed.pendingRetention, []);

@@ -967,3 +967,7 @@ target/
 /scripts/fixtures/client-cleanup.test.d.mts
 /scripts/fixtures/packed-short-queries.mjs
 /scripts/fixtures/packed-short-queries.d.mts
+/scripts/test-packed-workspace-connection.mjs
+/scripts/test-packed-workspace-connection.d.mts
+/scripts/fixtures/workspace-dsn-acceptance.mjs
+/scripts/fixtures/workspace-dsn-acceptance.d.mts

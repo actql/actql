@@ -13,7 +13,7 @@ const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex
   digests: () => ['client-wire', 'sdk', 'local-node', 'node'].map(
     name => `actql-${name}-0.0.0-development.tgz`)});
 const root = scratch.path;
-const run = (command, args, cwd, timeout = 120000) => {
+const run = (command: string, args: readonly string[], cwd: string, timeout = 120000) => {
   const result = spawnSync(command, args, {cwd, encoding: 'utf8', timeout,
     env: {...process.env, npm_config_cache: join(repository, '_build/npm-cache')}});
   if (result.error || result.status !== 0) {
@@ -47,7 +47,8 @@ console.log('PACKED_WORKSPACE_DSN', JSON.stringify(evidence));
 const result = run(process.execPath, ['acceptance.mjs'], application, 30000);
 assert.match(result, /PACKED_WORKSPACE_DSN/);
 const line = result.split('\n').find(value => value.startsWith('PACKED_WORKSPACE_DSN '));
-const evidence = JSON.parse(line.slice('PACKED_WORKSPACE_DSN '.length));
+const evidence = JSON.parse(line!.slice('PACKED_WORKSPACE_DSN '.length)) as
+  Awaited<ReturnType<typeof import('./fixtures/workspace-dsn-acceptance.mjs').exerciseWorkspaceConnection>>;
 assert.deepEqual(evidence.counts, {A: 1, B: 1});
 assert.equal(evidence.unexpectedDispatches, 0);
 await writeFile(join(application, 'usage.mts'), `
@@ -76,7 +77,9 @@ run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
   '--target', 'ES2022', 'usage.mts'], application);
 // The production consumer is installed, not linked to source or a workspace.
-const manifest = JSON.parse(await readFile(join(application, 'node_modules/@actql/sdk/package.json'), 'utf8'));
+const manifest = JSON.parse(await readFile(join(application, 'node_modules/@actql/sdk/package.json'), 'utf8')) as {
+  dependencies: unknown; imports: Record<string, unknown>;
+};
 assert.deepEqual(manifest.dependencies, {'@actql/client-wire': '0.0.0-development'});
 assert.deepEqual(manifest.imports['#loopback-http'], {
   node: './loopback-http.mjs', default: './loopback-http-unavailable.mjs'});
