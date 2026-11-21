@@ -76,6 +76,7 @@ function inspectExplanationOriginalStorage(database) {
 const explanationContextOriginalTable = `CREATE TABLE client_run_explanation_context_originals (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
   context_wire TEXT NOT NULL,
+  context_wire_sha256 TEXT NOT NULL,
   invocation_template_wire TEXT NOT NULL
 ) STRICT`;
 function inspectExplanationContextOriginalStorage(database) {
@@ -2958,6 +2959,7 @@ export function openClientRequestJournal(directory, {
     matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
     if (includeContext) {
       selected.context = context ? 'c.context_wire' : 'NULL';
+      selected.contextHash = context ? 'c.context_wire_sha256' : 'NULL';
       selected.template = context ? 'c.invocation_template_wire' : 'NULL';
       selected.contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
     }
@@ -2977,6 +2979,8 @@ export function openClientRequestJournal(directory, {
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
           THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes,
+        CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.contextHash})='text'
+          THEN length(CAST(${sql.contextHash} AS BLOB)) ELSE -1 END ELSE 0 END AS context_hash_bytes,
         CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.template})='text'
           THEN length(CAST(${sql.template} AS BLOB)) ELSE -1 END ELSE 0 END AS invocation_template_bytes` : ''}
       ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
@@ -2993,13 +2997,14 @@ export function openClientRequestJournal(directory, {
         !Number.isSafeInteger(invocationTemplateBytes) || invocationTemplateBytes < 0 ||
         row.facts_bytes + contextBytes + invocationTemplateBytes > maxRunDefinitionWireBytes ||
         row.context_present === 1 &&
-          (contextBytes < 1 || invocationTemplateBytes < 1 || row.facts_present !== 1)) {
+          (contextBytes < 1 || row.context_hash_bytes !== 64 ||
+            invocationTemplateBytes < 1 || row.facts_present !== 1)) {
       fail('ClientRequestJournalCorrupt');
     }
     const extent = {definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
       factsBytes: row.facts_bytes,
       storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes +
-        contextBytes + invocationTemplateBytes + 142};
+        contextBytes + invocationTemplateBytes + (contextBytes > 0 ? 64 : 0) + 142};
     if (includeContext) {
       extent.contextBytes = contextBytes;
       extent.invocationTemplateBytes = invocationTemplateBytes;
@@ -3013,7 +3018,8 @@ export function openClientRequestJournal(directory, {
         includeContext && (extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes > maxRunDefinitionWireBytes ||
           (extent.contextBytes === 0) !== (extent.invocationTemplateBytes === 0) ||
           extent.contextBytes > 0 && extent.factsBytes === 0) ||
-        extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value, 142)) {
+        extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value,
+          142 + (includeContext && extent.contextBytes > 0 ? 64 : 0))) {
       fail('InvalidClientRunExplanationExtent');
     }
     const sql = explanationReadSelection(ref, includeContext);
@@ -3035,6 +3041,8 @@ export function openClientRequestJournal(directory, {
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
           AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire,
+        CASE WHEN ${sql.contextPresent} AND typeof(${sql.contextHash})='text'
+          AND length(CAST(${sql.contextHash} AS BLOB)) = 64 THEN ${sql.contextHash} ELSE NULL END AS context_wire_sha256,
         CASE WHEN ${sql.contextPresent} AND typeof(${sql.template})='text'
           AND length(CAST(${sql.template} AS BLOB)) = ? THEN ${sql.template} ELSE NULL END AS invocation_template_wire` : ''}
       ${sql.from}`);
@@ -3049,7 +3057,12 @@ export function openClientRequestJournal(directory, {
         row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null ||
         includeContext && ((row.context_present === 1) !== (extent.contextBytes > 0) ||
           row.context_present === 1 && (row.context_wire === null ||
+            typeof row.context_wire_sha256 !== 'string' || !/^[0-9a-f]{64}$/u.test(row.context_wire_sha256) ||
             row.invocation_template_wire === null || row.facts_present !== 1))) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    if (includeContext && row.context_present === 1 &&
+        createHash('sha256').update(ref.runDefinitionCid).update(row.context_wire).digest('hex') !== row.context_wire_sha256) {
       fail('ClientRequestJournalCorrupt');
     }
     const result = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
@@ -3071,8 +3084,8 @@ export function openClientRequestJournal(directory, {
     if (original.contextWire !== undefined) {
       if (!inspectExplanationContextOriginalStorage(database)) database.exec(explanationContextOriginalTable);
       database.prepare(`INSERT INTO client_run_explanation_context_originals
-        (run_definition_cid, context_wire, invocation_template_wire) VALUES (?, ?, ?)`)
-        .run(ref.runDefinitionCid, original.contextWire, original.invocationTemplateWire);
+        (run_definition_cid, context_wire, context_wire_sha256, invocation_template_wire) VALUES (?, ?, ?, ?)`)
+        .run(ref.runDefinitionCid, original.contextWire, original.contextWireSha256, original.invocationTemplateWire);
     }
   };
 
@@ -3168,9 +3181,11 @@ export function openClientRequestJournal(directory, {
             if (!inspectExplanationContextOriginalStorage(database)) fail('ClientRequestExplanationEvidenceMissing');
             // Compare the companion inside SQLite. A retry cannot backfill
             // absent Context or read a second unquoted copy of it.
-            const context = database.prepare(`SELECT (context_wire = ? AND invocation_template_wire = ?) AS original_matches
+            const context = database.prepare(`SELECT
+              (context_wire = ? AND context_wire_sha256 = ? AND invocation_template_wire = ?) AS original_matches
               FROM client_run_explanation_context_originals WHERE run_definition_cid = ?`)
-              .get(originalExplanation.contextWire, originalExplanation.invocationTemplateWire, existing.run_definition_cid);
+              .get(originalExplanation.contextWire, originalExplanation.contextWireSha256,
+                originalExplanation.invocationTemplateWire, existing.run_definition_cid);
             if (context === undefined) fail('ClientRequestExplanationEvidenceMissing');
             if (context.original_matches !== 1) fail('ClientRequestExplanationEvidenceMismatch');
           }
@@ -3716,6 +3731,13 @@ export function openClientRequestJournal(directory, {
             bytes += Buffer.byteLength(captured.contextWire) + Buffer.byteLength(captured.invocationTemplateWire);
           }
           if (bytes > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
+          if (companion !== undefined) {
+            // Preserve the first committed bytes for the authorized cold
+            // validator. Prefix the fixed 71-byte original Run CID so a
+            // companion copied from another Run also fails this comparison.
+            captured.contextWireSha256 = createHash('sha256')
+              .update(definition.identity).update(captured.contextWire).digest('hex');
+          }
           explanationOriginal = Object.freeze(captured);
         } catch (cause) {
           if (cause?.code === 'InvalidClientRunAdmissionEvidence' ||

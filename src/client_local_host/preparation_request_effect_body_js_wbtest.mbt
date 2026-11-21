@@ -844,6 +844,138 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
     assert_true(
       selected.context.contains("\"write_fields\":{\"fields\":[\"Name\"]"),
     )
+    let identity = @publication_host.prepared_client_effect_identity(prepared)
+    let definition_cid = @publication.publication_contract_identity(definition)
+    let read = (run, parameters, context, template, before_binding) => {
+      @publication_host.retained_client_run_explanation_context(
+        run,
+        Some(original_plan),
+        identity.program_definition_cid,
+        parameters,
+        Some(selected.plan),
+        Some(selected.facts),
+        context,
+        template,
+        "scope",
+        definition_cid,
+        65536,
+        65536,
+        8192,
+        64,
+        before_binding,
+      )
+    }
+    let same_parameters = identity.parameter_values_cid
+    let admit_binding = (_, _) => true
+    let retained = read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      .unwrap()
+      .unwrap()
+    assert_eq(
+      @identity.stringify_value(retained.context, 65536, 8192, 64),
+      selected.context,
+    )
+    assert_eq(
+      @identity.stringify_value(retained.facts, 65536, 8192, 64),
+      selected.facts,
+    )
+    assert_eq(
+      @identity.stringify_value(retained.plan, 65536, 8192, 64),
+      selected.plan,
+    )
+    let other_cid = "sha256:" + "e".repeat(64)
+    let environment = @publication_host.prepared_client_effect_computation_environment_cid(
+      prepared,
+    )
+    let changed_context = selected.context.replace(
+      old=environment,
+      new=other_cid,
+    )
+    assert_true(changed_context != selected.context)
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(changed_context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    template_fields.remove("bound_invocation_template_cid")
+    template_fields["check_environment_cid"] = other_cid.to_json()
+    let other_template = @publication.seal_run_evidence_value(
+      "bound_invocation_template",
+      Json::object(template_fields).stringify(),
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let other_template_wire = @publication.run_evidence_value_json(
+      other_template,
+    )
+    assert_eq(
+      other_template_wire.length(),
+      selected.invocation_template.length(),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(changed_context),
+        Some(other_template_wire),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        sibling,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        other_cid,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(equal_wire, same_parameters, None, None, admit_binding) is Ok(None),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        None,
+        admit_binding,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      read(
+        equal_wire,
+        same_parameters,
+        Some(selected.context),
+        Some(selected.invocation_template),
+        (_, _) => false,
+      )
+      is Err(ConstructionUnavailable),
+    )
   }
   let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
   assert_true(after.0 > before.0)

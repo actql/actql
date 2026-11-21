@@ -2863,6 +2863,8 @@ pub fn retain_compiled_client_source_input(ClientSourceInput, ClientSourceProgra
 
 pub fn retain_compiled_client_source_pure_input(ClientSourceInput, PreparedClientProgram) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
 
+pub fn retained_client_run_explanation_context(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, String, String?, String?, String?, String?, String, String, Int, Int, Int, Int, (@run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Bool) -> Result[ClientRetainedExplanationContext?, ClientRetainedExplanationIssue]
+
 pub fn retained_client_run_explanation_view(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, String, String?, String?, String, String, String, Int, Int, Int, before_binding? : ((@run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Bool)?) -> Result[String, ClientRetainedExplanationIssue]
 
 pub fn retire_client_model_current_state_match(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]) -> Unit
@@ -5115,6 +5117,12 @@ pub fn ClientResultTransformationPreparation::advance(Self, Int) -> Result[(Bool
 pub fn ClientResultTransformationPreparation::advance_progress(Self, Int) -> (Bool, Int, ClientResultTransformationIssue?)
 pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
+
+pub struct ClientRetainedExplanationContext {
+  plan : @canonical_json.CanonicalValue
+  facts : @canonical_json.CanonicalValue
+  context : @canonical_json.CanonicalValue
+}
 
 pub(all) enum ClientRetainedExplanationIssue {
   ForeignOriginal

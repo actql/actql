@@ -28409,7 +28409,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b66b74848a5a9d0eaeb9a9a2d5dbba3b6397decac83fe07d749c96e2f8e92eca",
+      "sha256": "c7f386ccfe1659630041354c27a8a82fb0e6261416ece130ae46210946942448",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -46880,7 +46880,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "bcebfdd0b3c22dbbb912774ee948bc729323b46186412e9f57ab731a75805708",
+      "sha256": "a1ee0fb1f276e494aeab09c96f5e773e35ba43fed1eddda25746fa95ec3f7927",
       "exports": [
         "commonjs:sql"
       ],

@@ -1,6 +1,7 @@
 // Actual SQLite persistence with explicit nominal compiler-control ports.
 // This is not funded compiler capture or installed Host/SDK acceptance.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -385,7 +386,7 @@ test('Context and Template join the same committed Plan and Facts and leave the 
   assert.equal(Object.hasOwn(old, 'invocationTemplateBytes'), false);
   assert.equal(extent.contextBytes, Buffer.byteLength(contextWire));
   assert.equal(extent.invocationTemplateBytes, Buffer.byteLength(invocationTemplateWire));
-  assert.equal(extent.storedBytes, old.storedBytes + extent.contextBytes + extent.invocationTemplateBytes);
+  assert.equal(extent.storedBytes, old.storedBytes + extent.contextBytes + extent.invocationTemplateBytes + 64);
   const original = f.journal.readRunExplanationOriginal(f.ref, old);
   assert.equal(Object.hasOwn(original, 'contextWire'), false);
   assert.equal(Object.hasOwn(original, 'invocationTemplateWire'), false);
@@ -429,6 +430,7 @@ test('failed Context insertion rolls back the first Run, Plan and Facts before a
     db.exec(`CREATE TABLE client_run_explanation_context_originals (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
   context_wire TEXT NOT NULL,
+  context_wire_sha256 TEXT NOT NULL,
   invocation_template_wire TEXT NOT NULL
 ) STRICT`);
     db.exec(`CREATE TRIGGER fail_context_fixture BEFORE INSERT ON client_run_explanation_context_originals
@@ -488,6 +490,23 @@ test('Context and Template enforce a paired aggregate extent and refuse changed 
       assert.throws(() => f.journal.probeRunExplanationContextOriginal(f.ref), {code: 'ClientRequestJournalCorrupt'});
       update.run(original);
     }
+    const changed = contextWire.replace('["tag"]', '["zip"]');
+    assert.notEqual(changed, contextWire);
+    assert.equal(Buffer.byteLength(changed), extent.contextBytes);
+    const updateContext = db.prepare('UPDATE client_run_explanation_context_originals SET context_wire=?');
+    updateContext.run(changed);
+    assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+    assert.equal(observed.context_wire, changed, 'length alone admits the replacement from SQLite');
+    assert.equal(f.explanation().factsWire, JSON.stringify(explanationFacts));
+    updateContext.run(contextWire);
+    const original = f.journal.readRunExplanationContextOriginal(f.ref, extent);
+    assert.equal(original.contextWire, contextWire);
+    assert.equal(Object.hasOwn(original, 'contextWireSha256'), false);
+    const replaceChecksum = db.prepare('UPDATE client_run_explanation_context_originals SET context_wire_sha256=?');
+    replaceChecksum.run(createHash('sha256').update('sha256:' + 'f'.repeat(64)).update(contextWire).digest('hex'));
+    assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+    replaceChecksum.run(createHash('sha256').update(f.ref.runDefinitionCid).update(contextWire).digest('hex'));
+    assert.equal(f.journal.readRunExplanationContextOriginal(f.ref, extent).contextWire, contextWire);
     db.prepare('DELETE FROM client_run_explanation_context_originals').run();
     assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
   } finally {
