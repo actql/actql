@@ -1703,6 +1703,8 @@ target/
 /adapters/host-node/request-memory-policy.test.d.mts
 /adapters/host-node/local-result-authorization.mjs
 /adapters/host-node/local-result-authorization.d.mts
+/adapters/host-node/in-process-result.mjs
+/adapters/host-node/in-process-result.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs

@@ -2,21 +2,28 @@
 // frames. The canonical serializer and delivery attempt stay in MoonBit.
 import {deliverAuthorizedResult} from './result-access.mjs';
 
+type Delivery = Parameters<typeof deliverAuthorizedResult>;
+type LocalReadRequest = Omit<Delivery[1], 'format'>;
+type FrameLimits = Readonly<{maxRowBytes: number}>;
+type LocalFrame = Readonly<{value: Record<string, unknown>; byteLength: number}>;
+type CleanupPending = Readonly<{cleanupPending?: unknown}> | null | undefined;
+
 const terminator = Uint8Array.of(0x1e);
 
-export function authorizedLocalResultFrames(service, request, signal,
-  {maxRowBytes}) {
+export function authorizedLocalResultFrames(
+  service: Delivery[0], request: LocalReadRequest, signal: Delivery[3], {maxRowBytes}: FrameLimits,
+) {
   if (!Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1 ||
       request === null || typeof request !== 'object' ||
       signal === null || signal !== undefined &&
         typeof signal.throwIfAborted !== 'function') {
     throw new TypeError('InvalidLocalResultFrameRequest');
   }
-  return Object.freeze({kind: 'rows', frames: Object.freeze({
+  return Object.freeze({kind: 'rows' as const, frames: Object.freeze({
     async *[Symbol.asyncIterator]() {
       const controller = new AbortController();
-      const abort = () => controller.abort(signal.reason);
-      const channel = new TransformStream({start(stream) {
+      const abort = () => controller.abort(signal!.reason);
+      const channel = new TransformStream<Uint8Array, Uint8Array>({start(stream) {
         // A paused consumer can leave delivery awaiting backpressure. Abort
         // the owned channel as well as its signal so that write settles and
         // the delivery owner can release its physical reader and record its
@@ -42,10 +49,10 @@ export function authorizedLocalResultFrames(service, request, signal,
             return {confirmed: true};
           },
         }, controller.signal).then(
-        () => ({ok: true}),
-        async error => {
+        () => ({ok: true as const}),
+        async (error: unknown) => {
           try { await writer.abort(error); } catch {}
-          return {ok: false, error};
+          return {ok: false as const, error};
         },
       );
       const decoder = new TextDecoder('utf-8', {fatal: true});
@@ -65,12 +72,12 @@ export function authorizedLocalResultFrames(service, request, signal,
             if (!text || byteLength > maxRowBytes) {
               throw new Error('InvalidLocalResultFrame');
             }
-            const value = JSON.parse(text);
+            const value: unknown = JSON.parse(text);
             if (value === null || typeof value !== 'object' ||
                 Array.isArray(value)) {
               throw new Error('InvalidLocalResultFrame');
             }
-            yield Object.freeze({value, byteLength});
+            yield Object.freeze({value, byteLength}) as LocalFrame;
           }
           if (encoder.encode(pending).byteLength > maxRowBytes) {
             throw new Error('InvalidLocalResultFrame');
@@ -93,7 +100,7 @@ export function authorizedLocalResultFrames(service, request, signal,
         const settled = await outcome;
         // Early return/abort still owns terminal-record durability. Preserve
         // its existing retry handle rather than swallowing that failure.
-        if (!settled.ok && settled.error?.cleanupPending === true) {
+        if (!settled.ok && (settled.error as CleanupPending)?.cleanupPending === true) {
           throw settled.error;
         }
       }

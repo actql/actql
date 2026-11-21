@@ -56213,7 +56213,7 @@
     {
       "module": "adapters/host-node/in-process-result.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c8f45f500b8526ec1d3dd30c4a649d10855d01556d1f95a5ed6342bd177daf45",
+      "sha256": "ef3b50ef5c894269f81846f5057ec540e4768a53558618b747a5166faf3c8b1f",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -56312,8 +56312,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56326,8 +56326,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56340,7 +56340,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "// frames. The canonical serializer and delivery attempt stay in MoonBit."
               },
               {
@@ -56354,7 +56354,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "// Translate one authorized, owner-recorded JSONL delivery into typed Local"
               },
               {
@@ -56368,8 +56368,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56382,7 +56382,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "typeof signal.throwIfAborted !== 'function') {"
               },
               {
@@ -56396,8 +56396,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56410,8 +56410,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "{maxRowBytes}) {"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "{maxRowBytes}: FrameLimits,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56424,8 +56424,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56456,8 +56456,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56470,8 +56470,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56484,7 +56484,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "// frames. The canonical serializer and delivery attempt stay in MoonBit."
               },
               {
@@ -56498,7 +56498,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "// Translate one authorized, owner-recorded JSONL delivery into typed Local"
               },
               {
@@ -56512,8 +56512,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56526,7 +56526,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
+                "path": "adapters/host-node/in-process-result.mts",
                 "anchor": "typeof signal.throwIfAborted !== 'function') {"
               },
               {
@@ -56540,8 +56540,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -56554,8 +56554,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "{maxRowBytes}) {"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "{maxRowBytes}: FrameLimits,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -56568,8 +56568,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-result.mjs",
-                "anchor": "export function authorizedLocalResultFrames(service, request, signal,"
+                "path": "adapters/host-node/in-process-result.mts",
+                "anchor": "export function authorizedLocalResultFrames("
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
