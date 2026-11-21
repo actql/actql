@@ -14,7 +14,14 @@ type Extent = ReturnType<typeof installedCheckpointBindingCanonicalConstructionG
 type Geometry = Readonly<{retained: Readonly<Extent>; workspace: Readonly<Extent>}>;
 type CanonicalInput = Readonly<{nodes: bigint; entries: bigint; units: bigint; weighted: bigint; depth: bigint}>;
 type NamespaceEntry = Readonly<{facts: Readonly<{aliases: readonly unknown[]}>}>;
-type SourceProjection = () => Extract<SynchronousRuntimeData, object>;
+type SourceValue = Extract<SynchronousRuntimeData, object>;
+type NativeInputProjection<Result extends SourceValue> = Readonly<{
+  capacity(): unknown;
+  project(): Result;
+}>;
+type ConfigurationReader = Readonly<{
+  prepareNativeInput<Result extends SourceValue>(projection: NativeInputProjection<Result>): Result;
+}>;
 
 const invalid: () => never = () => {throw new TypeError('InvalidSourceAliasConstruction');};
 const stage = <Bounds,>(retained: Extent, workspace: Extent, bounds: Bounds) => ({
@@ -34,13 +41,13 @@ const ownMethod = (owner: unknown, name: string): (...args: unknown[]) => unknow
 // reader, changes its material, or grants a caller a construction capability.
 export function captureSourceAliasConstruction(configurationReader: undefined, moon: unknown):
   <Result>(geometry: Geometry | undefined, project: () => Result) => Result;
-export function captureSourceAliasConstruction(configurationReader: unknown, moon: unknown):
-  (geometry: Geometry, project: SourceProjection) => unknown;
-export function captureSourceAliasConstruction(configurationReader: unknown, moon: unknown) {
+export function captureSourceAliasConstruction(configurationReader: ConfigurationReader, moon: unknown):
+  <Result extends SourceValue>(geometry: Geometry, project: () => Result) => Result;
+export function captureSourceAliasConstruction(configurationReader: ConfigurationReader | undefined, moon: unknown) {
   if (configurationReader === undefined) return (_geometry: Geometry | undefined, project: () => unknown) => project();
-  const prepare = ownMethod(configurationReader, 'prepareNativeInput');
+  const prepare = ownMethod(configurationReader, 'prepareNativeInput') as ConfigurationReader['prepareNativeInput'];
   const quote = ownMethod(moon, 'clientProgramInstalledSourceConstructionCapacity');
-  return (geometry: Geometry, project: SourceProjection) => {
+  return <Result extends SourceValue>(geometry: Geometry, project: () => Result) => {
     const {retained, workspace} = geometry;
     const projection = Object.freeze({
       capacity() {
@@ -49,7 +56,7 @@ export function captureSourceAliasConstruction(configurationReader: unknown, moo
       },
       project,
     });
-    return Reflect.apply(prepare, configurationReader, [projection]);
+    return Reflect.apply(prepare<Result>, configurationReader, [projection]);
   };
 }
 
