@@ -12,21 +12,21 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
 const context = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const binding = {ref, scope: 'local', revision: 'metadata/0.1'};
 const charge = {...binding, bytes: 10, maxRecords: 2, maxBytes: 20};
-function setup(path) {
+function setup(path: string) {
   const db = new DatabaseSync(path);
   db.exec(`CREATE TABLE IF NOT EXISTS client_requests (
     namespace_id TEXT, authority_scope_cid TEXT, run_definition_cid TEXT,
     caller_request_id TEXT) STRICT;`);
   return {db, storage: openClientObservationStorage(db, createSqliteTransaction(db, 'Fixture'))};
 }
-function admit(db) {
+function admit(db: DatabaseSync) {
   db.prepare('INSERT INTO client_requests VALUES (?, ?, ?, ?)')
     .run(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, 'original');
 }
 
 test('budget survives real database reopen with exact request and context binding', () => {
   const directory = mkdtempSync(join(tmpdir(), 'actql-observation-'));
-  let opened;
+  let opened: ReturnType<typeof setup> | undefined;
   try {
     const path = join(directory, 'journal.sqlite3');
     opened = setup(path);
@@ -38,7 +38,7 @@ test('budget survives real database reopen with exact request and context bindin
     opened = setup(path);
     assert.deepEqual(opened.storage.consume(charge), {accepted: true, context});
     assert.deepEqual(opened.storage.consume(charge), {accepted: false});
-    assert.throws(() => opened.storage.initialize({...binding, requestId: 'original'}));
+    assert.throws(() => opened!.storage.initialize({...binding, requestId: 'original'}));
     assert.equal(opened.storage.consume({...charge, revision: 'other'}), undefined);
   } finally {
     opened?.db.close();
@@ -58,8 +58,8 @@ test('missing, tampered and foreign custody cannot mint a fresh budget', () => {
     assert.equal(storage.consume(charge), undefined);
     db.exec("UPDATE client_observation_runs SET context_json = NULL, caller_request_id = 'foreign'");
     assert.equal(storage.consume(charge), undefined);
-    assert.equal(db.prepare('SELECT records FROM client_observation_runs').get().records, 0);
-    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get().n, 1);
+    assert.equal(db.prepare('SELECT records FROM client_observation_runs').get()!.records, 0);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get()!.n, 1);
   } finally { db.close(); }
 });
 
@@ -73,8 +73,8 @@ test('Host custody capacity refuses only extra observations, never original requ
       .run(next.namespaceId, next.authorityScopeCid, next.runDefinitionCid, 'next');
     assert.throws(() => storage.initialize({...binding, ref: next,
       requestId: 'next', maxRuns: 1}), {message: 'ObservationBudgetUnavailable'});
-    assert.equal(db.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n, 1);
-    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get().n, 2);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_observation_runs').get()!.n, 1);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get()!.n, 2);
     db.prepare('UPDATE client_observation_runs SET context_json = ?').run('x'.repeat(1024));
     assert.equal(storage.consume(charge), undefined, 'oversized custody is not parsed as context');
   } finally { db.close(); }
@@ -82,7 +82,7 @@ test('Host custody capacity refuses only extra observations, never original requ
 
 test('unchanged Owner facts survive reopen without spending another Run allowance', () => {
   const directory = mkdtempSync(join(tmpdir(), 'actql-observation-facts-'));
-  let opened;
+  let opened: ReturnType<typeof setup> | undefined;
   try {
     const path = join(directory, 'journal.sqlite3');
     opened = setup(path);
@@ -127,7 +127,7 @@ test('observation cursor is scoped and damaged custody cannot reset a budget', (
     db.prepare('UPDATE client_observation_runs SET owner_fact_key = ? WHERE run_definition_cid = ?')
       .run('x'.repeat(1024), ref.runDefinitionCid);
     assert.equal(storage.consume(first), undefined);
-    assert.equal(db.prepare('SELECT sum(records) AS n FROM client_observation_runs').get().n, 2);
-    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get().n, 2);
+    assert.equal(db.prepare('SELECT sum(records) AS n FROM client_observation_runs').get()!.n, 2);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get()!.n, 2);
   } finally { db.close(); }
 });

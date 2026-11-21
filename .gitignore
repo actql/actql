@@ -1381,3 +1381,11 @@ target/
 /adapters/host-common/sqlite-inspection-file-close.test.d.mts
 /adapters/host-common/sqlite-record-resource-bounds.test.mjs
 /adapters/host-common/sqlite-record-resource-bounds.test.d.mts
+/adapters/host-common/run-state-observation.mjs
+/adapters/host-common/run-state-observation.d.mts
+/adapters/host-common/run-state-observation.test.mjs
+/adapters/host-common/run-state-observation.test.d.mts
+/adapters/host-node/client-observation-journal.mjs
+/adapters/host-node/client-observation-journal.d.mts
+/adapters/host-node/client-observation-journal.test.mjs
+/adapters/host-node/client-observation-journal.test.d.mts

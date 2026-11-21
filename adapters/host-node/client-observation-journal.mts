@@ -1,23 +1,35 @@
 // Optional telemetry custody shares the request journal's database, but not
 // its semantic transactions or identities. Missing/corrupt custody disables
 // additional observations; it never resets an admitted Run's consumption.
+import type {DatabaseSync} from 'node:sqlite';
+import type {ObservationContext} from '../../packages/local-node/observation.js';
+import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+// @ts-expect-error TS7016: remove after observation has an authored TypeScript entry.
 import {snapshotObservationContext} from '../host-common/observation.mjs';
+
+type RunReference = Readonly<{namespaceId: string; authorityScopeCid: string; runDefinitionCid: string}>;
+type BoundObservation = Readonly<{ref: RunReference; scope: string; revision: string}>;
+type ObservationStart = BoundObservation & Readonly<{requestId: string; context?: unknown; maxRuns?: number}>;
+type ObservationCharge = BoundObservation & Readonly<{
+  bytes: number; maxRecords: number; maxBytes: number; ownerFactKey?: string;
+}>;
 
 const version = 'actql-client-observation-custody/0.1';
 const columns = ['namespace_id', 'authority_scope_cid', 'run_definition_cid',
   'caller_request_id', 'scope', 'configuration_revision', 'context_json',
   'records', 'bytes', 'owner_fact_key'].sort();
-const safe = value => Number.isSafeInteger(value) && value >= 0;
-const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
-const label = value => typeof value === 'string' && /^[a-zA-Z0-9._/-]{1,64}$/u.test(value);
-const validRef = ref => typeof ref?.namespaceId === 'string' &&
+const safe = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const cid = (value: unknown) => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
+const label = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9._/-]{1,64}$/u.test(value);
+const validRef = (ref: RunReference) => typeof ref?.namespaceId === 'string' &&
   ref.namespaceId.length <= 256 && cid(ref.authorityScopeCid) && cid(ref.runDefinitionCid);
 const fail = () => { throw new Error('ObservationBudgetUnavailable'); };
 // A physical storage bound, not the Run outcome or equivalence classifier.
-const factKey = value => typeof value === 'string' && value.length <= 64 &&
+const factKey = (value: unknown) => typeof value === 'string' && value.length <= 64 &&
   /^[a-z_]{1,24};(?:0|[1-9][0-9]{0,15});[01?];[01?]$/u.test(value);
 
-export function openClientObservationStorage(database, transaction) {
+export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,
+  transaction: Pick<ReturnType<typeof createSqliteTransaction>, 'run'>) {
   const tables = database.prepare(`SELECT name FROM sqlite_master WHERE
     type = 'table' AND name IN ('client_observation_format', 'client_observation_runs')`).all();
   if (tables.length === 0) {
@@ -52,25 +64,25 @@ export function openClientObservationStorage(database, transaction) {
       WHEN owner_fact_key IS NULL THEN NULL ELSE 'invalid' END AS owner_fact_key
     FROM client_observation_runs
     WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`);
-  const args = ref => [ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid];
+  const args = (ref: RunReference) => [ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid];
   return Object.freeze({
     // Call only after the existing acceptDefinition owner reports inserted.
     // An old Run or an idempotent acceptance cannot manufacture fresh custody.
-    initialize({ref, requestId, scope, revision, context, maxRuns = 1024}) {
+    initialize({ref, requestId, scope, revision, context, maxRuns = 1024}: ObservationStart) {
       if (!validRef(ref) || typeof requestId !== 'string' || requestId.length > 256 ||
         !safe(maxRuns) || maxRuns < 1 || maxRuns > 1024 ||
         !label(scope) || !label(revision)) fail();
       return transaction.run(() => {
         const original = retained.get(...args(ref));
         if (original?.caller_request_id !== requestId || select.get(...args(ref))) fail();
-        if (database.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n >= maxRuns) fail();
-        const observed = snapshotObservationContext(context);
+        if (database.prepare('SELECT count(*) AS n FROM client_observation_runs').get()!.n as number >= maxRuns) fail();
+        const observed: ObservationContext | undefined = snapshotObservationContext(context);
         database.prepare(`INSERT INTO client_observation_runs VALUES
           (?, ?, ?, ?, ?, ?, ?, 0, 0, NULL)`).run(...args(ref), requestId, scope,
           revision, observed === undefined ? null : JSON.stringify(observed));
       });
     },
-    consume({ref, scope, revision, bytes, maxRecords, maxBytes, ownerFactKey}) {
+    consume({ref, scope, revision, bytes, maxRecords, maxBytes, ownerFactKey}: ObservationCharge) {
       if (!validRef(ref) || !label(scope) || !label(revision) || !safe(bytes) ||
         !safe(maxRecords) || !safe(maxBytes) ||
         ownerFactKey !== undefined && !factKey(ownerFactKey)) fail();
@@ -81,10 +93,10 @@ export function openClientObservationStorage(database, transaction) {
           row.scope !== scope || row.configuration_revision !== revision ||
           !safe(row.records) || !safe(row.bytes) ||
           row.owner_fact_key !== null && !factKey(row.owner_fact_key)) return undefined;
-        let context;
+        let context: ObservationContext | undefined;
         if (row.context_json !== null) {
           try {
-            const stored = JSON.parse(row.context_json);
+            const stored = JSON.parse(row.context_json as string);
             context = snapshotObservationContext(stored);
             if (context === undefined || JSON.stringify(context) !== row.context_json) return undefined;
           } catch { return undefined; }

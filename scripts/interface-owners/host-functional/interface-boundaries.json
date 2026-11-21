@@ -13346,8 +13346,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -13368,8 +13368,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -13390,7 +13390,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// Keep the installed Host's existing failure identity while exposing the"
               },
               {
@@ -13412,7 +13412,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// issuer remains the only owner of the state and physical-stop rules."
               },
               {
@@ -13434,8 +13434,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -13456,7 +13456,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// their projection. Unconfirmed physical cleanup remains an unknown fact."
               },
               {
@@ -13478,7 +13478,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// issuer remains the only owner of the state and physical-stop rules."
               },
               {
@@ -13500,8 +13500,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -13530,7 +13530,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// Named arguments at the installed Host's Run-state JS bridge. The common MoonBit"
               },
               {
@@ -13552,7 +13552,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/run-state-observation.test.mjs",
+                "path": "adapters/host-common/run-state-observation.test.mts",
                 "anchor": "test('installed Run keys marshal absence separately and retain common refusal', () => {"
               },
               {
@@ -13586,8 +13586,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -13608,8 +13608,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -13630,7 +13630,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// Keep the installed Host's existing failure identity while exposing the"
               },
               {
@@ -13652,7 +13652,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// issuer remains the only owner of the state and physical-stop rules."
               },
               {
@@ -13674,8 +13674,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -13696,7 +13696,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// their projection. Unconfirmed physical cleanup remains an unknown fact."
               },
               {
@@ -13718,7 +13718,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// issuer remains the only owner of the state and physical-stop rules."
               },
               {
@@ -13740,8 +13740,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
-                "anchor": "export function issueInstalledRunObservationKey(moon, {"
+                "path": "adapters/host-common/run-state-observation.mts",
+                "anchor": "export function issueInstalledRunObservationKey(moon: KeyRuntime, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -13770,7 +13770,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-state-observation.mjs",
+                "path": "adapters/host-common/run-state-observation.mts",
                 "anchor": "// Named arguments at the installed Host's Run-state JS bridge. The common MoonBit"
               },
               {
@@ -13792,7 +13792,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/run-state-observation.test.mjs",
+                "path": "adapters/host-common/run-state-observation.test.mts",
                 "anchor": "test('installed Run keys marshal absence separately and retain common refusal', () => {"
               },
               {
@@ -25344,8 +25344,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25358,8 +25358,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25372,7 +25372,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const columns = ['namespace_id', 'authority_scope_cid', 'run_definition_cid',"
               },
               {
@@ -25386,7 +25386,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "// Optional telemetry custody shares the request journal's database, but not"
               },
               {
@@ -25400,7 +25400,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "// its semantic transactions or identities. Missing/corrupt custody disables"
               },
               {
@@ -25414,7 +25414,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const fail = () => { throw new Error('ObservationBudgetUnavailable'); };"
               },
               {
@@ -25428,8 +25428,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25442,7 +25442,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "'records', 'bytes', 'owner_fact_key'].sort();"
               },
               {
@@ -25456,7 +25456,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const version = 'actql-client-observation-custody/0.1';"
               },
               {
@@ -25470,7 +25470,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-observation-journal.test.mjs",
+                "path": "adapters/host-node/client-observation-journal.test.mts",
                 "anchor": "test('budget survives real database reopen with exact request and context binding', () => {"
               },
               {
@@ -25488,8 +25488,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "docs/design/owner-observations.md",
@@ -25502,8 +25502,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25516,7 +25516,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const columns = ['namespace_id', 'authority_scope_cid', 'run_definition_cid',"
               },
               {
@@ -25530,7 +25530,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "// Optional telemetry custody shares the request journal's database, but not"
               },
               {
@@ -25544,7 +25544,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "// its semantic transactions or identities. Missing/corrupt custody disables"
               },
               {
@@ -25558,7 +25558,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const fail = () => { throw new Error('ObservationBudgetUnavailable'); };"
               },
               {
@@ -25572,8 +25572,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
-                "anchor": "export function openClientObservationStorage(database, transaction) {"
+                "path": "adapters/host-node/client-observation-journal.mts",
+                "anchor": "export function openClientObservationStorage(database: Pick<DatabaseSync, 'prepare' | 'exec'>,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25586,7 +25586,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "'records', 'bytes', 'owner_fact_key'].sort();"
               },
               {
@@ -25600,7 +25600,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-observation-journal.mjs",
+                "path": "adapters/host-node/client-observation-journal.mts",
                 "anchor": "const version = 'actql-client-observation-custody/0.1';"
               },
               {
@@ -25614,7 +25614,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-observation-journal.test.mjs",
+                "path": "adapters/host-node/client-observation-journal.test.mts",
                 "anchor": "test('budget survives real database reopen with exact request and context binding', () => {"
               },
               {
