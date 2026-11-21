@@ -610,7 +610,7 @@ pub fn client_program_borrow_installed_source_material(@physical_resources.Prepa
 
 pub fn client_program_borrow_request_content_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
-pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
+pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Bool) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_borrow_request_model_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
@@ -737,6 +737,8 @@ pub fn client_program_check_environment_with_graph_profile(String, String, Bool,
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_request_value_policies(@program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> @program_check.CheckEnvironment
+
+pub fn client_program_check_infer_egress_current(@run_publication_host.ClientInferEgressAdmission) -> Result[Unit, @run_publication_host.ClientInferEgressIssue]
 
 pub fn client_program_check_infer_original_parked_storage_origin(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @run_publication.ModelOriginalResourceDocument, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, @run_publication_host.ClientModelOriginalOriginIssue]
 
@@ -3862,7 +3864,7 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
-pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[String, ClientRequestStaticPlanBridgeIssue]
+pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
@@ -4233,6 +4235,8 @@ pub fn client_program_row_source_admit_get_read(Bytes, Bool, String, Array[Int])
 pub fn client_program_row_source_advance_cursor_progress(@client_row_source_host.RowSourceCursorProgress, Int, Int, @client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_advance_provider_page_cursor(@client_row_source_host.RowSourceCursorProgress, Int, Int, Int, Bool, String) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
 

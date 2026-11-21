@@ -301,7 +301,11 @@ test('actual wait borrows one same-Journal frame while fresh SQL and current gat
     {},async()=>assert.fail('No physical index path'),async()=>{
       currentGates++;if(denied)throw Object.assign(new Error('CurrentDeny'),{code:'CurrentDeny'});
       return undefined;
-    },{},undefined,{live:()=>true,operation:()=>undefined},new Map(),issueInstalledUnpublishedRunState,
+    },{},undefined,{
+      live:()=>true,operation:()=>undefined,
+      credentialRefusalPending(actual) {assert.strictEqual(actual,ref); return false;},
+      settleCredentialRefusal(actual) {assert.strictEqual(actual,ref);},
+    },new Map(),issueInstalledUnpublishedRunState,
     ()=>'2026-10-16T00:00:00.000Z',()=>{},code=>Object.assign(new Error(code),{code}),
     new Map(),installedRunWaitDecision,(callback,delay)=>{
       assert.equal(delay,100);const id=++nextTimer;timers.set(id,callback);return id;

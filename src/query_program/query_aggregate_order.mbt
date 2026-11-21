@@ -82,10 +82,14 @@ fn aggregate_order_fields(
   evaluated : Array[(@query.Expression, String)],
   derives : Array[(String, @builder.Node)],
   max_work : Int,
+  namespace_check? : ((@query.Expression) -> NamespaceView? raise Abort)? = None,
 ) -> Array[String] raise Abort {
   let fields : Array[String] = []
   for term in call.order_by {
     let expression = term.expression
+    if namespace_check is Some(check) {
+      ignore(check(expression))
+    }
     let mut root = @query.expression_node(
       expression,
       @query.expression_root(expression),
@@ -126,6 +130,7 @@ fn aggregate_order_fields(
       ParameterReference(_) => ()
       Call(_, _)
       | SearchedCase(_, _)
+      | SimpleCase(_, _, _)
       | Binary(_, _, _)
       | Predicate(_, _)
       | Unary("NOT", _) =>
@@ -226,6 +231,8 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
       SearchedCase(branches, otherwise) =>
         total[otherwise] &&
         branches.all(branch => total[branch.0] && total[branch.1])
+      // Match operands can require the checked comparison domain.
+      SimpleCase(_, _, _) => false
       _ => false
     }
     total.push(admitted)

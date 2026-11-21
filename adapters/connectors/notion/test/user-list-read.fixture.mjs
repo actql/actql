@@ -175,13 +175,14 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     });
     const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},operation:NOTION_USER_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
-      preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound},applySynchronousProjection)});
+      preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,common,names:columns,limits:bound},applySynchronousProjection)});
     factories.push(factory);
     const reader=factory.prepare({originalAuthorization:selected.initialAuthorization,resource:'users',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,
       chargePage:typeof selected.chargeResponse==='function'?body=>selected.chargeResponse(body):selected.chargeResponse,
-      consumePage:typeof selected.consumePage==='function'?(rows,ticket)=>selected.consumePage(rows,ticket):selected.consumePage});
+      consumePage:typeof selected.consumePage==='function'?()=>assert.fail('Expected checked page wire'):selected.consumePage,
+      consumePageWire:typeof selected.consumePage==='function'?(wire,ticket)=>selected.consumePage(JSON.parse(wire),ticket):selected.consumePage});
     readers.push(reader);return reader;
   };
   return {root,state,row,journal,scope,grant,control,sign,options,current,writeAccount,create,readers};

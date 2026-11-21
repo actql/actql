@@ -234,6 +234,13 @@ pub fn NativeClientRunJournal::accept_submitted_effect_run(
       return Err(ChangedIntent)
     Err(_) => return Err(ForeignRun)
   }
+  let plan = match
+    capture_native_effect_run_plan_original(
+      prepared, allowed, definition, observation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.accept_original_submitted_run(
     authority,
     reference,
@@ -243,6 +250,7 @@ pub fn NativeClientRunJournal::accept_submitted_effect_run(
     authority_scope_cid,
     current_authorization,
     run_observation_originals=Some(observation),
+    run_plan_original=Some(plan),
   )
 }
 

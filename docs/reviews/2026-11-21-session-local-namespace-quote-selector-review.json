@@ -1,0 +1,53 @@
+{
+  "source": "14c5617fe4f0c1d466cf0dec30bb2ffb6410e7de",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "b949d8dcae2cf24884957ce4078b53c5f2aa140e6de182bc9a83d1f15ce70000",
+  "bytes": 13122,
+  "qualification": "Finite current JS package-configuration review only; no compiler, runtime, artifact or cache-reuse authority. Complete immediate source bytes/modes/membership and transitive literal imports remain original inputs.",
+  "previousRevision": "d09d86404089834fa3529ee0deb203c0ea4f763e",
+  "previousSha256": "6b2aa1c8bc3f876e159e1f9726482044621716ad307a1fa0c5a5df182d9df8d9",
+  "previousBytes": 13055,
+  "previousReview": "docs/reviews/2026-11-19-session-local-whole-source-selector-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "preparation_request_namespace_quote_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "source": "14c5617fe4f0c1d466cf0dec30bb2ffb6410e7de",
+      "path": "src/client_local_host/preparation_request_namespace_quote_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "9e05d6a2f6b780009a1cd530c9dbb90ec232d7a861c2ffbb695385e635f62351",
+      "bytes": 3485,
+      "meaning": "Exercises the same-Request namespace reservation before its compiler callback with the existing JS Request and publication fixtures.",
+      "jsFixtureDependencies": [
+        "preparation_request_parent_js_wbtest.mbt",
+        "preparation_request_query_lowering_js_wbtest.mbt"
+      ]
+    }
+  ],
+  "fixtureDependencies": [
+    {
+      "source": "14c5617fe4f0c1d466cf0dec30bb2ffb6410e7de",
+      "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "bb556e751894b5f6f746d81a86c8d88e7db141dd7e6fc1816a79e2f7cb9dc794",
+      "bytes": 18977
+    },
+    {
+      "source": "14c5617fe4f0c1d466cf0dec30bb2ffb6410e7de",
+      "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
+      "mode": "100644",
+      "sha256": "01e5dca2f8b29559f3c78a7399c189d20d40e4ff71aa80c605e138ab6584ea81",
+      "bytes": 37652
+    }
+  ],
+  "meaning": "The single JS-only namespace quote fixture uses two existing JS fixture helpers. Removing its selector restores every predecessor descriptor byte. No imports, aliases, hooks, linker options or other target selectors changed.",
+  "refusalPolicy": "Only the exact current descriptor, JS target and reviewed toolchain are admitted. Changed or omitted selectors/imports/options, foreign path/target/toolchain and all prior descriptors retain refusal/full fallback. Source body and immediate membership changes remain distinct original proof inputs."
+}

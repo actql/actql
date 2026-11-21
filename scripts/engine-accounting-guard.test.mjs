@@ -130,6 +130,42 @@ test('actual finite keyed lifecycle inventory uses its owned construction bounda
   assert.deepEqual(checkResourceLifecycle(root).problems, []);
 });
 
+test('serial dependency growth rejects unclassified direct and aliased callers', () => {
+  for (const body of [
+    'grow_keyed_dependency_body(lookup, 1, 2, 3, None)',
+    'let grow = grow_keyed_dependency_body',
+    'let reserve = reserve_keyed_dependency_serial_controls',
+  ]) {
+    const extra = [['src/run_publication_host/new_serial_receiver.mbt',
+      `fn added(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`]];
+    assert(problems(guardedConstruction(''), extra).some(issue =>
+      issue.function === 'added' && issue.rule === 'unclassified-serial-dependency-funding'));
+  }
+});
+
+test('measured dependency ranges only come from the returned body recorder', () => {
+  for (const body of [
+    'ReturnedKeyedDependencyRange(bodies~, start=0, end=1, bytes=0L, previous=None)',
+    'let make = ReturnedKeyedDependencyRange',
+  ]) {
+    const extra = [['src/run_publication_host/new_serial_receiver.mbt',
+      `fn added() -> Unit { ${body} }`]];
+    assert(problems(guardedConstruction(''), extra).some(issue =>
+      issue.function === 'added' && issue.rule === 'unclassified-measured-dependency-range'));
+  }
+  const missingQuote = 'keyed_protocol_built(value, dependency_bodies=Some(bodies), measured_bodies=Some(forged))';
+  assert(problems(guardedConstruction(missingQuote)).some(issue =>
+    issue.rule === 'unclassified-measured-dependency-input'));
+  const settlement = [['src/run_publication_host/client_keyed_lookup_identity.mbt',
+    'fn finish_keyed_lookup_protocol_metadata() -> Unit { let make = ReturnedKeyedDependencyRange }']];
+  assert(problems(guardedConstruction(''), settlement).some(issue =>
+    issue.rule === 'unclassified-measured-dependency-range'));
+  const embedded = [['src/run_publication_host/new_module.mbt',
+    'fn added() -> String { "\\{ReturnedKeyedDependencyRange(bodies~, start=0, end=1, bytes=0L, previous=None)}" }']];
+  assert(problems(guardedConstruction(''), embedded).some(issue =>
+    issue.rule === 'unclassified-interpolation'));
+});
+
 test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {
   for (const body of [
     'let grow = grow_keyed_body_construction',

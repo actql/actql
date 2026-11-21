@@ -12,6 +12,7 @@ fn compile_pipe_pivot(
   row_witness? : String? = None,
   consumed_fields? : Array[String] = [],
   authored_aliases? : Array[(String, String)] = [],
+  column_profiles? : Array[ResultColumn]? = None,
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
   let value = if clause.count_star {
     guard clause.function_name == "COUNT" &&
@@ -24,12 +25,14 @@ fn compile_pipe_pivot(
   } else if argument_value is Some(slot) {
     slot
   } else {
-    guard pipe_slot(clause.argument, visible, ranges) is Some(slot) else {
+    guard profiled_pipe_slot(clause.argument, visible, ranges, column_profiles)
+      is Some(slot) else {
       raise Abort(UnknownColumn)
     }
     slot
   }
-  guard pipe_slot(clause.column, visible, ranges) is Some(column) else {
+  guard profiled_pipe_slot(clause.column, visible, ranges, column_profiles)
+    is Some(column) else {
     raise Abort(UnknownColumn)
   }
   let index = columns.filter(pair => {

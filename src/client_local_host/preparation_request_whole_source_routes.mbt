@@ -7,6 +7,7 @@ fn[I] reserve_request_whole_source_routes(
   owner : ClientRequestPreparation[I],
   input : I,
   request : @publication_host.ClientRequestIdentity,
+  select_query? : Bool = false,
 ) -> Result[
   (
     @publication_host.ClientDirectAcquisitionOccurrences,
@@ -71,7 +72,8 @@ fn[I] reserve_request_whole_source_routes(
   guard count > 0 &&
     count <= bound &&
     request_whole_source_route_scan_count(prepared, direct) is Some(scans) &&
-    request_whole_source_route_frontier_bytes(count, scans) is Some(bytes) else {
+    request_whole_source_route_frontier_bytes(count, scans, select_query~)
+    is Some(bytes) else {
     return Err(Preparation(Policy))
   }
   match
@@ -80,6 +82,7 @@ fn[I] reserve_request_whole_source_routes(
     Ok(_) => ()
   }
   let sources : Array[@sourceviews.SourceAcquisition] = []
+  let mut query_selected = false
   for index in 0..<count {
     guard @publication_host.client_direct_acquisition_occurrence_at(
         direct, index,
@@ -90,10 +93,13 @@ fn[I] reserve_request_whole_source_routes(
     match
       select_installed_source_input(prepared, request, stage, source_index) {
       Err(issue) => return Err(Installed(issue))
-      Ok(@sourceviews.WholeInputRoute(source)) => sources.push(source)
-      // This entry never converts a Query or retries a refused Query as
-      // Whole. The Host must preserve its prior per-input route choice.
-      Ok(@sourceviews.QueryRoute(_)) => return Err(Installed(Unsupported))
+      Ok(@sourceviews.WholeInputRoute(source)) if !query_selected =>
+        sources.push(source)
+      Ok(@sourceviews.QueryRoute(_)) if select_query && sources.is_empty() =>
+        query_selected = true
+      // These constructors have distinct ownership. Mixed routes are outside
+      // the existing Native file profile, and cannot select either plan.
+      Ok(_) => return Err(Installed(Unsupported))
     }
   }
   Ok((direct, sources))

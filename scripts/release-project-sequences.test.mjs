@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, {after} from 'node:test';
 import {createHash} from 'node:crypto';
 import {runReleaseProjectSequences, assertProjectSequenceRows, assertTemplateStatic, assertProjectNodeWork,
-  assertProjectResultDescription} from './release-project-sequences.mjs';
-import {readFileSync} from 'node:fs';
+  assertProjectResultDescription, projectCliExpectedExit} from './release-project-sequences.mjs';
+import {mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 
@@ -52,11 +55,13 @@ function describedColumns(template) {
 
 function fixture({failApproval = false, replaceRun = false, mutateSavedRows = false, mutateUnrelated = false,
   mutateInitialContract = false, missingStaticControls = false} = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-rc-sequence-ports-'));
+  after(() => rmSync(root, {recursive: true, force: true}));
   const projects = new Map(), records = [], calls = [], failure = new Error('original Unknown approval');
   let ordinal = 0, pid = 100;
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
     computation: {plan_view: {logical_map: {steps: [{operator: 'join'}, {operator: 'infer'}]}}},
-    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'updates'}}]}};
+    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'aql_private_update'}}]}};
   const check = {outcome: 'completed', report: {verdict: 'verified', runnable: {verdict: 'yes', reasons: []}}};
   const current = run => ({version: 'actql-run-state/0.1', run_id: run.original.runId, status: run.status,
     checkpoint: {id: run.original.checkpointId, checkpoint_id: run.original.checkpointId,
@@ -89,7 +94,7 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
   function rows(value, run) {
     const before = mutateSavedRows ? value.data : run.before;
     if (value.template === 'churn-risk-mock') return before.salesforce.Account.rows.map((row, i) => ({
-      id: row.id, notes: row.description, active_users: before.snowflake.usage_30d.rows[i].active_users,
+      id: row.id, notes: row.description, active_users: String(before.snowflake.usage_30d.rows[i].active_users),
       trend: before.snowflake.usage_30d.rows[i].trend, risk: {input_key: {id: row.id}, outcome: 'ok', value: {level: 'high', reason: i === 0
         ? 'falling usage and a competitor evaluation' : 'support tickets about pricing'}},
     }));
@@ -103,18 +108,37 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
           next_step: i === 0 ? 'Send revised pricing by Friday' : 'Revisit next fiscal year'}}};
     });
   }
-  return {projects, records, calls, failure, options: {root: '/owned-installed-consumer',
+  return {projects, records, calls, failure, options: {root,
     async snapshot(project) {const p = projects.get(project); return {bytes: JSON.stringify(p.data), generation: p.generation};},
     async persist(record) {records.push(structuredClone(record));},
     async cli(args, project, label) {
       calls.push({surface: 'cli', args, project, ...label});
       if (args[0] === 'init') {
         assert(!projects.has(project), 'Never scaffold/reset an existing sequence project');
+        mkdirSync(project);
+        const program = args[2].slice(0, -5) + '.aql';
+        writeFileSync(join(project, program), projectTemplateFiles(args[2])[program], {flag: 'wx'});
         projects.set(project, {template: args[2], data: sourceData(args[2]), generation: 0, runs: []});
         return {code: 0, signal: null, stdout: '', pid: ++pid};
       }
       const value = projects.get(project); let reply;
-      if (args[0] === 'check') reply = check;
+      if (args[0] === 'check' && label.staticCheckControl) {
+        assert.equal(value.runs.length, 0, 'CLI controls precede the first Run');
+        const invalid = label.staticCheckControl === 'known-outcome-type-error';
+        const original = projectTemplateFiles(value.template)[value.template.slice(0, -5) + '.aql'];
+        const variable = value.template === 'churn-risk-mock' ? 'risk' : 'review';
+        assert.equal(readFileSync(join(project, args[1]), 'utf8'), invalid
+          ? original.replace(variable + ".outcome = 'ok'", variable + '.outcome = 1')
+          : 'SELECT 1 AS id |> RESULT out |> EFFECT UPDATE private.unknown FROM RESULT out ID id SET (Name = 1)');
+        reply = {version: 'actql-check-outcome/0.1', outcome: 'completed', report: {scope: {kind: 'bound_input'},
+          inputs: [{document_id: 'source', kind: 'text', byte_length: Buffer.byteLength(readFileSync(join(project, args[1]))),
+            revision: 'rev:' + '1'.repeat(64)}],
+          verdict: invalid ? 'invalid' : 'undetermined', requirements: [],
+          reasons: invalid ? [{code: 'expression_domain_mismatch', facts: {domain: 'key_comparable_operands'}}] : [],
+          coverage: {limits: invalid ? [] : [{code: 'unresolved_protected'}]}}};
+        return {code: invalid ? 1 : 0, signal: null, pid: ++pid, stdout: JSON.stringify(reply),
+          acceptance: {modelAttempts: [], writes: []}};
+      } else if (args[0] === 'check') reply = check;
       else if (args[0] === 'explain' && args[1] !== '--run') reply = plan;
       else if (args[0] === 'explain') {
         const run = value.runs.find(run => run.original.runId === args[2]); assert(run);
@@ -170,6 +194,110 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
     },
   }};
 }
+
+test('RC CLI static controls use the original template once before Run1 without changing the selection', async () => {
+  const f = fixture(), cases = await runReleaseProjectSequences(f.options);
+  assert.equal(cases.length, 8);
+  assert.equal(cases.reduce((sum, entry) => sum + entry.runs.length, 0), 24);
+  const controls = f.calls.filter(value => value.staticCheckControl);
+  assert.equal(controls.length, 4);
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    const selected = controls.filter(value => value.template === template);
+    assert.deepEqual(selected.map(value => value.staticCheckControl), ['known-outcome-type-error', 'unknown-update-target']);
+    for (const call of selected) {
+      assert.equal(call.family, 'native-while-waiting'); assert.equal(call.ordinal, 0);
+      assert.equal(call.args[0], 'check'); assert.equal(call.args[2], '--json');
+      assert(f.calls.indexOf(call) < f.calls.findIndex(value => value.project === call.project && value.args?.[0] === 'run'));
+    }
+    const program = template.slice(0, -5) + '.aql';
+    assert.equal(readFileSync(join(selected[0].project, program), 'utf8'), projectTemplateFiles(template)[program]);
+  }
+  assert.equal(f.calls.filter(value => value.surface === 'node' && value.kind === 'static').length, 2);
+});
+
+test('RC CLI expected invalid exit cannot bypass another command or control label', () => {
+  const args = ['check', 'stage2-known-outcome-type-error.aql', '--json'];
+  const label = {template: 'churn-risk-mock', family: 'native-while-waiting', ordinal: 0,
+    phase: 'check', surface: 'cli', staticCheckControl: 'known-outcome-type-error'};
+  assert.equal(projectCliExpectedExit(args, label), 1);
+  assert.equal(projectCliExpectedExit(['check', 'stage2-unknown-update-target.aql', '--json'],
+    {...label, staticCheckControl: 'unknown-update-target'}), 0);
+  assert.equal(projectCliExpectedExit(args, {...label, staticCheckControl: undefined}), 0);
+  for (const wrong of [{template: 'foreign'}, {family: 'node-sequential'}, {ordinal: 1},
+    {phase: 'run'}, {surface: 'node'}, {staticCheckControl: 'foreign'}, {staticCheckControl: 'toString'}])
+    assert.throws(() => projectCliExpectedExit(args, {...label, ...wrong}));
+  for (const wrong of [['run', ...args.slice(1)], ['check', 'original.aql', '--json'],
+    ['check', '../stage2-known-outcome-type-error.aql', '--json'], [...args, '--other']])
+    assert.throws(() => projectCliExpectedExit(wrong, label));
+});
+
+test('RC CLI static controls refuse foreign generic unclassified exit and work substitutions', async () => {
+  const changes = [
+    value => {value.code = 0;},
+    value => {value.code = 2;},
+    value => {value.signal = 'SIGTERM';},
+    (_, reply) => {reply.version = 'actql-run-state/0.1';},
+    (_, reply) => {reply.outcome = 'failed';},
+    (_, reply) => {reply.report.reasons[0].code = 'generic_error';},
+    (_, reply) => {reply.report.reasons[0].facts.domain = 'foreign';},
+    (_, reply) => {reply.report.reasons[0].code = 'check_unclassified';},
+    (_, reply) => {reply.report.requirements = [{code: 'fabricated'}];},
+    (_, reply) => {reply.report.inputs[0].byte_length++;},
+    value => {delete value.acceptance;},
+    value => {value.acceptance.modelAttempts.push('unexpected');},
+    value => {value.acceptance.writes.push('unexpected');},
+  ];
+  for (const change of changes) {
+    const f = fixture(), cli = f.options.cli;
+    f.options.cli = async (args, project, label) => {
+      const value = await cli(args, project, label);
+      if (label.staticCheckControl === 'known-outcome-type-error') {
+        const reply = JSON.parse(value.stdout); change(value, reply); value.stdout = JSON.stringify(reply);
+      }
+      return value;
+    };
+    await assert.rejects(runReleaseProjectSequences(f.options), AggregateError);
+    for (const entry of f.records.filter(value => value.family === 'native-while-waiting')) {
+      assert.equal(entry.complete, false); assert.equal(entry.failedPhase, 'check'); assert.equal(entry.runs.length, 0);
+    }
+  }
+  const f = fixture(), cli = f.options.cli;
+  f.options.cli = async (args, project, label) => {
+    const value = await cli(args, project, label);
+    if (label.staticCheckControl === 'unknown-update-target') value.code = 1;
+    return value;
+  };
+  await assert.rejects(runReleaseProjectSequences(f.options), AggregateError);
+});
+
+test('RC CLI controls preserve original files and targets and refuse occupied sidecars', async () => {
+  for (const mutation of ['occupied', 'program', 'control', 'target', 'root']) {
+    const f = fixture(), cli = f.options.cli;
+    f.options.cli = async (args, project, label) => {
+      const value = await cli(args, project, label);
+      if (mutation === 'occupied' && args[0] === 'init' && label.family === 'native-while-waiting')
+        writeFileSync(join(project, 'stage2-known-outcome-type-error.aql'), 'original occupant', {flag: 'wx'});
+      if (label.staticCheckControl === 'known-outcome-type-error') {
+        if (mutation === 'program') writeFileSync(join(project, label.template.slice(0, -5) + '.aql'), 'changed');
+        if (mutation === 'control') writeFileSync(join(project, args[1]), 'changed');
+        if (mutation === 'target') f.projects.get(project).generation++;
+        if (mutation === 'root') {
+          const program = label.template.slice(0, -5) + '.aql';
+          const original = readFileSync(join(project, program)), control = readFileSync(join(project, args[1]));
+          renameSync(project, project + '.original'); mkdirSync(project);
+          writeFileSync(join(project, program), original); writeFileSync(join(project, args[1]), control);
+        }
+      }
+      return value;
+    };
+    await assert.rejects(runReleaseProjectSequences(f.options), AggregateError);
+    for (const entry of f.records.filter(value => value.family === 'native-while-waiting')) {
+      assert.equal(entry.runs.length, 0);
+      if (mutation === 'occupied') assert.equal(readFileSync(join(entry.project,
+        'stage2-known-outcome-type-error.aql'), 'utf8'), 'original occupant');
+    }
+  }
+});
 
 test('RC sequences retain independent owner-local projects for check/plan and new Run2/3', async () => {
   const f = fixture(), cases = await runReleaseProjectSequences(f.options);
@@ -257,9 +385,9 @@ test('RC Result oracle rejects missing whole fields and changed Model values', (
   const before = {bytes: JSON.stringify(sourceData('churn-risk-mock'))};
   assert.throws(() => assertProjectSequenceRows('churn-risk-mock', [{id: '001Acme'}, {id: '001Globex'}], before));
   const rows = [
-    {id: '001Acme', notes: 'Acme notes', active_users: 4, trend: 'down', risk: {outcome: 'ok', value: {
+    {id: '001Acme', notes: 'Acme notes', active_users: '4', trend: 'down', risk: {outcome: 'ok', value: {
       level: 'high', reason: 'falling usage and a competitor evaluation'}}},
-    {id: '001Globex', notes: 'Globex notes', active_users: 12, trend: 'flat', risk: {outcome: 'ok', value: {
+    {id: '001Globex', notes: 'Globex notes', active_users: '12', trend: 'flat', risk: {outcome: 'ok', value: {
       level: 'high', reason: 'support tickets about pricing'}}},
   ];
   assert.doesNotThrow(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
@@ -267,12 +395,39 @@ test('RC Result oracle rejects missing whole fields and changed Model values', (
   assert.throws(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
 });
 
+test('RC Int64 Result oracle requires exact canonical decimal Strings without numeric coercion', () => {
+  const before = {bytes: JSON.stringify(sourceData('churn-risk-mock'))};
+  const rows = [
+    {id: '001Acme', notes: 'Acme notes', active_users: '4', trend: 'down', risk: {outcome: 'ok', value: {
+      level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+    {id: '001Globex', notes: 'Globex notes', active_users: '12', trend: 'flat', risk: {outcome: 'ok', value: {
+      level: 'high', reason: 'support tickets about pricing'}}},
+  ];
+  assert.doesNotThrow(() => assertProjectSequenceRows('churn-risk-mock', rows, before));
+  for (const value of [4, '04', '+4', '-0', '4.0', '4e0', ' 4', '5', null]) {
+    const changed = structuredClone(rows); changed[0].active_users = value;
+    assert.throws(() => assertProjectSequenceRows('churn-risk-mock', changed, before));
+  }
+  const unsafe = sourceData('churn-risk-mock'); unsafe.snowflake.usage_30d.rows[0].active_users = 9007199254740992;
+  const rounded = structuredClone(rows); rounded[0].active_users = '9007199254740992';
+  assert.throws(() => assertProjectSequenceRows('churn-risk-mock', rounded, {bytes: JSON.stringify(unsafe)}));
+});
+
 test('RC template check uses the actual typed runnable verdict and refuses a boolean substitute', () => {
   const check = JSON.parse(readFileSync(new URL('../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
     computation: {plan_view: {logical_map: {steps: [{operator: 'infer'}, {operator: 'join'}]}}},
-    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'updates'}}]}};
+    effect_set: {members: [{effect_kind: 'update', input: {kind: 'result', result_name: 'aql_private_update'}}]}};
   assert.doesNotThrow(() => assertTemplateStatic(check, plan));
+  // Both templates lower SET fields into this checked private carrier. The
+  // separately exported updates Result is still checked by full row/schema
+  // and same-original Saved assertions; it cannot replace the Effect input.
+  for (const input of [undefined, {kind: 'result', result_name: 'updates'},
+    {kind: 'result', result_name: ''}, {kind: 'result', result_name: 'foreign'},
+    {kind: 'table', table_name: 'aql_private_update'}, {kind: 'none'}]) {
+    const changed = structuredClone(plan); changed.effect_set.members[0].input = input;
+    assert.throws(() => assertTemplateStatic(check, changed));
+  }
   for (const runnable of [true, {verdict: 'no', reasons: []}, {verdict: 'unknown', reasons: []}])
     assert.throws(() => assertTemplateStatic({...check, report: {...check.report, runnable}}, plan));
   assert.throws(() => assertTemplateStatic(check, {...plan, provider_io: 1}));
@@ -308,10 +463,14 @@ test('RC zero-work and reuse claims require complete same-Run observations', () 
 });
 
 test('RC sequence phase uses the existing observer and preserves an original failed action', async () => {
-  const records = [], primary = new Error('original RC failure');
-  await assert.rejects(observeNativeMockHarnessPhase(records, 'release-project-sequences', async () => {throw primary;}),
-    value => value === primary);
-  assert.equal(records[0].state, 'failed'); assert(Number.isSafeInteger(records[0].wallNs));
+  for (const phase of ['release-project-sequences', 'original-mock-regressions']) {
+    const records = [], primary = new Error('original RC failure'), result = {};
+    assert.equal(await observeNativeMockHarnessPhase(records, phase, async () => result), result);
+    await assert.rejects(observeNativeMockHarnessPhase(records, phase, async () => {throw primary;}),
+      value => value === primary);
+    assert.deepEqual(records.map(({phase, state}) => [phase, state]), [[phase, 'completed'], [phase, 'failed']]);
+    assert(records.every(({wallNs}) => Number.isSafeInteger(wallNs) && wallNs >= 0));
+  }
 });
 
 test('RC same-value Native approval keeps original trace validation without requiring a redundant replacement', () => {

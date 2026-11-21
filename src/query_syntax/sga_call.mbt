@@ -547,6 +547,7 @@ fn QueryParser::sga_call(
     raise QueryAbort("Unknown SGA operation", token.start)
   }
   self.symbol(40)
+  self.source.published_namespace_possible = true
   let origins : Array[(Int, Int)] = []
   let argument_start = self.index
   let arguments = self.sga_arguments(

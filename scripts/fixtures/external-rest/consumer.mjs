@@ -6,6 +6,7 @@ import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {captureStandardRestRead, recoverStandardRestRead, observeOwnScopedStateFds} from './conformance.mjs';
 import {externalRestProgram, externalRestProvider} from './provider.fixture.mjs';
+import {assertAuthorRestRows} from './conformance-input.mjs';
 import {loadExternalRestModules} from './installed-modules.mjs';
 import {notionUsersProgram,notionUsersProvider} from './notion-users.fixture.mjs';
 
@@ -28,7 +29,8 @@ const startedAt = new Date().toISOString(), started = performance.now();
 const sourceProfileKeys = ['authorization', 'directory', 'sourceProfilePath', 'sourceProfilePaths'];
 assert(configuration.installation && Object.keys(configuration.installation)
   .every(key => sourceProfileKeys.includes(key)), 'Only original public installation configuration is accepted');
-const provider = configuration.family==='notion-users'?notionUsersProvider():externalRestProvider({mode: configuration.mode});
+const author = configuration.author;
+const provider = author ? undefined : configuration.family==='notion-users'?notionUsersProvider():externalRestProvider({mode: configuration.mode});
 let original;
 if (phase === 'saved') {
   const originalRoot = resolve(configuration.outputRoot, 'read');
@@ -63,11 +65,13 @@ try {
 }
 const connected = performance.now();
 const common = {outputRoot, stateRoots: configuration.stateRoots,
-  assertRows: rows => provider.assertRows(rows)};
+  assertRows: rows => author ? assertAuthorRestRows(author.expected, rows) : provider.assertRows(rows)};
 let outcome;
 if (phase === 'read') {
   outcome = await captureStandardRestRead(client, {...common, publicSdk,
-    program: configuration.family==='notion-users'?notionUsersProgram(configuration.connectorId):externalRestProgram(configuration.connectorId)});
+    program: author?.program ?? (configuration.family==='notion-users'
+      ? notionUsersProgram(configuration.connectorId) : externalRestProgram(configuration.connectorId)),
+    parameters: author?.parameters, programInput: author !== undefined});
 } else {
   // The parent must spawn this phase asynchronously while it owns TLS. It
   // uses only the successfully completed original, never a failed Run retry.

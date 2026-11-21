@@ -43,9 +43,11 @@ export function multipleTargetMockProjectFiles() {
       query_aliases: resources.map(resource => ({name: 'salesforce.' + resource.toLowerCase() + 's', resource})),
       data: resources.map(resource => ({resource, items_path: ['salesforce', resource, 'rows'],
         key_path: ['salesforce', resource, 'key'], primary_identity: 'id'})),
-      writes: resources.map(resource => ({resource, primary_identity: 'id', writable_fields: ['value'],
-        permission: 'salesforce:record:update', observe_permission: 'salesforce:record:observe',
-        approval: 'required', aliases: ['salesforce.' + resource]})),
+      writes: [['Account', 'salesforce:record:update', 'salesforce:record:observe'],
+        ['Contact', 'salesforce:contact:update', 'salesforce:contact:observe']]
+        .map(([resource, permission, observe_permission]) => ({resource, primary_identity: 'id',
+          writable_fields: ['value'], permission, observe_permission,
+          approval: 'required', aliases: ['salesforce.' + resource]})),
     }}}),
     'mock/data.json': originalDataWire,
     'multiple-targets.program.json': json({version: 'actql/0.1', id: 'fixture.mock-disjoint-targets', stages: [{

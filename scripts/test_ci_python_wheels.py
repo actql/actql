@@ -612,6 +612,73 @@ class MixedTaskDriveTraceTests(unittest.TestCase):
         trace.mark('first-cleanup-returned')
 
 
+class CurrentHistoryTraceTests(unittest.TestCase):
+    def trace_module(self):
+        # Import the actual fixture; no Source slicing, Core construction or
+        # installed-history operation is performed by these scalar controls.
+        with patch.object(sys, 'path', list(sys.path)), \
+                patch.object(sys, 'argv', ['current-history-trace-unit']):
+            return load('current_history_trace_unit',
+                        SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+
+    def test_first_original_failure_and_phase_survive_rethrow_and_later_failure(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+
+        class OpaqueFailure(RuntimeError):
+            def __str__(self):
+                raise AssertionError('Never format the original failure')
+
+        first, later = OpaqueFailure(), OpaqueFailure()
+        for phase, original in [('select', first), ('drive', later)]:
+            def invoke():
+                raise original
+            with patch('sys.stdout', io.StringIO()), \
+                    self.assertRaises(OpaqueFailure) as raised:
+                trace.call(phase, invoke)
+            self.assertIs(raised.exception, original)
+            self.assertIs(trace.refusal, first)
+            self.assertEqual(trace.refusal_phase, 'select')
+            self.assertIsNone(trace.active)
+        self.assertEqual([step['phase'] for step in trace.steps], ['select', 'drive'])
+
+    def test_same_scalar_core_refusal_and_success_result_are_preserved(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+        result = object()
+        with patch('sys.stdout', io.StringIO()):
+            self.assertIs(trace.call('select', lambda: result), result)
+        self.assertIsNone(trace.refusal)
+        original = module.LocalCoreError('reserve_next_sdk_task', -35)
+        def invoke():
+            raise original
+        with patch('sys.stdout', io.StringIO()), \
+                self.assertRaises(module.LocalCoreError) as raised:
+            trace.call('select', invoke)
+        self.assertIs(raised.exception, original)
+        self.assertIs(trace.refusal, original)
+        self.assertEqual((trace.refusal.operation, trace.refusal.code),
+                         ('reserve_next_sdk_task', -35))
+        self.assertEqual(trace.refusal_phase, 'select')
+
+    def test_reporting_failure_cannot_replace_original_base_exception(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+        original = KeyboardInterrupt()
+        def invoke():
+            raise original
+        with patch('builtins.print', side_effect=BrokenPipeError()), \
+                self.assertRaises(KeyboardInterrupt) as raised:
+            trace.call('select', invoke)
+        self.assertIs(raised.exception, original)
+        self.assertIs(trace.refusal, original)
+        self.assertEqual(trace.refusal_phase, 'select')
+        self.assertIsNone(trace.active)
+
+
 class PublicLifecycleTests(unittest.TestCase):
     def original(self, path):
         return SubmissionObservationTests().original(path)[:2]

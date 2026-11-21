@@ -41,6 +41,13 @@ pub fn client_keyed_lookup_native_dependency_bodies(
 }
 
 ///|
+priv enum NativeLookupAppendScope {
+  StandaloneWire
+  ReturnedWire
+  CatalogWire
+}
+
+///|
 // The completion constructor uses its SAME retained original before the
 // reservation becomes a holding/Model Read. The public wrapper above still
 // requires the existing completed-input entrance; no phase flag escapes.
@@ -53,6 +60,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
+  serial? : KeyedDependencySerialFunding? = None,
   retain_catalog? : Bool = true,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
@@ -104,6 +112,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     cid : String,
     wire : String,
     wire_extent : (Int, Int)?,
+    scope : NativeLookupAppendScope,
   ) -> Unit raise NativeLookupDependencyStop {
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
@@ -118,6 +127,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     if wire.length() > remaining {
       raise NativeLookupDependencyStop(Dependency(ByteLimit))
     }
+    let funding = if !(scope is StandaloneWire) && serial is Some(funding) {
+      funding.before
+    } else {
+      before_body
+    }
     let (body, bytes) = require_native_lookup_dependency(
       admit_client_effect_dependency_capture_body(
         kind,
@@ -126,7 +140,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         remaining,
         max_nodes,
         max_depth,
-        before_body,
+        funding,
         () => {
           !lookup.closed &&
           lookup.left.lookup_issue is None &&
@@ -140,17 +154,25 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     bodies.push(body)
     seen[key] = wire
     remaining -= bytes
+    // The synchronous admission returned. No parser cursor is in the
+    // retained dependency body or the duplicate table.
+    if scope is ReturnedWire &&
+      serial is Some(funding) &&
+      !(funding.record)(bodies) {
+      raise NativeLookupDependencyStop(ConstructionRefused)
+    }
   }
   fn append(
     kind : String,
     cid : String,
     wire : String,
   ) -> Unit raise NativeLookupDependencyStop {
-    append_measured(kind, cid, wire, None)
+    append_measured(kind, cid, wire, None, StandaloneWire)
   }
   fn contract(
     kind : String,
     value : @publication.PublicationContract,
+    serial_member : Bool,
   ) -> Unit raise NativeLookupDependencyStop {
     // The SAME sealed original owns these encoder facts and the wire below.
     // Preserve full body/CID admission; unknown wires keep the byte-node bound.
@@ -162,6 +184,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @publication.publication_contract_identity(value),
       @publication.publication_contract_json(value),
       extent,
+      if serial_member {
+        ReturnedWire
+      } else {
+        StandaloneWire
+      },
     )
   }
   fn evidence(
@@ -176,6 +203,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @publication.run_evidence_value_identity(value),
       @publication.run_evidence_value_json(value),
       extent,
+      StandaloneWire,
     )
   }
   fn receive_policy_body(
@@ -234,7 +262,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     } catch {
       _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
     }
-    append_measured(kind, cid, wire, Some((bytes, nodes)))
+    append_measured(kind, cid, wire, Some((bytes, nodes)), StandaloneWire)
   }
   fn carrier(
     original : @carrier.Carrier,
@@ -287,15 +315,15 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         ("native_file_lookup_batch_plan", batch),
         (@publication.publication_contract_name(profile), profile),
       ] {
-      contract(kind, value)
+      contract(kind, value, false)
     }
     evidence("source_input_logical", completed.input)
     evidence("source_evidence", completed.source)
     guard lookup.publication_identity is Some(identity) else {
       return Err(ForeignInput)
     }
-    contract("request_key_set", identity.keys)
-    contract("acquisition_scope", identity.scope)
+    contract("request_key_set", identity.keys, false)
+    contract("acquisition_scope", identity.scope, false)
     // The keyed scope names this SAME checked template's static request.
     // Each Whole Source request below is an independent scope obligation.
     append(
@@ -381,10 +409,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     for index, source in native.sources {
       evidence("source_input_logical", source.logical)
       evidence("source_evidence", source.observation)
-      contract("acquisition_relation", source.relation)
-      contract("ordering_evidence", source.ordering)
-      contract("acquisition_scope", source.scope)
-      contract("result_retention_policy", source.retention)
+      contract("acquisition_relation", source.relation, false)
+      contract("ordering_evidence", source.ordering, false)
+      contract("acquisition_scope", source.scope, false)
+      contract("result_retention_policy", source.retention, false)
       append(
         "request_values",
         source.request_cid,
@@ -426,9 +454,15 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           ("native_file_lookup_attempt_event", page.event),
           ("native_file_lookup_adoption", page.adoption),
         ] {
-        contract(kind, value)
+        contract(kind, value, true)
       }
-      append("relation_value", page.logical_value_cid, page.body)
+      append_measured(
+        "relation_value",
+        page.logical_value_cid,
+        page.body,
+        None,
+        ReturnedWire,
+      )
     }
     guard @environment.lookup_execution_policy(
         @acquisition.lookup_bounds_policy(original.keyed.binding.bounds),
@@ -457,22 +491,39 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         Some(component.original.output_policy),
       ] {
       if policy is Some(policy) {
-        let selected = require_native_lookup_dependency(
-          checked_client_source_policy_bodies(
-            program,
-            policy,
-            remaining,
-            max_nodes,
-            max_depth,
-            max_nodes,
-            retain_catalog~,
-            retained_body_keys=Some(seen),
-            before_body~,
-            admitted_body=policy_receiver,
-          ).map_err(issue => Static(issue)),
-        )
-        for (kind, cid, wire) in selected {
-          append(kind, cid, wire)
+        let funding = match serial {
+          None => before_body
+          Some(policy_funding) => {
+            if !(policy_funding.begin_batch)(bodies.length()) {
+              raise NativeLookupDependencyStop(ConstructionRefused)
+            }
+            policy_funding.before
+          }
+        }
+        {
+          let selected = require_native_lookup_dependency(
+            checked_client_source_policy_bodies(
+              program,
+              policy,
+              remaining,
+              max_nodes,
+              max_depth,
+              max_nodes,
+              retain_catalog~,
+              retained_body_keys=Some(seen),
+              before_body=funding,
+              admitted_body=policy_receiver,
+            ).map_err(issue => Static(issue)),
+          )
+          if serial is Some(_) && !selected.is_empty() {
+            raise NativeLookupDependencyStop(ForeignInput)
+          }
+          for (kind, cid, wire) in selected {
+            append(kind, cid, wire)
+          }
+        }
+        if serial is Some(policy_funding) && !(policy_funding.record)(bodies) {
+          raise NativeLookupDependencyStop(ConstructionRefused)
         }
       }
     }
@@ -482,46 +533,74 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     let mut index = 0
     let mut references = 0
     while index < bodies.length() {
-      guard @publication.captured_effect_dependency_body_references(
-          bodies[index],
-          limits.max_references - references,
-        )
-        is Some(required) else {
+      let body = bodies[index]
+      let count = @publication.captured_effect_dependency_body_reference_count(
+        body,
+      )
+      if count > limits.max_references - references {
         return Err(Dependency(ReferenceLimit))
       }
-      references += required.length()
+      references += count
       index += 1
-      for (kind, cid) in required {
+      // The admitted body keeps its immutable edges. One borrowed pair and
+      // its Option are live across each nested call, instead of a copied vector.
+      for slot in 0..<count {
+        guard @publication.captured_effect_dependency_body_reference_at(
+            body, slot,
+          )
+          is Some((kind, cid)) else {
+          return Err(Dependency(InvalidBody))
+        }
         if seen.contains(kind + "\u0000" + cid) {
           continue
         }
         if kind == "result_retention_policy" &&
           cid == @publication.publication_contract_identity(retention) {
-          contract(kind, retention)
+          contract(kind, retention, true)
         } else if kind == "source_view_contract" &&
           physical_source is Some((original_cid, original_wire)) &&
           cid == original_cid {
           // The physical descriptor owns this implementation-only view;
           // the logical checked Source Catalog need not contain it.
-          append(kind, cid, original_wire)
+          append_measured(kind, cid, original_wire, None, ReturnedWire)
         } else if retain_catalog &&
           [
             "source_contract", "source_view_contract", "data_policy", "request_schema",
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {
-          let body = require_native_lookup_dependency(
-            @checked.checked_local_catalog_dependency_body(
-              program,
-              client_composed_keyed_original_stage(original),
+          let funding = match serial {
+            None => before_body
+            Some(catalog) => {
+              if !(catalog.begin_batch)(bodies.length()) {
+                raise NativeLookupDependencyStop(ConstructionRefused)
+              }
+              catalog.before
+            }
+          }
+          {
+            let body = require_native_lookup_dependency(
+              @checked.checked_local_catalog_dependency_body(
+                program,
+                client_composed_keyed_original_stage(original),
+                kind,
+                cid,
+                remaining,
+                max_nodes,
+                max_depth,
+                before_body=funding,
+              ).map_err(issue => Static(issue)),
+            )
+            append_measured(
               kind,
               cid,
-              remaining,
-              max_nodes,
-              max_depth,
-              before_body~,
-            ).map_err(issue => Static(issue)),
-          )
-          append(kind, cid, @checked.checked_local_dependency_body_json(body))
+              @checked.checked_local_dependency_body_json(body),
+              None,
+              CatalogWire,
+            )
+          }
+          if serial is Some(catalog) && !(catalog.record)(bodies) {
+            raise NativeLookupDependencyStop(ConstructionRefused)
+          }
         }
       }
     }

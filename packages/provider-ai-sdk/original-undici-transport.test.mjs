@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {channel} from 'node:diagnostics_channel';
@@ -9,6 +10,7 @@ import {gzipSync} from 'node:zlib';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
 import {createOriginalUndiciFetch, fixedOriginalTransportTimeouts} from './_internal/original-undici-transport.mjs';
 import {createSdkModelPreflight} from './_internal/model-port.mjs';
+import {createProjectOpenAIChatProvider} from './index.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   pollSdkDecode, cleanupSdkPreparation, cancelSdkPreparation,
@@ -21,6 +23,74 @@ const physicalAcquisitionLimits = {maxPlaintextBytes: 65536,
 const responseLimits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,
   maxHeaderBytes: 1024, observedHeaders: ['content-type', 'content-encoding']};
 const originalBody = '{"model":"synthetic","messages":[{"role":"user","content":"é\\n雪"}]}';
+
+test('project credential binding is one-shot on the same prepared transport', () => {
+  const transport = new URL('./_internal/original-undici-transport.mjs', import.meta.url).href;
+  const sdk = new URL('./_internal/intercepted-request.mjs', import.meta.url).href;
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {setImmediate as turn} from 'node:timers/promises';
+    import {createOriginalUndiciFetch, unboundOpenAICredential} from ${JSON.stringify(transport)};
+    import {interceptSdkRequest, prepareSdkTransport, bindSdkTransportCredential,
+      startSdkTransport, pollSdkTransport, cleanupSdkPreparation} from ${JSON.stringify(sdk)};
+    const endpoint = 'https://api.openai.com/v1/chat/completions';
+    const bounds = ${JSON.stringify(requestLimits)}, responseLimits = ${JSON.stringify(responseLimits)};
+    const fetch = createOriginalUndiciFetch({endpoint, requestLimits: bounds, responseLimits,
+      physicalAcquisitionLimits: ${JSON.stringify(physicalAcquisitionLimits)}, openAICredentialBytes: 20,
+      transportTimeouts: {connectMs: 100, headersMs: 100, bodyMs: 100, callMs: 100}});
+    function prepare() {
+      const handle = interceptSdkRequest({endpoint, maxRequestBytes: bounds.maxBytes,
+        maxHeaderBytes: bounds.maxHeaderBytes, maxHeaders: bounds.maxHeaders, notify() {},
+        runSdk: intercept => intercept(endpoint, {method: 'POST', body: '{}',
+          headers: {authorization: 'Bearer ' + unboundOpenAICredential}})});
+      prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+      return handle;
+    }
+    async function retire(handle) {
+      for (let index = 0; index < 500; index++) {
+        if (cleanupSdkPreparation(handle)) return;
+        await turn();
+      }
+      assert.fail('Original credential preparation did not retire');
+    }
+    const missing = prepare();
+    assert.throws(() => startSdkTransport(missing), {code: 'SdkTransportStartRefused'});
+    assert.throws(() => bindSdkTransportCredential(missing), {code: 'OpenAIProjectCredentialUnavailable'});
+    process.env.OPENAI_API_KEY = 'synthetic-key';
+    assert.throws(() => bindSdkTransportCredential(missing), {code: 'OpenAIProjectCredentialPreparationUnavailable'});
+    assert.throws(() => startSdkTransport(missing), {code: 'SdkTransportStartRefused'});
+    await retire(missing);
+    const original = prepare();
+    bindSdkTransportCredential(original);
+    assert.throws(() => bindSdkTransportCredential(original), {code: 'OpenAIProjectCredentialPreparationUnavailable'});
+    assert.equal(pollSdkTransport(original).kind, 'not-started');
+    await retire(original);
+  `], {env: {}, timeout: 5000, stdio: 'pipe'});
+});
+
+test('project factory and original transport both refuse endpoint overrides', async () => {
+  for (const baseURL of ['https://127.0.0.1:1234/v1', 'https://foreign.invalid/v1']) {
+    const register = createProjectOpenAIChatProvider({baseURL, modelId: 'synthetic',
+      generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+      budget: {maxCalls: 1n, maxRows: 1, maxTokens: 1000n, maxCostUnits: 10000n, maxDurationMs: 1000n},
+      transportTimeouts: {connectMs: 100, headersMs: 100, bodyMs: 100, callMs: 100},
+      observeEgress() {assert.fail('Rejected options reached egress');}});
+    await assert.rejects(register({}, {
+      projectOpenAIProvider: () => ({providerId: 'models/openai'}),
+      prepareConfiguration: use => use(),
+      runtimeIdentity() {assert.fail('Rejected options reached runtime');},
+      artifactIdentity() {assert.fail('Rejected options reached artifacts');},
+      readText() {assert.fail('Rejected options reached file credentials');},
+      prepareBindingOriginals() {assert.fail('Rejected options reached a provider binding');},
+      prepareTasks() {assert.fail('Rejected options reached Task construction');},
+      prepareRawPolicies() {assert.fail('Rejected options reached raw capture policy');},
+    }), {code: 'InvalidOpenAIProviderConfiguration'});
+    assert.throws(() => createOriginalUndiciFetch({endpoint: baseURL + '/chat/completions',
+      requestLimits, responseLimits, physicalAcquisitionLimits, openAICredentialBytes: 20}),
+    {code: 'OpenAIProjectCredentialEndpointUnavailable'});
+  }
+});
+
 async function until(read, accepted) {
   for (let index = 0; index < 500; index++) {
     const value = read();

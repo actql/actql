@@ -96,6 +96,100 @@ struct EffectCaptureCustody {
 }
 
 ///|
+// Scalar observation tied to this exact Store and holding. The authenticated
+// continuation supplies the expected semantic identity, never the row key.
+struct EffectCaptureReadExtent {
+  store : Store
+  holding : String
+  semantic_cid : String
+  header : @sqlite.NativeJournalHeader
+}
+
+///|
+/// Observe only the original capture's SQLite type, revision and extent.
+pub fn Store::effect_capture_restore_construction(
+  self : Store,
+  definition : @publication.PublicationContract,
+  semantic_cid : String,
+) -> Result[
+  (EffectCaptureReadExtent, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
+  self.with_original_read(false, false, fn() {
+    match require_store_open(self) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    guard @publication.effect_computation_record_holding_cid(
+        definition,
+        self.authority_cid,
+      )
+      is Some(holding) else {
+      return Err(InvalidConfiguration)
+    }
+    let header = match
+      self.database.observe_body_extent("effect_capture_custody", holding) {
+      Ok(value) => value
+      Err(issue) => return Err(Database(issue))
+    }
+    guard header.revision == 0L &&
+      header.body_bytes <= self.max_record_bytes.to_int64() &&
+      private_evidence_envelope_construction(header.body_bytes) is Some(layout) else {
+      return Err(RecoveryRequired)
+    }
+    let retained = {
+      ..layout.retained,
+      // The returned UTF16 wire survives the cipher workspace. The observed
+      // envelope dominates the UTF8 plaintext's byte and UTF16 unit counts.
+      owned_utf16_units: layout.retained.owned_utf16_units + header.body_bytes,
+    }
+    Ok(
+      ({ store: self, holding, semantic_cid, header, }, { ..layout, retained, }),
+    )
+  })
+}
+
+///|
+/// Open the exact observed capture extent after the caller funds it. This
+/// returns authenticated wire for the original constructor, without a new
+/// holding, cleanup handle or permission.
+pub fn EffectCaptureReadExtent::read_original_wire(
+  self : EffectCaptureReadExtent,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[String, NativePublicationStoreIssue] {
+  let store = self.store
+  store.with_original_read(false, false, fn() {
+    match require_store_open(store) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let row = match
+      store.database.read_exact_body_extent(
+        "effect_capture_custody",
+        self.holding,
+        self.header,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Database(issue))
+    }
+    let plain = match
+      crypto.open_private_evidence(
+        key,
+        "effect_capture",
+        self.semantic_cid,
+        row.body,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(PrivateEvidence(issue))
+    }
+    Ok(@utf8.decode(plain)) catch {
+      _ => Err(StateCollision)
+    }
+  })
+}
+
+///|
 pub fn Store::prepare_effect_capture_custody(
   self : Store,
   binding : @publication.EffectCaptureHoldingBinding,
