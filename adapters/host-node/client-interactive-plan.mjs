@@ -95,28 +95,41 @@ export function installClientStaticEffectExplanation({authorize, authorizeEgress
     const assertActive = () => {
       if (!active) throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
     };
-    const requireAccess = async () => {
+    const requireConnection = async () => {
       assertActive();
       signal?.throwIfAborted();
-      const egress = await authorizeEgress(request);
+      const connected = await authorize(request);
       assertActive();
-      const authorized = egress === true && await authorize(request);
-      assertActive();
-      if (authorized !== true) {
+      if (connected !== true) {
         throw staticExplanationFailure('StaticExplanationAccessDenied');
       }
       signal?.throwIfAborted();
     };
-    await requireAccess();
+    const requireCurrentEgress = () => {
+      assertActive();
+      signal?.throwIfAborted();
+      const decision = authorizeEgress(request);
+      if (decision !== true) {
+        if (typeof decision?.then === 'function') {
+          void Promise.resolve(decision).catch(() => {});
+        }
+        throw staticExplanationFailure('StaticExplanationAccessDenied');
+      }
+      assertActive();
+      signal?.throwIfAborted();
+    };
+    await requireConnection();
+    requireCurrentEgress();
     async function consumeOriginal(wires, assertCurrent) {
       assertActive();
       if (entered || typeof assertCurrent !== 'function') {
         throw staticExplanationFailure('StaticExplanationOriginalUnavailable');
       }
       entered = true;
-      await requireAccess();
+      await requireConnection();
       assertActive();
       assertSynchronousStaticCurrent(assertCurrent);
+      requireCurrentEgress();
       if (wires === null || typeof wires !== 'object') {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
@@ -143,10 +156,11 @@ export function installClientStaticEffectExplanation({authorize, authorizeEgress
           !validWireExplanationContextShape(view.context) || !originalStaticExplanation(view)) {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
-      await requireAccess();
+      await requireConnection();
       assertActive();
       assertSynchronousStaticCurrent(assertCurrent);
-      signal?.throwIfAborted();
+      // Keep the current Account observation in the same turn as the sink.
+      requireCurrentEgress();
       const delivery = await consume(view);
       assertActive();
       completed = true;

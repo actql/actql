@@ -64765,7 +64765,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "      const egress = await authorizeEgress(request);"
+                "anchor": "      const decision = authorizeEgress(request);"
               }
             ],
             "failure": [

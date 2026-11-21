@@ -100,12 +100,11 @@ test('static Explanation refuses denied egress before preparation or wire access
   let egressAllowed = false;
   let prepared = 0;
   const read = installClientStaticEffectExplanation({authorize: () => true,
-    authorizeEgress: async () => egressAllowed,
+    authorizeEgress: () => egressAllowed,
     withOriginal(_request, visit) {
       prepared++;
       egressAllowed = false;
-      return visit({get plan() {assert.fail('Revoked egress must not inspect wires');}},
-        () => assert.fail('Revoked egress must stop before inspecting the original'));
+      return visit({get plan() {assert.fail('Revoked egress must not inspect wires');}}, () => {});
     }});
   const consume = () => assert.fail('Denied facets must not be delivered');
   await assert.rejects(read(request, consume), {code: 'StaticExplanationAccessDenied'});
@@ -170,6 +169,33 @@ test('static Explanation checks the current Account run-read decision before pro
   assert.ok(evaluated.every(tuple => tuple.join('/') === 'person/site/run/read'));
 });
 
+for (const boundary of ['wire access', 'consumer entry']) {
+  test(`static Explanation rejects Account changes before ${boundary} after async transport authorization`, async () => {
+    const view = await staticExplanationFixture();
+    const wires = explanationWires(view);
+    const revokeAt = boundary === 'wire access' ? 2 : 3;
+    let connected = 0;
+    let allowed = true;
+    const read = installClientStaticEffectExplanation({
+      async authorize() {
+        if (++connected === revokeAt) queueMicrotask(() => {allowed = false;});
+        return true;
+      },
+      authorizeEgress: () => allowed,
+      withOriginal: (_request, visit) => visit({
+        get plan() {
+          assert.notEqual(boundary, 'wire access', 'Revocation must precede the first wire getter');
+          return wires.plan;
+        },
+        facts: wires.facts,
+        context: wires.context,
+      }, () => {}),
+    });
+    await assert.rejects(read(request, () => assert.fail('Revoked Account must not enter the consumer')),
+      {code: 'StaticExplanationAccessDenied'});
+  });
+}
+
 test('static Explanation refuses foreign Context and preserves final original current loss', async () => {
   const view = await staticExplanationFixture();
   let wires = explanationWires({...view, context: {...view.context,
@@ -191,14 +217,14 @@ test('static Explanation refuses foreign Context and preserves final original cu
 });
 
 test('static Explanation refuses an owner return before the visitor completes', async () => {
-  const egress = Promise.withResolvers();
+  const connection = Promise.withResolvers();
   let egressChecks = 0;
   let authorizationChecks = 0;
   let dropped;
   const unreadable = {get plan() {assert.fail('Returned owner must not supply wires');}};
   const read = installClientStaticEffectExplanation({
-    authorize() {authorizationChecks++; return true;},
-    authorizeEgress() {return ++egressChecks === 2 ? egress.promise : true;},
+    authorize() {return ++authorizationChecks === 2 ? connection.promise : true;},
+    authorizeEgress() {egressChecks++; return true;},
     withOriginal(_request, visit) {
       dropped = visit(unreadable, () => assert.fail('Returned owner must not be used'));
       void dropped.catch(() => {});
@@ -209,10 +235,10 @@ test('static Explanation refuses an owner return before the visitor completes', 
   try {
     await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
   } finally {
-    egress.resolve(true);
+    connection.resolve(true);
   }
   await assert.rejects(dropped, {code: 'StaticExplanationOriginalUnavailable'});
-  assert.equal(authorizationChecks, 1);
+  assert.equal(egressChecks, 1);
 
   let lateVisit;
   const absent = installClientStaticEffectExplanation({authorize: () => true, authorizeEgress: () => true,
@@ -236,6 +262,14 @@ test('static Explanation refuses asynchronous current at both disclosure boundar
     await assert.rejects(read(request, consume), {code: 'StaticExplanationOriginalUnavailable'});
     assert.equal(assertions, pass);
   }
+});
+
+test('static Explanation requires a synchronous Account decision before projection', async () => {
+  const read = installClientStaticEffectExplanation({authorize: () => true,
+    authorizeEgress: () => Promise.reject(new Error('invalid asynchronous Account port')),
+    withOriginal() {assert.fail('An asynchronous Account port must not start a read');}});
+  await assert.rejects(read(request, () => assert.fail('An asynchronous Account port must not deliver')),
+    {code: 'StaticExplanationAccessDenied'});
 });
 
 test('public static plan admits its original snapshot before options and returns the same read producer', async t => {

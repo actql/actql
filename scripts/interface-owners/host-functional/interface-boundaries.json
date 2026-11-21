@@ -24911,7 +24911,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec6603a3496ef63d3e8ec99cc38ccfb75aec43387e999b7e03cfdb88e737a3b6",
+      "sha256": "98f47ff5cd02acac9297db9a1e77a8ebea3194826691b62f131589f5312318fc",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -24940,6 +24940,11 @@
             "consume"
           ],
           "async": true
+        },
+        {
+          "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
@@ -25311,7 +25316,8 @@
             "installClientStaticEffectExplanation",
             "installClientStaticEffectExplanation/readStaticEffectExplanation",
             "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
-            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal"
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress"
           ],
           "exports": [
             "installClientStaticEffectExplanation"
@@ -25349,6 +25355,10 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.mjs",
                 "anchor": "function assertSynchronousStaticCurrent(assertCurrent) {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "// Keep the current Account observation in the same turn as the sink."
               }
             ],
             "failure": [
@@ -25395,6 +25405,10 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('static Explanation refuses asynchronous current at both disclosure boundaries', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation requires a synchronous Account decision before projection', async () => {"
               }
             ]
           }
@@ -119796,7 +119810,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "      const egress = await authorizeEgress(request);"
+                "anchor": "      const decision = authorizeEgress(request);"
               }
             ],
             "failure": [
