@@ -55,8 +55,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -69,8 +69,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -79,7 +79,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -89,7 +89,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -99,8 +99,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -109,7 +109,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -119,7 +119,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -129,7 +129,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// Transport failures, rate limits and other unobserved outcomes must not be"
               },
               {
@@ -139,8 +139,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -167,8 +167,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -181,8 +181,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export const isEffectPreparationRefusal = error =>"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export const isEffectPreparationRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -191,7 +191,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -201,7 +201,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -211,8 +211,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -221,7 +221,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -231,7 +231,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// marker neither grants dispatch nor proves physical stop or cleanup."
               },
               {
@@ -241,7 +241,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "// Transport failures, rate limits and other unobserved outcomes must not be"
               },
               {
@@ -251,8 +251,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
-                "anchor": "export function checkedEffectPreparation(result) {"
+                "path": "adapters/host-common/effect-preparation-result.mts",
+                "anchor": "export function checkedEffectPreparation(result: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -312,17 +312,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -332,8 +332,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -342,8 +342,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -352,15 +352,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -382,7 +382,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -400,7 +400,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -420,17 +420,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -440,8 +440,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -450,8 +450,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -460,15 +460,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -490,7 +490,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -508,7 +508,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -861,17 +861,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -881,8 +881,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -891,8 +891,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -901,15 +901,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -931,7 +931,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -949,7 +949,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -969,17 +969,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -989,8 +989,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -999,8 +999,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -1009,15 +1009,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -1039,7 +1039,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -1057,7 +1057,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -1227,8 +1227,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "export function createLocalSigningMetadata(moon)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "export function createLocalSigningMetadata(moon: unknown)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -1237,7 +1237,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('ForeignLocalSigningMetadata')"
               },
               {
@@ -1247,8 +1247,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "let grants = new WeakMap<object, unknown>(), scopes = new WeakMap<object, unknown>(), uses = new WeakMap<object, unknown>();"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1257,8 +1257,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1267,11 +1267,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRetired')"
               }
             ],
@@ -1327,8 +1327,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "export function createLocalSigningMetadata(moon)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "export function createLocalSigningMetadata(moon: unknown)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -1337,7 +1337,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('ForeignLocalSigningMetadata')"
               },
               {
@@ -1347,8 +1347,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "let grants = new WeakMap<object, unknown>(), scopes = new WeakMap<object, unknown>(), uses = new WeakMap<object, unknown>();"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1357,8 +1357,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -1367,11 +1367,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRetired')"
               }
             ],
@@ -2793,7 +2793,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -4660,7 +4660,7 @@
                 "anchor": "15L + 8L * max_entries.to_int64()"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -5017,8 +5017,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "export function createLocalSigningMetadata(moon)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "export function createLocalSigningMetadata(moon: unknown)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -5027,7 +5027,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('ForeignLocalSigningMetadata')"
               },
               {
@@ -5037,8 +5037,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "let grants = new WeakMap<object, unknown>(), scopes = new WeakMap<object, unknown>(), uses = new WeakMap<object, unknown>();"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -5047,8 +5047,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -5057,11 +5057,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRetired')"
               }
             ],
@@ -5117,17 +5117,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -5137,8 +5137,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -5147,8 +5147,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -5157,15 +5157,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -5187,7 +5187,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -5205,7 +5205,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -6471,7 +6471,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -7246,7 +7246,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7256,7 +7256,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7266,7 +7266,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7276,7 +7276,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7286,7 +7286,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7296,7 +7296,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7306,7 +7306,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7316,7 +7316,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7326,7 +7326,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -8652,7 +8652,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -9492,7 +9492,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -19520,8 +19520,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19534,8 +19534,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19544,7 +19544,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19554,8 +19554,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19564,8 +19564,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19574,7 +19574,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19584,8 +19584,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19594,8 +19594,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19604,8 +19604,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19632,8 +19632,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19646,8 +19646,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19656,7 +19656,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19666,8 +19666,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19676,8 +19676,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19686,7 +19686,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';"
               },
               {
@@ -19696,8 +19696,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -19706,8 +19706,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -19716,8 +19716,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "export function checked(result) {"
+                "path": "adapters/host-common/runtime-result.mts",
+                "anchor": "export function checked"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -42763,7 +42763,7 @@
                 "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "test('funded query construction keeps the exact encoded demand and all default refusals'"
               }
             ],
@@ -52309,7 +52309,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6eae30859ff3582c478ab8d2d14ae74d9dda65e5d84a6dbb66a161476c2f14e9",
+      "sha256": "dbd69108e00bebbabff5fb71dd5302266d142eb283d64dbb357513890326d5ed",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -52329,6 +52329,10 @@
         {
           "name": "request_query_lowering_data_bytes",
           "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , request_copy : ( Int , Int64 ) , ) - > Int64 ?"
+        },
+        {
+          "name": "request_integer_context_data_bytes",
+          "declaration": "request_integer_context_data_bytes ( tokens : Int64 ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -52337,7 +52341,8 @@
             "<module>",
             "[I]lower_request_published_query",
             "[I]prepared_request_query_lowering",
-            "request_query_lowering_data_bytes"
+            "request_query_lowering_data_bytes",
+            "request_integer_context_data_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -52527,6 +52532,10 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
+                "anchor": "test \"original integer context is funded before lowerer entry"
               }
             ]
           }
@@ -67293,7 +67302,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67303,7 +67312,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67317,7 +67326,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67331,7 +67340,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67345,7 +67354,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67359,7 +67368,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67373,7 +67382,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67387,7 +67396,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -67401,7 +67410,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -71768,7 +71777,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -73735,7 +73744,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -108938,7 +108947,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -109104,7 +109113,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]

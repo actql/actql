@@ -38,7 +38,7 @@ test('top tie remains an execution failure rather than a hidden arrival-order ch
 });
 test('prepared dedupe cases use the ordinary packed registration and selector',()=>{
   const packed=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const installer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const installer=readFileSync('scripts/test-packed-public-query.mts','utf8');
   for(const symbol of ['eventDedupeSourceSuccesses','eventDedupeSourceRefusals','eventDedupeSourceExecutionFailures'])assert.ok(packed.includes('...'+symbol));
   assert.ok(installer.includes("['scripts/fixtures/event-dedupe-source-input.mjs', 'event-dedupe-source-input.mjs']"));
   assert.ok(packed.includes("process.env.ACTQL_TEST_EVENT_DEDUPE_ONLY"));

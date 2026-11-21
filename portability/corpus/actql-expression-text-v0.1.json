@@ -1704,6 +1704,19 @@
       "tree": {
         "literal": 0
       }
+    },
+    {
+      "source": "CAST('9007199254740993' AS INT64)",
+      "tree": {
+        "cast": {
+          "value": {
+            "literal": "9007199254740993"
+          },
+          "target": {
+            "type": "int64"
+          }
+        }
+      }
     }
   ],
   "negative": [

@@ -1081,7 +1081,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
@@ -3275,7 +3275,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               }
             ],
@@ -6637,7 +6637,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
@@ -7762,7 +7762,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {

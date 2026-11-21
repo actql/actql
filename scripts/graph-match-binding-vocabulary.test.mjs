@@ -45,7 +45,7 @@ test('uppercase and quoted binding sources retain their own named fields and emp
 
 test('normal public corpus retains binding counterexamples and precise input refusals', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...graphMatchSourceSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...graphMatchSourceRefusals)'));
   assert.ok(fixture.includes('graphMatchOnly ? {successes: graphMatchSourceSuccesses'));

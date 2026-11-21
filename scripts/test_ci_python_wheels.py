@@ -23,6 +23,181 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class InstalledFuelControlTests(unittest.TestCase):
+    def initial(self):
+        return {'phase': 'initial', 'pid': 41, 'firstClose': True, 'replayed': False,
+                'intentionalFuel': 1_000, 'defaultFuel': 64_000_000_000,
+                'actualAttempts': 1, 'outOfFuel': True, 'normalFenced': True, 'sameStore': True}
+
+    def test_original_stop_and_distinct_process_saved_are_required(self):
+        ci.require_installed_fuel_fault(self.initial(), 'initial', None)
+        saved = {'phase': 'resume', 'pid': 42, 'firstClose': True, 'replayed': False,
+                 'sameSaved': True, 'failedAdmissionAbsent': True}
+        ci.require_installed_fuel_fault(saved, 'resume', 41)
+        with self.assertRaises(ValueError):
+            ci.require_installed_fuel_fault(saved | {'pid': 41}, 'resume', 41)
+
+    def test_replay_and_pending_close_cannot_report_fuel_acceptance(self):
+        for changed in ({'actualAttempts': 2}, {'firstClose': False}, {'replayed': True},
+                        {'sameStore': False}, {'normalFenced': False}, {'outOfFuel': False}):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                ci.require_installed_fuel_fault(self.initial() | changed, 'initial', None)
+
+    def test_test_budget_cannot_be_reported_as_the_product_default(self):
+        with self.assertRaises(ValueError):
+            ci.require_installed_fuel_fault(self.initial() | {'defaultFuel': 1_000}, 'initial', None)
+
+    def test_same_cohort_default_case_precedes_distinct_stop_and_saved_processes(self):
+        cohort = {'module_sha256': 'b' * 64, 'image_sha256': 'c' * 64}
+        history = {'taskQuantumMode': 'production-original',
+                   'acceptedPendingHistory': 40, 'retiredPendingParentLoans': 40,
+                   'firstCloseReturned': True, 'cleanupFailures': []}
+        normal = {'fuelMode': {'sourceDeclaredLimit': 64_000_000_000},
+                  'installedCohort': {'sourceSha': 'a' * 40, 'moduleSha256': 'b' * 64,
+                                      'imageSha256': 'c' * 64}, 'histories': [history]}
+        saved = {'phase': 'resume', 'pid': 42, 'firstClose': True, 'replayed': False,
+                 'sameSaved': True, 'failedAdmissionAbsent': True}
+        calls = []
+        def run(name, args, **options):
+            calls.append((name, args, options))
+            value = (normal, self.initial(), saved)[len(calls) - 1]
+            return json.dumps(value)
+        with tempfile.TemporaryDirectory() as tmp:
+            ci.accept_installed_fuel(run, Path('/consumer/python'), Path(tmp), 'a' * 40, cohort, {'ORIGINAL': 'env'})
+        self.assertEqual([name for name, _, _ in calls], ['installed-default-fuel-admission',
+                         'installed-fuel-stop-initial', 'installed-fuel-stop-resume'])
+        self.assertTrue(all(args[0] == Path('/consumer/python') for _, args, _ in calls))
+        self.assertTrue(all(options['env'] == {'ORIGINAL': 'env'} for _, _, options in calls))
+        self.assertTrue(all('--expected-default-fuel' not in args for _, args, _ in calls))
+        self.assertEqual(calls[0][1][-1], 'fuel-pending:40')
+        for change in ({'taskQuantumMode': 'forced-one'}, {'acceptedPendingHistory': 39},
+                       {'firstCloseReturned': False}, {'cleanupFailures': ['pending']}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                bad = normal | {'histories': [history | change]}
+                with self.assertRaises(ValueError):
+                    ci.accept_installed_fuel(lambda *a, **k: json.dumps(bad), Path('/consumer/python'),
+                                             Path(tmp), 'a' * 40, cohort, {})
+
+
+    def test_actual_installed_entry_admits_explicit_fuel_role_before_owning_factory(self):
+        import asyncio
+        from types import SimpleNamespace
+        history = load('ci_actual_fuel_installed_entry',
+                       SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+        import actql_sdk._local_product as product
+        original = RuntimeError('stop at original population boundary; no runtime')
+        with tempfile.TemporaryDirectory() as tmp:
+            for role in ('fuel-pending:40', 'pending:40'):
+                args = SimpleNamespace(argv=['fixture', '--installed', 'a' * 40, tmp, role],
+                                       flags=SimpleNamespace(isolated=True))
+                population = AsyncMock(wraps=history.population)
+                with self.subTest(role=role), patch.object(history, 'INSTALLED_IMAGE', True), \
+                        patch.object(history, 'sys', args), patch.object(history, 'population', population), \
+                        patch.object(product, 'installed_local_components') as resolver, \
+                        patch.object(history.InstalledLocalHost, 'installed', side_effect=original) as factory:
+                    with self.assertRaises(RuntimeError) as raised:
+                        asyncio.run(history.main())
+                    self.assertIs(raised.exception, original)
+                    population.assert_awaited_once()
+                    self.assertIs(population.call_args.kwargs['production_quantum'], role == 'fuel-pending:40')
+                    resolver.assert_not_called()
+                    factory.assert_called_once()
+                    self.assertEqual(set(factory.call_args.kwargs), {'state_dir'})
+                    self.assertEqual(factory.call_args.kwargs['state_dir'].parent, Path(tmp))
+            for role in ('persisted:40', '40', 'fuel-pending:41', 'foreign:40', 'fault:unknown'):
+                args = SimpleNamespace(argv=['fixture', '--installed', 'a' * 40, tmp, role],
+                                       flags=SimpleNamespace(isolated=True))
+                with self.subTest(refused=role), patch.object(history, 'INSTALLED_IMAGE', True), \
+                        patch.object(history, 'sys', args), patch.object(history, 'population', AsyncMock()) as population, \
+                        patch.object(product, 'installed_local_components') as resolver:
+                    with self.assertRaises((ValueError, AssertionError)):
+                        asyncio.run(history.main())
+                    population.assert_not_awaited()
+                    resolver.assert_not_called()
+
+    def test_default_role_forwards_original_quantum_and_retains_independent_controls(self):
+        history = load('ci_fuel_quantum_trace', SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+        trace, task, result, calls = history.Trace(), object(), object(), []
+        def original(actual_task, quantum):
+            self.assertIs(actual_task, task)
+            calls.append(quantum)
+            return result
+        self.assertIs(trace.drive(original, task, 19), result)
+        self.assertIs(trace.drive(original, task, 19, production_quantum=True), result)
+        self.assertIs(trace.drive(original, task, 257, production_quantum=True), result)
+        self.assertEqual(calls, [1, 19, 257])
+        failure = RuntimeError('original operation failure')
+        def refused(actual_task, quantum):
+            calls.append(quantum)
+            raise failure
+        with self.assertRaises(RuntimeError) as raised:
+            trace.drive(refused, task, 19, production_quantum=True)
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(calls, [1, 19, 257, 19])
+
+
+class RepeatedHostAcceptanceTests(unittest.TestCase):
+    def events(self, phase, pid):
+        data = [{'phase': 'opened', 'mode': phase, 'pid': pid}]
+        result = 'result-complete' if phase == 'warm' else 'saved-result-complete'
+        data += [{'phase': result, 'ordinal': ordinal, 'pid': pid} for ordinal in range(1, 11)]
+        if phase == 'warm':
+            data += [{'phase': 'checkpoint-complete', 'ordinal': ordinal, 'pid': pid}
+                     for ordinal in (1, 3, 10)]
+        return data + [{'phase': phase + '-complete', 'runs': 10, 'pid': pid},
+                       {'phase': 'first-close-attempted', 'mode': phase, 'pid': pid},
+                       {'phase': 'first-close-returned', 'mode': phase, 'pid': pid}]
+
+    def test_same_original_fixture_and_isolated_normal_factory_phases(self):
+        calls, events = [], []
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp)
+            def run(name, args, **options):
+                calls.append((name, args, options))
+                phase = args[-1]
+                self.assertEqual(args[:3], [Path('/consumer/python'), '-I', '-B'])
+                fixture = args[3]
+                self.assertEqual(fixture.read_bytes(),
+                                 (ci.ROOT / 'scripts/fixtures/python-local-repeated-host.py').read_bytes())
+                self.assertNotEqual(options['env']['HOME'], '/prior-home')
+                self.assertEqual(options['env']['PATH'], '/consumer/bin')
+                self.assertEqual(options['cwd'], destination / 'ordinary-repeated-host/workspace')
+                events.extend(self.events(phase, 41 if phase == 'warm' else 42))
+                fixture.with_name('events.jsonl').write_text(''.join(json.dumps(event) + '\n' for event in events))
+                return b''
+            result = ci.accept_installed_repeated_host(run, Path('/consumer/python'), destination,
+                                                       {'HOME': '/prior-home', 'PATH': '/consumer/bin'})
+        self.assertEqual([(name, args[-1], options['timeout']) for name, args, options in calls],
+                         [('installed-ordinary-repeated-warm', 'warm', 900),
+                          ('installed-ordinary-repeated-saved', 'saved', 180)])
+        self.assertEqual(result, {'runs': 10, 'warm_pid': 41, 'saved_pid': 42,
+                                  'original_first_closes_returned': True})
+
+    def test_missing_result_checkpoint_close_or_same_process_cannot_pass(self):
+        warm = self.events('warm', 41)
+        self.assertEqual(ci.require_installed_repeated_host(warm, 'warm', None), 41)
+        for excluded in ('result-complete', 'checkpoint-complete', 'first-close-attempted',
+                         'first-close-returned'):
+            with self.subTest(excluded=excluded), self.assertRaises(ValueError):
+                ci.require_installed_repeated_host(
+                    [event for event in warm if event['phase'] != excluded], 'warm', None)
+        for failure in ('primary-failure', 'first-close-failed'):
+            with self.subTest(failure=failure), self.assertRaises(ValueError):
+                ci.require_installed_repeated_host(warm + [{'phase': failure, 'pid': 41}], 'warm', None)
+        with self.assertRaises(ValueError):
+            ci.require_installed_repeated_host(warm + self.events('saved', 41), 'saved', 41)
+
+    def test_first_actual_failure_stops_without_retry_or_saved_launch(self):
+        failure, calls = RuntimeError('original ordinary failure'), []
+        def run(name, args, **options):
+            calls.append(name)
+            raise failure
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(RuntimeError) as raised:
+            ci.accept_installed_repeated_host(run, Path('/python'), Path(tmp), {})
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(calls, ['installed-ordinary-repeated-warm'])
+
+
 class OrchestrationTests(unittest.TestCase):
     def test_transient_release_rejection_retries_same_pinned_get(self):
         error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)
@@ -662,6 +837,50 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.previous = (None, None)
         return module, control, core, matches
 
+    def test_unrelated_and_foreign_profile_events_never_read_counts(self):
+        from types import SimpleNamespace
+        _, control, core, _ = self.configured_control()
+        class UnreadableCounts:
+            def __iter__(self):
+                raise AssertionError('An unrelated profile event read counters')
+        def unrelated():
+            return None
+        counts = UnreadableCounts()
+        control.counts = counts
+        for code, receiver in ((unrelated.__code__, core),
+                               (control.drive_code, object()),
+                               (control.export_code, object())):
+            for event in ('call', 'return'):
+                with self.subTest(code=code.co_name, event=event):
+                    frame = SimpleNamespace(f_code=code, f_locals={'self': receiver})
+                    control._profile(frame, event, None)
+                    self.assertIs(control.counts, counts)
+                    self.assertTrue(control.valid)
+                    self.assertIsNone(control.failure)
+                    self.assertEqual(control.refusal_bits, 0)
+                    self.assertEqual(control.span_refusal_bits, 0)
+
+    def test_exact_drive_and_export_events_still_saturate_and_preserve_first_failure(self):
+        from types import SimpleNamespace
+        for target in ('drive', 'export'):
+            with self.subTest(target=target):
+                _, control, core, _ = self.configured_control()
+                first = RuntimeError('Original observation failure')
+                control.failure = first
+                control.counts = [1024] * 5
+                frame = SimpleNamespace(
+                    f_code=control.drive_code if target == 'drive' else control.export_code,
+                    f_locals={'self': core if target == 'drive' else control.export})
+                for event in ('call', 'return'):
+                    control._profile(frame, event, None)
+                self.assertEqual(control.counts, ([1025, 1025, 1024, 1024, 1024]
+                                                 if target == 'drive'
+                                                 else [1024, 1024, 1025, 1025, 1025]))
+                self.assertFalse(control.valid)
+                self.assertIs(control.failure, first)
+                self.assertEqual(control.refusal_bits, 16)
+                self.assertEqual(control.span_refusal_bits, 0)
+
     def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
         module, control, core, matches = self.configured_control()
         original = type(core).drive_task
@@ -949,6 +1168,87 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertIs(work._future.exception(timeout=0), primary)
 
+    def test_captured_retirement_survives_cleared_host_lists_without_core_entry(self):
+        module, core, work, observer, _, primary = self.run_original()
+        host = work._invoke.host
+        host._physical_work, host._public_run_references = [], []
+        host._closing, host._installation = True, None
+        core._closing = core._closed = True
+        core._task_loans.clear()
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(type(core), '_call', side_effect=AssertionError('No retired Core entry')) as call, \
+                patch.object(type(work), 'wait', side_effect=AssertionError('No work wait')) as wait:
+            module.report_contexts(primary, output, task_retirement=observer)
+        call.assert_not_called()
+        wait.assert_not_called()
+        record = json.loads(output.getvalue().splitlines()[0])
+        captured = record['captured_task_retirement']
+        self.assertEqual(captured['association'], 'same-original-worker-traceback')
+        self.assertEqual(captured['sample_timing'], 'original-task-close-return-before-worker-exit')
+        self.assertFalse(captured['live_selection'])
+        self.assertEqual(captured['snapshot'], observer.snapshot(work))
+        self.assertTrue(captured['snapshot']['available'])
+        self.assertNotIn('local_work', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_refuses_foreign_identity_and_preserves_unavailable_samples(self):
+        for settings in ({}, {'outside_lock': True}, {'observation_error': True}, {'closes': 17}):
+            with self.subTest(settings=settings):
+                module, _, work, observer, _, primary = self.run_original(**settings)
+                expected = observer.snapshot(work)
+                captured = module.captured_task_retirement(primary, observer)
+                self.assertEqual(captured['snapshot'], expected)
+                self.assertEqual(captured['snapshot']['available'], not settings)
+                owner = work._owner
+                work._owner = object()
+                self.assertIsNone(module.captured_task_retirement(primary, observer))
+                work._owner = owner
+                copied = type(primary)(work._invoke.host)
+                copied.__traceback__, copied.__context__ = primary.__traceback__, primary.__context__
+                self.assertIsNone(module.captured_task_retirement(copied, observer))
+                self.assertIsNone(module.captured_task_retirement(primary, object()))
+                self.assertIs(work._future.exception(timeout=0), primary)
+
+    def test_captured_retirement_traceback_visits_are_bounded(self):
+        module, _, _, observer, _, primary = self.run_original()
+        def raise_with_prefix(depth):
+            if depth:
+                return raise_with_prefix(depth - 1)
+            raise primary
+        try:
+            raise_with_prefix(module.MAX_FRAMES + 4)
+        except type(primary):
+            pass
+        walk = module.traceback.walk_tb
+        visited = []
+        def bounded_walk(trace):
+            for frame in walk(trace):
+                visited.append(None)
+                if len(visited) > module.MAX_FRAMES:
+                    raise AssertionError('Unbounded diagnostic traceback traversal')
+                yield frame
+        with patch.object(module.traceback, 'walk_tb', bounded_walk):
+            self.assertIsNone(module.captured_task_retirement(primary, observer))
+        self.assertEqual(len(visited), module.MAX_FRAMES)
+
+    def test_captured_retirement_observation_error_never_replaces_primary(self):
+        module, _, work, observer, _, primary = self.run_original()
+        class OpaqueFailure(BaseException):
+            def __str__(self):
+                raise AssertionError('No optional diagnostic formatting')
+        trace, context = primary.__traceback__, primary.__context__
+        output = io.StringIO()
+        with patch.object(module, 'captured_task_retirement', side_effect=OpaqueFailure(), create=True):
+            module.report_contexts(primary, output, task_retirement=observer)
+        record = json.loads(output.getvalue().splitlines()[0])
+        self.assertNotIn('captured_task_retirement', record)
+        self.assertIs(primary.__traceback__, trace)
+        self.assertIs(primary.__context__, context)
+        self.assertIs(work._future.exception(timeout=0), primary)
+
     def test_absent_outer_retirement_lock_refuses_without_an_observer_entry(self):
         _, _, work, observer, calls, _ = self.run_original(outside_lock=True)
         self.assertEqual(calls, [('task', 'close', 11, ())])
@@ -971,12 +1271,14 @@ class TaskRetirementSnapshotTests(unittest.TestCase):
         self.assertEqual(result['refusal_code'], -3)
         self.assertIs(work._future.exception(timeout=0), primary)
 
-    def test_only_failed_sync_initial_cancellation_selects_optional_observer(self):
+    def test_only_initial_local_cancellation_facades_select_optional_observer(self):
         module, *_ = self.fixture()
         primary = RuntimeError('same consumer failure')
         base = ['python-product-installed.py', '--mode', 'local', '--facade', 'sync',
                 '--case', 'cancellation', '--phase', 'initial']
-        for replacements, expected in [({}, True), ({'sync': 'async'}, False),
+        for replacements, expected in [({}, True), ({'sync': 'async'}, True),
+                                        ({'sync': 'unknown'}, False),
+                                        ({'local': 'remote'}, False),
                                         ({'initial': 'resume'}, False),
                                         ({'cancellation': 'execution'}, False)]:
             args = [replacements.get(value, value) for value in base]
@@ -1461,6 +1763,46 @@ class FailureLocationTests(unittest.TestCase):
         diagnostics.report_contexts(outer, stream)
         self.assertEqual(len(stream.getvalue().splitlines()), 1)
 
+    def test_retained_cleanup_chain_keeps_primary_and_original_chains(self):
+        diagnostics = load('ci_installed_cleanup_chain', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        errors = load('ci_installed_cleanup_errors',
+                      SCRIPTS.parent / 'packages/python-sdk/src/actql_sdk/_errors.py')
+        primary = errors.ClientError('private primary')
+        cleanup = ValueError('private cleanup')
+        earlier = errors.ClientError('private earlier cleanup')
+        primary.cleanup_error = cleanup
+        cleanup.cleanup_error = earlier
+        earlier.original_error = primary  # Actual identity cycle, no copy.
+        native = (primary.__context__, primary.__cause__, primary.__traceback__)
+        stream = io.StringIO()
+        diagnostics.report_contexts(primary, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([record['exception_type'] for record in records],
+                         ['ClientError', 'ValueError', 'ClientError'])
+        self.assertIs(primary.cleanup_error, cleanup)
+        self.assertIs(cleanup.cleanup_error, earlier)
+        self.assertIs(earlier.original_error, primary)
+        self.assertEqual((primary.__context__, primary.__cause__, primary.__traceback__), native)
+        self.assertNotIn('private', stream.getvalue())
+
+    def test_retained_cleanup_observation_refuses_foreign_values_and_is_bounded(self):
+        diagnostics = load('ci_installed_cleanup_bounds', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        original = RuntimeError('private')
+        original.cleanup_error = {'private': 'non-exception'}
+        stream = io.StringIO()
+        diagnostics.report_contexts(original, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), 1)
+        self.assertNotIn('private', stream.getvalue())
+        current = original
+        for _ in range(100):
+            following = ValueError('private')
+            current.cleanup_error = following
+            current = following
+        stream = io.StringIO()
+        diagnostics.report_contexts(original, stream)
+        self.assertEqual(len(stream.getvalue().splitlines()), diagnostics.MAX_CONTEXTS)
+        self.assertLessEqual(len(stream.getvalue().encode()), diagnostics.MAX_OUTPUT_BYTES)
+
     def test_cycle_is_not_repeated(self):
         import io
         diagnostics = load('ci_installed_run_cycle', SCRIPTS / 'fixtures/ci-python-installed-run.py')
@@ -1469,6 +1811,158 @@ class FailureLocationTests(unittest.TestCase):
         stream = io.StringIO()
         diagnostics.report_contexts(error, stream)
         self.assertEqual(len(stream.getvalue().splitlines()), 1)
+
+
+class InitialPhaseObservationTests(unittest.TestCase):
+    """Imported public-caller doubles only; no installed runtime qualification."""
+
+    def fixture(self):
+        from types import ModuleType, SimpleNamespace
+        from unittest.mock import MagicMock
+        consumer = load('ci_initial_phase_observation', SCRIPTS / 'fixtures/python-product-installed.py')
+        client = MagicMock()
+        client.__enter__.return_value = client
+        client.__exit__.return_value = False
+        runs = [MagicMock(ref={'original': index}) for index in (1, 2)]
+        for run in runs:
+            run.wait.return_value = {'status': 'succeeded'}
+            run.result.return_value.all.return_value = [{'n': 1}]
+        client.new_submission.side_effect = [{'submission': 1}, {'submission': 2}]
+        client.start_source.side_effect = runs
+        client._client._local_host = object()
+        control = MagicMock()
+        control.__enter__.return_value = control
+        control.__exit__.return_value = False
+        control.result.return_value = {'caller_control': True}
+        public = ModuleType('actql')
+        public.Client = SimpleNamespace(open=MagicMock(return_value=client))
+        return consumer, public, client, runs, control
+
+    def test_success_records_only_closed_boundaries_without_changing_public_calls(self):
+        consumer, public, client, runs, control = self.fixture()
+        stream = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True,
+                             side_effect=[1000] + list(range(1000, 1200, 10))) as clock:
+            observed = consumer._sync('private-version', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(observed, control.result.return_value)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([record['phase'] for record in records], [
+            'facade-import-enter', 'facade-import-return', 'factory-enter', 'factory-return',
+            'first-start-enter', 'first-start-return', 'first-wait-enter', 'first-wait-return',
+            'first-result-enter', 'first-result-return', 'first-reread-enter', 'first-reread-return',
+            'second-start-enter', 'second-start-return', 'second-state-enter', 'second-state-return',
+            'second-result-enter', 'second-result-return', 'first-close-enter', 'first-close-return'])
+        self.assertTrue(all(set(record) == {'stage', 'phase', 'elapsed_ns'} and
+                            record['stage'] == 'installed-sync-initial-phase' for record in records))
+        self.assertEqual([record['elapsed_ns'] for record in records], list(range(0, 200, 10)))
+        self.assertEqual(clock.call_count, 21)  # One origin and the same twenty boundaries.
+        self.assertLess(len(stream.getvalue().encode()), 4096)
+        self.assertNotIn('private-version', stream.getvalue())
+        public.Client.open.assert_called_once_with()
+        self.assertEqual(client.start_source.call_count, 2)
+        for run in runs:
+            run.wait.assert_called_once_with()
+        self.assertEqual(runs[0].result.return_value.all.call_count, 2)
+        self.assertEqual(runs[1].result.return_value.all.call_count, 1)
+        client.__exit__.assert_called_once_with(None, None, None)
+
+    def test_original_failure_and_first_close_remain_when_optional_output_fails(self):
+        consumer, public, client, _, control = self.fixture()
+        original = RuntimeError('original first-start failure')
+        client.start_source.side_effect = original
+        class BrokenStream:
+            def write(self, value):
+                raise KeyboardInterrupt('optional output refused')
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', BrokenStream()):
+            with self.assertRaises(RuntimeError) as raised:
+                consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(raised.exception, original)
+        client.start_source.assert_called_once()
+        self.assertEqual(client.__exit__.call_count, 1)
+        self.assertIs(client.__exit__.call_args.args[1], original)
+        control.result.assert_not_called()
+
+    def test_saved_route_has_no_initial_markers_or_new_physical_control(self):
+        consumer, public, client, runs, control = self.fixture()
+        saved = {'submission': {'same': 'original'}, 'run': runs[0].ref}
+        client.lookup_submission.return_value = {'kind': 'ready', 'admission': {'ref': runs[0].ref}}
+        client.attach.return_value = runs[0]
+        stream = io.StringIO()
+        with patch.dict(sys.modules, {'actql': public}), patch.object(consumer, '_saved', return_value=saved), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control) as observation, \
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True) as clock:
+            self.assertIsNone(consumer._sync('fixture', 'resume', Path('/unused/receipt')))
+        self.assertEqual(stream.getvalue(), '')
+        clock.assert_not_called()
+        observation.assert_not_called()
+        client.start_source.assert_not_called()
+        client.attach.assert_called_once_with(saved['run'])
+        client.__exit__.assert_called_once_with(None, None, None)
+
+    def test_unselected_or_foreign_marker_cannot_invoke_foreign_comparison_or_emit(self):
+        consumer, _, _, _, _ = self.fixture()
+        class Foreign:
+            def __eq__(self, other):
+                raise AssertionError('Do not compare a foreign diagnostic value')
+        stream = io.StringIO()
+        with patch.object(consumer.sys, 'stderr', stream):
+            consumer._sync_initial_phase(False, 'factory-enter')
+            consumer._sync_initial_phase(True, Foreign())
+            consumer._sync_initial_phase(True, 'private-stage-not-selected')
+        self.assertEqual(stream.getvalue(), '')
+
+    def test_elapsed_refuses_foreign_negative_overflow_and_failed_clock_without_fabricating_time(self):
+        consumer, _, _, _, _ = self.fixture()
+        class Foreign:
+            def __sub__(self, other):
+                raise AssertionError('Do not subtract foreign diagnostic clocks')
+            def __lt__(self, other):
+                raise AssertionError('Do not compare foreign diagnostic clocks')
+        maximum = (1 << 63) - 1
+        cases = [(0, 0, 0), (0, maximum, maximum), (100, 125, 25),
+                 (100, 99, None), (0, maximum + 1, None), (0, True, None),
+                 (0, 1.5, None), (0, Foreign(), None), (None, 100, None),
+                 (True, 100, None), (-1, 100, None), (maximum + 1, maximum + 2, None),
+                 (Foreign(), 100, None)]
+        for origin, now, expected in cases:
+            stream = io.StringIO()
+            with self.subTest(origin_type=type(origin).__name__, now_type=type(now).__name__), \
+                    patch.object(consumer.sys, 'stderr', stream), \
+                    patch.object(consumer, 'monotonic_ns', create=True, return_value=now):
+                consumer._sync_initial_phase(True, 'factory-enter', origin)
+            if expected is None:
+                self.assertEqual(stream.getvalue(), '')
+            else:
+                self.assertEqual(json.loads(stream.getvalue())['elapsed_ns'], expected)
+        stream = io.StringIO()
+        with patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt):
+            consumer._sync_initial_phase(True, 'factory-enter', 0)
+        self.assertEqual(stream.getvalue(), '')
+
+    def test_failed_origin_preserves_original_failure_and_first_close_without_reorigin(self):
+        consumer, public, client, _, control = self.fixture()
+        original = RuntimeError('original first-start failure')
+        client.start_source.side_effect = original
+        stream = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
+                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
+                patch.object(consumer.sys, 'stderr', stream), \
+                patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt) as clock:
+            with self.assertRaises(RuntimeError) as raised:
+                consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
+        self.assertIs(raised.exception, original)
+        clock.assert_called_once_with()
+        self.assertEqual(stream.getvalue(), '')
+        self.assertEqual(client.__exit__.call_count, 1)
+        self.assertIs(client.__exit__.call_args.args[1], original)
+        control.result.assert_not_called()
 
 
 class InstalledCancellationTests(unittest.TestCase):

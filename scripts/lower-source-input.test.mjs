@@ -42,7 +42,7 @@ test('lowercase public fixtures retain checked NULL, parameters, duplicate rows 
 
 test('lowercase cases participate in the ordinary producer and bounded public selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'lowerSuccesses'], ['refusals', 'lowerRefusals'],
     ['executionFailures', 'lowerExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

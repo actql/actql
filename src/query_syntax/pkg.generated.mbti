@@ -26,6 +26,8 @@ pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
 
 pub fn command_effect_count(QueryScript) -> Int
 
+pub fn contextual_integer_literal(String, Bool) -> Int64?
+
 pub fn effect_result_continuation(Query, NamePart, has_postlude? : Bool) -> (Query, Query)?
 
 pub fn exact_integer_literal(String) -> Int64?
@@ -57,6 +59,14 @@ pub fn graph_query(Query) -> GraphQuery?
 pub fn graph_source_query(Query) -> Query
 
 pub fn has_sga_relation_lowering(String) -> Bool
+
+pub fn integer_context_companion_columns(Query) -> Array[String]
+
+pub fn integer_context_is_companion_column(Query, String) -> Bool
+
+pub fn integer_context_original_column(Query, String) -> String?
+
+pub fn integer_function_context_required(Query) -> Bool
 
 pub fn is_source_free_scalar_projection(Query) -> Bool
 
@@ -154,6 +164,8 @@ pub fn tokenize_bytes(Bytes, LexicalLimits, source_path? : String) -> Result[Tok
 
 pub fn usage(Tokens, Resource) -> Int
 
+pub fn with_integer_function_context(Query, Int) -> Result[Query, Diagnostic]
+
 // Errors
 
 // Types and methods
@@ -197,6 +209,7 @@ pub(all) enum CastType {
   Boolean
   String
   Number
+  Signed64
   Timestamp
   Decimal(Int, Int)
   Array(ArrayElementType)
@@ -224,6 +237,9 @@ pub(all) enum ExpressionKind {
   Null
   Boolean(Bool)
   Number(String)
+  ContextualInteger(Int64?)
+  ContextualIntegerReference(Array[NamePart], NamePart)
+  ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
   Reference(Array[NamePart])

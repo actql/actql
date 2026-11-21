@@ -212,6 +212,80 @@ class LocalProductAssemblyTests(unittest.TestCase):
             self.assertEqual(sum(family == 'bootstrap' and name == 'produce' for family, name, _ in calls), 1)
             self.assertEqual(sum(family == 'buffer' and name == 'close_pool' for family, name, _ in calls), 2)
 
+    def test_unreturned_buffer_reservation_reaches_its_original_root_cleanup(self):
+        with TemporaryDirectory(prefix='actql-product-unreturned-') as directory:
+            core, calls, _, _ = self.core()
+            host = self.create(core, Path(directory))
+            original_call = core._call
+            failure = RuntimeError('original reserve did not return its handle')
+            pending = core._next_ticket
+            ready = [False]
+            root_attempts = []
+
+            def call(family, name, *args):
+                if family == 'buffer' and name == 'reserve' and args[0] == pending:
+                    raise failure
+                if family == 'buffer' and name == 'close_pool':
+                    root_attempts.append(pending)
+                    self.assertIn(pending, core._inputs)
+                    self.assertNotIn(pending, core._loans)
+                    # Explicit scalar Root port: a pending child declines;
+                    # the SAME Root later runs its original physical callback.
+                    if not ready[0]:
+                        return -9
+                    self.assertEqual(core._cleanup(pending), 0)
+                return original_call(family, name, *args)
+
+            core._call = original_byte_fixture_port(call)
+            with self.assertRaises(RuntimeError) as failed:
+                host._copy(b'original immutable input')
+            self.assertIs(failed.exception, failure)
+            self.assertEqual(host._uncertain_ticket, pending)
+            self.assertIn(pending, core._inputs)
+            self.assertNotIn(pending, core._loans)
+            self.assertFalse(host.close())
+            self.assertEqual(root_attempts, [pending])
+            self.assertFalse(core._closed)
+            self.assertEqual(host._uncertain_ticket, pending)
+            self.assertIn(pending, core._inputs)
+            ready[0] = True
+            self.assertTrue(host.close())
+            self.assertEqual(root_attempts, [pending, pending])
+            self.assertTrue(core._closed)
+            self.assertIsNone(host._uncertain_ticket)
+
+    def test_unreturned_buffer_child_refusal_does_not_skip_named_cleanup(self):
+        with TemporaryDirectory(prefix='actql-product-unreturned-child-') as directory:
+            core, calls, codes, _ = self.core()
+            host = self.create(core, Path(directory))
+            original_call = core._call
+            pending = core._next_ticket
+            failure = RuntimeError('original unreturned input')
+
+            def call(family, name, *args):
+                if family == 'buffer' and name == 'reserve' and args[0] == pending:
+                    raise failure
+                if family == 'buffer' and name == 'close_pool':
+                    self.assertEqual(core._cleanup(pending), 0)
+                return original_call(family, name, *args)
+
+            core._call = original_byte_fixture_port(call)
+            with self.assertRaises(RuntimeError) as failed:
+                host._copy(b'original immutable input')
+            self.assertIs(failed.exception, failure)
+            configuration = host._configuration
+            codes['run', 'close_configuration'] = -9
+            self.assertFalse(host.close())
+            self.assertIs(host._configuration, configuration)
+            self.assertEqual(host._uncertain_ticket, pending)
+            self.assertIn(pending, core._inputs)
+            self.assertFalse(any(family == 'buffer' and name == 'close_pool'
+                                 for family, name, _ in calls))
+            codes['run', 'close_configuration'] = 0
+            self.assertTrue(host.close())
+            self.assertTrue(core._closed)
+            self.assertIsNone(host._uncertain_ticket)
+
 
 if __name__ == '__main__':
     unittest.main()

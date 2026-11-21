@@ -90,7 +90,7 @@ test('default delimiter keeps duplicates, filter demand, NULL output and nullabl
 });
 
 test('ordinary packed route and focused selection both include collection property order cases', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const app = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const name of ['aggregatePropertyOrderSuccesses', 'aggregatePropertyOrderRefusals',
     'aggregatePropertyOrderExecutionFailures']) assert.ok(app.includes('push(...' + name + ')'));

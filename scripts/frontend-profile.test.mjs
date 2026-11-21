@@ -240,7 +240,7 @@ test('grouped signed zero keeps its original rows and canonical membership resul
     assert(groupedInRefusals.some(value => value.name === 'grouped-in-' + name));
 });
 test('membership machine controls never emit empty parameter declarations', () => {
-  const driver = read('scripts/test-packed-public-query.mjs');
+  const driver = read('scripts/test-packed-public-query.mts');
   const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),
     driver.indexOf('try {', driver.indexOf('const narrowPublicQuery')));
   assert.ok(narrowSelection.includes("'--grouped-in-only'"));

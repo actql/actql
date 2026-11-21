@@ -231,55 +231,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Best-effort diagnostics have no authority"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Object.assign(emit"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "installed.get(observe)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "outside the caller"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "catch"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active?.abort()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "maxQueued"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "InvalidDiagnosticObserver"
               }
             ],
@@ -299,55 +299,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Best-effort diagnostics have no authority"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "Object.assign(emit"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "installed.get(observe)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "outside the caller"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "catch"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "active?.abort()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "maxQueued"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/diagnostic-observer.mjs",
+                "path": "adapters/host-common/diagnostic-observer.mts",
                 "anchor": "InvalidDiagnosticObserver"
               }
             ],
@@ -1737,7 +1737,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -1897,7 +1897,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -6765,7 +6765,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {
@@ -7562,7 +7562,7 @@
                 "anchor": "bounded binary invocation sends exact non-UTF8 bytes"
               },
               {
-                "path": "adapters/host-common/http-exchange.test.mjs",
+                "path": "adapters/host-common/http-exchange.test.mts",
                 "anchor": "byte length/backing properties cannot disguise"
               },
               {

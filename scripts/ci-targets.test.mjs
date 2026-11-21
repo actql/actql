@@ -87,6 +87,13 @@ test('preflight checks Native counter assignments before the build toolchain', (
 test('early Source admission runs original recipes once and refuses plan publication on failure', t => {
   const steps = jobs['select-targets'].steps, select = steps.find(step => step.id === 'select');
   const recipes = ['check:contract-versions', 'check:client-types'];
+  const preparation = steps.filter(step => step.run?.trim() === 'npm ci');
+  assert.equal(preparation.length, 1, 'One canonical prepare emits typed command entrances');
+  assert.equal(preparation[0].if, undefined);
+  assert.equal(preparation[0]['continue-on-error'], undefined);
+  const tools = steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert.equal(tools.length, 1);
+  assert(steps.indexOf(tools[0]) < steps.indexOf(preparation[0]));
   for (const recipe of recipes) {
     const selected = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
       .filter(step => step.run?.trim().split(/\s+/u).join(' ') === `npm run ${recipe}`)
@@ -99,6 +106,8 @@ test('early Source admission runs original recipes once and refuses plan publica
       assert.equal(enabled, recipe !== 'check:client-types' || !docs);
     }
     assert.notEqual(selected[0].step['continue-on-error'], true);
+    assert(steps.indexOf(preparation[0]) < steps.indexOf(selected[0].step),
+      `${recipe}: ignored runtime emit cannot be an unprepared entrance`);
     assert(steps.indexOf(selected[0].step) < steps.indexOf(select));
   }
   const graph = steps.find(step => step.id === 'moon-candidate');
@@ -115,6 +124,9 @@ test('early Source admission runs original recipes once and refuses plan publica
     if(command==='npm') {
       const recipe=args[0]==='run'?args[1]:args[0];
       if(recipe===process.env.FAIL_RECIPE)process.exit(71);
+      // This is a recording port for the successful canonical prepare, not an emit proof.
+      if(args[0]==='ci')fs.writeFileSync(process.env.PREPARED,'canonical prepare returned');
+      if(args[0]==='run'&&!fs.existsSync(process.env.PREPARED))process.exit(72);
     } else if(args.length===1 && args[0]==='scripts/ci-targets.mjs') {
       fs.appendFileSync(process.env.GITHUB_OUTPUT,'plan=recording-port\\n');
     }\n`;
@@ -124,15 +136,16 @@ test('early Source admission runs original recipes once and refuses plan publica
     writeFileSync(output, '');
     const child = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', prefix.map(step => step.run).join('\n')], {
       cwd: directory, encoding: 'utf8', timeout: 5000,
-      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure, GITHUB_OUTPUT: output},
+      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure,
+        PREPARED: join(directory, `prepared-${failure || 'success'}`), GITHUB_OUTPUT: output},
     });
     assert.equal(child.error, undefined);assert.equal(child.signal, null);
     assert.equal(child.status, failure ? 71 : 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     const npmCalls = observed.filter(row => row.command === 'npm');
     for (const recipe of recipes) assert.equal(npmCalls.filter(row => row.args[1] === recipe).length,
-      recipe === recipes[1] && [recipes[0], 'ci'].includes(failure) ? 0 : 1);
-    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, failure === recipes[0] ? 0 : 1);
+      failure === 'ci' || recipe === recipes[1] && failure === recipes[0] ? 0 : 1);
+    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, 1);
     assert.equal(readFileSync(output, 'utf8').includes('plan='), failure === '');
     // A refused Source cannot start even the optional Moon discovery entrance.
     assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
@@ -809,7 +822,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps.find(step => step.run).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
+  assert.equal(check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate')).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert.match(check.if, /always\(\)/u);
 });
 const head = 'b'.repeat(40);
@@ -1486,7 +1499,20 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   const eventPath = join(dir, 'event.json');
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
-  const script = jobs.check.steps.find(step => step.run).run;
+  const finalGate = jobs.check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate'));
+  const prepare = jobs.check.steps.find(step => step.run === 'npm ci');
+  const tools = jobs.check.steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert(finalGate && prepare);
+  assert.equal(tools.length, 1, 'The same pinned Node prepares and runs the final gate');
+  assert.equal(tools[0].with['node-version'], jobs['select-targets'].steps
+    .find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version']);
+  assert.equal(tools[0].if, undefined);
+  assert.equal(prepare.if, undefined, 'Failed selection still reaches the required gate');
+  assert.equal(prepare['continue-on-error'], undefined);
+  assert.equal(finalGate.if, undefined, 'Failed preparation cannot execute a stale gate');
+  assert(jobs.check.steps.indexOf(tools[0]) < jobs.check.steps.indexOf(prepare));
+  assert(jobs.check.steps.indexOf(prepare) < jobs.check.steps.indexOf(finalGate));
+  const script = finalGate.run;
   const run = (value, needs = results(selection)) => spawnSync('bash', ['-eo', 'pipefail', '-c', script
     .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
     .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs))], {cwd: new URL('../', import.meta.url),
@@ -1856,6 +1882,28 @@ test('automatic main integration remains full without cumulative evidence', () =
   }
 });
 
+test('Source profile custody runs once beside original profile intake after preparation', () => {
+  const files = ['adapters/host-node/source-profile-json.test.mjs',
+    'adapters/host-node/source-profile-custody.test.mjs'];
+  const steps = jobs['client-distribution-callers'].steps;
+  const owners = files.map(file => {
+    const selected = Object.values(jobs).flatMap(job => job.steps ?? [])
+      .filter(step => step.run?.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1, file);
+    return selected[0];
+  });
+  assert.equal(owners[0], owners[1]);
+  const [owner] = owners, args = owner.run.trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0, 5), ['node', 'scripts/local-checks.mjs', 'test', 'node', '--']);
+  assert(!args.some(argument => /^--test-(?:name|skip|only)/u.test(argument)));
+  assert.equal(owner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(owner['continue-on-error'], undefined);
+  assert(steps.findIndex(step => step.id === 'distribution-preparation') < steps.indexOf(owner));
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(/\s+/u);
+  for (const file of files) assert.equal(command.filter(argument => argument === file).length, 1, file);
+});
+
 test('REST demand controls have one prepared public package owner without narrowing CI admission', () => {
   const file = 'adapters/host-node/rest-source-initial-material.test.mjs';
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
@@ -2146,7 +2194,7 @@ test('Python original observation fixture selects its same-source wheel consumer
 
 test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
   for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mts', 'scripts/ci-focused-tests.mts',
     'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
     'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
     'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',

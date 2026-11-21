@@ -58,7 +58,7 @@ test('grouped later-clause oracles separate COUNT aliases from retained input ke
 
 test('QUALIFY runs in both the ordinary and narrow packed public corpora', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'qualifySuccesses'], ['refusals', 'qualifyRefusals'],
     ['executionFailures', 'qualifyExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

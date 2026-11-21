@@ -63,6 +63,6 @@ test('joined star cases use the normal correlated cohort and precise pre-admissi
   }
   assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size,
     successes.length + refusals.length);
-  assert.ok(readFileSync('scripts/test-packed-public-query.mjs', 'utf8').includes(
+  assert.ok(readFileSync('scripts/test-packed-public-query.mts', 'utf8').includes(
     "['scripts/fixtures/joined-unnest-star-source-input.mjs', 'joined-unnest-star-source-input.mjs']"));
 });

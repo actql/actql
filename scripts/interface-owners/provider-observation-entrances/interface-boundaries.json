@@ -1293,17 +1293,17 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -1313,25 +1313,25 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -1341,37 +1341,37 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -1743,7 +1743,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -1763,27 +1763,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -1793,7 +1793,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -1803,33 +1803,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -1837,7 +1837,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -1899,13 +1899,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "prepareOpenAIChatRequest"
               }
             ],
@@ -1915,23 +1915,23 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "openAIChatStaticOriginals"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "forgetting this borrowed shell is not module GC"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "interceptSdkRequest"
               }
             ],
@@ -1941,7 +1941,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -1951,33 +1951,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -1985,7 +1985,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -2325,7 +2325,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2341,19 +2341,19 @@
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
-                "anchor": "installations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "installations.set(fetch, Object.freeze(original))"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "per-call Client/duty"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "before that allocation"
               }
             ],
@@ -2363,7 +2363,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2373,21 +2373,21 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "controller.abort(reason)"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "maxBorrowedBackingBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "does not bound native emission"
               },
               {
@@ -2397,11 +2397,11 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -2604,7 +2604,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2624,7 +2624,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -2636,11 +2636,11 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2650,7 +2650,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2660,7 +2660,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -2676,17 +2676,17 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -2694,7 +2694,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               },
               {
@@ -2735,13 +2735,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/index.mjs",
+                "path": "packages/provider-ai-sdk/index.mts",
                 "anchor": "export"
               }
             ],
@@ -2751,27 +2751,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -2781,7 +2781,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2791,33 +2791,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -2825,7 +2825,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -2955,17 +2955,17 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -2975,25 +2975,25 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -3003,37 +3003,37 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -3135,7 +3135,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -3155,7 +3155,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -3167,11 +3167,11 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3181,7 +3181,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3191,7 +3191,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3207,17 +3207,17 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3225,7 +3225,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3258,13 +3258,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/index.mjs",
+                "path": "packages/provider-http/index.mts",
                 "anchor": "export"
               }
             ],
@@ -3274,27 +3274,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3304,7 +3304,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3314,33 +3314,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3348,7 +3348,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3567,13 +3567,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "export function createOpenAIChatProvider"
               }
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "context.prepareBindingOriginals"
               }
             ],
@@ -3591,7 +3591,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "OpenAIProviderConfigurationReused"
               }
             ],
@@ -3607,7 +3607,7 @@
                 "anchor": "const nodes = 128n + 2048n"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
               },
               {
@@ -3627,11 +3627,11 @@
                 "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal binding profile and original Read recipe"
               },
               {

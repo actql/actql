@@ -100,7 +100,8 @@ function normalizedText(value) {
 }
 
 // Canonical JSON for Host-local identities: sorted keys, no whitespace,
-// NFC text. Used for the configuration CID and Local Host records.
+// NFC text. Used for Host-local records and operator configuration authoring.
+// Admitted Account identities come from Common, not this Host-local writer.
 export function canonicalJson(value) {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
@@ -152,13 +153,12 @@ function configurationOf(text, frame) {
   }
   return {
     text,
-    configurationCid: contentCid(document),
     accountId: document.account_id,
   };
 }
 
-// Read one configuration file. Its identity is the CID of the complete
-// canonical document; admission (canonical order, overlap) stays in Core.
+// Read one original configuration file. Core owns admission (canonical order,
+// overlap) and the admitted complete document's CID; the reader issues no CID.
 export async function readAccountConfiguration(path, frame) {
   if (typeof path !== 'string' || path.length === 0) {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationPathRequired');
@@ -251,7 +251,6 @@ async function createLocalAuthorizationGateOriginal({
         withAccountObservation,
       }),
       configuration: configuration.text,
-      configurationCid: configuration.configurationCid,
       // Retain the installation's resolved path, not a later cwd or caller
       // property. A wire-backed gate owns its immutable admitted configuration.
       readConfiguration: configuration.path === undefined ? undefined

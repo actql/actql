@@ -15337,7 +15337,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15347,7 +15347,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15357,7 +15357,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15367,7 +15367,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15377,7 +15377,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15387,7 +15387,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15397,7 +15397,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15407,7 +15407,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15417,7 +15417,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15427,7 +15427,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               },
               {
@@ -15451,7 +15451,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15461,7 +15461,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15471,7 +15471,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15481,7 +15481,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15491,7 +15491,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15501,7 +15501,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15511,7 +15511,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15521,7 +15521,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15531,7 +15531,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15541,7 +15541,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "isEffectPreparationRefusal"
               },
               {
@@ -15565,7 +15565,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15575,7 +15575,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15585,7 +15585,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15595,7 +15595,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15605,7 +15605,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15615,7 +15615,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15625,7 +15625,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15635,7 +15635,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15645,7 +15645,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15655,7 +15655,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "refusedEffectPreparation"
               },
               {
@@ -15677,7 +15677,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15687,7 +15687,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15697,7 +15697,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15707,7 +15707,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15717,7 +15717,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15727,7 +15727,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15737,7 +15737,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15747,7 +15747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15757,7 +15757,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -15767,7 +15767,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "import {runtimeIsError} from './compiler-binding.generated.mjs';"
               },
               {
@@ -18068,7 +18068,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -19791,7 +19791,7 @@
                 "anchor": "15L + 8L * max_entries.to_int64()"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -21139,8 +21139,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "export function createLocalSigningMetadata(moon)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "export function createLocalSigningMetadata(moon: unknown)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -21149,7 +21149,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('ForeignLocalSigningMetadata')"
               },
               {
@@ -21159,8 +21159,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "let grants = new WeakMap<object, unknown>(), scopes = new WeakMap<object, unknown>(), uses = new WeakMap<object, unknown>();"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21169,8 +21169,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/local-signing-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21179,11 +21179,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "path": "adapters/host-common/local-signing-metadata.mts",
                 "anchor": "fail('LocalSigningMetadataRetired')"
               }
             ],
@@ -21239,17 +21239,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "export function createInstallationPreparationMetadata(moon)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "export function createInstallationPreparationMetadata(moon: unknown)"
               },
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function renderInstallationPreparationBridge("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('ForeignInstallationPreparationMetadata')"
               },
               {
@@ -21259,8 +21259,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "let subjects = new WeakMap<object, RetainedOriginal>(), scopes = new WeakMap<object, RetainedOriginal>(), grants = new WeakMap<object, RetainedOriginal>();"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21269,8 +21269,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
-                "anchor": "Reflect.apply(methods[name], moon, args)"
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
+                "anchor": "Reflect.apply(methods[name] as (...args: unknown[]) => unknown, moon, args)"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21279,15 +21279,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "fail('InstallationPreparationMetadataRetired')"
               },
               {
-                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "path": "adapters/host-common/installation-preparation-metadata.mts",
                 "anchor": "Object.getOwnPropertyDescriptors(value)"
               }
             ],
@@ -21309,7 +21309,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-credential-scope-binding.mjs",
+                "path": "scripts/generate-credential-scope-binding.mts",
                 "anchor": "export function checkInstallationPreparationBridge("
               },
               {
@@ -21327,7 +21327,7 @@
                 "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
               },
               {
-                "path": "scripts/installation-preparation-binding.test.mjs",
+                "path": "scripts/installation-preparation-binding.test.mts",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
@@ -23202,7 +23202,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23212,7 +23212,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23222,7 +23222,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23232,7 +23232,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23242,7 +23242,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23252,7 +23252,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23262,7 +23262,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23272,7 +23272,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -23282,7 +23282,7 @@
                 "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -24524,7 +24524,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -25228,7 +25228,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -35204,7 +35204,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35214,7 +35214,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35224,7 +35224,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35234,7 +35234,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35244,7 +35244,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35254,7 +35254,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35264,7 +35264,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35274,7 +35274,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35284,7 +35284,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35294,7 +35294,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -35316,7 +35316,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35326,7 +35326,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35336,7 +35336,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35346,7 +35346,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35356,7 +35356,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35366,7 +35366,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35376,7 +35376,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35386,7 +35386,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35396,7 +35396,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -35406,7 +35406,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/runtime-result.mjs",
+                "path": "adapters/host-common/runtime-result.mts",
                 "anchor": "// Pinned MoonBit compiler's JS representation of raised results. This adapter"
               },
               {
@@ -46150,7 +46150,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46160,7 +46160,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46170,7 +46170,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46180,7 +46180,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46190,7 +46190,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46200,7 +46200,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46210,7 +46210,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46220,7 +46220,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -46230,7 +46230,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -47223,7 +47223,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -53845,8 +53845,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -56143,7 +56143,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "export async function retainInstalledHostInitializationFailure"
               },
               {
@@ -58895,7 +58895,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// An already admitted Run retains this same Host through graceful drain."
               }
             ],
@@ -58919,8 +58919,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "failure": [
@@ -61069,8 +61069,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -64146,8 +64146,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -64200,7 +64200,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
@@ -64238,7 +64238,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -64272,7 +64272,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -64298,7 +64298,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -68785,7 +68785,7 @@
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mjs",
+        "./embedded-local-lifecycle.mts",
         "./entry.mjs",
         "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
@@ -68805,7 +68805,7 @@
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
@@ -68824,7 +68824,7 @@
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-files-native.mjs",
-        "./local-preparation-registry.mjs",
+        "./local-preparation-registry.mts",
         "./local-result-authorization.mjs",
         "./local-result-read-workspace.mjs",
         "./local-values-plan.mjs",
@@ -87533,7 +87533,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -88227,7 +88227,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -89264,7 +89264,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -89915,7 +89915,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -96006,7 +96006,7 @@
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
@@ -162755,7 +162755,7 @@
       "module": "adapters/host-common/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162767,7 +162767,7 @@
       "module": "adapters/host-common/publication-action.mjs",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {
@@ -162779,7 +162779,7 @@
       "module": "adapters/host-common/strategy-actions.mjs",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {
@@ -162791,7 +162791,7 @@
       "module": "packages/coordinator-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162803,7 +162803,7 @@
       "module": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162815,7 +162815,7 @@
       "module": "packages/provider-http/_internal/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162827,7 +162827,7 @@
       "module": "packages/run-host-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {
@@ -162839,7 +162839,7 @@
       "module": "packages/run-host-core/publication-action.mjs",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "generator": {
-        "path": "scripts/generate-js-action-bindings.mjs",
+        "path": "scripts/generate-js-action-bindings.mts",
         "anchor": "generateActionBindings"
       },
       "freshness": {
@@ -162851,7 +162851,7 @@
       "module": "packages/transfer-core/compiler-binding.generated.mjs",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mjs",
+        "path": "scripts/generate-js-compiler-bindings.mts",
         "anchor": "generateCompilerBindings"
       },
       "freshness": {

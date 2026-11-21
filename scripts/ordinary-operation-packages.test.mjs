@@ -191,10 +191,12 @@ test('all ordinary adapter jobs check out their real build and recheck original 
     const job = workflow.jobs[name], bind = job.steps.find(step => step.id === 'package-source');
     const download = job.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
     const index = job.steps.indexOf(bind); assert(download < index);
+    const prepare = job.steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+    assert(prepare >= 0 && prepare < download, 'Prepare the matching controller before artifact discovery');
     assert.equal(bind.env.PACKAGE_ADAPTER, adapter);
     assert.equal(bind.env.PACKAGE_EVENT_HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
     assert.match(bind.run, /git fetch --no-tags --depth=1 origin "\$source_sha"/u);
-    assert.match(bind.run, /git checkout --detach "\$source_sha"/u); assert(!bind.run.includes('--force'));
+    assert.match(bind.run, /bash scripts\/ci-checkout-artifact-source\.sh "\$source_sha"/u); assert(!bind.run.includes('--force'));
     assert.match(bind.run, /PACKAGE_BUILD_SOURCE_SHA=\$source_sha/u);
     for (const step of job.steps.slice(index + 1)) assert(!/\$GITHUB_SHA|environ\['GITHUB_SHA'\]/u.test(step.run ?? ''));
     const base = join(root, directory); await mkdir(join(base, 'packages'), {recursive: true});
@@ -476,6 +478,164 @@ function originalNativeWorkflow(p) {
     ref: 'refs/pull/5/merge', event: {number: 5, repository: structuredClone(p.run.repository), pull_request: pr}};
 }
 
+function advancedNativeBaseProvenance() {
+  const p = nativeApprovalProvenance({merge: true});
+  p.originalWorkflow = originalNativeWorkflow(p);
+  const eventBase = p.originalWorkflow.event.pull_request.base.sha, actualBase = 'e'.repeat(40);
+  p.sourceCommit.parents = [{sha: actualBase}, {sha}];
+  // A mutable REST base is deliberately unrelated; it cannot supply this proof.
+  p.run.pull_requests[0].base.sha = 'f'.repeat(40);
+  const comparison = (base, head) => ({
+    html_url: `https://github.com/${p.repository}/compare/${base}...${head}`,
+    status: 'ahead', behind_by: 0, ahead_by: 1, total_commits: 1,
+    base_commit: {sha: base}, merge_base_commit: {sha: base}, commits: [{sha: head}],
+  });
+  p.baseAdvanceComparisons = {eventBaseToActualBase: comparison(eventBase, actualBase),
+    actualBaseToHead: comparison(actualBase, sha)};
+  return p;
+}
+
+test('Native approval admits only proved original-event base advance', () => {
+  const p = advancedNativeBaseProvenance(), before = structuredClone(p);
+  const actual = validateNativeApprovalSource(p);
+  assert.equal(actual.sourceSha, p.manifest.sourceSha);
+  assert.deepEqual(actual.sourceParents, ['e'.repeat(40), sha]);
+  assert.deepEqual(actual.workflowEvent, {runId: '17', runAttempt: '2',
+    sourceSha: 'c'.repeat(40), ref: 'refs/pull/5/merge', repository: p.repository,
+    repositoryId: 11, prNumber: 5, eventBaseSha: 'b'.repeat(40), eventHeadSha: sha});
+  assert.deepEqual(actual.baseAdvance, {eventBaseSha: 'b'.repeat(40), actualBaseSha: 'e'.repeat(40),
+    eventHeadSha: sha});
+  assert.deepEqual(p, before, 'The original event/producer/commit records must not be rewritten');
+});
+
+test('Native approval refuses missing or foreign base advance evidence', () => {
+  const mutations = [
+    p => {delete p.originalWorkflow;}, p => {delete p.baseAdvanceComparisons;},
+    p => {delete p.baseAdvanceComparisons.eventBaseToActualBase;},
+    p => {delete p.baseAdvanceComparisons.actualBaseToHead;},
+    p => {p.baseAdvanceComparisons = true;},
+    p => {p.sourceCommit.parents.reverse();}, p => {p.sourceCommit.parents.pop();},
+    p => {p.sourceCommit.parents.push({sha: 'f'.repeat(40)});},
+    p => {p.sourceCommit.parents[1].sha = 'f'.repeat(40);},
+    p => {p.sourceCommit.tree.sha = 'f'.repeat(40);},
+    p => {p.baseAdvanceComparisons.eventBaseToActualBase.html_url = 'https://github.com/foreign/repo/compare/base...head';},
+    p => {p.baseAdvanceComparisons.eventBaseToActualBase.base_commit.sha = 'f'.repeat(40);},
+    p => {p.baseAdvanceComparisons.eventBaseToActualBase.merge_base_commit.sha = 'f'.repeat(40);},
+    p => {p.baseAdvanceComparisons.eventBaseToActualBase.status = 'behind';},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.status = 'diverged';},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.behind_by = 1;},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.commits = [];},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.commits[0].sha = 'f'.repeat(40);},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.total_commits = 101;},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.total_commits = true;},
+    p => {p.baseAdvanceComparisons.actualBaseToHead.ahead_by = 2;},
+    p => {p.originalWorkflow.event.pull_request.head.sha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.runAttempt = '3';},
+    p => {p.adapter = 'python'; p.nativeApproval = false; p.producerJob = 'normal-python';
+      p.jobs[0].name = p.producerJob; p.artifact.name = 'python-packages-17-2';},
+  ];
+  for (const [index, mutate] of mutations.entries()) {
+    const p = advancedNativeBaseProvenance(); mutate(p);
+    assert.throws(() => validateNativeApprovalSource(p), `Unproved or foreign advance ${index}`);
+  }
+  const p = advancedNativeBaseProvenance();
+  // Equal content and both base parents in the head are not ancestry of the
+  // actual merge commit. The official merge-base observation must still agree.
+  p.baseAdvanceComparisons.actualBaseToHead.merge_base_commit.sha = 'b'.repeat(40);
+  assert.throws(() => validateNativeApprovalSource(p));
+});
+
+test('Native approval reader fetches exact constrained base advance proof', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-base-advance-reader-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const p = advancedNativeBaseProvenance(), calls = [];
+  await writeFile(join(root, 'release.json'), JSON.stringify(p.manifest));
+  const prefix = `https://api.github.com/repos/${p.repository}/`;
+  const first = `${prefix}compare/${'b'.repeat(40)}...${'e'.repeat(40)}?per_page=100&page=1`;
+  const second = `${prefix}compare/${'e'.repeat(40)}...${sha}?per_page=100&page=1`;
+  const records = {
+    [`${prefix}actions/runs/17`]: p.run, [`${prefix}actions/artifacts/23`]: p.artifact,
+    [`${prefix}actions/runs/17/attempts/2/jobs?per_page=100&page=1`]: {total_count: 1, jobs: p.jobs},
+    [`${prefix}git/commits/${sha}`]: p.headCommit,
+    [`${prefix}git/commits/${p.manifest.sourceSha}`]: p.sourceCommit,
+    [first]: p.baseAdvanceComparisons.eventBaseToActualBase,
+    [second]: p.baseAdvanceComparisons.actualBaseToHead,
+  };
+  const fetchMetadata = async (url, options) => {
+    calls.push(url); assert.equal(options.redirect, 'error');
+    assert.equal(options.headers.Authorization, 'Bearer test-only');
+    assert(Object.hasOwn(records, url), `Unexpected metadata endpoint: ${url}`);
+    return {ok: true, text: async () => JSON.stringify(records[url])};
+  };
+  const options = {...p, baseAdvanceComparisons: true, token: 'test-only', nativePackages: root};
+  const result = await inspectPerformancePackageProducer(options, fetchMetadata);
+  assert.deepEqual(result.baseAdvance, {eventBaseSha: 'b'.repeat(40), actualBaseSha: 'e'.repeat(40), eventHeadSha: sha});
+  assert.deepEqual(calls.filter(url => url.includes('/compare/')), [first, second]);
+  assert.equal(result.workflowEvent.eventBaseSha, 'b'.repeat(40));
+  assert.deepEqual(result.sourceParents, ['e'.repeat(40), sha]);
+  const correct = records[second];
+  for (const comparison of [undefined, {...correct, status: 'diverged'},
+    {...correct, commits: []}, {...correct, merge_base_commit: {sha: 'f'.repeat(40)}}]) {
+    records[second] = comparison;
+    await assert.rejects(inspectPerformancePackageProducer(options, fetchMetadata));
+  }
+  records[second] = correct; calls.length = 0;
+  const foreign = structuredClone(p.originalWorkflow); foreign.runAttempt = '3';
+  await assert.rejects(inspectPerformancePackageProducer({...options, originalWorkflow: foreign}, fetchMetadata));
+  assert(!calls.some(url => url.includes('/compare/')), 'A foreign event cannot initiate ancestry resolution');
+});
+
+test('Native approval CLI keeps original event distinct from actual advanced parents', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-base-advance-cli-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const p = advancedNativeBaseProvenance();
+  const eventPath = join(root, 'event.json'), recordsPath = join(root, 'records.json');
+  const preload = join(root, 'fetch-original-metadata.mjs');
+  await writeFile(join(root, 'release.json'), JSON.stringify(p.manifest));
+  await writeFile(eventPath, JSON.stringify(p.originalWorkflow.event));
+  const prefix = `https://api.github.com/repos/${p.repository}/`;
+  const records = {
+    [`${prefix}actions/runs/17`]: p.run, [`${prefix}actions/artifacts/23`]: p.artifact,
+    [`${prefix}actions/runs/17/attempts/2/jobs?per_page=100&page=1`]: {total_count: 1, jobs: p.jobs},
+    [`${prefix}git/commits/${sha}`]: p.headCommit,
+    [`${prefix}git/commits/${p.manifest.sourceSha}`]: p.sourceCommit,
+    [`${prefix}compare/${'b'.repeat(40)}...${'e'.repeat(40)}?per_page=100&page=1`]: p.baseAdvanceComparisons.eventBaseToActualBase,
+    [`${prefix}compare/${'e'.repeat(40)}...${sha}?per_page=100&page=1`]: p.baseAdvanceComparisons.actualBaseToHead,
+  };
+  await writeFile(recordsPath, JSON.stringify(records));
+  await writeFile(preload, `import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const records = JSON.parse(readFileSync(process.env.METADATA_FIXTURE, 'utf8'));
+globalThis.fetch = async (url, options) => {
+  assert.equal(options.redirect, 'error'); assert.equal(options.headers.Authorization, 'Bearer test-only');
+  assert(Object.hasOwn(records, url), 'Unexpected metadata endpoint');
+  return {ok: true, text: async () => JSON.stringify(records[url])};
+};
+`);
+  const invoke = (overrides = {}) => spawnSync(process.execPath, ['--import', preload,
+    fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url)),
+    'inspect-native-approval-source', root], {encoding: 'utf8', timeout: 5000,
+    env: {...process.env, METADATA_FIXTURE: recordsPath, GITHUB_REPOSITORY: p.repository,
+      GITHUB_TOKEN: 'test-only', GITHUB_RUN_ID: '17', GITHUB_RUN_ATTEMPT: '2',
+      GITHUB_SHA: p.manifest.sourceSha, GITHUB_REF: 'refs/pull/5/merge',
+      GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath,
+      PACKAGE_EVENT_HEAD_SHA: sha, PACKAGE_RUN_ID: '17', PACKAGE_ARTIFACT_ID: '23',
+      PACKAGE_PRODUCER_JOB: p.producerJob, ...overrides}});
+  const actual = invoke(); assert.equal(actual.status, 0, actual.stderr);
+  const value = JSON.parse(actual.stdout);
+  assert.deepEqual(value.sourceParents, ['e'.repeat(40), sha]);
+  assert.equal(value.workflowEvent.eventBaseSha, 'b'.repeat(40));
+  assert.equal(value.workflowEvent.sourceSha, p.manifest.sourceSha);
+  for (const override of [{GITHUB_RUN_ATTEMPT: '3'}, {GITHUB_SHA: sha},
+    {GITHUB_REF: 'refs/pull/6/merge'}, {GITHUB_EVENT_NAME: 'workflow_dispatch'}]) {
+    const refused = invoke(override); assert.notEqual(refused.status, 0); assert.equal(refused.stdout, '');
+  }
+  const endpoint = `${prefix}compare/${'e'.repeat(40)}...${sha}?per_page=100&page=1`;
+  records[endpoint].merge_base_commit.sha = 'b'.repeat(40);
+  await writeFile(recordsPath, JSON.stringify(records));
+  const refused = invoke(); assert.notEqual(refused.status, 0); assert.equal(refused.stdout, '');
+});
+
 test('Native approval keeps original event parents when the REST PR base changes', () => {
   const p = nativeApprovalProvenance({merge: true});
   p.originalWorkflow = originalNativeWorkflow(p);
@@ -605,12 +765,14 @@ test('Native-only workflow binds build source before collection and refuses chan
   const bind = job.steps.find(step => step.run?.includes(' inspect-native-approval-source'));
   const download = job.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
   const collect = job.steps.find(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
+  const prepare = job.steps.findIndex(step => step.run?.includes('npm run build:typescript'));
+  assert(prepare >= 0 && prepare < job.steps.indexOf(inspect));
   assert(job.steps.indexOf(inspect) < job.steps.indexOf(download));
   assert(job.steps.indexOf(download) < job.steps.indexOf(bind));
   assert(job.steps.indexOf(bind) < job.steps.indexOf(collect));
   assert.equal(inspect.env.PACKAGE_EVENT_HEAD_SHA, bind.env.PACKAGE_EVENT_HEAD_SHA);
   assert.match(bind.run, /git fetch --no-tags --depth=1 origin "\$source_sha"/u);
-  assert.match(bind.run, /git checkout --detach "\$source_sha"/u);
+  assert.match(bind.run, /bash scripts\/ci-checkout-artifact-source\.sh "\$source_sha"/u);
   assert(!bind.run.includes('--force')); assert(!collect.run.includes('--source'));
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.equal(workflow.on[event].inputs['native-approval-source-sha'].default, '');
@@ -1508,7 +1670,13 @@ test('record-only trend lane reuses exact normal packages without dispatch, rebu
   assert.equal(job['timeout-minutes'], 15);
   const download = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
   assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
-  const commands = job.steps.map(step => step.run ?? '').join('\n');
+  const preparations = job.steps.filter(step => step.run === 'npm ci');
+  assert.equal(preparations.length, 1);
+  const [prepare] = preparations;
+  assert(job.steps.indexOf(prepare) < job.steps.findIndex(step => step.run?.includes('ordinary-operation-packages.mjs prepare')));
+  assert.equal(prepare.if, undefined);
+  assert.equal(prepare['continue-on-error'], undefined);
+  const commands = job.steps.filter(step => step !== prepare).map(step => step.run ?? '').join('\n');
   assert.match(commands, /ordinary-operation-packages.mjs prepare/u);
   assert.match(commands, /benchmark-node-operations.mjs/u);
   assert.match(commands, /benchmark-node-process-operations.mjs/u);

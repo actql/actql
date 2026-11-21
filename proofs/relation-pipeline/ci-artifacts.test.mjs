@@ -766,7 +766,7 @@ test('global check continues to require the final pipeline-evidence verdict', t 
   const eventPath = put(root, 'event.json', JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
-  const script = jobs.check.steps.find(step => step.run).run;
+  const script = jobs.check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate')).run;
   const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
   const selection = selectTargets(['.github/workflows/ci.yml']);

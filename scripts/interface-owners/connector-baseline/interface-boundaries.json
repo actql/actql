@@ -619,37 +619,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "Pure, lightweight Connector configuration"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "prepareDuckDBStrategyConfiguration"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
-                "anchor": "configurations.get(handle)"
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
+                "anchor": "configurations.get(handle as object)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "configurations.set(handle"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "Object.freeze"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "ConflictingOutputProfiles"
               }
             ],
@@ -658,13 +658,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "validateLimits"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "Connector-internal interpretation"
               }
             ],
@@ -765,7 +765,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "DuckDBTransportError"
               }
             ],
@@ -2686,37 +2686,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "Pure operator configuration"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "retainedConfiguration"
               }
             ],
             "identity": [
               {
-                "path": "adapters/store-local/process-binding.mjs",
+                "path": "adapters/store-local/process-binding.mts",
                 "anchor": "processStoreContext"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "processStores.set"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "Object.freeze"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "InvalidRetainedConfiguration"
               }
             ],
@@ -2725,13 +2725,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "maxFrameBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/retained-configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/retained-configuration.mts",
                 "anchor": "cannot be supplied through copied JSON"
               }
             ],
@@ -3954,7 +3954,7 @@
                 "anchor": "\"source\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -4484,7 +4484,7 @@
                 "anchor": "\"registration\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -4645,7 +4645,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "invocationBindingsMatch"
               },
               {
@@ -5422,7 +5422,7 @@
                 "anchor": "\"create\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -5576,7 +5576,7 @@
       ],
       "imports": [
         "../../../host-node/installed-effect-plan.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
@@ -5946,7 +5946,7 @@
                 "anchor": "\"source\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -5999,7 +5999,7 @@
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-credential-source-reader.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -7373,7 +7373,7 @@
                 "anchor": "\"assets\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               }
             ],
@@ -8474,7 +8474,7 @@
                 "anchor": "\"effect\""
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "generateInstallations"
               },
               {
@@ -9125,7 +9125,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "handOverCredentialSiteRelease"
               },
               {
@@ -9418,7 +9418,7 @@
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",

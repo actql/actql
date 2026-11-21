@@ -3743,7 +3743,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/process-binding.mjs",
+                "path": "adapters/store-local/process-binding.mts",
                 "anchor": "bindProcessStore"
               },
               {

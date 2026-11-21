@@ -3508,14 +3508,44 @@ Client wire fields and the frozen excluded Rust projection are unchanged.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
-outer Host operation has a finite 32,000,000,000-instruction allowance so that
+outer Host operation has a finite 64,000,000,000-instruction allowance so that
 bounded preparation, saved-original validation and admission share one budget.
+This is an ActQL execution policy, not a Wasmtime default or a language limit.
+Successful installed measurements with one and ten unrelated pending admissions
+used approximately 1.49B and 9.34B instructions through target admission;
+saved-admission inspection accounted for approximately 0.12B and 0.51B. The
+former 32B ceiling could exhaust during a larger finite admission, before its
+target began. The 64B default provides bounded headroom for that complete unit;
+it does not promise every valid input or history fits. Pending-history fixtures
+retire private parents and are distinct from ordinary repeated public Runs.
+The larger ceiling does not remove the measured history-dependent admission
+work, most of which occurred before the final saved-admission inspection.
 Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
 not capacity reservations, permission or a guarantee that every input fits.
 The prior single 100M lifetime allowance does not cover ordinary initialization
 of the complete packaged contracts. The raw diagnostic retains that original
 lifetime policy; its evidence does not establish ordinary operation acceptance.
+
+### Adjacent submission append validation
+
+Within one synchronous `OriginalHostBinding.inspect` reader frame, the Local
+Core facade may produce and copy the original submission-append candidate under
+one Core lock. Production's complete postcheck also serves as the immediately
+adjacent transfer precheck; the standalone produce and read methods retain their
+existing checks. The combined handoff still performs the complete validation
+after copying the candidate, including a cached candidate. The physical append
+then validates again inside its own fresh write transaction before compare and
+exchange. No validation result, reader, permission or current assertion is reused
+across operations or snapshots.
+
+The same candidate, current carrier, input loan and output remain with their
+existing owners. A post-copy refusal prevents the physical write; a conflicting
+or uncertain physical write keeps its original outcome and does not reissue the
+append. Existing finite fuel, transfer limits and cleanup apply without an extra
+cache, retained history or allowance. Sharing this adjacent check removes one
+redundant validation; it does not bound all history-dependent preparation or
+execution work.
 
 The serialized Host boundary installs fuel before new work only. Every private
 ABI call, callback and nested phase shares that operation's remaining fuel.
@@ -3536,6 +3566,13 @@ methods and cannot revive normal work, issue authority, acknowledge uncertain
 COMMIT or infer release. Failed or pending cleanup retains its original handles
 and carrier. A later explicit close attempt remains cleanup-only and preserves
 all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
+
+A trapped buffer constructor may register its physical input before Core can
+return a named loan. After the original pool acknowledges retirement, the same
+bridge invokes any remaining original input cleanup callbacks before disposing
+the Store. Pending or throwing cleanup retains that Store and input; callback
+reentry refuses. A later close retries only that retained physical cleanup,
+not the retired pool, normal work or an uncertain request.
 
 Ordinary Result capture and commit preparation advance at most 256 existing
 Owner work units per Host yield. The same current and authorization checks
@@ -3685,6 +3722,17 @@ under the lock. The SDK chunk generator's asynchronous finalizer merely returns
 its reading flag outside the cleanup frame. Its actual payload/Store/parent
 retirement remains the separate synchronous close, including Unknown and
 pending-child retention.
+
+Each original SDK Result delivery advance yields one cooperative event-loop
+turn after its Host operation frame has exited and before exposing the borrowed
+chunk. This includes empty progress chunks: a buffered consumer cannot starve a
+waiting control merely by repeatedly requesting the next chunk. The suspension
+holds no Core/Store lock or active fuel frame, creates no worker or permission,
+and confirms no bytes. Cancellation returns the original iteration flag; the
+same response still owns its unconfirmed output, input and clock until actual
+child-first close succeeds. A close requested during that turn refuses delivery
+and retains pending custody. This safe-point handoff is not preemption of a
+synchronous Core call or a wall-clock latency guarantee.
 
 ### Original observation data within one Host operation
 
@@ -4527,6 +4575,15 @@ The physical-start consume callback retains the constructor's same returned
 loan in both its existing Host inventory and the execution record before the
 binding performs any post-current, settings or fence check. A failed post-check
 keeps that original loan and initiating error; confirmation is not attempted.
+
+An interrupted input constructor may leave its original physical ticket in
+Core custody without returning a named Host loan. That uncertainty remains
+retained during cleanup, but does not prevent the known children and parents
+from reaching their existing close boundaries. The same Core Root then closes
+its pool, including any unnamed buffer, and retires its physical runtime. Only
+that successful close clears the Host's uncertain-ticket marker. A pending or
+thrown child/Root close preserves the same remaining debt; no missing handle,
+constructor exception or process exit is a cleanup acknowledgment.
 
 After the execution children acknowledge, the same record returns physical
 start, start material, publication-binding material, original Journal and rows,

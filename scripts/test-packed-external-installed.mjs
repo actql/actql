@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {existsSync, lstatSync, realpathSync} from 'node:fs';
-import {cp, mkdir, readFile, symlink, writeFile} from 'node:fs/promises';
+import {cp, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {prepareCopiedTypeScript} from './copied-typescript-preparation.mjs';
 import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
@@ -83,7 +84,7 @@ async function acceptance() {
     sourceHashes.push([path, sha256(bytes)]);
   }
   initializeNormalPackSourceIndex(coreRoot, sourceHashes.map(([path]) => path));
-  await symlink(join(repository, 'node_modules'), join(coreRoot, 'node_modules'), 'dir');
+  await prepareCopiedTypeScript({source: repository, root: coreRoot, environment, run});
   const fixture = join(coreRoot, 'scripts/fixtures/external-installed');
   const packs = [];
   const pack = async root => {

@@ -1342,7 +1342,7 @@
       "imports": [
         "./adapters/host-common/owned-invocation-context.mjs",
         "./adapters/host-common/runtime-result.mjs",
-        "./adapters/host-node/installed-host-cleanup.mjs",
+        "./adapters/host-node/installed-host-cleanup.mts",
         "./adapters/host-node/installed-rest-source.mjs",
         "./adapters/host-node/installed-row-effect.mjs",
         "./adapters/host-node/installed-row-source.mjs"
@@ -3409,7 +3409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3419,7 +3419,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3433,7 +3433,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3447,7 +3447,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3461,7 +3461,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3475,7 +3475,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3489,7 +3489,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3503,7 +3503,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3517,7 +3517,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/node/index.mjs",
+                "path": "packages/node/index.mts",
                 "anchor": "import {resolve} from 'node:path';"
               },
               {
@@ -3527,7 +3527,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/node-local-compile-cache.test.mjs",
+                "path": "scripts/node-local-compile-cache.test.mts",
                 "anchor": "public open enables the existing cache before the actual Local static Host graph"
               },
               {
@@ -4102,13 +4102,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4118,7 +4118,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4128,7 +4128,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4138,7 +4138,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4148,7 +4148,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4158,7 +4158,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4168,7 +4168,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4178,7 +4178,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/check-presentation.mjs",
+                "path": "packages/sdk/check-presentation.mts",
                 "anchor": "import {validCheckOutcome} from '@actql/client-wire';"
               }
             ],
@@ -4835,7 +4835,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4857,7 +4857,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4869,7 +4869,7 @@
                 "anchor": "const originalReview = (subjectCid, claims) =>"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
@@ -4883,7 +4883,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4899,7 +4899,7 @@
                 "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
@@ -4913,7 +4913,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4935,7 +4935,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4957,7 +4957,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -4979,7 +4979,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -5001,7 +5001,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -5013,11 +5013,11 @@
                 "anchor": "15L + 8L * max_entries.to_int64()"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
               },
               {
@@ -5031,7 +5031,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
@@ -5161,13 +5161,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5177,7 +5177,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5187,7 +5187,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5197,7 +5197,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5207,7 +5207,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5217,7 +5217,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5227,7 +5227,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
@@ -5237,13 +5237,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/connection-string.mjs",
+                "path": "packages/sdk/connection-string.mts",
                 "anchor": "// Internal connection-string admission. The returned description is safe to"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-string.test.mjs",
+                "path": "packages/sdk/connection-string.test.mts",
                 "anchor": "test("
               }
             ]
@@ -5360,8 +5360,8 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -5378,11 +5378,11 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -5396,7 +5396,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -5414,11 +5414,11 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -5432,11 +5432,11 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -5450,7 +5450,7 @@
                 "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -5528,8 +5528,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -5538,17 +5538,17 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -5558,27 +5558,27 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -5654,13 +5654,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5670,7 +5670,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5680,7 +5680,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5690,7 +5690,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5700,7 +5700,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5710,7 +5710,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5720,7 +5720,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -5730,7 +5730,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/host-port.mjs",
+                "path": "packages/sdk/host-port.mts",
                 "anchor": "// Installed providers use the same Client facade without an HTTP transport."
               }
             ],
@@ -6942,8 +6942,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -6960,8 +6960,8 @@
                 "anchor": "/// <reference lib=\"esnext.disposable\" />"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -6972,11 +6972,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -7006,7 +7006,7 @@
                 "anchor": "assertSubmittedIntent(prepared, intent)"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -7040,11 +7040,11 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -7070,11 +7070,11 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -7104,7 +7104,7 @@
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -7130,7 +7130,7 @@
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -7239,8 +7239,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -7249,11 +7249,11 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
@@ -7263,7 +7263,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -7277,21 +7277,21 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
@@ -7301,7 +7301,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -7646,13 +7646,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7662,7 +7662,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7672,7 +7672,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7682,7 +7682,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7692,7 +7692,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7702,7 +7702,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7712,7 +7712,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -7722,7 +7722,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/index.mjs",
+                "path": "packages/sdk/index.mts",
                 "anchor": "import {connectSelected} from './internal/client.mjs';"
               }
             ],
@@ -8135,13 +8135,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8151,7 +8151,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8161,7 +8161,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8171,7 +8171,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8181,7 +8181,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8191,7 +8191,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8201,7 +8201,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
@@ -8211,13 +8211,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/check-observation.mjs",
+                "path": "packages/sdk/internal/check-observation.mts",
                 "anchor": "// Original Check input/response associations and checking operations. Copies"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-protocol-failures.test.mjs",
+                "path": "packages/sdk/check-protocol-failures.test.mts",
                 "anchor": "test("
               }
             ]
@@ -8366,8 +8366,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "export async function checkpointAnswerMatches(answer, summary, decision)"
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
               },
               {
                 "path": "scripts/generate-client-host-wire.mjs",
@@ -8376,15 +8376,15 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
+                "path": "packages/sdk/checkpoints.mts",
                 "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
               }
             ],
@@ -8394,23 +8394,23 @@
                 "anchor": "Self-addressed identities are checked without changing the signed"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
               },
               {
@@ -8420,7 +8420,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8577,7 +8577,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8587,19 +8587,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "!await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
@@ -8609,15 +8609,15 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -8627,11 +8627,11 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -8645,15 +8645,15 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -8663,15 +8663,15 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -8681,11 +8681,11 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8699,7 +8699,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8713,7 +8713,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
               },
               {
@@ -8770,8 +8770,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -8780,17 +8780,17 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -8800,27 +8800,27 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -8895,19 +8895,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "// Class-only delivery for the Node facade."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "export class RequestHeld extends ClientError"
               },
               {
@@ -8917,11 +8917,11 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
-                "anchor": "const ownedClientFailures = new WeakMap();"
+                "path": "packages/sdk/internal/errors.mts",
+                "anchor": "const ownedClientFailures = new WeakMap<object, string>();"
               },
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "// refusal state remain private to the SDK implementation module."
               }
             ],
@@ -8930,7 +8930,7 @@
             },
             "failure": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               },
               {
@@ -8943,12 +8943,12 @@
             },
             "resources": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "Object.assign(this, details);"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
-                "anchor": "const ownedClientFailures = new WeakMap();"
+                "path": "packages/sdk/internal/errors.mts",
+                "anchor": "const ownedClientFailures = new WeakMap<object, string>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -8957,7 +8957,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/client-errors.mjs",
+                "path": "packages/sdk/internal/client-errors.mts",
                 "anchor": "export {ClientError, RequestHeld} from './errors.mjs';"
               },
               {
@@ -8975,7 +8975,7 @@
                 "anchor": "test('SDK class delivery cannot brand a borrowed options exception as SDK-owned'"
               },
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test('public option getter failures discard secret-bearing borrowed errors'"
               }
             ]
@@ -9051,13 +9051,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9067,7 +9067,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9077,7 +9077,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9087,7 +9087,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9097,7 +9097,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9107,7 +9107,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9117,7 +9117,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
@@ -9127,17 +9127,17 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/client-lifecycle.mjs",
+                "path": "packages/sdk/internal/client-lifecycle.mts",
                 "anchor": "// One connection's physical close and reader cleanup responsibilities."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/client-close.test.mjs",
+                "path": "packages/sdk/client-close.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/client-close.test.mjs",
+                "path": "packages/sdk/client-close.test.mts",
                 "anchor": "client-initiated close reports original frame cleanup uncertainty after releasing its lease"
               }
             ]
@@ -9201,7 +9201,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9211,12 +9211,12 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -9229,15 +9229,15 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
@@ -9247,11 +9247,11 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -9265,15 +9265,15 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
@@ -9283,15 +9283,15 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
@@ -9301,11 +9301,11 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -9319,7 +9319,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9333,7 +9333,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/client.mjs",
+                "path": "packages/sdk/internal/client.mts",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
               },
               {
@@ -9383,8 +9383,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -9393,17 +9393,17 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -9413,27 +9413,27 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -9503,7 +9503,7 @@
         {
           "name": "connectionOptions",
           "parameters": [
-            "options",
+            "original",
             "parsedConnectionString"
           ],
           "async": false
@@ -9540,7 +9540,7 @@
           "name": "connectionStringOptions",
           "parameters": [
             "input",
-            "options"
+            "original"
           ],
           "async": false
         },
@@ -9554,7 +9554,7 @@
         {
           "name": "inProcessOptions",
           "parameters": [
-            "options"
+            "original"
           ],
           "async": false
         },
@@ -9610,13 +9610,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9626,7 +9626,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9636,7 +9636,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9646,7 +9646,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9656,7 +9656,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9666,7 +9666,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9676,7 +9676,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
@@ -9686,13 +9686,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/connection-options.mjs",
+                "path": "packages/sdk/internal/connection-options.mts",
                 "anchor": "// Connection selection and safe diagnostics, before Host I/O."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test("
               }
             ]
@@ -9775,13 +9775,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9791,7 +9791,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9801,7 +9801,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9811,7 +9811,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9821,7 +9821,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9831,7 +9831,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9841,7 +9841,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9851,7 +9851,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "// Shared immutable data capture and comparison, without observation custody."
               }
             ],
@@ -9975,13 +9975,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -9991,7 +9991,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10001,7 +10001,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10011,7 +10011,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10021,7 +10021,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10031,7 +10031,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10041,7 +10041,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
@@ -10051,13 +10051,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/errors.mjs",
+                "path": "packages/sdk/internal/errors.mts",
                 "anchor": "// SDK-owned error classification. Borrowed exceptions do not acquire it."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/connection-options-diagnostics.test.mjs",
+                "path": "packages/sdk/connection-options-diagnostics.test.mts",
                 "anchor": "test("
               }
             ]
@@ -10134,7 +10134,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10144,7 +10144,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10158,7 +10158,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10172,7 +10172,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10186,7 +10186,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10200,7 +10200,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10214,7 +10214,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10228,7 +10228,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10242,7 +10242,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
               },
               {
@@ -10458,19 +10458,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -10492,7 +10492,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -10514,41 +10514,41 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "beforeResultRead(schemaOrOptions, options)"
+                "path": "packages/sdk/internal/private-source-preparation.mts",
+                "anchor": "beforeResultRead(schemaOrOptions: unknown, options?: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -10566,11 +10566,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
@@ -10598,29 +10598,29 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Private in-process transport connection, not a wire field, receipt issuer"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
-                "anchor": "export function captureSourcePreparation(port) {"
+                "path": "packages/sdk/internal/private-source-preparation.mts",
+                "anchor": "export function captureSourcePreparation(port?: object) {"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);"
               },
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "const value = apply(intent, receiver, [receipt, originalBody]);"
               }
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// connection. A generic Host port implementing these methods gains no grant."
               },
               {
@@ -10630,7 +10630,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Do not defer the original synchronous SDK capture until an await."
               },
               {
@@ -10640,7 +10640,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "{code: 'NodeSourceManagedAdmissionUnavailable'});"
               }
             ],
@@ -10652,7 +10652,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// or proof of capacity. Only the selected Host/Resource owner authenticates"
               }
             ],
@@ -10696,7 +10696,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10706,7 +10706,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10716,7 +10716,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10726,7 +10726,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10736,7 +10736,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10746,7 +10746,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10756,7 +10756,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10766,7 +10766,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10776,7 +10776,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "publishSourceSnapshot"
               },
               {
@@ -10869,18 +10869,18 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "export {freezeInput} from './data.mjs';"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
-                "anchor": "export const freezeInput = value =>"
+                "path": "packages/sdk/internal/data.mts",
+                "anchor": "export const freezeInput = <const T,>(value: T): T =>"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/data.mjs",
-                "anchor": "export const freezeInput = value =>"
+                "path": "packages/sdk/internal/data.mts",
+                "anchor": "export const freezeInput = <const T,>(value: T): T =>"
               },
               {
                 "path": "adapters/host-node/http-request-preparation.mjs",
@@ -10899,7 +10899,7 @@
                 "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
               },
               {
-                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "path": "packages/sdk/internal/private-source-preparation.mts",
                 "anchor": "// Reuse the SDK's exact snapshot freeze through this existing private bridge."
               }
             ],
@@ -10909,7 +10909,7 @@
                 "anchor": "body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "Object.freeze(value);"
               }
             ],
@@ -10932,7 +10932,7 @@
                 "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
               },
               {
-                "path": "packages/sdk/internal/data.mjs",
+                "path": "packages/sdk/internal/data.mts",
                 "anchor": "return value;"
               }
             ],
@@ -10942,7 +10942,7 @@
                 "anchor": "\"./_internal/source-preparation\": \"./internal/private-source-preparation.mjs\""
               },
               {
-                "path": "scripts/local-node-package-imports.mjs",
+                "path": "scripts/local-node-package-imports.mts",
                 "anchor": "['sdk/internal/private-source-preparation.mjs', '@actql/sdk/_internal/source-preparation']"
               }
             ],
@@ -11047,13 +11047,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11063,7 +11063,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11073,7 +11073,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11083,7 +11083,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11093,7 +11093,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11103,7 +11103,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11113,7 +11113,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
@@ -11123,13 +11123,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/resources.mjs",
+                "path": "packages/sdk/internal/resources.mts",
                 "anchor": "// Authorized Resource catalog/metadata/sample views; no execution authority."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/resource-protocol-failures.test.mjs",
+                "path": "packages/sdk/resource-protocol-failures.test.mts",
                 "anchor": "test("
               }
             ]
@@ -11416,41 +11416,41 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "beforeResultRead"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -11460,7 +11460,7 @@
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "resultSerializationContractCids[answer.serialization.version] !=="
               }
             ],
@@ -11472,11 +11472,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -11484,7 +11484,7 @@
                 "anchor": "the admitted capture is consumed without a second capture pass"
               },
               {
-                "path": "packages/sdk/query-single-result.test.mjs",
+                "path": "packages/sdk/query-single-result.test.mts",
                 "anchor": "await assert.rejects(target[method](options), {code});"
               },
               {
@@ -11536,13 +11536,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11552,7 +11552,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11562,7 +11562,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11572,7 +11572,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11582,7 +11582,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11592,7 +11592,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11602,7 +11602,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
@@ -11612,25 +11612,25 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "// Result readers and their local progress, validation and cleanup custody."
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/read-progress.test.mjs",
+                "path": "packages/sdk/read-progress.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "path": "packages/sdk/typed-result-capture.test.mts",
                 "anchor": "one typed Result frame captures borrowed fields and its row once"
               },
               {
-                "path": "packages/sdk/batch-row-accounting.test.mjs",
+                "path": "packages/sdk/batch-row-accounting.test.mts",
                 "anchor": "batches account each unchanged row once"
               },
               {
-                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "path": "packages/sdk/typed-result-capture.test.mts",
                 "anchor": "HTTP Result rows reject invalid values and decoded duplicate keys"
               }
             ]
@@ -11880,7 +11880,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11898,7 +11898,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11906,15 +11906,15 @@
                 "anchor": "\"run_wait\": {"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "const answerById = async (checkpointId: string, decision: 'approved' | 'rejected',\n    {signer, signal}: NonNullable<Parameters<Client['approve']>[1]> = {}) =>"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "beforeResultRead"
               }
             ],
@@ -11924,27 +11924,27 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "validCheckpointLookup(page, checkpointId)"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
@@ -11954,7 +11954,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11962,7 +11962,7 @@
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// The same lease/Host handling sets own signing as well as reads."
               },
               {
@@ -11970,7 +11970,7 @@
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
@@ -11980,7 +11980,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -11988,15 +11988,15 @@
                 "anchor": "const observeStep = async promise => {"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "current(signal);"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
@@ -12006,7 +12006,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12014,15 +12014,15 @@
                 "anchor": "return Err(InvalidSince)"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "fail('CheckpointSignerUnavailable')"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "ResolutionUnknown carries"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
@@ -12032,7 +12032,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12040,7 +12040,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -12048,7 +12048,7 @@
                 "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -12058,7 +12058,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12084,7 +12084,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
+                "path": "packages/sdk/internal/run-observation.mts",
                 "anchor": "// Run observation admission and this handle's control revision observation."
               },
               {
@@ -12106,7 +12106,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/run-control-revisions.test.mjs",
+                "path": "packages/sdk/run-control-revisions.test.mts",
                 "anchor": "test("
               },
               {
@@ -12134,11 +12134,11 @@
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               }
             ]
@@ -12615,13 +12615,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               },
               {
@@ -12631,7 +12631,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -12653,7 +12653,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               },
               {
@@ -12718,7 +12718,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12740,7 +12740,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12752,7 +12752,7 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "beforeResultRead"
               },
               {
@@ -12766,7 +12766,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12778,11 +12778,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               },
               {
@@ -12800,7 +12800,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12812,7 +12812,7 @@
                 "anchor": "assertSubmittedIntent(prepared, intent)"
               },
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               },
               {
@@ -12834,7 +12834,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12846,7 +12846,7 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               },
               {
@@ -12860,7 +12860,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12872,7 +12872,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               },
               {
@@ -12890,7 +12890,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12902,7 +12902,7 @@
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               },
               {
@@ -12916,11 +12916,11 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -12936,7 +12936,7 @@
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// The body is already SDK-deep-frozen."
               },
               {
@@ -12950,7 +12950,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
@@ -12988,11 +12988,11 @@
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -13026,7 +13026,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13036,7 +13036,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13046,7 +13046,7 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13056,7 +13056,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13066,7 +13066,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13076,7 +13076,7 @@
             ],
             "failure": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13086,7 +13086,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13096,7 +13096,7 @@
             ],
             "resources": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13106,7 +13106,7 @@
             ],
             "extension": [
               {
-                "path": "packages/sdk/internal/submission-observation.mjs",
+                "path": "packages/sdk/internal/submission-observation.mts",
                 "anchor": "const publishSnapshot ="
               },
               {
@@ -13182,13 +13182,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13198,7 +13198,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13208,7 +13208,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13218,7 +13218,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13228,7 +13228,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13238,7 +13238,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13248,7 +13248,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13258,7 +13258,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/transport-response.mjs",
+                "path": "packages/sdk/internal/transport-response.mts",
                 "anchor": "// Bounded control-response decoding shared by the existing Host operations."
               }
             ],
@@ -13385,17 +13385,17 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// A structural wire port is not selection of the builtin Local provider."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13405,7 +13405,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13419,7 +13419,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13433,7 +13433,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13443,7 +13443,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               },
               {
@@ -13457,7 +13457,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13467,7 +13467,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13477,7 +13477,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/internal/transport.mjs",
+                "path": "packages/sdk/internal/transport.mts",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
               }
             ],
@@ -13680,7 +13680,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/typed-results.test.mjs",
+                "path": "packages/sdk/typed-results.test.mts",
                 "anchor": "test("
               },
               {
@@ -13717,13 +13717,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13733,7 +13733,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13743,7 +13743,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13753,7 +13753,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13763,7 +13763,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13773,7 +13773,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13783,7 +13783,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
@@ -13793,13 +13793,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/loopback-http-unavailable.mjs",
+                "path": "packages/sdk/loopback-http-unavailable.mts",
                 "anchor": "// Browser/default package condition. Opted-in plaintext loopback is a Node"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/loopback-http-browser.test.mjs",
+                "path": "packages/sdk/loopback-http-browser.test.mts",
                 "anchor": "test("
               }
             ]
@@ -13898,13 +13898,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13914,7 +13914,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13924,7 +13924,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13934,7 +13934,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13944,7 +13944,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13954,7 +13954,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13964,7 +13964,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
@@ -13974,13 +13974,13 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/loopback-http.mjs",
+                "path": "packages/sdk/loopback-http.mts",
                 "anchor": "// Opted-in Node loopback transport only. A dedicated standard Agent avoids"
               }
             ],
             "verification": [
               {
-                "path": "packages/sdk/loopback-http.test.mjs",
+                "path": "packages/sdk/loopback-http.test.mts",
                 "anchor": "test("
               }
             ]
@@ -14050,13 +14050,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14066,7 +14066,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14076,7 +14076,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14086,7 +14086,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14096,7 +14096,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14106,7 +14106,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14116,7 +14116,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14126,7 +14126,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/operation-formats.mjs",
+                "path": "packages/sdk/operation-formats.mts",
                 "anchor": "// Render only the retained, disclosed SDK observation supplied by the facade."
               }
             ],
@@ -14394,13 +14394,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14410,7 +14410,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14420,7 +14420,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14430,7 +14430,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14440,7 +14440,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14450,7 +14450,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14460,7 +14460,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14470,7 +14470,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/operation-presentation.mjs",
+                "path": "packages/sdk/operation-presentation.mts",
                 "anchor": "import {freezeInput} from './internal/data.mjs';"
               }
             ],
@@ -14614,13 +14614,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14630,7 +14630,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14640,7 +14640,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14650,7 +14650,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14660,7 +14660,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14670,7 +14670,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14680,7 +14680,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14690,7 +14690,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/result-schema.mjs",
+                "path": "packages/sdk/result-schema.mts",
                 "anchor": "// Read options and the selected validation method belong to the invocation,"
               }
             ],
@@ -14838,19 +14838,19 @@
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "uses one original receipt for capture, request, identity and terminal before wait"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "capture rejection finishes only its original producer and retains failed cleanup for close"
               }
             ],
@@ -14872,7 +14872,7 @@
                 "anchor": "actual SDK query and all retain one Root producer and its separate Result read original"
               },
               {
-                "path": "packages/sdk/original-query-intake.test.mjs",
+                "path": "packages/sdk/original-query-intake.test.mts",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
               }
             ]
@@ -14893,41 +14893,41 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/source-query.mjs",
+                "path": "packages/sdk/source-query.mts",
                 "anchor": "beforeResultRead, assertResultReadCurrent"
               }
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "target.before !== original.before ||"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/sdk/internal/result-read.mjs",
+                "path": "packages/sdk/internal/result-read.mts",
                 "anchor": "capturedQueryReads.delete(token);"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
               }
             ],
             "failure": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "query read refuses changed current original after await without sending a read"
               }
             ],
@@ -14945,11 +14945,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "an original captured query continuation starts exactly one read"
               },
               {
-                "path": "packages/sdk/original-result-intake.test.mjs",
+                "path": "packages/sdk/original-result-intake.test.mts",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
               },
               {
@@ -14957,7 +14957,7 @@
                 "anchor": "the admitted capture is consumed without a second capture pass"
               },
               {
-                "path": "packages/sdk/query-single-result.test.mjs",
+                "path": "packages/sdk/query-single-result.test.mts",
                 "anchor": "await assert.rejects(target[method](options), {code});"
               }
             ]
@@ -14980,8 +14980,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -14990,8 +14990,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -15004,8 +15004,8 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15018,8 +15018,8 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -15032,8 +15032,8 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
@@ -15046,8 +15046,8 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15060,8 +15060,8 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
@@ -15074,8 +15074,8 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15088,8 +15088,8 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/sdk/source-query.mjs",
-                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
+                "path": "packages/sdk/source-query.mts",
+                "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15250,7 +15250,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/typed-results.test.mjs",
+                "path": "packages/sdk/typed-results.test.mts",
                 "anchor": "test("
               }
             ]
@@ -15345,7 +15345,7 @@
                 "anchor": "Source-level facade checks compare actual namespaces and original identities,"
               },
               {
-                "path": "scripts/runtime-package-inputs.test.mjs",
+                "path": "scripts/runtime-package-inputs.test.mts",
                 "anchor": "test('public observation facade"
               }
             ]
@@ -15446,7 +15446,7 @@
                 "anchor": "Source-level facade checks compare actual namespaces and original identities,"
               },
               {
-                "path": "scripts/runtime-package-inputs.test.mjs",
+                "path": "scripts/runtime-package-inputs.test.mts",
                 "anchor": "test('public Result facade"
               }
             ]
@@ -16000,7 +16000,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -16157,7 +16157,7 @@
                 "anchor": "competingRestReads"
               },
               {
-                "path": "scripts/notion-user-list-read-wire.mjs",
+                "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
               }
             ]
@@ -16167,6 +16167,518 @@
       "sha256": "b54912b832f554c137b9191ca91cfe07f06922530eb2e2c58ba3319267943040",
       "imports": [],
       "compilerFields": []
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.d.mts",
+      "sha256": "e80292359cc72f50461f74cc035598b898bfef0580c64f26a350e0a75732e72d",
+      "exports": [
+        "AnswerEvidence",
+        "AnswerResolution",
+        "validAnswerEvidence",
+        "validAnswerResolution"
+      ],
+      "operations": [
+        {
+          "name": "validAnswerEvidence",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is AnswerEvidence"
+        },
+        {
+          "name": "validAnswerResolution",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is AnswerResolution"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
+      "rationale": "Generated structural type projection of the same existing artifact schema and WeakMap original-stage protocol; runtime validation, custody, authority and limits remain with the existing codec and Host.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "exports": [
+            "AnswerEvidence",
+            "AnswerResolution",
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "export async function checkpointAnswerMatches(answer: SignedCheckpointAnswer, summary: unknown, decision: string)"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mts",
+                "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mts",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-construction.generated.d.mts",
+      "sha256": "375731e94bbf2dd879da06f819c227dcc7be41b60a79be6f4a371bd9a7a81e96",
+      "exports": [
+        "AnswerCandidate",
+        "AnswerDecision",
+        "AnswerLimits",
+        "AnswerPrimitives",
+        "AnswerResolution",
+        "createCheckpointAnswerCodec"
+      ],
+      "operations": [
+        {
+          "name": "AnswerPrimitives/bytesCid",
+          "parameters": [
+            "bytes: Uint8Array<ArrayBuffer>"
+          ],
+          "result": "string | PromiseLike<string>"
+        },
+        {
+          "name": "AnswerPrimitives/canonicalJson",
+          "parameters": [
+            "value: unknown",
+            "options?: {dataKeys?: boolean}"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec",
+          "parameters": [
+            "primitives: AnswerPrimitives"
+          ],
+          "result": "Readonly<{\n  prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,\n    decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;\n  answerCandidateApprovalPreimage(stage: AnswerCandidate): string | undefined;\n  prepareAnswerResolution(stage: AnswerCandidate,\n    approvalSignature?: unknown): Promise<AnswerResolution>;\n  answerResolutionPreimage(stage: AnswerResolution): string;\n  finishAnswerCandidate(stage: AnswerResolution,\n    resolutionSignature: unknown): Promise<WireResolveItem>;\n  reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;\n}>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+          "parameters": [
+            "stage: AnswerCandidate"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
+          "parameters": [
+            "stage: AnswerResolution"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/finishAnswerCandidate",
+          "parameters": [
+            "stage: AnswerResolution",
+            "resolutionSignature: unknown"
+          ],
+          "result": "Promise<WireResolveItem>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
+          "parameters": [
+            "summary: unknown",
+            "decision: unknown",
+            "actor: unknown",
+            "decidedAt: unknown",
+            "limits: AnswerLimits"
+          ],
+          "result": "Promise<AnswerCandidate>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerResolution",
+          "parameters": [
+            "stage: AnswerCandidate",
+            "approvalSignature?: unknown"
+          ],
+          "result": "Promise<AnswerResolution>"
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "parameters": [
+            "raw: unknown",
+            "expected: unknown",
+            "limits: AnswerLimits"
+          ],
+          "result": "Promise<boolean>"
+        }
+      ],
+      "imports": [
+        "@actql/client-wire"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated structural type projection of the same existing artifact schema and WeakMap original-stage protocol; runtime validation, custody, authority and limits remain with the existing codec and Host.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "AnswerPrimitives/bytesCid",
+            "AnswerPrimitives/canonicalJson",
+            "createCheckpointAnswerCodec",
+            "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+            "createCheckpointAnswerCodec/answerResolutionPreimage",
+            "createCheckpointAnswerCodec/finishAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid"
+          ],
+          "exports": [
+            "AnswerCandidate",
+            "AnswerDecision",
+            "AnswerLimits",
+            "AnswerPrimitives",
+            "AnswerResolution",
+            "createCheckpointAnswerCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/json-value-wire.generated.d.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "2f758e352713da8624c2c525092644b8cb9423890075fd6c42c886b8d0f4e436",
+      "exports": [
+        "jsonValueWireContractCid",
+        "resultSerializationContractCids"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "public-wire-codec",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Type-only mirror emitted by the same existing Common typed JSON wire-law generator; these literal serialization identities are DATA, not authority or a second law registry.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "jsonValueWireContractCid",
+            "resultSerializationContractCids"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Identity domains"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              },
+              {
+                "path": "portability/corpus/typed-json-literals.json",
+                "anchor": "\"serialization_contracts\": {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Publication, retention and authorization"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Expiry is an admission restriction, not proof of nonexecution."
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "cannot discharge Model, Effect,"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Delivery profile and bounds"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
+              },
+              {
+                "path": "packages/sdk/json-value-wire.generated.mjs",
+                "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/typed-results.test.mts",
+                "anchor": "test("
+              },
+              {
+                "path": "scripts/typed-json-literal-contract.test.mjs",
+                "anchor": "test('generated SDK serialization identities match all three independent existing wire vectors'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -44,7 +44,7 @@ test('grouped ROWS fixtures retain independent JSON intervals values and full or
 
 test('grouped ROWS cases use both the narrow and ordinary public registration', async () => {
   const packed = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(packed.includes('scopeInputs.successes.push(...groupedRowsBoundarySuccesses)'));
   assert.ok(packed.includes('scopeInputs.refusals.push(...groupedRowsBoundaryRefusals)'));
   assert.ok(packed.includes('groupedRowsBoundaryOnly ? {successes: groupedRowsBoundarySuccesses, refusals: groupedRowsBoundaryRefusals}'));

@@ -1876,7 +1876,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/configuration.mjs",
+                "path": "adapters/connectors/duckdb/node/configuration.mts",
                 "anchor": "DuckDBTransportError"
               }
             ],
@@ -3732,7 +3732,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/effect-preparation-result.mjs",
+                "path": "adapters/host-common/effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation"
               }
             ],
@@ -6884,7 +6884,7 @@
                 "anchor": "retainedLimits"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -8059,7 +8059,7 @@
                 "anchor": "retainedLimits"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -9064,7 +9064,7 @@
                 "anchor": "retainedLimits"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -9715,7 +9715,7 @@
                 "anchor": "retainedLimits"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -10473,7 +10473,7 @@
                 "anchor": "retainedLimits"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -14643,7 +14643,7 @@
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",

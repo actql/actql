@@ -256,7 +256,7 @@
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],
@@ -320,7 +320,7 @@
                 "anchor": "actql-installed-kintone-source/0.1"
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "export function checkHostBundle"
               }
             ],
@@ -594,7 +594,7 @@
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],
@@ -658,7 +658,7 @@
                 "anchor": "actql-installed-kintone-source/0.1"
               },
               {
-                "path": "scripts/connector-host-bundles.mjs",
+                "path": "scripts/connector-host-bundles.mts",
                 "anchor": "export function checkHostBundle"
               }
             ],

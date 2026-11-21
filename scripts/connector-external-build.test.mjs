@@ -8,6 +8,7 @@ import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkComputeAssembly, generateComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly, generateInstallations, readHostBundles} from './connector-node-bundles.mjs';
 import {tokens} from './portable-core.mjs';
+import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {manifestImports} from './test-packed-external-connector.mjs';
 
 function copiedFixtureImports(manifest) {
@@ -234,6 +235,18 @@ test('external Read-only and Effect-only installations load from the checked own
   assert.doesNotMatch(readFileSync(join(root, 'src/compute/compute.generated.mbt'), 'utf8'),
     /with_reader|with_writer/);
   assert.equal(resolveConnectorBuildInputs({...f.configuration, connectors: []}).hostEntries.length, 0);
+  const typesPath = join(root, 'adapters/portable/installations.generated.d.mts');
+  const types = readFileSync(typesPath, 'utf8');
+  const owner = pathToFileURL(join(f.modules[0].root, 'packages/local-node/index.d.ts')).href;
+  assert(typescriptInterface(types, typesPath).imports.some(specifier =>
+    new URL(specifier, pathToFileURL(typesPath)).href === owner),
+  'declarations refer to the same selected Core public entry contract');
+  const stale = types + '\n// deliberately stale fixture declaration\n';
+  writeFileSync(typesPath, stale);
+  assert.throws(() => checkNodeAssembly(root, false, options), /Node connector assembly is stale/u);
+  assert.equal(readFileSync(typesPath, 'utf8'), stale, 'read-only freshness does not repair its input');
+  assert.equal(readFileSync(path, 'utf8'), generated, 'declaration refusal does not rewrite runtime');
+
 });
 
 test('installation generation maps packaged module destinations without changing checked ownership', t => {
@@ -259,16 +272,17 @@ test('installation generation maps packaged module destinations without changing
 });
 
 test('installation output aliases and colliding assembly paths fail before any write', t => {
-  for (const conflict of ['symlink', 'directory', 'assembly']) {
+  for (const conflict of ['symlink', 'directory', 'assembly', 'declaration-symlink']) {
     const f = fixture(t), root = f.modules[2].root;
     hostFixture(f, 'reader', 'source');
     const resolved = resolveConnectorBuildInputs(f.configuration);
     const sentinel = join(f.root, 'sentinel.mjs');
     writeFileSync(sentinel, 'unchanged outside bytes\n');
-    const output = join(root, 'adapters/portable/installations.generated.mjs');
+    const output = join(root, conflict === 'declaration-symlink'
+      ? 'adapters/portable/installations.generated.d.mts' : 'adapters/portable/installations.generated.mjs');
     if (conflict !== 'assembly') {
       mkdirSync(dirname(output), {recursive: true});
-      if (conflict === 'symlink') symlinkSync(sentinel, output);
+      if (conflict === 'symlink' || conflict === 'declaration-symlink') symlinkSync(sentinel, output);
       else mkdirSync(output);
     }
     assert.throws(() => checkNodeAssembly(root, true,

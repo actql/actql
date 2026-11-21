@@ -11,6 +11,7 @@ import {hash} from './inputs.mjs';
 import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata, pipelinePristineSourcePaths, pipelineFixedJsSourcePaths} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
+import {pipelineScratchEmit} from './isolation.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
 import {mutationObservation} from './mutation-observation.mjs';
 
@@ -117,6 +118,9 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
   }
   if (profile === 'pipeline-fixed-js') assert.equal(manifest.testedRevision, tree.revision, 'Wrong fixed-campaign revision');
   const expected = profile === 'session' ? mutationSourcePaths(tree) : profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree);
+  const emitted = pipelineScratchEmit(tree, profile);
+  if (emitted) expected.push(emitted.path);
+  expected.sort();
   const sourceDirectories = new Set(['source']);
   for (const path of expected) {
     const parts = path.split('/');
@@ -127,9 +131,13 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
   const actual = manifest.root.entries.filter(entry => entry.kind !== 'directory' && entry.path.startsWith('source/'));
   assert.deepEqual(actual.map(entry => entry.path.slice('source/'.length)).sort(), expected, 'Missing/extra isolated source inputs');
   for (const path of expected) {
-    const entry = byPath.get(`source/${path}`), source = tree.entries.get(path), bytes = tree.read(path);
-    assert.equal(entry.kind, 'file'); assert.equal(entry.mode, Number.parseInt(source.mode.slice(-3), 8));
-    assert.equal(entry.bytes, bytes.length); assert.equal(entry.digest, hash(bytes), 'Image source differs from actual Git');
+    const entry = byPath.get(`source/${path}`);
+    const derived = emitted?.path === path ? emitted : null;
+    const bytes = derived ? derived.bytes : tree.read(path);
+    const mode = derived ? derived.mode : Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
+    assert.equal(entry.kind, 'file'); assert.equal(entry.mode, mode);
+    assert.equal(entry.bytes, bytes.length);
+    assert.equal(entry.digest, hash(bytes), 'Image source differs from actual Git or its selected emit');
   }
   assert(Array.isArray(manifest.loaderObservations) && manifest.loaderObservations.length === 5, 'Missing executable loader observations');
   const executablePaths = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];

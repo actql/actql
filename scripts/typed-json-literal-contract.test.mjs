@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {sourceTypedLiteral, nodeTypedLiteral, updateTypedJsonContracts,
+import {sourceTypedLiteral, sourceExactTypedLiteral, nodeTypedLiteral, updateTypedJsonContracts,
   typedJsonClientPin} from './typed-json-literal-contract.mjs';
 import {jsonValueWireContractCid, resultSerializationContractCids} from '../packages/sdk/json-value-wire.generated.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
@@ -18,6 +18,7 @@ test('generated SDK serialization identities match all three independent existin
     assert.equal(vector.preimage.json_value_wire_contract_cid, jsonValueWireContractCid);
   }
   assert.equal(typedJsonClientPin(), readFileSync('packages/sdk/json-value-wire.generated.mjs', 'utf8'));
+  assert.equal(typedJsonClientPin({declaration: true}), readFileSync('packages/sdk/json-value-wire.generated.d.mts', 'utf8'));
 });
 
 test('typed literal has explicit JSON domain and opaque source data', () => {
@@ -62,7 +63,7 @@ test('typed expression generation preserves Values whole-cell grammar', () => {
   });
   checkValuesSchemas(protocol);
   assert.deepEqual(expressions.schemas.expression.$defs.expression.oneOf
-    .find(form => form.required?.[0] === 'typed_literal'), sourceTypedLiteral);
+    .find(form => form.required?.[0] === 'typed_literal'), sourceExactTypedLiteral);
 });
 
 // Evaluate the JSON Schema keywords used by CellValue independently of the
@@ -110,7 +111,7 @@ test('typed expression generation preserves pivot whole-value data and reserved-
     assert.equal(fill.oneOf.length, 3);
   }
   assert.deepEqual(expressions.schemas.expression.$defs.expression.oneOf
-    .find(form => form.required?.[0] === 'typed_literal'), sourceTypedLiteral);
+    .find(form => form.required?.[0] === 'typed_literal'), sourceExactTypedLiteral);
 });
 
 test('typed literal checker rejects and writer removes polluted pivot alternatives in both copies', () => {
@@ -179,6 +180,7 @@ test('typed literal ownership covers each current expression and EffectValue arm
   const source = [expressions.schemas.expression.$defs.expression,
     expressions.schemas.fragment.$defs.source_expression,
     expressions.schemas.predicate_consumer.$defs.source_expression];
+  const exactSource = new Set(source);
   const machine = [expressions.schemas.expression_node.$defs.expression,
     expressions.schemas.fragment.$defs.machine_expression,
     expressions.schemas.predicate_consumer.$defs.machine_expression];
@@ -186,6 +188,8 @@ test('typed literal ownership covers each current expression and EffectValue arm
     protocol.artifact_schemas.plan_document.properties.plan.properties.execution_material.properties.program];
   for (const program of programs) {
     source.push(program.$defs.predicate, program.$defs.value_expression);
+    exactSource.add(program.$defs.predicate);
+    exactSource.add(program.$defs.value_expression);
     for (const [operation, member] of [['update', 'set'], ['upsert', 'set'], ['command', 'input']]) {
       const body = program.properties.effects.additionalProperties.oneOf
         .find(form => form.properties?.[operation]).properties[operation];
@@ -210,7 +214,8 @@ test('typed literal ownership covers each current expression and EffectValue arm
     [machine, form => form.properties?.op?.const === 'typed_literal', nodeTypedLiteral],
   ]) {
     for (const schema of schemas) {
-      assert.deepEqual(schema.oneOf.filter(typed), [expected]);
+      assert.deepEqual(schema.oneOf.filter(typed),
+        [exactSource.has(schema) ? sourceExactTypedLiteral : expected]);
     }
   }
   // Reordered canonical preimages must carry their corresponding new pins.

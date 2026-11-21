@@ -1123,7 +1123,7 @@ export function validateResourceAccounting({
         sourceText.includes(`['${item.fixture}', ${item.case},`);
       const registeredCase = registeredResourceEnvironmentCase(item, sourceText,
         item.suite === 'node:graph_public_host'
-          ? reclamationSource('scripts/fixtures/graph-host-cases.mjs') : '', route.operation);
+          ? reclamationSource('scripts/fixtures/graph-host-cases.mts') : '', route.operation);
       if (!namedCase && !tupleCase && !registeredCase) {
         fail(`${label}: missing environment fixture ${item.fixture}`);
       }

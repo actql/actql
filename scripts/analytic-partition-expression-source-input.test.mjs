@@ -29,7 +29,7 @@ test('independent partition obligations distinguish NULL, alias, snapshot and de
 
 test('partition expressions enter the ordinary packed corpus and existing narrow driver', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'analyticPartitionExpressionSuccesses'],
     ['refusals', 'analyticPartitionExpressionRefusals'],
     ['executionFailures', 'analyticPartitionExpressionExecutionFailures']]) {

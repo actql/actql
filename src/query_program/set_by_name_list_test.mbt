@@ -1,4 +1,22 @@
 ///|
+test "integer context work refusal retains the same authored Query document" {
+  for text in ["WITH t AS (SELECT 5 AS v) SELECT MOD(v,2) AS value FROM t"] {
+    let original = @query.parse_query(text, syntax_limits()).unwrap()
+    guard compile(original, { ..fixture_context(), inputs: [], }, {
+        ..construction_limits(),
+        max_expression_work: 1,
+      })
+      is Err(Expression({ issue: WorkLimit, origin: Some(origin), })) else {
+      fail("context inventory must retain its original bounded-work refusal")
+    }
+    let document = @query.query_document(original)
+    assert_true(@origin.belongs_to(document, origin))
+    assert_eq(@origin.start(origin).byte_offset, 0)
+    assert_eq(@origin.end(origin).byte_offset, @origin.input_bytes(document))
+  }
+}
+
+///|
 test "BY NAME ON reorders both inputs into the authored Program" {
   let expected = @program.parse(
     (
@@ -121,4 +139,27 @@ fn expect_with_set_append_refusal(text : String, field : String) -> Unit raise {
     issue.kind,
     @pipeline.Append(IncompatibleContracts(@schema.Unqualified(field), [])),
   )
+}
+
+///|
+test "BY NAME ON still rejects invalid public lists with contextual exact companions" {
+  for
+    text in [
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,V) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,missing) SELECT 7 AS v,10 AS w) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 5 AS v,8 AS w UNION ALL BY NAME ON (v,w) SELECT 7 AS v) SELECT MOD(v,2) AS m,DIV(w,3) AS n FROM t",
+      "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (missing) SELECT 9007199254740995 AS v) SELECT MOD(v,2) AS m FROM t",
+      "WITH t AS (SELECT 9007199254740993 AS v UNION ALL BY NAME ON (aql_integer_1_0_0) SELECT 9007199254740995 AS v) SELECT MOD(v,2) AS m FROM t",
+    ] {
+    assert_true(
+      compile_query_script(
+        @query.parse_query_script(text, syntax_limits()).unwrap(),
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      )
+      is Err(UnsupportedSet),
+      msg=text,
+    )
+  }
 }

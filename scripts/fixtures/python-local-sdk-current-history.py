@@ -2,8 +2,10 @@
 
 Raw mode uses explicit fixture authority. Isolated installed-image mode uses
 the real owning factory and operation allowance; it is not equivalent raw fuel.
-Neither is normal Host, latency or physical-stop acceptance. Only the existing
-task selection/drive and physical Journal import are measured.
+The explicit fuel-pending role forwards the production driver quantum unchanged;
+other current/refusal controls deliberately use a one-work quantum. Pending
+private-parent history is not ordinary repeated Run, latency or physical-stop
+acceptance. Only existing task selection/drive and Journal imports are measured.
 
 The optional prepare-pending:100 and target-pending:100 phases separate genuine
 setup from a fresh owning target. The external guard must finish preparation,
@@ -64,6 +66,12 @@ class Trace:
         self.steps = []
         self.refusal = None
         self.refusal_phase = None
+
+    def drive(self, invoke, task, quantum, *, production_quantum=False):
+        assert quantum > 0
+        # The default-fuel role forwards the original caller's actual quantum;
+        # the independent current/refusal controls retain their small quantum.
+        return self.call('drive', lambda: invoke(task, quantum if production_quantum else 1))
 
     def call(self, phase, invoke):
         if not self.enabled:
@@ -269,8 +277,9 @@ def retire_pending_original_parents(host, original):
 
 
 async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False, installed=False,
-                     phase=None, existing_state=None):
+                     phase=None, existing_state=None, *, production_quantum=False):
     assert not (persisted and pending)
+    assert not production_quantum or installed and pending and phase is None
     trace = Trace()
     prefix = PrefixObservation() if phase == 'target' else None
     original_header = LocalCore._journal_query_header
@@ -528,10 +537,8 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     return trace.call('select', lambda: select_task(*args, **kwargs))
 
                 def drive(task, quantum):
-                    assert quantum > 0
-                    # A fixed test input exercises multiple real bounded quanta.
-                    # It does not change a result, retry a failure or classify state.
-                    return trace.call('drive', lambda: drive_task(task, 1))
+                    return trace.drive(drive_task, task, quantum,
+                                       production_quantum=production_quantum)
 
                 with patch.object(core, 'read_sdk_start_step', original_claim), \
                         patch.object(core, 'reserve_next_sdk_task', select), \
@@ -627,6 +634,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
     finally:
         cleanup = await close_history_owners(client, host, core, primary)
     result = {'history': history, 'fault': fault, 'steps': trace.steps,
+            'taskQuantumMode': 'production-original' if production_quantum else 'forced-one',
             'coreMode': 'installed-image/ordinary-operation-owner' if installed else 'raw-component/initial-fuel',
             'populationMode': 'accepted-pending-durable-history/private-parent-retirement/live-target' if pending else
                 'persisted-history-fresh-live-target' if persisted else 'same-live-host',
@@ -661,7 +669,7 @@ async def main():
             raise ValueError('Only target phase takes its completed preparation report')
         if len(expected_source) != 40 or any(c not in '0123456789abcdef' for c in expected_source):
             raise ValueError('Expected exact installed cohort source SHA')
-        if phase is None and not (selection == 'pending' or selection.startswith(('pending:', 'fault:'))):
+        if phase is None and not (selection == 'pending' or selection.startswith(('pending:', 'fuel-pending:', 'fault:'))):
             raise ValueError('Installed image selection is pending history or its original current/refusal control')
         from actql_sdk import _local_product
         original_resolver = _local_product.installed_local_components
@@ -703,15 +711,19 @@ async def main():
     fault = selection[6:] if selection is not None and selection.startswith('fault:') else None
     assert fault is None or fault in FAULTS
     persisted = selection is not None and selection.startswith('persisted:')
-    pending = phase is not None or selection is not None and (selection == 'pending' or selection.startswith('pending:'))
+    production_quantum = selection is not None and selection.startswith('fuel-pending:')
+    if production_quantum and not INSTALLED_IMAGE:
+        raise ValueError('Default-fuel role requires the original installed owning factory')
+    pending = (phase is not None or production_quantum
+               or selection is not None and (selection == 'pending' or selection.startswith('pending:')))
     sizes = [100] if phase is not None else [0] if fault is not None else [1, 10, 100] if selection in (None, 'pending') else [
-        int(selection[10:] if persisted else selection[8:] if pending else selection)]
-    assert fault is not None or all(size in (1, 10, 100) for size in sizes)
+        int(selection.partition(':')[2] if persisted or pending else selection)]
+    assert fault is not None or all(size in (1, 10, 40, 100) for size in sizes)
     observations = []
     with resolver:
         for size in sizes:
             observed = await population(raw, digest, scratch, size, fault, persisted, pending, INSTALLED_IMAGE,
-                                        phase, existing_state)
+                                        phase, existing_state, production_quantum=production_quantum)
             if observations:
                 assert observed['steps'] == observations[0]['steps'], 'Target counters changed with unrelated history'
             observations.append(observed)

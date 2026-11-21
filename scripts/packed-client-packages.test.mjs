@@ -262,7 +262,7 @@ test('acquired-source consumers read the native adapter pin explicitly', async t
 
 test('packed public-query staging covers every eagerly loaded Graph fixture', async () => {
   const consumer = await readFile(new URL('./graph-public-host.test.mjs', import.meta.url), 'utf8');
-  const producer = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const producer = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const fixtures = [...consumer.matchAll(/readFile\(new URL\('\.\/(fixtures\/[^']+)', import\.meta\.url\)/gu)]
     .map(match => match[1]);
   assert(fixtures.length > 0, 'the consumer must declare actual fixture dependencies');

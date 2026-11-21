@@ -486,7 +486,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -609,7 +609,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -1196,7 +1196,7 @@
                 "anchor": "| resources |"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -1494,8 +1494,8 @@
                 "anchor": "| identity |"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "docs/spec/language.md",
@@ -1664,8 +1664,8 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
@@ -2281,7 +2281,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -2389,7 +2389,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -2888,7 +2888,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -2995,7 +2995,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3105,7 +3105,7 @@
                 "anchor": "\"schemas\""
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "buildClientPublicationWire"
               }
             ],
@@ -3201,7 +3201,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "const schemas ="
               }
             ],
@@ -3401,7 +3401,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -3507,7 +3507,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3515,7 +3515,7 @@
                 "anchor": "UTF-16 maximum lengths, scalar"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "wireFieldNamePattern"
               },
               {
@@ -4270,7 +4270,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -4383,7 +4383,7 @@
                 "anchor": "\"submission_epoch\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRef"
               }
             ],
@@ -4489,7 +4489,7 @@
                 "anchor": "\"submission_attempt\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionAttempt"
               }
             ],
@@ -4595,7 +4595,7 @@
                 "anchor": "\"cancellation\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationAttempt"
               }
             ],
@@ -4799,7 +4799,7 @@
                 "anchor": "\"operations\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientBody"
               }
             ],

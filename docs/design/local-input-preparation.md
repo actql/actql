@@ -2685,6 +2685,51 @@ Small fixed helpers remain Host overhead. Only an actual capacity expansion
 calls external currentness; immutable completed getters and the Program take do
 not. A callback can reenter, so the existing original/phase fences remain.
 
+The exact-integer function context is an additional constructor under this
+same reservation. Original tokens bound the query-local task/scope links,
+desired projection coordinates, compacting subtree maps, nullable variants,
+rewritten syntax and original/rewritten overlap. Per token, its incremental
+envelope is 20 record headers, 72 reference slots, 40 scalar words and 128
+owned UTF16 units: 1472 logical bytes under the existing representation
+tariff. It is added before the original lowerer call, rather than funded from
+unused writer capacity. Immutable scope links avoid a copied name vector per
+CTE; unchanged/idempotent subtrees retain their original identity. The parsed
+document and its original tokens remain the source owner. A short grow keeps
+the same quoted Request and no constructor output; successful cleanup still
+uses its original parent and borrower. This is a logical bound, not a heap
+measurement, policy grant or complete work observation.
+
+The same bounded parser records the actual MOD/DIV Call predicate on its
+original Tokens owner while constructing scalar nodes. This one stored word
+adds eight bytes to the base syntax construction quote, before parsing. It
+is not supplied by a caller, a text search, an authorization result or a new
+discovery traversal. Nested CTE/set/operation expressions share that original;
+retained derived views conservatively retain the fact. A proved absence skips
+both the contextual pass and its incremental token charge, preserving ordinary
+COMMAND and expression work owners. A needed pass is funded on the same
+Request before creating its task/scope arrays. If it exhausts Work before
+selecting an expression, its diagnostic retains the original whole Query
+document; later expression-local diagnostics keep their original attribution.
+
+Integer demand does not replace a CTE's original Number projection. The
+compiler adds a collision-free private companion over the same producer row
+and directs only the exact function operand to that companion. Original
+columns, arithmetic, other CTE consumers, whole-row references and stars keep
+their independent ordinary view. Private companions are excluded from author
+lookup and star expansion. UNION members share their companion alignment.
+An exact companion retains the original optional public projection name by
+immutable reference, including when an unavailable Number projection is
+omitted. Explicit `BY NAME ON` validates its complete authored list against
+that original public namespace before selecting the retained physical views;
+private names never satisfy an authored list. Anonymous positional right
+operands retain no fabricated public name. The bounded temporary public-name
+vector and retained physical alignment share the same original-token
+constructor envelope; neither copies identifier text or adds an owner.
+Original lexical ordinary demand is propagated separately before construction;
+an integer lexeme outside the existing Number domain can omit its unavailable
+ordinary view only when no ordinary consumer demands it. Otherwise the original
+Number admission still refuses; a rounded surrogate is never constructed.
+
 The Request retains the exact lowered Program, Catalog and diagnostic source.
 The checker receives those same originals and the supplied Parameter cursor;
 it does not obtain a replacement Program from the generated document. Existing

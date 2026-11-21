@@ -6322,7 +6322,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6332,7 +6332,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6342,7 +6342,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6352,7 +6352,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6362,7 +6362,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6372,7 +6372,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6382,7 +6382,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6392,7 +6392,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -6402,7 +6402,7 @@
                 "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
               },
               {
-                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
                 "anchor": "original.current();"
               }
             ],
@@ -7245,7 +7245,7 @@
                 "anchor": "maxFrontierWork"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -7389,7 +7389,7 @@
                 "anchor": "maxFrontierWork"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
@@ -7699,8 +7699,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -13069,7 +13069,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "export async function retainInstalledHostInitializationFailure"
               },
               {
@@ -14733,8 +14733,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -15507,7 +15507,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "// An already admitted Run retains this same Host through graceful drain."
               }
             ],
@@ -15531,8 +15531,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "assertRetainedPreparation(host, installation, generation)"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "assertRetainedPreparation(host: unknown, installation: unknown, generation: unknown)"
               }
             ],
             "failure": [
@@ -17025,8 +17025,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -19239,8 +19239,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -20519,8 +20519,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -21799,8 +21799,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -23079,8 +23079,8 @@
                 "anchor": "const runStateFrames = new WeakMap();"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -24399,8 +24399,8 @@
                 "anchor": "originals?.moduleLifetime !== import.meta"
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "function preparationFor(host, installation, generation) {"
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
+                "anchor": "function preparationFor(host: unknown, installation: unknown, generation: unknown) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24453,7 +24453,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
@@ -24491,7 +24491,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "await releaseUnadopted();"
               },
               {
@@ -24525,7 +24525,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -24551,7 +24551,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "path": "adapters/host-node/embedded-local-lifecycle.mts",
                 "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
               },
               {
@@ -29038,7 +29038,7 @@
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mjs",
+        "./embedded-local-lifecycle.mts",
         "./entry.mjs",
         "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
@@ -29058,7 +29058,7 @@
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
@@ -29077,7 +29077,7 @@
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-files-native.mjs",
-        "./local-preparation-registry.mjs",
+        "./local-preparation-registry.mts",
         "./local-result-authorization.mjs",
         "./local-result-read-workspace.mjs",
         "./local-values-plan.mjs",

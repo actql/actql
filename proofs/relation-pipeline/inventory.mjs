@@ -6,7 +6,16 @@ import assert from 'node:assert/strict';
 import {checkProofRunnerExtension} from './proof-runner-extension.mjs';
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const snapshotDirectories = Object.freeze(['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline']);
-export const snapshotFiles = Object.freeze(['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
+export const scratchRuntime = 'scripts/owned-scratch.mjs';
+export const scratchOriginal = 'scripts/owned-scratch.mts';
+export const scratchCompilerConfigs = Object.freeze(['tsconfig.base.json', 'tsconfig.tooling.json']);
+const sharedSnapshotFiles = ['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'];
+// Applicability sees both authored profiles, including removal of a legacy
+// path. A snapshot binds only the members selected for its actual source.
+export const snapshotFiles = Object.freeze([...sharedSnapshotFiles, scratchRuntime, scratchOriginal, ...scratchCompilerConfigs]);
+export function snapshotFilePaths(has) {
+  return [...sharedSnapshotFiles, ...(has(scratchOriginal) ? [scratchOriginal, ...scratchCompilerConfigs] : [scratchRuntime])];
+}
 function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
     ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);
@@ -14,7 +23,8 @@ function files(path) {
 function snapshotPaths(root, allowMissing = false) {
   const present = path => !allowMissing || lstatSync(path, {throwIfNoEntry: false}) !== undefined;
   return snapshotDirectories.map(p => join(root, p)).filter(present).flatMap(files)
-    .concat(snapshotFiles.map(p => join(root, p)).filter(present))
+    .concat(snapshotFilePaths(path => lstatSync(join(root, path), {throwIfNoEntry: false}) !== undefined)
+      .map(p => join(root, p)).filter(present))
     .filter(p => relative(root, p) !== 'src/query_integration/relation_pipeline_batch_wbtest.mbt').sort();
 }
 export function snapshot(root) {
@@ -25,24 +35,28 @@ export function snapshot(root) {
 // Bind current evidence to actual tracked HEAD inputs. No ancestor walk or
 // per-commit declaration is needed; shallow checkouts are sufficient.
 export function checkCurrentSource(root) {
-  const inputs = [...snapshotDirectories, ...snapshotFiles,
-    ':(exclude)src/query_integration/relation_pipeline_batch_wbtest.mbt'];
   const git = args => spawnSync('git', ['--no-replace-objects', ...args],
     {cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
   const head = git(['rev-parse', '--verify', 'HEAD^{commit}']);
   assert.equal(head.status, 0, 'Missing current source commit');
-  const difference = git(['diff', '--quiet', 'HEAD', '--', ...inputs]);
+  const tree = git(['ls-tree', '-rtz', head.stdout.trim()]);
+  assert.equal(tree.status, 0, 'Cannot inspect current source tree');
+  const entries = tree.stdout.split('\0').filter(Boolean);
+  const tracked = new Set(entries.map(entry => entry.slice(entry.indexOf('\t') + 1)));
+  assert(!(tracked.has(scratchOriginal) && tracked.has(scratchRuntime)), 'Ambiguous authored pipeline scratch input');
+  const selectedFiles = snapshotFilePaths(path => tracked.has(path));
+  const inputs = [...snapshotDirectories, ...selectedFiles,
+    ':(exclude)src/query_integration/relation_pipeline_batch_wbtest.mbt'];
+  const difference = git(['diff', '--quiet', 'HEAD', '--', ...inputs, scratchRuntime, scratchOriginal]);
   assert.equal(difference.status, 0, 'Current proof inputs differ from tested HEAD');
   const untracked = git(['ls-files', '--others', '--', ...inputs]);
   assert.equal(untracked.status, 0, 'Cannot inspect current source inputs');
   assert.equal(untracked.stdout, '', 'Untracked current proof inputs');
   // Index flags cannot establish the bytes that the runner actually reads.
   // Bind only this HEAD's regular inputs; no historical declarations are used.
-  const tree = git(['ls-tree', '-rtz', head.stdout.trim()]);
-  assert.equal(tree.status, 0, 'Cannot inspect current source tree');
-  const selected = [...snapshotDirectories, ...snapshotFiles];
+  const selected = [...snapshotDirectories, ...selectedFiles];
   const checkedFiles = new Set();
-  for (const entry of tree.stdout.split('\0').filter(Boolean)) {
+  for (const entry of entries) {
     const match = /^(\d+) (\S+) ([0-9a-f]+)\t([\s\S]+)$/.exec(entry);
     assert(match, 'Invalid current source tree entry');
     const [, mode, type, object, path] = match;
@@ -51,7 +65,7 @@ export function checkCurrentSource(root) {
         input.startsWith(path + '/'))) continue;
     const file = join(root, path), stat = lstatSync(file);
     if (type === 'tree') {
-      assert(!snapshotFiles.includes(path) && stat.isDirectory() && !stat.isSymbolicLink(),
+      assert(!selectedFiles.includes(path) && stat.isDirectory() && !stat.isSymbolicLink(),
         `Non-regular current proof input directory: ${path}`);
       continue;
     }

@@ -199,6 +199,10 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
+      - name: Prepare reviewed diagnostic tooling without runtime preparation
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Stage the reviewed diagnostic separately from the original package source
         run: |
           mkdir "$RUNNER_TEMP/node-wait-cpu"
@@ -218,7 +222,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
       - name: Sample one installed wait with unchanged normal packages
         run: node "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs" collect "$GITHUB_WORKSPACE" "$RUNNER_TEMP/node-wait-cpu"
       - name: Retain sanitized diagnostic results and original artifact metadata
@@ -270,7 +274,9 @@ jobs:
             .filter(name => process.env[name] === 'true').length, 1);
           JS
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Install pinned MoonBit for source and generation verification only
         run: |
           node scripts/setup-moonbit.mjs
@@ -365,7 +371,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
       - name: Measure thirty complete approvals for each original Native template
         if: ${{ !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] }}
         env:
@@ -512,7 +518,9 @@ jobs:
         with:
           node-version: 22.22.0
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Validate the original normal package producer
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -545,7 +553,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {createHash} from 'node:crypto';
@@ -647,7 +655,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Validate the original normal package artifact and producer job
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -683,7 +693,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {createHash} from 'node:crypto';
@@ -759,7 +769,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Validate the original normal package artifact and producer job
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -795,7 +807,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {createHash} from 'node:crypto';
@@ -879,7 +891,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Validate the original normal package artifact and producer job
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -915,7 +929,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {createHash} from 'node:crypto';
@@ -995,7 +1009,9 @@ jobs:
         with:
           node-version: 22.22.0
       - name: Install verification tooling without runtime preparation
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Validate the original normal package producer
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -1028,7 +1044,7 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
           git fetch --no-tags --depth=1 origin "$source_sha"
-          git checkout --detach "$source_sha"
+          bash scripts/ci-checkout-artifact-source.sh "$source_sha"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {createHash} from 'node:crypto';

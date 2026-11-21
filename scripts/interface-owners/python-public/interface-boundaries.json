@@ -3973,7 +3973,7 @@
           "async": false
         }
       ],
-      "sha256": "38b29d426ec68b9e90333271034875596302fafc5c5f3da60473bd49f000877c",
+      "sha256": "ecb3aaf48c1f724a67c440e70de16f29c81bf850a2faf20b0084e0f941504630",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5918,9 +5918,18 @@
             "self",
             "**facts"
           ]
+        },
+        {
+          "async": false,
+          "name": "_retain_context_cleanup",
+          "parameters": [
+            "failure",
+            "cleanup",
+            "client"
+          ]
         }
       ],
-      "sha256": "54bcba513acb962152177733d28a2ebbf047c6ced93213fe2e919a5d7bf1e280",
+      "sha256": "efb00ac891b9ad30b80742e0fcf67ba6d40d143dd54a57a5a2074cc7930e312d",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5931,7 +5940,8 @@
             "ClientError",
             "ClientError/__init__",
             "RequestConflict",
-            "RequestConflict/__init__"
+            "RequestConflict/__init__",
+            "_retain_context_cleanup"
           ],
           "exports": [
             "ClientError",
@@ -7866,7 +7876,7 @@
           "parameters": []
         }
       ],
-      "sha256": "bdeeb663539b1faadb03d79c21eb51fbcc86b033dc7cc55d8f9c5819b69c47c7",
+      "sha256": "9ee4ece8e7c9791a589bf37c168a4694f133f756c94144e0db972f935e00fb36",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",

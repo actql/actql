@@ -71,6 +71,8 @@ fn advance_binary_comparison(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | ExactModulo
+    | IntegerDivide
     | Pow
     | Atan2
     | Log

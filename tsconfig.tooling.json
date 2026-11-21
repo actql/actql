@@ -1,0 +1,50 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
+      "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
+      "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
+      "@actql/local-node/runtime": ["./scripts/fixtures/installed-common-runtime.d.ts"],
+      "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],
+      "actql-explorer-test-contracts/*": ["./packages/explorer-ui/*.d.ts"]
+    },
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable",
+      "ES2023.Array",
+    "ESNext.Array",
+      "ES2024.String",
+      "ES2024.Promise",
+      "ES2024.ArrayBuffer",
+      "DOM.AsyncIterable"
+    ],
+    "declaration": true
+  },
+  "include": [
+    "scripts/**/*.mts",
+    "packages/sdk/**/*.mts",
+    "packages/node/**/*.mts",
+    "packages/native-cli/**/*.mts",
+    "packages/provider-ai-sdk/**/*.mts",
+    "packages/provider-http/**/*.mts",
+    "adapters/host-common/**/*.mts",
+    "adapters/host-node/**/*.mts",
+    "adapters/site-node/**/*.mts",
+    "adapters/workers/**/*.mts",
+    "adapters/connectors/duckdb/node/**/*.mts",
+    "packages/client-wire/**/*.mts",
+    "packages/explorer/**/*.mts",
+    "packages/explorer-ui/**/*.mts",
+    "packages/explorer-ui/elk-layout-module.d.ts",
+    "packages/explorer-ui/built-component-test-types.d.ts"
+  ],
+  "exclude": [
+    "**/*.typecheck.mts",
+    "**/*.d.mts"
+  ]
+}

@@ -36,7 +36,7 @@ export const maintenanceFiles = Object.freeze([
   'docs/reviews/2026-10-03-graph-host-acquired-input-handoff.md',
   'docs/reviews/2026-10-03-graph-host-owner-fixtures.md',
   'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
-  'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
+  'scripts/ci-timing.mts', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
   // Offline cost display is consumed only by the existing artifact reporter;
   // proof producers and final acceptance do not import this projection.
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',
@@ -105,8 +105,8 @@ export function gateJobRequired(selection, name) {
 // Shared core changes still receive full applicable verification when Ready/main.
 const pythonWheelInputs = new Set([
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
-  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mts',
+  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mts',
   'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
   'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
   'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',

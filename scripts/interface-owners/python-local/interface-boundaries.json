@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "f7142506d64a439e7869e535e082ec59c5e1b46a9ae10e97092f54d69a2bd871",
+  "syntaxProjectionSha256": "2b548dc0278f65d1bbfcc7f0944cbcd119df6eb8f351634f3e0f33244d85bdf7",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -230,7 +230,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -244,7 +244,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -262,15 +262,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -280,11 +280,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -294,25 +294,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -321,29 +321,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -357,7 +357,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "admitInstalledBinary"
               }
             ]
@@ -373,7 +373,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -387,7 +387,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
@@ -405,15 +405,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -423,11 +423,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -437,29 +437,29 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined)"
               }
             ],
@@ -468,29 +468,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -504,19 +504,19 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "launch"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('public init help does not need a runtime"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('root README deal-review init selects its exact documented template"
               },
               {
-                "path": "scripts/native-cli-project-init.test.mjs",
+                "path": "scripts/native-cli-project-init.test.mts",
                 "anchor": "test('an installed package without Local runtime refuses every init template before any project writes'"
               }
             ]
@@ -532,7 +532,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
@@ -546,7 +546,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
@@ -564,15 +564,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -582,11 +582,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -596,25 +596,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -623,29 +623,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -659,7 +659,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "platformKey"
               }
             ]
@@ -677,7 +677,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               },
               {
@@ -691,7 +691,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -701,7 +701,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -711,7 +711,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -721,7 +721,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -731,7 +731,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -741,7 +741,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -751,7 +751,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -761,7 +761,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ],
@@ -775,7 +775,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "#!/usr/bin/env node"
               }
             ]
@@ -791,53 +791,53 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "export function macOSProductVersion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']]"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return typeof version === 'string'"
               }
             ],
             "identity": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "actual ProductVersion"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "SYSTEM_VERSION_COMPAT: '0'"
               }
             ],
             "ownership": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "const result = query(command, args"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "for (const [command, args] of ["
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (result.error || result.status !== 0 || result.signal)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return undefined"
               }
             ],
@@ -846,21 +846,21 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "maxBuffer: 1024, timeout: 1000"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "version.length <= 47"
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "['/usr/bin/sw_vers', ['-productVersion']]"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS)"
               }
             ],
@@ -1024,7 +1024,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1038,7 +1038,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
@@ -1056,15 +1056,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1074,11 +1074,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1088,25 +1088,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1115,29 +1115,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1151,7 +1151,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitInstalledLocalRuntime"
               }
             ]
@@ -1167,7 +1167,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1181,7 +1181,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
@@ -1199,15 +1199,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1217,11 +1217,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1231,25 +1231,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1258,29 +1258,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1294,7 +1294,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalLibraryBytes"
               }
             ]
@@ -1312,7 +1312,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1326,7 +1326,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
@@ -1344,15 +1344,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1362,11 +1362,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1376,25 +1376,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1403,29 +1403,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1439,7 +1439,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "admitLocalRuntimePlatform"
               }
             ]
@@ -1451,7 +1451,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1465,7 +1465,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
@@ -1483,15 +1483,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1501,11 +1501,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1515,25 +1515,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1542,29 +1542,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1578,7 +1578,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "boundedRead"
               }
             ]
@@ -1592,7 +1592,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1606,7 +1606,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
@@ -1624,15 +1624,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1642,11 +1642,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1656,25 +1656,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1683,29 +1683,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1719,7 +1719,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "digest"
               }
             ]
@@ -1731,7 +1731,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1745,7 +1745,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
@@ -1763,15 +1763,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1781,11 +1781,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1795,25 +1795,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1822,29 +1822,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1858,7 +1858,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "exact"
               }
             ]
@@ -1870,7 +1870,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1884,7 +1884,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
@@ -1902,15 +1902,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -1920,11 +1920,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -1934,25 +1934,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -1961,29 +1961,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -1997,7 +1997,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "filename"
               }
             ]
@@ -2013,7 +2013,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2027,7 +2027,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
@@ -2045,15 +2045,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2063,11 +2063,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2077,25 +2077,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2104,29 +2104,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2140,7 +2140,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "installedLocalRuntimeEnvironment"
               }
             ]
@@ -2156,7 +2156,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2170,7 +2170,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
@@ -2188,15 +2188,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2206,11 +2206,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2220,25 +2220,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2247,29 +2247,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2283,7 +2283,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "localRuntimeHash"
               }
             ]
@@ -2299,7 +2299,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2313,7 +2313,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
@@ -2331,15 +2331,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2349,11 +2349,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2363,25 +2363,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2390,29 +2390,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2426,7 +2426,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "readLocalRuntimeMember"
               }
             ]
@@ -2445,7 +2445,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2459,7 +2459,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
@@ -2477,15 +2477,15 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "metadata.sourceSha !== expected.sourceSha"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "assert.equal(value.sourceSha, sourceSha)"
               }
             ],
@@ -2495,11 +2495,11 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "closeSync"
               },
               {
@@ -2509,25 +2509,25 @@
             ],
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "spawnSync(executable, selectedArguments"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "if (child.error)"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "return child.status ??"
               }
             ],
@@ -2536,29 +2536,29 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "stat.size > 64 * 1024 * 1024"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const boundedRead ="
               }
             ],
             "extension": [
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/bin/actql.mjs",
+                "path": "packages/native-cli/bin/actql.mts",
                 "anchor": "No download or source build is attempted."
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "const exact ="
               }
             ],
@@ -2572,7 +2572,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "validateLocalRuntimeManifest"
               }
             ]
@@ -2592,7 +2592,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               },
               {
@@ -2606,7 +2606,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2616,7 +2616,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2626,7 +2626,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2636,7 +2636,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2646,7 +2646,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2656,7 +2656,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2666,7 +2666,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2676,7 +2676,7 @@
                 "anchor": "# Native CLI"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ],
@@ -2690,7 +2690,7 @@
                 "anchor": "validateLocalRuntimeManifest"
               },
               {
-                "path": "packages/native-cli/lib/local-runtime.mjs",
+                "path": "packages/native-cli/lib/local-runtime.mts",
                 "anchor": "// Public installation data, not an execution, credential or read authority."
               }
             ]
@@ -6739,6 +6739,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/produce_and_read_submission_append",
+          "parameters": [
+            "self",
+            "value",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/produce_and_read_submission_lookup",
           "parameters": [
             "self",
@@ -8293,7 +8302,7 @@
           ]
         }
       ],
-      "sha256": "e038914c78d6f49774984fbc1542f267022d2ceb61cd5461ac6a6d76dba3257d",
+      "sha256": "e771fbbef9e5b734f7bbdd11bd901234396198b2c559018c0d19801dc1733954",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -11234,7 +11243,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -15685,6 +15694,126 @@
               {
                 "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
                 "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/produce_and_read_submission_append"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def produce_and_read_submission_append("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent submission append validation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_counter_and_original_intent_commit_together_after_same_snapshot_core_reinspection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_current_refusal_after_transfer_keeps_original_borrow_and_prevents_write("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_core_candidate_change_inside_write_transaction_rolls_back_without_run("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_append.py",
+                "anchor": "def test_commit_after_reply_loss_keeps_original_rows_and_loans_without_repeating_write("
               }
             ]
           }
@@ -53866,7 +53995,7 @@
           "async": false
         }
       ],
-      "sha256": "7ef496287a2f6d0b8c7c4092705b90cf7e3872f389366281c64b57a30bb93772",
+      "sha256": "f7989916838c20f1d79fd3bc00967777ac4b61949f0890804a4e28acffc16f4c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54444,7 +54573,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -58387,7 +58516,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62444,6 +62573,7 @@
         "._local_saved_read",
         "._local_sdk_payload_reader",
         "__future__",
+        "asyncio",
         "collections.abc",
         "httpx",
         "typing"
@@ -62543,7 +62673,7 @@
           ]
         }
       ],
-      "sha256": "1781ddf8bac2e9c01a003d0ba0edd69150990d0cc45b57085067cebce467d23f",
+      "sha256": "5175d0bc2f201181a697caaa37bc299b4c623bf901a9b2e54bb76f92e1b5e3b9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62821,7 +62951,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "outer Host operation has a finite 32,000,000,000-instruction allowance"
+                "anchor": "outer Host operation has a finite 64,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -78043,7 +78173,7 @@
                 "anchor": "test_selected_generated_abi_and_default_signature_tables"
               },
               {
-                "path": "scripts/interface-generation-freshness.mjs",
+                "path": "scripts/interface-generation-freshness.mts",
                 "anchor": "pythonInitialABI"
               }
             ]

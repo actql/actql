@@ -11,6 +11,7 @@ from __future__ import annotations
 import _thread
 from collections import deque
 from concurrent.futures import Future
+from itertools import islice
 import json
 from pathlib import Path
 import runpy
@@ -439,6 +440,58 @@ def selected_local_work(failure: BaseException, *, task_retirement=None):
     return None
 
 
+def captured_task_retirement(failure: BaseException, observer):
+    """Associate existing samples, never reconstruct current debt after close."""
+    if type(observer) is not _TaskRetirementObservation:
+        return None
+    samples = vars(observer).get('samples')
+    if type(samples) is not list or len(samples) != MAX_WORK_RECORDS:
+        return None
+    modules = [sys.modules.get(name) for name in
+               ('actql_sdk._local_product', 'actql_sdk._local_core', 'actql_sdk._local_work')]
+    if not all(type(module) is ModuleType for module in modules):
+        return None
+    product, core_module, work_module = map(vars, modules)
+    pending, stop_type, execution_type = (product.get('LocalProductCleanupPending'),
+        product.get('_OriginalCancellationStop'), product.get('_OriginalExecution'))
+    host_type, core_type, work_type = (product.get('InstalledLocalHost'),
+        core_module.get('LocalCore'), work_module.get('OriginalLocalWork'))
+    if not all(type(kind) is type for kind in
+               (pending, stop_type, execution_type, host_type, core_type, work_type)):
+        return None
+    run_method, invoke_method = vars(work_type).get('_run'), vars(execution_type).get('__call__')
+    if (type(failure) is not pending or type(failure.__context__) is not stop_type
+            or type(run_method) is not FunctionType or type(invoke_method) is not FunctionType):
+        return None
+    # Bound visits as well as storage. Missing frames leave evidence unavailable.
+    frames = tuple(islice(traceback.walk_tb(failure.__traceback__), MAX_FRAMES))
+    for frame, _ in frames:
+        if frame.f_code is not run_method.__code__ or frame.f_locals.get('failure') is not failure:
+            continue
+        work = frame.f_locals.get('self')
+        if type(work) is not work_type or vars(work).get('_original') is not work:
+            continue
+        fields = vars(work)
+        original, future = fields.get('_invoke'), fields.get('_future')
+        if (type(original) is not execution_type or type(future) is not Future
+                or vars(future).get('_exception') is not failure
+                or fields.get('_owner') is not original.run
+                or failure.__context__.original is not original):
+            continue
+        host = original.host
+        if (type(host) is not host_type or vars(host).get('_original') is not host
+                or type(vars(host).get('_core')) is not core_type
+                or vars(failure).get('cleanup_host') is not host
+                or not any(other.f_code is invoke_method.__code__
+                           and other.f_locals.get('self') is original
+                           and other.f_locals.get('work') is work for other, _ in frames)):
+            continue
+        return {'association': 'same-original-worker-traceback',
+                'sample_timing': 'original-task-close-return-before-worker-exit',
+                'live_selection': False, 'snapshot': observer.snapshot(work)}
+    return None
+
+
 def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> None:
     seen: set[int] = set()
     pending = [(failure, None)]
@@ -453,6 +506,13 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
                   for frame, line in deque(traceback.walk_tb(current.__traceback__), maxlen=MAX_FRAMES)]
         record = {'stage': 'installed-consumer-failure-location',
                   'exception_type': type(current).__name__[:MAX_LABEL], 'frames': frames}
+        try:
+            captured = captured_task_retirement(current, task_retirement)
+        except BaseException:
+            # Optional evidence must not format or replace the original failure.
+            captured = None
+        if captured is not None:
+            record['captured_task_retirement'] = captured
         if role is not None:
             record['failure_role'] = role
         try:
@@ -483,24 +543,25 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
             break
         stream.write(wire)
         stream.flush()
-        # Local submission preserves its original failure as a retained
-        # exception attribute before raising outside the except block. Read
-        # only that known exception carrier, never arbitrary diagnostic values.
+        # Submission and context exit retain the original/cleanup exceptions
+        # outside their native chains. Read only existing plain exception
+        # associations; the same seen/output bounds apply and no error changes.
         retained = fields.get('original_error')
-        for linked in (current.__context__, current.__cause__, retained):
+        cleanup = fields.get('cleanup_error')
+        for linked in (current.__context__, current.__cause__, retained, cleanup):
             if isinstance(linked, BaseException):
                 pending.append((linked, None))
 
 
 def run_consumer(target: Path) -> None:
-    # Only this original failed case selects the optional observation. Existing
+    # Only these original failed cases select the optional observation. Existing
     # profilers are never replaced, and setup failure cannot prevent execution.
     args = sys.argv[1:]
     selected = target.name == 'python-product-installed.py' and all(
         args.count(flag) == 1 and args.index(flag) + 1 < len(args)
-        and args[args.index(flag) + 1] == expected
-        for flag, expected in (('--mode', 'local'), ('--facade', 'sync'),
-                               ('--case', 'cancellation'), ('--phase', 'initial')))
+        and args[args.index(flag) + 1] in expected
+        for flag, expected in (('--mode', ('local',)), ('--facade', ('sync', 'async')),
+                               ('--case', ('cancellation',)), ('--phase', ('initial',))))
     observer = None
     if selected:
         try:
