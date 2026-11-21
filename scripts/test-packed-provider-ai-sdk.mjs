@@ -17,6 +17,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   assert.equal(value.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0);
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (caseId === 'usage-reported') assert.equal(value.maxCalls, 1);
   if (phase === 'warm') {
     assert.equal(value.tasks, 2); assert.equal(value.requests, 2); assert.equal(value.calls, 2);
   } else if (phase === 'cold') {
@@ -72,7 +73,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   await mkdir(raw); await mkdir(casesRoot);
   // Each timeout cold read observes its own entered original, never a Saved
   // success or a replacement request. Its state and profile stay in that case.
-  const available = [['warm', 'cold'], ['missing-key'], ['rate-limit', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent'],
+  const available = [['warm', 'cold'], ['missing-key'], ['rate-limit', 'cold'], ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : available.filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,

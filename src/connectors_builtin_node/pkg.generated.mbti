@@ -4658,6 +4658,8 @@ pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, 
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_standard_infer_model_transfer_bytes(Int64) -> Int64
+
 pub fn client_program_start_acquired_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.ModelProvider, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_acquired_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.ModelSlotReplayRead, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]

@@ -137,6 +137,10 @@ function configureOpenAIChatProvider(options, projectMode) {
     const project = projectMode ? await context.projectOpenAIProvider() : undefined;
     const config = await context.prepareConfiguration(() => {
       const selected = configuration(options, project);
+      const maxWireBytes = moon.clientProgramStandardInferModelTransferBytes?.(selected.budget.maxCalls);
+      if (!amount(maxWireBytes)) {
+        refuse('OpenAIProviderTransferCapacityUnavailable');
+      }
       if (typeof moon.clientProgramInstalledNodeModelSdkV4RequestCapacity !== 'function') {
         refuse('OpenAIProviderRequestCapacityUnavailable');
       }
@@ -167,7 +171,7 @@ function configureOpenAIChatProvider(options, projectMode) {
       // writer/parse/compare workspace contributes only to execution peak.
       // These are demands on the original initial Owner, never a budget uplift.
       const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1] + credentialHolding;
-      return Object.freeze({...selected,
+      return Object.freeze({...selected, maxWireBytes,
         readRetainedBytes: previousRead + sdkQuote[0],
         readExecutionBytes: previousRead + sdkQuote[1],
         physicalLimits: Object.freeze({...limits,
@@ -225,7 +229,7 @@ function configureOpenAIChatProvider(options, projectMode) {
       profiles.set(task.taskCid, profile);
       await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
         maxCostUnits: config.budget.maxCostUnits, maxDurationMs: config.budget.maxDurationMs,
-        maxWireBytes: config.budget.maxCalls * BigInt(limits.request_bytes + limits.response_bytes),
+        maxWireBytes: config.maxWireBytes,
         maxTokens: config.budget.maxTokens});
     }
     return selected.providerEntries(() => {
