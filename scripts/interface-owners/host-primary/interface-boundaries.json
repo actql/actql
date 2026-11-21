@@ -8105,7 +8105,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -8589,7 +8589,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -13569,7 +13569,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -13593,7 +13593,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -15051,7 +15051,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -15419,7 +15419,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -17467,7 +17467,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -17992,7 +17992,7 @@
               },
               {
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'",
-                "path": "adapters/host-node/initial-control-host-input.test.mjs"
+                "path": "adapters/host-node/initial-control-host-input.test.mts"
               },
               {
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'",
@@ -19641,7 +19641,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -20117,7 +20117,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -20921,7 +20921,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -21397,7 +21397,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -22201,7 +22201,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -22677,7 +22677,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -23481,7 +23481,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -23957,7 +23957,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -29161,7 +29161,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -29185,7 +29185,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -29237,7 +29237,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -29261,7 +29261,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -33643,7 +33643,7 @@
                 "anchor": "// Preserve all fields and original aliases so the selected recipe can refuse"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
               }
             ],
@@ -33653,7 +33653,7 @@
                 "anchor": "// under its separate Source phase before calling this captured reader."
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
               }
             ],
@@ -33669,7 +33669,7 @@
                 "anchor": "NodeSourceManagedInputUnavailable"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake refuses Proxy and getter inputs without observing them"
               }
             ],
@@ -33685,7 +33685,7 @@
                 "anchor": "// cover raw acquisition, the first ownKeys, rejection and every retained alias"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source reader retains finite original bounds and refuses unsupported overlap"
               }
             ],
@@ -33695,17 +33695,17 @@
                 "anchor": "// The result is DATA only. It does not validate the public submission grammar,"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source reader does not redefine invalid format or synthesize absent parameters"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
               }
             ]
@@ -33735,7 +33735,7 @@
                 "anchor": "// Preserve all fields and original aliases so the selected recipe can refuse"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
               }
             ],
@@ -33745,7 +33745,7 @@
                 "anchor": "// under its separate Source phase before calling this captured reader."
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
               }
             ],
@@ -33761,7 +33761,7 @@
                 "anchor": "NodeSourceManagedInputUnavailable"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake refuses Proxy and getter inputs without observing them"
               }
             ],
@@ -33777,7 +33777,7 @@
                 "anchor": "// cover raw acquisition, the first ownKeys, rejection and every retained alias"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source reader retains finite original bounds and refuses unsupported overlap"
               }
             ],
@@ -33787,17 +33787,17 @@
                 "anchor": "// The result is DATA only. It does not validate the public submission grammar,"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source reader does not redefine invalid format or synthesize absent parameters"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
               },
               {
-                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "path": "adapters/host-node/source-managed-original-input.test.mts",
                 "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
               }
             ]

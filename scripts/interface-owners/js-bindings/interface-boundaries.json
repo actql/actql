@@ -51370,7 +51370,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -51546,7 +51546,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -59416,7 +59416,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -59440,7 +59440,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -61494,7 +61494,7 @@
                 "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               },
               {
@@ -61702,7 +61702,7 @@
                 "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'"
               },
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -77598,7 +77598,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -77622,7 +77622,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
@@ -77674,7 +77674,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
               }
             ],
@@ -77698,7 +77698,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "path": "adapters/host-node/initial-control-host-input.test.mts",
                 "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
               },
               {
