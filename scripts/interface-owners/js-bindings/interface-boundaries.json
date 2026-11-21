@@ -83556,7 +83556,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b26bd428d5479e0690dea0f05a625dfd2e41936849a24eb96d29e16dae1ff850",
+      "sha256": "36ee7b6fd2d4600428fa0a2fbbc4c4f6bf44ca06975fc177f2bb8075baeb1dac",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -83570,6 +83570,7 @@
         "installedRowEffectUpdateObservation",
         "installedRowEffectUpdateObservations",
         "installedRowEffectUpdateTargetReadAccess",
+        "prepareInstalledTargetPlanRecipes",
         "resolveInstalledRowEffectConstruction",
         "retainInstalledRowEffectAdapter",
         "validateInstalledUpdateOwnerSelections"
@@ -83636,20 +83637,6 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
           "parameters": [
             "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes#2",
-          "parameters": [
-            "read"
           ],
           "async": false
         },
@@ -83895,6 +83882,13 @@
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#2",
           "parameters": [
             "item"
           ],
@@ -85058,13 +85052,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/recipes/recipes/recipes",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
           "parameters": [
             "_",
@@ -85610,6 +85597,21 @@
           "name": "prepareInstalledCreateRows/wires/wires",
           "parameters": [
             "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "mappings",
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "read"
           ],
           "async": false
         },
@@ -86333,11 +86335,13 @@
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields/fields",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
-            "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes",
+            "prepareInstalledTargetPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-            "captureManagedTargetPlanRecipes/captureManagedTargetPlanRecipes#2"
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
           ],
-          "exports": [],
+          "exports": [
+            "prepareInstalledTargetPlanRecipes"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -87042,6 +87046,7 @@
           "operations": [
             "createInstalledRowEffect",
             "createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffect/createInstalledRowEffect#2",
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
@@ -87261,7 +87266,6 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes",
-            "createRowEffectStage/recipes/recipes/recipes",
             "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",

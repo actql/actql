@@ -6,7 +6,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts, assertAuthorizationAccountCurrent}
   from '../host-common/authorization-gate.mjs';
-import {retainInstalledRowEffectAdapter, installedRowEffectConstructionLimits} from '../host-node/installed-row-effect.mjs';
+import {retainInstalledRowEffectAdapter, installedRowEffectConstructionLimits,
+  prepareInstalledTargetPlanRecipes} from '../host-node/installed-row-effect.mjs';
 import {prepareInstalledPhysicalWritePlanRecipe} from '../host-node/installed-effect-plan.mjs';
 import {installedUpdateTargets, composeInstalledEffects} from '../host-node/installed-effect-inventory.mjs';
 import {createMockFileTarget} from '../host-node/mock-file-target.mjs';
@@ -177,7 +178,8 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
             recipes[mapping.mappingCid] = Object.freeze({targetReadOperation,
               recipe: mockFileEffectPlanRecipe(moon, bundle, write.permission, targetReadOperation)});
           }
-          return {...constructed, targets, managedTargetPlanRecipes: Object.freeze(recipes)};
+          return {...constructed, targets,
+            managedTargetPlanRecipes: prepareInstalledTargetPlanRecipes(prepared.mappings, Object.freeze(recipes))};
         });
         const {driver, site, targets, managedPlanRecipe, managedTargetPlanRecipes} = constructed;
         // Every driver observes this SAME physical file. Reuse an existing

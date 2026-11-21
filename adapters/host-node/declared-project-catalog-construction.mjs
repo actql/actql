@@ -437,11 +437,11 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
     // Common links. Plural selection additionally owns one typed footprint
     // capacity/extent/role and its argument/cohort controls, never a new owner.
     const codec = 16n, footprint = pluralFootprint ? 32n : 0n;
-    // Additional recipes keep their sealed capacity/operation/role records
-    // live beside the first. Use the existing physical recipe allowance per
-    // extra recipe. Normalization runs serially, so descriptors overlap one
-    // recipe at a time. The two Mapping tables and their entry records coexist.
-    const retainedRecipes = routed ? (targets - 1n) * (768n + footprint) + 2n + 8n * targets : 0n;
+    // The Source constructor captures each route before returning. The sealed
+    // table retains its original Mapping link, group maxima, and both
+    // control-recipe variants; the fallback borrows the same operation extents.
+    // A composed stage borrows this table and only combines scalar limits.
+    const retainedRecipes = routed ? (targets - 1n) * (768n + footprint) + 12n + 24n * targets : 0n;
     const tableWorkspace = routed ? 16n + 12n * targets : 0n;
     return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes,
       text: 2n * operationUnits, wire: 0n},
