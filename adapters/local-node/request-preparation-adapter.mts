@@ -1,11 +1,109 @@
+// @ts-expect-error TS7016 The ordinary Node Resource bridge is still authored as CommonJS.
 import resources from '../host-node/ordinary-node-resource-runtime.cjs';
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError,runtimeField} from '../host-common/compiler-binding.generated.mjs';
+
+type AssertCurrent = () => undefined;
+type ChildrenPending = () => boolean;
+type RequestMemory = Readonly<{retainedBytes: number; executionBytes: number}>;
+type PreparationRequirements = Readonly<{
+  planningWork: number;
+  attempts: number;
+  holdings: number;
+  transferBytes: bigint;
+  retainedBytes: bigint;
+  executionBytes: bigint;
+}>;
+
+// This view names the two operations used on the same physical Resource bridge.
+type PreparationResourcePorts = Readonly<{
+  retainOrdinaryManagedRun(input: object, requirements: PreparationRequirements,
+    assertCurrent: AssertCurrent, childrenPending: ChildrenPending, purpose: 'local-preparation'): object;
+  ordinaryManagedRunStatus(original: object): Readonly<{stopped: boolean}>;
+}>;
+
+// Common Results and their opaque preparation, policy and holder values are
+// consumed only by their original runtime.
+type AdmissionRuntime = Readonly<{
+  clientLocalResourcePolicyOriginal(): unknown;
+  clientLocalPreparationResourceLimits(policy: unknown, retention: bigint | undefined, execution: bigint | undefined): unknown;
+  clientProgramPrepareLocalPreparationAdmission(original: object, input: object): unknown;
+  clientProgramCleanupLocalPreparationAdmission(admission: unknown): unknown;
+}>;
+type RequestRuntime = AdmissionRuntime & Readonly<{
+  clientProgramBeginRequestPreparation(admission: unknown, input: object, policy: unknown): unknown;
+  clientProgramAbortRequestPreparation(parent: unknown): unknown;
+  clientProgramPreparationBorrowRetirementStarted(holder: unknown): boolean;
+  clientProgramPreparationBorrowReturn(holder: unknown): unknown;
+  clientProgramReserveRequestSnapshot?: unknown;
+  clientProgramReserveRequestHttpInput?: unknown;
+  clientProgramPrepareRequestHttpJson?: unknown;
+}>;
+type InitializationRuntime = AdmissionRuntime & Readonly<{
+  clientProgramBeginHostInitializationPreparation(admission: unknown, input: object, policy: unknown): unknown;
+  clientProgramCloseHostInitializationPreparation(parent: unknown): unknown;
+}>;
+type AdmissionState = {
+  original?: object;
+  admission?: unknown;
+  parent?: unknown;
+  opening?: boolean;
+};
+type InitializationState = AdmissionState & {runtime?: InitializationRuntime};
+export type RequestPreparationState = AdmissionState & {
+  context: Readonly<{runtime: RequestRuntime; requestMemory?: RequestMemory}>;
+  adopting?: boolean;
+  snapshotting?: boolean;
+  preparing?: boolean;
+  effectBorrowMethods?: Readonly<{
+    clientProgramEffectPreparationInputRetirementStarted(holder: unknown): boolean;
+    clientProgramEffectPreparationInputReturn(holder: unknown): unknown;
+  }>;
+  holder?: unknown;
+  inventoryHolder?: unknown;
+  prepared?: unknown;
+  contentPreparation?: Readonly<{releaseAliases(output: undefined, holder: unknown): undefined}>;
+  compilationKind?: string;
+  contentPlan?: unknown;
+  contentCompilation?: unknown;
+  contentGraph?: unknown;
+  effectMaterials?: unknown;
+  authoringContextOriginal?: unknown;
+  parametersCursor?: unknown;
+  snapshot?: unknown;
+  snapshotDocument?: unknown;
+  preparationFailure?: unknown;
+  originalCheckResult?: unknown;
+  projectOriginalCheck?: unknown;
+  compilationFamily?: unknown;
+  recovery?: unknown;
+  modelCompilation?: unknown;
+  modelGraph?: unknown;
+  modelPlan?: unknown;
+  modelProviderBinding?: unknown;
+  modelSourceCoordinates?: unknown;
+  capturePlan?: unknown;
+  acquisitionCount?: number;
+  policyVerifier?: unknown;
+  policySignal?: AbortSignal;
+  policyVerifierSelected?: boolean;
+  parameterMetadataLoaded?: boolean;
+  preparationFailed?: boolean;
+};
+type RequestConnection = Readonly<{
+  mode: 'local' | 'remote';
+  owner: 'local' | 'remote';
+  consentRefs: readonly unknown[];
+  runners: readonly unknown[];
+}>;
+
 // Only fixed ClientClosedValuesPreparationIssue results reach this projection.
 // The Common owner supplies immutable failure facts from its attempted phase;
 // these amounts are diagnostic DATA, never caller options or a resource grant.
-export function checkedPreparation(moon,result) {
+export function checkedPreparation(
+  moon: Readonly<{clientProgramPreparationCapacityRefusal(issue: unknown): unknown}>, result: unknown,
+) {
   if(runtimeIsError(result)) {
     const issue=runtimeField(result,0);
     const value=moon.clientProgramPreparationCapacityRefusal(issue);
@@ -21,7 +119,9 @@ export function checkedPreparation(moon,result) {
       const capacity=Object.freeze({phase,dimension,
         requiredRetentionBytes:requiredR.toString(),requiredExecutionBytes:requiredE.toString(),
         availableRetentionBytes:availableR.toString(),availableExecutionBytes:availableE.toString()});
-      const error=new Error('PreparationCapacityExceeded');
+      const error=new Error('PreparationCapacityExceeded') as Error & {
+        code?: string; capacity?: typeof capacity;
+      };
       error.cause=issue;
       error.code='PreparationCapacityExceeded';
       error.capacity=capacity;
@@ -34,26 +134,26 @@ export function checkedPreparation(moon,result) {
 // Fixed ordinary Local protocol adapter, not a second lease or numeric budget.
 // The caller stores this same state before the first fallible constructor.
 const noPhysicalChildren = () => false;
-const invalid = () => {throw Object.assign(new Error('NodeLocalPreparationAdmissionUnavailable'),
+const invalid: () => never = () => {throw Object.assign(new Error('NodeLocalPreparationAdmissionUnavailable'),
   {code:'NodeLocalPreparationAdmissionUnavailable'});};
 // Read only already detached own DATA. A frozen accessor/Proxy is not a
 // budget selection, and checking availability must not invoke its callbacks.
-function requestMemorySelection(context) {
+function requestMemorySelection(context: object): RequestMemory | false | undefined {
   const field=Object.getOwnPropertyDescriptor(context,'requestMemory');
   if(field!==undefined && !Object.hasOwn(field,'value')) return false;
-  const value=field?.value;
+  const value: unknown=field?.value;
   if(value===undefined) return undefined;
   if(value===null || typeof value!=='object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) return false;
   for(const name of ['retainedBytes','executionBytes']) {
     const item=Object.getOwnPropertyDescriptor(value,name);
     if(item===undefined || !Object.hasOwn(item,'value') || !Number.isSafeInteger(item.value)) return false;
   }
-  return value;
+  return value as RequestMemory;
 }
 
-export function requestPreparationAvailable(context) {
+export function requestPreparationAvailable(context: unknown) {
   if(context===null || typeof context!=='object' || nodeTypes.isProxy(context)) return false;
-  const own = (object,name) => {
+  const own = (object: object,name: string): unknown => {
     const field=Object.getOwnPropertyDescriptor(object,name);
     return field!==undefined && Object.hasOwn(field,'value') ? field.value : undefined;
   };
@@ -93,7 +193,10 @@ export function requestPreparationAvailable(context) {
 
 // Fixed supplier precondition before receipt/state/native Root construction.
 // This control quote grants no body bytes and observes no caller input.
-export function assertRequestPreparationControl(context) {
+export function assertRequestPreparationControl(context: Readonly<{runtime: Readonly<{
+  clientLocalResourcePolicyOriginal(): unknown;
+  clientProgramRequestPreparationControl(policy: unknown): unknown;
+}>}>) {
   const moon=context.runtime;
   const control=moon.clientProgramRequestPreparationControl(moon.clientLocalResourcePolicyOriginal());
   if(!Array.isArray(control) || control.length!==2 || typeof control[0]!=='bigint' ||
@@ -105,7 +208,10 @@ export function assertRequestPreparationControl(context) {
 // retain this same state before entry and supply its original current/physical
 // child observation; a profile or cleanup registry is not admitted backing.
 // Both existing Request callers use this exact opening, never a second owner.
-function openPreparationAdmission(state, moon, input, assertCurrent, childrenPending, memory) {
+function openPreparationAdmission(
+  state: AdmissionState, moon: AdmissionRuntime, input: object, assertCurrent: AssertCurrent,
+  childrenPending: ChildrenPending, memory?: RequestMemory,
+) {
     const policy=moon.clientLocalResourcePolicyOriginal();
     const limits=moon.clientLocalPreparationResourceLimits(policy,
       memory === undefined ? undefined : BigInt(memory.retainedBytes),
@@ -118,13 +224,15 @@ function openPreparationAdmission(state, moon, input, assertCurrent, childrenPen
     // needed before that supplier owns the first constructor.
     const requirements=Object.freeze({planningWork:Number(limits[0]),attempts:Number(limits[1]),
       holdings:Number(limits[2]),transferBytes:limits[3],retainedBytes:limits[4],executionBytes:limits[5]});
-    state.original=resources.retainOrdinaryManagedRun(input,requirements,
+    state.original=(resources as PreparationResourcePorts).retainOrdinaryManagedRun(input,requirements,
       assertCurrent,childrenPending,'local-preparation');
     state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,input));
   return policy;
 }
 
-export function openRequestPreparation(state, input, assertCurrent, childrenPending) {
+export function openRequestPreparation(
+  state: RequestPreparationState, input: object, assertCurrent: AssertCurrent, childrenPending: ChildrenPending,
+) {
   if (state.opening || state.original!==undefined || state.admission!==undefined ||
       state.parent!==undefined ||
       typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
@@ -143,7 +251,10 @@ export function openRequestPreparation(state, input, assertCurrent, childrenPend
 
 // SAME actual Host initialization owner, independent of late Environment and
 // sequence contracts. The fixed caller retains state before this entrance.
-export function openHostInitializationPreparation(state, moon, input, assertCurrent, childrenPending) {
+export function openHostInitializationPreparation(
+  state: InitializationState, moon: InitializationRuntime, input: object,
+  assertCurrent: AssertCurrent, childrenPending: ChildrenPending,
+) {
   if (state.opening || state.original!==undefined || state.admission!==undefined ||
       state.parent!==undefined || state.runtime!==undefined ||
       typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
@@ -158,9 +269,9 @@ export function openHostInitializationPreparation(state, moon, input, assertCurr
 
 // Caller has retired its SAME Source material and physical children first.
 // A failed/uncertain original remains owned; no status/Promise is made an ACK.
-export function closeHostInitializationPreparation(state) {
+export function closeHostInitializationPreparation(state: InitializationState) {
   if (state.opening) invalid();
-  const moon=state.runtime;
+  const moon=state.runtime!;
   if (state.parent!==undefined) {
     checked(moon.clientProgramCloseHostInitializationPreparation(state.parent));
     state.parent=state.admission=undefined;
@@ -168,13 +279,16 @@ export function closeHostInitializationPreparation(state) {
     checked(moon.clientProgramCleanupLocalPreparationAdmission(state.admission));
     state.admission=undefined;
   }
-  if (state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
+  if (state.original!==undefined && !(resources as PreparationResourcePorts).ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.runtime=undefined;
 }
 
 // General Request admission observes no caller options, Parameters or source.
 // Actual SDK capture below grows this same parent before its detached data.
-export function beginRequestInput(state, receipt, connection, assertCurrent, childrenPending = noPhysicalChildren) {
+export function beginRequestInput(
+  state: RequestPreparationState, receipt: object, connection: RequestConnection, assertCurrent: AssertCurrent,
+  childrenPending: ChildrenPending = noPhysicalChildren,
+) {
   const moon=state.context.runtime;
   if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
   if (!Object.isFrozen(connection) || !['local', 'remote'].includes(connection.mode) ||
@@ -186,7 +300,9 @@ export function beginRequestInput(state, receipt, connection, assertCurrent, chi
 
 // HTTP owns only its copied input. The supplied stream's producer/backing and
 // connection permission are independent of this existing preparation parent.
-export function beginHttpRequestInput(state, receipt, assertCurrent, childrenPending) {
+export function beginHttpRequestInput(
+  state: RequestPreparationState, receipt: object, assertCurrent: AssertCurrent, childrenPending: ChildrenPending,
+) {
   const moon = state.context.runtime;
   if (typeof moon.clientProgramReserveRequestHttpInput !== 'function' ||
       typeof moon.clientProgramPrepareRequestHttpJson !== 'function') invalid();
@@ -194,12 +310,14 @@ export function beginHttpRequestInput(state, receipt, assertCurrent, childrenPen
   return true;
 }
 
-export function cleanupRequestInput(state, retireInitialPreparation) {
+export function cleanupRequestInput(
+  state: RequestPreparationState, retireInitialPreparation?: (prepared: unknown) => undefined,
+) {
   if(state.opening || state.adopting || state.snapshotting || state.preparing) invalid();
   const moon=state.context.runtime;
   const borrow = state.effectBorrowMethods;
   if(state.compilationKind==='effectful' && state.holder!==undefined && borrow===undefined) invalid();
-  const retirementStarted = holder => borrow===undefined
+  const retirementStarted = (holder: unknown) => borrow===undefined
     ? moon.clientProgramPreparationBorrowRetirementStarted(holder)
     : borrow.clientProgramEffectPreparationInputRetirementStarted(holder);
   if((state.holder!==undefined || state.inventoryHolder!==undefined) && state.parent!==undefined) {
@@ -227,7 +345,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
     // borrower as well. Core consumes each holder before attempting owner
     // settlement; false is a live owner, and settlement failure retains the
     // parent duty without making the consumed token returnable again.
-    for(const field of ['inventoryHolder','holder']) {
+    for(const field of ['inventoryHolder','holder'] as const) {
       const holder=state[field];
       if(holder===undefined) continue;
       state[field]=undefined;
@@ -247,7 +365,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   }
   // Clear only after the original stop is confirmed. No caller snapshot is
   // revoked, and no local Promise completion stands in for physical cleanup.
-  if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
+  if(state.original!==undefined && !(resources as PreparationResourcePorts).ordinaryManagedRunStatus(state.original).stopped) invalid();
   state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
   state.originalCheckResult=state.projectOriginalCheck=undefined;

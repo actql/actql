@@ -126392,7 +126392,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "a30a6c6ff32c60fe5318408087a23fce389b2d2d8b31b283d97720f485d9cb26",
+      "sha256": "432ad0060e6a910cc62d3b4892f8f415d66adbe06084aeffc091dd0d1fc68f3f",
       "exports": [
         "assertRequestPreparationControl",
         "beginHttpRequestInput",
@@ -126556,7 +126556,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126594,7 +126594,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126632,7 +126632,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126666,7 +126666,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126700,7 +126700,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126734,7 +126734,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126768,7 +126768,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126802,7 +126802,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -126836,7 +126836,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127028,7 +127028,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127042,7 +127042,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127056,7 +127056,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127070,7 +127070,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127084,7 +127084,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127098,7 +127098,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127119,7 +127119,7 @@
                 "anchor": "## Original ModuleBody preparation mode"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function requestPreparationAvailable"
               },
               {
@@ -127166,7 +127166,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127184,7 +127184,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127202,7 +127202,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127220,7 +127220,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127238,7 +127238,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127256,7 +127256,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127274,7 +127274,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127292,7 +127292,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127310,7 +127310,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127354,7 +127354,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127380,7 +127380,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127410,7 +127410,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127436,7 +127436,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127462,7 +127462,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127488,7 +127488,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127514,7 +127514,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127540,7 +127540,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127566,7 +127566,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function cleanupRequestInput("
               },
               {
@@ -127636,7 +127636,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127646,7 +127646,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127656,7 +127656,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127666,7 +127666,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127676,7 +127676,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127686,7 +127686,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127696,7 +127696,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127706,7 +127706,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -127716,7 +127716,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginHttpRequestInput("
               }
             ],
@@ -138983,7 +138983,7 @@
                 "anchor": "captureSourceSnapshot(receipt, value, snapshot)"
               },
               {
-                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "path": "adapters/local-node/request-preparation-adapter.mts",
                 "anchor": "export function beginRequestInput("
               }
             ],
@@ -140744,7 +140744,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "94c14fe5c9b98f06f030a7a5c674cd160b3e811bef678b5af5471b1a16a3df73",
+      "sha256": "45a489d046a7e99a485f4c124de61928bd0e2fc53c3d615ef50b99b864111d76",
       "exports": [
         "createLocalResultReadWorkspace"
       ],

@@ -1,4 +1,3 @@
-// @ts-expect-error TS7016 The Request preparation adapter is still authored as JS.
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {physicalContentReadWindowBytes} from '../store-local/publication-store.mjs';
 import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
@@ -7,6 +6,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {setImmediate as yieldRead} from 'node:timers/promises';
 import {types as nodeTypes} from 'node:util';
 
+import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
 import type {installResultAccessService} from '../host-common/result-access.mjs';
 import type {installClientRunExplanation} from './client-run-explanation.mjs';
 
@@ -20,7 +20,7 @@ type RowResult<Value extends number | string> = Value extends number ? RowAdmiss
 type Limits = Parameters<ResultWorkspace['prepare']>[2];
 type FrameLimits = Parameters<ResultWorkspace['prepare']>[3];
 type Metadata = Parameters<ResultWorkspace['prepare']>[1];
-type RequestMemory = Readonly<{retainedBytes: number; executionBytes: number}>;
+type RequestMemory = RequestPreparationState['context']['requestMemory'];
 
 // Parent and raw Common Results stay opaque at this boundary.
 type ReadBinding<Args extends unknown[] = []> =
@@ -48,11 +48,10 @@ type Runtime = Readonly<{
   clientProgramRequestExplanationReadIssueCode(issue: unknown): string;
 }>;
 type Configuration = Readonly<{
-  runtime: Runtime;
+  runtime: Runtime & RequestPreparationState['context']['runtime'];
   requestMemory?: RequestMemory;
   assertCurrent(): undefined;
 }>;
-type Context = Readonly<Pick<Configuration, 'runtime' | 'requestMemory'>>;
 type ExplanationOperation = Readonly<{
   principalId: string;
   purpose: 'run-explanation';
@@ -60,7 +59,7 @@ type ExplanationOperation = Readonly<{
 }>;
 type Entry = {
   request: Request;
-  state: {context: Context; parent?: unknown};
+  state: RequestPreparationState;
   control?: Control;
   retained: unknown;
   active: boolean;

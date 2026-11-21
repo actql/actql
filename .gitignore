@@ -1693,6 +1693,8 @@ target/
 /adapters/host-node/result-access.d.mts
 /adapters/host-node/local-result-read-workspace.mjs
 /adapters/host-node/local-result-read-workspace.d.mts
+/adapters/local-node/request-preparation-adapter.mjs
+/adapters/local-node/request-preparation-adapter.d.mts
 /adapters/host-common/scoped-strategy.mjs
 /adapters/host-common/scoped-strategy.d.mts
 /adapters/host-common/local-js-host.mjs
