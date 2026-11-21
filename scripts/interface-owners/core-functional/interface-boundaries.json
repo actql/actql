@@ -3238,6 +3238,284 @@
       "sha256": "7bd760959676157ebb70590feaae65911f4be95998239b34c23b6e906589da27"
     },
     {
+      "module": "adapters/host-common/publication-progress-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Existing Common publication decisions and original contract and Result progress custody.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "publicationProgressControl",
+            "publicationProgressControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
+            "publicationProgressControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
+            "publicationProgressControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
+            "publicationProgressControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
+            "publicationProgressControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
+            "publicationProgressControl/init:publicationAttemptAction/init:publicationAttemptAction",
+            "publicationProgressControl/init:publicationCancellationAction/init:publicationCancellationAction",
+            "publicationProgressControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
+            "publicationProgressControl/init:publicationCommitFailureAction/init:publicationCommitFailureAction",
+            "publicationProgressControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
+            "publicationProgressControl/init:publicationSetupAction/init:publicationSetupAction",
+            "publicationProgressControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
+            "publicationProgressControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
+            "publicationProgressControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
+            "publicationProgressControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
+            "publicationProgressControl/init:recordResultAccessRequestAuthorization/init:recordResultAccessRequestAuthorization",
+            "publicationProgressControl/init:recordResultAccessResolution/init:recordResultAccessResolution",
+            "publicationProgressControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
+            "publicationProgressControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction"
+          ],
+          "exports": [
+            "publicationProgressControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "export function publicationProgressControl("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "return publicationAction('attempt',"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "record === undefined ? undefined : token(record),"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const token = value => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "if (!moon.strategyRecordResultAccessResolution(progress, resolved)) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "throw new TypeError('Invalid Result access progression')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "return publicationAction('cancellation',"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "return publicationAction('cleanupOwner',"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/publication-progress-control.mts",
+                "anchor": "return publicationAction('existingDelivery',"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('generated publication owner crosses the JS bridge as named actions'"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "publicationProgressControl"
+      ],
+      "operations": [
+        {
+          "name": "publicationProgressControl",
+          "parameters": [
+            "moon",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
+          "parameters": [
+            "cancellationObserved"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
+          "parameters": [
+            "nextRecord",
+            "recordCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationAttemptAction/init:publicationAttemptAction",
+          "parameters": [
+            "record",
+            "activeChecked",
+            "indexIssued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationCancellationAction/init:publicationCancellationAction",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
+          "parameters": [
+            "currentIndex",
+            "ownerCount",
+            "statusChecked",
+            "pending",
+            "retryAvailable",
+            "retryAttempted"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationCommitFailureAction/init:publicationCommitFailureAction",
+          "parameters": [
+            "reconciliationAttempted",
+            "reconciliationFailed",
+            "committedFound",
+            "unknownAppendAttempted"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
+          "parameters": [
+            "currentIndex",
+            "ownerCount",
+            "statusChecked",
+            "pending",
+            "releaseAttempted"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationSetupAction/init:publicationSetupAction",
+          "parameters": [
+            "existingChecked",
+            "existingFound",
+            "existingEvidenceValidated",
+            "existingFinalized",
+            "initialActiveChecked",
+            "contractsPersisted",
+            "attemptCreated"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
+          "parameters": [
+            "reconciliationResolved",
+            "upstreamPending",
+            "upstreamRetryAvailable",
+            "upstreamRetryAttempted"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
+          "parameters": [
+            "progress",
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
+          "parameters": [
+            "progress",
+            "available"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
+          "parameters": [
+            "progress",
+            "admitted"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:recordResultAccessRequestAuthorization/init:recordResultAccessRequestAuthorization",
+          "parameters": [
+            "progress",
+            "authorized"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:recordResultAccessResolution/init:recordResultAccessResolution",
+          "parameters": [
+            "progress",
+            "resolved"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
+          "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationProgressControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./publication-action.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "0b26b959703af2b69f3b2293fbb77eb2f1c04fc3e7f81c663e7fcb3f9aeb17f7"
+    },
+    {
       "module": "adapters/host-common/remote-transfer-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -6567,7 +6845,6 @@
             "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
             "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
             "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
-            "publicationControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
             "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
             "publicationControl/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
@@ -6647,7 +6924,6 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
-            "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
             "publicationControl/init:compiledRunResultTransformation/init:compiledRunResultTransformation",
             "publicationControl/init:compiledSerializationGraph/init:compiledSerializationGraph",
@@ -6656,8 +6932,6 @@
             "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
             "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
-            "publicationControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
-            "publicationControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
             "publicationControl/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
             "publicationControl/init:deliverySuccessValid/init:deliverySuccessValid",
             "publicationControl/init:deliveryTransition/init:deliveryTransition",
@@ -6683,7 +6957,6 @@
             "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
-            "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
             "publicationControl/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
             "publicationControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
@@ -6843,19 +7116,12 @@
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
             "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
-            "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
-            "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
-            "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
-            "publicationControl/init:publicationCommitFailureAction/init:publicationCommitFailureAction",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
-            "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
-            "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
-            "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -6869,11 +7135,6 @@
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
-            "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
-            "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
-            "publicationControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
-            "publicationControl/init:recordResultAccessRequestAuthorization/init:recordResultAccessRequestAuthorization",
-            "publicationControl/init:recordResultAccessResolution/init:recordResultAccessResolution",
             "publicationControl/init:recordTransition/init:recordTransition",
             "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
@@ -6881,7 +7142,6 @@
             "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
             "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
-            "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
             "publicationControl/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
             "publicationControl/init:resultReadAvailability/init:resultReadAvailability",
             "publicationControl/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
@@ -6930,7 +7190,6 @@
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
             "publicationControl/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
-            "publicationControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction",
             "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
             "publicationControl/init:tableInputSchemaWire/init:tableInputSchemaWire",
             "publicationControl/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
@@ -15317,11 +15576,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
           "parameters": [
             "serializer"
@@ -16354,13 +16608,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
           "parameters": [
             "compiled"
@@ -16435,21 +16682,6 @@
             "createdAt",
             "validUntil",
             "retainedDefinitionWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
-          "parameters": [
-            "cancellationObserved"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
-          "parameters": [
-            "nextRecord",
-            "recordCount"
           ],
           "async": false
         },
@@ -16747,13 +16979,6 @@
           "name": "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation",
           "parameters": [
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
-          "parameters": [
-            "record"
           ],
           "async": false
         },
@@ -19285,44 +19510,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
-          "parameters": [
-            "record",
-            "activeChecked",
-            "indexIssued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
-          "parameters": [
-            "currentIndex",
-            "ownerCount",
-            "statusChecked",
-            "pending",
-            "retryAvailable",
-            "retryAttempted"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationCommitFailureAction/init:publicationCommitFailureAction",
-          "parameters": [
-            "reconciliationAttempted",
-            "reconciliationFailed",
-            "committedFound",
-            "unknownAppendAttempted"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
           "parameters": [
             "admission",
@@ -19369,40 +19556,6 @@
           "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
-          "parameters": [
-            "currentIndex",
-            "ownerCount",
-            "statusChecked",
-            "pending",
-            "releaseAttempted"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
-          "parameters": [
-            "existingChecked",
-            "existingFound",
-            "existingEvidenceValidated",
-            "existingFinalized",
-            "initialActiveChecked",
-            "contractsPersisted",
-            "attemptCreated"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
-          "parameters": [
-            "reconciliationResolved",
-            "upstreamPending",
-            "upstreamRetryAvailable",
-            "upstreamRetryAttempted"
           ],
           "async": false
         },
@@ -19556,46 +19709,6 @@
           "name": "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
           "parameters": [
             "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
-          "parameters": [
-            "progress",
-            "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
-          "parameters": [
-            "progress",
-            "available"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
-          "parameters": [
-            "progress",
-            "admitted"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordResultAccessRequestAuthorization/init:recordResultAccessRequestAuthorization",
-          "parameters": [
-            "progress",
-            "authorized"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordResultAccessResolution/init:recordResultAccessResolution",
-          "parameters": [
-            "progress",
-            "resolved"
           ],
           "async": false
         },
@@ -19911,13 +20024,6 @@
             "invocation",
             "preview",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultAccessProgressAction/init:resultAccessProgressAction",
-          "parameters": [
-            "progress"
           ],
           "async": false
         },
@@ -20493,13 +20599,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
           "parameters": [
             "input",
@@ -20867,7 +20966,7 @@
         "./ledger-usage.mjs",
         "./local-signing-metadata.mjs",
         "./output-export-control.mjs",
-        "./publication-action.mjs",
+        "./publication-progress-control.mjs",
         "./remote-bundle-control.mjs",
         "./remote-credential-control.mjs",
         "./remote-site-control.mjs",
@@ -20880,7 +20979,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "65a933a9cdb800f91366e897f2a97ffdfd9c17e635cce1e26759b44460899fce"
+      "sha256": "6230c19c3cfb6499ce47384f1afb5ad0eb0dbc76a1c3e59ea5aefb6ed931fef2"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
