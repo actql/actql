@@ -1173,3 +1173,5 @@ target/
 /adapters/store-local/managed-representations.d.mts
 /adapters/store-local/managed-representations.test.mjs
 /adapters/store-local/managed-representations.test.d.mts
+/adapters/local-node/retained-output.mjs
+/adapters/local-node/retained-output.d.mts

@@ -109168,7 +109168,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109178,7 +109178,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109188,7 +109188,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109198,7 +109198,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109208,7 +109208,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109218,7 +109218,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109228,7 +109228,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109238,7 +109238,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109248,7 +109248,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109258,7 +109258,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -109280,7 +109280,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109290,7 +109290,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109300,7 +109300,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109310,7 +109310,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109320,7 +109320,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109330,7 +109330,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109340,7 +109340,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109350,7 +109350,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109360,7 +109360,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109370,7 +109370,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "yieldToHost"
               },
               {
@@ -109392,7 +109392,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109402,7 +109402,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109412,7 +109412,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109422,7 +109422,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109432,7 +109432,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109442,7 +109442,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109452,7 +109452,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109462,7 +109462,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109472,7 +109472,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -109482,7 +109482,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {

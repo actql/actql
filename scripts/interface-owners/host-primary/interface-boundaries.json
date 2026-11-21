@@ -33892,7 +33892,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -33912,13 +33912,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "cleanupHandle"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "writer.append(part)"
               }
             ],
@@ -33930,17 +33930,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "limits.wire.max_bytes"
               },
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "limits.max_batch_bytes"
               }
             ],
@@ -33976,7 +33976,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "prepareLocalRetainedOutput"
               },
               {
@@ -33996,13 +33996,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "cleanupHandle"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "writer.append(part)"
               }
             ],
@@ -34014,17 +34014,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "limits.wire.max_bytes"
               },
               {
-                "path": "adapters/local-node/retained-output.mjs",
+                "path": "adapters/local-node/retained-output.mts",
                 "anchor": "limits.max_batch_bytes"
               }
             ],
