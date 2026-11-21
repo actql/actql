@@ -6924,11 +6924,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLease: record("
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {

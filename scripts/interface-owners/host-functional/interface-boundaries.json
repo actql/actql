@@ -31425,11 +31425,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLease: record("
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
@@ -36366,11 +36366,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLease: record("
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
@@ -51320,11 +51320,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLease: record("
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {
@@ -52029,13 +52029,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// Exact native schema SQL emitted by this Journal"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "const sql = Object.freeze(["
               }
             ],
@@ -52047,13 +52047,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
-                "anchor": "module.exports = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
+                "path": "adapters/host-node/host-journal-schema-support.cts",
+                "anchor": "export = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// selected SQLite implementation. A support boundary before cold native schema"
               }
             ],
@@ -52071,17 +52071,17 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "primarySchemaLimits: record({maxSchemaBytes: 65536, maxSchemaEntries: 128,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "primarySchemaSqlSupport: sql,"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// construction, not a SQL parser, format authority or operational issuer."
               }
             ],
@@ -52107,13 +52107,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// Exact native schema SQL emitted by this Journal"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "const sql = Object.freeze(["
               }
             ],
@@ -52125,13 +52125,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
-                "anchor": "module.exports = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
+                "path": "adapters/host-node/host-journal-schema-support.cts",
+                "anchor": "export = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// selected SQLite implementation. A support boundary before cold native schema"
               }
             ],
@@ -52149,17 +52149,17 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "primarySchemaLimits: record({maxSchemaBytes: 65536, maxSchemaEntries: 128,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "primarySchemaSqlSupport: sql,"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-journal-schema-support.cjs",
+                "path": "adapters/host-node/host-journal-schema-support.cts",
                 "anchor": "// construction, not a SQL parser, format authority or operational issuer."
               }
             ],
@@ -52228,75 +52228,75 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "// Fixed support selection for the separately adopted Host/Journal service."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
-                "anchor": "function selectHostJournalServiceArguments(options, directoryInspection,"
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "Current extends () => unknown>(options: unknown, directoryInspection: Inspection,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
-                "anchor": "function declareHostJournalServiceRecipe(sharedControl) {"
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "function declareHostJournalServiceRecipe<SharedControl extends object>(sharedControl: SharedControl) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "return record({kind: 'selected-node-host-journal-service-recipe', sharedControl,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "shared: record({lifetime: 'same-selected-process-and-all-escaped-module-aliases',"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "// The actual prefix covers and owns this fixed Host-created packet before"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "assertCurrent();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "cause.code = 'HostJournalServiceArgumentsUnavailable';"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "if (name !== 'updateOriginalControl' && property.value !== undefined) unavailable();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "coldBeforeWritable: true, refilledOnClose: false,"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "const journal = record({maxRecords: 100000, maxInspectionEntries: 100000,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "const phases = record({"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "numericalBackingClaim: false, allocationSuccessGuaranteed: false"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "excludedPurposes: freeze(['publication or Content/Result payload', 'business Source or Compute',"
               }
             ],
@@ -52324,75 +52324,75 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "// Fixed support selection for the separately adopted Host/Journal service."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
-                "anchor": "function selectHostJournalServiceArguments(options, directoryInspection,"
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "Current extends () => unknown>(options: unknown, directoryInspection: Inspection,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
-                "anchor": "function declareHostJournalServiceRecipe(sharedControl) {"
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "function declareHostJournalServiceRecipe<SharedControl extends object>(sharedControl: SharedControl) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "return record({kind: 'selected-node-host-journal-service-recipe', sharedControl,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "shared: record({lifetime: 'same-selected-process-and-all-escaped-module-aliases',"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "// The actual prefix covers and owns this fixed Host-created packet before"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "assertCurrent();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "cause.code = 'HostJournalServiceArgumentsUnavailable';"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "if (name !== 'updateOriginalControl' && property.value !== undefined) unavailable();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "coldBeforeWritable: true, refilledOnClose: false,"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "const journal = record({maxRecords: 100000, maxInspectionEntries: 100000,"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "const phases = record({"
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "numericalBackingClaim: false, allocationSuccessGuaranteed: false"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "excludedPurposes: freeze(['publication or Content/Result payload', 'business Source or Compute',"
               }
             ],
@@ -90738,7 +90738,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "const phases = record({"
               },
               {
@@ -90748,7 +90748,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "excludedPurposes: freeze(["
               },
               {
@@ -138047,11 +138047,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLease: record("
               },
               {
-                "path": "adapters/host-node/host-journal-service-recipe.cjs",
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
                 "anchor": "ownershipLeaseDescriptors: 2"
               },
               {

@@ -4,17 +4,17 @@
 // This module is DATA/argument selection, not an operational issuer. Only the
 // actual installed prefix may bind the complete service to its startup/native
 // originals and the same Host generation before covered acquisition.
-const {types} = require('node:util');
-const {isAbsolute} = require('node:path');
-const {sql} = require('./host-journal-schema-support.cjs');
+const {types}: Pick<typeof import('node:util'), 'types'> = require('node:util');
+const {isAbsolute}: Pick<typeof import('node:path'), 'isAbsolute'> = require('node:path');
+const {sql}: typeof import('./host-journal-schema-support.cjs') = require('./host-journal-schema-support.cjs');
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, keys = Reflect.ownKeys, isProxy = types.isProxy;
 const create = Object.create, assign = Object.assign;
 const NativeError = Error;
 const MiB = 1024 * 1024;
-const record = value => freeze(assign(create(null), value));
-const unavailable = () => {
-  const cause = new NativeError('HostJournalServiceArgumentsUnavailable');
+const record = <Value extends object>(value: Value): Readonly<Value> => freeze(assign(create(null), value));
+const unavailable: () => never = () => {
+  const cause: Error & {code?: string} = new NativeError('HostJournalServiceArgumentsUnavailable');
   cause.code = 'HostJournalServiceArgumentsUnavailable';
   throw cause;
 };
@@ -89,8 +89,9 @@ const phases = record({
     'Model or Effect', 'network or external VM', 'new key/Account/first-initialization authority']),
 });
 
-function selectHostJournalServiceArguments(options, directoryInspection,
-  inspectionTemporaryDirectory, assertCurrent) {
+function selectHostJournalServiceArguments<Inspection extends (...args: never[]) => unknown,
+  Current extends () => unknown>(options: unknown, directoryInspection: Inspection,
+  inspectionTemporaryDirectory: string, assertCurrent: Current) {
   if (options === null || typeof options !== 'object' || isProxy(options) ||
       typeof directoryInspection !== 'function' || typeof assertCurrent !== 'function' ||
       typeof inspectionTemporaryDirectory !== 'string' ||
@@ -101,7 +102,8 @@ function selectHostJournalServiceArguments(options, directoryInspection,
   assertCurrent();
   const names = keys(options);
   if (names.length > 3) unavailable();
-  const retained = create(null);
+  const retained: Partial<Record<
+    'updateOriginalControl' | 'submissionEpochTtlMs' | 'submissionEpochNow', unknown>> = create(null);
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
     if (name !== 'updateOriginalControl' && name !== 'submissionEpochTtlMs' &&
@@ -119,7 +121,7 @@ function selectHostJournalServiceArguments(options, directoryInspection,
     inspectionTemporaryDirectory});
 }
 
-function declareHostJournalServiceRecipe(sharedControl) {
+function declareHostJournalServiceRecipe<SharedControl extends object>(sharedControl: SharedControl) {
   if (sharedControl === null || typeof sharedControl !== 'object' || isProxy(sharedControl)) unavailable();
   // Retain the same process/control declaration; do not copy its heap/native
   // quantities into another allowance. This recipe cannot certify or issue
@@ -133,5 +135,4 @@ function declareHostJournalServiceRecipe(sharedControl) {
     numericalBackingClaim: false, allocationSuccessGuaranteed: false});
 }
 
-module.exports = {declareHostJournalServiceRecipe};
-freeze(module.exports);
+export = Object.freeze({declareHostJournalServiceRecipe});

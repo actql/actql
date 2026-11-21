@@ -5,7 +5,6 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} fr
 // @ts-expect-error TS7016: remove when the physical Publication Store is authored in TypeScript.
 import {prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
-// @ts-expect-error TS7016: remove when the original startup recipe has authored declarations.
 import recipeModule from './host-journal-service-recipe.cjs';
 
 export type HostJournalOriginals = Readonly<{
