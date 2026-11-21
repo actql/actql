@@ -204,8 +204,14 @@ fn issue_client_effectful_static_plan_view(
     Err(issue) => return Err(Declarations(issue))
   }
   let component = match
-    client_effect_static_computation_plan_view(
-      prepared, compiled, max_bytes, max_nodes, max_depth,
+    issue_client_static_plan_view(
+      compiled.compiled.owner,
+      compiled.compiled.compiled_plan,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      false,
+      bounded_capture=retained_explanation is Some(_),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Computation(issue))

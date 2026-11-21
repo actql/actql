@@ -153,6 +153,25 @@ fn interactive_stage_input(stage : Int, input : Int) -> String {
 }
 
 ///|
+// Only the bounded original capture uses this geometry to decline metadata.
+// These are the actual UTF-8 fragments the issuer would join, including separators.
+fn spend_interactive_map_fragment(
+  budget : Int,
+  wire : String,
+  follows_fragment : Bool,
+) -> Result[Int, ClientInteractivePlanIssue] {
+  let separator = if follows_fragment { 1 } else { 0 }
+  if budget < separator {
+    return Err(ConstructionRefused)
+  }
+  match @scalar.admit_utf8_length(wire, budget - separator) {
+    Ok(bytes) => Ok(budget - separator - bytes)
+    Err(LimitExceeded) => Err(ConstructionRefused)
+    Err(_) => Err(Encoding)
+  }
+}
+
+///|
 fn issue_client_static_plan_view(
   prepared : PreparedClientProgram,
   plan : @publication.PublicationContract,
@@ -161,12 +180,31 @@ fn issue_client_static_plan_view(
   max_depth : Int,
   inspect_installed : Bool,
   retained_original? : Ref[@canonical.CanonicalValue?]? = None,
+  bounded_capture? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
   }
   let checked = @strategy.graph_program(prepared.graph)
   let plan_cid = @publication.publication_contract_identity(plan)
+  let program_cid = prepared_client_identity(prepared).program_definition_cid
+  let map_begin = "{\"version\":\"actql-logical-map/0.1\",\"compiled_plan_cid\":\""
+  let map_program = "\",\"program_definition_cid\":\""
+  let map_steps = "\",\"steps\":["
+  let map_end = "]}"
+  // The two issued CIDs and the closed wire shell contain only ASCII.
+  let mut map_budget = max_bytes
+  if bounded_capture {
+    map_budget -= map_begin.length() +
+      plan_cid.length() +
+      map_program.length() +
+      program_cid.length() +
+      map_steps.length() +
+      map_end.length()
+    if map_budget < 0 {
+      return Err(ConstructionRefused)
+    }
+  }
   let steps : Array[String] = []
   let step_ids : Map[String, Unit] = Map([])
   let port_ids : Map[String, Unit] = Map([])
@@ -218,6 +256,7 @@ fn issue_client_static_plan_view(
       }
       step_ids[step_id] = ()
       let ports : Array[String] = []
+      let mut step_budget = map_budget
       let mut names = "[]"
       let mut operator = "null"
       let output = if input_only {
@@ -244,6 +283,13 @@ fn issue_client_static_plan_view(
           return Err(Evidence(RunEvidenceReferenceMismatch("logical_map.port")))
         }
         port_ids[input_id] = ()
+        if bounded_capture {
+          match
+            spend_interactive_map_fragment(step_budget, wire, !ports.is_empty()) {
+            Ok(left) => step_budget = left
+            Err(issue) => return Err(issue)
+          }
+        }
         ports.push(wire)
         carrier
       } else {
@@ -313,6 +359,17 @@ fn issue_client_static_plan_view(
             )
           }
           port_ids[input_id] = ()
+          if bounded_capture {
+            match
+              spend_interactive_map_fragment(
+                step_budget,
+                wire,
+                !ports.is_empty(),
+              ) {
+              Ok(left) => step_budget = left
+              Err(issue) => return Err(issue)
+            }
+          }
           ports.push(wire)
         }
         step.output
@@ -340,10 +397,16 @@ fn issue_client_static_plan_view(
         return Err(Evidence(RunEvidenceReferenceMismatch("logical_map.port")))
       }
       port_ids[output_id] = ()
+      if bounded_capture {
+        match
+          spend_interactive_map_fragment(step_budget, wire, !ports.is_empty()) {
+          Ok(left) => step_budget = left
+          Err(issue) => return Err(issue)
+        }
+      }
       ports.push(wire)
       producers.push((step_id, output_id))
-      steps.push(
-        "{\"step_id\":\"" +
+      let step_prefix = "{\"step_id\":\"" +
         step_id +
         "\",\"key\":" +
         @publication.run_evidence_value_json(key) +
@@ -351,23 +414,35 @@ fn issue_client_static_plan_view(
         names +
         ",\"operator\":" +
         operator +
-        ",\"ports\":[" +
-        ports.join(",") +
-        "],\"can_stop_before\":false,\"can_stop_after\":false," +
-        "\"stop_reason\":\"not_installed\"}",
-      )
+        ",\"ports\":["
+      let step_suffix = "],\"can_stop_before\":false,\"can_stop_after\":false," +
+        "\"stop_reason\":\"not_installed\"}"
+      if bounded_capture {
+        match
+          spend_interactive_map_fragment(
+            step_budget,
+            step_prefix,
+            !steps.is_empty(),
+          ).bind(left => {
+            spend_interactive_map_fragment(left, step_suffix, false)
+          }) {
+          Ok(left) => map_budget = left
+          Err(issue) => return Err(issue)
+        }
+      }
+      steps.push(step_prefix + ports.join(",") + step_suffix)
     }
   }
   let map = match
     interactive_key(
       "logical_map",
-      "{\"version\":\"actql-logical-map/0.1\",\"compiled_plan_cid\":\"" +
+      map_begin +
       plan_cid +
-      "\",\"program_definition_cid\":\"" +
-      prepared_client_identity(prepared).program_definition_cid +
-      "\",\"steps\":[" +
+      map_program +
+      program_cid +
+      map_steps +
       steps.join(",") +
-      "]}",
+      map_end,
       max_bytes,
       max_nodes,
       max_depth,

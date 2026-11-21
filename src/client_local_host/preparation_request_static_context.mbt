@@ -365,8 +365,9 @@ fn static_effect_plan_capture_construction(limits : (Int, Int, Int)) -> Int64? {
     )
     is Some(effect) &&
     @execution.preparation_representation_cost(
-      // One extra original computation-wire reference in the issuer return.
-      static_plan_quote_units(8L, 19L, 10L),
+      // Original computation-wire reference and the bounded Plan map's
+      // fragment accounting, including its transient UTF-8 Result and controls.
+      static_plan_quote_units(12L, 29L, 18L),
     )
     is Some(controls) &&
     @execution.checked_preparation_add_product(plan, effect, 1L) is Some(codecs) else {

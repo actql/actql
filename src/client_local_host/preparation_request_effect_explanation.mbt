@@ -217,7 +217,11 @@ pub fn[I] try_capture_request_effect_run_explanation(
       Ok(Some(original))
     }
     Err(Preparation(Capacity(Resource(RetentionLimit | ExecutionLimit))))
-    | Err(Context(Plan(Computation(UnsupportedCarrierContract))))
+    | Err(
+      Context(
+        Plan(Computation(ConstructionRefused | UnsupportedCarrierContract))
+      )
+    )
     | Err(Context(WorkLimit))
     | Err(Facts(Encoding(@encode.OutputLimit)))
     | Err(Encoding(@encode.OutputLimit)) => {

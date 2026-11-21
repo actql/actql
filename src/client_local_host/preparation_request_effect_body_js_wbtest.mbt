@@ -757,6 +757,34 @@ test "first Effect Run Explanation borrows its issued compilation and holds all 
     before,
   )
   @resources.settle_capacity(parent.ledger, unavailable).unwrap()
+  let limited = 1024
+  // Each original key and port fits on its own. The combined map cannot fit.
+  assert_true(
+    @publication_host.client_effect_static_computation_plan_view(
+      prepared, compiled, limited, 8192, 64,
+    )
+    is Err(Evidence(RunEvidenceInvalidWire)),
+  )
+  assert_true(
+    try_capture_request_effect_run_explanation(
+      parent, input, allowed, foreign, limited, 8192, 64, 10000,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  assert_true(
+    try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, limited, 8192, 64, 10000,
+    )
+    is Ok(None),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
   let journal_scope = try_capture_request_effect_run_explanation(
       parent, input, allowed, definition, 65536, 8192, 64, 10000,
     )
