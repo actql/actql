@@ -60,3 +60,21 @@ test "navigation default has a compatible checked value domain" {
     is Rejected(_),
   )
 }
+
+///|
+test "explicit NULL navigation defaults keep the original Number and Text domains" {
+  let source = "WITH t AS (SELECT 1 AS n, 10 AS v, 'a' AS s UNION ALL SELECT 2 AS n, 20 AS v, 'b' AS s) SELECT LAG(v, 1, NULL) OVER (ORDER BY n) AS earlier, LEAD(s, 1, (NULL)) OVER (ORDER BY n) AS later FROM t"
+  let program = compile(
+    @query.parse_query(source, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  let terms = semantic(program)
+  assert_eq(terms.split("\"default\":{\"literal\":null}").count(), 3)
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("the authored test context fixes all inputs")
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+  }
+}

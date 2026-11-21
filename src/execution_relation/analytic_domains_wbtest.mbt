@@ -541,7 +541,7 @@ test "navigation default preserves NULL in an existing row and ignores undemande
     number,
     value,
     (
-      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"previous":{"fn":"lag","expr":{"field":"value"},"offset":1,"default":{"literal":0}},"following":{"fn":"lead","expr":{"field":"value"},"offset":1,"default":{"literal":9}},"same":{"fn":"lag","expr":{"field":"value"},"offset":0,"default":{"divide":[{"literal":1},{"literal":0}]}}}}
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"previous":{"fn":"lag","expr":{"field":"value"},"offset":1,"default":{"literal":0}},"following":{"fn":"lead","expr":{"field":"value"},"offset":1,"default":{"literal":9}},"same":{"fn":"lag","expr":{"field":"value"},"offset":0,"default":{"divide":[{"literal":1},{"literal":0}]}},"explicit_null":{"fn":"lead","expr":{"field":"value"},"offset":2,"default":{"literal":null}}}}
     ),
   )
   let table = run_analytic_domain(owner, [
@@ -555,6 +555,7 @@ test "navigation default preserves NULL in an existing row and ignores undemande
       ("previous", [Number(0), Number(10), Null, Number(0)]),
       ("following", [Null, Number(30), Number(9), Number(9)]),
       ("same", [Number(10), Null, Number(30), Number(40)]),
+      ("explicit_null", [Number(30), Null, Null, Null]),
     ] {
     let column = analytic_domain_column(table, name)
     assert_eq(

@@ -294,7 +294,14 @@ fn check_analytic(
           let fallback = @decode.lookup(call, "default").map(source => {
             // A navigation default has no row scope. Parameters remain the
             // original invocation's bound values, just as for other roots.
-            let binding = expression(b, source, None, Map([]), parameters)
+            let binding = expression(
+              b,
+              source,
+              None,
+              Map([]),
+              parameters,
+              root_null_context=Some(result),
+            )
             let fallback_contract = @typing.result_type(binding.expression)
             let (joined, used) = @contract.join_nullability_usage(
               result,
