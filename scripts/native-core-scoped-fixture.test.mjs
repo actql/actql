@@ -77,7 +77,7 @@ test('Native lineage fixtures bind the three original kinds and only the replace
     assert.deepEqual(env, {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root});
     assert.deepEqual(readdirSync(root).sort(), ['target-' + suffix + '.json', 'target-backing-' + suffix,
       ...(index === 2 ? ['foreign-copy.json'] : [])].sort());
-    const original = ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n';
+    const original = ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"other":[{"id":"middle","value":3}],"keep":"untouched"}\n';
     assert.equal(readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'), original);
     if (index === 2) assert.equal(readFileSync(join(root, 'foreign-copy.json'), 'utf8'),
       original.replace('"value":1', '"value":9'));

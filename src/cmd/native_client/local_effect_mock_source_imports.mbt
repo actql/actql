@@ -51,7 +51,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
 ) -> Unit raise ClientStop {
-  let occurrence = state.graph.occurrence
+  let occurrence = state.model_graph().occurrence
   let program = @checked.effect_program_static_checked_computation(
     @run_host.prepared_client_effect_computation_candidate(
       state._retained_prepared,

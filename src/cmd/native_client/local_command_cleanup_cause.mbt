@@ -300,6 +300,15 @@ fn command_preparation_cleanup_cause(
             MissingResult => "EffectProposalsDefinitionMissingResult"
             _ => "EffectProposalsDefinition"
           }
+        UnitPublication(original) =>
+          match original {
+            Run(InsufficientCapacity) => "EffectProposalsUnitCapacity"
+            Run(Preparation(_)) => "EffectProposalsUnitPreparation"
+            Evidence(_) => "EffectProposalsUnitEvidence"
+            Artifact(_) => "EffectProposalsUnitArtifact"
+            Manifest(_) => "EffectProposalsUnitManifest"
+            _ => "EffectProposalsUnitPublication"
+          }
         Artifact(original) =>
           match original {
             ForeignOwner => "EffectProposalsArtifactForeignOwner"
@@ -361,6 +370,17 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessSourceIdentity(cause) =>
       match cause {
+        Coverage => "SourceIdentityCoverage"
+        Installed(ForeignOriginal) => "SourceIdentityForeignOriginal"
+        Installed(Retired) => "SourceIdentityRetiredRun"
+        Installed(_) => "SourceIdentityInstalledRun"
+        Ledger(RetentionLimit) => "SourceIdentityRetentionLimit"
+        Ledger(ExecutionLimit) => "SourceIdentityExecutionLimit"
+        Ledger(_) => "SourceIdentityLedger"
+        Invocation(WrongPhase) => "SourceIdentityInvocationPhase"
+        Invocation(PublicationInvocation(_)) =>
+          "SourceIdentityInvocationEvidence"
+        Invocation(_) => "SourceIdentityInvocation"
         Capture(issue) =>
           match issue {
             Unavailable => "SourceIdentityUnavailable"
@@ -452,6 +472,7 @@ fn command_preparation_cleanup_cause(
         Review(_) => "EffectReview"
         Encoding => "ModelEncoding"
       }
+    CommandBusinessEffectStart(cause) => local_file_open_failure_message(cause)
     CommandBusinessEffectAcceptance(cause) =>
       match cause {
         Journal(_) => "EffectAcceptanceJournal"
@@ -668,6 +689,8 @@ fn command_preparation_cleanup_cause(
       match cause {
         ForeignOriginal => "ProjectMockForeignOriginal"
         AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        OverlappingWritableCollections =>
+          "ProjectMockOverlappingWritableCollections"
         Environment => "ProjectMockEnvironment"
         Publication(issue) =>
           match issue {

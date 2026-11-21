@@ -176,21 +176,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
   })
   // Measuring uses the existing bounded Writer frame inventory, conservatively
   // including hash state. It owns no output text. No retained body is invented.
-  let measuring = @encode.hash_writer_construction_inventory(
-      max_nodes, max_depth,
-    )
-    .bind(inventory => {
-      @execution.preparation_representation_cost({
-        record_headers: inventory.record_headers,
-        reference_slots: inventory.reference_slots,
-        scalar_words: inventory.scalar_words,
-        owned_utf16_units: inventory.owned_utf16_units,
-        owned_wire_bytes: inventory.owned_wire_bytes,
-      })
-    })
-    .unwrap_or_else(() => {
+  let measuring = mock_effect_dependency_measurement_bytes(max_nodes, max_depth).unwrap_or_else(() => {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
-    })
+    },
+  )
   if !construction.resize(
       self.original,
       construction.recipe,
@@ -230,34 +219,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     let original_artifact = @run_host.client_effect_local_result_artifact_contract(
       artifact,
     )
-    let source = @publication.admit_captured_effect_source_from_result(
-        @strategy.captured_effect_preview_ledger_identity(preview.inputs),
-        index,
-        preview._retained_invocation,
-        preview._retained_sources[index],
-        original_artifact,
-        installation.store_authority_cid,
-      )
-      .map_err(issue => {
-        LocalNativeMockEffectProposalIssue::CapturedSource(issue)
-      })
-      .native_effect_proposal(self.original)
-    preview._retained_captured_sources.push(source)
-    let local_source = @run_host.admit_client_effect_local_source_evidence(
-        materials.prepared,
-        proposals.inputs,
-        index,
-        manifest,
-        invocation,
-        artifact,
-        source,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::LocalSource(issue))
-      .native_effect_proposal(self.original)
-    preview._retained_local_sources.push(local_source)
+    bind_mock_effect_dependency_source(
+      proposals,
+      preview,
+      index,
+      artifact,
+      materials,
+      manifest,
+      invocation,
+      installation.store_authority_cid,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      issue => {
+        self.original.retain_primary(CommandBusinessEffectProposals(issue))
+      },
+    )
     let root = @publication.admit_publication_effect_dependency_body(
         "result_artifact",
         @publication.publication_contract_json(original_artifact),
@@ -285,4 +262,277 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
     .native_effect_proposal(self.original),
   )
+}
+
+///|
+fn mock_effect_dependency_measurement_bytes(
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int64? {
+  @encode.hash_writer_construction_inventory(max_nodes, max_depth).bind(inventory => {
+    @execution.preparation_representation_cost({
+      record_headers: inventory.record_headers,
+      reference_slots: inventory.reference_slots,
+      scalar_words: inventory.scalar_words,
+      owned_utf16_units: inventory.owned_utf16_units,
+      owned_wire_bytes: inventory.owned_wire_bytes,
+    })
+  })
+}
+
+///|
+// Feed all selected original members to the existing funded dependency owner.
+// That owner checks and deduplicates the Result roots by exact original wire.
+fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
+  state : Self,
+  run : @local_values.ClientInstalledManagedRun,
+  retention : Array[@publication.CapturedEffectDependencyBody],
+  store_authority : String,
+  max_bytes : Int,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> Unit raise ClientStop {
+  guard state.first._retained_models.is_empty() &&
+    state.direct_sources is Some(direct) &&
+    direct.captures.length() == direct.identities.length() &&
+    state.proposals is Some(proposals) &&
+    proposals.materials is Some(materials) &&
+    proposals._retained_combined_source_unit is Some(combined) &&
+    proposals._retained_local_manifest is Some(manifest) &&
+    proposals.invocation is Some(invocation) &&
+    proposals.construction is Some(construction) &&
+    state.preview is Some(preview) &&
+    preview._retained_dependency_inventory is None &&
+    preview._retained_sources.length() == proposals.members.length() &&
+    preview._retained_local_sources.is_empty() &&
+    preview._retained_captured_sources.is_empty() else {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  }
+  let prepared = state._retained_prepared
+  let limits = @run_host.client_standard_effect_computation_limits().effects
+  let measuring = mock_effect_dependency_measurement_bytes(
+    limits.max_admission_nodes,
+    limits.max_admission_depth,
+  ).unwrap_or_else(() => {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  })
+  construction
+  .resize_result(
+    construction.recipe,
+    construction.retained,
+    Int64::max(construction.workspace, measuring),
+  )
+  .native_effect_proposal_with_cause(report)
+  let policy_bodies = @run_host.prepared_client_effect_publication_policy_bodies(
+      prepared,
+      max_bytes,
+      limits.max_admission_nodes,
+      limits.max_admission_depth,
+      retain_catalog=false,
+      before_body=Some((bytes, nodes, depth) => {
+        construction
+        .prepare_body_result(
+          native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
+        )
+        .retain_mock_effect_proposal_issue(report)
+      }),
+    )
+    .map_err(issue => {
+      LocalNativeMockEffectProposalIssue::PolicyDependency(issue)
+    })
+    .native_effect_proposal_with_cause(report)
+  let mut entries = retention.length().to_int64() +
+    policy_bodies.length().to_int64() +
+    2L * direct.identities.length().to_int64() +
+    @run_host.client_effect_combined_source_unit_dependency_body_count(combined)
+  for index, entry in proposals.members {
+    guard entry._retained_artifact is Some(artifact) &&
+      entry._retained_dependency is Some(capture) &&
+      @run_host.client_effect_dependency_capture_matches_artifact(
+        capture, artifact,
+      ) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    entries += @run_host.client_effect_dependency_capture_body_count(capture).to_int64()
+    bind_mock_effect_dependency_source(
+      proposals,
+      preview,
+      index,
+      artifact,
+      materials,
+      manifest,
+      invocation,
+      store_authority,
+      max_bytes,
+      limits.max_admission_nodes,
+      limits.max_admission_depth,
+      report,
+    )
+  }
+  // Preview and its source bindings are complete. Keep their original
+  // retained bytes, and return the synchronous constructor scratch before
+  // the distinct, already budgeted group enters its own work.
+  match
+    @local_values.yield_installed_effect_operation_construction_workspace(
+      construction.operation,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      report(Managed(issue))
+      stop("LocalOriginalEffectDependencyWorkspaceUnavailable")
+    }
+  }
+  // The existing group owns the parallel Host vectors plus admission, graph
+  // and envelope geometry. Count the actual candidates before copying them.
+  if entries > 2147483647L - proposals.members.length().to_int64() {
+    stop("LocalOriginalEffectDependencyInventoryUnavailable")
+  }
+  let request = state.first.request
+  let plan = state._retained_plan
+  match
+    @local_values.reserve_installed_effect_dependency_group(
+      run,
+      prepared,
+      request,
+      plan,
+      entries.to_int(),
+      proposals.members.length(),
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      report(Managed(issue))
+      stop("LocalOriginalEffectDependencyReservationUnavailable")
+    }
+  }
+  let kinds : Array[String] = []
+  let identities : Array[String?] = []
+  let wires : Array[String] = []
+  let roots : Array[@run_host.ClientEffectLocalResultArtifact] = []
+  let originals : Array[@run_host.ClientEffectLocalResultArtifact] = []
+  let append = (kind, cid, wire) => {
+    kinds.push(kind)
+    identities.push(Some(cid))
+    wires.push(wire)
+  }
+  let retain = body => {
+    append(
+      @publication.captured_effect_dependency_body_kind(body),
+      @publication.captured_effect_dependency_body_cid(body),
+      @publication.captured_effect_dependency_body_json(body),
+    )
+  }
+  for body in retention {
+    retain(body)
+  }
+  for (kind, cid, wire) in policy_bodies {
+    append(kind, cid, wire)
+  }
+  // The Source relations and schemas are distinct from the completed Result.
+  // Borrow the preimages already backed by each original Source identity scan.
+  for index, identity in direct.identities {
+    guard @query.captured_source_relation_dependency_bodies(
+        identity,
+        direct.captures[index],
+      )
+      is Some((relation, schema)) else {
+      stop("LocalOriginalEffectSourceDependenciesUnavailable")
+    }
+    append(
+      "relation_value",
+      @query.captured_source_relation_logical_cid(identity),
+      relation,
+    )
+    append(
+      "relation_schema",
+      @query.captured_source_relation_schema_cid(identity),
+      schema,
+    )
+  }
+  for
+    (kind, cid, wire) in @run_host.client_effect_combined_source_unit_dependency_bodies(
+      combined,
+    ) {
+    append(kind, cid, wire)
+  }
+  for entry in proposals.members {
+    let artifact = entry._retained_artifact.unwrap()
+    roots.push(artifact)
+    if !originals.any(original => physical_equal(original, artifact)) {
+      originals.push(artifact)
+      for
+        body in @run_host.client_effect_dependency_capture_bodies(
+          entry._retained_dependency.unwrap(),
+        ) {
+        retain(body)
+      }
+    }
+  }
+  match
+    @local_values.prepare_installed_effect_dependency_inventory_retained(
+      run,
+      prepared,
+      request,
+      plan,
+      kinds,
+      identities,
+      wires,
+      roots,
+      max_bytes,
+      limits.max_admission_nodes,
+      limits.max_admission_depth,
+      original_artifacts=originals,
+    ) {
+    Ok(inventory) => preview._retained_dependency_inventory = Some(inventory)
+    Err(issue) => {
+      report(Managed(issue))
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+  }
+}
+
+///|
+// The original entry selects its checked Result and Run binding even when
+// several members share its physical export. Each keeps its own source token.
+fn bind_mock_effect_dependency_source(
+  proposals : LocalNativeMockEffectProposals,
+  preview : LocalNativeMockEffectPreview,
+  index : Int,
+  artifact : @run_host.ClientEffectLocalResultArtifact,
+  materials : @run_host.ClientEffectRunMaterials,
+  manifest : @run_host.ClientEffectLocalManifest,
+  invocation : @run_host.ClientEffectLocalInvocation,
+  store_authority : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> Unit raise ClientStop {
+  let original_artifact = @run_host.client_effect_local_result_artifact_contract(
+    artifact,
+  )
+  let source = @publication.admit_captured_effect_source_from_result(
+      @strategy.captured_effect_preview_ledger_identity(preview.inputs),
+      index,
+      preview._retained_invocation,
+      preview._retained_sources[index],
+      original_artifact,
+      store_authority,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::CapturedSource(issue))
+    .native_effect_proposal_with_cause(report)
+  preview._retained_captured_sources.push(source)
+  let local_source = @run_host.admit_client_effect_local_source_evidence(
+      materials.prepared,
+      proposals.inputs,
+      index,
+      manifest,
+      invocation,
+      artifact,
+      source,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::LocalSource(issue))
+    .native_effect_proposal_with_cause(report)
+  preview._retained_local_sources.push(local_source)
 }
