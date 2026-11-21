@@ -133277,8 +133277,8 @@
                 "anchor": "- Populated inputs and outputs:"
               },
               {
-                "path": "adapters/host-node/installed-funded-environment.mjs",
-                "anchor": "export function bindInstalledEnvironmentConstruction(services, reader, begin) {"
+                "path": "adapters/host-node/installed-funded-environment.mts",
+                "anchor": "export function bindInstalledEnvironmentConstruction(services: object, reader: ConfigurationReader, begin: NonNullable<Owner['begin']>) {"
               }
             ],
             "identity": [

@@ -16,7 +16,7 @@ type Member = Readonly<{
   mapping_ref?: unknown; read_mode?: unknown;
 }>;
 type Manifest = Readonly<{version?: unknown; connectors: readonly Member[]}>;
-type PublicationBody = Body & Readonly<Record<typeof sections[number], readonly Member[]>> &
+export type PublicationBody = Body & Readonly<Record<typeof sections[number], readonly Member[]>> &
   Readonly<{connector_manifest?: Manifest}>;
 type Checker = Readonly<{
   clientProgramCheckEnvironment(wire: string, evidenceCid: string, textTime: boolean, veca: boolean,
@@ -136,7 +136,7 @@ export function composeInstalledCheckEnvironmentOriginal<Moon extends Checker>(m
 // reservation and retain only their nominally issued result.
 export function composeAdmittedCheckEnvironmentOriginals<Original extends Readonly<{body: Body}>, Composed>(
   baseOriginal: Original, sourceOriginal: Original | undefined, effectOriginal: Original | undefined,
-  admit: (wire: string, evidenceCid: string, body: Body) => Composed,
+  admit: (wire: string, evidenceCid: string, body: PublicationBody) => Composed,
 ) {
   const base = baseOriginal.body, source = sourceOriginal?.body as PublicationBody | undefined,
     effect = effectOriginal?.body as PublicationBody | undefined;
@@ -180,7 +180,7 @@ export function composeAdmittedCheckEnvironmentOriginals<Original extends Readon
   const evidenceCid = contentCid(body);
   const wire = canonicalJson({...body, evidence_bundle_cid: evidenceCid});
   if (Buffer.byteLength(wire, 'utf8') > maxEnvironmentBytes) refuse('EnvironmentSize');
-  return admit(wire, evidenceCid, body);
+  return admit(wire, evidenceCid, body as PublicationBody);
 }
 
 // A matching static declaration does not establish that two installed roles

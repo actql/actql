@@ -19,7 +19,7 @@ type NativeInputProjection<Result extends SourceValue> = Readonly<{
   capacity(): unknown;
   project(): Result;
 }>;
-type ConfigurationReader = Readonly<{
+export type ConfigurationReader = Readonly<{
   prepareNativeInput<Result extends SourceValue>(projection: NativeInputProjection<Result>): Result;
 }>;
 
