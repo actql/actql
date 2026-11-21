@@ -1485,7 +1485,7 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9b4475f2fba5bf27d0a26f5477d08e94f35f97fb544945e40e7a7255501cf9d1",
+      "sha256": "b178047b0a2a569d0b48d93e2adbfc076367ce0c8cc7c254c758f0cb388f7ac9",
       "exports": [
         "declaredRowUpdateKinds",
         "invocationBindingsMatch",
@@ -1869,6 +1869,14 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.test.mjs",
                 "anchor": "test('declared UPDATE target reads preserve a swallowed original child failure'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target reads preserve the original child failure when the provider throws a replacement'"
+              },
+              {
+                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "anchor": "test('declared UPDATE target reads await cleanup without replacing an earlier observation failure'"
               }
             ]
           }

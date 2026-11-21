@@ -222,6 +222,10 @@ export async function withDeclaredUpdateTargetReads({readChild, authorizationFor
     if (failed) throw firstFailure;
     if (active || next !== rowCount) fail();
     return value;
+  } catch (cause) {
+    // Choose the primary before draining: a later child failure must not
+    // replace an independent failure that already ended the observation.
+    throw failed ? firstFailure : cause;
   } finally {
     open = false;
     await drain;

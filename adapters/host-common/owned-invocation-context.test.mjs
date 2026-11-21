@@ -107,6 +107,46 @@ test('declared UPDATE target reads preserve a swallowed original child failure',
   assert.equal(reads, 1);
 });
 
+test('declared UPDATE target reads preserve the original child failure when the provider throws a replacement', async () => {
+  const original = new Error('original child failure');
+  const replacement = new Error('replacement observation error');
+  await assert.rejects(withDeclaredUpdateTargetReads({
+    rowCount: 1, operation: 'original-read', slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 12},
+    authorizationForRow: () => Object.freeze({grant: {}, useId: 'target'}),
+    async readChild() {throw original;},
+  }, async read => {
+    await assert.rejects(read(0, {method: 'GET', path: '/record'}, () => assert.fail(), () => {}),
+      error => error === original);
+    throw replacement;
+  }), error => error === original);
+});
+
+test('declared UPDATE target reads await cleanup without replacing an earlier observation failure', async () => {
+  const childStarted = Promise.withResolvers(), finishChild = Promise.withResolvers();
+  const original = new Error('independent observation failure');
+  const later = new Error('child failed during drain');
+  let settled = false;
+  const observation = withDeclaredUpdateTargetReads({
+    rowCount: 1, operation: 'original-read', slot: {slot: 'target', maxRequestBytes: 2, maxResponseBytes: 12},
+    authorizationForRow: () => Object.freeze({grant: {}, useId: 'target'}),
+    async readChild() {
+      childStarted.resolve();
+      await finishChild.promise;
+      throw later;
+    },
+  }, async read => {
+    void read(0, {method: 'GET', path: '/record'}, () => assert.fail(), () => {});
+    await childStarted.promise;
+    throw original;
+  });
+  void observation.then(() => {settled = true;}, () => {settled = true;});
+  await childStarted.promise;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, false);
+  finishChild.resolve();
+  await assert.rejects(observation, error => error === original);
+});
+
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
   const journal = {};
