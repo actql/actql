@@ -1471,3 +1471,5 @@ target/
 /adapters/host-node/client-request-journal-schema-temporary-order.test.d.mts
 /adapters/host-node/client-request-journal-operation-bounds.test.mjs
 /adapters/host-node/client-request-journal-operation-bounds.test.d.mts
+/adapters/host-node/client-request-journal-submission-originals.mjs
+/adapters/host-node/client-request-journal-submission-originals.d.mts
