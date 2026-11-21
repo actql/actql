@@ -246,6 +246,10 @@ extern "js" fn request_corresponding_publication_fixture(
   #|  const {canonicalJson} = loader('../../../../../adapters/host-node/local-account-config.mjs');
   #|  const {configurePublicQueryEvidenceContracts} = loader('../../../../../scripts/fixtures/public-query-cases.mjs');
   #|  const read = path => JSON.parse(readFileSync(loader.resolve('../../../../../' + path), 'utf8'));
+  #|  if (field === 'numeric_cid') {
+  #|    const profile = read('spec/contracts/actql-numeric-reduction.json');
+  #|    return 'sha256:' + createHash('sha256').update(canonicalJson(profile)).digest('hex');
+  #|  }
   #|  const environment = read('adapters/host-node/fixtures/query-amount-environment.json');
   #|  environment.host_policy_profile = read('spec/local-check-environment.json').host_policy_profile;
   #|  configurePublicQueryEvidenceContracts(environment);
@@ -280,6 +284,7 @@ extern "js" fn request_corresponding_refusal_keeps_cause(
 fn check_request_original_corresponding_fixture(
   name : String,
   refusal : Bool,
+  numeric? : Bool = false,
 ) -> Unit raise {
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
   let environment = @publication_host.admit_client_check_environment(
@@ -287,6 +292,11 @@ fn check_request_original_corresponding_fixture(
     request_corresponding_publication_fixture(loader, "cid"),
     { text_time: true, veca: false, },
     { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+    numeric_profile_cid=if numeric {
+      Some(request_corresponding_publication_fixture(loader, "numeric_cid"))
+    } else {
+      None
+    },
   ).unwrap()
   let publication = @source_publication.prepare_published_query_environment(
     environment,
@@ -321,6 +331,11 @@ fn check_request_original_corresponding_fixture(
     Err(Preparation(issue)) => @debug.to_string(issue)
     Err(QuerySyntax(Request(issue))) =>
       "query_syntax_request/" + issue.to_repr().to_string()
+    Err(CheckOutcome(Rejected(issue))) =>
+      "check_rejected/" +
+      @debug.to_string(@program_check.diagnostic_category(issue))
+    Err(CheckOutcome(NeedsInputs(_))) => "check_needs_inputs"
+    Err(QueryLowering(_)) => "query_lowering_wrapped"
     Err(_) => "other preparation refusal"
     Ok(kind) => kind
   }
@@ -359,5 +374,14 @@ test "Request original parenthesized BY NAME refusal retains its typed cause" {
 test "Request original parenthesized nested set prepares with ordinary limits" {
   check_request_original_corresponding_fixture(
     "set-corresponding-positional-parenthesized-nested-set", false,
+  )
+}
+
+///|
+test "Request double-parenthesized anonymous aggregate prepares with ordinary limits" {
+  check_request_original_corresponding_fixture(
+    "set-corresponding-positional-parenthesized-anonymous-aggregate",
+    false,
+    numeric=true,
   )
 }

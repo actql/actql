@@ -83,6 +83,38 @@ test "positional bindings preserve double parentheses and nested set ownership" 
 }
 
 ///|
+test "three transparent positional wrappers retain the original aggregate slots" {
+  for
+    prefix in [
+      "SELECT 0 AS a, 0 AS b UNION ALL ", "SELECT 0 AS a, 0 AS b |> UNION ALL ",
+    ] {
+    let document = prefix + "(((SELECT SUM(x), COUNT(x) FROM t)))"
+    let query = @query.parse_query(document, syntax_limits()).unwrap()
+    assert_false(@query.anonymous_output_context_required(query), msg=document)
+    let program = compile_query_script(
+      @query.parse_query_script(document, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) => fail("the original aggregate inputs are complete")
+    }
+    assert_true(
+      semantic(program).contains("\"fields\":[\"a\",\"b\"]"),
+      msg=document,
+    )
+  }
+}
+
+///|
 test "standalone positional parentheses reach the usual checker" {
   let source = "SELECT 0 AS a, 0 AS b UNION ALL (SELECT ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM t) ORDER BY a, b"
   let program = match

@@ -1296,17 +1296,38 @@ fn QueryParser::mark_positional_output(
   query : Query,
 ) -> Query raise QueryAbort {
   let bindings = query.bindings.copy()
-  // Only an internal identity binding exports the same operand values.
-  // Authored CTEs and transformed continuations retain their own scopes.
-  if query.operations.is_empty() && query.bound_source is Some(bound) {
-    for index in 0..<bindings.length() {
+  // bind_query flattens continuation bindings before storing each bound
+  // Query. Follow their original links in that same table. Each link must
+  // target an earlier entry, so every table entry is scanned at most once.
+  let mut current = query
+  let mut cursor = bindings.length() - 1
+  while cursor >= 0 && current.operations.is_empty() {
+    guard current.bound_source is Some(bound) else { break }
+    let transparent = current.sets.is_empty() &&
+      current.final_operations.is_empty()
+    let mut found = false
+    while cursor >= 0 {
       self.spend(1)
-      if self.binding_name_matches(bindings[index].name, bound) {
-        bindings[index] = {
-          ..bindings[index],
-          query: self.mark_positional_output(bindings[index].query),
+      let index = cursor
+      cursor -= 1
+      let binding = bindings[index]
+      if binding.origin is RelationalContinuation &&
+        self.binding_name_matches(binding.name, bound) {
+        let original = binding.query
+        if transparent && !original.positional_output {
+          self.retire_positional_output_demands(original)
         }
+        bindings[index] = {
+          ..binding,
+          query: { ..original, positional_output: true, },
+        }
+        current = original
+        found = true
+        break
       }
+    }
+    if !found || !transparent {
+      break
     }
   }
   { ..query, bindings, positional_output: true, }
@@ -3312,17 +3333,19 @@ fn QueryParser::pipe_tail(
       self.source_depth += 1
       let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
-      if !by_name {
+      let parsed = if !by_name {
         self.retire_positional_output_demands(parsed)
+        if !parsed.sets.is_empty() ||
+          (parsed.operations.is_empty() && parsed.bound_source is Some(_)) {
+          self.mark_positional_output(parsed)
+        } else {
+          parsed
+        }
+      } else {
+        parsed
       }
       let right = if !parsed.sets.is_empty() {
-        self.bind_query(
-          if !by_name {
-            self.mark_positional_output(parsed)
-          } else {
-            parsed
-          },
-        )
+        self.bind_query(parsed)
       } else {
         parsed
       }
