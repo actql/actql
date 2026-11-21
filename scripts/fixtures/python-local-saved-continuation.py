@@ -141,12 +141,12 @@ def original_terminal_revision(creator):
     # storage revision through the current reader, never the row's contents.
     host = creator._local_host
     assert type(host) is InstalledLocalHost
-    binding = host._active().binding
+    installation = host._active()
+    binding, store = installation.binding, installation._store
+    assert store is not None
     revisions = []
 
-    def inspect(_current):
-        reader = binding._observed_reader
-        assert reader is not None
+    def inspect(reader):
         rows = []
 
         def observe(row):
@@ -163,7 +163,10 @@ def original_terminal_revision(creator):
         reader.scan_after('client_runs', key, end)
         revisions.append(revision)
 
-    binding.inspect(inspect)
+    # The scalar comes from the physical Store, outside any guest operation.
+    # The subsequent public cancel still checks its own current and authority.
+    with binding.fenced() as fences:
+        store.inspect_namespaces(fences, inspect=inspect, current=binding._current_observer)
     revision, = revisions
     return revision
 
