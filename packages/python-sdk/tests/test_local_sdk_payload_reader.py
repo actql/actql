@@ -26,8 +26,13 @@ class SDKPayloadReaderTests(unittest.TestCase):
         confirmations = {}
         confirmed_total = [0]
         expected_payloads = (b'', b'{"n":1}\n', b'')
+        physical_fragments = (b'[{"n', b'":1}', b']')
         state['binding_status'] = 0
         def call(family, name, *args):
+            if family == 'buffer' and name == 'seal' and state.get('require_raw_fragments'):
+                loan = next(original for original in core._loans.values() if original.handle == args[0])
+                if core._inputs[loan.ticket].payload in physical_fragments:
+                    return -8
             if name == 'bind_sdk_payload_record':
                 self.assertEqual(args, (first.handle, fact._record.handle, 31, 0, 0))
                 calls.append((name, args))
@@ -42,6 +47,9 @@ class SDKPayloadReaderTests(unittest.TestCase):
                 # Independent responses for original 4/4/1 input slices. This
                 # transport double does not execute or duplicate the codec.
                 if args[0] not in outputs:
+                    if state.get('require_raw_fragments'):
+                        loan = next(original for original in core._loans.values() if original.handle == args[2])
+                        self.assertEqual(core._inputs[loan.ticket].payload, physical_fragments[len(outputs)])
                     outputs[args[0]] = expected_payloads[len(outputs)]
                 return 0
             if name == 'confirm_sdk_payload_chunk':
@@ -61,7 +69,8 @@ class SDKPayloadReaderTests(unittest.TestCase):
     def test_exact_descriptor_advances_only_after_sink_and_core_loans_return(self):
         files = file_fixture.ReaderFactsTests()
         with files.file(b'[{"n":1}]') as (_, root, _, final):
-            holder, store, core, request, first, fact, clock, _, calls = self.bridge(root, final)
+            holder, store, core, request, first, fact, clock, state, calls = self.bridge(root, final)
+            state['require_raw_fragments'] = True
             changes = store._connection.total_changes
             stream = OriginalSDKPayloadReader(holder, request, clock, fact)
             original_reader = fact._reader

@@ -3355,6 +3355,8 @@ jobs:
             ${{ runner.temp }}/python-wheel-acceptance/*.json
             ${{ runner.temp }}/python-wheel-acceptance/*.stdout
             ${{ runner.temp }}/python-wheel-acceptance/*.stderr
+            ${{ runner.temp }}/python-wheel-acceptance/ordinary-repeated-host/events.jsonl
+            ${{ runner.temp }}/python-wheel-acceptance/ordinary-repeated-host/original-reference.json
             ${{ runner.temp }}/python-wheel-acceptance/cohort/cohort.json
             ${{ runner.temp }}/python-wheel-acceptance/cohort/wheels/*.whl
             ${{ runner.temp }}/python-wheel-acceptance/image/image-receipt.json

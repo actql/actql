@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import unittest
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,12 +14,137 @@ from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_saved_read import OriginalSavedResultRead
 import actql_sdk._local_saved_read as saved_read_module
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
+from actql_sdk._local_storage import ByteFence, CapacityReservation, LocalStorageError
 import test_local_commit_store_caller as export_fixture
 import test_local_reader_facts as physical_fixture
 import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):
+        from tempfile import TemporaryDirectory
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
+                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        body = {'ref': reference, 'resultName': 'answer', 'format': 'jsonl', 'attemptId': 'old-result'}
+        for cancel in (False, True):
+            with self.subTest(cancel=cancel), TemporaryDirectory() as directory:
+                helper = host_fixture.LocalSubmissionLookupTests()
+                helper.addCleanup = self.addCleanup
+                host, core, _, counts, _ = helper.fixture(directory, packet,
+                    run_reference=reference, result_name='answer', pending_saved_result=2)
+                scope = object()
+                entered = []
+                core._host_cleanup_depth = 0
+                failure = OSError('original next payload acquisition')
+
+                @contextmanager
+                def allowance():
+                    entered.append(scope)
+                    core._host_operation_scope = scope
+                    core._host_fuel_phase = 'operation'
+                    try:
+                        yield
+                    finally:
+                        core._host_operation_scope = None
+                        core._host_fuel_phase = None
+
+                async def run():
+                    read = asyncio.create_task(host._open_ordinary_result(body))
+                    await asyncio.sleep(0)
+                    carrier, = host._saved_result_reads
+                    original = carrier._source
+                    self.assertIsNotNone(original)
+                    self.assertEqual(counts, {'produce': 1, 'validate': 0})
+                    self.assertIs(core._host_operation_scope, scope)
+                    self.assertFalse(core._lock._is_owned())
+                    self.assertIsNone(host._installation.binding._observed_reader)
+                    self.assertFalse(host._installation._store._connection.in_transaction)
+                    self.assertFalse(read.done())
+                    if cancel:
+                        with patch.object(core, 'close_submission_lookup', return_value=False) as close:
+                            read.cancel()
+                            with self.assertRaises(asyncio.CancelledError):
+                                await read
+                            close.assert_called_once_with(original)
+                        self.assertEqual(counts, {'produce': 1, 'validate': 0})
+                    else:
+                        await asyncio.sleep(0)
+                        self.assertEqual(counts, {'produce': 2, 'validate': 0})
+                        with self.assertRaises(OSError) as caught:
+                            await read
+                        self.assertIs(caught.exception, failure)
+                        self.assertEqual(counts, {'produce': 3, 'validate': 2})
+                    self.assertIs(carrier._source, original)
+                    self.assertIs(core._loans[original.ticket], original)
+                    self.assertFalse(carrier._preparing)
+                    self.assertIsNone(core._host_operation_scope)
+
+                with (patch.object(core, '_host_operation', allowance),
+                      patch.object(core, 'reserve_saved_payload_record', side_effect=failure)):
+                    asyncio.run(run())
+                self.assertEqual(entered, [scope])
+                self.assertFalse(host._run_loans)
+                self.assertFalse(host._physical_work)
+                self.assertTrue(host.close())
+
+    def test_incremental_saved_hash_yields_after_one_real_chunk_and_rechecks_row(self):
+        from tempfile import TemporaryDirectory
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
+                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        body = b'original-bytes'
+        helper = host_fixture.LocalSubmissionLookupTests()
+        helper.addCleanup = self.addCleanup
+        with (TemporaryDirectory() as directory,
+              physical_fixture.ReaderFactsTests.file(self, body) as (_, root, _, final)):
+            host, core, _, counts, _ = helper.fixture(directory, packet,
+                run_reference=reference, result_name='answer', pending_saved_result=0)
+            store = host._installation._store
+            key = 'original-saved-hash-record'
+            self.assertEqual(store.compare_exchange(key, None, b'original-sealed'), 0)
+            self.assertTrue(store.reserve_capacity('publication_payload', key, len(body), 1, 64, 2))
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            core._host_operation_scope = object()
+            core._host_fuel_phase = 'operation'
+            core._host_cleanup_depth = 0
+            reader = root.open_saved_payload(final.name, final.result)
+            saved._root, saved._reader = root, reader
+            selection = (ByteFence(key, 0, b'original-sealed'),
+                         CapacityReservation('publication_payload', key, len(body), 1),
+                         'authority', 'material', 0, 0)
+
+            async def exercise():
+                task = asyncio.create_task(saved.prepare_incremental(reference, 'answer', 'jsonl', 'hash'))
+                await asyncio.sleep(0)
+                self.assertFalse(task.done())
+                self.assertEqual(reader.offset, 4)
+                self.assertIsNone(reader.chunk)
+                self.assertFalse(core._lock._is_owned())
+                self.assertFalse(store._connection.in_transaction)
+                self.assertIsNone(host._installation.binding._observed_reader)
+                self.assertEqual(store.compare_exchange(key, 0, b'changed-sealed!'), 1)
+                with self.assertRaises(LocalStorageError):
+                    await task
+                self.assertEqual(reader.offset, 4)
+                self.assertIs(saved._reader, reader)
+                self.assertFalse(saved._preparing)
+
+            with (patch.object(saved, '_prepare_payload', return_value=selection),
+                  patch.object(saved, '_finish_payload', side_effect=AssertionError('Premature Result'))):
+                asyncio.run(exercise())
+            self.assertEqual(counts['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertTrue(host.close())
+            self.assertIsNone(reader.descriptor)
+
     def test_saved_metadata_uses_same_admitted_packet_without_a_second_current_parse(self):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
