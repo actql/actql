@@ -1,6 +1,9 @@
 // The existing Host Run owns admission and retirement. This view associates
 // each real Source preparation with that same parent; it owns no Ledger,
 // physical reader, retry engine or replacement cleanup acknowledgement.
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type RunParent = Extract<SynchronousRuntimeData, object>;
 type Method = (...args: unknown[]) => unknown;
 type ManagedSource = Readonly<{
   [name: string]: unknown;
@@ -10,9 +13,9 @@ type ManagedSource = Readonly<{
   managedWholeSourceCapacity?: Method;
 }>;
 type ManagedProfile = ManagedSource & Readonly<{sources?: readonly ManagedSource[]}>;
-type PreparationOwner = Readonly<{prepared: unknown; parent: unknown}>;
+type PreparationOwner = Readonly<{prepared: unknown; parent: RunParent}>;
 
-export function bindInstalledManagedSources(profile: ManagedProfile | undefined, runFor: (prepared: unknown) => unknown) {
+export function bindInstalledManagedSources(profile: ManagedProfile | undefined, runFor: (prepared: unknown) => RunParent) {
   if (profile === undefined || typeof profile.prepareManagedRun === 'function') return profile;
   const originals = profile.sources ?? [profile];
   if (!originals.every(source => typeof source.managedCaptureCapacity === 'function')) return profile;

@@ -1,12 +1,14 @@
 import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
+type InstalledContracts = Extract<SynchronousRuntimeData, object>;
 type Acquire = (owner: unknown, stage: number, input: number) => unknown;
 type AcquireAtQueryTime = (owner: unknown, stage: number, input: number,
   original: unknown, request: unknown) => unknown;
-type Require = (owner: unknown, stage: number, input: number, installedContracts: unknown,
+type Require = (owner: unknown, stage: number, input: number, installedContracts: InstalledContracts,
   values: string, fragment: string | undefined, ordered: string | undefined) => unknown;
 type RequireAtQueryTime = (owner: unknown, stage: number, input: number,
-  original: unknown, request: unknown, installedContracts: unknown,
+  original: unknown, request: unknown, installedContracts: InstalledContracts,
   values: string, fragment: string | undefined, ordered: string | undefined) => unknown;
 type QueryPreparationRuntime = Readonly<{
   clientProgramEffectPrepareQueryAcquisitionAtQueryTime?: AcquireAtQueryTime;
@@ -20,7 +22,7 @@ type QueryPreparationRuntime = Readonly<{
 }>;
 type QueryPreparationOptions = Readonly<{
   moon: QueryPreparationRuntime; preparedProgram?: unknown; preparedEffect?: unknown;
-  stage: number; input: number; registry: unknown; values: string; fragment?: string; ordered?: string;
+  stage: number; input: number; registry: InstalledContracts; values: string; fragment?: string; ordered?: string;
   queryTimePreparation?: unknown; requestIdentity?: unknown;
 }>;
 
