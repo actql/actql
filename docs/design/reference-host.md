@@ -1697,8 +1697,9 @@ ordinary JS-row consumers retain their existing checked entrances. No JS JSON
 parser, numeric conversion, cursor fallback or independent Reader is added.
 
 The Notion users codec retains its full provider envelope, value bounds and
-user identity checks. It supplies the original count and next cursor as DATA
-to the existing Common cursor progress. Its checked row wire flows into the
+user identity checks. The codec measures the original count and next-cursor
+metadata with the same bounded encoder and returns both as typed DATA to
+Common cursor progress. Its checked row wire flows into the
 managed reader without decoding rows into JavaScript objects and encoding them
 again. The existing cursor-reader allowance and request-construction quote
 cover the retained progress and captured calls under the same reader. A

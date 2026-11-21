@@ -23,7 +23,7 @@ export const NOTION_USER_LIST_API_VERSION = userListRequest.read.versionHeader.v
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const providerExports = ['notionProjectUserList','notionUserListIds','notionUserListRowsWire',
-  'notionUserListMetadataJson','notionUserListColumnNames'];
+  'notionUserListMetadata','notionUserListColumnNames'];
 const cursorMethods = ['clientProgramRowSourcePrepareCursorProgress', 'clientProgramRowSourceCursorRemainingRows',
   'clientProgramRowSourceCursorHasNext', 'clientProgramRowSourceCursorNext',
   'clientProgramRowSourceAdvanceProviderPageCursor', 'clientProgramRowSourceCursorIssueCode'];
@@ -104,22 +104,28 @@ export function prepareNotionUserListPages({moon, common, names, limits, request
       const page = checked(provider.notionProjectUserList(response.body, bound.maxResponseBytes,
         bound.maxNodes, bound.maxDepth, Math.min(bound.maxRows, bound.pageSize), bound.maxCursorBytes,
         bound.maxIdentityBytes, bound.maxValueNodes, bound.maxValueTextBytes));
-      const metadata = JSON.parse(checked(provider.notionUserListMetadataJson(page,
-        bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
+      const metadata = checked(provider.notionUserListMetadata(page,
+        bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth));
+      const pageRows = runtimeField(metadata, 0);
+      const cursorPresent = runtimeField(metadata, 1);
+      const cursor = runtimeField(metadata, 2);
+      if (!Number.isSafeInteger(pageRows) || pageRows < 0 ||
+          typeof cursorPresent !== 'boolean' || typeof cursor !== 'string') {
+        fail('NotionUserListCursorRuntimeMismatch');
+      }
       const remaining = cursorResult(Reflect.apply(remainingRows, common,
         [progress, pageIndex, rowCount]), common, issueCode);
-      if (metadata.rowCount > remaining) fail('NotionUserListRowLimit');
+      if (pageRows > remaining) fail('NotionUserListRowLimit');
       for (const id of provider.notionUserListIds(page)) {
         if (ids.has(id)) fail('NotionUserListDuplicateUser');
         ids.add(id);
       }
       const done = cursorResult(Reflect.apply(advanceCursor, common,
-        [progress, pageIndex, rowCount, metadata.rowCount, metadata.nextCursor !== null,
-          metadata.nextCursor ?? '']), common, issueCode);
+        [progress, pageIndex, rowCount, pageRows, cursorPresent, cursor]), common, issueCode);
       if (typeof done !== 'boolean') fail('NotionUserListCursorRuntimeMismatch');
       const rowsWire = checked(provider.notionUserListRowsWire(page, selected,
         bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth));
-      return {rowsWire, rowCount: metadata.rowCount, done};
+      return {rowsWire, rowCount: pageRows, done};
     },
     onError(cause) {return new NotionUserListReadFailure(cause);},
   });

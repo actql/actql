@@ -69,7 +69,7 @@ test('declarative Notion request keeps original version and caps requested rows 
   const unused = () => {assert.fail('No page projection in a request-only control');};
   const moon = {notionUserListColumnNames: () => ['id', 'name', 'type', 'email'],
     notionProjectUserList: unused, notionUserListIds: unused, notionUserListRowsWire: unused,
-    notionUserListMetadataJson: unused};
+    notionUserListMetadata: unused};
   const limits = Object.fromEntries(['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth',
     'maxRows', 'maxPages', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes', 'maxValueNodes',
     'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'].map(name => [name, 100]));

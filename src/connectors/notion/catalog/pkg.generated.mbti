@@ -187,6 +187,8 @@ pub fn notion_read_source_selection_id(NotionReadSourceSelection) -> String
 
 pub fn notion_read_source_selection_matches(NotionReadSourceSelection, NotionDatabaseReadDeclaration, NotionDatabaseCatalog) -> Bool
 
+pub fn notion_user_list_checked_metadata(NotionUserListPage, Int, Int, Int) -> Result[(Int, String?), NotionUserListIssue]
+
 pub fn notion_user_list_column_names() -> Array[String]
 
 pub fn notion_user_list_facts_wire() -> String

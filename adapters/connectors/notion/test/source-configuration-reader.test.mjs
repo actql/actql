@@ -83,7 +83,7 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
   const functions = new Function(...Object.keys(ports), bodies +
     `\nreturn {identity: installed${cap}SourceIdentityParts, load: loadInstalled${cap}Source};`)(...Object.values(ports));
   const provider = Object.fromEntries(['notionUserListSchemaWire', 'notionUserListRelationFactsWire',
-    'notionUserListColumnNames', 'notionProjectUserList', 'notionUserListMetadataJson',
+    'notionUserListColumnNames', 'notionProjectUserList', 'notionUserListMetadata',
     'notionUserListRowsWire', 'notionUserListIds',
     'slackUserListSchemaWire', 'slackUserListRelationFactsWire', 'slackChannelListSchemaWire',
     'slackChannelListRelationFactsWire', 'slackMessageSchemaWire', 'slackMessageRelationFactsWire',

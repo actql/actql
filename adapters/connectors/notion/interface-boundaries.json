@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "9f0d4d10dd83c4d2757b1f2bc5e092a95a000f4cb5c6abcf9f634f0897ba96a1",
+      "sha256": "7d117dbc54f6a0f2c881714ac5dbea1a5412fd32f648d077d04ee433b328d59d",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -186,6 +186,10 @@
               }
             ],
             "verification": [
+              {
+                "path": "src/connectors/notion/catalog/users_wbtest.mbt",
+                "anchor": "Notion cursor metadata uses exact bounded writer output"
+              },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
@@ -1440,7 +1444,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "3a7f40888478d3b9dad40e80b2c34bf50a19bc5e22aac4e11c92017768511221",
+      "sha256": "d13ee04c6c2c06e4ea7d14e3569d792f6d212ff55a6fed50641d605857a36c47",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",

@@ -280,6 +280,27 @@ test "Notion cursor metadata uses exact bounded writer output" {
     notion_user_list_metadata_wire(page, bytes, 1, 8),
     Err(BudgetExceeded),
   )
+  assert_eq(
+    notion_user_list_checked_metadata(page, bytes, 3, 1).unwrap(),
+    (0, Some("é")),
+  )
+  for bound in [(bytes - 1, 3, 1), (bytes, 2, 1)] {
+    let (max_bytes, max_nodes, max_depth) = bound
+    assert_true(
+      notion_user_list_metadata_wire(page, max_bytes, max_nodes, max_depth)
+      is Err(BudgetExceeded),
+    )
+    assert_true(
+      notion_user_list_checked_metadata(page, max_bytes, max_nodes, max_depth)
+      is Err(BudgetExceeded),
+    )
+  }
+  assert_true(
+    notion_user_list_metadata_wire(page, bytes, 3, 0) is Err(InvalidLimits),
+  )
+  assert_true(
+    notion_user_list_checked_metadata(page, bytes, 3, 0) is Err(InvalidLimits),
+  )
 }
 
 ///|

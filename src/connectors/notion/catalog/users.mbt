@@ -249,6 +249,49 @@ pub fn notion_user_list_row_count(page : NotionUserListPage) -> Int {
 }
 
 ///|
+fn write_notion_user_list_metadata(
+  page : NotionUserListPage,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_ordered_object(writer)
+  @encode.ordered_key(writer, "nextCursor")
+  match page.next_cursor {
+    Some(cursor) => @encode.string_value(writer, cursor)
+    None => @encode.null_value(writer)
+  }
+  @encode.ordered_key(writer, "rowCount")
+  @encode.number_value(writer, notion_user_list_row_count(page).to_double())
+  @encode.end_object(writer)
+}
+
+///|
+/// Keep the existing byte, node and depth admission while returning the
+/// original scalar facts. The measuring writer retains no metadata JSON.
+pub fn notion_user_list_checked_metadata(
+  page : NotionUserListPage,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, String?), NotionUserListIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.measuring_writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    write_notion_user_list_metadata(page, writer)
+    ignore(@encode.finish_measurement(writer))
+    Ok((notion_user_list_row_count(page), page.next_cursor))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
+
+///|
 pub fn notion_user_list_metadata_wire(
   page : NotionUserListPage,
   max_bytes : Int,
@@ -262,15 +305,7 @@ pub fn notion_user_list_metadata_wire(
     _ => return Err(BudgetExceeded)
   }
   try {
-    @encode.begin_ordered_object(writer)
-    @encode.ordered_key(writer, "nextCursor")
-    match page.next_cursor {
-      Some(cursor) => @encode.string_value(writer, cursor)
-      None => @encode.null_value(writer)
-    }
-    @encode.ordered_key(writer, "rowCount")
-    @encode.number_value(writer, page.rows.length().to_double())
-    @encode.end_object(writer)
+    write_notion_user_list_metadata(page, writer)
     Ok(@encode.finish(writer))
   } catch {
     _ => {

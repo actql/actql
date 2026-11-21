@@ -24,7 +24,7 @@ const readLimitKeys=['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxD
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
 const limitKeys=[...readLimitKeys,'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
 const providerNames=['notionUserListSchemaWire','notionUserListRelationFactsWire','notionUserListColumnNames',
-  'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList'];
+  'notionUserListRowsWire','notionUserListMetadata','notionUserListIds','notionProjectUserList'];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);

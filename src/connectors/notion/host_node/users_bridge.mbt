@@ -49,6 +49,27 @@ pub fn notion_user_list_metadata_json(
 }
 
 ///|
+/// Project the checked tuple explicitly so the caller never interprets a
+/// compiler-specific Option layout.
+#export_name("notionUserListMetadata")
+pub fn notion_user_list_metadata(
+  page : @catalog.NotionUserListPage,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Bool, String), @catalog.NotionUserListIssue] {
+  @catalog.notion_user_list_checked_metadata(
+    page, max_bytes, max_nodes, max_depth,
+  ).map(metadata => {
+    let (rows, next) = metadata
+    match next {
+      Some(cursor) => (rows, true, cursor)
+      None => (rows, false, "")
+    }
+  })
+}
+
+///|
 #export_name("notionUserListColumnNames")
 pub fn notion_user_list_column_names() -> Array[String] {
   @catalog.notion_user_list_column_names()
