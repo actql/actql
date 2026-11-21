@@ -11,20 +11,21 @@ import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight, flowPortO
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
-type NodePresentation = {kind?: string; title?: string; inputs?: string; state: string};
-type LogicalNode = Node<{original: Logical; presentation?: NodePresentation}, 'logical'>;
+type NodePresentation = {kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string};
+type LogicalNode = Node<{original: Logical; presentation?: NodePresentation; unlinkedInput?: boolean}, 'logical'>;
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;
   const operation = original.operator?.replaceAll('_', ' ') ?? 'Input / output';
   const title = data.presentation?.title ?? (data.presentation ? operation.replace(/^./u, char=>char.toUpperCase()) :
     original.names.join(', ') || operation);
   const offsets = flowPortOffsets(original.ports);
-  return <div className="actql-explorer-node" data-selected={selected}
+  return <div className="actql-explorer-node" data-selected={selected} data-unlinked-input={data.unlinkedInput}
     style={{width: flowNodeWidth, height: flowNodeHeight(original.ports.length)}}>
     <div className="actql-explorer-kind">{data.presentation?.kind ?? operation}</div>
     <strong title={title}>{title}</strong>
     {data.presentation?.inputs && <span className="actql-explorer-node-inputs"
       title={data.presentation.inputs}>{data.presentation.inputs}</span>}
+    {data.unlinkedInput && <span className="actql-explorer-node-inputs">Downstream link not projected</span>}
     <p>{data.presentation?.state ?? original.kind}</p>
     {original.ports.map((port, index) => <Handle key={port.port_id} id={port.port_id}
       type={port.role === 'input' ? 'target' : 'source'}
@@ -46,13 +47,41 @@ export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initial
   workspace?: {stepId?: string; select(id: string): void;
     label(id: string): NodePresentation}};
 
+function groupUnlinkedInputs(nodes: LogicalNode[], edges: Edge[]) {
+  const linked = new Set(edges.flatMap(edge=>[edge.source, edge.target]));
+  const inputs = nodes.filter(node=>node.data.presentation?.sourceInput && !linked.has(node.id));
+  if (!inputs.length || inputs.length === nodes.length) return nodes;
+  const inputIds = new Set(inputs.map(node=>node.id));
+  const computation = nodes.filter(node=>!inputIds.has(node.id));
+  const top = Math.min(...computation.map(node=>node.position.y));
+  const leading = computation.filter(node=>node.position.y - top < 300);
+  const middle = (Math.min(...leading.map(node=>node.position.x)) +
+    Math.max(...leading.map(node=>node.position.x)) + flowNodeWidth) / 2;
+  const rowHeight = Math.max(...inputs.map(node=>flowNodeHeight(node.data.original.ports.length))) + 26;
+  const columnWidth = flowNodeWidth + 26;
+  const positions = new Map(inputs.map(({id}, index)=>{
+    const row = Math.floor(index / 3);
+    const rowCount = Math.min(3, inputs.length - row * 3);
+    return [id, {x: middle - ((rowCount - 1) * columnWidth + flowNodeWidth) / 2 +
+      index % 3 * columnWidth, y: row * rowHeight}] as const;
+  }));
+  const computationTop = Math.ceil(inputs.length / 3) * rowHeight + 6;
+  // Only move whole isolated input cards. Shift everything else by one
+  // uniform offset so every original Plan edge remains unchanged.
+  return nodes.map(node=>{
+    const position = positions.get(node.id);
+    return position ? {...node, position, data: {...node.data, unlinkedInput: true}} :
+      {...node, position: {...node.position, y: node.position.y - top + computationTop}};
+  });
+}
+
 function initialViewportNodes(placed: LogicalNode[], focus: LogicalNode | undefined, canvasWidth: number) {
   if (!focus) return [];
   const top = Math.min(...placed.map(node=>node.position.y));
   // Fit the opening rows around the selected original. Keep a readable
   // minimum scale even when the whole graph is much larger than the canvas.
-  if (focus.position.y - top >= 300 || canvasWidth < flowNodeWidth * 2) return [focus];
-  const opening = placed.filter(node=>node.position.y - top < 300);
+  if (focus.position.y - top >= 320 || canvasWidth < flowNodeWidth * 2) return [focus];
+  const opening = placed.filter(node=>node.position.y - top < 320);
   const width = Math.max(...opening.map(node=>node.position.x)) -
     Math.min(...opening.map(node=>node.position.x)) + flowNodeWidth;
   if (width * 0.9 <= canvasWidth * 0.87) return opening;
@@ -100,12 +129,15 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
   }, [mode, currentLayout]);
   const selection = workspace?.stepId ?? selected;
   const selectOriginal = workspace ? workspace.select : select;
-  const placed = useMemo(() => currentLayout?.state === 'ready' ? flow.nodes.map((node, index) => ({
-    ...node, position: {x: currentLayout.positions[index].x, y: currentLayout.positions[index].y},
-    selected: node.id === selection,
-    data: {...node.data, presentation: workspace?.label(node.id)},
-    width: flowNodeWidth, height: flowNodeHeight(node.data.original.ports.length),
-  })) : [], [currentLayout, flow, selection, workspace]);
+  const placed = useMemo(() => {
+    if (currentLayout?.state !== 'ready') return [];
+    return groupUnlinkedInputs(flow.nodes.map((node, index) => ({
+      ...node, position: {x: currentLayout.positions[index].x, y: currentLayout.positions[index].y},
+      selected: node.id === selection,
+      data: {...node.data, presentation: workspace?.label(node.id)},
+      width: flowNodeWidth, height: flowNodeHeight(node.data.original.ports.length),
+    })), flow.edges);
+  }, [currentLayout, flow, selection, workspace]);
   const original = model.nodes.find(node => node.id === selection);
   const focus = placed.find(node=>node.id === selection) ?? placed[0];
   const fitNodes = workspace ? initialViewportNodes(placed, focus, canvasWidth) : focus ? [focus] : [];
@@ -152,6 +184,7 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     </header>
     {mode === 'list' && originalMetadata}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div ref={canvas} className="actql-explorer-flow">
+      {placed.some(node=>node.data.unlinkedInput) && <span className="actql-explorer-input-group">Declared inputs</span>}
       {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitViewOptions={{nodes: fitNodes, minZoom: 0.9, maxZoom: 1, padding: 0.12}}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}

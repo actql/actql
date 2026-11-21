@@ -37,6 +37,10 @@
 .actql-explorer-node p { margin: 5px 0 0; }
 .actql-explorer-node-inputs { display: block; color: #485b59; font-size: 12px;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.actql-explorer-node[data-unlinked-input=true] { background: #f4faf8; }
+.actql-explorer-flow { position: relative; }
+.actql-explorer-input-group { position: absolute; z-index: 2; top: 12px; left: 16px;
+  color: #485b59; font-size: 12px; font-weight: 600; pointer-events: none; }
 .actql-explorer-node strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node[data-selected=true] { outline: 2px solid #3468bd; }
 .actql-explorer-table { width: 100%; border-collapse: collapse; }

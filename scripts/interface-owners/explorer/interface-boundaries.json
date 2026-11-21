@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "648a4becde00a069e27fd9427e865c40c19ee689a32f20efd44ba674c6dfda7c",
+      "sha256": "994b13f07e5809aab12d4e9f43ab3aaa9fe99449a5aa3d319104e08e8f680c0d",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1875,7 +1875,7 @@
           "parameters": [
             "id: string"
           ],
-          "result": "{kind?: string; title?: string; inputs?: string; state: string}"
+          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string}"
         },
         {
           "name": "PlanExplorer",
@@ -2026,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "957d16b7aba5b7d9c97e19a316a74af0e1ba6b3c3bb40276f2aa5c6d8afb622c",
+      "sha256": "1d5bc4507d449ffc8994be687fb1cac43f51d1fc35e179ef9d5b54861c6758e9",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -2095,7 +2095,6 @@
         {
           "name": "BoundPlanExplorer/<call>#11",
           "parameters": [
-            "_",
             "node"
           ],
           "result": null
@@ -2103,12 +2102,20 @@
         {
           "name": "BoundPlanExplorer/<call>#12",
           "parameters": [
+            "_",
             "node"
           ],
           "result": null
         },
         {
           "name": "BoundPlanExplorer/<call>#13",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#14",
           "parameters": [
             "port"
           ],
@@ -2158,6 +2165,92 @@
         {
           "name": "BoundPlanExplorer/<call>#9",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs",
+          "parameters": [
+            "nodes: LogicalNode[]",
+            "edges: Edge[]"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#10",
+          "parameters": [
+            "{id}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#11",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#6",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#7",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#8",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#9",
+          "parameters": [
+            "node"
+          ],
           "result": null
         },
         {
@@ -2309,7 +2402,20 @@
             "initialViewportNodes/<call>#3",
             "initialViewportNodes/<call>#4",
             "initialViewportNodes/<call>#5",
-            "LogicalCard/<call>#2"
+            "LogicalCard/<call>#2",
+            "BoundPlanExplorer/<call>#14",
+            "groupUnlinkedInputs",
+            "groupUnlinkedInputs/<call>",
+            "groupUnlinkedInputs/<call>#10",
+            "groupUnlinkedInputs/<call>#11",
+            "groupUnlinkedInputs/<call>#2",
+            "groupUnlinkedInputs/<call>#3",
+            "groupUnlinkedInputs/<call>#4",
+            "groupUnlinkedInputs/<call>#5",
+            "groupUnlinkedInputs/<call>#6",
+            "groupUnlinkedInputs/<call>#7",
+            "groupUnlinkedInputs/<call>#8",
+            "groupUnlinkedInputs/<call>#9"
           ],
           "exports": [
             "CancellationPanel",
@@ -4492,7 +4598,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "720b3760dcd191707909430d22cd510910a55a7337b5ec550dc60e0560889b7e",
+      "sha256": "1a39f856a065ae5ed6e07697816e5d8aaef3893ca8ac438bb76f593fa8b412f3",
       "exports": [],
       "operations": [
         {
@@ -4841,6 +4947,41 @@
           "result": null
         },
         {
+          "name": "computationSummary",
+          "parameters": [
+            "story: ExplanationStoryModel"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>",
+          "parameters": [
+            "{explanation}"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#2",
+          "parameters": [
+            "join"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#3",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#4",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
           "name": "declaredTargetLabel",
           "parameters": [
             "target: string",
@@ -4926,12 +5067,19 @@
         {
           "name": "StepOrigin",
           "parameters": [
-            "{step}: {step: Step}"
+            "{step, label}: {step: Step; label?: string}"
           ],
           "result": null
         },
         {
           "name": "StepOrigin/<call>",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>#2",
           "parameters": [
             "port"
           ],
@@ -4949,12 +5097,20 @@
         {
           "name": "stepTitle",
           "parameters": [
-            "step: Step"
+            "step: Step",
+            "label?: string"
           ],
           "result": null
         },
         {
           "name": "stepTitle/<call>",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "stepTitle/<call>#2",
           "parameters": [
             "char"
           ],
@@ -5038,7 +5194,7 @@
         {
           "name": "StorySteps",
           "parameters": [
-            "{story, context, saved, boundary, selectedStep, selectStep, graph}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean;\n}"
+            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n}"
           ],
           "result": null
         },
@@ -5281,7 +5437,14 @@
             "graphStepLabels/<call>#2",
             "graphStepLabels/<call>#3",
             "graphStepLabels/add",
-            "graphStepLabels/<call>#4"
+            "graphStepLabels/<call>#4",
+            "computationSummary",
+            "computationSummary/<call>",
+            "computationSummary/<call>#2",
+            "computationSummary/<call>#3",
+            "computationSummary/<call>#4",
+            "StepOrigin/<call>#2",
+            "stepTitle/<call>#2"
           ],
           "exports": [],
           "attributes": {

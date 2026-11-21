@@ -46,6 +46,23 @@ function declaredTargetLabel(target: string, locale: ExplanationStoryModel['loca
   return locale === 'ja' ? `"${connection}" の "${resource}"` : `"${resource}" in "${connection}"`;
 }
 
+function computationSummary(story: ExplanationStoryModel) {
+  const joins = story.occurrences.flatMap(({explanation})=>
+    explanation.meaning.kind === 'join' ? [explanation.meaning] : []);
+  const key = joins.flatMap(join=>join.keys)
+    .find(({left, right})=>left === right && /^[\w.]{1,24}$/u.test(left) && !left.startsWith('aql_'));
+  const filter = story.occurrences.find(step=>step.operator === 'filter');
+  const condition = filter?.explanation;
+  const namedCondition = condition?.meaning.kind === 'filter' && condition.meaning.predicate.state === 'projected' &&
+    condition.text.length <= 84 && !/\baql_/u.test(condition.text) ? condition.text : undefined;
+  const ja = story.locale === 'ja';
+  const joinText = joins.length ? (ja ? `${joins.length}回の結合` :
+    `${joins.length} checked ${joins.length === 1 ? 'join' : 'joins'}`) +
+    (key ? (ja ? `（"${key.left}" で結合）` : ` · matches on "${key.left}"`) : '') : '';
+  const filterText = filter ? namedCondition ?? (ja ? '行を絞り込む' : 'Filter rows') : '';
+  return [joinText, filterText].filter(Boolean).join(' · ');
+}
+
 function StoryHeading({story, context}: {story: ExplanationStoryModel; context: StoryContext}) {
   const sources = context.flatMap(({origin})=>origin.kind === 'source' ? [origin.source_view.resource] : []);
   const models = context.flatMap(({origin})=>origin.kind === 'model_task' ? [origin.task_id.replace(/^model-task:/u, '')] : []);
@@ -74,8 +91,10 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
     .filter((part): part is string=>!!part)
     .map(part=>part + (ja ? '。' : '.'))
     .join(ja ? '' : ' ');
+  const computation = computationSummary(story);
   return <>
     <h1>{summary ? <StoryText text={summary}/> : 'Original query narrative'}</h1>
+    {computation && <p className="story-computation"><StoryText text={computation}/></p>}
     <div className="story-chips">
       {effects.length > 0 && <span className="workspace-chip" data-tone="amber">Effect declared · decision unknown</span>}
       {sources.length > 0 && <span className="workspace-chip" data-tone="teal">{sources.length} declared {sources.length === 1 ? 'source' : 'sources'}</span>}
@@ -104,7 +123,7 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       add(results, origin.producer.step_id, origin.name);
     }
   }
-  const labels = new Map<string, {kind?: string; title: string; inputs?: string}>();
+  const labels = new Map<string, {kind?: string; title: string; inputs?: string; sourceInput?: boolean}>();
   const ja = story?.locale === 'ja';
   for (const step of story?.occurrences ?? []) {
     const inputs = sources.get(step.stepId), models = tasks.get(step.stepId), outputs = results.get(step.stepId);
@@ -125,7 +144,7 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       // logical occurrence an actual Source attempt or another Graph node.
       const connections = new Set(inputs.map(input=>input.connector));
       labels.set(step.stepId, {kind: connections.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
-        title: inputDetail});
+        title: inputDetail, sourceInput: true});
     } else if (outputs?.length) {
       labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
     } else if (meaning.kind === 'projection' && meaning.operation === 'select') {
@@ -137,8 +156,10 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
   return labels;
 }
 
-function stepTitle(step: Step) {
-  if (step.names.length) return step.title;
+function stepTitle(step: Step, label?: string) {
+  if (label) return label;
+  const names = step.names.filter(name=>!name.startsWith('aql_'));
+  if (names.length) return names.join(', ');
   return step.operator?.replaceAll('_', ' ').replace(/^./u, char=>char.toUpperCase()) ?? 'Input / output';
 }
 
@@ -165,20 +186,21 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
   </li>;
 }
 
-function StepOrigin({step}: {step: Step}) {
+function StepOrigin({step, label}: {step: Step; label?: string}) {
   return <div className="occurrence-origin">
-    <strong>{stepTitle(step)}</strong><p><StoryText text={step.explanation.text}/></p>
+    <strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p>
     <details><summary>Original step and ports</summary>
+      {step.names.length > 0 && <p>{step.names.map(name=><code key={name}>{name}</code>)}</p>}
       <code>{step.stepId}</code>
       <ul>{step.ports.map(port=><li key={port.port_id}>{port.role} · <code>{port.port_id}</code></li>)}</ul>
     </details>
   </div>;
 }
 
-function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph}: {
+function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {
   story: ExplanationStoryModel; context: StoryContext; saved: boolean;
   boundary?: {stepId: string; state: StepState}; selectedStep?: string;
-  selectStep(id: string): void; graph: boolean;
+  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;
 }) {
   const [opened, setOpened] = useState<Record<string, boolean>>({});
   const sources = context.filter(item=>item.origin.kind === 'source');
@@ -230,7 +252,8 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
         const step = graph ? selected ?? first : observed ?? selected ?? first;
         const tasks = models.get(step.stepId) ?? [];
         const title = tasks.length === 1 ? tasks[0].text : tasks.length > 1 ? `Ask ${tasks.length} declared model tasks` :
-          group.length > 1 && !graph ? `Join inputs · ${group.length} checked joins` : stepTitle(step);
+          group.length > 1 && !graph ? `Join inputs · ${group.length} checked joins` :
+          stepTitle(step, labels.get(step.stepId)?.title);
         const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined, step.stepId);
         if (graph && !selected) return null;
         return <StoryCard key={first.stepId} {...controls} selected={!!selected}
@@ -238,7 +261,8 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
           state={stepState(step.stepId, saved, boundary)} title={title}
           detail={tasks.length ? undefined : step.explanation.text}>
           {saved && <p>Sample data is unavailable for this step.</p>}
-          {(graph ? [step] : group).map(item=><StepOrigin key={item.stepId} step={item}/>)}
+          {(graph ? [step] : group).map(item=><StepOrigin key={item.stepId} step={item}
+            label={labels.get(item.stepId)?.title}/>)}
           {tasks.map(({origin, text}, index)=>origin.kind === 'model_task' && <div key={index}>
             <p><StoryText text={text}/></p>
             <details><summary>Original ModelTask contract</summary><code>{origin.contract_cid}</code></details>
@@ -514,7 +538,7 @@ function App() {
   const context = selectedRef
     ? explanation?.state === 'projected' && 'context' in explanation ? explanation.context : []
     : staticExplanation?.context ?? [];
-  const graphLabels = useMemo(()=>graph ? graphStepLabels(story, context) : undefined, [graph, story, context]);
+  const graphLabels = useMemo(()=>graphStepLabels(story, context), [story, context]);
   const map = selectedRef ? originalPresentation?.plan ?? originalPlan?.plan : plan;
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
   const edited = analyzedDraft !== undefined &&
@@ -626,9 +650,9 @@ function App() {
         {graph && map && <PlanExplorer model={map} initialView="flow" scopeKey={scopeKey}
           workspace={{stepId: selection, select: setSelection,
             label: id=>({state: stepState(id, !!selectedRef, boundary),
-              ...graphLabels?.get(id)})}}/>}
+              ...graphLabels.get(id)})}}/>}
         {story && <StorySteps key={scopeKey} story={story} context={context} boundary={boundary}
-          saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph}/>}
+          saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph} labels={graphLabels}/>}
         {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}
         {!graph && !story && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
         {run && <details className="workspace-tools panel"><summary>Current Run observations</summary><RunInspector model={run}/></details>}

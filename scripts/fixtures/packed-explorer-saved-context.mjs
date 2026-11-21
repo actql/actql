@@ -147,6 +147,19 @@ try {
         }
         assert.match(summary, /StageName and NextStep on Opportunity in salesforce/u);
         assert.doesNotMatch(summary, /connector:\/\/|\baql_|Predicate form not projected/u);
+        const computation = await page.locator('.story-computation').innerText();
+        assert.match(computation, /2 checked joins · matches on name/u);
+        assert.match(computation, /Filter rows|Keep rows where/u);
+        assert.doesNotMatch(computation, /\baql_|Predicate form not projected/u);
+        const titles = await staticSteps.locator('summary > strong').allTextContents();
+        assert(titles.includes('Input · Opportunity') && titles.includes('Input · files'));
+        assert(titles.every(title=>!title.includes('aql_capture_0')));
+        const inputTitle = staticSteps.locator('summary > strong').filter({hasText: /^Input · Opportunity$/u});
+        await inputTitle.click();
+        const original = staticSteps.locator('details.story-card[open]').filter({has: inputTitle});
+        await original.getByText('Original step and ports', {exact: true}).click();
+        await original.getByText('aql_capture_0', {exact: true}).waitFor();
+        await inputTitle.click();
         await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
         await page.getByRole('button', {name: /Graph/}).click();
         const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
@@ -181,6 +194,21 @@ try {
         assert(visibleInputNames.length >= 2, `Visible checked inputs: ${visibleInputNames.join(', ')}`);
         const visibleJoins = nodes.filter(node=>node.operator === 'join' && visible.has(node.id));
         assert(visibleJoins.length > 0, 'A checked Join should be readable in the opening Graph');
+        await graph.getByText('Declared inputs', {exact: true}).waitFor();
+        const groupedInputs = await graph.locator('.actql-explorer-node[data-unlinked-input=true]').evaluateAll(items=>
+          items.map(node=>({id: node.closest('.react-flow__node').getAttribute('data-id'),
+            text: node.textContent, top: node.getBoundingClientRect().top,
+            bottom: node.getBoundingClientRect().bottom})));
+        assert.equal(groupedInputs.length, 2);
+        assert(groupedInputs.some(node=>node.text.includes('Opportunity')));
+        assert(groupedInputs.some(node=>node.text.includes('files')));
+        assert(groupedInputs.every(node=>visible.has(node.id) && node.text.includes('Downstream link not projected') &&
+          !edges.some(edge=>edge.sourceStepId === node.id || edge.targetStepId === node.id)));
+        assert(Math.abs(groupedInputs[0].top - groupedInputs[1].top) < 2);
+        for (const join of visibleJoins) {
+          const rect = await graph.locator(`.react-flow__node[data-id="${join.id}"]`).boundingBox();
+          assert(groupedInputs.every(input=>input.bottom < rect.y));
+        }
         for (const input of visibleInputs) {
           const port = nodes.find(node=>node.id === input.step_id).ports.find(port=>port.port_id === input.port_id);
           assert.equal(port.role, 'input');
@@ -228,13 +256,14 @@ try {
         await page.getByRole('button', {name: 'Steps', exact: true}).click();
         await page.setViewportSize({width: 390, height: 844});
         assert.equal(await heading.innerText(), summary);
+        assert.equal(await page.locator('.story-computation').innerText(), computation);
         assert((await heading.boundingBox()).height < 230);
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation']);
         receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
           originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence,
-          shownDirectInputs, drawnJoinEdges};
+          shownDirectInputs, drawnJoinEdges, groupedInputs, computation};
       } else {
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));
