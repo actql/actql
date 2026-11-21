@@ -61441,7 +61441,7 @@
           ]
         }
       ],
-      "sha256": "bda552864b6c9096c2db815d442be67a546577271bf264d0003a674fd0f9c097",
+      "sha256": "6179d179c8fd5cbdc6c3e076e610ae3bedbe4f29b19eec14a9dd6187ed082d7c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61484,6 +61484,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
               }
             ],
             "identity": [

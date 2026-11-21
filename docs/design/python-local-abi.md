@@ -1699,6 +1699,13 @@ wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
 a transfer bound and is not a claim about whole Python/SQLite memory or normal
 latency.
 
+The SDK delivery encoder consumes filled physical byte fragments through the
+original input loan. Fragment boundaries may split a UTF-8 scalar or a row.
+Only the delivery entrance can use the filled-byte view. It leaves the original
+structured input seal, source and wire access checks in place. Common retains
+framing and EOF/digest validation, and the original sink acceptance and stop
+paths still govern advancing and retiring the physical reader.
+
 ### Original finite-policy metadata
 
 The existing admitted finite-policy Owner retains its checked request and
