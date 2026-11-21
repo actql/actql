@@ -3251,7 +3251,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "requireAuthorizedDispatch"
               }
             ],

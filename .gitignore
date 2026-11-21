@@ -1243,3 +1243,5 @@ target/
 /adapters/host-common/completed-run-publication.d.mts
 /adapters/host-common/completed-effect-capture-retirement.test.mjs
 /adapters/host-common/completed-effect-capture-retirement.test.d.mts
+/adapters/host-common/authorization-gate.mjs
+/adapters/host-common/authorization-gate.d.mts

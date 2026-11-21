@@ -12,7 +12,7 @@
 
 export const AUTHORIZATION_BOUNDARIES = Object.freeze([
   'preparation', 'acquisition', 'activation', 'transfer', 'effect_commit',
-]);
+] as const);
 
 // Default Checkpoint kind per boundary. A Host `describe` may choose another
 // kind allowed by the Checkpoint subject/phase table.
@@ -34,25 +34,172 @@ const ARTIFACT_TYPE = Object.freeze({
 const SUBJECT_FIELDS = Object.freeze([
   'account_id', 'configuration_cid', 'entry_id', 'principal', 'connection',
   'resource', 'operation', 'boundary', 'subject_cid', 'context_cid',
-]);
+] as const);
 const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);
 const COUNTERS = Object.freeze([
   'evaluations', 'hostDecisionCalls', 'checkpointsPersisted',
   'protectedDispatches', 'deniedBeforeDispatch', 'decisionFailures',
   'unsupportedDefers', 'hostRejections', 'reusedDecisions',
   'coveredOperations', 'resumedDecisions',
-]);
-const decisionBudgets = new WeakMap();
+] as const);
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Boundary = typeof AUTHORIZATION_BOUNDARIES[number];
+type CheckpointKind = keyof typeof ARTIFACT_TYPE;
+type Subject = Readonly<Record<typeof SUBJECT_FIELDS[number], string>>;
+type Counter = typeof COUNTERS[number];
+type Context = Readonly<{principal: string; contextCid: string}>;
+type Scope = Readonly<{connection: string; resource: string; operation: string}>;
+type Tuple = Scope & Readonly<Pick<Context, 'principal'>>;
+type RuntimeOriginal = object & Readonly<{then?: never}>;
+type Runtime = Readonly<{
+  executionAuthorizationAdmit(wire: string): RuntimeOriginal;
+  executionAuthorizationMissing(): RuntimeOriginal;
+  executionAuthorizationAccountJson(account: RuntimeOriginal): string;
+  executionAuthorizationEvaluate(account: RuntimeOriginal, principal: string, connection: string,
+    resource: string, operation: string): RuntimeOriginal;
+  executionAuthorizationEvaluationJson(evaluation: RuntimeOriginal): string;
+  executionAuthorizationEvaluationAction(evaluation: RuntimeOriginal): RuntimeOriginal;
+  executionAuthorizationPrepare(evaluation: RuntimeOriginal, configurationCid: string,
+    boundary: Boundary, subjectCid: string, contextCid: string, authorities: string[], claims: string[]): RuntimeOriginal;
+  executionAuthorizationRequestJson(request: RuntimeOriginal): string;
+  executionAuthorizationAnswer(request: RuntimeOriginal, answer: Answer['kind'], subject: readonly string[],
+    authority: string, claims: readonly string[], failure: string): RuntimeOriginal;
+  executionAuthorizationDecisionJson(decision: RuntimeOriginal): string;
+}>;
+// The bridge supplies the JSON projection of its original typed values.
+type AccountState = Readonly<{state: 'missing'} | {state: 'rejected'; issue: unknown} |
+  {state: 'admitted'; account_id: string; configuration_cid: string}>;
+type Evaluation = Readonly<{outcome: 'allow' | 'deny' | 'delegate'; entry_id?: string}>;
+type BoundRequest = Readonly<{ok: false; issue: unknown} | {ok: true; subject: Subject;
+  answering_authorities: readonly string[]; required_claims: readonly string[]}>;
+type RuntimeOutcome = Readonly<
+  {action: 'dispatch'; basis: string; authority?: string; claims?: readonly string[]; reason?: undefined} |
+  {action: 'deny' | 'failure' | 'checkpoint' | 'invalid'; basis?: string; reason?: string; authority?: string;
+    detail?: unknown; issue?: unknown}
+>;
+type Answer = Readonly<{
+  kind: 'permit' | 'reject' | 'defer' | 'failure';
+  subject?: readonly string[]; authority?: string; claims?: readonly string[];
+  subjectArtifactCid?: unknown; decisionSubjectCid?: unknown; failure?: string; error?: unknown;
+}>;
+type HostView = Readonly<{
+  boundary: Boundary; tuple: Tuple; subject: Subject; subjectArtifactCid: string | null;
+  decisionSubjectCid: string; answeringAuthorities: readonly string[]; requiredClaims: readonly string[];
+}>;
+type SealSubject = (view: HostView) => Awaitable<string>;
+type Decide = (view: HostView, options: Readonly<{signal: AbortSignal}>) => Awaitable<unknown>;
+type Claim = Readonly<{intentId: string; claimant: string; generation: number}>;
+type HeldClaim = Claim | Readonly<{claim: Claim; checkpointCid?: string}>;
+type Resumption = Readonly<{claim?: HeldClaim}>;
+type JournalAdmission = Claim & Readonly<{
+  kind: CheckpointKind; checkpointCid: string; resolutionCid: string;
+  decisionSubjectCid: string; requiredArtifactCid: string; configurationCid: string;
+  authority: string; requestedClaims: readonly string[]; observedClaims: readonly string[];
+}>;
+type JournalEntry = JournalAdmission & Readonly<{mode: 'start' | 'reconcile'; dispatchIdentity: string | null}>;
+type EntryOptions = Readonly<{checkpointCid: string; resolutionCid: string; dispatchIdentity?: string}>;
+type ResumeJournal = Readonly<{
+  admitResume?(claim: Claim, options: Readonly<{checkpointCid?: string}>): JournalAdmission;
+  enterResumedDispatch?(claim: Claim, options: EntryOptions): JournalEntry;
+  enterResumedReconciliation?(claim: Claim, options: EntryOptions): JournalEntry;
+}>;
+type ResumeAdmission = JournalAdmission & Readonly<{
+  enter(dispatchIdentity?: string): JournalEntry;
+  reconcile(dispatchIdentity: string): JournalEntry;
+}>;
+type ResumeResult = Readonly<{admission: ResumeAdmission; claims: readonly string[]; detail?: undefined} |
+  {detail: string; error?: unknown}>;
+type CheckpointBody = Readonly<{
+  kind?: string; phase?: string; subject?: Readonly<{kind?: string}>;
+  required_artifact?: Readonly<{artifact_cid?: string; artifact_type?: string}>;
+  requirements?: readonly string[];
+}>;
+type CheckpointDescription = Readonly<{
+  body: CheckpointBody; priorStatus?: string | null; declaredResults?: readonly unknown[];
+  modelCallSet?: Readonly<{slotWires: readonly string[]}> | null;
+  binding?: object;
+}>;
+type CheckpointReceipt = Readonly<{
+  checkpointCid: string; checkpointId: string; runId: string | null;
+  prepareAttemptId?: string | null; runState?: unknown; preparation?: unknown;
+}>;
+type Checkpoint = CheckpointReceipt & Readonly<{requiredArtifactCid: string; decisionSubjectCid: string}>;
+type Reviewer = Readonly<{reviewerId: string}>;
+type DurableJournal = ResumeJournal & Readonly<{
+  persistCheckpoint(input: Readonly<{body: CheckpointBody; priorStatus: string | null | undefined;
+    declaredResults?: readonly unknown[]; authorities: readonly Reviewer[]; binding: object;
+    decisionSubjectCid: string; requestedClaims: readonly string[]; configurationCid?: string;
+    modelCallSet?: CheckpointDescription['modelCallSet']}>): Awaitable<CheckpointReceipt>;
+  submitResolution(...args: never[]): Awaitable<unknown>;
+}>;
+type Deferral = Readonly<{
+  describe(view: HostView & Readonly<{requiredArtifactCid: string}>): Awaitable<CheckpointDescription>;
+  journal: DurableJournal; authorities: readonly Reviewer[]; binding: object;
+}>;
+type FailureView = Readonly<{action?: string; basis?: string; reason?: string}>;
+type DecisionBase = Readonly<{
+  boundary: Boundary; tuple: Tuple; subjectCid?: string; contextCid?: string; entryId?: string; basis?: string;
+}>;
+type Decision = DecisionBase & Readonly<{
+  action: 'dispatch' | 'deny' | 'failure' | 'waiting' | 'unsupported' | 'invalid' | 'checkpoint';
+  reason?: string; authority?: string; claims?: readonly string[]; runtimeDecision?: RuntimeOriginal;
+  checkpoint?: Checkpoint; checkpointCid?: string; resolutionCid?: string; admission?: ResumeAdmission;
+  detail?: unknown; error?: unknown;
+}>;
+type ActiveCallback = {abort(reason?: string): void; operation?: Promise<Answer>};
+type BudgetState = {
+  pending: Set<ActiveCallback>; retention: {entries: number}; scopes: Set<() => boolean>;
+  maxInFlightDecisions: number; maxRetainedDecisions: number; closed: boolean;
+};
+type Budget = Readonly<{
+  usage(): Readonly<{inFlightDecisions: number; retainedDecisions: number; scopes: number; closed: boolean}>;
+  close(): boolean; cleanupPending(): boolean;
+}>;
+type AccountPorts = Readonly<{
+  readConfiguration?: () => string | null | undefined;
+  admitConfiguration?: (runtime: Runtime, wire: string) => RuntimeOriginal;
+  withAccountObservation?: <Value>(operation: () => Value) => Value;
+}>;
+type GateOptions = AccountPorts & Readonly<{
+  runtime?: Runtime; configuration?: string | null; configurationCid?: string;
+  context?: Context; decide?: Decide; answeringAuthorities?: readonly string[]; requiredClaims?: readonly string[];
+  decisionTimeoutMs?: number; maxInFlightDecisions?: number; maxRetainedDecisions?: number;
+  decisionBudget?: Budget; deferral?: Deferral; protectedSites?: readonly string[];
+}>;
+type Core = AccountPorts & Readonly<{
+  moon: Runtime | undefined; account: RuntimeOriginal | undefined; configuration?: string | null;
+  accountState: AccountState; accountId?: string; configurationCid?: string; decide?: Decide;
+  answeringAuthorities: readonly string[]; requiredClaims: readonly string[]; decisionTimeoutMs: number;
+  maxInFlightDecisions: number; maxRetainedDecisions: number; deferral?: Deferral; protectedSites: ReadonlySet<string>;
+  counts: Record<Counter, number>; pending: BudgetState['pending']; retention: BudgetState['retention']; capacity: BudgetState;
+}>;
+type AuthorizeOptions = Readonly<{subjectCid?: string; signal?: AbortSignal; sealDeferredSubject?: SealSubject; allowDeferral?: boolean}>;
+type ResumeOptions = Readonly<{subjectCid?: string; signal?: AbortSignal; resumption?: Resumption;
+  sealedSubjectCid?: string; setApproval?: Decision}>;
+type Gate = Readonly<{
+  accountId: string | undefined; configurationCid: string | undefined; principal: string; contextCid: string;
+  authorize(boundary: Boundary, scope: Scope, options?: AuthorizeOptions): Promise<Decision>;
+  resume(boundary: Boundary, scope: Scope, options?: ResumeOptions): Promise<Decision>;
+  cover(boundary: Boundary, scope: Scope): Decision; isProtectedSite(key: string): boolean;
+  assertAccountCurrent(decision: Decision): void; assertConfigurationCurrent(): void; withContext(next: Context): Gate;
+  counters(): Readonly<Record<Counter, number>>;
+  resourceUsage(): Readonly<{retainedDecisions: number; scopeDecisions: number;
+    inFlightDecisions: number; scopeInFlightDecisions: number}>;
+  close(): boolean; cleanupPending(): boolean; cleanup(): boolean;
+}>;
+type PendingDecision = {operation?: Promise<Decision>; settled?: boolean};
+
+const decisionBudgets = new WeakMap<Budget, BudgetState>();
 
 // A Host installation shares physical callback capacity across its short-lived
 // decision scopes. Judgments remain private to each scope, never global.
 export function createAuthorizationDecisionBudget({maxInFlightDecisions = 16,
-  maxRetainedDecisions = 1024} = {}) {
+  maxRetainedDecisions = 1024}: Readonly<{maxInFlightDecisions?: number; maxRetainedDecisions?: number}> = {}) {
   if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
     Number.isSafeInteger(value) && value > 0)) {
     fail('InvalidAuthorizationCapacity');
   }
-  const state = {pending: new Set(), retention: {entries: 0},
+  const state: BudgetState = {pending: new Set(), retention: {entries: 0},
     scopes: new Set(), maxInFlightDecisions, maxRetainedDecisions,
     closed: false};
   const budget = Object.freeze({
@@ -86,12 +233,12 @@ const ACCOUNT_DENY_CODES = Object.freeze({
   configuration_missing: 'ACTQL_E_ACCOUNT_CONFIG_INVALID',
 });
 
-export function authorizationRuntimeCode(decision) {
+export function authorizationRuntimeCode(decision: FailureView | null | undefined) {
   switch (decision?.action) {
     case 'deny':
       return decision.basis === 'rejected_by_host'
         ? 'ACTQL_E_DELEGATION_REJECTED'
-        : ACCOUNT_DENY_CODES[decision.reason] ?? 'ACTQL_E_ACCOUNT_DENIED';
+        : ACCOUNT_DENY_CODES[decision.reason as keyof typeof ACCOUNT_DENY_CODES] ?? 'ACTQL_E_ACCOUNT_DENIED';
     case 'failure':
     case 'unsupported':
       return 'ACTQL_E_DELEGATION_UNAVAILABLE';
@@ -101,8 +248,12 @@ export function authorizationRuntimeCode(decision) {
 }
 
 export class ExecutionAuthorizationError extends Error {
-  constructor(decision) {
-    const code = ERROR_CODES[decision?.action] ??
+  declare code: string;
+  declare runtimeCode: ReturnType<typeof authorizationRuntimeCode>;
+  declare authorization: FailureView | null | undefined;
+
+  constructor(decision: FailureView | null | undefined) {
+    const code = ERROR_CODES[decision?.action as keyof typeof ERROR_CODES] ??
       'ExecutionAuthorizationInvalidDecision';
     super(code);
     this.code = code;
@@ -111,16 +262,16 @@ export class ExecutionAuthorizationError extends Error {
   }
 }
 
-const fail = code => {
+const fail: (code: string) => never = code => {
   throw Object.assign(new TypeError(code), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0 &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&
   value.length <= 512;
-const cid = value => typeof value === 'string' &&
+const cid = (value: unknown): value is string => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/.test(value);
-const names = value => Array.isArray(value) && value.every(text);
+const names = (value: unknown): value is readonly string[] => Array.isArray(value) && value.every(text);
 
-function checkedScope(scope) {
+function checkedScope(scope: Scope) {
   if (scope === null || typeof scope !== 'object' || !text(scope.connection) ||
       !text(scope.resource) || !text(scope.operation)) {
     fail('InvalidAuthorizationScope');
@@ -128,7 +279,7 @@ function checkedScope(scope) {
   return scope;
 }
 
-function frozenDecision(fields) {
+function frozenDecision<const Fields extends Decision>(fields: Fields) {
   return Object.freeze(fields);
 }
 
@@ -139,10 +290,10 @@ function frozenDecision(fields) {
 // This is process-local custody of a decision the gate just returned, never
 // a durable approval: after a restart only the gate's own `resume` against
 // its journal decides again.
-const issuedDispatches = new WeakMap();
-const issuedDecisionScopes = new WeakMap();
+const issuedDispatches = new WeakMap<object, Readonly<{configurationCid: string; principal: string}>>();
+const issuedDecisionScopes = new WeakMap<object, Readonly<{assertAccountCurrent(decision: Decision): void}>>();
 
-export function authorizationDispatchFacts(decision) {
+export function authorizationDispatchFacts(decision: unknown) {
   return decision !== null && typeof decision === 'object'
     ? issuedDispatches.get(decision) : undefined;
 }
@@ -150,7 +301,7 @@ export function authorizationDispatchFacts(decision) {
 // Resolve the original issuer, never a lookalike gate with matching facts.
 // The existing provenance projection remains historical after scope closure;
 // this synchronous fence additionally requires that issuer and account now.
-export function assertAuthorizationAccountCurrent(decision) {
+export function assertAuthorizationAccountCurrent(decision: Decision) {
   const issuer = issuedDecisionScopes.get(decision);
   if (issuer === undefined) fail('ForeignAuthorizationDecision');
   issuer.assertAccountCurrent(decision);
@@ -169,7 +320,7 @@ export function assertAuthorizationAccountCurrent(decision) {
 // context it names. An Effect Set additionally permits later member tuples
 // of the same sealed Preview after this gate admitted its first tuple; each
 // later tuple is still evaluated against the current account configuration.
-export async function decisionSubjectCid(subject) {
+export async function decisionSubjectCid(subject: Subject) {
   const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
     `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
   const digest = await globalThis.crypto.subtle.digest('SHA-256',
@@ -178,47 +329,47 @@ export async function decisionSubjectCid(subject) {
     byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function subjectFields(subject) {
+function subjectFields(subject: unknown) {
   if (subject === null || typeof subject !== 'object') return undefined;
-  const fields = SUBJECT_FIELDS.map(name => subject[name]);
+  const fields = SUBJECT_FIELDS.map(name => (subject as Partial<Subject>)[name]);
   return fields.every(value => typeof value === 'string') ? fields : undefined;
 }
 
 // Map one decision-function result to the adapter vocabulary. Anything that
 // is not exactly permit/reject/defer/unavailable is a malformed answer.
-function answerOf(value) {
+function answerOf(value: unknown): Answer {
   if (value === null || typeof value !== 'object') {
     return {kind: 'failure', failure: 'malformed_answer'};
   }
-  const decision = value.decision;
+  const decision = (value as Readonly<{decision?: unknown}>).decision;
   if (decision === 'unavailable') return {kind: 'failure', failure: 'unavailable'};
   if (decision !== 'permit' && decision !== 'reject' && decision !== 'defer') {
     return {kind: 'failure', failure: 'malformed_answer'};
   }
-  const subject = subjectFields(value.subject);
+  const subject = subjectFields((value as Readonly<{subject?: unknown}>).subject);
   if (subject === undefined) return {kind: 'failure', failure: 'malformed_answer'};
   if (decision === 'defer') return {kind: 'defer', subject};
-  if (!text(value.authority)) return {kind: 'failure', failure: 'malformed_answer'};
-  const claims = value.claims ?? [];
+  if (!text((value as Readonly<{authority?: unknown}>).authority)) return {kind: 'failure', failure: 'malformed_answer'};
+  const claims = (value as Readonly<{claims?: unknown}>).claims ?? [];
   if (decision === 'permit' && !names(claims)) {
     return {kind: 'failure', failure: 'malformed_answer'};
   }
   return {
     kind: decision,
     subject,
-    authority: value.authority,
-    claims: decision === 'permit' ? [...claims] : [],
+    authority: (value as Readonly<{authority: string}>).authority,
+    claims: decision === 'permit' ? [...claims as readonly string[]] : [],
     // Optional bindings an immediate answer states (for example from its
     // verified immediate Resolution); checked against the bound request.
-    subjectArtifactCid: value.subjectArtifactCid,
-    decisionSubjectCid: value.decisionSubjectCid,
+    subjectArtifactCid: (value as Readonly<{subjectArtifactCid?: unknown}>).subjectArtifactCid,
+    decisionSubjectCid: (value as Readonly<{decisionSubjectCid?: unknown}>).decisionSubjectCid,
   };
 }
 
 // Immediate path: a permit or reject that states the artifact or decision
 // subject it answers must state exactly the bound ones; another artifact or
 // subject is a malformed answer, never a permit or a rejection.
-function immediateBinding(answer, view) {
+function immediateBinding(answer: Answer, view: HostView): Answer {
   if (answer.kind !== 'permit' && answer.kind !== 'reject') return answer;
   if ((answer.subjectArtifactCid !== undefined &&
        answer.subjectArtifactCid !== view.subjectArtifactCid) ||
@@ -229,7 +380,7 @@ function immediateBinding(answer, view) {
   return answer;
 }
 
-function requireRuntime(runtime) {
+function requireRuntime(runtime: Runtime | undefined): Runtime {
   for (const name of [
     'executionAuthorizationAdmit', 'executionAuthorizationMissing',
     'executionAuthorizationAccountJson', 'executionAuthorizationEvaluate',
@@ -238,14 +389,14 @@ function requireRuntime(runtime) {
     'executionAuthorizationRequestJson', 'executionAuthorizationAnswer',
     'executionAuthorizationDecisionJson',
   ]) {
-    if (typeof runtime?.[name] !== 'function') {
+    if (typeof runtime?.[name as keyof Runtime] !== 'function') {
       fail('InvalidExecutionAuthorizationRuntime');
     }
   }
-  return runtime;
+  return runtime!;
 }
 
-function checkedDeferral(deferral) {
+function checkedDeferral(deferral: Deferral | undefined): Deferral | undefined {
   if (deferral === undefined) return undefined;
   if (deferral === null || typeof deferral !== 'object' ||
       typeof deferral.describe !== 'function') {
@@ -284,7 +435,7 @@ export function createAuthorizationGate({
   decisionBudget,
   deferral,
   protectedSites = [],
-} = {}) {
+}: GateOptions = {}): Gate {
   if (context === null || typeof context !== 'object' ||
       !text(context.principal) || !cid(context.contextCid)) {
     fail('InvalidAuthorizationContext');
@@ -327,8 +478,8 @@ export function createAuthorizationGate({
     : missing ? moon.executionAuthorizationMissing()
       : admitConfiguration === undefined ? moon.executionAuthorizationAdmit(configuration)
         : admitConfiguration(moon, configuration);
-  const state = account === undefined ? {state: 'missing'}
-    : JSON.parse(moon.executionAuthorizationAccountJson(account));
+  const state: AccountState = account === undefined ? {state: 'missing'}
+    : JSON.parse(moon!.executionAuthorizationAccountJson(account)) as AccountState;
   if (state.state === 'rejected') {
     throw Object.assign(new Error('ExecutionAuthorizationConfigurationRejected'), {
       code: 'ExecutionAuthorizationConfigurationRejected',
@@ -350,7 +501,7 @@ export function createAuthorizationGate({
     durable !== undefined
     ? durable.authorities.map(authority => authority.reviewerId)
     : answeringAuthorities;
-  const core = Object.freeze({
+  const core: Core = Object.freeze({
     moon,
     account,
     configuration,
@@ -369,7 +520,7 @@ export function createAuthorizationGate({
     maxRetainedDecisions: capacity.maxRetainedDecisions,
     deferral: durable,
     protectedSites: new Set(protectedSites),
-    counts: Object.fromEntries(COUNTERS.map(name => [name, 0])),
+    counts: Object.fromEntries(COUNTERS.map(name => [name, 0])) as Record<Counter, number>,
     // Shared capacity, not shared judgments. Pending callbacks keep their
     // physical slot until settlement, including after deadline or close.
     pending: capacity.pending,
@@ -382,17 +533,17 @@ export function createAuthorizationGate({
   }));
 }
 
-function gateFor(core, context) {
+function gateFor(core: Core, context: Context): Gate {
   const gateScope = Object.freeze({
-    assertAccountCurrent: decision => assertCurrentAccount(decision),
+    assertAccountCurrent: (decision: Decision) => assertCurrentAccount(decision),
   });
-  const cache = new Map();
-  const pending = new Set();
+  const cache = new Map<string, PendingDecision>();
+  const pending = new Set<ActiveCallback>();
   let closed = false;
   const ensureOpen = () => {
     if (closed) fail('AuthorizationDecisionScopeClosed');
   };
-  const release = (key, entry) => {
+  const release = (key: string, entry: PendingDecision) => {
     if (cache.get(key) !== entry) return;
     cache.delete(key);
     core.retention.entries--;
@@ -407,12 +558,12 @@ function gateFor(core, context) {
     return cache.size === 0 && pending.size === 0;
   };
   core.capacity.scopes.add(closeScope);
-  const count = (name, delta = 1) => { core.counts[name] += delta; };
+  const count = (name: Counter, delta = 1) => { core.counts[name] += delta; };
   // Account currency only. The installed file reader observes the original
   // configuration source; without one this live gate owns its immutable wire
   // configuration. Neither branch asks for a replacement Host answer or
   // enters a resumed approval/claim. The result stays private to this scope.
-  const unavailable = code => {
+  const unavailable: (code: string) => never = code => {
     throw Object.assign(new Error(code), {code,
       runtimeCode: 'ACTQL_E_ACCOUNT_CONFIG_INVALID'});
   };
@@ -428,10 +579,10 @@ function gateFor(core, context) {
         // bytes again. Changed observations still take the full Core path.
         if (typeof wire !== 'string' || wire !== core.configuration) {
           account = typeof wire === 'string'
-            ? core.admitConfiguration === undefined ? core.moon.executionAuthorizationAdmit(wire)
-              : core.admitConfiguration(core.moon, wire)
-            : core.moon.executionAuthorizationMissing();
-          state = JSON.parse(core.moon.executionAuthorizationAccountJson(account));
+            ? core.admitConfiguration === undefined ? core.moon!.executionAuthorizationAdmit(wire)
+              : core.admitConfiguration(core.moon!, wire)
+            : core.moon!.executionAuthorizationMissing();
+          state = JSON.parse(core.moon!.executionAuthorizationAccountJson(account)) as AccountState;
         }
       }
     } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
@@ -445,9 +596,9 @@ function gateFor(core, context) {
     }
     return account;
   };
-  const accountObservation = operation => core.withAccountObservation === undefined
+  const accountObservation = <Value,>(operation: () => Value): Value => core.withAccountObservation === undefined
     ? operation() : core.withAccountObservation(operation);
-  const assertCurrentAccount = decision => accountObservation(() => {
+  const assertCurrentAccount = (decision: Decision) => accountObservation(() => {
     const account = assertScopeAccountCurrent();
     // Only an internal dispatch or an exact issued decision reaches here.
     // With the same admitted immutable Account its pure tuple outcome cannot
@@ -455,12 +606,12 @@ function gateFor(core, context) {
     // resume retain their separate current/claim boundaries. A changed wire
     // with the same admitted identity is evaluated through Core below.
     if (account === core.account) return;
-    let outcome;
+    let outcome: Evaluation;
     try {
-      outcome = JSON.parse(core.moon.executionAuthorizationEvaluationJson(
-        core.moon.executionAuthorizationEvaluate(account,
+      outcome = JSON.parse(core.moon!.executionAuthorizationEvaluationJson(
+        core.moon!.executionAuthorizationEvaluate(account!,
           decision.tuple.principal, decision.tuple.connection,
-          decision.tuple.resource, decision.tuple.operation)));
+          decision.tuple.resource, decision.tuple.operation))) as Evaluation;
     } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
     ensureOpen();
     if (!['allow', 'delegate'].includes(outcome.outcome) ||
@@ -468,7 +619,7 @@ function gateFor(core, context) {
       unavailable('AuthorizationCurrentAccountChanged');
     }
   });
-  const record = decision => {
+  const record = (decision: Decision) => {
     // This is also the post-await fence for cached and resumed dispatches.
     // Refusing a changed original account never requests a replacement answer.
     if (decision.action === 'dispatch') assertCurrentAccount(decision);
@@ -489,16 +640,16 @@ function gateFor(core, context) {
   // A joined caller owns only its wait. The first caller still owns the
   // shared decision's physical lifetime; a later caller's abort must not
   // cancel that decision or release its in-flight capacity slot.
-  const awaitJoined = (operation, signal) => {
+  const awaitJoined = <Value,>(operation: Promise<Value>, signal: AbortSignal | undefined): Promise<Value> => {
     if (signal === undefined) return operation;
     signal.throwIfAborted();
     return new Promise((resolve, reject) => {
       let done = false;
-      const finish = (accept, value) => {
+      const finish = (accept: boolean, value: unknown) => {
         if (done) return;
         done = true;
         signal.removeEventListener('abort', abort);
-        (accept ? resolve : reject)(value);
+        (accept ? resolve : reject)(value as Value);
       };
       const abort = () => {
         try { signal.throwIfAborted(); }
@@ -511,7 +662,7 @@ function gateFor(core, context) {
     });
   };
 
-  async function askHost(view, signal) {
+  async function askHost(view: HostView, signal: AbortSignal | undefined): Promise<Answer> {
     if (closed || signal?.aborted) {
       return {kind: 'failure', failure: 'unavailable'};
     }
@@ -520,11 +671,11 @@ function gateFor(core, context) {
         error: new Error('AuthorizationDecisionCapacity')};
     }
     const controller = new AbortController();
-    let timer;
-    let onAbort;
-    let stop;
-    const stopped = new Promise(resolve => { stop = resolve; });
-    const entry = {abort(reason = 'unavailable') {
+    let timer: ReturnType<typeof setTimeout>;
+    let onAbort: (() => void) | undefined;
+    let stop!: (answer: Answer) => void;
+    const stopped = new Promise<Answer>(resolve => { stop = resolve; });
+    const entry: ActiveCallback = {abort(reason = 'unavailable') {
       stop({kind: 'failure', failure: reason});
       controller.abort(reason);
     }};
@@ -533,10 +684,10 @@ function gateFor(core, context) {
     const operation = Promise.resolve().then(() => {
       if (controller.signal.aborted) return {decision: 'unavailable'};
       count('hostDecisionCalls');
-      return core.decide(view, {signal: controller.signal});
+      return core.decide!(view, {signal: controller.signal});
     }).then(
         answerOf,
-        error => ({kind: 'failure', failure: 'adapter_error', error}),
+        (error): Answer => ({kind: 'failure', failure: 'adapter_error', error}),
     ).finally(() => {
       core.pending.delete(entry);
       pending.delete(entry);
@@ -552,11 +703,11 @@ function gateFor(core, context) {
       return await Promise.race([operation, stopped]);
     } finally {
       clearTimeout(timer);
-      if (onAbort !== undefined) signal.removeEventListener('abort', onAbort);
+      if (onAbort !== undefined) signal!.removeEventListener('abort', onAbort);
     }
   }
 
-  async function defer(base, view, sealDeferredSubject) {
+  async function defer(base: DecisionBase, view: HostView, sealDeferredSubject: SealSubject | undefined): Promise<Decision> {
     const deferral = core.deferral;
     if (deferral === undefined) {
       return frozenDecision({...base, action: 'unsupported',
@@ -592,8 +743,8 @@ function gateFor(core, context) {
       }
     }
     const sealedView = Object.freeze({...view, requiredArtifactCid: artifactCid});
-    let persisted;
-    let bindingCid;
+    let persisted: CheckpointReceipt;
+    let bindingCid: string;
     try {
       bindingCid = await decisionSubjectCid(view.subject);
       const described = await deferral.describe(sealedView);
@@ -660,7 +811,7 @@ function gateFor(core, context) {
         // The reviewed artifact of an authorization deferral is the sealed
         // subject artifact of the boundary; the gate owns this binding.
         required_artifact: {
-          artifact_type: ARTIFACT_TYPE[kind],
+          artifact_type: ARTIFACT_TYPE[kind as CheckpointKind],
           ...described.body?.required_artifact,
           artifact_cid: artifactCid,
         },
@@ -706,9 +857,9 @@ function gateFor(core, context) {
       })});
   }
 
-  async function evaluateResumed(boundary, tuple, subjectCid, resumption,
-    sealedSubjectCid = subjectCid, signal = undefined,
-    setApproval = undefined) {
+  async function evaluateResumed(boundary: Boundary, tuple: Tuple, subjectCid: string | undefined,
+    resumption: Resumption | undefined, sealedSubjectCid = subjectCid, signal: AbortSignal | undefined = undefined,
+    setApproval: Decision | undefined = undefined): Promise<Decision> {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -722,16 +873,16 @@ function gateFor(core, context) {
     // the resume ownership admission below applies to every resumed
     // dispatch, allow or delegate.
     const evaluation = moon.executionAuthorizationEvaluate(
-      core.account, tuple.principal, tuple.connection, tuple.resource,
+      core.account!, tuple.principal, tuple.connection, tuple.resource,
       tuple.operation,
     );
     const outcome = JSON.parse(
-      moon.executionAuthorizationEvaluationJson(evaluation));
+      moon.executionAuthorizationEvaluationJson(evaluation)) as Evaluation;
     if (outcome.outcome !== 'delegate') {
       const runtimeDecision = moon.executionAuthorizationEvaluationAction(
         evaluation);
       const projected = JSON.parse(
-        moon.executionAuthorizationDecisionJson(runtimeDecision));
+        moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
       const decided = {...base, action: projected.action,
         basis: projected.basis, reason: projected.reason ?? undefined,
         entryId: outcome.entry_id};
@@ -758,11 +909,11 @@ function gateFor(core, context) {
         reason: 'checkpoint_journal_not_configured'});
     }
     const request = moon.executionAuthorizationPrepare(
-      evaluation, core.configurationCid, boundary, subjectCid ?? '',
+      evaluation, core.configurationCid!, boundary, subjectCid ?? '',
       context.contextCid, [...core.answeringAuthorities],
       [...core.requiredClaims],
     );
-    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request));
+    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request)) as BoundRequest;
     if (bound.ok !== true) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: bound.issue});
@@ -822,7 +973,7 @@ function gateFor(core, context) {
     const runtimeDecision = moon.executionAuthorizationAnswer(request,
       'permit', subject, admission.authority, [...claims], '');
     const projected = JSON.parse(
-      moon.executionAuthorizationDecisionJson(runtimeDecision));
+      moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
     if (projected.action !== 'dispatch') {
       return frozenDecision({...withEntry, action: 'failure',
         reason: projected.reason ?? 'malformed_answer',
@@ -831,15 +982,15 @@ function gateFor(core, context) {
     count('resumedDecisions');
     return frozenDecision({...withEntry, action: 'dispatch',
       authority: projected.authority,
-      claims: Object.freeze([...projected.claims]),
+      claims: Object.freeze([...projected.claims!]),
       checkpointCid: admission.checkpointCid,
       resolutionCid: admission.resolutionCid,
       admission,
       runtimeDecision});
   }
 
-  async function evaluate(boundary, tuple, subjectCid, signal,
-    sealDeferredSubject, allowDeferral) {
+  async function evaluate(boundary: Boundary, tuple: Tuple, subjectCid: string | undefined, signal: AbortSignal | undefined,
+    sealDeferredSubject: SealSubject | undefined, allowDeferral: boolean): Promise<Decision> {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -848,16 +999,16 @@ function gateFor(core, context) {
     }
     const moon = core.moon;
     const evaluation = moon.executionAuthorizationEvaluate(
-      core.account, tuple.principal, tuple.connection, tuple.resource,
+      core.account!, tuple.principal, tuple.connection, tuple.resource,
       tuple.operation,
     );
     const outcome = JSON.parse(
-      moon.executionAuthorizationEvaluationJson(evaluation));
+      moon.executionAuthorizationEvaluationJson(evaluation)) as Evaluation;
     if (outcome.outcome !== 'delegate') {
       const runtimeDecision = moon.executionAuthorizationEvaluationAction(
         evaluation);
       const projected = JSON.parse(
-        moon.executionAuthorizationDecisionJson(runtimeDecision));
+        moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
       return frozenDecision({...base, action: projected.action,
         basis: projected.basis, reason: projected.reason ?? undefined,
         entryId: outcome.entry_id,
@@ -874,11 +1025,11 @@ function gateFor(core, context) {
         reason: 'decision_function_not_configured'});
     }
     const request = moon.executionAuthorizationPrepare(
-      evaluation, core.configurationCid, boundary, subjectCid ?? '',
+      evaluation, core.configurationCid!, boundary, subjectCid ?? '',
       context.contextCid, [...core.answeringAuthorities],
       [...core.requiredClaims],
     );
-    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request));
+    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request)) as BoundRequest;
     if (bound.ok !== true) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: bound.issue});
@@ -899,7 +1050,7 @@ function gateFor(core, context) {
     // No decision function: the durable journal and its answer path are the
     // Host's decision route, so the bound subject is deferred as is.
     ensureOpen();
-    const answer = core.decide === undefined
+    const answer: Answer = core.decide === undefined
       ? {kind: 'defer', subject: SUBJECT_FIELDS.map(name => view.subject[name])}
       : immediateBinding(await askHost(view, signal), view);
     const runtimeDecision = moon.executionAuthorizationAnswer(
@@ -909,17 +1060,18 @@ function gateFor(core, context) {
       answer.authority ?? '',
       answer.claims ?? [],
       answer.kind === 'failure'
-        ? (FAILURE_REASONS.has(answer.failure) ? answer.failure
-          : String(answer.error?.code ?? answer.error?.message ??
+        ? (FAILURE_REASONS.has(answer.failure!) ? answer.failure!
+          : String((answer.error as {code?: unknown} | undefined)?.code ??
+            (answer.error as {message?: unknown} | undefined)?.message ??
             'adapter_error'))
         : '',
     );
     const projected = JSON.parse(
-      moon.executionAuthorizationDecisionJson(runtimeDecision));
+      moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
     if (projected.action === 'dispatch') {
       return frozenDecision({...withEntry, action: 'dispatch',
         basis: 'host_permit', authority: projected.authority,
-        claims: Object.freeze([...projected.claims]), runtimeDecision});
+        claims: Object.freeze([...projected.claims!]), runtimeDecision});
     }
     if (projected.action === 'deny') {
       count('hostRejections');
@@ -979,7 +1131,7 @@ function gateFor(core, context) {
     // sealing, describing or persisting a Checkpoint. Ordinary execution keeps
     // its existing default deferral behavior.
     async authorize(boundary, scope, {subjectCid, signal,
-      sealDeferredSubject, allowDeferral = true} = {}) {
+      sealDeferredSubject, allowDeferral = true}: AuthorizeOptions = {}) {
       ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
@@ -1012,7 +1164,7 @@ function gateFor(core, context) {
       ]);
       const cached = cache.get(key);
       if (cached !== undefined) {
-        const decision = await awaitJoined(cached.operation, signal);
+        const decision = await awaitJoined(cached.operation!, signal);
         ensureOpen();
         signal?.throwIfAborted();
         count('reusedDecisions');
@@ -1023,7 +1175,7 @@ function gateFor(core, context) {
       }
       // Reserve before starting, so concurrent evaluations cannot overfill
       // the installation. The exact subject joins one pending evaluation.
-      const entry = {};
+      const entry: PendingDecision = {};
       cache.set(key, entry);
       core.retention.entries++;
       entry.operation = evaluate(boundary, tuple, subjectCid, signal,
@@ -1068,7 +1220,7 @@ function gateFor(core, context) {
     // caller may only re-send that exact durable dispatch identity through
     // `admission.reconcile(identity)`, or leave the intent unresolved.
     async resume(boundary, scope, {subjectCid, signal, resumption,
-      sealedSubjectCid, setApproval} = {}) {
+      sealedSubjectCid, setApproval}: ResumeOptions = {}) {
       ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
@@ -1149,15 +1301,15 @@ const REPRESENTABLE_CLAIMS = Object.freeze({
 
 // Whether every required claim is representable by the approval evidence
 // profile of `kind` or, with no kind, by any deferred profile.
-function representableClaims(claims, kind) {
+function representableClaims(claims: readonly string[], kind?: string) {
   const profiles = kind === undefined ? Object.values(REPRESENTABLE_CLAIMS)
-    : [REPRESENTABLE_CLAIMS[kind] ?? REPRESENTABLE_CLAIMS.other];
+    : [REPRESENTABLE_CLAIMS[kind as keyof typeof REPRESENTABLE_CLAIMS] ?? REPRESENTABLE_CLAIMS.other];
   const representable = new Set(profiles.flat());
   return [...claims].every(claim => representable.has(claim));
 }
 
-const heldClaim = resumption => {
-  const held = resumption?.claim;
+const heldClaim = (resumption: Resumption | undefined) => {
+  const held = resumption?.claim as Claim & Readonly<{claim?: Claim; checkpointCid?: string}> | undefined;
   const claim = held?.claim ?? held;
   return Object.freeze({
     checkpointCid: text(held?.checkpointCid) ? held.checkpointCid : undefined,
@@ -1189,9 +1341,9 @@ const heldClaim = resumption => {
 // preparation, Checkpoint, intent, Resolution, claimant, generation and
 // lease; its `enter()` must be called immediately before the protected send
 // and succeeds at most once per claim generation.
-export function admitResumedDispatch(journal, resumption, {
+export function admitResumedDispatch(journal: ResumeJournal | undefined, resumption: Resumption | undefined, {
   requiredClaims = [], configurationCid, approvalClaims = true,
-} = {}) {
+}: Readonly<{requiredClaims?: readonly string[]; configurationCid?: string; approvalClaims?: boolean}> = {}): ResumeResult {
   if (journal === null || typeof journal !== 'object' ||
       typeof journal.admitResume !== 'function' ||
       typeof journal.enterResumedDispatch !== 'function') {
@@ -1199,12 +1351,12 @@ export function admitResumedDispatch(journal, resumption, {
   }
   const held = heldClaim(resumption);
   if (held.claim === undefined) return {detail: 'ResumeNotClaimed'};
-  let admitted;
+  let admitted: JournalAdmission;
   try {
     admitted = journal.admitResume(held.claim,
       {checkpointCid: held.checkpointCid});
   } catch (error) {
-    return {detail: typeof error?.code === 'string' ? error.code
+    return {detail: typeof (error as {code?: unknown} | undefined)?.code === 'string' ? (error as {code: string}).code
       : 'ResumeAdmissionFailed', error};
   }
   // A configuration change while the Run waited revokes the continuation:
@@ -1221,7 +1373,7 @@ export function admitResumedDispatch(journal, resumption, {
     if (JSON.stringify(requested) !== JSON.stringify(current)) {
       return {detail: 'RequiredClaimsChanged'};
     }
-    const representable = REPRESENTABLE_CLAIMS[admitted.kind] ??
+    const representable = REPRESENTABLE_CLAIMS[admitted.kind as keyof typeof REPRESENTABLE_CLAIMS] ??
       REPRESENTABLE_CLAIMS.other;
     if (!requested.every(claim => representable.includes(claim))) {
       return {detail: 'RequiredClaimUnrepresentable'};
@@ -1231,7 +1383,7 @@ export function admitResumedDispatch(journal, resumption, {
     }
   }
   let used = false;
-  const once = (method, dispatchIdentity) => {
+  const once = (method: 'enterResumedDispatch' | 'enterResumedReconciliation', dispatchIdentity?: string) => {
     if (used) {
       throw Object.assign(new Error('ResumeAdmissionConsumed'),
         {code: 'ResumeAdmissionConsumed'});
@@ -1241,7 +1393,7 @@ export function admitResumedDispatch(journal, resumption, {
       throw Object.assign(new Error('ResumeJournalUnavailable'),
         {code: 'ResumeJournalUnavailable'});
     }
-    const entered = journal[method]({
+    const entered = journal[method]!({
       intentId: admitted.intentId,
       claimant: admitted.claimant,
       generation: admitted.generation,
@@ -1266,13 +1418,13 @@ export function admitResumedDispatch(journal, resumption, {
     // with the send's durable identity when it has one. Throws
     // `PriorAdmissionUnresolved` when an earlier claim generation of the
     // same intent already started a protected dispatch: no fresh start.
-    enter(dispatchIdentity) {
+    enter(dispatchIdentity?: string) {
       return once('enterResumedDispatch', dispatchIdentity);
     },
     // The physical reconciliation path after `PriorAdmissionUnresolved`:
     // the same fence, admitting only a re-send of the earlier generation's
     // exact durable dispatch identity (never a second distinct dispatch).
-    reconcile(dispatchIdentity) {
+    reconcile(dispatchIdentity: string) {
       return once('enterResumedReconciliation', dispatchIdentity);
     },
   });
@@ -1281,7 +1433,8 @@ export function admitResumedDispatch(journal, resumption, {
 
 // Boundary helper: continue only with a dispatch decision for this exact
 // scope. Every other outcome stops before the protected operation.
-export async function requireAuthorizedDispatch(gate, boundary, scope, options) {
+export async function requireAuthorizedDispatch(gate: Pick<Gate, 'authorize'>, boundary: Boundary, scope: Scope,
+  options?: AuthorizeOptions) {
   const decision = await gate.authorize(boundary, scope, options);
   if (decision.action !== 'dispatch') {
     throw new ExecutionAuthorizationError(decision);

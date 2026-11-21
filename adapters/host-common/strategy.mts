@@ -41,7 +41,6 @@ import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs'
 import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
 import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
-// @ts-expect-error TS7016: remove after migrating the authorization gate.
 import {ExecutionAuthorizationError, missingAuthorizationGate} from './authorization-gate.mjs';
 import {projectTaskObservation, projectTaskLogicalObservation} from './task-observation.mjs';
 // @ts-expect-error TS7016: remove after migrating the Common runtime adapter.

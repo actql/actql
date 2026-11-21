@@ -3,7 +3,6 @@ import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 // concrete copier is an adopted representation provider; common completion and
 // physical accounting remain in the existing runtime Core.
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
-  // @ts-expect-error TS7016: remove after migrating the authorization gate.
   './authorization-gate.mjs';
 import {executionSiteDescription, executionSiteTransferProvider,
   executionSiteTransferOperationAvailable,

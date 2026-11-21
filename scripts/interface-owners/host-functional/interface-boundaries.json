@@ -885,7 +885,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -897,13 +897,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -915,13 +915,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Account interpretation, delegated-request binding and Host-answer admission"
               },
               {
@@ -933,14 +933,14 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "maxRetainedDecisions = 1024} = {}) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "maxRetainedDecisions = 1024}: Readonly<{maxInFlightDecisions?: number; maxRetainedDecisions?: number}> = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -951,13 +951,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// A Host installation shares physical callback capacity across its short-lived"
               },
               {
@@ -969,13 +969,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);"
               },
               {
@@ -987,13 +987,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "closed: false};"
               },
               {
@@ -1007,7 +1007,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1021,7 +1021,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1033,8 +1033,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "verification": [
@@ -1059,7 +1059,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -1071,13 +1071,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -1089,13 +1089,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Account interpretation, delegated-request binding and Host-answer admission"
               },
               {
@@ -1107,14 +1107,14 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "maxRetainedDecisions = 1024} = {}) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "maxRetainedDecisions = 1024}: Readonly<{maxInFlightDecisions?: number; maxRetainedDecisions?: number}> = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -1125,13 +1125,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// A Host installation shares physical callback capacity across its short-lived"
               },
               {
@@ -1143,13 +1143,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);"
               },
               {
@@ -1161,13 +1161,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "closed: false};"
               },
               {
@@ -1181,7 +1181,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1195,7 +1195,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1207,8 +1207,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "verification": [
@@ -1231,7 +1231,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -1243,13 +1243,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "export const AUTHORIZATION_BOUNDARIES = Object.freeze(["
               },
               {
@@ -1261,13 +1261,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Account interpretation, delegated-request binding and Host-answer admission"
               },
               {
@@ -1279,14 +1279,14 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "maxRetainedDecisions = 1024} = {}) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "maxRetainedDecisions = 1024}: Readonly<{maxInFlightDecisions?: number; maxRetainedDecisions?: number}> = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -1297,13 +1297,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// A Host installation shares physical callback capacity across its short-lived"
               },
               {
@@ -1315,13 +1315,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);"
               },
               {
@@ -1333,13 +1333,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "closed: false};"
               },
               {
@@ -1353,7 +1353,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1367,7 +1367,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
+                "path": "adapters/host-common/authorization-gate.mts",
                 "anchor": "// Host-installed execution-authorization gate for protected boundaries."
               },
               {
@@ -1379,8 +1379,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-common/authorization-gate.mjs",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision) {"
+                "path": "adapters/host-common/authorization-gate.mts",
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
               }
             ],
             "verification": [
