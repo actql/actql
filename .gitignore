@@ -1093,3 +1093,5 @@ target/
 /adapters/store-local/delegated-reader.d.mts
 /adapters/store-local/files.test.mjs
 /adapters/store-local/files.test.d.mts
+/adapters/host-node/completion-custody.test.mjs
+/adapters/host-node/completion-custody.test.d.mts

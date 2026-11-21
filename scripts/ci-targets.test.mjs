@@ -641,7 +641,7 @@ test('platform, per-file target, runtime ownership, identities and build retain 
     'src/cmd/native_client/main.mbt', 'src/something/backend_js.mbt', 'src/a/ffi.mbt',
     'src/managed_record_runtime/read.mbt', 'src/execution_relation/rows.mbt',
     'src/connectors/local/driver.mbt', 'src/canonical_json/read.mbt', 'src/sha256/hash.mbt',
-    'adapters/host-node/completion-custody.test.mjs', 'scripts/owned-scratch.mjs',
+    'adapters/host-node/completion-custody.test.mts', 'scripts/owned-scratch.mjs',
     'src/a/moon.pkg', 'adapters/workers/build.mjs', 'packages/sdk/package.json',
     'adapters/store-local/publication-commit-owner.mjs', 'src/a/native.c', 'src/a/memory.mbt', 'src/value_contract/cid.mbt',
     '.github/workflows/ci.yml', 'toolchain.json', 'moon.mod', 'package-lock.json',

@@ -14,6 +14,8 @@ const descriptor = () => ({registry_cid: cid, values_contract_cid: cid, rows_cid
   output_step: 1, input_count: 1, columns: 1, rows: 1, bytes: 10, nodes: 4, depth: 3,
   values: {nodes: 2, text_bytes: 2, work: 4}});
 const limits = {maxCompletions: 2, maxInputs: 2, maxColumns: 10};
+type SubmissionChange = {task?: number; output?: string; descriptor?: unknown; taskIdentity?: unknown; extra?: unknown};
+
 const taskIdentity = (task = 1) => ({task, output_step: 1,
   program_definition_cid: cid, program_parameters_cid: cid,
   unit_definition_cid: cid, unit_parameters_cid: cid, unit_contracts_cid: cid,
@@ -23,21 +25,21 @@ const taskIdentity = (task = 1) => ({task, output_step: 1,
 // Trusted channel/Store SPI fixture, not a computation proof. The real standard
 // Host test separately checks that only common-completed output is delivered.
 function fixture(options = limits, expected = Array.from({length: options.maxCompletions}, (_, i) => taskIdentity(i + 1))) {
-  let alive = true, pending = false, stop, closes = 0, readers = 0;
+  let alive = true, pending = false, stop!: () => void, closes = 0, readers = 0;
   const body = Object.freeze({cid, bytes: 10, available: () => alive,
-    delegateRead(session) {
+    delegateRead(session: string) {
       assert.equal(readers, 0);
       readers++;
       let settled = false;
       const descriptor = Object.freeze({session, token: 'exact-read-token', bytes: 10, cid});
       const release = () => { if (!settled) { settled = true; readers--; } };
       return {descriptor, confirmStopped: release,
-        verify(report) {
+        verify(report: unknown) {
           assert.deepEqual(report, descriptor);
           assert.equal(settled, false);
           if (!alive) throw Error('RetainedUnavailable');
           return {bytes: 10, cid};
-        }, finish(report) {
+        }, finish(report: unknown) {
         assert.deepEqual(report, descriptor);
         assert.equal(settled, false);
         release();
@@ -46,16 +48,16 @@ function fixture(options = limits, expected = Array.from({length: options.maxCom
       }};
     }});
   const bodies = new Map([['first', body]]);
-  const stopped = new Promise(resolve => { stop = resolve; });
+  const stopped = new Promise<void>(resolve => { stop = resolve; });
   const identity = {session: 'exact-session', run: 'run'};
   const cleanupHandle = {status: () => ({pending}), retry: async () => { pending = false; }};
   const store = {service: {invoke: async () => 'storage-only'}, cleanupHandle,
-    observe() {}, body: key => bodies.get(key),
+    observe() {}, body: (key: string) => bodies.get(key),
     async close() { closes++; alive = false; if (pending) throw new Error('DeletionFailed'); }};
   const custody = createProcessCompletionCustody(store, options, expected);
   custody.observe({identity: () => identity, cleanupHandle: {whenStopped: () => stopped}});
   const owner = {...identity, sequence: 2, call: 1};
-  const submit = (change = {}, source = owner) => custody.service.invoke(
+  const submit = (change: SubmissionChange = {}, source = owner) => custody.service.invoke(
     {command: 'retain-completion', task: 1, output: 'first', descriptor: descriptor(),
       taskIdentity: taskIdentity(change.task ?? 1), ...change},
     new AbortController().signal, source);
@@ -64,8 +66,8 @@ function fixture(options = limits, expected = Array.from({length: options.maxCom
 }
 
 function readerChannel(session = 'reader-session', run = 'run') {
-  let exited = false, resolve, reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  let exited = false, resolve!: () => void, reject!: (cause: unknown) => void;
+  const promise = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
   const channel = {identity: () => ({session, run}), status: () => ({exited}),
     cleanupHandle: {whenStopped: () => promise}};
   return {channel, owner: {session, run, sequence: 1, call: 1},
@@ -80,19 +82,19 @@ test('fresh read requires exact custody, same Run, new session and checked task 
   stop(); await Promise.resolve();
   const handle = custody.completion(1);
   assert.throws(() => custody.prepareReader({...handle}), {code: 'ForeignCompletionRecord'});
-  const reader = custody.prepareReader(handle);
+  const reader = custody.prepareReader(handle!);
   for (const channel of [readerChannel('exact-session'), readerChannel('fresh', 'foreign')]) {
     assert.throws(() => reader.observe(channel.channel), {code: 'ForeignCompletionReader'});
   }
   const {channel, owner} = readerChannel();
   reader.observe(channel);
   assert.throws(() => reader.observe(channel), {code: 'CompletionReaderAlreadyBound'});
-  const invoke = (request, source = owner) => reader.service.invoke(request, new AbortController().signal, source);
+  const invoke = (request: Parameters<typeof reader.service.invoke>[0], source = owner) => reader.service.invoke(request, new AbortController().signal, source);
   const request = {command: 'read-completion', taskIdentity: taskIdentity()};
   await assert.rejects(invoke(request, {...owner, run: 'other'}), {code: 'ForeignCompletionReader'});
   await assert.rejects(invoke({...request, taskIdentity: {...taskIdentity(), output_step: 0}}), {code: 'ForeignCompletionTask'});
   assert.equal(readers(), 0);
-  const result = await invoke(request);
+  const result = await invoke(request) as Extract<Awaited<ReturnType<typeof invoke>>, {lease: unknown}>;
   assert.deepEqual(result.taskIdentity, taskIdentity());
   assert.equal(result.origin.session, 'exact-session');
   assert.equal(result.lease.session, 'reader-session');
@@ -114,7 +116,7 @@ test('fresh read requires exact custody, same Run, new session and checked task 
 test('fresh read cancellation and rejected settlement retain borrow until confirmed exit', async () => {
   const {custody, submit, readers} = fixture();
   await submit();
-  const reader = custody.prepareReader(custody.completion(1));
+  const reader = custody.prepareReader(custody.completion(1)!);
   const source = readerChannel();
   reader.observe(source.channel);
   const signal = new AbortController();
@@ -126,7 +128,7 @@ test('fresh read cancellation and rejected settlement retain borrow until confir
   await custody.close();
   assert.equal(readers(), 1);
   assert.equal(reader.cleanupHandle.status().pending, true);
-  assert.throws(() => custody.prepareReader(custody.completion(1)), {code: 'RetainedUnavailable'});
+  assert.throws(() => custody.prepareReader(custody.completion(1)!), {code: 'RetainedUnavailable'});
   source.failSettlement(); await Promise.resolve();
   assert.equal((await reader.cleanupHandle.retry()).pending, true);
   await assert.rejects(reader.service.invoke(request, new AbortController().signal, source.owner), {code: 'ForeignCompletionReader'});
@@ -139,7 +141,7 @@ test('fresh read cancellation and rejected settlement retain borrow until confir
 test('revocation between preparation and first read does not start a borrow', async () => {
   const {custody, submit, revoke, readers} = fixture();
   await submit();
-  const reader = custody.prepareReader(custody.completion(1));
+  const reader = custody.prepareReader(custody.completion(1)!);
   const source = readerChannel();
   reader.observe(source.channel);
   revoke();
@@ -170,12 +172,13 @@ test('custody reader keeps real file capacity charged through revocation until e
     descriptor: {...descriptor(), rows_cid, bytes: 3}, taskIdentity: taskIdentity()},
   new AbortController().signal, writerChannel.owner);
   writerChannel.stop(); await Promise.resolve();
-  const reader = custody.prepareReader(custody.completion(1));
+  const reader = custody.prepareReader(custody.completion(1)!);
   const source = readerChannel();
   reader.observe(source.channel);
   t.after(async () => { source.stop(); await Promise.resolve(); });
-  const invoke = request => reader.service.invoke(request, new AbortController().signal, source.owner);
-  const {lease} = await invoke({command: 'read-completion', taskIdentity: taskIdentity()});
+  const invoke = (request: Parameters<typeof reader.service.invoke>[0]) => reader.service.invoke(request, new AbortController().signal, source.owner);
+  const {lease} = await invoke({command: 'read-completion', taskIdentity: taskIdentity()}) as
+    Extract<Awaited<ReturnType<typeof invoke>>, {lease: unknown}>;
   const report = await consumeDelegatedFile(lease, chunk => assert(chunk.length <= 4));
   assert.deepEqual(await invoke({command: 'verify-completion-read', report}), {bytes: 3, cid: rows_cid});
   assert.equal(reader.cleanupHandle.status().pending, true);
@@ -254,7 +257,7 @@ test('custody checks task target, parameter identity and completed dependency oc
   await assert.rejects(submit({taskIdentity: {...taskIdentity(), output_step: 2}}), {code: 'ForeignCompletionTask'});
   await submit();
   bodies.set('second', Object.freeze({...body}));
-  const send = value => submit({task: 2, output: 'second', taskIdentity: value});
+  const send = (value: ReturnType<typeof taskIdentity>) => submit({task: 2, output: 'second', taskIdentity: value});
   await assert.rejects(send({...next, program_parameters_cid: `sha256:${'2'.repeat(64)}`}), {code: 'ForeignCompletionTask'});
   await assert.rejects(send({...next, inputs: [{...next.inputs[0], producer_target_index: 0}]}), {code: 'ForeignCompletionTask'});
   await assert.rejects(submit({task: 3, output: 'second', taskIdentity: {...taskIdentity(3), controls: [2]}}),
@@ -262,7 +265,7 @@ test('custody checks task target, parameter identity and completed dependency oc
   assert.equal(custody.count(), 1);
   await send(next);
   assert.equal(custody.count(), 2);
-  assert.deepEqual(custody.inspect(custody.completion(2)).taskIdentity, next);
+  assert.deepEqual(custody.inspect(custody.completion(2)!).taskIdentity, next);
 });
 
 test('sealed physical body alone creates no completion; exact delivered fact survives writer exit', async () => {
@@ -271,16 +274,16 @@ test('sealed physical body alone creates no completion; exact delivered fact sur
   assert.equal(custody.completion(1), undefined);
   assert.deepEqual(await submit(), {task: 1});
   const handle = custody.completion(1);
-  const record = custody.inspect(handle);
+  const record = custody.inspect(handle!);
   assert.equal(record.retained, true);
   assert.deepEqual(record.origin, {session: 'exact-session', run: 'run', request: 2, task: 1, output: 'first'});
   assert.throws(() => custody.inspect({...handle}), {code: 'ForeignCompletionRecord'});
   stop(); await Promise.resolve();
-  assert.deepEqual(custody.inspect(handle), record);
+  assert.deepEqual(custody.inspect(handle!), record);
   await assert.rejects(submit({task: 2}), {code: 'ForeignCompletionSession'});
   await custody.close();
-  assert.equal(custody.inspect(handle).retained, false);
-  assert.deepEqual(custody.inspect(handle).descriptor, record.descriptor);
+  assert.equal(custody.inspect(handle!).retained, false);
+  assert.deepEqual(custody.inspect(handle!).descriptor, record.descriptor);
 });
 
 test('foreign session, missing holding and mismatched content cannot install a completion record', async () => {
@@ -307,12 +310,12 @@ test('record quota is cumulative and custody handles cannot cross otherwise iden
   const first = fixture({...limits, maxCompletions: 1});
   const second = fixture();
   await first.submit(); await second.submit();
-  assert.deepEqual(first.custody.inspect(first.custody.completion(1)), second.custody.inspect(second.custody.completion(1)));
-  assert.throws(() => second.custody.inspect(first.custody.completion(1)), {code: 'ForeignCompletionRecord'});
+  assert.deepEqual(first.custody.inspect(first.custody.completion(1)!), second.custody.inspect(second.custody.completion(1)!));
+  assert.throws(() => second.custody.inspect(first.custody.completion(1)!), {code: 'ForeignCompletionRecord'});
   await assert.rejects(first.submit({task: 2}), {code: 'CompletionRecordLimit'});
   await first.custody.close();
   assert.equal(first.custody.count(), 1);
-  assert.equal(second.custody.inspect(second.custody.completion(1)).retained, true);
+  assert.equal(second.custody.inspect(second.custody.completion(1)!).retained, true);
 });
 
 test('custody close revokes use immediately without dropping failed physical cleanup', async () => {
@@ -321,10 +324,10 @@ test('custody close revokes use immediately without dropping failed physical cle
   const handle = custody.completion(1);
   failClose();
   await assert.rejects(custody.close(), /DeletionFailed/);
-  assert.equal(custody.inspect(handle).retained, false);
-  assert.equal(custody.cleanupHandle.status().pending, true);
+  assert.equal(custody.inspect(handle!).retained, false);
+  assert.equal(custody.cleanupHandle!.status().pending, true);
   await assert.rejects(submit({task: 2}), {code: 'ForeignCompletionSession'});
-  await custody.cleanupHandle.retry();
-  assert.equal(custody.cleanupHandle.status().pending, false);
-  assert.equal(custody.inspect(handle).descriptor.rows_cid, cid);
+  await custody.cleanupHandle!.retry();
+  assert.equal(custody.cleanupHandle!.status().pending, false);
+  assert.equal(custody.inspect(handle!).descriptor.rows_cid, cid);
 });
