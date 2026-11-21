@@ -297,6 +297,7 @@ priv struct LocalProjectMockModelOriginal {
 priv enum LocalProjectMockModelIssue {
   ForeignOriginal
   AlreadyPreparing
+  OverlappingWritableCollections
   Environment
   Publication(@source_publication.PublicationIssue)
   Source(@row_host.RowHostIssue)

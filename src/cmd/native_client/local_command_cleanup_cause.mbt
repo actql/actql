@@ -668,6 +668,8 @@ fn command_preparation_cleanup_cause(
       match cause {
         ForeignOriginal => "ProjectMockForeignOriginal"
         AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        OverlappingWritableCollections =>
+          "ProjectMockOverlappingWritableCollections"
         Environment => "ProjectMockEnvironment"
         Publication(issue) =>
           match issue {

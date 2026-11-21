@@ -65,10 +65,11 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-plural', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
+  const pluralProjects = ['deal-review-plural', 'deal-review-overlapping-writes', 'deal-review-nested-writes'];
+  for (const name of ['deal-review', ...pluralProjects, 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
     const path = directory(name);
     const files = {...projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock')};
-    if (name === 'deal-review-plural') {
+    if (pluralProjects.includes(name)) {
       const catalog = JSON.parse(files['mock/catalog.json']);
       const connectors = JSON.parse(files['connectors.json']);
       const data = JSON.parse(files['mock/data.json']);
@@ -103,6 +104,13 @@ export function nativeProjectConfigurationFixture(namespace) {
           items_path: ['crossover', collection, 'rows'], key_path: ['crossover', collection, 'key']});
         if (writable) connection.writes.push({...writeTarget, resource, primary_identity: key,
           writable_fields: ['status'], aliases: [name + '.' + resource]});
+      }
+      // Independent declarations exercise exact and prefix overlap across
+      // connections before either target opens the shared data file.
+      if (name !== 'deal-review-plural') {
+        const leads = catalog.connections.outreach.data.find(binding => binding.resource === 'Leads');
+        leads.items_path = name === 'deal-review-overlapping-writes'
+          ? ['crossover', 'directory', 'rows'] : ['crossover', 'directory', 'rows', 'nested'];
       }
       files['connectors.json'] = JSON.stringify(connectors) + '\n';
       files['mock/catalog.json'] = JSON.stringify(catalog) + '\n';

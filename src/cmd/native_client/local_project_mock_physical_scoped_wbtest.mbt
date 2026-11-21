@@ -1110,8 +1110,34 @@ fn native_project_mock_plural_account_in_original_read() -> Unit raise {
 }
 
 ///|
+fn native_project_mock_refuse_overlapping_writes() -> Unit raise {
+  for name in ["deal-review-overlapping-writes", "deal-review-nested-writes"] {
+    let original = native_project_mock_model_fixture(name, operation="adopt")
+    defer original.retire()
+    assert_true(
+      original.prepare_source_declarations()
+      is Err(OverlappingWritableCollections),
+    )
+    assert_true(
+      original.prepare_source_declarations()
+      is Err(OverlappingWritableCollections),
+    )
+    let account_attempts = Ref(0)
+    assert_true(
+      original.account_subjects(_ => {
+        account_attempts.val += 1
+        false
+      })
+      is Some(Err(ForeignOriginal)),
+    )
+    assert_eq(account_attempts.val, 0)
+  }
+}
+
+///|
 test "Native Mock first adoption retains only the original Project Account subjects" {
   native_project_mock_model_backed_read(false, account_initialization=true)
+  native_project_mock_refuse_overlapping_writes()
 }
 
 ///|
