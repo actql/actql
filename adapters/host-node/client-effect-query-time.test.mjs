@@ -365,8 +365,12 @@ test('keyed initial tuple refuses a different Journal winner before the physical
 test('keyed initial tuple checks complete prepared authorization and Definition bytes', async () => {
   for (const field of ['prepared', 'authorization', 'definition']) {
     const f = fixture(), k = keyedInitialTuple(f), handle = await k.run.accept(f.request);
-    if (field === 'definition') f.state.saved.runDefinition = {...f.state.saved.runDefinition, wire: '{"changed":true}'};
-    else f.state.saved.runAdmissionEvidence[field] = '{"changed":true}';
+    const original = f.state.saved;
+    assert.ok(Object.isFrozen(original.runAdmissionEvidence));
+    const changed = '{"changed":true}';
+    f.state.saved = field === 'definition'
+      ? {...original, runDefinition: {...original.runDefinition, wire: changed}}
+      : {...original, runAdmissionEvidence: Object.freeze({...original.runAdmissionEvidence, [field]: changed})};
     await assert.rejects(k.run.start(handle), {code: 'ClientEffectRunDenied'});
     assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
   }
