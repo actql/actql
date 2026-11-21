@@ -854,7 +854,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-store.mjs",
+                "path": "adapters/local-node/retained-store.mts",
                 "anchor": "installLocalRetainedStore"
               },
               {

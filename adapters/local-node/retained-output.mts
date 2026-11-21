@@ -1,11 +1,12 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
-import type {LocalRetainedStore} from '../store-local/files.mjs';
+import type {LeasedOutputBody, LocalOutputFault, LocalStoreLease, LocalStoreLeaseFactory} from './retained-store.mjs';
 
 type WireLimits = Parameters<typeof registerRetainedInput>[3]['wire'] & Readonly<{max_bytes: number}>;
-type StoreLease = Pick<LocalRetainedStore, 'status' | 'reserve' | 'close' | 'cleanup'>;
-type OutputBody = Awaited<ReturnType<ReturnType<StoreLease['reserve']>['seal']>>;
-type CreateLease = (key: string, maxBytes: number, maxBatchBytes: number, signal?: AbortSignal) => StoreLease | PromiseLike<StoreLease>;
+// The selected Common operations decode synchronously. Their data shape is
+// inspected at each use, but none of these results is a deferred check.
+type LocalOutputChecked = (result: unknown) => void | null | boolean | number | bigint | string |
+  (object & Readonly<{then?: never}>);
 type RetainedOutput = Readonly<{
   key: string;
   limits: Readonly<{wire: WireLimits; max_batch_bytes: number}>;
@@ -28,23 +29,18 @@ type BoundRepresentation = Readonly<{
   material: Parameters<typeof registerRetainedInput>[0];
   readable: Parameters<typeof registerRetainedInput>[1];
 }>;
-type OutputFault = (...event:
-  [kind: 'local_retained_output_appended', facts: Readonly<{admittedWriteBytes: number; reservedBytes: number}>] |
-  [kind: 'local_retained_output_sealed', facts: Readonly<{sealedBytes: number; reservedBytes: number}>]
-) => unknown;
-
 const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
 export function prepareLocalRetainedOutput(
-  output: RetainedOutput, createLease: CreateLease | undefined, checked: (result: unknown) => unknown,
-  signal?: AbortSignal, faultInjection?: OutputFault,
+  output: RetainedOutput, createLease: LocalStoreLeaseFactory | undefined, checked: LocalOutputChecked,
+  signal?: AbortSignal, faultInjection?: LocalOutputFault,
 ) {
   if (!createLease) throw new TypeError('LocalOutputStoreRequired');
   const {key, limits, install, begin, prepare, advance, finish, refresh} = output;
   if (typeof prepare !== 'function' || typeof advance !== 'function') {
     throw new TypeError('LocalOutputAdvanceRequired');
   }
-  let store: StoreLease | undefined, body: OutputBody | undefined;
+  let store: LocalStoreLease | undefined, body: LeasedOutputBody | undefined;
   checked(install(() => !store || store.status().reservedBytes === 0));
   const cleanupHandle = Object.freeze({
     status: () => ({pending: store?.status().cleanupPending ?? false}),
