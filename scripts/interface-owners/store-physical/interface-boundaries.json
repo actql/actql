@@ -10526,8 +10526,8 @@
                 "anchor": "const stageMetadataInventory = (original, native) => {"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export async function observeAuthorizedRunState(service, request) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export async function observeAuthorizedRunState(service: RunStateService, request: RunStateRequest)"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",

@@ -1,37 +1,132 @@
 // Authorized current-state projection for one durably committed Run.
 // MoonBit owns inventory, availability relations, aggregate and next action.
 // This adapter only observes current Store and Host-policy facts.
-const authorities = new WeakMap();
-const services = new WeakMap();
+import type {WireRunRef, WireRunState} from '../../packages/client-wire/index.js';
+
+export type RunStateRequest = Readonly<{
+  indexKey: WireRunRef;
+  principalId: string;
+  purpose: string;
+}>;
+type Awaitable<T> = T | PromiseLike<T>;
+type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type CommittedEntry = Readonly<{
+  public_index_entry_cid: string;
+  publication_attempt_cid: string;
+  result_manifest_cid: string;
+  run_definition_cid: string;
+}>;
+type ContractName = 'public_index_entry' | 'result_manifest' | 'run_definition' |
+  'result_retention_policy';
+type ResultObservation = Readonly<{
+  name: string;
+  state: 'available' | 'unavailable' | 'unknown';
+  reason: string;
+  observedAt: string;
+}>;
+type ClockObservation = Readonly<{failed: true; error: unknown}> |
+  Readonly<{failed?: false; at: string}>;
+type Store = Readonly<{
+  confirmCommittedIndex(key: WireRunRef): Awaitable<CommittedEntry | undefined>;
+  readCommittedPublication?(key: WireRunRef):
+    Awaitable<Readonly<{entry: CommittedEntry; index: object}> | undefined>;
+  readPublicationContract(cid: string, name: ContractName): Awaitable<unknown>;
+  latestRecordContract(cid: string): Awaitable<unknown>;
+  observeTrustedClock(cid: string, at: string): Awaitable<unknown>;
+  sampleTrustedClock?(cid: string, sample: () => string): Awaitable<unknown>;
+  withCommittedResult(key: WireRunRef, definitionCid: string, authorize: () => boolean,
+    consume: () => Promise<undefined>): Awaitable<unknown>;
+  readCommittedResultRetentionExtension(key: WireRunRef, definitionCid: string):
+    Awaitable<Readonly<{extension: unknown}> | undefined>;
+}>;
+type Control = Readonly<{
+  manifestResultNames(manifest: unknown, limits: Limits): readonly string[];
+  resultReadDefinitionCid(manifest: unknown, name: string): string;
+  resultReadRetentionPolicyCid(manifest: unknown, name: string): string;
+  resultReadAvailability(manifest: unknown, name: string, retention: unknown,
+    observedAt: string): string;
+  resultReadExtendedAvailability(manifest: unknown, name: string, retention: unknown,
+    extension: unknown, observedAt: string): string;
+  resultRetentionClockContractCid(retention: unknown): string;
+  runDefinitionRunId(definition: unknown): string;
+  projectCommittedPublicationState(record: unknown, index: unknown): string;
+  trustedClockNotBefore?(previous: string, observedAt: string): boolean;
+  issueSucceededRunState(request: Readonly<{
+    runId: string;
+    updatedAt: string;
+    declaredResults: readonly string[];
+    observations: readonly ResultObservation[];
+  }>, limits: Limits): string;
+}>;
+type Context = RunStateRequest & Readonly<{
+  entry: CommittedEntry;
+  manifest: unknown;
+  runDefinition: unknown;
+}>;
+type AuthorityConfiguration = Readonly<{
+  authorizeRunState(facts: (RunStateRequest & Readonly<{stage: 'request'}>) |
+    (Context & Readonly<{stage: 'response'; state: WireRunState}>)): Awaitable<boolean>;
+  resultPolicyAvailable(facts: Context & Readonly<{
+    resultName: string;
+    retention: unknown;
+    baseRetention: unknown;
+    observedAt: string;
+  }>): Awaitable<boolean>;
+}>;
+declare const authorityBrand: unique symbol;
+declare const serviceBrand: unique symbol;
+type Authority = Readonly<{[authorityBrand]: true}>;
+export type RunStateService = Readonly<{[serviceBrand]: true}>;
+type ServiceConfiguration = Readonly<{
+  store: Store;
+  control: Control;
+  authority: Authority;
+  now: () => unknown;
+  limits: Limits;
+}>;
+type InstalledService = Omit<ServiceConfiguration, 'authority'> & Readonly<{
+  authority: AuthorityConfiguration | undefined;
+  readCommittedPublication: Store['readCommittedPublication'];
+  sampleTrustedClock: Store['sampleTrustedClock'];
+  trustedClockNotBefore: Control['trustedClockNotBefore'];
+}>;
+
+const authorities = new WeakMap<Authority, AuthorityConfiguration>();
+const services = new WeakMap<RunStateService, InstalledService>();
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const positive = value => Number.isSafeInteger(value) && value > 0;
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 
 export class RunStateAccessError extends Error {
-  constructor(code, cause) {
+  declare readonly code: string;
+  declare readonly primaryFailure: unknown;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
     this.primaryFailure = cause;
   }
 }
 
-const fail = (code, cause) => { throw new RunStateAccessError(code, cause); };
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
+  throw new RunStateAccessError(code, cause);
+};
 
-export function installRunStateAuthority(configuration) {
+export function installRunStateAuthority(configuration: AuthorityConfiguration): Authority {
   if (!exactKeys(configuration, [
     'authorizeRunState', 'resultPolicyAvailable',
   ]) || typeof configuration.authorizeRunState !== 'function' ||
       typeof configuration.resultPolicyAvailable !== 'function') {
     fail('InvalidRunStateAuthority');
   }
-  const authority = Object.freeze({});
+  const authority = Object.freeze({}) as Authority;
   authorities.set(authority, Object.freeze({...configuration}));
   return authority;
 }
 
-export function installRunStateService(configuration) {
+export function installRunStateService(configuration: ServiceConfiguration): RunStateService {
   if (!exactKeys(configuration, [
     'store', 'control', 'authority', 'now', 'limits',
   ]) || configuration.store === null ||
@@ -75,7 +170,7 @@ export function installRunStateService(configuration) {
       typeof trustedClockNotBefore !== 'function')) {
     fail('InvalidRunStateService');
   }
-  const service = Object.freeze({});
+  const service = Object.freeze({}) as RunStateService;
   services.set(service, Object.freeze({
     store: configuration.store,
     readCommittedPublication,
@@ -91,16 +186,16 @@ export function installRunStateService(configuration) {
 
 // The public Journal-backed observer authorizes before reading its original
 // request row. This is the same gate as internal publication inspection.
-export async function authorizeRunStateRequest(service, request) {
+export async function authorizeRunStateRequest(service: RunStateService, request: RunStateRequest) {
   const installed = services.get(service) ?? fail('ForeignRunStateService');
   validateRequest(request);
-  if (await installed.authority.authorizeRunState(Object.freeze({
+  if (await installed.authority!.authorizeRunState(Object.freeze({
     stage: 'request', indexKey: Object.freeze({...request.indexKey}),
     principalId: request.principalId, purpose: request.purpose,
   })) !== true) fail('RunStateAccessDenied');
 }
 
-function validateRequest(request) {
+function validateRequest(request: RunStateRequest) {
   if (!exactKeys(request, ['indexKey', 'principalId', 'purpose']) ||
       !exactKeys(request.indexKey, [
         'namespaceId', 'authorityScopeCid', 'runDefinitionCid',
@@ -115,7 +210,7 @@ function validateRequest(request) {
   }
 }
 
-function observedAt(now) {
+function observedAt(now: () => unknown) {
   const value = now();
   if (typeof value !== 'string' || value.length === 0) {
     fail('InvalidRunStateClock');
@@ -123,8 +218,8 @@ function observedAt(now) {
   return value;
 }
 
-function unavailableFrom(error, at) {
-  switch (error?.code) {
+function unavailableFrom(error: unknown, at: string): Omit<ResultObservation, 'name'> {
+  switch ((error as {code?: unknown} | null)?.code) {
     case 'PublicationObjectMissing':
       return {state: 'unavailable', reason: 'deleted', observedAt: at};
     case 'PublicationObjectCorrupt':
@@ -141,7 +236,8 @@ function unavailableFrom(error, at) {
   }
 }
 
-async function observeResult(installed, context, resultName, clocks) {
+async function observeResult(installed: InstalledService, context: Context,
+  resultName: string, clocks: Map<string, ClockObservation>): Promise<ResultObservation> {
   const retentionCid = installed.control.resultReadRetentionPolicyCid(
     context.manifest, resultName,
   );
@@ -157,7 +253,7 @@ async function observeResult(installed, context, resultName, clocks) {
   const clockCid = installed.control.resultRetentionClockContractCid(
     retention,
   );
-  let at;
+  let at: string | undefined;
   try {
     if (installed.sampleTrustedClock === undefined) {
       // Compatibility with Stores that only accept an explicit observation.
@@ -171,7 +267,7 @@ async function observeResult(installed, context, resultName, clocks) {
         const acceptedAt = await Reflect.apply(installed.sampleTrustedClock, installed.store,
           [clockCid, () => (at = observedAt(installed.now))]);
         if (at === undefined || typeof acceptedAt !== 'string' ||
-            Reflect.apply(installed.trustedClockNotBefore, installed.control, [at, acceptedAt]) !== true) {
+            Reflect.apply(installed.trustedClockNotBefore!, installed.control, [at, acceptedAt]) !== true) {
           fail('PublicationClockUncertain');
         }
         at = acceptedAt;
@@ -180,7 +276,7 @@ async function observeResult(installed, context, resultName, clocks) {
         // Reuse its real accepted floor, but evaluate expiry and rollback at
         // this Result's current sample without claiming it was persisted.
         at = observedAt(installed.now);
-        if (Reflect.apply(installed.trustedClockNotBefore, installed.control, [original.at, at]) !== true) {
+        if (Reflect.apply(installed.trustedClockNotBefore!, installed.control, [original.at, at]) !== true) {
           fail('PublicationClockUncertain');
         }
       }
@@ -249,7 +345,7 @@ async function observeResult(installed, context, resultName, clocks) {
   }
   let policyAvailable;
   try {
-    policyAvailable = await installed.authority.resultPolicyAvailable(
+    policyAvailable = await installed.authority!.resultPolicyAvailable(
       Object.freeze({
         ...context,
         resultName,
@@ -289,7 +385,7 @@ async function observeResult(installed, context, resultName, clocks) {
 
 // Optional publication observation is only for the existing Local observer's
 // committed/unpublished branch. Denial and physical failure are never absence.
-export async function observeAuthorizedRunState(service, request) {
+export async function observeAuthorizedRunState(service: RunStateService, request: RunStateRequest) {
   const installed = services.get(service) ?? fail('ForeignRunStateService');
   validateRequest(request);
   const indexKey = Object.freeze({...request.indexKey});
@@ -299,10 +395,10 @@ export async function observeAuthorizedRunState(service, request) {
     principalId: request.principalId,
     purpose: request.purpose,
   });
-  if (await installed.authority.authorizeRunState(requestFacts) !== true) {
+  if (await installed.authority!.authorizeRunState(requestFacts) !== true) {
     fail('RunStateAccessDenied');
   }
-  let entry, selectedIndex;
+  let entry: CommittedEntry | undefined, selectedIndex: object | undefined;
   if (installed.readCommittedPublication !== undefined) {
     const selected = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey]);
     if (selected === undefined) return undefined;
@@ -347,8 +443,8 @@ export async function observeAuthorizedRunState(service, request) {
     principalId: request.principalId,
     purpose: request.purpose,
   });
-  const observations = [];
-  const clocks = new Map();
+  const observations: ResultObservation[] = [];
+  const clocks = new Map<string, ClockObservation>();
   for (const name of names) {
     observations.push(await observeResult(installed, context, name, clocks));
   }
@@ -356,17 +452,17 @@ export async function observeAuthorizedRunState(service, request) {
   // another durable floor. The aggregate uses the last observation without
   // clamping or hiding rollback. An empty inventory still has a read timestamp.
   const at = observations.length === 0 ? observedAt(installed.now)
-    : observations.at(-1).observedAt;
+    : observations.at(-1)!.observedAt;
   const wire = installed.control.issueSucceededRunState({
     runId: installed.control.runDefinitionRunId(runDefinition),
     updatedAt: at,
     declaredResults: names,
     observations,
   }, installed.limits);
-  let state;
+  let state: WireRunState;
   try { state = JSON.parse(wire); }
   catch (error) { fail('InvalidRunStateControlResult', error); }
-  if (await installed.authority.authorizeRunState(Object.freeze({
+  if (await installed.authority!.authorizeRunState(Object.freeze({
     ...context,
     stage: 'response',
     state,
@@ -376,7 +472,7 @@ export async function observeAuthorizedRunState(service, request) {
   return Object.freeze(state);
 }
 
-export async function inspectAuthorizedRunState(service, request) {
+export async function inspectAuthorizedRunState(service: RunStateService, request: RunStateRequest) {
   const state = await observeAuthorizedRunState(service, request);
   if (state === undefined) fail('RunStateAccessDenied');
   return state;

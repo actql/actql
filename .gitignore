@@ -1435,3 +1435,7 @@ target/
 /scripts/fixtures/interactive-run-control-vectors.d.mts
 /adapters/host-node/client-run-plan.test.mjs
 /adapters/host-node/client-run-plan.test.d.mts
+/adapters/host-common/run-state-access.mjs
+/adapters/host-common/run-state-access.d.mts
+/adapters/host-node/client-run-state.mjs
+/adapters/host-node/client-run-state.d.mts

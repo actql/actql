@@ -12656,7 +12656,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12682,7 +12682,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12694,25 +12694,25 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export function installNodeClientRunStateObservation"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export async function observeClientRunState"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export async function observeAuthorizedRunState(service, request) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export async function observeAuthorizedRunState(service: RunStateService, request: RunStateRequest)"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const acceptedAt = await Reflect.apply(installed.sampleTrustedClock, installed.store,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const cidPattern = /^sha256:[0-9a-f]{64}$/u;"
               },
               {
@@ -12724,11 +12724,11 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "observeOriginalClientRequestJournalCustody(journal)"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const original = lookup.call(journal"
               },
               {
@@ -12736,13 +12736,13 @@
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const original = clocks.get(clockCid);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "let retained;"
               },
               {
@@ -12754,7 +12754,7 @@
                 "anchor": "# Committed Result descriptions"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
@@ -12772,8 +12772,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export function installRunStateAuthority(configuration) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export function installRunStateAuthority(configuration: AuthorityConfiguration)"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12784,7 +12784,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "publish.call(journal, original, state"
               },
               {
@@ -12802,7 +12802,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12814,8 +12814,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
-                "anchor": "error?.code !== 'RunStateObservationChanged'"
+                "path": "adapters/host-node/client-run-state.mts",
+                "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -12832,7 +12832,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12862,7 +12862,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "'store', 'control', 'authority', 'now', 'limits',"
               },
               {
@@ -12874,7 +12874,7 @@
                 "anchor": "# Committed Result descriptions"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "attempt < 8"
               },
               {
@@ -12886,14 +12886,14 @@
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "const clocks = new Map();"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "const clocks = new Map<string, ClockObservation>();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export function installRunStateAuthority(configuration) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export function installRunStateAuthority(configuration: AuthorityConfiguration)"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12956,7 +12956,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12982,7 +12982,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -12994,25 +12994,25 @@
                 "anchor": "### Result delivery"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export function installNodeClientRunStateObservation"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export async function observeClientRunState"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export async function observeAuthorizedRunState(service, request) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export async function observeAuthorizedRunState(service: RunStateService, request: RunStateRequest)"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const acceptedAt = await Reflect.apply(installed.sampleTrustedClock, installed.store,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const cidPattern = /^sha256:[0-9a-f]{64}$/u;"
               },
               {
@@ -13024,11 +13024,11 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "observeOriginalClientRequestJournalCustody(journal)"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const original = lookup.call(journal"
               },
               {
@@ -13036,13 +13036,13 @@
                 "anchor": "return {entry, bytes, contract: admitted};"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "const original = clocks.get(clockCid);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "let retained;"
               },
               {
@@ -13054,7 +13054,7 @@
                 "anchor": "# Committed Result descriptions"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
@@ -13072,8 +13072,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export function installRunStateAuthority(configuration) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export function installRunStateAuthority(configuration: AuthorityConfiguration)"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -13084,7 +13084,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "publish.call(journal, original, state"
               },
               {
@@ -13102,7 +13102,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -13114,8 +13114,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
-                "anchor": "error?.code !== 'RunStateObservationChanged'"
+                "path": "adapters/host-node/client-run-state.mts",
+                "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -13132,7 +13132,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "export class RunStateAccessError extends Error {"
               },
               {
@@ -13162,7 +13162,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
+                "path": "adapters/host-common/run-state-access.mts",
                 "anchor": "'store', 'control', 'authority', 'now', 'limits',"
               },
               {
@@ -13174,7 +13174,7 @@
                 "anchor": "# Committed Result descriptions"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "attempt < 8"
               },
               {
@@ -13186,14 +13186,14 @@
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               },
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "const clocks = new Map();"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "const clocks = new Map<string, ClockObservation>();"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-state-access.mjs",
-                "anchor": "export function installRunStateAuthority(configuration) {"
+                "path": "adapters/host-common/run-state-access.mts",
+                "anchor": "export function installRunStateAuthority(configuration: AuthorityConfiguration)"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -122196,27 +122196,27 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export function installNodeClientRunStateObservation"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export async function observeClientRunState"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "observeOriginalClientRequestJournalCustody(journal)"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const original = lookup.call(journal"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
@@ -122226,7 +122226,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "publish.call(journal, original, state"
               },
               {
@@ -122236,8 +122236,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
-                "anchor": "error?.code !== 'RunStateObservationChanged'"
+                "path": "adapters/host-node/client-run-state.mts",
+                "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -122256,7 +122256,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "attempt < 8"
               },
               {
@@ -122300,27 +122300,27 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export function installNodeClientRunStateObservation"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "export async function observeClientRunState"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "observeOriginalClientRequestJournalCustody(journal)"
               },
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const original = lookup.call(journal"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "const state = await inspectAuthorizedRunState"
               },
               {
@@ -122330,7 +122330,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "publish.call(journal, original, state"
               },
               {
@@ -122340,8 +122340,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
-                "anchor": "error?.code !== 'RunStateObservationChanged'"
+                "path": "adapters/host-node/client-run-state.mts",
+                "anchor": "(error as {code?: unknown} | null)?.code !== 'RunStateObservationChanged'"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -122360,7 +122360,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-run-state.mjs",
+                "path": "adapters/host-node/client-run-state.mts",
                 "anchor": "attempt < 8"
               },
               {
