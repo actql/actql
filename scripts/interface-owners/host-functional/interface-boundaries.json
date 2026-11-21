@@ -138790,7 +138790,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "08072b45c64c3e0115f3672338a98d208078c981bd0b97ddfc4866387e07db6b",
+      "sha256": "932f2c6ecba98e8f98d3c2ddb1638de8ff3083245877b734c9d43e0a2a58bbd0",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -138913,14 +138913,14 @@
                 "anchor": "Local and Remote HTTP opening retain the same original Host preparation"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "// Bind an authenticated HTTP input to the installed Host"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
-                "anchor": "export function installHttpRequestPreparation(preparation, registry, originals,"
+                "path": "adapters/host-node/http-request-preparation.mts",
+                "anchor": "export function installHttpRequestPreparation("
               },
               {
                 "path": "packages/client-wire/index.mts",
@@ -138933,7 +138933,7 @@
                 "anchor": "function originalSourceRequest("
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "manager.bindSourceRequest(receipt, body, request);"
               }
             ],
@@ -138949,11 +138949,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "registry.retainRequest(host, installation, generation, request, pending);"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
               }
             ],
@@ -138963,7 +138963,7 @@
                 "anchor": "test('HTTP Request preparation failure cannot dispatch or become a known refusal'"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "if (terminal !== 'failed') throw cause;"
               }
             ],
@@ -139034,7 +139034,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139044,7 +139044,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139054,7 +139054,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139064,7 +139064,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139074,7 +139074,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139084,7 +139084,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139094,7 +139094,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139104,7 +139104,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],
@@ -139114,7 +139114,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "Object.defineProperty(prepare, 'beforeBody'"
               }
             ],

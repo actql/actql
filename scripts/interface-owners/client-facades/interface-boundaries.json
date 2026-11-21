@@ -10883,7 +10883,7 @@
                 "anchor": "export const freezeInput = <const T,>(value: T): T =>"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "freezeInput(body);"
               }
             ],
@@ -10905,7 +10905,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);"
               },
               {
@@ -10919,7 +10919,7 @@
                 "anchor": "test('shallow and nested imports keep quotes and unknown package paths fail'"
               },
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "finish('failed');"
               }
             ],
@@ -10928,7 +10928,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/http-request-preparation.mjs",
+                "path": "adapters/host-node/http-request-preparation.mts",
                 "anchor": "manager.assertSourceSnapshotCurrent(receipt);"
               },
               {
