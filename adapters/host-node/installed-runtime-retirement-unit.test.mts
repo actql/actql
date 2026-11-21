@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import type {createInstalledHostShutdown, releaseInstalledCredentialSite} from './installed-host-cleanup.mjs';
+import type {installedHostShutdown, managedPreparationRetirementContinuation} from './embedded-local-lifecycle.mjs';
 
 type Assert<T extends true> = T;
 type AsyncAction = () => PromiseLike<void>;
@@ -12,6 +13,13 @@ type _SynchronousRetirement = Assert<AsyncAction extends RetirementAction ? fals
 type _SynchronousCredentialClose = Assert<AsyncAction extends CredentialSite['close'] ? false : true>;
 type _SynchronousCredentialStatus = Assert<(() => PromiseLike<boolean>) extends CredentialSite['cleanupPending'] ? false : true>;
 type _AwaitedShutdownClose = Assert<AsyncAction extends AwaitedClose ? true : false>;
+type ShutdownHost = Parameters<typeof installedHostShutdown>[0];
+type ManagedRun = Parameters<typeof managedPreparationRetirementContinuation>[0];
+type _SynchronousModelStop = Assert<AsyncAction extends NonNullable<ShutdownHost['stopModelRuntime']> ? false : true>;
+type _SynchronousPreparationRetirement = Assert<AsyncAction extends NonNullable<ManagedRun['manager']>['retireSeveredPreparation'] ? false : true>;
+type _AwaitedHostPreparation = Assert<AsyncAction extends NonNullable<ShutdownHost['prepareShutdown']> ? true : false>;
+type _AwaitedHostCheckpoint = Assert<(() => PromiseLike<undefined>) extends NonNullable<ShutdownHost['checkpoints']>['close'] ? true : false>;
+type _AwaitedModelRetirement = Assert<AsyncAction extends NonNullable<ShutdownHost['retireModelRuntime']> ? true : false>;
 
 type RetainedFailure = ReturnType<typeof retainInstalledHostRuntimeFailure<never>>;
 

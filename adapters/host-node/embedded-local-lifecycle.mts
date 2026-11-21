@@ -8,6 +8,7 @@ import {captureSourcePreparation, sourcePreparationPort} from
 import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
+import type {SynchronousAction} from './installed-host-cleanup.mjs';
 import type {RunReference} from '../../packages/sdk/index.d.ts';
 
 type HostPort = Parameters<typeof connectInProcess>[1];
@@ -22,7 +23,7 @@ type CloseOwner = {close: () => unknown};
 type CheckpointOwner = {close: ShutdownInput['checkpoint']; stop: ShutdownInput['stop']};
 type ShutdownHost = {
   initialControl?: InitialControl; retireModelRuntime?: ShutdownInput['retire'];
-  prepareShutdown?: ShutdownInput['stop']; stopModelRuntime?: ShutdownInput['stop'];
+  prepareShutdown?: ShutdownInput['stop']; stopModelRuntime?: SynchronousAction;
   runAcceptance?: CheckpointOwner; checkpoints?: CheckpointOwner;
   dispatchOwner?: {drain: ShutdownInput['drain']}; retireTerminalEffects?: ShutdownInput['retire'];
   journal: CloseOwner; store: CloseOwner; sourceProfile?: CloseOwner; installedEffect?: CloseOwner;
@@ -50,7 +51,7 @@ type ObservedFailure = {
 type ManagedRun = {
   value?: unknown; runtime?: {clientProgramInstalledManagedRunAccounting?: unknown};
   usage?: unknown; retire?: (value: unknown) => unknown; original?: unknown;
-  manager?: {retireSeveredPreparation(original: unknown): unknown};
+  manager?: {retireSeveredPreparation(original: unknown): ReturnType<SynchronousAction>};
   closed?: boolean; finalAccounting?: readonly bigint[];
 };
 type ComputeRegistry = {

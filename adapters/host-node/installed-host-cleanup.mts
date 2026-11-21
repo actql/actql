@@ -1,6 +1,6 @@
 type Action<T = unknown> = () => T | PromiseLike<T>;
 // These callbacks finish in their call. The synchronous result is discarded.
-type SynchronousAction = () => void | boolean | number;
+export type SynchronousAction = () => void | boolean | number;
 type CloseOwner = {close: Action};
 type CleanupIssue = Readonly<{owner: string; error: unknown}>;
 type ObservedStatus = {pending?: unknown; errors?: readonly unknown[]};
