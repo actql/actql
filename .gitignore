@@ -1053,3 +1053,5 @@ target/
 /scripts/test-package-release-vector-scalar.d.mts
 /scripts/vector-scalar-public-audit.test.mjs
 /scripts/vector-scalar-public-audit.test.d.mts
+/scripts/package-release-shared-cohort.test.mjs
+/scripts/package-release-shared-cohort.test.d.mts

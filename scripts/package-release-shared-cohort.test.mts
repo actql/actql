@@ -6,9 +6,11 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {preparePackageRelease, verifyPackageRelease, releasePackageMetadata} from './package-release.mjs';
 
-const four = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
-const six = JSON.parse(await readFile(new URL('../release/explorer-cohort.json', import.meta.url)));
-const git = (root, ...args) => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
+type Cohort = Parameters<typeof releasePackageMetadata>[2];
+
+const four = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)) as unknown as string) as Cohort;
+const six = JSON.parse(await readFile(new URL('../release/explorer-cohort.json', import.meta.url)) as unknown as string) as Cohort;
+const git = (root: string, ...args: string[]) => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).trim();
 
 // Actual npm prepack/staging with tiny synthetic payloads; no compiler, Host,
 // Source or product runtime. Counters establish that shared prepack ran once.
@@ -25,7 +27,7 @@ test('normal six-package prepack supplies an independently verified exact four-p
   await writeFile(join(repository, 'count.mjs'),
     "import{appendFileSync}from'node:fs';appendFileSync(new URL('./prepack.calls',import.meta.url),process.argv[2]+'\\n');\n");
   await copyFile(new URL('../LICENSE', import.meta.url), join(repository, 'LICENSE'));
-  for (const [name, cohort] of [['four', four], ['six', six]])
+  for (const [name, cohort] of [['four', four], ['six', six]] as const)
     await writeFile(join(repository, 'release', name + '.json'), JSON.stringify(cohort));
   for (const [index, name] of six.packages.entries()) {
     const directory = join(repository, 'packages', name); await mkdir(directory, {recursive: true});
@@ -67,10 +69,10 @@ test('normal six-package prepack supplies an independently verified exact four-p
   assert.deepEqual(await verifyPackageRelease(clientDirectory), client);
   for (const name of four.packages) {
     const original = explorer.packages.find(value => value.name === '@actql/' + name);
-    const shared = client.packages.find(value => value.name === original.name);
+    const shared = client.packages.find(value => value.name === original!.name);
     assert.deepEqual(shared, original, 'Original and staged tarball identities, payload bytes and modes must match');
   }
-  const sourceManifest = JSON.parse(await readFile(join(explorerDirectory, 'development/packed-client-packages.json')));
+  const sourceManifest = JSON.parse(await readFile(join(explorerDirectory, 'development/packed-client-packages.json')) as unknown as string) as Record<string, unknown>;
   const foreign = join(scratch, 'foreign-shared'); await mkdir(foreign);
   await writeFile(join(foreign, 'packed-client-packages.json'), JSON.stringify({
     ...sourceManifest, revision: 'f'.repeat(40),
