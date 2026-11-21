@@ -1399,3 +1399,7 @@ target/
 /adapters/host-node/client-request-journal-sql.d.mts
 /adapters/host-node/journal-lifecycle-limits.test.mjs
 /adapters/host-node/journal-lifecycle-limits.test.d.mts
+/adapters/host-node/client-request-journal-records.mjs
+/adapters/host-node/client-request-journal-records.d.mts
+/adapters/host-node/local-values-capacity.mjs
+/adapters/host-node/local-values-capacity.d.mts
