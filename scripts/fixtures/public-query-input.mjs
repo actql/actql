@@ -228,11 +228,22 @@ export const existsSubquerySuccesses = [
   results: {main: {rows: [{n: 1}, {n: 2}, {n: 3}], columns: [relationNumber('n')], unordered: true}},
   sourceReadCount: 0, sourceReadSessionCount: 0}));
 
+const existsSubqueryCarriedText = {name: 'exists-subquery-carried-text', format: 'sql',
+  text: existsOriginalRows
+    + 'SELECT a.s AS s FROM t AS a WHERE EXISTS (SELECT b.n FROM t AS b WHERE b.n = a.n)',
+  results: {main: {
+    rows: [{s: 'a'}, {s: 'b'}, {s: 'a'}],
+    columns: [{name: 's', contract: {type: 'string', nullable: false, max_utf8_bytes: 1}}],
+    unordered: true,
+  }},
+  sourceReadCount: 0, sourceReadSessionCount: 0};
+
 export const queryCompositionSuccesses = [
   arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
   ...scalarSubquerySuccesses,
   membershipSubqueryNullDuplicates,
   ...existsSubquerySuccesses,
+  existsSubqueryCarriedText,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",
