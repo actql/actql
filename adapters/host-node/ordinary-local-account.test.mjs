@@ -210,6 +210,11 @@ test('ordinary Local retains a same pending intent across unrelated initializati
   const f = await fixture(t);
   await f.initialize();
   const intent = await readFile(f.intent);
+  const record = JSON.parse(intent.toString('utf8'));
+  assert.equal(record.version, 'actql-local-account-initialization/0.1');
+  assert.equal(record.principal, 'person');
+  assert.deepEqual(Object.keys(record).sort(), ['account_id', 'principal', 'record_id', 'version']);
+  await assert.rejects(readFile(f.config), {code: 'ENOENT'});
   await f.close();
   await f.start();
   assert.deepEqual(await readFile(f.intent), intent);
