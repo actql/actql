@@ -1064,13 +1064,13 @@ test('baseline preimages and changed normative pins independently determine the 
   // Literal expectations are independently rehashed from complete normative
   // preimages, without consulting a compiler or emitted runtime identity.
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:e5a943c4743f1581ba7f3db3d97d68239482838a49192adfd9fccbc2672ad11b');
+    'sha256:26aa46d943772896cd8f31eb7eacf50df2e67e1cb949946656ab55666c2fd246');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:3fbd363114448c4f01b9f174bc7ad6575134ca01b6e898e1a9dd52100e263501');
+    'sha256:9e6c6dd5685eb0ba9a02626ffd70dfa2f75e0261415a8543ca6307661323a4c4');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:24267904f07a7155831053f5eea8ae5a757a80342e39a77d26b3096950d9accc');
+    'sha256:5235c504d6dd94ba9577fc8655e61709a9f5549ae6c4619f899f5c7600ca96c1');
   assert.equal(current.run.run_definition_cid,
-    'sha256:927d58cc16b5d69eed8645d2aa50e3d8671bcdb9dad0bf2183df2d48374111e6');
+    'sha256:31ebbb38d8394a1ed24ada1957b7e612ebb7b13b7103c5b80d92c2f0c49e38cb');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1232,11 +1232,11 @@ test('current contract inputs independently determine the Values Run and consumi
   const barrier = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
   const dependencies = valuesDependencyOracle();
   const identity = valuesProgramOracle();
-  assert.equal(dependencies.unit, "sha256:5a64690daf826d87cd40169d7bb56516573944012d3c1146191cb3497173f1c6");
-  assert.equal(dependencies.proof, "sha256:3303dfbfbeec94d079850762038f396eef37d9443bb9c4cae2322ee4013c1d20");
-  assert.equal(dependencies.resultPlan, "sha256:f7ef665cf939e7503aa7b9c672652a282f20f64b8995ad6bef1b9e31bbc6d5c0");
-  assert.equal(identity.programCid, "sha256:bf1d1a4e049fd5198d28ea105ffa372b29bbe6a723c55992c25d46d9a44c18cb");
-  assert.equal(identity.semanticsCid, "sha256:f215fcbbd4543cd6d2b1edf2e32f01811597a5ec657972c0c39e39e8d35ae87b");
+  assert.equal(dependencies.unit, "sha256:9c1d003879f441984ada7c666047b8e834526ad0a302a55fa87f1d721ee3bcd8");
+  assert.equal(dependencies.proof, "sha256:738f1b677fe1420900bd93cac30938607e6e187b5e4630a4aaa3690e0e6ef2ef");
+  assert.equal(dependencies.resultPlan, "sha256:f95236476731be90f48904f3ad0d378242e316472acba293a3d5a14e9c9c1f72");
+  assert.equal(identity.programCid, "sha256:3c69482463a9d8029d345b0ac096d18028a975d5cf209ed1993b9b92cfc44d89");
+  assert.equal(identity.semanticsCid, "sha256:2e8fedc61ceb312856f4d59531983618ab2aaf136f17ab308a6e1fcaf55f8405");
   const submissionSource = readFileSync('adapters/host-node/client-submission-input.test.mjs', 'utf8');
   const submittedDefinition = submissionSource.match(
     /assert\.equal\(stored\[0\]\.program_definition_cid,\s*'(sha256:[a-f0-9]{64})'\)/u);
@@ -1246,14 +1246,14 @@ test('current contract inputs independently determine the Values Run and consumi
   const requestIntent = {version: 'actql-logical-request-intent/0.1',
     caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
     program_definition_cid: identity.programCid};
-  assert.equal(cid(requestIntent), "sha256:674a577f72c5d29af355087862b40d98104264f5ca57b808640319f67a27c9f6");
+  assert.equal(cid(requestIntent), "sha256:70db145e3414c098a0dd4d4691073882d3d375784eac2c43e78a12491ad1c317");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity, {canonicalCandidates: true});
   // Canonical witness order follows the new CIDs, not role-based order.
   const candidates = current.executable.resolved_limits[0].candidates;
   assert.deepEqual(candidates.map(candidate => candidate.role),
     ["host_ceiling", "proven_upper_bound"]);
-  assert.deepEqual(candidates.map(candidate => candidate.witness_cid), ["sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568", "sha256:5d4b6e4d2b8dd9f48c025ceb2318b3847f2dd2d66be4a58127079046655e5e8f"]);
+  assert.deepEqual(candidates.map(candidate => candidate.witness_cid), ["sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568", "sha256:3c14818e24e9cc720b3a0d6e9f68c69e472f8d560abc65d3b57a55423fe5a44f"]);
   assert.deepEqual(current.executable.resolved_limits, valuesPublicationOracle().limits);
   assert.deepEqual(current.executable.limit_bindings, valuesPublicationOracle().bindings);
   const beforeUnpivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-unpivot-grammar.json', 'utf8'));
@@ -1280,13 +1280,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:e5a943c4743f1581ba7f3db3d97d68239482838a49192adfd9fccbc2672ad11b");
+    "sha256:26aa46d943772896cd8f31eb7eacf50df2e67e1cb949946656ab55666c2fd246");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:3fbd363114448c4f01b9f174bc7ad6575134ca01b6e898e1a9dd52100e263501");
+    "sha256:9e6c6dd5685eb0ba9a02626ffd70dfa2f75e0261415a8543ca6307661323a4c4");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:24267904f07a7155831053f5eea8ae5a757a80342e39a77d26b3096950d9accc");
+    "sha256:5235c504d6dd94ba9577fc8655e61709a9f5549ae6c4619f899f5c7600ca96c1");
   assert.equal(current.run.run_definition_cid,
-    "sha256:927d58cc16b5d69eed8645d2aa50e3d8671bcdb9dad0bf2183df2d48374111e6");
+    "sha256:31ebbb38d8394a1ed24ada1957b7e612ebb7b13b7103c5b80d92c2f0c49e38cb");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(

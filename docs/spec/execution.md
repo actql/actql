@@ -340,7 +340,7 @@ need no Reviewer signature.
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:cec287ce9384e6472990855d1b69abe79f5073398ce8f4b06f78a72f2e3e71c7 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:c3781c8d0fb0743e771435ca4bbddfdbb0b30674dc969fa2a04f727472c100f7 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
@@ -849,7 +849,7 @@ selected common contract. The initial scan/filter/select profile has no ordered
 derive step: `request.row_kernel_limits` is absent, not an invented set of
 filter/select limits or a zero-valued exemption.
 
-<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:d06ba4a30a72723eefff468cf55d5536795908f8a139d75c781e40bcbb097d8e -->
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:af8b6f9f9b3d104dab014dadc8959187357f81dfa3129cb430dfdf1573a851d6 -->
 The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
 counts complete select-output occurrences, not scanned or received rows.
@@ -917,7 +917,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:fdccdd8b67218043b32cf84cf396b5a0c7470e4a8c1c1dfd98bb6e84e8cde76b -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:5478764a8a173b695d70f3b35c14614cc3ef147fa6abca9343cbbf857c0b4638 -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes
