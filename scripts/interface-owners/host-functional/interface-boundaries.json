@@ -142411,7 +142411,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/result-transformation-control.test.mjs",
+                "path": "adapters/host-node/result-transformation-control.test.mts",
                 "anchor": "test('cell-backed Result cancellation retains the same cleanup path'"
               }
             ],

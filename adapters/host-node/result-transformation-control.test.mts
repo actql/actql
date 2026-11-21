@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {outputExportControl} from '../host-common/output-export-control.mjs';
+// @ts-expect-error TS7016: remove after migrating the Common runtime facade.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+// @ts-expect-error TS7016: remove after migrating the Local output limits owner.
 import {localOutputLimits} from './local-values-plan.mjs';
 
-const ok = value => ({$tag: 1, _0: value});
-function fixture({advance, finish = () => ok(exported), unselected = false} = {}) {
+type FixtureOptions = Readonly<{advance?: (count: number) => unknown; finish?: () => unknown; unselected?: boolean}>;
+
+const ok = (value: unknown) => ({$tag: 1, _0: value});
+function fixture({advance, finish = () => ok(exported), unselected = false}: FixtureOptions = {}) {
   const input = {}, selection = {}, preparation = {};
   const calls = {begin: 0, advance: 0, finish: 0, cancel: 0};
-  const control = runtimeCore({
+  const control: ReturnType<typeof outputExportControl> = runtimeCore({
     strategyRemoteManagedOutputEvidenceKind: () => 'unused-in-this-test',
-    strategyHostResultTransformationBegin(actual, result, ...args) {
+    strategyHostResultTransformationBegin(actual: unknown, result: number, ...args: unknown[]) {
       assert.equal(actual, input);
       assert.equal(result, 0);
       assert.equal(args.at(-1), unselected ? undefined : selection);
@@ -17,24 +22,24 @@ function fixture({advance, finish = () => ok(exported), unselected = false} = {}
       calls.begin++;
       return ok(preparation);
     },
-    strategyHostManagedResultTransformationBegin(actual, chosen) {
+    strategyHostManagedResultTransformationBegin(actual: unknown, chosen: unknown) {
       assert.equal(actual, input);
       assert.equal(chosen, unselected ? undefined : selection);
       calls.begin++;
       return ok(preparation);
     },
-    strategyHostResultTransformationAdvance(actual, quantum) {
+    strategyHostResultTransformationAdvance(actual: unknown, quantum: number) {
       assert.equal(actual, preparation);
       assert.equal(quantum, 256);
       calls.advance++;
       return advance?.(calls.advance) ?? ok(calls.advance === 2);
     },
-    strategyHostResultTransformationFinish(actual) {
+    strategyHostResultTransformationFinish(actual: unknown) {
       assert.equal(actual, preparation);
       calls.finish++;
       return finish();
     },
-    strategyHostResultTransformationCancel(actual) {
+    strategyHostResultTransformationCancel(actual: unknown) {
       assert.equal(actual, preparation);
       calls.cancel++;
     },
@@ -50,7 +55,7 @@ for (const managed of [false, true]) {
   test(`owned ${managed ? 'managed' : 'cell-backed'} Result uses its original metered poll without fallback`, async () => {
     const f = fixture();
     let polls = 0;
-    const progress = (actual, quantum) => {
+    const progress = (actual: unknown, quantum: number) => {
       assert.equal(actual, f.preparation);
       assert.equal(quantum, 256);
       return ++polls === 2;
@@ -147,7 +152,7 @@ for (const stage of ['advance', 'finish']) {
     const f = fixture(stage === 'advance' ? {advance: failure}
       : {advance: () => ok(true), finish: failure});
     await assert.rejects(f.control.transformManagedResultImport(
-      f.input, f.selection), error => error.cause === cause);
+      f.input, f.selection), error => (error as Error).cause === cause);
     assert.equal(f.calls.cancel, 1);
   });
 }

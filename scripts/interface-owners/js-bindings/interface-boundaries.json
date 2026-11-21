@@ -16842,6 +16842,332 @@
       "sha256": "f1ce42ed3ebce235d919697d76f17afb9f204e76fcf9809e8dec7e80262fb92e"
     },
     {
+      "module": "adapters/host-common/output-export-control.mjs",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "responsibilityFacet": "supplemental",
+      "referenceQualification": "Existing Common binding and original receiver correspondence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "outputExportControl",
+            "outputExportControl/finishTransformation/finishTransformation",
+            "outputExportControl/init:advance/init:advance",
+            "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
+            "outputExportControl/init:begin/init:begin",
+            "outputExportControl/init:beginManagedResultImport/init:beginManagedResultImport",
+            "outputExportControl/init:beginResult/init:beginResult",
+            "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
+            "outputExportControl/init:identity/init:identity",
+            "outputExportControl/init:issueResultEvidence/init:issueResultEvidence",
+            "outputExportControl/init:measurement/init:measurement",
+            "outputExportControl/init:payloadFailureAction/init:payloadFailureAction",
+            "outputExportControl/init:transformManagedResultImport/init:transformManagedResultImport",
+            "outputExportControl/outputExportControl",
+            "outputExportControl/outputExportControl#2",
+            "outputExportControl/outputExportControl#3",
+            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
+            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
+            "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits"
+          ],
+          "exports": [
+            "outputExportControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/output-export-control.mts",
+                "anchor": "outputExportControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/result-transformation-control.test.mts",
+                "anchor": "test('owned work failure cancels the same transformation and preserves the original cause'"
+              },
+              {
+                "path": "adapters/host-node/result-transformation-control.test.mts",
+                "anchor": "test('bounded Result transformation transfers completion without cancellation'"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "outputExportControl"
+      ],
+      "operations": [
+        {
+          "name": "outputExportControl",
+          "parameters": [
+            "moon",
+            "publications"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/finishTransformation/finishTransformation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:advance/init:advance",
+          "parameters": [
+            "value",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
+          "parameters": [
+            "value",
+            "row",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:begin/init:begin",
+          "parameters": [
+            "output",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:beginManagedResultImport/init:beginManagedResultImport",
+          "parameters": [
+            "host",
+            "result",
+            "output",
+            "material",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:beginResult/init:beginResult",
+          "parameters": [
+            "host",
+            "result",
+            "limits",
+            "convertedOutput",
+            "selection",
+            "signal",
+            "resultProgress"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
+          "parameters": [
+            "value",
+            "signal",
+            "resultProgress"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:identity/init:identity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:issueResultEvidence/init:issueResultEvidence",
+          "parameters": [
+            "value",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:measurement/init:measurement",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:payloadFailureAction/init:payloadFailureAction",
+          "parameters": [
+            "writerExists",
+            "writerSealed",
+            "writerCancelAttempted",
+            "preparedPending",
+            "preparedReleaseAttempted",
+            "exportExists",
+            "exportReleased",
+            "exportCancelAttempted"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/init:transformManagedResultImport/init:transformManagedResultImport",
+          "parameters": [
+            "value",
+            "selection",
+            "signal",
+            "resultProgress"
+          ],
+          "async": true
+        },
+        {
+          "name": "outputExportControl/outputExportControl",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/outputExportControl#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/outputExportControl#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./publication-action.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "01faba37d37a827b472019eff4d2e2d145b35634b84e87aec40019c539125b46"
+    },
+    {
       "module": "adapters/host-common/remote-transfer-control.mjs",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
@@ -20598,140 +20924,6 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ledger usage observations"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "outputExportControl",
-            "outputExportControl/finishTransformation/finishTransformation",
-            "outputExportControl/init:advance/init:advance",
-            "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
-            "outputExportControl/init:begin/init:begin",
-            "outputExportControl/init:beginManagedResultImport/init:beginManagedResultImport",
-            "outputExportControl/init:beginResult/init:beginResult",
-            "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
-            "outputExportControl/init:identity/init:identity",
-            "outputExportControl/init:issueResultEvidence/init:issueResultEvidence",
-            "outputExportControl/init:measurement/init:measurement",
-            "outputExportControl/init:payloadFailureAction/init:payloadFailureAction",
-            "outputExportControl/init:transformManagedResultImport/init:transformManagedResultImport",
-            "outputExportControl/outputExportControl",
-            "outputExportControl/outputExportControl#2",
-            "outputExportControl/outputExportControl#3",
-            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
-            "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
-            "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "outputExportControl"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "adapters/host-node/result-transformation-control.test.mjs",
-                "anchor": "test('owned work failure cancels the same transformation and preserves the original cause'"
               }
             ]
           }
@@ -29084,168 +29276,6 @@
           "async": false
         },
         {
-          "name": "outputExportControl",
-          "parameters": [
-            "moon",
-            "publications"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/finishTransformation/finishTransformation",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:advance/init:advance",
-          "parameters": [
-            "value",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
-          "parameters": [
-            "value",
-            "row",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:begin/init:begin",
-          "parameters": [
-            "output",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:beginManagedResultImport/init:beginManagedResultImport",
-          "parameters": [
-            "host",
-            "result",
-            "output",
-            "material",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:beginResult/init:beginResult",
-          "parameters": [
-            "host",
-            "result",
-            "limits",
-            "convertedOutput",
-            "selection",
-            "signal",
-            "resultProgress"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
-          "parameters": [
-            "value",
-            "signal",
-            "resultProgress"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:identity/init:identity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:issueResultEvidence/init:issueResultEvidence",
-          "parameters": [
-            "value",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:measurement/init:measurement",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:payloadFailureAction/init:payloadFailureAction",
-          "parameters": [
-            "writerExists",
-            "writerSealed",
-            "writerCancelAttempted",
-            "preparedPending",
-            "preparedReleaseAttempted",
-            "exportExists",
-            "exportReleased",
-            "exportCancelAttempted"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/init:transformManagedResultImport/init:transformManagedResultImport",
-          "parameters": [
-            "value",
-            "selection",
-            "signal",
-            "resultProgress"
-          ],
-          "async": true
-        },
-        {
-          "name": "outputExportControl/outputExportControl",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/outputExportControl#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/outputExportControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl",
           "parameters": [
             "moon"
@@ -35276,6 +35306,7 @@
         "./installed-effect-dependency-original.mjs",
         "./ledger-usage.mjs",
         "./local-signing-metadata.mjs",
+        "./output-export-control.mjs",
         "./publication-action.mjs",
         "./remote-bundle-control.mjs",
         "./remote-credential-control.mjs",
@@ -35289,7 +35320,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7e17c407ff723f78a9e45cbbda5172c66dfbe203ff15902d646bc0e33e866507"
+      "sha256": "5796eae372ca00f825d88f4d47f01a16337ab425dbad19a97ec911a2e0cf4e87"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
@@ -163036,7 +163067,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/result-transformation-control.test.mjs",
+                "path": "adapters/host-node/result-transformation-control.test.mts",
                 "anchor": "test('cell-backed Result cancellation retains the same cleanup path'"
               }
             ],
