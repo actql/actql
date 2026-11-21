@@ -129,7 +129,7 @@ test('private holding abort requires confirmed non-commit', async t => {
 test('source observation custody survives a failed write without replacement',
   async t => {
     const store = await fixture(t);
-    const source = {...binding, name: 'source_evidence'};
+    const source = {...binding, name: 'source_evidence' as const};
     let preparations = 0;
     let commits = 0;
     const owner = preparePrivatePublicationHolding({

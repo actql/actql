@@ -17,9 +17,11 @@ import {openLocalPublicationStore, PublicationStoreError} from '../store-local/p
 
 type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];
 type HoldingOwner = ReturnType<typeof preparePrivatePublicationHolding>;
-type HoldingBinding = HoldingOwner['binding'];
-type RawBinding = Omit<HoldingBinding, 'name'>;
 type PrepareRaw = NonNullable<HoldingStore['prepareModelRawEvidence']>;
+type RawBinding = Parameters<PrepareRaw>[0];
+type Binding = Parameters<typeof preparePrivatePublicationHolding>[1];
+type FixtureBinding = Exclude<Binding, RawBinding> |
+  (RawBinding & Readonly<{name: 'model_raw_response'}>);
 type HoldingRecord = Parameters<HoldingStore['commitPhysicalHolding']>[0];
 type AsyncRawPreparation = (...args: Parameters<PrepareRaw>) => Promise<Awaited<ReturnType<PrepareRaw>>>;
 type FixtureStore = Omit<HoldingStore, 'commitPhysicalHolding'> & Readonly<{
@@ -34,9 +36,11 @@ const cid = (bytes: string | Uint8Array) => `sha256:${createHash('sha256').updat
 
 async function fixture(t: TestContext, raw: boolean) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-private-pending-'));
-  const binding = {name: raw ? 'model_raw_response' : 'effect_preview',
+  const binding = {name: raw ? 'model_raw_response' as const : 'effect_preview' as const,
     semanticCid: cid('pending original semantic'), holdingCid: cid('pending original holding'),
     wire: '{"original":null}', ...(raw ? {contentCid: cid('raw'), byteCount: 3} : {})};
+  // The original fixture uses the same flag for the name, raw fields and bytes.
+  const ownerBinding = binding as FixtureBinding;
   const lostAck = Object.assign(new Error('IndependentDirectoryAckFailure'), {code: 'EIO'});
   let failSync = false;
   const store = await openLocalPublicationStore({directory,
@@ -81,7 +85,9 @@ async function fixture(t: TestContext, raw: boolean) {
     async preparePrivateEvidence() { counts.prepare++; return object; },
     async commitPhysicalHolding() { counts.commit++; throw lostAck; },
   };
-  const owner = preparePrivatePublicationHolding(boundary, binding, raw ? Buffer.from('raw') : undefined);
+  const owner = ownerBinding.name === 'model_raw_response'
+    ? preparePrivatePublicationHolding(boundary, ownerBinding, Buffer.from('raw'))
+    : preparePrivatePublicationHolding(boundary, ownerBinding, undefined);
   const checkBytes = async () => {
     assert.deepEqual(await readFile(objectPath), originalBytes);
     assert.deepEqual(await readFile(holdingPath), originalHolding);
@@ -96,7 +102,7 @@ async function fixture(t: TestContext, raw: boolean) {
     // Already adopted handles legitimately return false with pending=false.
     assert.equal(await object.prepared.release(), false);
   };
-  return {owner, object, counts, checkBytes, reconcile, constructionFailure, binding};
+  return {owner, object, counts, checkBytes, reconcile, constructionFailure, binding: ownerBinding};
 }
 
 const pending = (owner: HoldingOwner) => (error: unknown) => {
@@ -187,7 +193,7 @@ const rawBinding = ({semanticCid, holdingCid, wire, contentCid, byteCount}: RawB
 test('private holding: actual raw preparation catch exports false-release cleanup custody', async t => {
   const f = await fixture(t, true);
   const primary = new PublicationStoreError('PublicationObjectLimit');
-  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding), Buffer.from('raw')), error => {
+  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding as RawBinding), Buffer.from('raw')), error => {
     assert.equal(error, primary);
     assert.equal((error as CustodyFailure).code, 'PublicationObjectLimit');
     assert.equal((error as CustodyFailure).cleanupPending, true);
@@ -201,7 +207,7 @@ test('private holding: actual raw preparation catch exports false-release cleanu
 test('private holding: frozen raw preparation primary retains cause and same cleanup custody', async t => {
   const f = await fixture(t, true);
   const primary = Object.freeze(new PublicationStoreError('PublicationObjectLimit'));
-  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding), Buffer.from('raw')), error => {
+  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding as RawBinding), Buffer.from('raw')), error => {
     assert.equal((error as CustodyFailure).code, 'PublicationObjectLimit');
     assert.equal((error as CustodyFailure).cause, primary);
     assert.equal((error as CustodyFailure).cleanupPending, true);

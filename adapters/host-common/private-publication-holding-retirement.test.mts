@@ -13,6 +13,30 @@ const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const binding = Object.freeze({name: 'effect_preview', semanticCid: cid('a'),
   holdingCid: cid('b'), wire: '{"original":null}'});
 
+type HoldingArgs = Parameters<typeof preparePrivatePublicationHolding>;
+type HoldingStore = HoldingArgs[0];
+type WireBinding = typeof binding;
+type RawFields = Omit<WireBinding, 'name'> &
+  Readonly<{contentCid: string; byteCount: number}>;
+type RawBinding<Name extends string> = RawFields & Readonly<{name: Name}>;
+type Accept<Value extends HoldingArgs> = Value;
+type IsNotAssignable<Value, Target> = Value extends Target ? false : true;
+type Assert<Value extends true> = Value;
+type ModelRawPortBinding = Parameters<NonNullable<HoldingStore['prepareModelRawEvidence']>>[0];
+type LookupRawPortBinding = Parameters<NonNullable<HoldingStore['confirmLookupRawEvidence']>>[0];
+type RawHoldingCases = [
+  Accept<[HoldingStore, WireBinding]>,
+  Accept<[HoldingStore, RawBinding<'model_raw_response'>, Uint8Array]>,
+  Accept<[HoldingStore, RawBinding<'lookup_raw_response'>, Uint8Array]>,
+  Assert<IsNotAssignable<[HoldingStore, Omit<RawBinding<'model_raw_response'>, 'contentCid'>, Uint8Array], HoldingArgs>>,
+  Assert<IsNotAssignable<[HoldingStore, Omit<RawBinding<'lookup_raw_response'>, 'byteCount'>, Uint8Array], HoldingArgs>>,
+  Assert<IsNotAssignable<[HoldingStore, RawBinding<'model_raw_response'>], HoldingArgs>>,
+  Assert<IsNotAssignable<[HoldingStore, WireBinding, Uint8Array], HoldingArgs>>,
+  Assert<IsNotAssignable<[HoldingStore, WireBinding & RawFields], HoldingArgs>>,
+  Assert<IsNotAssignable<Omit<RawFields, 'byteCount'>, ModelRawPortBinding>>,
+  Assert<IsNotAssignable<Omit<RawFields, 'contentCid'>, LookupRawPortBinding>>,
+];
+
 function fixture({releaseFailure, beforeCommitFailure, raw = false}: FixtureOptions = {}) {
   let visible = false, retired = false;
   let failRelease = releaseFailure, failCommit = beforeCommitFailure;
@@ -51,9 +75,10 @@ function fixture({releaseFailure, beforeCommitFailure, raw = false}: FixtureOpti
       visible = true;
     },
   };
-  const owner = preparePrivatePublicationHolding(store, raw ? {...binding,
-    name: 'model_raw_response', contentCid: cid('d'), byteCount: 3} : binding,
-  raw ? Buffer.from('raw') : undefined);
+  const owner = raw
+    ? preparePrivatePublicationHolding(store, {...binding,
+      name: 'model_raw_response', contentCid: cid('d'), byteCount: 3}, Buffer.from('raw'))
+    : preparePrivatePublicationHolding(store, binding, undefined);
   return {owner, counts, record,
     retire() { assert.ok(cleanupPending.every(value => value === false)); retired = true; },
     allowCleanup() { failRelease = undefined; },

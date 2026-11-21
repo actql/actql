@@ -1,15 +1,22 @@
 // Physical custody of one encrypted private publication body. The semantic
 // binding must already have been issued by the MoonBit publication owner.
+const holdingNames = [
+  'effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
+  'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
+  'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission', 'observation_set',
+  'run_invocation', 'source_evidence', 'model_raw_response', 'lookup_raw_response', 'content_input_artifact',
+  'content_evidence', 'content_generation', 'installation_publication',
+] as const;
+
 type Awaitable<Value> = Value | PromiseLike<Value>;
-type HoldingBinding = Readonly<{
-  name: string;
-  semanticCid: string;
-  holdingCid: string;
-  wire: string;
-  contentCid?: string;
-  byteCount?: number;
-}>;
-type RawBinding = Omit<HoldingBinding, 'name'>;
+type BindingFields = Readonly<{semanticCid: string; holdingCid: string; wire: string}>;
+type HoldingBinding = BindingFields & Readonly<{name: string; contentCid?: string; byteCount?: number}>;
+type RawName = 'model_raw_response' | 'lookup_raw_response';
+type WireName = Exclude<typeof holdingNames[number], RawName>;
+type WireBinding = BindingFields & Readonly<{name: WireName; contentCid?: never; byteCount?: never}>;
+type RawBinding = BindingFields & Readonly<{contentCid: string; byteCount: number}>;
+type HoldingRequest = [binding: WireBinding, rawBytes?: undefined] |
+  [binding: RawBinding & Readonly<{name: RawName}>, rawBytes: Uint8Array];
 type PhysicalHolding = Readonly<{
   version: 'actql-local-physical-holding/0.1';
   namespace: 'publication-private';
@@ -25,7 +32,7 @@ type EncryptedObject = Readonly<{physicalCid: string; bytes: number; prepared: P
 type RawConfirmation = Readonly<{record: PhysicalHolding}>;
 type HoldingStore = Readonly<{
   preparePrivateEvidence?(name: string, wire: string, semanticCid: string): Awaitable<EncryptedObject>;
-  confirmPrivateEvidence?(binding: HoldingBinding): Awaitable<PhysicalHolding | undefined>;
+  confirmPrivateEvidence?(binding: WireBinding): Awaitable<PhysicalHolding | undefined>;
   prepareLookupRawEvidence?(binding: RawBinding, bytes: Uint8Array): Awaitable<readonly EncryptedObject[]>;
   prepareModelRawEvidence?(binding: RawBinding, bytes: Uint8Array): Awaitable<readonly EncryptedObject[]>;
   confirmLookupRawEvidence?(binding: RawBinding): Awaitable<RawConfirmation | undefined>;
@@ -89,6 +96,7 @@ const writableFailure = (error: unknown): WritableFailure => {
   return failure;
 };
 
+export function preparePrivatePublicationHolding(store: HoldingStore, ...request: HoldingRequest): HoldingOwner;
 export function preparePrivatePublicationHolding(store: HoldingStore, binding: HoldingBinding, rawBytes?: Uint8Array) {
   const lookupRaw = binding?.name === 'lookup_raw_response';
   const raw = lookupRaw || binding?.name === 'model_raw_response';
@@ -99,12 +107,7 @@ export function preparePrivatePublicationHolding(store: HoldingStore, binding: H
       typeof (raw ? store[prepareRaw] :
         store.preparePrivateEvidence) !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
-      !binding || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
-        'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
-        'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission', 'observation_set',
-        'run_invocation', 'source_evidence', 'model_raw_response', 'lookup_raw_response', 'content_input_artifact',
-        'content_evidence', 'content_generation', 'installation_publication']
-        .includes(binding.name) ||
+      !binding || !(holdingNames as readonly string[]).includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||
       typeof binding.wire !== 'string' ||
@@ -140,10 +143,10 @@ export function preparePrivatePublicationHolding(store: HoldingStore, binding: H
   };
   const rawBinding = raw ? Object.freeze({semanticCid: owned.semanticCid,
     holdingCid: owned.holdingCid, wire: owned.wire, contentCid: owned.contentCid,
-    byteCount: owned.byteCount}) : undefined;
+    byteCount: owned.byteCount}) as RawBinding : undefined;
   const confirm = async () => raw
     ? (await store[confirmRaw]!(rawBinding!))?.record
-    : store.confirmPrivateEvidence!(owned);
+    : store.confirmPrivateEvidence!(owned as WireBinding);
   const status = () => Object.freeze({
     committed, abandoned, abandoning,
     operationPending: flight !== undefined || abortFlight !== undefined,
