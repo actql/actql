@@ -19,7 +19,7 @@ type MetadataIdentity = InventorySource & Readonly<{
   publication_attempt_cid: unknown;
 }>;
 type ContractExtent = Readonly<{semantic_cid: unknown; byte_count: number}>;
-type MetadataContractObject = ContractExtent & (
+export type MetadataContractObject = ContractExtent & (
   Readonly<{physical_cid: unknown}> | Readonly<{native: 'sqlite'; body_sha256: unknown}>
 );
 type MetadataInventory = MetadataIdentity & Readonly<{

@@ -36,7 +36,8 @@ import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingRecordReader}
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
-import {createPublicationMetadataInventory, metadataContractObject} from './publication-metadata-inventory.mjs';
+import {createPublicationMetadataInventory} from './publication-metadata-inventory.mjs';
+import {createPublicationMetadataDeletionMarkers} from './publication-metadata-deletion-markers.mjs';
 import {createNativeMetadataMutationOwner} from './native-metadata-mutation-owner.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
@@ -664,73 +665,13 @@ async function openOriginalLocalPublicationStore(
   const {stageMetadataInventory, writeNativeIndexOriginal} =
     createNativeMetadataMutationOwner(currentDeliveryIndex, activePhysicalRecordWriters);
 
-  const readMetadataDeletion = async (keyHash, readDemand) => {
-    let bytes;
-    try {
-      bytes = await readBounded(
-        metadataDeletionPath(keyHash), configuration.maxObjectBytes, undefined, undefined, false, readDemand,
-      );
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        if (!metadataFencesReady) return undefined;
-        const fence = deliveryIndex.metadataDeletionFence(keyHash);
-        if (fence === undefined) return undefined;
-        if (fence.retired !== 1) fail('InvalidPublicationMetadataDeletionStore');
-        return Object.freeze({version:'actql-local-publication-metadata-retired/0.1',
-          run_definition_cid:fence.run_cid});
-      }
-      throw error;
-    }
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) {
-      fail('InvalidPublicationMetadataDeletionStore', error);
-    }
-    if (exactKeys(value, ['version', 'run_definition_cid']) &&
-        value.version ===
-          'actql-local-publication-metadata-retired/0.1' &&
-        cidPattern.test(value.run_definition_cid)) {
-      return Object.freeze(value);
-    }
-    if (!exactKeys(value, [
-      'version', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
-      'public_index_entry_cid', 'results', 'contract_objects',
-      'physical_holding_cids', 'requested_at',
-    ]) ||
-        value.version !== 'actql-local-publication-metadata-deletion/0.1' ||
-        typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
-        !cidPattern.test(value.authority_scope_cid) ||
-        !cidPattern.test(value.run_definition_cid) ||
-        !cidPattern.test(value.public_index_entry_cid) ||
-        !Array.isArray(value.results) || value.results.length === 0 ||
-        value.results.some(result => !exactKeys(result, [
-          'result_definition_cid', 'material_generation_cid', 'byte_count',
-        ]) || !cidPattern.test(result.result_definition_cid) ||
-          !cidPattern.test(result.material_generation_cid) ||
-          !quantity(result.byte_count)) ||
-        new Set(value.results.map(result => result.result_definition_cid))
-          .size !== value.results.length ||
-        !Array.isArray(value.contract_objects) ||
-        value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !metadataContractObject(object)) ||
-        new Set(value.contract_objects.map(object => object.semantic_cid))
-          .size !== value.contract_objects.length ||
-        [...value.contract_objects]
-          .sort((left, right) =>
-            left.semantic_cid.localeCompare(right.semantic_cid))
-          .map(object => object.semantic_cid).join('\0') !==
-        value.contract_objects.map(object => object.semantic_cid).join('\0') ||
-        !Array.isArray(value.physical_holding_cids) ||
-        value.physical_holding_cids.some(cid => !cidPattern.test(cid)) ||
-        new Set(value.physical_holding_cids).size !==
-          value.physical_holding_cids.length ||
-        [...value.physical_holding_cids].sort().join('\0') !==
-          value.physical_holding_cids.join('\0') ||
-        !timestampPattern.test(value.requested_at)) {
-      fail('InvalidPublicationMetadataDeletionStore');
-    }
-    return Object.freeze(value);
-  };
+  const metadataFencesAreReady = () => metadataFencesReady;
+  const {readMetadataDeletion, compactMetadataDeletion, ensureMetadataDeletion, runMetadataDeletionStarted} =
+    createPublicationMetadataDeletionMarkers(
+      configuration, metadataDeletionPath, metadataDeletionsDirectory, syncDirectory,
+      currentDeliveryIndex, metadataFencesAreReady, metadataDeletionIntents,
+      pendingMetadataFenceCompletions, timestampPattern,
+    );
 
   const {readMetadataInventory, readCommittedMetadataInventory, requireCommittedMetadataInventory,
     publicationRecoveryOriginal, publicationRecoveryValue, ensureMetadataInventory,
@@ -739,47 +680,6 @@ async function openOriginalLocalPublicationStore(
     currentDeliveryIndex, stageMetadataInventory, readPhysicalHolding, readPhysicalHoldingDeletion,
     readMetadataDeletion,
   );
-
-  const compactMetadataDeletion = async (keyHash, runDefinitionCid) => {
-    const value = Object.freeze({
-      version: 'actql-local-publication-metadata-retired/0.1',
-      run_definition_cid: runDefinitionCid,
-    });
-    const original = Object.freeze({metadata_key:keyHash,run_cid:runDefinitionCid});
-    pendingMetadataFenceCompletions.set(keyHash,original);
-    deliveryIndex.finishMetadataDeletionFence(original);
-    pendingMetadataFenceCompletions.delete(keyHash);
-    try { await unlink(metadataDeletionPath(keyHash)); }
-    catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    // Absence after a lost unlink/ACK reply is not its directory ACK.
-    await syncDirectory(metadataDeletionsDirectory);
-    return value;
-  };
-
-  const ensureMetadataDeletion = async (keyHash, value) => {
-    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
-    if (bytes.byteLength > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    metadataDeletionIntents.add(value.run_definition_cid);
-    try { await writeExclusive(metadataDeletionPath(keyHash), bytes); }
-    catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readBounded(
-        metadataDeletionPath(keyHash), configuration.maxObjectBytes,
-      );
-      if (!existing.equals(bytes)) {
-        fail('PublicationMetadataDeletionConflict');
-      }
-    }
-    await syncDirectory(metadataDeletionsDirectory);
-    return readMetadataDeletion(keyHash);
-  };
-
-  const runMetadataDeletionStarted = async runDefinitionCid => {
-    return metadataDeletionIntents.has(runDefinitionCid) ||
-      deliveryIndex.hasRunMetadataDeletionFence(runDefinitionCid);
-  };
 
   const parseCustodyRecord = bytes => {
     let value;
