@@ -2,7 +2,8 @@
 // and key/capacity are explicit fixtures; no semantic issuer or funding claim.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {open, readFile, writeFile} from 'node:fs/promises';
+import fs, {readFile, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
@@ -25,10 +26,13 @@ async function fixture(t, {key = Buffer.alloc(32, 7)} = {}) {
     storeAuthorityCid: authority, privateEvidenceKey: key === null ? undefined : key,
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
     maxContractNodes: 256, maxContractDepth: 32}, control);
+  let readCleanup;
   t.after(async () => {
+    await readCleanup?.();
     if (!store.status().closed) assert.equal(await store.close(), true);
   });
-  return {store, scratch, contractPath: join(directory, 'store.json')};
+  return {store, scratch, contractPath: join(directory, 'store.json'),
+    beforeClose(cleanup) { readCleanup = cleanup; }};
 }
 
 test('original installation observation projects exact Store DATA without Model evidence', async t => {
@@ -97,35 +101,38 @@ test('new observation requires exact original Store contract bytes', async t => 
 for (const outcome of ['false', 'reject']) {
   test(`${outcome} Store contract FD close forbids replacement observation until original ACK`, async t => {
     const f = await fixture(t);
-    const probe = await open(f.contractPath, 'r');
-    const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
-    await probe.close();
-    let original, nativeClose, cleanup, blocked = true, reads = 0, closes = 0;
+    const open = fs.open;
+    let original, cleanup, blocked = true, reads = 0, closes = 0;
     const primary = new Error('OriginalInstallationStoreContractCloseRefused');
-    prototype.stat = function(...args) {
-      if (original === undefined && new Error().stack.split('\n')[2]?.includes('readBounded')) {
-        original = this;
-        nativeClose = this.close;
-        const read = this.read;
-        this.read = function(...readArgs) {
-          reads++;
-          return Reflect.apply(read, this, readArgs);
-        };
-        this.close = function(...closeArgs) {
-          closes++;
-          if (blocked) return outcome === 'false' ? Promise.resolve(false) : Promise.reject(primary);
-          return Reflect.apply(nativeClose, this, closeArgs);
-        };
-      }
-      return Reflect.apply(stat, this, args);
+    fs.open = async function(path, ...args) {
+      const handle = await Reflect.apply(open, this, [path, ...args]);
+      if (path !== f.contractPath) return handle;
+      assert.equal(original, undefined, 'a pending observation cannot open a replacement FD');
+      original = handle;
+      const close = handle.close, read = handle.read;
+      handle.read = function(...readArgs) {
+        reads++;
+        return Reflect.apply(read, this, readArgs);
+      };
+      // The original bounded reader captures close before its first stat.
+      handle.close = function(...closeArgs) {
+        closes++;
+        if (blocked) return outcome === 'false' ? Promise.resolve(false) : Promise.reject(primary);
+        return Reflect.apply(close, this, closeArgs);
+      };
+      return handle;
     };
-    t.after(async () => {
-      prototype.stat = stat;
+    syncBuiltinESMExports();
+    const restoreOpen = () => { fs.open = open; syncBuiltinESMExports(); };
+    f.beforeClose(async () => {
+      restoreOpen();
       blocked = false;
       if (cleanup?.status().pending) await cleanup.retry();
       assert(original === undefined || original.fd === -1);
     });
     await assert.rejects(f.store.observeOriginalInstallationPublicationStorageBinding(), error => {
+      if (outcome === 'reject') assert.strictEqual(error, primary);
+      else assert.equal(error.code, 'PublicationMetadataReaderCleanupPending');
       cleanup = error.cleanupHandle;
       return cleanup?.status().pending === true;
     });
@@ -143,7 +150,7 @@ for (const outcome of ['false', 'reject']) {
     assert.equal(original.fd, -1);
     assert.equal(closes, 3);
     assert.equal(reads, readCalls, 'same-FD cleanup is close only');
-    prototype.stat = stat;
+    restoreOpen();
     const handle = await f.store.observeOriginalInstallationPublicationStorageBinding();
     assert.equal(f.store.originalInstallationPublicationStorageBindingEvidence(handle).storeAuthorityCid, authority);
     assert.equal(await f.store.close(), true);
