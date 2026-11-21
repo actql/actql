@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "61e281332bdf398f0079ab88ec3489cf73d8bf9ceac191292a053333daab71e9",
+      "sha256": "f0b1532fe5a0fe1cfb80b9935996b1034861f3dbae3ea3ce899548c05281ae64",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7353,6 +7353,11 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
           "parameters": [],
           "async": false
@@ -7726,6 +7731,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
+          "parameters": [
+            "publicIndexEntryCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
           "parameters": [
             "left",
@@ -7778,63 +7790,6 @@
           "parameters": [
             "cid",
             "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#2",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#3",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#4",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#5",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
-          "parameters": [
-            "object"
           ],
           "async": false
         },
@@ -8283,6 +8238,14 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
+          "parameters": [
+            "keyHash",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion",
           "parameters": [
             "result"
@@ -8350,6 +8313,22 @@
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
           "parameters": [
             "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
+          "parameters": [
+            "holdingCid",
+            "readDemand"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
+          "parameters": [
+            "holdingCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -8827,6 +8806,14 @@
         {
           "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory",
+          "parameters": [
+            "original",
+            "native"
+          ],
           "async": false
         },
         {
@@ -9559,14 +9546,6 @@
             "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
             "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#2",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#3",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#4",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#5",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
@@ -9726,7 +9705,13 @@
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status"
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
+            "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
+            "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
+            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
+            "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
+            "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory"
           ],
           "exports": [
             "PublicationStoreError",
@@ -9949,19 +9934,19 @@
                 "anchor": "const readPhysicalHoldingAt = async (path: string, holdingCid: string, readDemand?: HoldingReadDemand) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readCommittedMetadataInventory = async (entry, readDemand) => {"
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "const readCommittedMetadataInventory = async (entry: MetadataIdentity, readDemand?: MetadataReadDemand) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const publicationRecoveryOriginal = value => Object.freeze({"
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "const publicationRecoveryOriginal = (value: InventorySource) => Object.freeze({"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const names = await readdir(preparedSchemasDirectory);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
                 "anchor": "stageMetadataInventory(original, true);"
               },
               {
@@ -10083,19 +10068,19 @@
                 "anchor": "if (record.holding_cid !== holdingCid) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
                 "anchor": "if (inventory.public_index_entry_cid !== publicIndexEntryCid) {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const publicationRecoveryValue = original => {"
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "const publicationRecoveryValue = (original: InventoryOriginal) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const record = parsePreparedSchema(await readBounded("
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
                 "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
               },
               {
@@ -13442,6 +13427,7 @@
         "./prepared-holder-owner.mjs",
         "./prepared-publication-store-ownership.mjs",
         "./publication-commit-owner.mjs",
+        "./publication-metadata-inventory.mjs",
         "./publication-store-bootstrap.mjs",
         "./publication-store-format.mjs",
         "./publication-store-inputs.mjs",
@@ -13458,6 +13444,262 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-metadata-inventory.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "fae62c6ab2ab3dfcec0debdf28a3aac3c0256d6df8927355e7c1193cc1c46ad6",
+      "exports": [
+        "createPublicationMetadataInventory",
+        "metadataContractObject"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationMetadataInventory",
+          "parameters": [
+            "configuration",
+            "metadataInventoriesDirectory",
+            "metadataInventoryPath",
+            "syncDirectory",
+            "getDeliveryIndex",
+            "stageMetadataInventory",
+            "readPhysicalHolding",
+            "readPhysicalHoldingDeletion",
+            "readMetadataDeletion"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/ensureMetadataInventory/ensureMetadataInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#2",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#3",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#4",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#5",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/publicationRecoveryOriginal/publicationRecoveryOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/publicationRecoveryValue/publicationRecoveryValue",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationMetadataInventory/readCommittedMetadataInventory/readCommittedMetadataInventory",
+          "parameters": [
+            "entry",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataInventory/readMetadataInventory/readMetadataInventory",
+          "parameters": [
+            "publicIndexEntryCid",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataInventory/recoverMetadataInventory/recoverMetadataInventory",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataInventory/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
+          "parameters": [
+            "entry",
+            "readDemand"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationMetadataInventory/restoreMetadataInventory/restoreMetadataInventory",
+          "parameters": [
+            "original",
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "metadataContractObject/metadataContractObject",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationMetadataInventory",
+            "createPublicationMetadataInventory/ensureMetadataInventory/ensureMetadataInventory",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#2",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#3",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#4",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#5",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
+            "createPublicationMetadataInventory/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
+            "createPublicationMetadataInventory/publicationRecoveryOriginal/publicationRecoveryOriginal",
+            "createPublicationMetadataInventory/publicationRecoveryValue/publicationRecoveryValue",
+            "createPublicationMetadataInventory/readCommittedMetadataInventory/readCommittedMetadataInventory",
+            "createPublicationMetadataInventory/readMetadataInventory/readMetadataInventory",
+            "createPublicationMetadataInventory/recoverMetadataInventory/recoverMetadataInventory",
+            "createPublicationMetadataInventory/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
+            "createPublicationMetadataInventory/restoreMetadataInventory/restoreMetadataInventory",
+            "metadataContractObject/metadataContractObject"
+          ],
+          "exports": [
+            "createPublicationMetadataInventory",
+            "metadataContractObject"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "One serialized Store publication commit retains the selected semantic metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "export function createPublicationMetadataInventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "if (inventory.public_index_entry_cid !== publicIndexEntryCid) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "currentDeliveryIndex, stageMetadataInventory, readPhysicalHolding, readPhysicalHoldingDeletion,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "await syncDirectory(metadataInventoriesDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "readDemand?.release(8);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "readDemand.data(8, extent.nodes, extent.textUnits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-metadata-inventory.mts",
+                "anchor": "stageMetadataInventory(original, true);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native publication inventory validates only the selected body and exact Index tuple"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./physical-holding-record-reader.mjs",
+        "./publication-store-inputs.mjs",
+        "./publication-store-io.mjs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original publication metadata inventory selection, validation, funding and recovery correspondence."
     },
     {
       "module": "adapters/store-local/physical-holding-record-reader.mjs",

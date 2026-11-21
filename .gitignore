@@ -1513,3 +1513,5 @@ target/
 /adapters/store-local/physical-holding-record-writer.d.mts
 /adapters/store-local/physical-holding-record-reader.mjs
 /adapters/store-local/physical-holding-record-reader.d.mts
+/adapters/store-local/publication-metadata-inventory.mjs
+/adapters/store-local/publication-metadata-inventory.d.mts

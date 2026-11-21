@@ -36,6 +36,7 @@ import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingRecordReader}
   from './physical-holding-record-reader.mjs';
 import {createPhysicalHoldingRecordWriter} from './physical-holding-record-writer.mjs';
+import {createPublicationMetadataInventory, metadataContractObject} from './publication-metadata-inventory.mjs';
 import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
 import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
@@ -108,11 +109,6 @@ const filePublicationContractNames = Object.freeze(['public_index_entry','schema
 const nativePublicationContract = name => !filePublicationContractNames.includes(name);
 const nativeContractRead = name => name === 'public_index_entry' ||
   nativePublicationContract(name) ? 'publication' : nativeDeliveryContractNames.includes(name);
-const metadataContractObject = object => object !== null && typeof object === 'object' &&
-  cidPattern.test(object.semantic_cid) && quantity(object.byte_count) && (
-    exactKeys(object, ['semantic_cid','physical_cid','byte_count']) && cidPattern.test(object.physical_cid) ||
-    exactKeys(object, ['semantic_cid','native','body_sha256','byte_count']) &&
-      object.native === 'sqlite' && cidPattern.test(object.body_sha256));
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
@@ -663,140 +659,6 @@ async function openOriginalLocalPublicationStore(
   const readPhysicalHoldingDeletion = (holdingCid, readDemand) =>
     readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid, readDemand);
 
-  const parseMetadataInventory = bytes => {
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) {
-      fail('InvalidPublicationMetadataInventoryStore', error);
-    }
-    if (!exactKeys(value, [
-      'version', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
-      'public_index_entry_cid', 'publication_attempt_cid', 'contract_objects',
-      'physical_holding_cids',
-    ]) ||
-        value.version !== 'actql-local-publication-metadata-inventory/0.1' ||
-        typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
-        !cidPattern.test(value.authority_scope_cid) ||
-        !cidPattern.test(value.run_definition_cid) ||
-        !cidPattern.test(value.public_index_entry_cid) ||
-        !cidPattern.test(value.publication_attempt_cid) ||
-        !Array.isArray(value.contract_objects) ||
-        value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !metadataContractObject(object)) ||
-        new Set(value.contract_objects.map(object => object.semantic_cid))
-          .size !== value.contract_objects.length ||
-        [...value.contract_objects]
-          .sort((left, right) =>
-            left.semantic_cid.localeCompare(right.semantic_cid))
-          .map(object => object.semantic_cid).join('\0') !==
-          value.contract_objects.map(object => object.semantic_cid).join('\0') ||
-        !value.contract_objects.some(object =>
-          object.semantic_cid === value.public_index_entry_cid) ||
-        !Array.isArray(value.physical_holding_cids) ||
-        value.physical_holding_cids.some(cid => !cidPattern.test(cid)) ||
-        new Set(value.physical_holding_cids).size !==
-          value.physical_holding_cids.length ||
-        [...value.physical_holding_cids].sort().join('\0') !==
-          value.physical_holding_cids.join('\0')) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-    return Object.freeze({
-      ...value,
-      contract_objects: Object.freeze(value.contract_objects.map(object =>
-        Object.freeze({...object}))),
-      physical_holding_cids: Object.freeze([...value.physical_holding_cids]),
-    });
-  };
-
-  const readMetadataInventory = async (publicIndexEntryCid, readDemand) => {
-    const native = deliveryIndex?.nativePublicationInventory(publicIndexEntryCid, readDemand);
-    if (native !== undefined) return publicationRecoveryValue(native);
-    let bytes;
-    try {
-      bytes = await readBounded(
-        metadataInventoryPath(publicIndexEntryCid),
-        configuration.maxObjectBytes, undefined, undefined, false, readDemand,
-      );
-    } catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
-      throw error;
-    }
-    const inventory = parseMetadataInventory(bytes);
-    if (inventory.public_index_entry_cid !== publicIndexEntryCid) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-    return inventory;
-  };
-
-  const readCommittedMetadataInventory = async (entry, readDemand) => {
-    const inventory = await readMetadataInventory(entry.public_index_entry_cid, readDemand);
-    if (inventory === undefined ||
-        inventory.namespace_id !== entry.namespace_id ||
-        inventory.authority_scope_cid !== entry.authority_scope_cid ||
-        inventory.run_definition_cid !== entry.run_definition_cid ||
-        inventory.publication_attempt_cid !== entry.publication_attempt_cid) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-    if (readDemand !== undefined) {
-      const extent = closedMetadataObjectExtent(inventory);
-      for (const object of inventory.contract_objects) {
-        const child = closedMetadataObjectExtent(object);
-        extent.nodes += child.nodes; extent.textUnits += child.textUnits;
-      }
-      extent.nodes += inventory.physical_holding_cids.length;
-      for (const cid of inventory.physical_holding_cids) extent.textUnits += cid.length;
-      readDemand.data(8, extent.nodes, extent.textUnits);
-      readDemand.finish();
-    }
-    return inventory;
-  };
-
-  const requireCommittedMetadataInventory = async (entry, readDemand) => {
-    const inventory = await readCommittedMetadataInventory(entry, readDemand);
-    // Every selected holding is a distinct returned original while examined.
-    // The READ caller consumes only presence, then releases that finite role.
-    for (const holdingCid of inventory.physical_holding_cids) {
-      const deletion = await readPhysicalHoldingDeletion(holdingCid, readDemand);
-      if (deletion !== undefined) fail('InvalidPublicationMetadataInventoryStore');
-      const holding = await readPhysicalHolding(holdingCid, readDemand);
-      if (holding === undefined) fail('InvalidPublicationMetadataInventoryStore');
-      readDemand?.release(10);
-    }
-    // These normal READ callers do not retain the inventory result. Other
-    // existing callers omit readDemand and retain their established lifetime.
-    readDemand?.release(8);
-    return inventory;
-  };
-
-  const publicationRecoveryOriginal = value => Object.freeze({
-    public_index_cid: value.public_index_entry_cid,
-    inventory_wire: JSON.stringify(value),
-  });
-
-  const ensureMetadataInventoryFile = async value => {
-    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
-    if (bytes.byteLength > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    try {
-      await writeExclusive(
-        metadataInventoryPath(value.public_index_entry_cid), bytes,
-      );
-    }
-    catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readBounded(
-        metadataInventoryPath(value.public_index_entry_cid),
-        configuration.maxObjectBytes,
-      );
-      if (!existing.equals(bytes)) {
-        fail('PublicationMetadataInventoryConflict');
-      }
-    }
-    await syncDirectory(metadataInventoriesDirectory);
-    return parseMetadataInventory(bytes);
-  };
-
   const stageMetadataInventory = (original, native) => {
     const index = deliveryIndex;
     const stage = native ? index.stageNativePublicationInventory : index.stagePublicationInventory;
@@ -881,50 +743,6 @@ async function openOriginalLocalPublicationStore(
     }
   };
 
-  const ensureMetadataInventory = async value => {
-    const original = publicationRecoveryOriginal(value);
-    if (deliveryIndex.nativePublicationInventory(original.public_index_cid) === undefined) {
-      try {
-        // Preserve an existing independently adopted file representation.
-        await lstat(metadataInventoryPath(original.public_index_cid));
-        stageMetadataInventory(original, false);
-        return ensureMetadataInventoryFile(value);
-      } catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    }
-    // The same native transaction owns both the complete inventory original
-    // and its pending lookup. Do not also persist a duplicate inventory file.
-    stageMetadataInventory(original, true);
-    return publicationRecoveryValue(original);
-  };
-
-  const publicationRecoveryValue = original => {
-    const value = parseMetadataInventory(Buffer.from(original.inventory_wire,'utf8'));
-    if (value.public_index_entry_cid !== original.public_index_cid) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-    return value;
-  };
-
-  const restoreMetadataInventory = async (original, value) => {
-    const native = deliveryIndex.nativePublicationInventory(original.public_index_cid);
-    if (native !== undefined) {
-      if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
-      return value;
-    }
-    const existing = await readMetadataInventory(original.public_index_cid);
-    if (existing === undefined) return ensureMetadataInventoryFile(value);
-    if (JSON.stringify(existing) !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
-    return existing;
-  };
-
-  const recoverMetadataInventory = async original => {
-    const value = publicationRecoveryValue(original);
-    const marker = await readMetadataDeletion(indexKey({namespaceId:value.namespace_id,
-      authorityScopeCid:value.authority_scope_cid,runDefinitionCid:value.run_definition_cid}));
-    if (marker !== undefined) fail('PublicationMetadataDeleted');
-    return restoreMetadataInventory(original,value);
-  };
-
   const readMetadataDeletion = async (keyHash, readDemand) => {
     let bytes;
     try {
@@ -992,6 +810,15 @@ async function openOriginalLocalPublicationStore(
     }
     return Object.freeze(value);
   };
+
+  const currentDeliveryIndex = () => deliveryIndex;
+  const {readMetadataInventory, readCommittedMetadataInventory, requireCommittedMetadataInventory,
+    publicationRecoveryOriginal, publicationRecoveryValue, ensureMetadataInventory,
+    restoreMetadataInventory, recoverMetadataInventory} = createPublicationMetadataInventory(
+    configuration, metadataInventoriesDirectory, metadataInventoryPath, syncDirectory,
+    currentDeliveryIndex, stageMetadataInventory, readPhysicalHolding, readPhysicalHoldingDeletion,
+    readMetadataDeletion,
+  );
 
   const compactMetadataDeletion = async (keyHash, runDefinitionCid) => {
     const value = Object.freeze({
