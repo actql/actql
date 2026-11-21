@@ -2983,11 +2983,26 @@
     {
       "module": "scripts/package-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9f0a5749a1634a0f2e542f662ccce9c94aed3bd91642fe5f6a5944340a449a61",
+      "sha256": "3c3281eb29a1401d5e5a25ea544b4aa80594b288bdd1fa58aa13f1529ab15249",
       "exports": [
+        "installedModulesPayloadInventory",
         "inventory"
       ],
       "operations": [
+        {
+          "name": "installedModulesPayloadInventory",
+          "parameters": [
+            "directory"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedModulesPayloadInventory/names/names",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
         {
           "name": "inventory",
           "parameters": [
@@ -2996,6 +3011,13 @@
             "ignoreInstalledDependencies"
           ],
           "async": true
+        },
+        {
+          "name": "inventory/inventory",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -3004,7 +3026,8 @@
         {
           "operations": [
             "<module>",
-            "inventory"
+            "inventory",
+            "inventory/inventory"
           ],
           "exports": [
             "inventory"
@@ -3065,6 +3088,74 @@
               {
                 "path": "scripts/connector-authoring.cli.test.mjs",
                 "anchor": "the packed author toolkit runs outside the checkout"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedModulesPayloadInventory",
+            "installedModulesPayloadInventory/names/names"
+          ],
+          "exports": [
+            "installedModulesPayloadInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Health checks the npm-created root .bin separately"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "function installedModulesPayloadInventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "createHash('sha256')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Installed node_modules must be a real directory"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/health-monitor.mjs",
+                "anchor": "Installed command links changed"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/package-inventory.mjs",
+                "anchor": "Release payload symlink:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The invoking Health collector owns the read and its execution deadline."
+            },
+            "resources": [
+              {
+                "path": "scripts/health-monitor-adapters.mjs",
+                "anchor": "installed.reduce((sum, row) => sum + row.bytes, 0)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/health-monitor-adapters.mjs",
+                "anchor": "await inspectInstalledConnectorBins(modules, manifest)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/health-monitor.test.mjs",
+                "anchor": "browser distribution invokes the installed esbuild executable and retains import refusals"
               }
             ]
           }
