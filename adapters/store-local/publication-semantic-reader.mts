@@ -191,7 +191,7 @@ export function createPublicationSemanticReader<Contract extends SemanticContrac
 
   const readContract = async (
     cid: string, contractName?: string,
-    readOriginal: (cid: string, includeNative: NativeSelection) => Promise<SemanticOriginal<Contract>> = readSemanticOriginal,
+    readOriginal: (cid: string, includeNative: NativeSelection) => Promise<SemanticOriginal<Contract>> | SemanticOriginal<Contract> = readSemanticOriginal,
   ): Promise<Readonly<{wire: string; value: unknown; contract?: Contract}>> => {
     const includeNative = contractName === undefined || nativeContractRead(contractName);
     const original = await readOriginal(cid, includeNative);

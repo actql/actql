@@ -69,7 +69,8 @@ type SemanticReaderPorts<Contract extends PublicationContract> = ReturnType<type
 type ReadSemanticOriginal<Contract extends PublicationContract> = SemanticReaderPorts<Contract>['readSemanticOriginal'];
 type NativeSelection<Contract extends PublicationContract> = NonNullable<Parameters<ReadSemanticOriginal<Contract>>[1]>;
 type EvidenceRead<Contract extends PublicationContract> =
-  (cid: string, includeNative: NativeSelection<Contract>, retained?: Contract) => ReturnType<ReadSemanticOriginal<Contract>>;
+  (cid: string, includeNative: NativeSelection<Contract>, retained?: Contract) =>
+    ReturnType<ReadSemanticOriginal<Contract>> | Awaited<ReturnType<ReadSemanticOriginal<Contract>>>;
 type EvidencePorts<Contract extends PublicationContract> =
   Pick<ReturnType<typeof createPublicationContractStore<Contract>>, 'admitContract' | 'parseContract'> &
   Pick<SemanticReaderPorts<Contract>, 'readContract' | 'readSemanticOriginal'> &
@@ -361,7 +362,7 @@ export function createPublicationEvidence<Contract extends PublicationContract>(
         effectSources.length !== expectedHoldings.length) {
       fail('InvalidEffectfulSourceInventory');
     }
-    const seen = new Set();
+    const seen = new Set<string>();
     const sourceArtifactCids = [];
     const sourceSchemaCids = [];
     for (const source of effectSources) {

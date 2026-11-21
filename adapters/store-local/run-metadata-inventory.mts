@@ -179,8 +179,11 @@ export function createRunMetadataInventory<Contract extends PublicationContract>
     return Object.freeze([...collected].sort());
   };
 
-  const bindMetadataContractObjects = async (contractCids: readonly string[], readOriginal = readSemanticOriginal) => {
-    const objects: MetadataContractObject[] = [];
+  type ReadOriginal = ReturnType<ReturnType<typeof createPublicationSemanticReader<Contract>>['readSemanticOriginal']>;
+  const bindMetadataContractObjects = async (
+    contractCids: readonly string[], readOriginal: (cid: string) => ReadOriginal | Awaited<ReadOriginal> = readSemanticOriginal,
+  ) => {
+    const objects: (MetadataContractObject & Readonly<{semantic_cid: string}>)[] = [];
     for (const semanticCid of contractCids) {
       const original = await readOriginal(semanticCid);
       if (original.publication === true) {

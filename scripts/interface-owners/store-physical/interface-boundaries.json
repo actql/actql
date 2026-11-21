@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "869eec0243c3a3181bca9719220636ea4f13a36150f079fa86b68cd2a3671d75",
+      "sha256": "ce2caa398d0a784cbb4a191b1db24763a867786cb88ea6cbe7386d44219ac0fb",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6289,202 +6289,6 @@
           "name": "openOriginalLocalPublicationStore/bootstrap/bootstrap",
           "parameters": [
             "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
-          "parameters": [
-            "preparation",
-            "requiredObjectCids"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndex/commitIndex",
-          "parameters": [
-            "suppliedWire",
-            "requiredObjectCids",
-            "suppliedEvidence",
-            "indexOriginal",
-            "preparedHandles"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndex/commitIndex/commitIndex",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install",
-          "parameters": [
-            "markInstalled"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
-          "parameters": [
-            "existing",
-            "candidate"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
-          "parameters": [
-            "existingCommit"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
-          "parameters": [
-            "cid"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-          "parameters": [
-            "cid",
-            "includeNative",
-            "retained"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -6740,6 +6544,27 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#21",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#22",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#23",
           "parameters": [
             "args"
           ],
@@ -7010,13 +6835,6 @@
           "name": "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
           "parameters": [
             "objects"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
-          "parameters": [
-            "preparation"
           ],
           "async": true
         },
@@ -7391,33 +7209,6 @@
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
-            "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
-            "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
-            "openOriginalLocalPublicationStore/commitIndex/commitIndex",
-            "openOriginalLocalPublicationStore/commitIndex/commitIndex/commitIndex",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
@@ -7452,7 +7243,6 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
-            "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -7510,7 +7300,10 @@
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#21",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#22",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#23"
           ],
           "exports": [
             "PublicationStoreError",
@@ -7705,8 +7498,8 @@
                 "anchor": "# Physical holding metadata publication"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "const readOriginal = (cid: string, includeNative: SemanticSelection<Contract> = true, retained?: Contract) => {"
               },
               {
                 "path": "adapters/store-local/publication-evidence-inspection.mts",
@@ -7831,7 +7624,7 @@
                 "anchor": "return Object.freeze({bytes, physicalCid});"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-commit.mts",
                 "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
               },
               {
@@ -7839,12 +7632,12 @@
                 "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-commit.mts",
                 "anchor": "verifiedBindings = inspected.verifiedBindings;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "const readOriginal = (cid: string, includeNative: SemanticSelection<Contract> = true, retained?: Contract) => {"
               },
               {
                 "path": "adapters/store-local/publication-contract-store.mts",
@@ -8075,11 +7868,11 @@
                 "anchor": "if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-commit.mts",
                 "anchor": "for (const cid of required) await readOriginal(cid);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-commit.mts",
                 "anchor": "await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],"
               },
               {
@@ -8319,7 +8112,7 @@
                 "anchor": "activeSemanticReaders.delete(reader);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-index-commit.mts",
                 "anchor": "await adoptPreparedObjects(selectedPrepared);"
               },
               {
@@ -9965,8 +9758,6 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
             "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners"
           ],
           "exports": [],
@@ -10414,6 +10205,550 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-index-commit.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "59ad4b48e163f2ee639a9dd900bdb6c8592e934fb548e5ff19248e05ef807060",
+      "exports": [
+        "createPublicationIndexCommit"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationIndexCommit",
+          "parameters": [
+            "configuration",
+            "indexesDirectory",
+            "contractControl",
+            "preparedObjectOwners",
+            "durablyConfirmedIndexes",
+            "active",
+            "currentDeliveryIndex",
+            "contractPath",
+            "syncDirectory",
+            "confirmCommittedIndex",
+            "readResultDeletion",
+            "reserveObjectCapacity",
+            "accountNativePublication",
+            "withSemanticCommit",
+            "admitOriginalContract",
+            "parseContract",
+            "readContract",
+            "readSemanticOriginal",
+            "latestRecordContract",
+            "readMetadataDeletion",
+            "readCommittedMetadataInventory",
+            "publicationRecoveryOriginal",
+            "ensureMetadataInventory",
+            "bindMetadataContractObjects",
+            "adoptPreparedSchemas",
+            "beginPreparedCommit",
+            "confirmPreparedMaterials",
+            "adoptPreparedObjects",
+            "verifyCommitEvidence",
+            "inspectEffectfulStoredEvidence",
+            "confirmCapturedContentHoldings",
+            "putSemanticBatch",
+            "writeNativeIndexOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitEffectfulIndex/commitEffectfulIndex",
+          "parameters": [
+            "preparation",
+            "requiredObjectCids"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndex/commitIndex",
+          "parameters": [
+            "suppliedWire",
+            "requiredObjectCids",
+            "suppliedEvidence",
+            "indexOriginal",
+            "preparedHandles"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndex/commitIndex/commitIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/commitIndexInternal",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:install/init:install",
+          "parameters": [
+            "markInstalled"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
+          "parameters": [
+            "existing",
+            "candidate"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
+          "parameters": [
+            "existingCommit"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
+          "parameters": [
+            "cid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
+          "parameters": [
+            "cid",
+            "includeNative",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationIndexCommit/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
+          "parameters": [
+            "preparation"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationIndexCommit",
+            "createPublicationIndexCommit/commitEffectfulIndex/commitEffectfulIndex",
+            "createPublicationIndexCommit/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
+            "createPublicationIndexCommit/commitIndex/commitIndex",
+            "createPublicationIndexCommit/commitIndex/commitIndex/commitIndex",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/commitIndexInternal",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:install/init:install",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
+            "createPublicationIndexCommit/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence"
+          ],
+          "exports": [
+            "createPublicationIndexCommit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "A prepared schema cannot be retired between commit evidence validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "const commitIndexInternal = async ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "const admitted = admitOriginalContract('public_index_entry', suppliedWire, indexOriginal);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "const selectedPrepared = preparedObjectOwners.select(preparedHandles,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "return withSemanticCommit(() => commitIndexInternal("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "fail('PublicationMetadataDeleted');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "cancelStage() {nativeIndexPreparation?.reservation.release();},"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "reservation:reserveObjectCapacity(bytes.byteLength)};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-index-commit.mts",
+                "anchor": "if (nativeAttempt !== undefined && !legacyIndexBody) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication completion batch avoids a separate post-Index native commit"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "visible index is not committed until directory durability is confirmed"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
+            "createPublicationIndexCommit/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/prepared-object-ownership.mts",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.test.mts",
+                "anchor": "unknown private transfer retains exact immutable selection until original holder settles"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded deletion diagnostics"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-evidence-inspection.mjs",
@@ -11364,7 +11699,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-semantic-writes.mts",
-                "anchor": "const putSemanticBatch = async (\n    supplied: readonly SemanticBody[], retainedOriginals?: Pick<Map<string, FileOriginal>, 'set'>,"
+                "anchor": "const putSemanticBatch = async (\n    supplied: readonly SemanticBody[], retainedOriginals?: RetainedOriginals,"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11376,7 +11711,7 @@
               },
               {
                 "path": "adapters/store-local/publication-semantic-writes.mts",
-                "anchor": "const putSemanticBatch = async (\n    supplied: readonly SemanticBody[], retainedOriginals?: Pick<Map<string, FileOriginal>, 'set'>,"
+                "anchor": "const putSemanticBatch = async (\n    supplied: readonly SemanticBody[], retainedOriginals?: RetainedOriginals,"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",

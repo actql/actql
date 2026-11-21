@@ -10,6 +10,8 @@ import {indexKey} from './publication-store-inputs.mjs';
 import {exactKeys, fail, quantity} from './publication-store-io.mjs';
 
 type DurableResultBinding = Readonly<{
+  durable_result_binding_cid: string;
+  result_definition_cid: string;
   store_authority_cid: string;
   physical_sha256: string;
   material_generation_cid: string;
@@ -22,6 +24,8 @@ type DurableResultBinding = Readonly<{
 
 type ReadOriginal<Contract extends PublicationContract> =
   ReturnType<typeof createPublicationSemanticReader<Contract>>['readSemanticOriginal'];
+type ReadBindingOriginal<Contract extends PublicationContract> =
+  (cid: string, includeNative: false) => ReturnType<ReadOriginal<Contract>> | Awaited<ReturnType<ReadOriginal<Contract>>>;
 type VerifyPorts<Contract extends PublicationContract> =
   Pick<ReturnType<typeof createPublicationContractStore<Contract>>, 'parseContract'> & Readonly<{
     readSemanticOriginal: ReadOriginal<Contract>;
@@ -34,7 +38,7 @@ export function createDurableResultBindingVerifier<Contract extends PublicationC
   {parseContract, readSemanticOriginal, cidHex, verifyObject}: VerifyPorts<Contract>,
 ) {
   const verifyDurableResultBinding = async (
-    contract: Contract, readOriginal: (cid: string, includeNative: false) => ReturnType<ReadOriginal<Contract>> = readSemanticOriginal,
+    contract: Contract, readOriginal: ReadBindingOriginal<Contract> = readSemanticOriginal,
     retainedBinding?: DurableResultBinding, readDemand?: IndexReadDemand<Contract>,
   ) => {
     if (contract.name !== 'durable_result_binding') {

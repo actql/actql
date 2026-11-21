@@ -14,6 +14,7 @@ import {fail, PublicationStoreError, quantity, readBounded} from './publication-
 type CodedCause = Readonly<{code?: unknown}> | null | undefined;
 type SemanticBody = Readonly<{wire: string; semanticCid: string}>;
 type FileOriginal = Readonly<{bytes: Buffer; physicalCid: string}>;
+type RetainedOriginals = Readonly<{set(semanticCid: string, original: FileOriginal): unknown}>;
 type PhysicalOriginal = Readonly<{cid: string; device: string; inode: string; byte_count: number}>;
 type NativePreparation = PhysicalOriginal & Readonly<{semantic_cid: string}>;
 type ReserveObjectCapacity = ReturnType<typeof createPublicationObjectWrites>['reserveObjectCapacity'];
@@ -84,7 +85,7 @@ export function createPublicationSemanticWrites(
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
   const putSemanticBatch = async (
-    supplied: readonly SemanticBody[], retainedOriginals?: Pick<Map<string, FileOriginal>, 'set'>,
+    supplied: readonly SemanticBody[], retainedOriginals?: RetainedOriginals,
     recoveryInventory?: InventoryOriginal,
   ) => {
     active();
