@@ -22,6 +22,7 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
 import {prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership,
   closePreparedLocalPublicationStoreOwnership, openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+import {loadSelectedJournalAdapter} from './fixtures/selected-host-journal-adapter.fixture.mjs';
 
 const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'script'});
@@ -76,62 +77,22 @@ const imageLoader = nativePackageRoot === undefined ? () => Object.freeze({
   }),
 }) : createRequire(import.meta.url)('./host-journal-native-image.cjs').loadHostJournalDirectoryNative;
 
-// Execute the actual adapter and Host forwarding/Store assignment, not a
-// fixture-only ownership accessor or a manual fifth-argument substitution.
-const adapterSource = readFileSync(new URL('./node-host-journal-installation.mjs', import.meta.url), 'utf8');
-const adapter = compileFunction(adapterSource.replace("import {createRequire} from 'node:module';", '')
-  .replace('createRequire(import.meta.url)', 'selectedRequire')
-  .replace('export async function ', 'async function ') + '\nreturn prepareHostJournalInstallation;',
-['selectedRequire', 'process']);
-const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-const hostNodes = [];
-function collectHost(node) {
-  if (node === null || typeof node !== 'object') return;
-  hostNodes.push(node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(collectHost);
-    else if (value !== null && typeof value === 'object') collectHost(value);
-  }
+async function connectedJournal(f) {
+  const {prepareHostJournalInstallation} = await loadSelectedJournalAdapter(f.root.owner);
+  return prepareHostJournalInstallation(f.originals);
 }
-collectHost(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
-const hostMethod = name => {
-  const matches = hostNodes.filter(node => node.type === 'Property' && node.method && node.key.name === name);
-  assert.equal(matches.length, 1);
-  return hostSource.slice(matches[0].start, matches[0].end);
-};
-const hostPreparation = compileFunction(`
-  let hostJournal,hostJournalClose,hostJournalOpen,hostJournalOwnership,hostJournalFlight;
-  let hostJournalAdmitRootFormat;
-  let hostJournalOpenAttempted=false;const record={};
-  return {${hostMethod('prepareHostJournal')},${hostMethod('openRequestJournal')},
-    ${hostMethod('publicationOwnership')},${hostMethod('admitRootFormat')}};`,
-['originals', 'prepareHostJournalInstallation', 'assertInitialControlHostPreparation', 'clientOperationError']);
-const rootFormatStatements = hostNodes.filter(node => node.type === 'IfStatement' &&
-  node.alternate?.expression?.type === 'AwaitExpression' &&
-  node.alternate.expression.argument?.callee?.object?.name === 'preparation' &&
-  node.alternate.expression.argument.callee.property?.name === 'admitRootFormat');
-assert.equal(rootFormatStatements.length, 1);
-const actualHostRootFormat = compileFunction(`return (async()=>{
-  ${hostSource.slice(rootFormatStatements[0].start, rootFormatStatements[0].end)};})();`,
-['root', 'preparation', 'admitHostRootFormat']);
-const storeAssignments = hostNodes.filter(node => node.type === 'AssignmentExpression' &&
-  node.left.name === 'store' && node.right.type === 'AwaitExpression' &&
-  node.right.argument.callee?.name === 'openLocalPublicationStore');
-assert.equal(storeAssignments.length, 1);
-const actualHostStore = compileFunction(`return (async()=>{let store;
-  ${hostSource.slice(storeAssignments[0].start, storeAssignments[0].end)};return store;})();`,
-['root', 'storeAuthorityCid', 'localOutputLimits', 'effectInstallation', 'effectEvidenceKey',
-  'control', 'preparation', 'openLocalPublicationStore', 'join', 'publicationOwnership']);
-const hostStore = (f, preparation, ownership) => actualHostStore(f.scratch.path, 'sha256:' + 'a'.repeat(64),
-  {maxWireBytes: 4096}, undefined, undefined, createPublicationContractControlFixture(),
-  preparation, openLocalPublicationStore, join, ownership);
-function connectedHostPreparation(f) {
-  const prepare = adapter(name => {
-    assert.equal(name, './node-public-initial-control-bootstrap.cjs');
-    return f.root.owner;
-  }, {execArgv: [], env: {}});
-  return hostPreparation(f.originals, prepare, actual => assert.strictEqual(actual, f.originals),
-    code => Object.assign(new Error(code), {code}));
+
+// The original Store independently adopts the prepared exclusion. The
+// selected Host's result-publication service owns its separate routing.
+function openFixtureStore(f, ownership) {
+  return openLocalPublicationStore({directory: join(f.scratch.path, 'publication'),
+    storeAuthorityCid: 'sha256:' + 'a'.repeat(64), capacityBytes: 65536,
+    maxObjectBytes: 4096, maxObjects: 8, maxContractNodes: 100, maxContractDepth: 10},
+  createPublicationContractControlFixture(), undefined, undefined, ownership);
+}
+
+async function adoptJournalStore(f, journal) {
+  return openFixtureStore(f, journal.publicationOwnership());
 }
 
 async function fixture({covered = true, open, read, current, nativeCurrent, subjectFields,
@@ -207,16 +168,14 @@ test('same Root format uses its retained native first view before real Journal a
   f.scratch.passed();
 });
 
-test('actual selected Host statement and captured facade use the same Root format original', async () => {
+test('selected Journal adapter uses the captured Root format original', async () => {
   const f = await fixture({isolatedHost: true});
-  const preparation = connectedHostPreparation(f);
-  const view = await preparation.prepareHostJournal();
+  const view = await connectedJournal(f);
   // The adapter captured this same Root callback, not a replacement looked
   // up after preparation or an arbitrary directory/format callback.
   f.root.owner.admitHostJournalRootFormat = () => assert.fail('Replacement must not run');
-  await actualHostRootFormat(f.physicalRoot, preparation,
-    () => assert.fail('Selected Host must not enter its old stock path'));
-  await preparation.openRequestJournal(f.directory, {});
+  assert.equal(await view.admitRootFormat(f.physicalRoot), 'new');
+  await view.openRequestJournal(f.directory, {});
   assert.equal(JSON.parse(readFileSync(join(f.physicalRoot, 'host-format.json'))).version,
     'actql-local-host-root/0.1');
   assert.equal((await view.close()).pending, false);
@@ -366,7 +325,7 @@ test('Root forwards earlier native bindings and rejects a foreign filesystem ope
   f.scratch.passed();
 });
 
-test('actual captured Root adapter and Host Store call adopt the same ownership and keep both ACKs', async () => {
+test('selected Journal adapter and actual Store retain the same ownership through both ACKs', async () => {
   const nativeClose = DatabaseSync.prototype.close;
   let permitted = false;
   const f = await fixture({open(path, options) {
@@ -377,16 +336,15 @@ test('actual captured Root adapter and Host Store call adopt the same ownership 
     try {return openClientRequestJournal(path, options);}
     finally {DatabaseSync.prototype.close = nativeClose;}
   }});
-  const preparation = connectedHostPreparation(f);
-  const view = await preparation.prepareHostJournal();
-  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
-  await preparation.openRequestJournal(f.directory, {});
+  const view = await connectedJournal(f);
+  assert.throws(() => view.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  await view.openRequestJournal(f.directory, {});
   f.root.owner.originalHostPublicationOwnership = () => assert.fail('Captured original must be used');
   const directory = join(f.scratch.path, 'publication');
   const owner = readFileSync(join(directory, 'owner', 'owner.json'));
-  const store = await hostStore(f, preparation);
+  const store = await adoptJournalStore(f, view);
   assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
-  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  assert.throws(() => view.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
   assert.equal((await view.close()).pending, true);
   await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
   assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
@@ -394,28 +352,27 @@ test('actual captured Root adapter and Host Store call adopt the same ownership 
   assert.equal((await view.close()).pending, true);
   assert.equal(await store.close(), true);
   assert.equal((await view.close()).pending, false);
-  assert.throws(() => preparation.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
+  assert.throws(() => view.publicationOwnership(), {code: 'HostJournalPreparationUnavailable'});
   f.scratch.passed();
 });
 
-test('actual unselected Host Store call adopts its same earlier ordinary ownership', async () => {
+test('actual Store adopts its same earlier ordinary ownership', async () => {
   const f = await fixture();
   const ownership = await prepareLocalPublicationStoreOwnership(join(f.scratch.path, 'publication'));
-  const store = await hostStore(f, undefined, ownership);
+  const store = await openFixtureStore(f, ownership);
   assert.equal(await store.close(), true);
   assert.equal((await closePreparedLocalPublicationStoreOwnership(ownership)).pending, false);
   f.scratch.passed();
 });
 
-test('actual Host Store adoption refuses changed currentness before Store work and retains original cleanup', async () => {
+test('selected Journal ownership refuses changed currentness before Store work and retains original cleanup', async () => {
   let changed = false;
   const cause = new Error('OriginalHostChangedBeforeStore');
   const f = await fixture({current() {if (changed) throw cause;}});
-  const preparation = connectedHostPreparation(f);
-  const view = await preparation.prepareHostJournal();
-  await preparation.openRequestJournal(f.directory, {});
+  const view = await connectedJournal(f);
+  await view.openRequestJournal(f.directory, {});
   changed = true;
-  await assert.rejects(hostStore(f, preparation), error => error === cause);
+  await assert.rejects(adoptJournalStore(f, view), error => error === cause);
   assert.throws(() => readFileSync(join(f.scratch.path, 'publication', 'store.json')),
     {code: 'ENOENT'});
   assert.equal(typeof JSON.parse(readFileSync(join(f.scratch.path,
@@ -503,11 +460,7 @@ test('Root and adopted Store keep the same exclusion until both original physica
   const original = f.root.prepare(f.originals);
   await f.root.open(original, f.originals, f.directory, {});
   const directory = join(f.scratch.path, 'publication');
-  const store = await openLocalPublicationStore({directory,
-    storeAuthorityCid: 'sha256:' + 'a'.repeat(64), capacityBytes: 65536,
-    maxObjectBytes: 4096, maxObjects: 8, maxContractNodes: 100, maxContractDepth: 10},
-  createPublicationContractControlFixture(), undefined, undefined,
-  f.root.ownership(original, f.originals));
+  const store = await openFixtureStore(f, f.root.ownership(original, f.originals));
   const owner = readFileSync(join(directory, 'owner', 'owner.json'));
   assert.equal((await f.root.close(original, f.originals)).pending, true);
   await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});

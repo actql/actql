@@ -89067,7 +89067,7 @@
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
-                "anchor": "actual captured Root adapter and Host Store call adopt the same ownership and keep both ACKs"
+                "anchor": "selected Journal adapter and actual Store retain the same ownership through both ACKs"
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
@@ -89215,7 +89215,7 @@
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
-                "anchor": "actual captured Root adapter and Host Store call adopt the same ownership and keep both ACKs"
+                "anchor": "selected Journal adapter and actual Store retain the same ownership through both ACKs"
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
@@ -92262,7 +92262,7 @@
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
-                "anchor": "actual selected Host statement and captured facade use the same Root format original"
+                "anchor": "selected Journal adapter uses the captured Root format original"
               },
               {
                 "path": "adapters/host-node/client-request-journal-iterator-current.test.mts",

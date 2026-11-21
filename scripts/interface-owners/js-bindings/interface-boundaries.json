@@ -64413,7 +64413,7 @@
               },
               {
                 "path": "adapters/host-node/host-journal-root-custody.test.mjs",
-                "anchor": "test('actual unselected Host Store call adopts its same earlier ordinary ownership'"
+                "anchor": "test('actual Store adopts its same earlier ordinary ownership'"
               },
               {
                 "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",

@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
-import {createRequire, Module} from 'node:module';
 import test from 'node:test';
 
-type Adapter = typeof import('./node-host-journal-installation.mjs');
+import {loadSelectedJournalAdapter} from './fixtures/selected-host-journal-adapter.fixture.mjs';
 type State = {
   current: boolean; opens: number; closes: number; checks: number;
   pending: boolean; failure?: Error; events: string[];
@@ -19,31 +18,6 @@ type FixtureOwner = {
   openHostJournalRequestJournal?(value: unknown, pair: unknown, directory: string, options: object): unknown;
   admitHostJournalRootFormat?(value: unknown, pair: unknown, root: string): unknown;
 };
-
-// Load the real adapter. The fixture supplies only its selected startup
-// table, captured before the temporary module cache and entry flags unwind.
-let adapterLoads = 0;
-async function loadSelectedAdapter(owner: FixtureOwner): Promise<Adapter> {
-  const require = createRequire(import.meta.url);
-  const path = require.resolve('./infer-trusted-node-preload.cjs');
-  const previous = require.cache[path];
-  const originalExecArgv = process.execArgv;
-  const preload = new Module(path);
-  preload.filename = path;
-  preload.loaded = true;
-  preload.exports = owner;
-  const url = new URL('./node-host-journal-installation.mjs', import.meta.url);
-  url.searchParams.set('selectedFixture', String(++adapterLoads));
-  require.cache[path] = preload;
-  process.execArgv = [...originalExecArgv, '@actql/node/selected-infer-startup'];
-  try {
-    return await import(url.href);
-  } finally {
-    process.execArgv = originalExecArgv;
-    if (previous === undefined) delete require.cache[path];
-    else require.cache[path] = previous;
-  }
-}
 
 async function fixture({open,missingOpen=false,admitRootFormat}: FixtureOptions = {}) {
   const original=Object.freeze({}),journal=Object.freeze({});
@@ -67,7 +41,7 @@ async function fixture({open,missingOpen=false,admitRootFormat}: FixtureOptions 
     assert.strictEqual(this,owner);assert.strictEqual(value,original);assert.strictEqual(pair,originals);
     return admitRootFormat(root);
   };
-  const {prepareHostJournalInstallation: prepare} = await loadSelectedAdapter(owner);
+  const {prepareHostJournalInstallation: prepare} = await loadSelectedJournalAdapter(owner);
   return {prepare,owner,originals,journal,state};
 }
 

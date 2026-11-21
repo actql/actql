@@ -1477,3 +1477,5 @@ target/
 /adapters/host-node/client-keyed-lookup-journal.test.d.mts
 /adapters/host-node/client-request-journal.mjs
 /adapters/host-node/client-request-journal.d.mts
+/adapters/host-node/fixtures/selected-host-journal-adapter.fixture.mjs
+/adapters/host-node/fixtures/selected-host-journal-adapter.fixture.d.mts
