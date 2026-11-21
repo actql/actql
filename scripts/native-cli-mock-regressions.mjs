@@ -52,6 +52,18 @@ function assertReadonlyDescription(fixture, description) {
     assert(cid.test(description[field]), field);
 }
 
+async function observeSharedMockWriteLock(project, writer) {
+  try {
+    await lstat(join(project, 'mock/data.json.actql-write.lock'));
+  } catch (cause) {
+    if (cause.code !== 'ENOENT') return cause;
+    writer.writeLockPathAbsent = true;
+    return;
+  }
+  writer.writeLockPathAbsent = false;
+  return new Error('Completed writer must release the shared Mock write lock');
+}
+
 export async function runOriginalMockRegressions({root, cli, node, persist, snapshot = projectTargetSnapshot,
   readProgram = path => readFile(path, 'utf8'),
   writeProgram = (path, source) => writeFile(path, source, {flag: 'wx', mode: 0o600})}) {
@@ -128,6 +140,7 @@ export async function runOriginalMockRegressions({root, cli, node, persist, snap
           ordinal++;
           const before = await snapshot(project), program = surface === 'node' ? 'handoff.aql' : 'deal-review.aql';
           let identity;
+          let lockFailure;
           if (surface === 'cli') {
             const waiting = JSON.parse((await command(['run', program, '--stop-before', 'commit', '--json'])).stdout);
             const view = JSON.parse((await command(['explain', '--run', waiting.run_id, '--json'])).stdout);
@@ -135,10 +148,12 @@ export async function runOriginalMockRegressions({root, cli, node, persist, snap
             assert.deepEqual(await snapshot(project), before, 'No preapproval write');
             const reply = await command(['approve', identity.checkpointId, '--wait', '--json']);
             assert.equal(reply.acceptance?.writes.length, 2, 'Both original rows require real Native replacements');
+            lockFailure = await observeSharedMockWriteLock(project, record.phases.at(-1));
             const state = JSON.parse((await command(['status', identity.runId, '--json'])).stdout);
             assert.equal(state.run_id, identity.runId); assert.equal(state.status, 'succeeded');
           } else {
             const value = await nodeCommand({kind: 'start', program, decision: 'approved', beforeBytes: before.bytes}, false);
+            lockFailure = await observeSharedMockWriteLock(project, record.phases.at(-1));
             identity = value.original;
             assert.equal(value.state.run_id, identity.runId); assert.equal(value.state.status, 'succeeded');
             assert.equal(value.workObservation.effectReplacementReturns, 2, 'No same-value no-op can prove lock transfer');
@@ -158,13 +173,12 @@ export async function runOriginalMockRegressions({root, cli, node, persist, snap
           // Each owner reads only its own originals; namespace/Run handles are
           // never attached to the other Host, even when sharing the file.
           for (const previous of record.runs.slice(0, -1)) await readSaved(previous);
-          phase = 'write-lock-cleanup';
-          // A successful handoff exercises the previous writer's lock
-          // retirement. Observe absence after the final writer as well,
-          // where no later writer would expose an orphaned path.
-          await assert.rejects(lstat(join(project, 'mock/data.json.actql-write.lock')),
-            {code: 'ENOENT'}, 'Completed writer must release the shared Mock write lock');
-          run.writeLockAbsent = true;
+          // Keep the original Result and Saved failures primary while
+          // preserving the lock-path observation taken at writer return.
+          if (lockFailure) {
+            phase = 'write-lock-cleanup';
+            throw lockFailure;
+          }
         }
       } else {
         for (const fixture of originalMockReadonlyCases) {

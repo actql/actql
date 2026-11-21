@@ -8,12 +8,14 @@ import {runOriginalMockRegressions} from './native-cli-mock-regressions.mjs';
 
 // Explicit owner-local ports, not Native/SQLite/SDK or physical lock evidence.
 function fixture(t, {noopNode = false, corruptSaved = false, mutateControl = false,
-  lostClose = false, missingReadonlyRow = false, failNode = false, orphanFinalLock = false} = {}) {
+  lostClose = false, missingReadonlyRow = false, failNode = false, orphanFinalLock = false,
+  retireLockDuringStatus = false, failFinalStatus = false} = {}) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-original-mock-ports-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const projects = new Map(), programs = new Map(), calls = [], records = [];
   let serial = 0, pid = 1000;
   const primary = new Error('original uncertain Node operation');
+  const statusFailure = new Error('original final status failure');
   const initial = () => ({salesforce: {Opportunity: {key: ['id'], rows: [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
@@ -109,13 +111,20 @@ function fixture(t, {noopNode = false, corruptSaved = false, mutateControl = fal
           const run = own(value, 'cli', args[1]);
           if (args[0] === 'approve') {
             approve(value, run); acceptance.writes = [{ordinal: 0}, {ordinal: 1}];
-            if (orphanFinalLock && value.generation === 3) {
+            if ((orphanFinalLock || retireLockDuringStatus) && value.generation === 3) {
               writeFileSync(join(project, 'mock/data.json.actql-write.lock'), 'original writer lock', {flag: 'wx'});
             }
           }
           else if (args[0] === 'result') return {pid: ++pid, signal: null, code: 0, acceptance,
             stdout: rows(run).map(row => JSON.stringify(row)).join('\n') + '\n'};
-          else {assert.equal(args[0], 'status'); reply = state(run);}
+          else {
+            assert.equal(args[0], 'status');
+            if (value.generation === 3) {
+              if (failFinalStatus) throw statusFailure;
+              if (retireLockDuringStatus) rmSync(join(project, 'mock/data.json.actql-write.lock'));
+            }
+            reply = state(run);
+          }
         }
       }
       return {pid: ++pid, signal: null, code: 0, stdout: JSON.stringify(reply), acceptance};
@@ -134,8 +143,29 @@ function fixture(t, {noopNode = false, corruptSaved = false, mutateControl = fal
         firstClose: {attempted: true, returned: !lostClose}, workObservation: {...counts, totals: {...counts}, complete: true}};
     },
   };
-  return {options, calls, records, projects, programs, primary};
+  return {options, calls, records, projects, programs, primary, statusFailure};
 }
+
+const writerLockObservations = record => record.phases
+  .filter(({phase}) => phase === 'approve' || phase === 'start')
+  .map(({writeLockPathAbsent}) => writeLockPathAbsent);
+
+test('Original Mock regressions observe the writer lock before status can retire it', async t => {
+  const f = fixture(t, {retireLockDuringStatus: true});
+  await assert.rejects(runOriginalMockRegressions(f.options),
+    error => error instanceof AggregateError && /shared Mock write lock/u.test(error.cause?.message));
+  const [writes] = f.records;
+  assert.deepEqual(writerLockObservations(writes), [true, true, false]);
+  assert(writes.runs.every(run => run.rows.length === 2), 'Keep all complete original Saved checks');
+});
+
+test('Original Mock regressions retain the original failure after observing a writer lock', async t => {
+  const f = fixture(t, {orphanFinalLock: true, failFinalStatus: true});
+  await assert.rejects(runOriginalMockRegressions(f.options), error => error.cause === f.statusFailure);
+  const [writes] = f.records;
+  assert.equal(writes.failedPhase, 'status');
+  assert.deepEqual(writerLockObservations(writes), [true, true, false]);
+});
 
 test('Original Mock regressions keep own roots while real differing writes cross the same file in both directions', async t => {
   const f = fixture(t), cases = await runOriginalMockRegressions(f.options);
@@ -143,7 +173,7 @@ test('Original Mock regressions keep own roots while real differing writes cross
   const writes = cases[0];
   assert.deepEqual(writes.runs.map(run => run.surface), ['cli', 'node', 'cli']);
   assert.deepEqual(writes.runs.map(run => run.original.ref.namespaceId), ['cli-root', 'node-root', 'cli-root']);
-  assert.deepEqual(writes.runs.map(run => run.writeLockAbsent), [true, true, true]);
+  assert.deepEqual(writerLockObservations(writes), [true, true, true]);
   assert.equal(new Set(writes.runs.map(run => run.original.runId)).size, 3);
   assert.equal(cases[1].runs.length, 6);
   assert.equal(f.projects.get(writes.project).generation, 3);
@@ -162,7 +192,7 @@ test('Original Mock regressions refuse a write lock left by the final Native own
   const [writes, readonly] = f.records;
   assert.equal(writes.complete, false);
   assert.equal(writes.failedPhase, 'write-lock-cleanup');
-  assert.deepEqual(writes.runs.map(run => run.writeLockAbsent), [true, true, undefined]);
+  assert.deepEqual(writerLockObservations(writes), [true, true, false]);
   assert.equal(readFileSync(join(writes.project, 'mock/data.json.actql-write.lock'), 'utf8'), 'original writer lock');
   assert.equal(readonly.complete, true);
   assert.equal(f.calls.filter(row => row.args?.[0] === 'approve').length, 2);
