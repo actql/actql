@@ -15,7 +15,7 @@
       {
         "binding_references": [],
         "bindings": {},
-        "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+        "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
         "parameter_references": [],
         "parameters": {},
         "version": "actql-stage-semantics/0.1",
@@ -61,7 +61,7 @@
       {
         "binding_references": [],
         "bindings": {},
-        "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+        "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
         "parameter_references": [],
         "parameters": {},
         "version": "actql-stage-semantics/0.1",
@@ -99,7 +99,7 @@
     "programSemantics": {
       "binding_references": [],
       "bindings": {},
-      "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+      "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
       "parameter_references": [],
       "parameters": {},
       "actql_version": "actql/0.1",
@@ -118,7 +118,7 @@
             "after": "initial",
             "id": "acquire",
             "imports": {},
-            "stage_semantics_cid": "sha256:a31cda4058eeecbeca919deb073645822396d5c69fa0b701d944edb4632afa17"
+            "stage_semantics_cid": "sha256:d062bdfbd3b9c220656d85546b3df2e50396e272adb2991e418d75f96975104a"
           },
           {
             "after": "completed",
@@ -131,14 +131,14 @@
                 }
               }
             },
-            "stage_semantics_cid": "sha256:a6fca320d7814b2d0c24a5b728a800f511cabc52c02af090178c059210a4f20a"
+            "stage_semantics_cid": "sha256:91326208e6466168d32d7b51ae80ba3a80697e9511a412396c9ca02974f5b9fa"
           }
         ]
       }
     },
     "programDefinition": {
       "id": "fixture.planner-selection",
-      "program_semantics_cid": "sha256:c7536e494c04d72c9489661ea5412ad8f3bb0a5c21a58bd37cf57012c9fb975b",
+      "program_semantics_cid": "sha256:c1cbcdbd34c75103d272f85cade99796ea747bc8888905b034dd7ff64e424ca8",
       "version": "actql-program-definition/0.1"
     },
     "requirement": {
@@ -154,7 +154,7 @@
       "output_contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
       "owner": {
         "input": "remote",
-        "program_source_cid": "sha256:8c6177a553c9e4027a900646e261ef9039cf6db8a656292cc99b8ef7778167bf",
+        "program_source_cid": "sha256:3ed7193ac4e9f064cfa202df8e9417718574c188c53de55a9313a2f027955239",
         "stage": "acquire"
       },
       "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
@@ -180,7 +180,7 @@
       },
       "version": "actql-query-acquisition/0.1"
     },
-    "cid": "sha256:bfcbbd894eadf230b1d089a0dac0609fff704e576b355b406f267c698bfbdb10"
+    "cid": "sha256:6336dcb725c6ed3dbf9f48a38063300c67cd4ef593ec6221b0000299d24602ed"
   },
   "unsupportedPredicate": {
     "filter": "id + 1 > 2",
@@ -205,7 +205,7 @@
       {
         "binding_references": [],
         "bindings": {},
-        "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+        "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
         "parameter_references": [],
         "parameters": {},
         "version": "actql-stage-semantics/0.1",
@@ -258,7 +258,7 @@
       {
         "binding_references": [],
         "bindings": {},
-        "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+        "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
         "parameter_references": [],
         "parameters": {},
         "version": "actql-stage-semantics/0.1",
@@ -296,7 +296,7 @@
     "programSemantics": {
       "binding_references": [],
       "bindings": {},
-      "expression_contract_cid": "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+      "expression_contract_cid": "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
       "parameter_references": [],
       "parameters": {},
       "actql_version": "actql/0.1",
@@ -315,7 +315,7 @@
             "after": "initial",
             "id": "acquire",
             "imports": {},
-            "stage_semantics_cid": "sha256:7b682364097c2b514845a119a20690a7af26fe7a6b0a43a82f692d16c221f5a9"
+            "stage_semantics_cid": "sha256:4b159addaed83e349dfca646d88a45fc55c7fce6bd86e001f93e1039cdb804b2"
           },
           {
             "after": "completed",
@@ -328,14 +328,14 @@
                 }
               }
             },
-            "stage_semantics_cid": "sha256:a6fca320d7814b2d0c24a5b728a800f511cabc52c02af090178c059210a4f20a"
+            "stage_semantics_cid": "sha256:91326208e6466168d32d7b51ae80ba3a80697e9511a412396c9ca02974f5b9fa"
           }
         ]
       }
     },
     "programDefinition": {
       "id": "fixture.planner-selection",
-      "program_semantics_cid": "sha256:b03539d94b20721d8326cb4f77402dbeb98ffa2050e73f94aa2276d09610082f",
+      "program_semantics_cid": "sha256:ebb2a61091a91218f2a1e8ad1babb6287224787f8f39ca5639be864d9107e8ac",
       "version": "actql-program-definition/0.1"
     },
     "requirement": {
@@ -351,7 +351,7 @@
       "output_contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
       "owner": {
         "input": "remote",
-        "program_source_cid": "sha256:f5651e6907e0ea2f61c3cbb702e99d35d8b4b0758ad3bd6b0468e642cd8a831a",
+        "program_source_cid": "sha256:2343d693dc740ccab35011a9b71e0c12ef1eefa6d523ca81372d82caa4fbb423",
         "stage": "acquire"
       },
       "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
@@ -377,6 +377,6 @@
       },
       "version": "actql-query-acquisition/0.1"
     },
-    "cid": "sha256:8ad7415b9cc1fff478f0d1ed2057e336ecc488bbcdd3209706b80742839f8fe7"
+    "cid": "sha256:507c96363803b42ec631e0df93fceca38f8d114966baa2cca796b44cd12d878d"
   }
 }
