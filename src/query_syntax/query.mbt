@@ -2707,6 +2707,26 @@ pub fn scalar_projection_count(query : Query) -> Int {
 }
 
 ///|
+/// An unkeyed MIN/MAX already supplies one nullable cell, even on empty
+/// input. Inspect the original operations without copying their children.
+pub fn is_single_extremum_projection(query : Query) -> Bool {
+  if !query.sets.is_empty() || !query.final_operations.is_empty() {
+    return false
+  }
+  let count = query.operations.length()
+  guard count == 2 || (count == 3 && query.operations[0] is Where(_)) else {
+    return false
+  }
+  guard query.operations[count - 2] is Group(keys, _, SqlSelect) &&
+    keys.is_empty() &&
+    query.operations[count - 1] is Select([projection], _) &&
+    projection.aggregate is Some(aggregate) else {
+    return false
+  }
+  aggregate.function_name == "MIN" || aggregate.function_name == "MAX"
+}
+
+///|
 fn QueryParser::sql_term(
   self : QueryParser,
   record_anonymous_output~ : Bool,

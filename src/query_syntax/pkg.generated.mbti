@@ -78,6 +78,8 @@ pub fn integer_context_original_column(Query, String) -> String?
 
 pub fn integer_function_context_required(Query) -> Bool
 
+pub fn is_single_extremum_projection(Query) -> Bool
+
 pub fn is_source_free_scalar_projection(Query) -> Bool
 
 pub fn is_standalone_reference_projection(Query) -> Bool

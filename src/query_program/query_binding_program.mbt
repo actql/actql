@@ -171,27 +171,19 @@ fn lower_script_primary(
 }
 
 ///|
-// A scalar subquery keeps the checked child column's own type. An unkeyed
-// group gives one row even on empty input. The assertion rejects multiple
-// original rows before the scalar can reach the enclosing result.
-fn scalar_subquery_output(
+// Other scalar subqueries need both the nullable cell and the original row
+// count. Keep the assertion ahead of the enclosing projection.
+fn scalar_subquery_cardinality(
   construction : Construction,
-  sources : ScriptSources,
   input : Input,
-  name : @query.NamePart?,
+  original : String,
+  value : String,
   steps : Array[@builder.Node],
   reserved : Array[String],
-) -> Input raise Abort {
-  guard input.visible_fields.length() == 1 else {
-    raise Abort(UnsupportedProjection)
-  }
-  let original = input.visible_fields[0]
-  let value = name.map(name => name.value).unwrap_or("aql_scalar_value")
+) -> Unit raise Abort {
   let count = pipe_physical_name([value], "aql_scalar_count_")
   let grouped = pipe_physical_name(reserved, "aql_scalar_group_")
   reserved.push(grouped)
-  let projected = pipe_physical_name(reserved, "aql_scalar_result_")
-  reserved.push(projected)
   steps.push(
     construction.object([
       ("from", construction.text(input.name)),
@@ -241,12 +233,42 @@ fn scalar_subquery_output(
       ),
     ]),
   )
-  steps.push(
-    construction.object([
-      ("select", construction.array([construction.text(value)])),
-      ("as", construction.text(projected)),
-    ]),
-  )
+}
+
+///|
+fn scalar_subquery_output(
+  construction : Construction,
+  sources : ScriptSources,
+  query : @query.Query,
+  input : Input,
+  name : @query.NamePart?,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Input raise Abort {
+  guard input.visible_fields.length() == 1 else {
+    raise Abort(UnsupportedProjection)
+  }
+  let original = input.visible_fields[0]
+  let value = name.map(name => name.value).unwrap_or("aql_scalar_value")
+  let singleton = @query.is_single_extremum_projection(query)
+  let selected = if singleton {
+    original
+  } else {
+    scalar_subquery_cardinality(
+      construction, input, original, value, steps, reserved,
+    )
+    value
+  }
+  let projected = pipe_physical_name(reserved, "aql_scalar_result_")
+  reserved.push(projected)
+  let entries = if singleton {
+    [("from", construction.text(input.name))]
+  } else {
+    []
+  }
+  entries.push(("select", set_select_fields(construction, [value], [selected])))
+  entries.push(("as", construction.text(projected)))
+  steps.push(construction.object(entries))
   let original_column = result_column_profile(
     script_result_columns(sources, input.name),
     original,
@@ -403,7 +425,13 @@ fn lower_script_bindings(
     let bound = match binding.origin {
       ScalarSubquery(name) =>
         scalar_subquery_output(
-          construction, sources, bound, name, steps, reserved,
+          construction,
+          sources,
+          binding.query,
+          bound,
+          name,
+          steps,
+          reserved,
         )
       _ => bound
     }
