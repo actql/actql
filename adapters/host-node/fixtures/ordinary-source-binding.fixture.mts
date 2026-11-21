@@ -1,6 +1,6 @@
 // Declared independent materials: no preparation or product output is used to
 // produce the expected physical targets, installation bindings or Source CIDs.
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 export function boundSourceInventoryFixture() {
   return {version: 'actql-client-bound-source-inventory/0.1', environmentCid: cid('a'),
     acquisitions: [0, 1].map(index => ({stage: index, input: 0, task: index,

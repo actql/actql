@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+// @ts-expect-error TS7016: remove after client-request-journal has an authored TypeScript entry.
 import {validateSourceInventory} from './client-request-journal.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fixture.mjs';
-const wire = value => canonicalJson(value, {dataKeys: true});
+type Fixture = ReturnType<typeof boundSourceInventoryFixture>;
+type Occurrence = Fixture['acquisitions'][number];
+type MutableSource = Partial<Occurrence['checkedSource']> & {sourceInput?: string[]; extra?: boolean};
+type MutableOccurrence = Omit<Occurrence, 'checkedSource' | 'physicalBinding' | 'installationBinding'> & {
+  checkedSource: MutableSource; computeTask?: number; extra?: boolean;
+  physicalBinding?: Partial<Occurrence['physicalBinding']> | string[];
+  installationBinding?: Partial<Occurrence['installationBinding']> & {extra?: boolean};
+  readTuple: Occurrence['readTuple'] & {extra?: boolean};
+};
+type MutableInventory = Omit<Fixture, 'acquisitions' | 'environmentCid'> & {
+  environmentCid?: string; extra?: boolean; acquisitions: MutableOccurrence[];
+};
+type Mutation = (inventory: MutableInventory) => void;
+const wire = (value: unknown) => canonicalJson(value, {dataKeys: true});
 
 test('ordinary bound inventory retains two opaque installed targets and exact data strings', () => {
   const value = boundSourceInventoryFixture(), original = wire(value);
@@ -21,10 +35,10 @@ for (const [label, change] of [
   ['occurrence extra', v => {v.acquisitions[0].extra = true;}],
   ['ordinary coordinate replacement', v => {v.acquisitions[1].task = 0;}],
   ['binding missing', v => {delete v.acquisitions[0].installationBinding;}],
-  ['binding extra', v => {v.acquisitions[0].installationBinding.extra = true;}],
-  ['registration missing', v => {delete v.acquisitions[0].installationBinding.connectorRegistration;}],
-  ['revision empty', v => {v.acquisitions[0].installationBinding.connectorRevision = '';}],
-  ['binding CID replaced by raw value', v => {v.acquisitions[0].installationBinding.bindingCid = 'raw';}],
+  ['binding extra', v => {v.acquisitions[0].installationBinding!.extra = true;}],
+  ['registration missing', v => {delete v.acquisitions[0].installationBinding!.connectorRegistration;}],
+  ['revision empty', v => {v.acquisitions[0].installationBinding!.connectorRevision = '';}],
+  ['binding CID replaced by raw value', v => {v.acquisitions[0].installationBinding!.bindingCid = 'raw';}],
   ['target missing', v => {delete v.acquisitions[0].physicalBinding;}],
   ['target empty', v => {v.acquisitions[0].physicalBinding = {};}],
   ['target replaced by array', v => {v.acquisitions[0].physicalBinding = ['records'];}],
@@ -33,14 +47,14 @@ for (const [label, change] of [
   ['duplicate requirement', v => {v.acquisitions[1].checkedSource.requirementCid = v.acquisitions[0].checkedSource.requirementCid;}],
   ['read tuple extra', v => {v.acquisitions[0].readTuple.extra = true;}],
   ['read action replacement', v => {v.acquisitions[0].readTuple.operation = 'effect';}],
-]) {
+] satisfies readonly (readonly [string, Mutation])[]) {
   test(`ordinary bound inventory refuses ${label}`, () => {
     const value = boundSourceInventoryFixture(); change(value);
     assert.throws(() => validateSourceInventory(wire(value)), {code: 'InvalidClientSourceInventory'});
   });
 }
 test('ordinary bound inventory refuses noncanonical bytes and legacy shape substitution', () => {
-  const value = boundSourceInventoryFixture();
+  const value: MutableInventory = boundSourceInventoryFixture();
   assert.throws(() => validateSourceInventory(JSON.stringify(value)), {code: 'InvalidClientSourceInventory'});
   value.version = 'actql-client-source-inventory/0.1';
   for (const item of value.acquisitions) delete item.installationBinding;
@@ -62,9 +76,9 @@ function retainedSources() {
     const {stage, input, task, installationBinding, ...prepared} = item;
     const original = Object.freeze(structuredClone(installationBinding));
     return {occurrence: {stage, input, task}, prepared,
-      adapter: {ordinaryRecoveryBinding(candidate) {
+      adapter: {ordinaryRecoveryBinding(candidate: typeof prepared) {
         assert.equal(candidate, prepared); return original;
-      }}};
+      }} as {ordinaryRecoveryBinding?: (candidate: typeof prepared) => typeof original}};
   });
 }
 test('ordinary descriptor projection keeps bindings with their original preparation and port', () => {
@@ -77,7 +91,7 @@ test('ordinary descriptor projection keeps bindings with their original preparat
   assert.throws(() => verifyOrdinarySourceBinding(sources[1].adapter, sources[1].prepared,
     descriptors[0].installationBinding), {code: 'InstalledSourcePreparationMismatch'});
 });
-for (const field of ['connectorId', 'connectorRegistration', 'connectorRevision', 'bindingCid']) {
+for (const field of ['connectorId', 'connectorRegistration', 'connectorRevision', 'bindingCid'] as const) {
   test(`ordinary dispatch refuses changed original ${field}`, () => {
     const [source] = retainedSources();
     const original = structuredClone(boundSourceInventoryFixture().acquisitions[0].installationBinding);
@@ -96,16 +110,16 @@ test('ordinary projection refuses mixed capabilities and absent owner on saved b
 test('ordinary legacy descriptors are unchanged when neither adapter issues a bound preparation', () => {
   const sources = retainedSources();
   for (const source of sources) delete source.adapter.ordinaryRecoveryBinding;
-  const expected = boundSourceInventoryFixture().acquisitions;
+  const expected: MutableOccurrence[] = boundSourceInventoryFixture().acquisitions;
   for (const item of expected) delete item.installationBinding;
   assert.deepEqual(ordinarySourceDescriptors(sources), expected);
 });
 
 test('ordinary Whole inventory keeps original Input coordinates without Query identity fields', () => {
-  const value = boundSourceInventoryFixture();
+  const value: MutableInventory = boundSourceInventoryFixture();
   for (const [index, item] of value.acquisitions.entries()) {
     const {requirementCid: _requirement, inputContractCid: program, outputContractCid: parameters, ...source} = item.checkedSource;
-    item.checkedSource = {...source, sourceInput: [program, parameters]};
+    item.checkedSource = {...source, sourceInput: [program!, parameters!]};
     item.stage = 3;
     item.input = index;
     item.computeTask = 7;
@@ -114,9 +128,9 @@ test('ordinary Whole inventory keeps original Input coordinates without Query id
   for (const change of [
     v => {v.acquisitions[1].input = 0;},
     v => {v.acquisitions[0].checkedSource.requirementCid = 'sha256:' + 'a'.repeat(64);},
-    v => {v.acquisitions[0].checkedSource.sourceInput.pop();},
+    v => {v.acquisitions[0].checkedSource.sourceInput!.pop();},
     v => {v.acquisitions[0].computeTask = -1;},
-  ]) {
+  ] satisfies readonly Mutation[]) {
     const changed = structuredClone(value); change(changed);
     assert.throws(() => validateSourceInventory(wire(changed)), {code: 'InvalidClientSourceInventory'});
   }

@@ -1,17 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
+// @ts-expect-error TS7016: remove after acquired-effect-computation has an authored TypeScript entry.
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
-const ok = value => ({$tag: 1, _0: value});
+type Runtime = Parameters<typeof prepareOriginalSourceQuery>[0]['moon'];
+type QueryOptions = Parameters<typeof prepareOriginalSourceQuery>[0];
+type ComputationCustody = Readonly<{close(): unknown; cleanup(): Promise<boolean>; cleanupPending(): boolean}>;
+const ok = (value: unknown) => ({$tag: 1, _0: value});
 
 for (const effectful of [false, true]) {
   test(`Source preparation keeps the original ${effectful ? 'Effect' : 'pure'} query context`, () => {
     const owner = {}, original = {}, request = {}, acquisition = {}, requirement = {};
-    const events = [];
+    const events: string[] = [];
     const contracts = Object.freeze({}); // Forwarding identity, not an issuance fixture.
     const prefix = effectful ? 'clientProgramEffect' : 'clientProgram';
-    const moon = {
-      [prefix + 'PrepareQueryAcquisitionAtQueryTime'](...args) {
+    const moon: Runtime = {
+      [prefix + 'PrepareQueryAcquisitionAtQueryTime'](...args: unknown[]) {
         assert.strictEqual(this, moon);
         assert.strictEqual(args[0], owner);
         assert.deepEqual(args.slice(1, 3), [1, 0]);
@@ -19,7 +23,7 @@ for (const effectful of [false, true]) {
         assert.strictEqual(args[4], request);
         events.push('acquisition'); return ok(acquisition);
       },
-      [prefix + 'PrepareLocalQueryRequirementAtQueryTime'](...args) {
+      [prefix + 'PrepareLocalQueryRequirementAtQueryTime'](...args: unknown[]) {
         assert.strictEqual(this, moon);
         assert.strictEqual(args[0], owner);
         assert.strictEqual(args[3], original);
@@ -40,14 +44,14 @@ for (const effectful of [false, true]) {
 }
 
 test('Source preparation forwards the installed original without a query-time owner', () => {
-  const owner = {}, acquisition = {}, requirement = {}, events = [];
+  const owner = {}, acquisition = {}, requirement = {}, events: string[] = [];
   const contracts = Object.freeze({}); // Only the forwarding seam is mocked.
   const moon = {
-    clientProgramPrepareQueryAcquisition(...args) {
+    clientProgramPrepareQueryAcquisition(...args: unknown[]) {
       assert.strictEqual(args[0], owner);
       assert.deepEqual(args.slice(1), [0, 0]); events.push('acquisition'); return ok(acquisition);
     },
-    clientProgramPrepareLocalQueryRequirement(...args) {
+    clientProgramPrepareLocalQueryRequirement(...args: unknown[]) {
       assert.strictEqual(args[3], contracts);
       assert.deepEqual(args, [owner, 0, 0, contracts, 'v', undefined, undefined]);
       events.push('requirement'); return ok(requirement);
@@ -61,11 +65,11 @@ test('Source preparation forwards the installed original without a query-time ow
 
 test('Source preparation never falls back after an unavailable or rejected original', () => {
   let legacy = 0, requirements = 0;
-  const moon = {
+  const moon: {-readonly [Key in keyof Runtime]: Runtime[Key]} = {
     clientProgramEffectPrepareQueryAcquisition() { legacy++; },
     clientProgramEffectPrepareLocalQueryRequirement() { legacy++; },
   };
-  const options = {moon, preparedEffect: {}, stage: 0, input: 0, queryTimePreparation: {}};
+  const options = {moon, preparedEffect: {}, stage: 0, input: 0, queryTimePreparation: {}} as QueryOptions;
   assert.throws(() => prepareOriginalSourceQuery(options), /OriginalQueryTimeUnavailable/);
   assert.throws(() => prepareOriginalSourceQuery({...options, requestIdentity: {}}),
     /OriginalQueryTimeUnavailable/);
@@ -83,28 +87,28 @@ for (const matches of [false, true]) {
     const owner = {}, prepared = {}, queryTimePreparation = {}, requestIdentity = {};
     const managedRun = {}, plan = {}, selection = {}, requirement = {};
     const stop = new Error('OriginalSourcePreparationReached');
-    let custody, prepares = 0, opens = 0, checkedRun = 0;
+    let custody: ComputationCustody | undefined, prepares = 0, opens = 0, checkedRun = 0;
     const moon = {
-      clientProgramEffectAcquisitionCount: actual => {assert.strictEqual(actual, prepared); return 1;},
-      clientProgramInstalledEffectManagedOperationPlan(parent, actual, request) {
+      clientProgramEffectAcquisitionCount: (actual: unknown) => {assert.strictEqual(actual, prepared); return 1;},
+      clientProgramInstalledEffectManagedOperationPlan(parent: unknown, actual: unknown, request: unknown) {
         assert.strictEqual(this, moon); assert.strictEqual(parent, managedRun);
         assert.strictEqual(actual, prepared); assert.strictEqual(request, requestIdentity); return ok(plan);
       },
       clientProgramInstalledEffectManagedHostOpen() {assert.fail('Source must reach its original prepare boundary first');},
-      clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, program, request) {
+      clientProgramInstalledEffectManagedPlanSourceCoordinates(actual: unknown, program: unknown, request: unknown) {
         assert.strictEqual(actual, plan); assert.strictEqual(program, prepared);
         assert.strictEqual(request, requestIdentity); return ok([[0, 0, 0, 0]]);
       },
-      clientProgramSelectInstalledEffectSourceInput(program, request, stage, input) {
+      clientProgramSelectInstalledEffectSourceInput(program: unknown, request: unknown, stage: number, input: number) {
         assert.strictEqual(program, prepared); assert.strictEqual(request, requestIdentity);
         assert.equal(stage, 0); assert.equal(input, 0); return ok(selection);
       },
-      clientProgramSelectedSourceInputKind(actual) {assert.strictEqual(actual, selection); return 'query';},
-      clientProgramSelectedSourceInputRef(actual) {assert.strictEqual(actual, selection); return 'original-source';},
-      clientProgramInstalledEffectManagedPlanSource(actual, task) {
+      clientProgramSelectedSourceInputKind(actual: unknown) {assert.strictEqual(actual, selection); return 'query';},
+      clientProgramSelectedSourceInputRef(actual: unknown) {assert.strictEqual(actual, selection); return 'original-source';},
+      clientProgramInstalledEffectManagedPlanSource(actual: unknown, task: number) {
         assert.strictEqual(actual, plan); assert.equal(task, 0); return ok({_0: {}, _1: requirement});
       },
-      clientProgramEffectRunQueryTimeMatches(...args) {
+      clientProgramEffectRunQueryTimeMatches(...args: unknown[]) {
         assert.strictEqual(args[0], owner);
         assert.strictEqual(args[1], queryTimePreparation);
         assert.strictEqual(args[2], requestIdentity);
@@ -113,28 +117,28 @@ for (const matches of [false, true]) {
       clientProgramOpenLocalEffectHostAtQueryTime() { assert.fail('No captured source yet'); },
       clientProgramEffectPrepareQueryAcquisitionAtQueryTime: () => ok({}),
       clientProgramEffectPrepareLocalQueryRequirementAtQueryTime: () => ok({}),
-      clientProgramQueryRequirementSourceRef: actual => {assert.strictEqual(actual, requirement); return 'original-source';},
+      clientProgramQueryRequirementSourceRef: (actual: unknown) => {assert.strictEqual(actual, requirement); return 'original-source';},
     };
     await assert.rejects(openAcquiredEffectComputation({moon, owner, managedRun,
       acquired: {prepared, queryTimePreparation, requestIdentity},
-      retainComputationOwner(value) { custody = value; },
+      retainComputationOwner(value: ComputationCustody) { custody = value; },
       sourceProfile: {
-        admitsSource: ref => ref === 'original-source',
-        prepare(options) {
+        admitsSource: (ref: string) => ref === 'original-source',
+        prepare(options: Readonly<Record<string, unknown>>) {
           prepares++;
           assert.strictEqual(options.preparedEffect, prepared);
           assert.strictEqual(options.queryTimePreparation, queryTimePreparation);
           assert.strictEqual(options.requestIdentity, requestIdentity);
-          assert.equal(custody.cleanupPending(), true);
+          assert.equal(custody!.cleanupPending(), true);
           throw stop;
         },
         open() { opens++; },
       },
-    }), error => matches ? error === stop : error.message === 'OriginalQueryTimeUnavailable');
+    }), error => matches ? error === stop : (error as Error).message === 'OriginalQueryTimeUnavailable');
     assert.equal(checkedRun, 1);
     assert.equal(prepares, matches ? 1 : 0);
     assert.equal(opens, 0);
-    await custody.close();
-    assert.equal(await custody.cleanup(), true);
+    await custody!.close();
+    assert.equal(await custody!.cleanup(), true);
   });
 }

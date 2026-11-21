@@ -502,7 +502,7 @@
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "providerReader = services('createSourceReader'"
               },
               {

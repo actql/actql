@@ -2,11 +2,25 @@
 // meaning stays in preparePageReader; this is the existing Site/reader/source
 // lifetime, not a second reader, resource Owner or public author callback.
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import type {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 
-export async function installFinitePageSource(services, siteInput, implementation,
-  operation, preparePageReader, implementationMismatch, publish) {
+type SiteInput = Readonly<{installation: unknown; sourceInitialization?: unknown} & Record<string, unknown>>;
+type Site = NonNullable<Parameters<typeof retainInstalledHostInitializationFailure>[1]['sourceProfile']>;
+type OpenedSite = Readonly<{site: Site}>;
+type Implementation = Readonly<{capacity: unknown}>;
+type Reader = ReturnType<typeof createInstalledCredentialSourceReader>;
+type Services<Opened extends OpenedSite, PageReader extends (...args: never[]) => unknown> = {
+  (name: 'openRowSite', input: SiteInput): Opened | Promise<Opened>;
+  (name: 'createSourceReader', input: Readonly<{installation: unknown; sourceInitialization: unknown;
+    implementation: Implementation; site: Opened['site']; operation: string; preparePageReader: PageReader}>): Reader;
+};
+
+export async function installFinitePageSource<Opened extends OpenedSite, PageReader extends (...args: never[]) => unknown, Result>(
+  services: Services<Opened, PageReader>, siteInput: SiteInput, implementation: Implementation,
+  operation: string, preparePageReader: PageReader, implementationMismatch: string,
+  publish: (opened: Opened, reader: Reader) => Result | Promise<Result>) {
   const {installation, sourceInitialization} = siteInput;
-  let opened, providerReader;
+  let opened: Opened | undefined, providerReader: Reader | undefined;
   try {
     // Reuse the original call record; do not copy the profile/credential DATA
     // into a second retained assembly record or construct another capacity.

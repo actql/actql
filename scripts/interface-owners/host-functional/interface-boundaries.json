@@ -86936,7 +86936,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -86950,7 +86950,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -86964,8 +86964,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -86978,7 +86978,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "// with the installed preparation owner, not a provider dispatcher here."
               },
               {
@@ -86992,8 +86992,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "export function validInstallationBinding(binding) {"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "export function validInstallationBinding(binding: unknown): binding is InstallationBinding {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -87006,8 +87006,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "const fail = () => { throw Object.assign(new Error('InstalledSourcePreparationMismatch'),"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "const fail: () => never = () => { throw Object.assign(new Error('InstalledSourcePreparationMismatch'),"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -87020,7 +87020,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87034,7 +87034,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87048,7 +87048,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "// Host-private retention of ordinary installed reads. Target semantics remain"
               },
               {
@@ -87062,7 +87062,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.test.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.test.mts",
                 "anchor": "test('ordinary bound inventory retains two opaque installed targets and exact data strings', () => {"
               },
               {
@@ -87080,7 +87080,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87094,7 +87094,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87108,8 +87108,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -87122,7 +87122,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "// with the installed preparation owner, not a provider dispatcher here."
               },
               {
@@ -87136,8 +87136,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "export function validInstallationBinding(binding) {"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "export function validInstallationBinding(binding: unknown): binding is InstallationBinding {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -87150,8 +87150,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
-                "anchor": "const fail = () => { throw Object.assign(new Error('InstalledSourcePreparationMismatch'),"
+                "path": "adapters/host-node/ordinary-source-binding.mts",
+                "anchor": "const fail: () => never = () => { throw Object.assign(new Error('InstalledSourcePreparationMismatch'),"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -87164,7 +87164,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87178,7 +87178,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "export const BOUND_SOURCE_INVENTORY = 'actql-client-bound-source-inventory/0.1';"
               },
               {
@@ -87192,7 +87192,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.mts",
                 "anchor": "// Host-private retention of ordinary installed reads. Target semantics remain"
               },
               {
@@ -87206,7 +87206,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-source-binding.test.mjs",
+                "path": "adapters/host-node/ordinary-source-binding.test.mts",
                 "anchor": "test('ordinary bound inventory retains two opaque installed targets and exact data strings', () => {"
               },
               {
@@ -136679,37 +136679,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "// Private standard Host assembly for finite provider-page Sources."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
-                "anchor": "export async function installFinitePageSource("
+                "path": "adapters/host-node/installed-finite-page-source.mts",
+                "anchor": "export async function installFinitePageSource<"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "opened = await services"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "{sourceReader: providerReader, sourceProfile: opened?.site}"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "return await publish(opened, providerReader)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "if (providerReader.capacity !== implementation.capacity)"
               }
             ],
@@ -136721,13 +136721,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "implementation, site: opened.site, operation, preparePageReader"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "path": "adapters/host-node/installed-finite-page-source.mts",
                 "anchor": "// meaning stays in preparePageReader;"
               }
             ],
