@@ -32,41 +32,19 @@ fn audit_local_update_mapping(
 ) -> CompletionFreeAudit {
   let checked = computation.checked
   let headers = computation.headers
-  if @syntax.effect_header_count(headers) != 1 {
-    return ProfileNotInstalled
-  }
-  let header = @syntax.effect_header_at(headers, 0).unwrap()
-  if @syntax.effect_header_kind(header) != "update" ||
-    !@syntax.effect_header_contract_ref(header).has_prefix("mapping:") {
-    return ProfileNotInstalled
-  }
+  let member_count = @syntax.effect_header_count(headers)
   let results = @results.effect_static_candidate_results(effects)
   let rules = @results.effect_static_candidate_mapping_rules(effects)
   let literals = @results.effect_static_candidate_mapping_literals(effects)
-  if !physical_equal(
+  if member_count == 0 ||
+    !physical_equal(
       @results.effect_result_bindings_owner(results),
       checked_stage_results(checked),
     ) ||
     !physical_equal(@results.effect_result_bindings_headers(results), headers) ||
     !physical_equal(@results.effect_mapping_literals_rules(literals), rules) ||
-    @results.effect_result_binding_count(results) != 1 ||
-    @results.effect_mapping_rule_count(rules) != 1 {
-    return ProfileNotInstalled
-  }
-  let rule = @results.effect_mapping_rule_at(rules, 0).unwrap()
-  let binding = @results.effect_mapping_shape_effect(
-    @results.effect_mapping_rule_effect(rule),
-  )
-  if !physical_equal(
-      binding,
-      @results.effect_result_binding_at(results, 0).unwrap(),
-    ) ||
-    !physical_equal(@results.effect_result_binding_header(binding), header) ||
-    @results.effect_result_binding_result(binding) is None ||
-    @environment.mapping_conversion_count(
-      @results.effect_mapping_rule_conversions(rule),
-    ) !=
-    0 {
+    @results.effect_result_binding_count(results) != member_count ||
+    @results.effect_mapping_rule_count(rules) != member_count {
     return ProfileNotInstalled
   }
   let static_work = @results.effect_static_candidate_work(effects)
@@ -74,71 +52,105 @@ fn audit_local_update_mapping(
     return ProfileNotInstalled
   }
   let mut remaining = 10000 - work - static_work
-  let (kind, selector, fields) = @environment.mapping_permission_rule(
-    @results.effect_mapping_rule_selection(rule),
-  )
-  if kind != "update" || selector != "id" {
+  // The existing single-member audit already includes the first member.
+  if member_count - 1 > remaining {
     return ProfileNotInstalled
   }
-  // These cursors belong to the retained, checked header; they are not an
-  // independently supplied selector or change document.
-  let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
-  guard @decode.lookup(body, "id") is Some(_) &&
-    @decode.lookup(body, "set") is Some(changes) else {
-    return ProfileNotInstalled
-  }
-  let count = @decode.object_length(changes).unwrap()
-  if count == 0 || count != fields.length() || count > remaining {
-    return ProfileNotInstalled
-  }
-  remaining -= count
-  let mut selector_count = 0
-  let mut field_changes = 0
-  for index in 0..<@results.effect_result_field_binding_count(binding) {
-    if remaining <= 0 {
+  remaining -= member_count - 1
+  let literal_count = @results.effect_mapping_literal_count(literals)
+  let mut next_literal = 0
+  for index in 0..<member_count {
+    let header = @syntax.effect_header_at(headers, index).unwrap()
+    let rule = @results.effect_mapping_rule_at(rules, index).unwrap()
+    let binding = @results.effect_mapping_shape_effect(
+      @results.effect_mapping_rule_effect(rule),
+    )
+    if @syntax.effect_header_kind(header) != "update" ||
+      !@syntax.effect_header_contract_ref(header).has_prefix("mapping:") ||
+      !physical_equal(
+        binding,
+        @results.effect_result_binding_at(results, index).unwrap(),
+      ) ||
+      !physical_equal(@results.effect_result_binding_header(binding), header) ||
+      @results.effect_result_binding_result(binding) is None ||
+      @environment.mapping_conversion_count(
+        @results.effect_mapping_rule_conversions(rule),
+      ) !=
+      0 {
       return ProfileNotInstalled
     }
-    remaining -= 1
-    match
-      @results.effect_result_field_binding_role(
-        @results.effect_result_field_binding_at(binding, index).unwrap(),
-      ) {
-      EffectSelector => selector_count += 1
-      EffectValue(_) => field_changes += 1
-      _ => return ProfileNotInstalled
-    }
-  }
-  if selector_count != 1 {
-    return ProfileNotInstalled
-  }
-  let mut literal_changes = 0
-  for index in 0..<@results.effect_mapping_literal_count(literals) {
-    if remaining <= 0 {
+    let (kind, selector, fields) = @environment.mapping_permission_rule(
+      @results.effect_mapping_rule_selection(rule),
+    )
+    if kind != "update" || selector != "id" {
       return ProfileNotInstalled
     }
-    remaining -= 1
-    let literal = @results.effect_mapping_literal_at(literals, index).unwrap()
-    if !physical_equal(@results.effect_mapping_literal_rule(literal), rule) ||
-      @results.effect_mapping_literal_origin(literal) != @results.InlineSet {
+    // The field bindings and literal inventory come from this exact header.
+    let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
+    guard @decode.lookup(body, "id") is Some(_) &&
+      @decode.lookup(body, "set") is Some(changes) &&
+      @decode.open_object(changes) is Ok(changes_object) else {
       return ProfileNotInstalled
     }
-    // Authored update literals are admitted with authored_fields=true. This
-    // slice accepts scalar leaves only; it cannot certify nested omissions or
-    // an omitted write produced by a Mapping null policy.
-    match @results.effect_mapping_literal_value(literal) {
-      Written(_) => ()
-      Omitted => return CompletionObserved
-    }
-    let target = @results.effect_mapping_literal_target(literal)
-    let entry = @decode.lookup(@decode.open_object(changes).unwrap(), target).unwrap()
-    let value = @decode.lookup(@decode.open_object(entry).unwrap(), "literal").unwrap()
-    if @decode.object_length(value) is Some(_) ||
-      @decode.array_length(value) is Some(_) {
+    let count = @decode.object_length(changes).unwrap()
+    if count == 0 || count != fields.length() || count > remaining {
       return ProfileNotInstalled
     }
-    literal_changes += 1
+    remaining -= count
+    let mut selector_count = 0
+    let mut field_changes = 0
+    for field in 0..<@results.effect_result_field_binding_count(binding) {
+      if remaining <= 0 {
+        return ProfileNotInstalled
+      }
+      remaining -= 1
+      match
+        @results.effect_result_field_binding_role(
+          @results.effect_result_field_binding_at(binding, field).unwrap(),
+        ) {
+        EffectSelector => selector_count += 1
+        EffectValue(_) => field_changes += 1
+        _ => return ProfileNotInstalled
+      }
+    }
+    if selector_count != 1 {
+      return ProfileNotInstalled
+    }
+    let mut literal_changes = 0
+    // Static admission appends literals in rule order. Consume only this
+    // member's contiguous entries without regrouping or resetting work.
+    while next_literal < literal_count {
+      let literal = @results.effect_mapping_literal_at(literals, next_literal).unwrap()
+      if !physical_equal(@results.effect_mapping_literal_rule(literal), rule) {
+        break
+      }
+      if remaining <= 0 ||
+        @results.effect_mapping_literal_origin(literal) != @results.InlineSet {
+        return ProfileNotInstalled
+      }
+      remaining -= 1
+      next_literal += 1
+      match @results.effect_mapping_literal_value(literal) {
+        Written(_) => ()
+        Omitted => return CompletionObserved
+      }
+      let target = @results.effect_mapping_literal_target(literal)
+      guard @decode.lookup(changes_object, target) is Some(entry) &&
+        @decode.open_object(entry) is Ok(wrapper) &&
+        @decode.lookup(wrapper, "literal") is Some(value) else {
+        return ProfileNotInstalled
+      }
+      if @decode.object_length(value) is Some(_) ||
+        @decode.array_length(value) is Some(_) {
+        return ProfileNotInstalled
+      }
+      literal_changes += 1
+    }
+    if field_changes + literal_changes != count {
+      return ProfileNotInstalled
+    }
   }
-  if field_changes + literal_changes != count {
+  if next_literal != literal_count {
     return ProfileNotInstalled
   }
   Complete(10000 - remaining)

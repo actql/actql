@@ -57,17 +57,17 @@ fn local_effect_first_compilation(
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
-  // Select only from the original checked header. Each existing issuer audits
-  // its own closed profile; a kind string is not a completion-free proof.
+  // Select an issuer from the first original checked header. The update
+  // issuer audits the entire ordered Set before issuing a single proof.
   let headers = @checked.effect_program_static_headers(
     @run_host.prepared_client_effect_computation_candidate(prepared),
   )
-  guard @syntax.effect_header_count(headers) == 1 &&
-    @syntax.effect_header_at(headers, 0) is Some(header) else {
+  guard @syntax.effect_header_at(headers, 0) is Some(header) else {
     stop("LocalEffectNormalizationProfileNotInstalled")
   }
   let normalization_result = match @syntax.effect_header_kind(header) {
-    "create" => @run_host.issue_prepared_client_effect_normalization(prepared)
+    "create" if @syntax.effect_header_count(headers) == 1 =>
+      @run_host.issue_prepared_client_effect_normalization(prepared)
     "update" =>
       @run_host.issue_prepared_client_effect_selected_normalization(prepared)
     _ => stop("LocalEffectNormalizationProfileNotInstalled")

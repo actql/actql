@@ -114,12 +114,11 @@ fn checked_client_effect_normalization_inventory(
     return Ok(original.inventory)
   }
   let headers = @checked.effect_program_static_headers(owner.candidate)
-  guard @syntax.effect_header_count(headers) == 1 else {
+  guard @syntax.effect_header_at(headers, 0) is Some(header) else {
     return Err(Inventory(ProfileNotInstalled))
   }
-  match
-    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 0).unwrap()) {
-    "create" =>
+  match @syntax.effect_header_kind(header) {
+    "create" if @syntax.effect_header_count(headers) == 1 =>
       @checked.effect_program_completion_free_inventory(owner.candidate)
       .map(fn(value) { MappedCreate(value) })
       .map_err(fn(issue) { Inventory(issue) })
