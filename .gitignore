@@ -1507,3 +1507,5 @@ target/
 /adapters/store-local/publication-store-inputs.d.mts
 /adapters/store-local/publication-store-format.mjs
 /adapters/store-local/publication-store-format.d.mts
+/adapters/store-local/publication-store-private-evidence.mjs
+/adapters/store-local/publication-store-private-evidence.d.mts

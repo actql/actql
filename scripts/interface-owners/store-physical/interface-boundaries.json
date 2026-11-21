@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7b255b160adac8b83ee4db3aa1e196c633f6ea199911c07059fbfe991e41787",
+      "sha256": "919c4057350c008f01d0dc27760c7176883b4b67a6746f696ff7d5bd82ec65e8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6210,14 +6210,6 @@
           "name": "assertOriginalLocalPublicationStoreFacilityCurrent",
           "parameters": [
             "bindings"
-          ],
-          "async": false
-        },
-        {
-          "name": "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
-          "parameters": [
-            "total",
-            "segment"
           ],
           "async": false
         },
@@ -9098,80 +9090,6 @@
           "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "retainPrivateRawCleanup/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateRawCleanup/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "retainPrivateRawCleanup/pending/pending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateRawCleanup/pending/pending/pending",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainPrivateRawCleanup/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateRawCleanup/release/release/release",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "retainPrivateRawCleanup/release/release/release#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/cleanup/cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "retainPrivateWriterCleanup/pending/pending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/release/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/release/release/release#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainPrivateWriterCleanup/release/release/release#3",
-          "parameters": [],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -9486,7 +9404,6 @@
         {
           "operations": [
             "<module>",
-            "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
@@ -9865,21 +9782,7 @@
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
-            "retainPrivateRawCleanup/cleanup/cleanup",
-            "retainPrivateRawCleanup/cleanup/init:retry/init:retry",
-            "retainPrivateRawCleanup/pending/pending",
-            "retainPrivateRawCleanup/pending/pending/pending",
-            "retainPrivateRawCleanup/release/release",
-            "retainPrivateRawCleanup/release/release/release",
-            "retainPrivateRawCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/cleanup/cleanup",
-            "retainPrivateWriterCleanup/cleanup/init:retry/init:retry",
-            "retainPrivateWriterCleanup/pending/pending",
-            "retainPrivateWriterCleanup/release/release",
-            "retainPrivateWriterCleanup/release/release/release",
-            "retainPrivateWriterCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/release/release/release#3"
+            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13598,6 +13501,7 @@
         "./publication-store-inputs.mjs",
         "./publication-store-io.mjs",
         "./publication-store-ownership.mjs",
+        "./publication-store-private-evidence.mjs",
         "./result-deletion-owner.mjs",
         "node:buffer",
         "node:crypto",
@@ -14833,6 +14737,241 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Existing Store publication, same native lease and owner metadata lifecycle only. No new storage authority or installed acceptance."
+    },
+    {
+      "module": "adapters/store-local/publication-store-private-evidence.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "a486314097eda534e31b75893b016e321491d99d7eb2e024c5c85eb0dd826f02",
+      "exports": [
+        "encodePrivateEvidenceEnvelope",
+        "privateEvidenceWireLimitForObject",
+        "retainPrivateRawCleanup",
+        "retainPrivateWriterCleanup"
+      ],
+      "operations": [
+        {
+          "name": "encodePrivateEvidenceEnvelope",
+          "parameters": [
+            "input",
+            "isWire",
+            "key",
+            "aad",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
+          "parameters": [
+            "total",
+            "segment"
+          ],
+          "async": false
+        },
+        {
+          "name": "privateEvidenceWireLimitForObject",
+          "parameters": [
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup",
+          "parameters": [
+            "descriptor",
+            "content"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainPrivateRawCleanup/pending/pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup/pending/pending/pending",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateRawCleanup/release/release/release",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainPrivateRawCleanup/release/release/release#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup",
+          "parameters": [
+            "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainPrivateWriterCleanup/pending/pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/release/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/release/release/release#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPrivateWriterCleanup/release/release/release#3",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encodePrivateEvidenceEnvelope",
+            "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
+            "privateEvidenceWireLimitForObject",
+            "retainPrivateRawCleanup",
+            "retainPrivateRawCleanup/cleanup/cleanup",
+            "retainPrivateRawCleanup/cleanup/init:retry/init:retry",
+            "retainPrivateRawCleanup/pending/pending",
+            "retainPrivateRawCleanup/pending/pending/pending",
+            "retainPrivateRawCleanup/release/release",
+            "retainPrivateRawCleanup/release/release/release",
+            "retainPrivateRawCleanup/release/release/release#2",
+            "retainPrivateWriterCleanup",
+            "retainPrivateWriterCleanup/cleanup/cleanup",
+            "retainPrivateWriterCleanup/cleanup/init:retry/init:retry",
+            "retainPrivateWriterCleanup/pending/pending",
+            "retainPrivateWriterCleanup/release/release",
+            "retainPrivateWriterCleanup/release/release/release",
+            "retainPrivateWriterCleanup/release/release/release#2",
+            "retainPrivateWriterCleanup/release/release/release#3"
+          ],
+          "exports": [
+            "encodePrivateEvidenceEnvelope",
+            "privateEvidenceWireLimitForObject",
+            "retainPrivateRawCleanup",
+            "retainPrivateWriterCleanup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "export function encodePrivateEvidenceEnvelope("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "const cipher = createCipheriv('aes-256-gcm', key, nonce);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "let originals: [PrivateCleanup, PrivateCleanup] | undefined = [descriptor, content];"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "if (pending()) fail('PublicationPrivateWriterCleanupPending');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "actual.cancel()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "if (maximum < 128)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/private-evidence-envelope.test.mjs",
+                "anchor": "private envelope: fixed old bytes and CID without full JSON String backing"
+              },
+              {
+                "path": "adapters/store-local/private-evidence-writer-cleanup.test.mjs",
+                "anchor": "raw descriptor writer and earlier content cleanup retain both original duties"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing private Store evidence encoding and original writer and prepared-content cleanup only."
     },
     {
       "module": "adapters/store-local/publication-store-io.mjs",
