@@ -47,6 +47,7 @@ import {acquireStoreOwnership} from './publication-store-ownership.mjs';
 import {beginPreparedStoreAdoption, releasePreparedOwnership, retainPreparedStoreAdoptionFailure}
   from './prepared-publication-store-ownership.mjs';
 import {indexKey, validateConfiguration, validateContractControl} from './publication-store-inputs.mjs';
+import {admitExistingStoreFormat, createStoreContract} from './publication-store-format.mjs';
 
 export {assertOriginalPreparedLocalPublicationStoreFirstInitialization,
   assertOriginalPreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner,
@@ -332,67 +333,8 @@ async function openOriginalLocalPublicationStore(
   });
   const storeContractBytes = Buffer.from(JSON.stringify(storeContract), 'utf8');
   const storeContractPath = resolve(root, 'store.json');
-  let existingNames;
-  try {
-    const state = await lstat(root);
-    if (!state.isDirectory() || state.isSymbolicLink()) {
-      fail('UnknownPublicationStoreFormat');
-    }
-    existingNames = await readOpeningDirectory(root);
-  } catch (error) {
-    if (error?.code !== 'ENOENT') throw error;
-  }
-  // Only the same still-held original may explain this exact fresh prefix.
-  // Ordinary opens and cold owner-only directories retain their old refusal.
-  const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&
-    prepared.phase === 'adopting' && prepared.ownership !== undefined &&
-    existingNames?.length === 1 && existingNames[0] === 'owner';
-  if (existingNames?.length > 0 && !preparedFreshPrefix) {
-    if (!existingNames.includes('store.json')) {
-      const legacy = existingNames.some(name => [
-        'objects', 'contracts', 'indexes', 'staging', 'owner',
-      ].includes(name));
-      throw Object.assign(new Error(legacy ?
-        'LegacyPublicationStoreFormat' : 'UnknownPublicationStoreFormat'), {
-        code: legacy ? 'LegacyPublicationStoreFormat' :
-          'UnknownPublicationStoreFormat', target: root,
-      });
-    }
-    let previous;
-    try {
-      previous = JSON.parse(await readOpeningMetadata(storeContractPath));
-    } catch (cause) {
-      const failure = Object.assign(new Error('UnknownPublicationStoreFormat',
-        {cause}), {code: 'UnknownPublicationStoreFormat', target: root});
-      // This reader precedes Store ownership. The same original failed FD
-      // must remain visible to installed initialization cleanup; wrapping a
-      // format refusal must not make that cleanup appear complete.
-      if (cause?.cleanupHandle !== undefined) {
-        failure.cleanupHandle = cause.cleanupHandle;
-        failure.cleanupPending = true;
-        failure.cleanupError = cause.cleanupError;
-        failure.primaryFailure = cause.primaryFailure ?? cause;
-      }
-      throw failure;
-    }
-    if (previous?.version === storeContract.version &&
-        previous?.isolation === undefined &&
-        typeof previous?.store_authority_cid === 'string') {
-      throw Object.assign(new Error('LegacyPublicationStoreFormat'), {
-        code: 'LegacyPublicationStoreFormat', target: root});
-    }
-    if (!exactKeys(previous, ['version', 'isolation',
-      'store_authority_cid']) ||
-        previous.version !== storeContract.version ||
-        previous.isolation !== storeContract.isolation) {
-      throw Object.assign(new Error('UnknownPublicationStoreFormat'), {
-        code: 'UnknownPublicationStoreFormat', target: root});
-    }
-    if (!Buffer.from(JSON.stringify(previous), 'utf8')
-      .equals(storeContractBytes)) {
-      fail('PublicationStoreAuthorityMismatch');
-    }
-  }
+  await admitExistingStoreFormat(root, storeContractPath, storeContract, storeContractBytes,
+    prepared, readOpeningDirectory, readOpeningMetadata);
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, custodyDirectory, captureCustodyDirectory, preparedSchemasDirectory,
     attemptsDirectory, deliveriesDirectory,
@@ -404,21 +346,8 @@ async function openOriginalLocalPublicationStore(
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
-  let createdStore = false;
-  try {
-    await writeExclusive(storeContractPath, storeContractBytes);
-    await syncDirectory(root);
-    createdStore = true;
-  } catch (error) {
-    if (error?.cleanupHandle !== undefined) {
-      throw await retainStoreOpeningFailure(error, undefined, configuration.privateEvidenceKey);
-    }
-    if (error?.code !== 'EEXIST') throw error;
-    const existing = await readOpeningMetadata(storeContractPath);
-    if (!existing.equals(storeContractBytes)) {
-      fail('PublicationStoreAuthorityMismatch');
-    }
-  }
+  const createdStore = await createStoreContract(root, storeContractPath, storeContractBytes,
+    configuration, readOpeningMetadata, syncDirectory);
 
   let storedBytes = 0;
   let objectCount = 0;

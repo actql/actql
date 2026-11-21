@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ace619241e2e9750af87b84bd7745ec8501a5cf519775e6d752fb399959fbb2c",
+      "sha256": "e7b255b160adac8b83ee4db3aa1e196c633f6ea199911c07059fbfe991e41787",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7686,13 +7686,6 @@
           "parameters": [
             "left",
             "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/legacy/legacy",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -9683,7 +9676,6 @@
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/legacy/legacy",
             "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies",
             "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
             "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
@@ -11696,7 +11688,7 @@
                 "anchor": "const sameFile = (state: BigIntStats) => state.isFile() && !state.isSymbolicLink() &&"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
               },
               {
@@ -13602,6 +13594,7 @@
         "./prepared-publication-store-ownership.mjs",
         "./publication-commit-owner.mjs",
         "./publication-store-bootstrap.mjs",
+        "./publication-store-format.mjs",
         "./publication-store-inputs.mjs",
         "./publication-store-io.mjs",
         "./publication-store-ownership.mjs",
@@ -13615,6 +13608,138 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-store-format.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "9b8fca2e8a841e2876e20633a1eed66a03f1f770a751d7412033fb642ca09378",
+      "exports": [
+        "admitExistingStoreFormat",
+        "createStoreContract"
+      ],
+      "operations": [
+        {
+          "name": "admitExistingStoreFormat",
+          "parameters": [
+            "root",
+            "storeContractPath",
+            "storeContract",
+            "storeContractBytes",
+            "prepared",
+            "readOpeningDirectory",
+            "readOpeningMetadata"
+          ],
+          "async": true
+        },
+        {
+          "name": "admitExistingStoreFormat/legacy/legacy",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createStoreContract",
+          "parameters": [
+            "root",
+            "storeContractPath",
+            "storeContractBytes",
+            "configuration",
+            "readOpeningMetadata",
+            "syncDirectory"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitExistingStoreFormat",
+            "admitExistingStoreFormat/legacy/legacy",
+            "createStoreContract"
+          ],
+          "exports": [
+            "admitExistingStoreFormat",
+            "createStoreContract"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "export async function admitExistingStoreFormat("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "if (!existing.equals(storeContractBytes))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "await syncDirectory(root);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "failure.cleanupHandle ="
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "throw await retainStoreOpeningFailure(error, undefined, configuration.privateEvidenceKey);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store-format.mts",
+                "anchor": "existingNames = await readOpeningDirectory(root);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "alternative representation requires verified conversion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/store-contract-reader-custody.test.mjs",
+                "anchor": "actual pre-owner format failure retains the same FD"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "fresh prepared owner remains nominal and ordinary owner-only format refusal stays unchanged"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing Store format admission, prepared fresh-prefix correspondence and contract durability only."
     },
     {
       "module": "adapters/store-local/publication-store-inputs.mjs",
@@ -13941,7 +14066,7 @@
                 "anchor": "const sameFile = (state: BigIntStats) => state.isFile() && !state.isSymbolicLink() &&"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-store-format.mts",
                 "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
               },
               {
