@@ -27,17 +27,25 @@ import {createExecutionSiteControlFixture} from
   './execution-site-control.fixture.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
 
-const transferProvider = provider => Object.freeze({
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+type TransferProvider = NonNullable<NonNullable<Parameters<typeof prepareExecutionSitePolicy>[0]>['transferProvider']>;
+type Contributions = Parameters<typeof installProductExecutionSites>[1];
+type Capacity = NonNullable<NonNullable<Parameters<typeof executionSiteCandidate>[0]>['capacity']>;
+type AcceptedCandidate = Extract<ReturnType<typeof executionSiteCandidate>, {excluded: undefined}>;
+
+const transferProvider = (provider: Omit<TransferProvider, 'contract'>) => Object.freeze({
   contract: managedMemoryTransferContract,
   ...provider,
 });
 const siteControl = createExecutionSiteControlFixture();
 
-const site = (key, generation = 1, extra = {}) => {
+const site = (key: string, generation = 1, extra: Parameters<typeof createInProcessExecutionSite>[0] = {}) => {
   const value = createInProcessExecutionSite({
     key,
     generation,
@@ -51,11 +59,11 @@ const site = (key, generation = 1, extra = {}) => {
   );
   return value;
 };
-const contribution = key => Object.freeze({
+const contribution = (key: string) => Object.freeze({
   registration: Object.freeze({}),
   managedSelectionKey: key,
 });
-const installExecutionSites = (policy, contributions) =>
+const installExecutionSites = (policy: object, contributions: Contributions) =>
   installProductExecutionSites(policy, contributions, siteControl);
 
 test('product Site installation has no JavaScript semantic fallback', () => {
@@ -64,6 +72,7 @@ test('product Site installation has no JavaScript semantic fallback', () => {
     generation: 1,
     runtimeRevision: 'test-runtime/1',
   });
+  // @ts-expect-error The deliberately omitted portable control must refuse at runtime.
   assert.throws(() => installProductExecutionSites(
     prepareExecutionSitePolicy({sites: [value]}),
     [contribution('implementation')],
@@ -90,7 +99,7 @@ test('unknown Local duration reaches the common Site exclusion', () => {
     registration: implementation.registration,
     inputs: [],
     durationMilliseconds: null,
-  });
+  })!;
   assert.equal(candidate.excluded, 'MissingDurationEstimate');
 });
 
@@ -129,7 +138,7 @@ test('Site candidates admit source-free task zero and its later output', () => {
     installation, contribution: implementation, site: source, task: 0,
     registration: implementation.registration, inputs: [],
     durationMilliseconds: 1n,
-  });
+  })!;
   assert.equal(root.excluded, undefined);
   assert.ok(bindExecutionSiteCandidate(root));
   const consumer = executionSiteCandidate({
@@ -138,7 +147,7 @@ test('Site candidates admit source-free task zero and its later output', () => {
     inputs: [{task: 0, material: {}, site: source,
       siteMaterial: material, materialGeneration: {}}],
     durationMilliseconds: 1n, acceptsSiteTransfer: true,
-  });
+  })!;
   assert.equal(consumer.excluded, undefined);
   assert.equal(consumer.transfers.length, 1);
   assert.throws(() => executionSiteCandidate({
@@ -175,7 +184,7 @@ test('candidate comparison facts are pure and missing estimates are explicit', (
     inputs: [input],
     durationMilliseconds: 5n,
     acceptsSiteTransfer: true,
-  }).excluded, 'MissingTransferEstimate');
+  })!.excluded, 'MissingTransferEstimate');
 
   const estimate = Object.freeze({
     transferBytes: 10n,
@@ -199,7 +208,7 @@ test('candidate comparison facts are pure and missing estimates are explicit', (
     inputs: [input],
     durationMilliseconds: 5n,
     acceptsSiteTransfer: true,
-  });
+  })!;
   assert.equal(candidate.excluded, undefined);
   assert.equal(candidate.durationMilliseconds, 10n);
   assert.equal(candidate.transfers[0].estimate, estimate);
@@ -212,7 +221,7 @@ test('candidate comparison facts are pure and missing estimates are explicit', (
     inputs: [input, input],
     durationMilliseconds: 5n,
     acceptsSiteTransfer: true,
-  });
+  }) as AcceptedCandidate;
   assert.equal(duplicate.durationMilliseconds, 10n,
     'one exact physical Transfer is not estimated twice for duplicate logical ports');
   assert.equal(duplicate.transfers.length, 2,
@@ -229,7 +238,7 @@ test('candidate comparison facts are pure and missing estimates are explicit', (
     inputs: [input, distinct],
     durationMilliseconds: 5n,
     acceptsSiteTransfer: true,
-  });
+  }) as AcceptedCandidate;
   assert.equal(separate.durationMilliseconds, 13n,
     'physically distinct generations keep separate Transfer cost');
   assert.equal(executionSiteStatus(a).activeOperations, 0,
@@ -316,7 +325,7 @@ test('binding rechecks Site state and teardown waits for live owners', () => {
     registration: implementation.registration,
     inputs: [],
     durationMilliseconds: 0n,
-  });
+  })!;
   const operation = startExecutionSiteOperation(
     bindExecutionSiteCandidate(candidate),
   );
@@ -345,7 +354,7 @@ test('revocation invalidates a selected candidate before dispatch', () => {
     registration: implementation.registration,
     inputs: [],
     durationMilliseconds: 0n,
-  });
+  })!;
   revokeExecutionSite(a);
   assert.throws(() => bindExecutionSiteCandidate(candidate), {
     code: 'StaleExecutionSiteBinding',
@@ -397,7 +406,7 @@ test('candidate and binding retain exact registration and source Site generation
     inputs: [input],
     durationMilliseconds: 1n,
     acceptsSiteTransfer: true,
-  });
+  })!;
   revokeExecutionSite(source);
   assert.throws(() => bindExecutionSiteCandidate(candidate), {
     code: 'StaleExecutionSiteBinding',
@@ -414,7 +423,7 @@ test('binding rechecks the selected Transfer estimate before dispatch', () => {
     retainedBytes: 2n,
     executionBytes: 3n,
   });
-  let current = estimate;
+  let current: typeof estimate | undefined = estimate;
   const installation = installExecutionSites(prepareExecutionSitePolicy({
     sites: [source, destination],
     placements: new Map([['implementation', [destination]]]),
@@ -433,7 +442,7 @@ test('binding rechecks the selected Transfer estimate before dispatch', () => {
       materialGeneration: {}}],
     durationMilliseconds: 1n,
     acceptsSiteTransfer: true,
-  });
+  })!;
   current = undefined;
   assert.throws(() => bindExecutionSiteCandidate(candidate), {
     code: 'StaleExecutionSiteBinding',
@@ -506,7 +515,7 @@ test('Site byte sub-scope reserves atomically and follows holding lifetime', () 
     sites: [target],
     placements: new Map([['implementation', [target]]]),
   }), [implementation]);
-  const candidateForCapacity = capacity => executionSiteCandidate({
+  const candidateForCapacity = (capacity: Capacity) => executionSiteCandidate({
     installation,
     contribution: implementation,
     site: target,

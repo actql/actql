@@ -5728,7 +5728,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/execution-sites.test.mjs",
+                "path": "adapters/host-common/execution-sites.test.mts",
                 "anchor": "test('product Site installation has no JavaScript semantic fallback', () => {"
               },
               {
@@ -5872,7 +5872,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/execution-sites.test.mjs",
+                "path": "adapters/host-common/execution-sites.test.mts",
                 "anchor": "test('product Site installation has no JavaScript semantic fallback', () => {"
               },
               {

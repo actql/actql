@@ -12,6 +12,7 @@ type SiteHandle = CoreHandle<'Site'>;
 type OperationHandle = CoreHandle<'SiteOperation'>;
 type TransferHandle = CoreHandle<'SiteTransfer'>;
 type HoldingHandle = CoreHandle<'SiteHolding'>;
+export type SiteHoldingRestoration = CoreHandle<'SiteHoldingRestoration'>;
 type CleanupHandle = CoreHandle<'SiteCleanup'>;
 type FailureProgress = CoreHandle<'SiteFailureProgress'>;
 type RetainedCloseProgress = CoreHandle<'RetainedCloseProgress'>;
@@ -51,7 +52,7 @@ type SitePlanningFacts = SiteTiming & Readonly<{
 
 // This is the existing normalized JS control from runtime-core. Opaque views
 // carry the original Common values; the runtime callable checks are unchanged.
-type SiteControl = Readonly<{
+export type SiteControl = Readonly<{
   create(configuration: SiteConfiguration): Optional<SiteHandle>;
   available(site: SiteHandle): boolean;
   revoked(site: SiteHandle): boolean;

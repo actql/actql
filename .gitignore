@@ -1623,5 +1623,15 @@ target/
 /adapters/host-common/effect-application-control.d.mts
 /adapters/host-common/effect-application-control.test.mjs
 /adapters/host-common/effect-application-control.test.d.mts
+/adapters/host-common/site-control.mjs
+/adapters/host-common/site-control.d.mts
+/adapters/host-common/runtime-tuple.mjs
+/adapters/host-common/runtime-tuple.d.mts
+/adapters/host-common/execution-sites.test.mjs
+/adapters/host-common/execution-sites.test.d.mts
+/adapters/host-common/execution-site-installation-core.test.mjs
+/adapters/host-common/execution-site-installation-core.test.d.mts
+/adapters/host-common/strategy-actions-runtime.test.mjs
+/adapters/host-common/strategy-actions-runtime.test.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts

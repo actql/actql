@@ -1,6 +1,8 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {tuplePair} from './runtime-tuple.mjs';
+import {siteControl} from './site-control.mjs';
 import {effectApplicationControl} from './effect-application-control.mjs';
 import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
@@ -17,12 +19,6 @@ import {
 
 export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
-const tuplePair = value => Array.isArray(value)
-  ? value
-  : value !== null && typeof value === 'object'
-    ? [runtimeField(value, 0), runtimeField(value, 1)]
-    : undefined;
-const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
 const remoteStandardSourceControls = new WeakMap();
@@ -50,109 +46,6 @@ function inferQuantityCapacity(value) {
     per_attempt: {tokens: value.perAttempt.tokens, cost_units: value.perAttempt.costUnits,
       duration_ms: value.perAttempt.durationMs},
   };
-}
-
-function siteControl(moon) {
-  let control = siteControls.get(moon);
-  if (control !== undefined) return control;
-  control = Object.freeze({
-    create: configuration => moon.strategySiteCreate(
-      configuration.key,
-      configuration.generation,
-      configuration.runtimeRevision,
-      configuration.maxConcurrentOperations,
-      configuration.maxConcurrentTransfers,
-      configuration.maxRetainedBytes,
-      configuration.maxExecutionBytes,
-    ),
-    available: moon.strategySiteAvailable,
-    revoked: moon.strategySiteRevoked,
-    capacitySupports: moon.strategySiteCapacitySupports,
-    bindingCurrent: moon.strategySiteBindingCurrent,
-    startOperation: moon.strategySiteStartOperation,
-    operationAvailable: moon.strategySiteOperationAvailable,
-    settleOperation: moon.strategySiteSettleOperation,
-    retainOperationHolding: moon.strategySiteRetainOperationHolding,
-    startTransfer: moon.strategySiteStartTransfer,
-    transferAvailable: moon.strategySiteTransferAvailable,
-    settleTransferSource: moon.strategySiteSettleTransferSource,
-    settleTransferDestination: moon.strategySiteSettleTransferDestination,
-    retainTransferHolding: moon.strategySiteRetainTransferHolding,
-    retainHolding: moon.strategySiteRetainHolding,
-    prepareHoldingRestoration: moon.strategySitePrepareHoldingRestoration,
-    acquireRestoredHolding: moon.strategySiteAcquireRestoredHolding,
-    releaseHolding: moon.strategySiteReleaseHolding,
-    retainCleanup: moon.strategySiteRetainCleanup,
-    releaseCleanup: moon.strategySiteReleaseCleanup,
-    beginTeardown: moon.strategySiteBeginTeardown,
-    revoke: moon.strategySiteRevoke,
-    status: moon.strategySiteStatus,
-    selectCandidate: (durations, keys) =>
-      moon.strategySiteSelectCandidate(
-        durations.map(value => value ?? undefined), keys),
-    planCandidate: value => tuplePair(
-      moon.strategySitePlanCandidate(
-        value.durationMilliseconds ?? undefined,
-        value.startupMilliseconds,
-        value.capacitySupported,
-        value.acceptsSiteTransfer,
-        value.transferProviderAvailable,
-        value.transferMilliseconds,
-        value.transferRequired,
-        value.sharedTransfer,
-        value.sourceRevoked,
-        value.estimateAvailable,
-        value.transferBytes,
-        value.retainedBytes,
-        value.executionBytes,
-      ),
-    ),
-    managedCandidateFallback: moon.strategySiteManagedCandidateFallback,
-    beginFailedOperation: moon.strategySiteBeginFailedOperationProgress,
-    recordFailedOperationStop: moon.strategySiteRecordFailedOperationStop,
-    recordFailedOperationSettlement:
-      moon.strategySiteRecordFailedOperationSettlement,
-    failedOperationAction: moon.strategySiteFailedOperationAction,
-    beginRetainedClose: moon.strategySiteBeginRetainedCloseProgress,
-    beginRetainedHolding: moon.strategySiteBeginRetainedHoldingProgress,
-    recordRetainedCloseStarted:
-      moon.strategySiteRecordRetainedCloseStarted,
-    recordRetainedCloseSucceeded:
-      moon.strategySiteRecordRetainedCloseSucceeded,
-    recordRetainedCloseFailed:
-      moon.strategySiteRecordRetainedCloseFailed,
-    recordRetainedCleanupAuthority:
-      moon.strategySiteRecordRetainedCleanupAuthority,
-    recordRetainedCleanupStopped:
-      moon.strategySiteRecordRetainedCleanupStopped,
-    recordRetainedHoldingReleased:
-      moon.strategySiteRecordRetainedHoldingReleased,
-    retainedCloseAction: moon.strategySiteRetainedCloseAction,
-    retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
-    beginHostCleanup: moon.strategyHostBeginCleanupProgress,
-    recordHostCleanupRetry: moon.strategyHostRecordCleanupRetry,
-    recordHostCleanupClosesAwaited:
-      moon.strategyHostRecordCleanupClosesAwaited,
-    hostCleanupAction: moon.strategyHostCleanupAction,
-    hostCleanupPending: moon.strategyHostCleanupPending,
-    hostTaskRunOutcome: moon.strategyHostTaskRunOutcome,
-    beginHostTaskSuccess: moon.strategyHostBeginTaskSuccessProgress,
-    recordHostTaskSiteCompletion:
-      moon.strategyHostRecordTaskSiteCompletion,
-    recordHostTaskCommonCompletion:
-      moon.strategyHostRecordTaskCommonCompletion,
-    recordHostTaskOutputRetained:
-      moon.strategyHostRecordTaskOutputRetained,
-    recordHostTaskSiteOperationSettled:
-      moon.strategyHostRecordTaskSiteOperationSettled,
-    recordHostTaskManagedBinding:
-      moon.strategyHostRecordTaskManagedBinding,
-    hostTaskSiteOperationSettled:
-      moon.strategyHostTaskSiteOperationSettled,
-    hostTaskSuccessAction: moon.strategyHostTaskSuccessAction,
-  });
-  siteControls.set(moon, control);
-  return control;
 }
 
 function remoteSiteControl(moon) {

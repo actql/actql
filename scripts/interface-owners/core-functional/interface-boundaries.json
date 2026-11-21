@@ -7,6 +7,287 @@
   },
   "declarations": [
     {
+      "module": "adapters/host-common/site-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSiteControl/createSiteControl",
+            "createSiteControl/createSiteControl/createSiteControl",
+            "createSiteControl/createSiteControl#2",
+            "createSiteControl/createSiteControl#3",
+            "siteControl"
+          ],
+          "exports": [
+            "siteControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "export function siteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "export function siteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "export function siteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "export function siteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/site-control.mts",
+                "anchor": "function createSiteControl(moon: CommonSiteBindings)"
+              },
+              {
+                "path": "adapters/host-common/execution-site-installation-core.test.mts",
+                "anchor": "test('partial installation keeps the actual Core cleanup duty and original healthy binding'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing Common Site, cleanup and task progress calls attributed to the original Common runtime.",
+      "exports": [
+        "siteControl"
+      ],
+      "operations": [
+        {
+          "name": "createSiteControl/createSiteControl",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSiteControl/createSiteControl/createSiteControl",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSiteControl/createSiteControl#2",
+          "parameters": [
+            "durations",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSiteControl/createSiteControl#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "siteControl",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "0a050c141c76e0951eaeb7f1e36c132d8b17e5c7773f321004a2ddfb559418f3"
+    },
+    {
+      "module": "adapters/host-common/runtime-tuple.mjs",
+      "role": "physical-io",
+      "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "tuplePair/tuplePair"
+          ],
+          "exports": [
+            "tuplePair"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-tuple.mts",
+                "anchor": "tuplePair"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-common/remote-transfer-control.test.mjs",
+                "anchor": "const [expected, next] = control.transitionProjection(completion);"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing JavaScript tuple projection using generated compiler field binding.",
+      "exports": [
+        "tuplePair"
+      ],
+      "operations": [
+        {
+          "name": "tuplePair/tuplePair",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "5487af51c1b04f4cd242d2fc4133421bd30cec87265bbcf3e45e44f091de89d4"
+    },
+    {
       "module": "adapters/host-common/effect-application-control.mjs",
       "role": "physical-io",
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -2568,11 +2849,6 @@
             "runtimeCore/runtimeCore#7",
             "runtimeCore/runtimeCore#8",
             "runtimeCore/runtimeCore#9",
-            "siteControl",
-            "siteControl/siteControl",
-            "siteControl/siteControl#2",
-            "siteControl/siteControl#3",
-            "siteControl/siteControl/siteControl",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
@@ -2818,7 +3094,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "configuration.maxRetainedBytes,"
               },
               {
@@ -2900,7 +3176,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "recordHostCleanupClosesAwaited:"
               },
               {
@@ -3056,7 +3332,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "retainCleanup: moon.strategySiteRetainCleanup,"
               },
               {
@@ -6539,7 +6815,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "configuration.maxRetainedBytes,"
               },
               {
@@ -6605,7 +6881,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "recordHostCleanupClosesAwaited:"
               },
               {
@@ -6733,7 +7009,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "retainCleanup: moon.strategySiteRetainCleanup,"
               },
               {
@@ -8668,7 +8944,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "configuration.maxRetainedBytes,"
               },
               {
@@ -8750,7 +9026,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "recordHostCleanupClosesAwaited:"
               },
               {
@@ -8902,7 +9178,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "retainCleanup: moon.strategySiteRetainCleanup,"
               },
               {
@@ -9508,7 +9784,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "configuration.maxRetainedBytes,"
               },
               {
@@ -9590,7 +9866,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "recordHostCleanupClosesAwaited:"
               },
               {
@@ -9742,7 +10018,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/site-control.mts",
                 "anchor": "retainCleanup: moon.strategySiteRetainCleanup,"
               },
               {
@@ -19412,42 +19688,6 @@
             "confirmed"
           ],
           "async": false
-        },
-        {
-          "name": "siteControl",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteControl/siteControl",
-          "parameters": [
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteControl/siteControl/siteControl",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteControl/siteControl#2",
-          "parameters": [
-            "durations",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteControl/siteControl#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -19461,11 +19701,13 @@
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
-        "./runtime-result.mjs"
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs",
+        "./site-control.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6b3f789006ae5a04bddc74358b686b53848b8bf1b14a4f88c2a6730627a5f70a"
+      "sha256": "99d0fd1c3a1f2879d2f71d3966fdff955182104015c16faf4f4ba92958c593c8"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

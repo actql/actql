@@ -1,25 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
+import type {SiteControl} from './execution-sites.mjs';
+import type {siteControl} from './site-control.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
 import {createInProcessExecutionSite, executionSiteStatus,
   prepareExecutionSitePolicy} from './execution-sites.mjs';
 
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
 // The task driver is a protocol fixture; Site operations, holdings, close and
 // cleanup progress use the real installed MoonBit authority, not the JS control
 // fixture. This is lifecycle boundary evidence, not a query execution receipt.
-async function retained(close, controlOverride = {}) {
+async function retained(close: () => unknown, controlOverride: Partial<SiteControl> = {}) {
   const setup = {}, registration = {}, material = {};
   let next = 0, complete = false;
-  const originalControl = runtimeCore(moon).siteControl;
+  const originalControl = (runtimeCore(moon) as {siteControl: ReturnType<typeof siteControl>}).siteControl;
   const site = createInProcessExecutionSite({key: 'action-boundary', generation: 1,
     runtimeRevision: 'action-boundary/1'});
   const core = {
     siteControl: {...originalControl, ...controlOverride},
     count: () => 2,
     next: () => next++ === 0 ? {index: 1} : undefined,
-    task: task => task.index,
+    task: (task: unknown) => (task as {index: number}).index,
     taskCapacity: () => [12n, 0n],
     registration: () => registration,
     completed: () => complete,
@@ -55,8 +61,8 @@ test('real Common holding releases once after synchronous physical close', async
 });
 
 test('real Common holding remains while asynchronous physical close is pending', async () => {
-  let done, closes = 0;
-  const wait = new Promise(resolve => { done = resolve; });
+  let done!: () => void, closes = 0;
+  const wait = new Promise<void>(resolve => { done = resolve; });
   const f = await retained(() => { closes++; return wait; });
   const closing = f.report.close();
   assert.equal(f.report.close(), closing);
@@ -81,7 +87,7 @@ for (const asynchronous of [false, true]) {
       if (asynchronous) return Promise.reject(failure);
       throw failure;
     });
-    if (asynchronous) await assert.rejects(f.report.close(), error => error === failure);
+    if (asynchronous) await assert.rejects(f.report.close() as Promise<unknown>, error => error === failure);
     else assert.throws(() => f.report.close(), error => error === failure);
     assert.equal(f.status().heldBytes, 12n);
     assert.equal(await f.report.cleanup(), false);
@@ -107,7 +113,7 @@ test('failed close without recovery authority never becomes physical release', a
 
 test('unknown Common holding action refuses before physical close or release', async () => {
   let corrupt = false, closes = 0, releases = 0;
-  const control = runtimeCore(moon).siteControl;
+  const control = (runtimeCore(moon) as {siteControl: ReturnType<typeof siteControl>}).siteControl;
   const f = await retained(() => { closes++; }, {
     retainedHoldingAction: progress => corrupt ? 999 : control.retainedHoldingAction(progress),
     releaseHolding: holding => { releases++; return control.releaseHolding(holding); },
@@ -123,7 +129,7 @@ test('unknown Common holding action refuses before physical close or release', a
 test('unknown Common task-success action is refused without a success observation', async () => {
   const f = await retained(() => {}, {hostTaskSuccessAction: () => 999});
   assert.equal(f.report.status, 'host-tasks-failed');
-  assert.equal(f.report.failure.code, 'InvalidExecutionSiteHostTaskSuccessAction');
+  assert.equal((f.report.failure as {code: string}).code, 'InvalidExecutionSiteHostTaskSuccessAction');
   assert.deepEqual(f.report.completed, []);
   f.report.close();
 });
