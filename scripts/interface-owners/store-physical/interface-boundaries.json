@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "919c4057350c008f01d0dc27760c7176883b4b67a6746f696ff7d5bd82ec65e8",
+      "sha256": "5d55dd3ae34649c9f597a3d703762ea820b48c1acdfda3ece1987a75f05b389c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9070,26 +9070,6 @@
           "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
-          "parameters": [],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -9778,11 +9758,7 @@
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status"
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status"
           ],
           "exports": [
             "PublicationStoreError",
@@ -10073,8 +10049,8 @@
                 "anchor": "initial attempt together through the Store's optional `beginPublicationAttempt`"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const writePhysicalHoldingRecord = async (path, bytes, exclusive = true, finalDirectory) => {"
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "return async (path: string, bytes: Buffer, exclusive = true, finalDirectory?: string) => {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -13491,6 +13467,7 @@
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
+        "./physical-holding-record-writer.mjs",
         "./physical-retirement-owner.mjs",
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
@@ -13512,6 +13489,149 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/physical-holding-record-writer.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b65251d23fdddf263c66e2fa9645245a3caa24135a8eefc04d07a931754e3532",
+      "exports": [
+        "createPhysicalHoldingRecordWriter"
+      ],
+      "operations": [
+        {
+          "name": "createPhysicalHoldingRecordWriter",
+          "parameters": [
+            "stagingDirectory",
+            "syncDirectory",
+            "activePhysicalRecordWriters"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter",
+          "parameters": [
+            "path",
+            "bytes",
+            "exclusive",
+            "finalDirectory"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPhysicalHoldingRecordWriter",
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter",
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry",
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry",
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/cleanup/init:retry/init:retry/init:retry#2",
+            "createPhysicalHoldingRecordWriter/createPhysicalHoldingRecordWriter/status/status"
+          ],
+          "exports": [
+            "createPhysicalHoldingRecordWriter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "# Physical holding metadata publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "export function createPhysicalHoldingRecordWriter("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "await link(temporary, path);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "await syncDirectory(finalDirectory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "failure.primaryFailure = primary;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "if (exclusive && activePhysicalRecordWriters.size !== 0)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-record-writer.mts",
+                "anchor": "if (pending.failed)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
+                "anchor": "holding publication retains the same"
+              },
+              {
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "anchor": "prepared custody acknowledges its final name without a redundant staging directory ACK"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./publication-store-io.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Original physical metadata staging, final-name acknowledgement, and retained writer close custody."
     },
     {
       "module": "adapters/store-local/publication-store-format.mjs",
