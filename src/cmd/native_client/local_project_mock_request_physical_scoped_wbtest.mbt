@@ -2015,3 +2015,214 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
     pure_file_query=Some("SELECT trend FROM snowflake.usage_30d"),
   )
 }
+
+///|
+test "Native shared-file Effect captures and joins both whole inputs without a Model" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  // The component projects the authored writes using fixed installation
+  // observations. No Account, Journal start, approval or write is issued.
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let (environment, intent) = native_shared_file_effect_input(project)
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value("prepare original Effect Request")
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected the original Effect preparation")
+  }
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "local-test",
+    "original-request",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+    source_inputs=project.prepare_effect_sources(prepared, direct),
+  )
+  assert_true(original.model_compiled is None)
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let file_limits = local_project_mock_file_limits()
+  let capture_recipes = []
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    original,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: file_limits.max_work,
+      max_bytes: file_limits.page.max_bytes,
+      max_nodes: file_limits.page.max_nodes,
+      max_depth: file_limits.page.max_depth,
+    },
+    file_limits.page.max_bytes,
+    capture_recipes,
+    provider_factory=native_request_provider_factory,
+  )
+  let (_, members, _) = @local_values.prepared_installed_effect_managed_shape(
+    plan,
+  )
+  assert_eq(members, 3)
+  for index, name in ["Account", "Contact"] {
+    let (_, original_source, _) = @local_values.prepared_installed_effect_managed_whole_source(
+      plan, index,
+    ).unwrap()
+    assert_eq(
+      @row_host.row_input_acquisition_target_resource(original_source),
+      name,
+    )
+  }
+  for index in 0..<members {
+    assert_true(
+      @local_values.prepared_installed_effect_managed_operation(
+        plan, index, true, 1, "native.mock.file.write",
+      )
+      is Ok(_),
+    )
+  }
+  let state = retain_native_mock_effect_plan(
+    original, prepared, plan, capture_recipes,
+  )
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).native_file_route_value("complete same Model-free Plan")
+  let run = @local_values.begin_request_effect_managed_run(
+    facility.parent,
+    original.request,
+  ).native_file_route_value("adopt same Model-free Plan")
+  for index, rows in [3, 2] {
+    let capture = state
+      .prepare_mock_effect_source_capture(
+        run,
+        facility.arena,
+        facility.physical,
+        index,
+      )
+      .native_file_route_value("open original physical file Source")
+    while !state
+          .advance_mock_effect_source_capture(capture)
+          .native_file_route_value("advance original physical file Source") {
+      ()
+    }
+    assert_true(state.retain_mock_effect_source_input(capture) is Some(_))
+    let source = @row_host.row_captured_input_source(
+      state.captured_inputs[index],
+    ).unwrap()
+    assert_eq(@query.captured_source_row_count(source), Some(rows))
+  }
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared,
+    original.allowed,
+    original.definition,
+  ).unwrap()
+  state
+  .open_mock_effect_source_host(run, bound)
+  .native_file_route_value("bind both original captures to the same Host")
+  let executed = @local_values.execute_retained_effect_local_tasks_guarded(
+    state.effect_host.unwrap(),
+    state.effect_capture.unwrap(),
+    256,
+    10000,
+    () => true,
+  ).native_file_route_value("compute original file Effect Result")
+  let rows = executed.rows().unwrap()
+  assert_eq(rows.length(), 1)
+  assert_eq(
+    @json.parse(rows[0]),
+    (
+      {
+        "account_id": "a1",
+        "contact_id": "c1",
+        "account_before": "A-old",
+        "contact_before": "C-old",
+        "account_next": "A-new",
+        "contact_next": "C-new",
+        "second_account_id": "a2",
+        "second_account_next": "A2-new",
+      } : Json),
+  )
+  assert_true(executed.close())
+  assert_true(
+    @local_values.retire_installed_effect_captured_consumers(run).unwrap(),
+  )
+  state.effect_host = None
+  state.effect_capture = None
+  for capture in state.sources {
+    assert_true(capture.close().unwrap())
+  }
+  for read in state.source_reads {
+    @local_values.retire_installed_source_read(read).unwrap()
+  }
+  state.sources.clear()
+  state.sources.shrink_to_fit()
+  state.source_reads.clear()
+  state.source_reads.shrink_to_fit()
+  state.captured_inputs.clear()
+  state.captured_inputs.shrink_to_fit()
+  state.input_originals.clear()
+  state.input_originals.shrink_to_fit()
+  @local_values.quiesce_installed_managed_run(run).unwrap()
+  // Release the logical holder in the original frame first. Its final ACK
+  // becomes available only after the same native execution closes.
+  match @local_values.retire_installed_managed_run(run) {
+    Err(@local_values.Resource(@initial_resources.Unavailable)) => ()
+    _ => fail("unexpected Model-free retirement before native frame exit")
+  }
+  facility.arena
+  .leave_domain_retained_execution(facility.physical)
+  .native_file_route_value("leave original Effect execution")
+  facility.arena
+  .close_domain_retained_execution(facility.physical)
+  .native_file_route_value("close original native Effect execution")
+  @local_values.retire_installed_managed_run(run).native_file_route_value(
+    "retire original Effect Run after physical ACK",
+  )
+  facility.arena
+  .close_domain_after_owner_ack(facility.domain)
+  .native_file_route_value("close original Effect domain")
+  facility.arena
+  .try_close()
+  .native_file_route_value("close original Effect host")
+}

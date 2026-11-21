@@ -87,7 +87,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     held.unit_results.is_empty() else {
     stop("LocalOriginalEffectUnitResultsUnavailable")
   }
-  let (_, unit, _) = @run_host.client_infer_plan_graph_coordinates(state.graph)
+  let (_, unit, _) = @run_host.client_infer_plan_graph_coordinates(
+    state.model_graph(),
+  )
   let limits = state.first._retained_models[0]._retained_limits
   let wire = limits.identity.wire
   let expected = native_mock_effect_extra_unit_results(

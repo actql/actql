@@ -452,6 +452,7 @@ fn command_preparation_cleanup_cause(
         Review(_) => "EffectReview"
         Encoding => "ModelEncoding"
       }
+    CommandBusinessEffectStart(cause) => local_file_open_failure_message(cause)
     CommandBusinessEffectAcceptance(cause) =>
       match cause {
         Journal(_) => "EffectAcceptanceJournal"

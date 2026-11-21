@@ -64,6 +64,7 @@ fn command_preparation_cleanup_kind(
     CommandBusinessSourceIdentity(_) => "business-source-identity"
     CommandBusinessEffectProposals(_) => "business-effect-proposals"
     CommandBusinessEffectAcceptance(_) => "business-effect-acceptance"
+    CommandBusinessEffectStart(_) => "business-effect-start"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
     CommandRunObservationPending => "run-observation-pending"

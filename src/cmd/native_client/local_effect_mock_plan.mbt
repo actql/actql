@@ -6,7 +6,7 @@ priv struct LocalNativeMockEffectPlan {
   _retained_prepared : @run_host.PreparedClientEffectComputation
   _retained_plan : @local_values.ClientInstalledEffectManagedPlan
   _retained_import_recipes : Array[Array[@execution.ExecutionCapacity]]
-  graph : @run_host.ClientInferPlanGraph
+  mut source_start : @local_host.NativeClientWorkFirstStart?
   mut scope : @run_host.ClientModelReadScope?
   mut source_started_at : String?
   mut source_completed_at : String?
@@ -37,6 +37,54 @@ priv struct LocalNativeMockEffectPlan {
   input_originals : Array[
     (@sourceviews.SourceAcquisition, @row_host.RowInputAcquisition),
   ]
+}
+
+///|
+fn LocalNativeMockEffectPlan::model_graph(
+  self : Self,
+) -> @run_host.ClientInferPlanGraph {
+  self.first._retained_models[0].graph
+}
+
+///|
+fn retain_native_mock_effect_plan(
+  first : LocalEffectFirstCompilation,
+  prepared : @run_host.PreparedClientEffectComputation,
+  plan : @local_values.ClientInstalledEffectManagedPlan,
+  capture_recipes : Array[Array[@execution.ExecutionCapacity]],
+) -> LocalNativeMockEffectPlan {
+  {
+    first,
+    _retained_prepared: prepared,
+    _retained_plan: plan,
+    _retained_import_recipes: capture_recipes,
+    source_start: None,
+    scope: None,
+    source_started_at: None,
+    source_completed_at: None,
+    prefix: None,
+    lookup: None,
+    model_read: None,
+    model_output: None,
+    _retained_model_observation: None,
+    _retained_local_model_observation: None,
+    _retained_local_model_dependencies: None,
+    model_use: None,
+    effect_host: None,
+    effect_capture: None,
+    suffix: None,
+    suffix_failure: None,
+    proposals: None,
+    preview: None,
+    computation: None,
+    targets: [],
+    keyed_reads: [],
+    sources: [],
+    source_failures: [],
+    source_reads: [],
+    captured_inputs: [],
+    input_originals: [],
+  }
 }
 
 ///|
@@ -499,38 +547,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       native_mock_effect_record_bytes(installation),
       capture_recipes~,
     )
-    let state : LocalNativeMockEffectPlan = {
-      first,
-      _retained_prepared: prepared,
-      _retained_plan: plan,
-      _retained_import_recipes: capture_recipes,
-      graph: selected.graph,
-      scope: None,
-      source_started_at: None,
-      source_completed_at: None,
-      prefix: None,
-      lookup: None,
-      model_read: None,
-      model_output: None,
-      _retained_model_observation: None,
-      _retained_local_model_observation: None,
-      _retained_local_model_dependencies: None,
-      model_use: None,
-      effect_host: None,
-      effect_capture: None,
-      suffix: None,
-      suffix_failure: None,
-      proposals: None,
-      preview: None,
-      computation: None,
-      targets: [],
-      keyed_reads: [],
-      sources: [],
-      source_failures: [],
-      source_reads: [],
-      captured_inputs: [],
-      input_originals: [],
-    }
+    let state = retain_native_mock_effect_plan(
+      first, prepared, plan, capture_recipes,
+    )
     business.effect_model = Some(state)
     // The original input borrow precedes Plan construction; return it before
     // Scope/census growth and final completion, never reconstruct that input.

@@ -394,7 +394,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             read,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
           ) {
           Err(_) => return Err(CommandBusinessChildren)
           Ok(_) => ()
@@ -404,7 +404,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             read,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
             true,
           ) {
           Err(_) => return Err(CommandBusinessChildren)
@@ -431,7 +431,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
             scope,
             state.first.model_compiled.unwrap(),
             state.first.definition,
-            state.graph,
+            state.model_graph(),
             true,
           ) {
           Err(_) => return Err(CommandBusinessChildren)

@@ -129,7 +129,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
       materials.run_definition,
     )
     let task_cid = @run_host.client_infer_occurrence_model_task_cid(
-      state.graph.occurrence,
+      state.model_graph().occurrence,
     ).unwrap_or_else(() => {
       stop("LocalOriginalEffectPreviewModelProvenanceUnavailable")
     })

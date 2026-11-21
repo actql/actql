@@ -110777,7 +110777,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "60436ac9d29efd86faf773289ef77a8097b577dbce831bc9077705394d817339",
+      "sha256": "4819e561fa0e0b9ce668884b15d7a618fe750f37624eb2a39ed4b5fcccb23c35",
       "exports": [],
       "operations": [
         {
@@ -113449,7 +113449,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "276297f17df9f25922db5e69143a61ce8a8c0cd0f0c3b0b0bdc7b081a7bfc993",
+      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
       "exports": [],
       "operations": [
         {

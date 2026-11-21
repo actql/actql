@@ -86543,7 +86543,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "46adcbf789eb4dadf3564e302d1fe30d848d9a6b5e82f6759d5f94573a06d78e",
+      "sha256": "b976e30f8b844f3824df63922f44fac88a3e6d93564098f45b127b8492d2fdb6",
       "exports": [],
       "operations": [
         {
@@ -86837,7 +86837,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "226bd6352275d78b3fd3e9d5794c9657b2ff957a7c532f4cfbf71f6be836eadf",
+      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
       "exports": [],
       "operations": [
         {

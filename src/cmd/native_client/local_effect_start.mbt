@@ -320,6 +320,7 @@ fn local_effect_prepare_start_with_clocks(
       reference,
       binding,
       run.retention,
+      bound,
       now,
       epoch_now(),
       run,

@@ -196,7 +196,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
   self.original.with_business_request(self.capture, () => {
     let model_sequence = @local_values.prepared_installed_effect_model_sequence(
       plan,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalModelSourceComputeUnavailable"))
     let controls = @local_values.client_composed_source_root_control_bytes(
       model_sequence,
@@ -214,7 +214,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
     held.grow(state, retained, peak, self.original)
     let inputs = []
     let model_owner = @run_host.client_infer_occurrence_preparation(
-      state.graph.occurrence,
+      state.model_graph().occurrence,
     )
     let graph = @strategy.checked_effect_computation_graph(
       @run_host.prepared_client_effect_computation_graph(
@@ -222,7 +222,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_source_results(
       ),
     )
     let (task, _, _) = @run_host.client_infer_occurrence_coordinates(
-      state.graph.occurrence,
+      state.model_graph().occurrence,
     )
     for index in 0..<@strategy.graph_data_count(graph) {
       let edge = @strategy.graph_data_at(graph, index).unwrap()

@@ -162,6 +162,7 @@ export function nativeProjectConfigurationFixture(namespace) {
       write(path, 'model-tasks/deal-review.v1.yaml', modelFixture['model-tasks/deal-review.v1.yaml']);
     } else {
       write(path, sharedProject.programFile, sharedFile[sharedProject.programFile]);
+      write(path, 'mock/data.json', sharedFile['mock/data.json']);
     }
   }
   // Independent oracle for the SAME public File-facts consumer. The missing

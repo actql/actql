@@ -76,7 +76,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         read,
         compiled,
         first.definition,
-        state.graph,
+        state.model_graph(),
         base_retained,
         base_execution,
       )
@@ -116,7 +116,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       })
     })
     let sources = @run_host.admit_client_infer_composed_whole_sources(
-      state.graph.occurrence,
+      state.model_graph().occurrence,
       captured_sources,
       held.identities,
       state.input_originals.map(pair => pair.0),
@@ -134,7 +134,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
     let sequence = @local_values.prepared_installed_effect_model_sequence(
       plan,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
     // Enter this SAME late Read once. Both source metadata and the actual
     // producer-read vector stay on its grown original extent through input.
@@ -286,7 +286,7 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
       held,
       state.first.model_compiled.unwrap(),
       state.first.definition,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
     state.model_output = Some(output)
     let sources = state.captured_inputs.map(input => {
@@ -300,7 +300,7 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
         sources,
         state.first.model_compiled.unwrap(),
         state.first.definition,
-        state.graph,
+        state.model_graph(),
         output,
         completed,
         source_results=state.model_read

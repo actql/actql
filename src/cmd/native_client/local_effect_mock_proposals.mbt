@@ -322,7 +322,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           guard self.original.project is Some(project) &&
             project.mock_declarations is Some(mock) &&
             mock.file_sources is Some(files) &&
-            @run_host.client_infer_plan_native_keyed_read_profile(state.graph)
+            @run_host.client_infer_plan_native_keyed_read_profile(
+              state.model_graph(),
+            )
             is Some(profile) else {
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }

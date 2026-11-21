@@ -82,7 +82,7 @@ fn LocalNativeMockModelRead::grow(
       consumer,
       state.first.model_compiled.unwrap(),
       state.first.definition,
-      state.graph,
+      state.model_graph(),
       r,
       e,
     )
