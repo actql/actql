@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, readFile, rm, writeFile, copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './package-release-shared-cohort.test.mjs';
 import {admitCohort, releasePackageMetadata, stagePackage, publishedVersion,
@@ -47,6 +48,31 @@ test('public metadata keeps the exact standard closure and optional peer capabil
   assert.deepEqual(metadata.peerDependenciesMeta, original.peerDependenciesMeta);
   assert.equal(metadata.scripts, undefined);
   assert.equal(original.private, true);
+});
+
+test('explicit Node OpenAI candidate stages the provider with its original shrinkwrap and public entry', async t => {
+  const packages = [...cohort.packages, 'provider-ai-sdk'];
+  const candidate = admitCohort({...cohort, packageVersion: '0.0.3-rc.1', tag: 'candidate-test', packages});
+  assert.throws(() => admitCohort({...candidate, packages: packages.slice(1)}));
+  assert.throws(() => admitCohort({...candidate, packages: [...packages, 'run-host-core']}));
+  const directory = await mkdtemp(join(tmpdir(), 'actql-openai-release-test-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const provider = new URL('../packages/provider-ai-sdk/', import.meta.url);
+  const original = JSON.parse(await readFile(new URL('package.json', provider)));
+  const archive = join(directory, `actql-provider-ai-sdk-${original.version}.tgz`);
+  execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory,
+    '--cache', join(directory, 'cache')], {cwd: fileURLToPath(provider), encoding: 'utf8'});
+  const staged = await stagePackage({archive, destination: directory, name: 'provider-ai-sdk',
+    cohort: candidate, license: fileURLToPath(new URL('../LICENSE', import.meta.url))});
+  const stagedArchive = join(directory, staged.file);
+  const readMember = member => execFileSync('tar', ['-xOf', stagedArchive, `package/${member}`]);
+  const metadata = JSON.parse(readMember('package.json'));
+  assert.equal(metadata.private, false);
+  assert.equal(metadata.version, candidate.packageVersion);
+  assert.deepEqual(metadata.exports, original.exports);
+  assert.deepEqual(metadata.dependencies, original.dependencies);
+  assert.deepEqual(metadata.peerDependencies, original.peerDependencies);
+  assert.deepEqual(readMember('npm-shrinkwrap.json'), await readFile(new URL('npm-shrinkwrap.json', provider)));
 });
 
 test('missing cohort dependencies, lifecycle hooks and surplus cohort fields are rejected', () => {

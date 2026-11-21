@@ -168,3 +168,32 @@ test "portable cursor progress refuses cycle and finite continuation exhaustion"
     advance_row_source_cursor_progress(pages, 0, 0, last, last).unwrap(),
   )
 }
+
+///|
+test "provider page facts join the original finite cursor progress" {
+  let progress = prepare_row_source_cursor_progress(3, 4, 2, 2).unwrap()
+  let advance = advance_row_source_cursor_progress_from_provider_page
+  assert_true(advance(progress, 0, 0, -1, Some("é")) is Err(RowLimit))
+  assert_true(advance(progress, 0, 0, 3, Some("é")) is Err(RowLimit))
+  assert_true(advance(progress, 0, 0, 2, Some("日")) is Err(CursorLimit))
+  assert_false(advance(progress, 0, 0, 2, Some("é")).unwrap())
+  assert_eq(row_source_cursor_next(progress).unwrap(), "é")
+  assert_true(advance(progress, 1, 1, 1, None) is Err(ProgressMismatch))
+  assert_true(advance(progress, 1, 2, 0, Some("é")) is Err(CursorCycle))
+  assert_false(advance(progress, 1, 2, 0, Some("")).unwrap())
+  assert_eq(row_source_cursor_next(progress).unwrap(), "")
+  assert_true(advance(progress, 2, 2, 1, Some("x")) is Err(PageLimit))
+  assert_true(advance(progress, 2, 2, 2, None).unwrap())
+  assert_true(advance(progress, 3, 4, 0, None) is Err(Completed))
+  let exhausted = prepare_row_source_cursor_progress(3, 2, 2, 2).unwrap()
+  assert_false(advance(exhausted, 0, 0, 2, Some("x")).unwrap())
+  assert_true(
+    row_source_cursor_remaining_rows(exhausted, 1, 2) is Err(RowLimit),
+  )
+  let generic = prepare_row_source_cursor_progress(3, 2, 2, 2).unwrap()
+  let exact = cursor_progress_test_page("{\"items\":[{},{}],\"next\":\"x\"}")
+  assert_true(
+    advance_row_source_cursor_progress(generic, 0, 0, exact, exact)
+    is Err(RowLimit),
+  )
+}

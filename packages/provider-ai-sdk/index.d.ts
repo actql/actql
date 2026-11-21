@@ -68,6 +68,18 @@ export type OpenAIChatProviderOptions = Readonly<{
 export declare function createOpenAIChatProvider(
   options: OpenAIChatProviderOptions,
 ): ConfiguredModelProviderRegistration;
+/** Selects the project's admitted default OpenAI provider and its fixed
+ * OPENAI_API_KEY reference. The Host acquires it only for authorized dispatch. */
+export type ProjectOpenAIChatProviderOptions = Omit<OpenAIChatProviderOptions,
+  'providerId' | 'apiKeyFile' | 'baseURL' | 'transportTimeouts'> & Readonly<{
+  providerId?: never;
+  apiKeyFile?: never;
+  baseURL?: never;
+  transportTimeouts: PhysicalTransportTimeouts & Readonly<{callMs: number}>;
+}>;
+export declare function createProjectOpenAIChatProvider(
+  options: ProjectOpenAIChatProviderOptions,
+): ConfiguredModelProviderRegistration;
 /** Original canonical bytes and claimed identity, admitted by Common only. */
 export type OriginalBody = Readonly<{wire: string; cid: Sha256Cid}>;
 /** Closed generation installation DATA. It is not a physical support grant. */

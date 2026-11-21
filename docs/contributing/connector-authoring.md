@@ -177,14 +177,30 @@ output root and one selected fixture mode. No old installation or state is a
 default. Set `ACTQL_REST_CONFORMANCE_INPUT` to that descriptor; its kind is
 `actql-standard-rest-normal/0.1`, with `sourceSha`, `sourceTree`, `manifestPath`,
 `manifestSha256`, `outputRoot`, `accountConfigurationPath` and `mode`. The
-positive modes are `empty`, `one` and `paged`; fixture DATA for an error is not
-evidence that an ordinary failure case ran. The provider fixture's literal
-rows and request expectations are
-independent of the product's output. A controlled HTTPS responder is ordinary
+reference modes are `empty`, `one`, `paged` and `notion-users`. Use
+`mode: "author"` with `casePath` (absolute) and `caseSha256` to select your
+own case. The [Harbor example](../../scripts/fixtures/external-rest/harbor/)
+provides a definition, a case and a scoped operator Account.
+
+The case supplies a registration, connection, resource and independent field
+schema, one structured Program returning `rows`, and its bound parameters
+(or `null`). The public submission checks the bound Program before provider work.
+The fixture serves the named `seed.pages` in the exact ordered GET exchanges
+listed in `protocol.exchanges`. Supply `expected.rows`, full before and after
+page records, and unchanged control records independently. A failed submission,
+codec, Result or oracle terminates the case with its original failure.
+
+Use a case-relative `connector.path` and exact `connector.sha256` for either
+`kind: "definition"` or `kind: "packed"`. A definition selects the regular
+`init`, `build` and freshness `test` path with only its HTTPS origin bound to
+the fresh loopback fixture. Pin an optional relative transform with
+`connector.transformSha256`. A packed connector is installed from its exact
+archive bytes. Set `protocol.port` to the already declared
+`https://127.0.0.1:<port>` origin's port for that case. A controlled HTTPS responder is ordinary
 SDK/Host transport evidence; it does not establish support for an external
 service's undocumented behaviour.
 
-Run that installed reference case with the author command:
+Run the selected installed case with the author command:
 
 ```sh
 node scripts/connector.mjs conformance /absolute/normal-input.json --timeout-seconds 180

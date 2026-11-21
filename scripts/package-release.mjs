@@ -14,6 +14,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
 const exact = (object, keys) => assert.deepEqual(Object.keys(object).sort(), [...keys].sort());
 const packageName = name => `@actql/${name}`;
+const nodePackages = Object.freeze(['client-wire', 'sdk', 'local-node', 'node']);
+const nodeOpenAIPackages = Object.freeze([...nodePackages, 'provider-ai-sdk']);
 const run = (command, args, cwd) => execFileSync(command, args, {
   cwd, encoding: 'utf8', timeout: 600_000, maxBuffer: 16 * 1024 * 1024});
 
@@ -24,9 +26,11 @@ export function admitCohort(value) {
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
   admitReleaseChannel(value.tag);
-  assert.deepEqual(value.packages, value.version === 'actql-explorer-release-cohort/0.1'
-    ? ['client-wire', 'sdk', 'local-node', 'node', 'explorer-ui', 'explorer']
-    : ['client-wire', 'sdk', 'local-node', 'node']);
+  const packages = value.version === 'actql-explorer-release-cohort/0.1'
+    ? [...nodePackages, 'explorer-ui', 'explorer']
+    : Array.isArray(value.packages) && value.packages.includes('provider-ai-sdk')
+      ? nodeOpenAIPackages : nodePackages;
+  assert.deepEqual(value.packages, packages);
   return structuredClone(value);
 }
 
@@ -95,11 +99,19 @@ export async function unpack(archive, destination, {rootName = 'package'} = {}) 
   return join(destination, rootName);
 }
 
+function requireProviderShrinkwrap(name, files) {
+  if (name === 'provider-ai-sdk') {
+    assert(files.some(member => member.path === 'npm-shrinkwrap.json'),
+      'OpenAI provider release requires the original packed shrinkwrap');
+  }
+}
+
 export async function stagePackage({archive, destination, name, cohort, license}) {
   const scratch = await mkdtemp(join(destination, '.stage-'));
   try {
     const directory = await unpack(archive, scratch);
     const before = await inventory(directory);
+    requireProviderShrinkwrap(name, before);
     const original = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
     const manifest = releasePackageMetadata(original, name, cohort);
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -170,6 +182,7 @@ export async function verifyPackageRelease(directory) {
   assert.equal(originalManifest.revision, manifest.sourceSha);
   assert.deepEqual(manifest.packages.map(v => v.name), cohort.packages.map(packageName));
   for (const item of manifest.packages) {
+    requireProviderShrinkwrap(item.name.slice(7), item.files);
     assert.equal(item.version, cohort.packageVersion);
     assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
     const bytes = await readFile(join(directory, item.file));

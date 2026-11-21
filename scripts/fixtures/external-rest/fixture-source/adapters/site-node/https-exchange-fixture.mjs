@@ -71,7 +71,10 @@ function send(response, {status = 200, headers = {}, body = ''} = {}) {
 export async function openHttpsExchangeFixture(t, {routes = [], faults = [],
   scratchParent = tmpdir(),
   preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1',
-  expectedAuthorization, expectedKintoneApiToken, maxRequestBytes} = {}) {
+  expectedAuthorization, expectedKintoneApiToken, maxRequestBytes, port = 0} = {}) {
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new TypeError('InvalidHttpsExchangePort');
+  }
   if (typeof scratchParent !== 'string' || !isAbsolute(scratchParent)) {
     throw new TypeError('InvalidHttpsExchangeScratchParent');
   }
@@ -172,7 +175,7 @@ export async function openHttpsExchangeFixture(t, {routes = [], faults = [],
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
+    server.listen(port, '127.0.0.1', resolve);
   });
   const origin = `https://127.0.0.1:${server.address().port}`;
   let serverClosed = false;

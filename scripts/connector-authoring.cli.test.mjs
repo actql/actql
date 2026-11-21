@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync,mkdirSync,symlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {connectorConformancePlan} from './connector.mjs';
-import {projectRestConnector} from './connector-authoring.mjs';
+import {projectRestConnector, restConnectorPackageMetadata} from './connector-authoring.mjs';
+import {assertAuthorRestRows, createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput}
+  from './fixtures/external-rest/conformance-input.mjs';
+import {readAuthorPackage, selectAuthorPackage} from './fixtures/external-rest/author-package.mjs';
 
 test('declarative read author projection retains closed request DATA and rejects colliding parameters', () => {
   const definition = {version: 'actql-rest-connector/0.1', id: 'acme', origin: 'https://api.example.invalid',
@@ -153,6 +157,9 @@ test('author conformance selects the installed reference case without creating a
   // Planning reads only the explicit descriptor. Missing artifacts and Account
   // remain missing; actual source/SRI/lifecycle validation belongs to the case.
   assert.deepEqual(readdirSync(scratch),['normal-input.json']);
+  writeFileSync(input,JSON.stringify({...descriptor,mode:'notion-users'}));
+  assert.deepEqual(connectorConformancePlan(root,[input,'--timeout-seconds','180']),plan);
+  assert.equal(readRestConformanceInput(input).mode,'notion-users');
 });
 
 test('author conformance refuses implicit runtime, source-only selection and invalid input', t => {
@@ -179,4 +186,67 @@ test('author conformance refuses implicit runtime, source-only selection and inv
   assert.equal(refused.status,1);assert.match(refused.stderr,/descriptor/u);
   assert.equal(refused.stdout,'');
   assert.deepEqual(readdirSync(scratch),['normal-input.json']);
+});
+
+
+test('author conformance selects independent connector, schema, Program, bindings and fixture state', t => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-rest-author-case-'));
+  t.after(() => rmSync(scratch, {recursive: true, force: true}));
+  const fixture = new URL('./fixtures/external-rest/harbor/', import.meta.url);
+  const bytes = readFileSync(new URL('case.json', fixture));
+  const casePath = join(scratch, 'case.json');
+  const connectorPath = join(scratch, 'connector.json');
+  writeFileSync(casePath, bytes);
+  writeFileSync(connectorPath, readFileSync(new URL('connector.json', fixture)));
+  const hash = value => createHash('sha256').update(value).digest('hex');
+  const caseSha256 = hash(bytes);
+  const input = join(scratch, 'normal-input.json');
+  writeFileSync(input, JSON.stringify({kind: 'actql-standard-rest-normal/0.1', mode: 'author',
+    sourceSha: 'a'.repeat(40), sourceTree: 'b'.repeat(40), manifestSha256: 'c'.repeat(64),
+    manifestPath: join(scratch, 'manifest.json'), outputRoot: join(scratch, 'uncreated'),
+    accountConfigurationPath: join(scratch, 'account.json'), casePath, caseSha256}));
+  assert.equal(connectorConformancePlan(root, [input, '--timeout-seconds', '180'])
+    .steps[0].env.ACTQL_REST_CONFORMANCE_INPUT, input);
+  const author = readAuthorRestCase(casePath, caseSha256);
+  const {definition} = selectAuthorPackage(casePath, author);
+  assert.equal(definition.id, 'harbor');
+  assert.deepEqual(Object.keys(definition.sources), ['berths']);
+  assert.deepEqual(author.parameters, {minimum_depth: 9});
+  const provider = createAuthorRestProvider(author);
+  const before = provider.assertState('before');
+  const response = provider.handle({method: 'GET', target: '/v2/berths'});
+  assert.deepEqual(JSON.parse(response.body).berths.map(row => row.slip_code), ['C-4', 'A-1', 'B-7']);
+  provider.assertRequests([{method:'GET',path:'/v2/berths',authorized:true}]);
+  assert.deepEqual(provider.assertState('after'), before);
+  assertAuthorRestRows(author.expected,[{slip_code:'B-7',depth:9},{slip_code:'C-4',depth:17}]);
+  assert.throws(() => assertAuthorRestRows(author.expected, JSON.parse(response.body).berths),
+    /independent row oracle/u);
+  const wrongSchema = structuredClone(author);
+  wrongSchema.schema.fields[1].type = 'string';
+  assert.throws(() => selectAuthorPackage(casePath, wrongSchema), /independent case schema/u);
+  const wrongControl = structuredClone(author);
+  wrongControl.expected.control.harbor_master_note = 'Open Pier D';
+  assert.throws(() => createAuthorRestProvider(wrongControl).assertState('after'), /control records differ/u);
+  assert.throws(() => readAuthorRestCase(casePath, '0'.repeat(64)), /digest mismatch/u);
+  writeFileSync(connectorPath, '{}');
+  assert.throws(() => selectAuthorPackage(casePath, author), /digest mismatch/u);
+  assert(!readdirSync(scratch).includes('uncreated'));
+});
+
+
+test('author conformance refuses packed install hooks and unexpected dependencies before npm', async t => {
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-rest-author-package-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const schema = {registration: 'harbor', resource: 'berths', fields: [{name: 'slip_code', type: 'string', nullable: false}]};
+  const hostVersion = '0.0.0-development';
+  const original = restConnectorPackageMetadata(schema.registration, hostVersion);
+  for (const extra of [{scripts: {install: 'node author-install.mjs'}},
+    {dependencies: {'third-party': '1.0.0'}},
+    {peerDependencies: {'@actql/local-node': '0.1.0'}}]) {
+    writeFileSync(join(root, 'package.json'), JSON.stringify({...original, ...extra}));
+    await assert.rejects(readAuthorPackage(root, schema, 'https://127.0.0.1:16120', hostVersion),
+      /manifest must match the generated package/u);
+  }
+  assert.deepEqual(readdirSync(root), ['package.json']);
 });

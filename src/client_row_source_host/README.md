@@ -222,6 +222,13 @@ an empty cursor. Page, row and UTF-8 cursor bounds are checked before advancing;
 failed checks consume no progress. EOF may exactly fill the final page/row
 ceiling, but a further cursor cannot request work beyond either ceiling.
 
+The provider-page entrance joins the same progress using the checked page's
+count and continuation. It accepts a valid prefix that exactly fills the row
+allowance even when the provider reports more. The managed reader consumes
+that page, checks currentness, and then the remaining-row call refuses before
+any additional grant or request. Generic JSON still refuses an exhausted
+continuation during advancement.
+
 `row_source_cursor_request_rows` joins the same original progress and selects
 the outgoing declared page-size hint. An absent hint returns the original
 remaining-row ceiling; a positive hint is capped by that ceiling. It neither
