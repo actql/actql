@@ -1,12 +1,13 @@
 // Optional plugin acceptance on the same normal artifact, never a new producer.
 import assert from 'node:assert/strict';
-import {mkdir, copyFile, writeFile} from 'node:fs/promises';
+import {mkdir, copyFile, readFile, writeFile} from 'node:fs/promises';
 import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, execute} from './health-monitor-adapters.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
-import {releaseConsumerDestination} from './release-public-install.mjs';
+import {publicConsumerEnvironment, releaseConsumerDestination} from './release-public-install.mjs';
+import {verifyPackageRelease} from './package-release.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
 // Assertions over the original child report only; this issues no Run authority
@@ -35,6 +36,10 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
       assert(Number.isSafeInteger(value.continuousWrites) && value.continuousWrites >= 2 && value.continuousWrites < 128);
       assert.equal(value.responseClosedBeforeFirstClose, true);
     }
+  } else if (phase === 'rate-limit') {
+    for (const field of ['tasks', 'requests', 'calls']) assert.equal(value[field], 1);
+  } else if (phase === 'missing-key') {
+    assert.equal(value.requests, 1); assert.equal(value.calls, 0); assert.equal(value.credentialRefused, true);
   } else {
     assert.equal(value.usageMode, phase.slice('usage-'.length));
     for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
@@ -42,38 +47,53 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
 }
 
 export async function runPackedProviderAI(root, {repository = fileURLToPath(new URL('../', import.meta.url)),
-  retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES, command = execute} = {}) {
-  assert(isAbsolute(root) && typeof retained === 'string' && isAbsolute(retained),
-    'Require fresh external output and original same-run normal packages');
+  retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES,
+  release = process.env.ACTQL_PACKED_PROVIDER_RELEASE, cases, command = execute} = {}) {
+  const software = release ?? retained;
+  assert(isAbsolute(root) && typeof software === 'string' && isAbsolute(software) &&
+    (release === undefined || retained === undefined),
+  'Require fresh external output and one original, matching package cohort');
   assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS &&
     !process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFECT_PROFILE,
   'Normal plugin acceptance refuses runtime overlays');
   const source = checkoutState(repository);
   assert(source.clean, 'Normal plugin acceptance requires clean fixed source');
   if (process.env.GITHUB_SHA) assert.equal(source.revision, process.env.GITHUB_SHA);
-  root = await releaseConsumerDestination(root, [repository, retained]);
+  const releaseManifest = release === undefined ? undefined : await verifyPackageRelease(release);
+  const releaseManifestPath = release === undefined ? undefined : join(release, 'release.json');
+  const releaseManifestBytes = release === undefined ? undefined : await readFile(releaseManifestPath);
+  if (releaseManifest !== undefined) {
+    assert.equal(releaseManifest.sourceSha, source.revision);
+    assert.deepEqual(releaseManifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node', 'provider-ai-sdk']);
+  }
+  root = await releaseConsumerDestination(root, [repository, software]);
   await mkdir(root);
   const raw = join(root, 'raw'), casesRoot = join(root, 'cases');
   await mkdir(raw); await mkdir(casesRoot);
   // Each timeout cold read observes its own entered original, never a Saved
   // success or a replacement request. Its state and profile stay in that case.
-  const selections = [['warm', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent'],
+  const available = [['warm', 'cold'], ['missing-key'], ['rate-limit', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
+  const selections = cases === undefined ? available : available.filter(([id]) => cases.includes(id));
+  if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
+    'Every selected provider case must match once');
   const report = {source: source.revision, preparations: [],
     phases: selections.flatMap(phases => phases.map(phase => ({case: phases[0], phase, status: 'unexecuted',
       reason: phase === 'cold' ? 'Requires the same original case and its confirmed first close' : 'Requires a fresh verified installation'}))),
     complete: false};
   const preparedCases = [], failures = [], cleanup = [];
-  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('ACTQL_')));
+  const env = Object.fromEntries(['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'TMPDIR']
+    .filter(key => typeof process.env[key] === 'string').map(key => [key, process.env[key]]));
   for (const phases of selections) {
     const id = phases[0], caseRoot = join(casesRoot, id), caseRaw = join(raw, id);
     await mkdir(caseRoot); await mkdir(caseRaw);
     // Every preparation retains its own exclusive install-node.* diagnostics.
     const run = (cmd, args, options) => command(cmd, args, {...options, raw: caseRaw});
     try {
-      const prepared = await prepareHealthPackages({repository, root: caseRoot,
+      const prepared = releaseManifest === undefined ? await prepareHealthPackages({repository, root: caseRoot,
         source: {sha: source.revision, dirty: false}, retained,
-        optionalProvider: join(retained, 'optional-provider'), command: run, normalLifecycle: true});
+        optionalProvider: join(retained, 'optional-provider'), command: run, normalLifecycle: true})
+        : await installRelease(caseRoot, release, releaseManifest, releaseManifestPath, run);
       preparedCases.push(prepared);
       report.preparations.push({case: id, consumer: prepared.consumer,
         manifestPath: prepared.manifestPath, manifest: prepared.manifest});
@@ -109,6 +129,12 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   }
   try {assert.deepEqual(checkoutState(repository), source);}
   catch (failure) {cleanup.push(failure);}
+  if (releaseManifest !== undefined) {
+    try {
+      assert.deepEqual(await readFile(releaseManifestPath), releaseManifestBytes);
+      assert.deepEqual(await verifyPackageRelease(release), releaseManifest);
+    } catch (failure) {cleanup.push(failure);}
+  }
   report.complete = failures.length === 0 && cleanup.length === 0 && report.phases.every(value => value.status === 'passed');
   report.failures = failures.map(nodeBenchmarkFailure); report.cleanup = cleanup.map(nodeBenchmarkFailure);
   await writeFile(join(root, 'summary.json'), JSON.stringify(report, null, 2) + '\n');
@@ -118,6 +144,17 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   if (cleanup.length) throw new AggregateError(cleanup, 'OptionalProviderSoftwareChanged');
   assert(report.complete, 'Every original phase must complete before normal acceptance');
   return report;
+}
+
+async function installRelease(root, release, manifest, manifestPath, run) {
+  const consumer = join(root, 'consumer');
+  const env = publicConsumerEnvironment(process.env, root);
+  await Promise.all([consumer, env.HOME, env.TMPDIR].map(path => mkdir(path)));
+  await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+  await run('npm', ['install', '--ignore-scripts=false', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
+    ...manifest.packages.map(row => join(release, row.file))], {cwd: consumer, env, name: 'install-release'});
+  await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer);
+  return {manifest, manifestPath, consumer};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

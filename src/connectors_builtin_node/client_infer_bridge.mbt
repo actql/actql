@@ -2250,6 +2250,16 @@ pub fn client_program_bind_infer_egress(
 }
 
 ///|
+/// Reobserve the original egress admission before authorized credential
+/// preparation. The final dispatch gate still checks it independently.
+#export_name("clientProgramCheckInferEgressCurrent")
+pub fn client_program_check_infer_egress_current(
+  admission : @publication_host.ClientInferEgressAdmission,
+) -> Result[Unit, @publication_host.ClientInferEgressIssue] {
+  @publication_host.check_client_infer_egress_current(admission)
+}
+
+///|
 #export_name("clientProgramInferEgressIssueKind")
 pub fn client_program_infer_egress_issue_kind(
   issue : @publication_host.ClientInferEgressIssue,
