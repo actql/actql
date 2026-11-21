@@ -4645,7 +4645,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15e31dfda636cdfd72af9830d64b847390aee284e5d7953b559978959ef51901",
+      "sha256": "f5a35020b9fa6a256c57413e3b2928c273ce3b648a32e8673e0b4f181fabcaa8",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -15456,7 +15456,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "81ced88517b5078c1d36616beda88211f435c3e4119cb21364aaab2694ab3c96",
+      "sha256": "dd0eea5b61c0f7b8eb623efb7d8b294017b83445691ab81235e26b28d1ac7aae",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
@@ -15580,6 +15580,13 @@
           "parameters": [
             "key",
             "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "encodeSignerSignature",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -15713,6 +15720,7 @@
             "document/document",
             "document/document/document",
             "document/document#2",
+            "encodeSignerSignature",
             "sameConstant/sameConstant",
             "sameConstant/sameConstant#2",
             "shape/shape",

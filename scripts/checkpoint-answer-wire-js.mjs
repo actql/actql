@@ -128,11 +128,27 @@ function document(fields, context) {
     own(rule, 'constant') ? rule.constant : own(rule, 'source') ? source(context, rule.source) :
       rule.concatenate.map(part => part === 'decision' || part.startsWith('summary.') ? source(context, part) : part).join('')]));
 }
+const {byteLength: signatureBytes, pattern: signaturePattern} = contract.signatureEncoding;
+const signatureTextLength = 4 * Math.ceil(signatureBytes / 3);
+const signaturePatternExact = new RegExp('^' + signaturePattern + '$', 'u');
+const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
+const typedArrayByteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength').get;
+const typedArrayTag = Object.getOwnPropertyDescriptor(typedArrayPrototype, Symbol.toStringTag).get;
+
 function signature(value) {
-  // Existing ed25519-v1 representation: exactly 64 bytes, canonical Base64.
-  // The final significant sextet has four zero pad bits; no decoding or repair.
-  if (typeof value !== 'string' || !/^[A-Za-z0-9+/]{85}[AQgw]==$(?![\s\S])/u.test(value)) refuse('InvalidField', 'proof.signature');
+  if (typeof value !== 'string' || value.length !== signatureTextLength ||
+      !signaturePatternExact.test(value)) refuse('InvalidField', 'proof.signature');
   return value;
+}
+
+// Application signer output is either exact proof text or a bounded byte view.
+// The wire constructor below still accepts only canonical proof text.
+function encodeSignerSignature(value) {
+  if (!(value instanceof Uint8Array) || typedArrayTag.call(value) !== 'Uint8Array') return signature(value);
+  if (typedArrayByteLength.call(value) !== signatureBytes) refuse('InvalidField', 'proof.signature');
+  let binary = '';
+  for (let index = 0; index < signatureBytes; index++) binary += String.fromCharCode(value[index]);
+  return btoa(binary);
 }
 
 export function createCheckpointAnswerCodec(primitives) {
@@ -248,7 +264,7 @@ export function createCheckpointAnswerCodec(primitives) {
     } catch { return false; }
   }
   return Object.freeze({prepareAnswerCandidate, answerCandidateApprovalPreimage,
-    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate, reviewBytesMatchCid});
+    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate, reviewBytesMatchCid, encodeSignerSignature});
 }
 `;
 }
