@@ -116,6 +116,63 @@ fn targeted_observe(
 }
 
 ///|
+test "saved continuation refuses a changed supported schema with identical originals" {
+  let rows = indexed_targeted_rows()
+  let snapshot = targeted_original(rows)
+  let publication : @host.ClientJournalPhysicalRow = {
+    key: "same-publication",
+    revision: 17L,
+    body: b"original publication wire",
+  }
+  rows.push(("publication_contract", publication))
+  let retained : StoredSavedResultRead = {
+    snapshot,
+    result_name: "answer",
+    fences: [
+      (
+        "publication_contract",
+        publication.key,
+        publication.revision,
+        publication.body,
+      ),
+    ],
+    source: None,
+    finite: None,
+    owner: None,
+    view: None,
+    // Indexed admission, then the actual observed phase of the same read.
+    schema_phase: -3,
+    advances_remaining: 1,
+  }
+  let queries : Array[(String, String)] = []
+  let read = (table, key) => {
+    queries.push((table, key))
+    targeted_row_read(rows, table, key)
+  }
+  let scan = (table, cursor) => {
+    queries.push((table, cursor))
+    targeted_row_scan(rows, table, cursor)
+  }
+  assert_true(rebind_saved_result_originals(retained, 1, scan, read) is Ok(_))
+  assert_eq(queries.last(), Some(("publication_contract", publication.key)))
+  queries.clear()
+  assert_true(
+    rebind_saved_result_originals(retained, 0, scan, read) is Err(-32),
+  )
+  assert_true(queries.is_empty())
+  assert_true(
+    rebind_saved_result_originals(retained, -1, scan, read) is Err(-41),
+  )
+  assert_true(queries.is_empty())
+  assert_true(
+    rebind_saved_result_originals(retained, 1, scan, (_, _) => Err(-71))
+    is Err(-71),
+  )
+  assert_true(physical_equal(retained.snapshot, snapshot))
+  assert_eq(retained.advances_remaining, 1)
+}
+
+///|
 test "completed saved holder freshly reads two original rows and keeps cancellation checks" {
   let rows = targeted_snapshot_rows()
   let original = targeted_observe(rows, None).unwrap().unwrap()

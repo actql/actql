@@ -183,6 +183,126 @@ fn prepared_local_update_normalization_fixture(
 }
 
 ///|
+fn ordered_update_normalization_fixture(
+  unsupported_last? : Bool = false,
+  common? : Bool = false,
+) -> PreparedClientEffectComputation raise {
+  let (base, environment, limits) = local_update_normalization_fixture()
+  let first =
+    #|{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"},"id":"id","set":{"Name":{"field":"value"}}}}
+  let middle = first.replace(old="\"field\":\"value\"", new="\"literal\":7")
+  let last = if unsupported_last {
+    middle.replace(
+      old="\"from\":{\"result\":\"out\"},\"id\":\"id\"",
+      new="\"ids\":[\"original-id\"]",
+    )
+  } else {
+    first.replace(old="\"field\":\"value\"", new="\"literal\":null")
+  }
+  let document = base.replace(
+    old="\"save\":" + first,
+    new="\"a_first\":" +
+      first +
+      ",\"b_middle\":" +
+      middle +
+      ",\"c_last\":" +
+      last,
+  )
+  assert_true(document != base)
+  let document = if common {
+    document.replace(
+      old="\"as\":\"selected\"}]",
+      new="\"as\":\"original\"},{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"selected\"}]",
+    )
+  } else {
+    document
+  }
+  prepare_client_effect_computation(document, Json, environment, None, [], {
+    ..limits,
+    max_members: 3,
+    effects: { ..limits.effects, max_members: 3, },
+  }).unwrap()
+}
+
+///|
+test "one completion-free proof covers the full ordered mapped UPDATE set" {
+  let owner = ordered_update_normalization_fixture()
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  assert_eq(@syntax.effect_header_count(headers), 3)
+  for index, id in ["a_first", "b_middle", "c_last"] {
+    assert_eq(
+      @syntax.effect_header_id(
+        @syntax.effect_header_at(headers, index).unwrap(),
+      ),
+      id,
+    )
+  }
+  let proof = issue_prepared_client_effect_selected_normalization(owner).unwrap()
+  guard proof.inventory is LocalUpdate(inventory) else {
+    fail("update profile")
+  }
+  assert_true(
+    @checked.local_update_completion_free_inventory_matches(
+      inventory,
+      owner.candidate,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      proof,
+      issue_prepared_client_effect_selected_normalization(owner).unwrap(),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      prepared_client_effect_normalization_evidence(owner, proof).unwrap(),
+    ),
+    "sha256:e9f69915b6368e0c8e1669b010e57e65f633bd5a8d589d3b3575c2b043f4b44d",
+  )
+}
+
+///|
+test "an unsupported later UPDATE refuses the whole ordered normalization set" {
+  let owner = ordered_update_normalization_fixture(unsupported_last=true)
+  assert_eq(
+    @syntax.effect_header_count(
+      @checked.effect_program_static_headers(owner.candidate),
+    ),
+    3,
+  )
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  assert_true(owner.normalization is None)
+}
+
+///|
+test "the Common ordered UPDATE profile binds one original compilation" {
+  let owner = ordered_update_normalization_fixture(common=true)
+  assert_true(
+    issue_prepared_client_effect_local_update_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  let proof = issue_prepared_client_effect_selected_normalization(owner).unwrap()
+  assert_true(proof.inventory is CommonUpdate(_))
+  let limits = run_materials_limits()
+  let compiled = issue_prepared_client_effect_compilation(
+    owner,
+    run_materials_manifests(),
+    limits.sequence,
+    limits.max_sequence_steps,
+    limits.max_sequence_work,
+    limits.max_evidence_bytes,
+    limits.max_evidence_nodes,
+    limits.max_evidence_depth,
+    normalization=Some(proof),
+  ).unwrap()
+  assert_true(physical_equal(compiled.owner, owner))
+  assert_true(compiled.normalization_profile is Some(CommonUpdate(_)))
+}
+
+///|
 test "update selector and scalar changes retain the actual closed owners" {
   let (base, _, _) = local_update_normalization_fixture()
   for literal in ["7", "null"] {

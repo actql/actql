@@ -163,3 +163,42 @@ test "reservation issues custody before transfer storage and failed cleanup reta
   assert_eq(buffer_pool_usage(pool).allocated, 0L)
   close_pool(pool).unwrap()
 }
+
+///|
+test "filled delivery fragment uses only the original bounded raw borrow" {
+  let pool = open_pool(64L, 4, 16).unwrap()
+  let foreign = open_pool(64L, 4, 16).unwrap()
+  let fragment = Bytes::from_array([0x22, 0xF0, 0x9F])
+  let stopped = Ref(false)
+  let slot = reserve_buffer(pool, 3, 3L, () => true).unwrap()
+  let output = reserve_output_buffer(pool, 3, 0L, () => true).unwrap()
+  assert_true(
+    borrow_filled_payload_input(pool, slot, () => true) is Err(Incomplete),
+  )
+  assert_true(
+    borrow_filled_payload_input(pool, output, () => true) is Err(Closed),
+  )
+  fill_buffer(pool, slot, 0, 3, index => Some(fragment[index])).unwrap()
+  assert_true(seal_buffer(pool, slot, 4, 4) is Err(Input(_)))
+  assert_true(buffer_source(pool, slot) is None)
+  assert_true(buffer_wire(pool, slot) is None)
+  assert_true(borrow_buffer(pool, slot, () => true) is Err(Closed))
+  assert_true(
+    borrow_filled_payload_input(foreign, slot, () => true) is Err(ForeignOwner),
+  )
+  let reserved = buffer_pool_usage(pool).allocated
+  let borrow = borrow_filled_payload_input(pool, slot, () => stopped.val).unwrap()
+  assert_true(physical_equal(borrow.slot, slot))
+  assert_eq(filled_payload_input_bytes(pool, borrow), Some(fragment))
+  assert_true(filled_payload_input_bytes(foreign, borrow) is None)
+  assert_eq(close_buffer(pool, slot), Err(CleanupPending))
+  assert_eq(return_buffer_borrow(pool, borrow), Err(CleanupPending))
+  assert_eq(buffer_pool_usage(pool).allocated, reserved)
+  stopped.val = true
+  return_buffer_borrow(pool, borrow).unwrap()
+  assert_true(filled_payload_input_bytes(pool, borrow) is None)
+  close_buffer(pool, slot).unwrap()
+  assert_eq(buffer_pool_usage(pool).allocated, reserved - 9L)
+  close_pool(pool).unwrap()
+  close_pool(foreign).unwrap()
+}

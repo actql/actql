@@ -152,20 +152,13 @@ fn sdk_payload_owned_bytes(
   value : Instance,
   raw : @buffers.BufferBorrow,
 ) -> Result[Bytes, Int] {
-  guard @buffers.buffer_length(value.pool, raw.slot) is Some(length) else {
-    return Err(-33)
-  }
-  if length > 65536 {
+  if raw.slot.wire_length > 65536 {
     return Err(-4)
   }
-  let bytes : Array[Byte] = []
-  for index in 0..<length {
-    guard @buffers.buffer_byte(value.pool, raw.slot, index) is Some(byte) else {
-      return Err(-33)
-    }
-    bytes.push(byte)
+  match @buffers.filled_payload_input_bytes(value.pool, raw) {
+    Some(bytes) => Ok(bytes)
+    None => Err(-33)
   }
-  Ok(Bytes::from_array(bytes))
 }
 
 ///|
@@ -236,7 +229,7 @@ pub fn produce_publication_sdk_payload_chunk(
         output.invoked = true
         output.projection = Some(projection)
         output.sdk_payload_parent = Some(first_handle)
-        let raw = @buffers.borrow_buffer(value.pool, raw_slot, () => {
+        let raw = @buffers.borrow_filled_payload_input(value.pool, raw_slot, () => {
           physical_reader_stop(raw_physical, handle) == 0
         })
         match raw {

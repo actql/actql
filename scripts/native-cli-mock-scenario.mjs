@@ -1,4 +1,5 @@
-import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -6,8 +7,8 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fstatSync} from 'node:fs';
-import {open, readFile, stat, unlink} from 'node:fs/promises';
-import {join} from 'node:path';
+import {lstat, mkdir, open, readFile, stat, unlink, writeFile} from 'node:fs/promises';
+import {dirname, join} from 'node:path';
 
 export const mockTemplates = Object.freeze(['deal-review-mock', 'churn-risk-mock']);
 
@@ -184,8 +185,15 @@ function waitingHuman(record, original, before, change) {
 }
 
 
-export function requireNativeMockWork(args, groups, rows, {minimumWrites = rows} = {}) {
+export function requireNativeMockWork(args, groups, rows, {
+  minimumWrites = rows, modelRows = rows, writeOrdinals,
+} = {}) {
   assert(Number.isSafeInteger(minimumWrites) && minimumWrites >= 0 && minimumWrites <= rows);
+  assert(Number.isSafeInteger(modelRows) && modelRows >= 0);
+  if (writeOrdinals !== undefined) assert(Array.isArray(writeOrdinals) &&
+    minimumWrites === rows && writeOrdinals.length === rows &&
+    writeOrdinals.every(value => Number.isSafeInteger(value) && value >= 0 && value < rows),
+  'A multi-member observation requires every expected member-local row ordinal');
   const model = [], modelSlots = [], writes = [];
   for (const group of groups) {
     const events = group.events;
@@ -206,15 +214,21 @@ export function requireNativeMockWork(args, groups, rows, {minimumWrites = rows}
       }
     } else assert.equal(events.length, 0, 'Status/Result/initialization replayed Model or Effect work');
   }
-  assert.equal(model.length, args[0] === 'run' ? rows : 0, 'Actual Model start count differs');
+  assert.equal(model.length, args[0] === 'run' ? modelRows : 0, 'Actual Model start count differs');
   assert.equal(new Set(model).size, model.length, 'Repeated original Model attempt');
-  assert.deepEqual([...modelSlots].sort((a,b)=>a-b), args[0] === 'run' ? Array.from({length:rows},(_,index)=>index) : [], 'Changed original Model slots');
+  assert.deepEqual([...modelSlots].sort((a,b)=>a-b), args[0] === 'run'
+    ? Array.from({length:modelRows},(_,index)=>index) : [], 'Changed original Model slots');
   if (args[0] === 'approve') {
     assert(writes.length >= minimumWrites && writes.length <= rows, 'Actual target replacement count differs');
     assert(writes.every(row => Number.isSafeInteger(row.ordinal) && row.ordinal >= 0 && row.ordinal < rows));
-    assert.equal(new Set(writes.map(row => row.ordinal)).size, writes.length, 'Repeated original Effect ordinal');
-    if (minimumWrites === rows)
-      assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), Array.from({length:rows},(_,index)=>index), 'Changed original Effect ordinals');
+    if (writeOrdinals === undefined) {
+      assert.equal(new Set(writes.map(row => row.ordinal)).size, writes.length, 'Repeated original Effect ordinal');
+      if (minimumWrites === rows)
+        assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), Array.from({length:rows},(_,index)=>index), 'Changed original Effect ordinals');
+    } else {
+      assert.deepEqual(writes.map(row => row.ordinal), writeOrdinals, 'Changed original Effect member row ordinals');
+      assert.equal(new Set(writes.map(row => row.dispatch)).size, writes.length, 'Repeated original Effect dispatch');
+    }
   } else assert.equal(writes.length, 0, 'Unexpected target replacement');
   for (const field of ['key', 'fileReceipt', 'rowReceipt']) assert.equal(new Set(writes.map(row => row[field])).size, writes.length, 'Repeated Effect operation/receipt');
   return {modelAttempts: model, writes};
@@ -247,11 +261,9 @@ export function nativeLauncherEnvelope(stderr, mode) {
   return {native: stderr.slice(0, start), timing};
 }
 
-export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}) {
+function nativeMockScenarioCommands({project, run, launcherTimings, rows, work}) {
   assert(['optional','required'].includes(launcherTimings), 'Invalid launcher observation contract');
-  assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
   assert.equal(typeof run, 'function');
-  const project = join(root, template), file = join(project, 'mock/data.json');
   const commands = [];
   async function invoke(workflowPhase, args, cwd = project) {
     const record = await run(args, cwd);
@@ -262,10 +274,18 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
     const observations = nativeMockAcceptanceObservations(envelope.native);
     if (envelope.timing) { record.launcherTiming = envelope.timing; commands.at(-1).launcherTiming = envelope.timing; }
     assert.equal(observations.length, args[0] === 'init' ? 2 : 1, 'Native child observations missing or duplicated');
-    record.acceptance = requireNativeMockWork(args, observations, expectedChanges[template].rows.length);
+    record.acceptance = requireNativeMockWork(args, observations, rows, work);
     commands.at(-1).acceptance = record.acceptance;
     return record;
   }
+  return {commands, invoke};
+}
+
+export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}) {
+  assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
+  const project = join(root, template), file = join(project, 'mock/data.json');
+  const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
+    rows: expectedChanges[template].rows.length});
   await invoke('scaffold', ['init', '--template', template, project], root);
   const before = await targetSnapshot(file);
   const original = runState(await invoke('prepare', ['run', `${template.slice(0, -5)}.aql`,
@@ -327,4 +347,73 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
   return {template, runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
     beforeSha256: before.sha256, afterSha256: after.sha256, humanWaiting, resultRows: rows.length,
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), commands};
+}
+
+export async function runNativeSharedFileMockScenario({root, run, launcherTimings = 'optional'}) {
+  const fixture = threeWriteMockProject();
+  const project = join(root, 'native-shared-file-mock'), file = join(project, 'mock/data.json');
+  const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
+  const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
+    rows: fixture.changes.length, work: {modelRows: 0, writeOrdinals: [0, 0, 0]}});
+  await mkdir(project, {mode: 0o700});
+  for (const [name, body] of Object.entries(fixture.files)) {
+    const path = join(project, name);
+    await mkdir(dirname(path), {recursive: true, mode: 0o700});
+    await writeFile(path, body, {flag: 'wx', mode: 0o600});
+  }
+  const before = await targetSnapshot(file);
+  assert.equal(before.bytes, fixture.before);
+  await invoke('adoption', projectInitialAdoptionArguments({configuration, stateDirectory}));
+  const original = runState(await invoke('prepare', ['run', fixture.programFile,
+    '--format', 'aql-json', '--stop-before', 'commit', '--json']), 'waiting_checkpoint');
+  const runId = original.run_id, checkpoint = checkpointId(original);
+  await unlink(join(project, fixture.programFile));
+  assert.deepEqual(await targetSnapshot(file), before, 'Preparation must retain all original target bytes');
+  const pending = runState(await invoke('waiting-status', ['status', runId, '--json']), 'waiting_checkpoint', runId);
+  assert.equal(checkpointId(pending), checkpoint);
+  assert.equal(pending.checkpoint.checkpoint_cid, original.checkpoint.checkpoint_cid);
+  const review = await invoke('waiting-review', ['status', runId]);
+  const reviewLines = review.stdout.trimEnd().split('\n');
+  const header = 'Stored Effect Preview (read-only; not approval):';
+  const previewIndex = reviewLines.indexOf(header);
+  assert(previewIndex >= 0, 'Original waiting Preview missing');
+  for (const line of [`Run: ${JSON.stringify(runId)}`, `Checkpoint: ${JSON.stringify(checkpoint)}`,
+    `  Original CID: ${JSON.stringify(original.checkpoint.checkpoint_cid)}`]) {
+    assert(reviewLines.slice(0, previewIndex).includes(line), 'Waiting Review changed original identity');
+  }
+  const originalDocument = JSON.parse(fixture.before);
+  assert.deepEqual(reviewLines.slice(previewIndex + 1).map(line => {
+    const field = /^      (Before|After): (.+)$/u.exec(line);
+    return field ? [field[1], JSON.parse(field[2])] : line;
+  }), fixture.changes.flatMap(({resource, id, after}) => [
+    `  Effect: "update"  Target: "connector://salesforce/${resource}"`,
+    '  Items: 1', '  Preview strength: "full_diff"', '  Changes:',
+    `    Row: ${JSON.stringify(id)}`,
+    ['Before', {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
+    ['After', {state: 'present', value: {value: after}}],
+  ]), 'Original Review must preserve ordered targets and every intended change');
+  assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
+
+  await invoke('approval', ['approve', checkpoint, '--wait', '--json']);
+  await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'},
+    'The original target lock path must be absent when the approval command returns');
+  const after = await targetSnapshot(file);
+  assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
+    'Only the three independently expected updates may change');
+  assert.notEqual(after.sha256, before.sha256);
+  runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);
+  assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
+
+  const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
+  const first = await invoke('result', resultArguments);
+  const rows = first.stdout.trimEnd().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(rows, fixture.rows, 'Result must retain every independently expected field');
+  assert.deepEqual(await targetSnapshot(file), after, 'Result must not replay any update');
+  runState(await invoke('saved-status', ['status', runId, '--json']), 'succeeded', runId);
+  const saved = await invoke('saved-result', resultArguments);
+  assert.equal(saved.stdout, first.stdout, 'Fresh-process Saved Result must retain the original bytes');
+  assert.deepEqual(await targetSnapshot(file), after, 'Saved lookup must not replay any update');
+  return {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
+    beforeSha256: before.sha256, afterSha256: after.sha256, resultRows: rows.length,
+    resultSha256: createHash('sha256').update(first.stdout).digest('hex'), lockPathAbsent: true, commands};
 }

@@ -33,6 +33,13 @@ pub fn client_effect_dependency_capture_bodies(
 }
 
 ///|
+pub fn client_effect_dependency_capture_body_count(
+  value : ClientEffectDependencyCapture,
+) -> Int {
+  value.bodies.length()
+}
+
+///|
 /// Check the exact live Result borrow before the Native adapter reads it.
 /// Neither an equal Artifact CID nor a different Result in the same Unit
 /// substitutes for that borrow.
