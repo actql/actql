@@ -122,19 +122,6 @@ fn json_value_path_key_unit(unit : Int) -> Bool {
 }
 
 ///|
-// The quoted JSONPath member uses backslash only to escape a double quote.
-// It is a selector spelling, distinct from a JSON document string escape.
-fn json_value_path_quoted_scalar(text : String, offset : Int) -> (Char, Int)? {
-  guard offset < text.length() && text[offset] != '"' else { return None }
-  if text.length() - offset >= 2 &&
-    text[offset] == '\\' &&
-    text[offset + 1] == '"' {
-    return Some(('"', offset + 2))
-  }
-  text_function_scalar(text, offset).map(item => (item.0, item.1))
-}
-
-///|
 fn json_value_index_other(text : String, offset : Int, unit : Int) -> Int? {
   if unit == 45 || unit == 95 {
     return Some(offset + 1)
@@ -221,10 +208,13 @@ fn advance_json_value_path(
           workspace,
           expression,
         )
-      } else if json_value_path_quoted_scalar(text, at) is Some((_, next)) {
-        path.position = next
       } else {
-        return Err(invalid)
+        // A backslash and the next scalar form one lexical unit.
+        let scalar_at = if unit == 92 { at + 1 } else { at }
+        guard text_function_scalar(text, scalar_at) is Some((_, next, _, _)) else {
+          return Err(invalid)
+        }
+        path.position = next
       }
     JsonPathIndexStart =>
       if json_value_path_space(unit) {
@@ -293,9 +283,12 @@ fn json_value_key_scalar(
     offset < end else {
     return None
   }
-  if quoted {
-    json_value_path_quoted_scalar(path.text, offset)
-  } else {
-    text_function_scalar(path.text, offset).map(item => (item.0, item.1))
+  // Only a backslash before a quote within the member is removed.
+  if quoted &&
+    end - offset >= 2 &&
+    path.text[offset] == '\\' &&
+    path.text[offset + 1] == '"' {
+    return Some(('"', offset + 2))
   }
+  text_function_scalar(path.text, offset).map(item => (item.0, item.1))
 }

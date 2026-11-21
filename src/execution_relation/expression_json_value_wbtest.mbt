@@ -113,6 +113,31 @@ test "JSON_VALUE selects admitted data or distinguishes missing values from inva
 }
 
 ///|
+test "JSON_VALUE keeps literal backslash pairs at the end of a quoted member" {
+  let open_path = "$.\"k" + "\\".repeat(2)
+  let document : Json = { "k\\\\": "pair", "k\\": "single" }
+  let raw = document.stringify()
+  let typed : Json = { "typed_literal": { "type": "json", "value": raw } }
+  for input in [({ "literal": raw } : Json), typed] {
+    let valid : Json = {
+      "json_value": [input, { "literal": open_path + "\"" }],
+    }
+    assert_true(
+      run_expr(valid.stringify()) is Ok(Text("pair")),
+      msg=valid.stringify(),
+    )
+    for path in [open_path, open_path + "\\\""] {
+      let invalid : Json = { "json_value": [input, { "literal": path }] }
+      assert_true(
+        run_expr(invalid.stringify())
+        is Err({ kind: Scalar(InvalidOperand), .. }),
+        msg=invalid.stringify(),
+      )
+    }
+  }
+}
+
+///|
 test "JSON_VALUE stops at the selected scalar and still meters an unselected prefix" {
   let tail = " ".repeat(4096)
   let first = lowered(
