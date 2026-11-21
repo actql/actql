@@ -7,8 +7,13 @@ import {pathToFileURL} from 'node:url';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
-export function packedFixtureSupport(root, entries,
-  {productEntries = localNodePackageInputs(root).adapterEntries} = {}) {
+type FixturePaths = {repository: string; destination: string};
+type FixtureRewrite = Pick<FixturePaths, 'repository'> & {
+  path: string; support: readonly string[]; installedHost: string;
+};
+
+export function packedFixtureSupport(root: string, entries: readonly string[],
+  {productEntries = localNodePackageInputs(root).adapterEntries}: {productEntries?: readonly string[]} = {}) {
   root = realpathSync(root);
   const product = localModuleGraphInputs(root, productEntries);
   const modules = localModuleGraphInputs(root, entries.filter(path => path.endsWith('.mjs')), {
@@ -25,7 +30,7 @@ export function packedFixtureSupport(root, entries,
   return support;
 }
 
-export async function stageShortQueryFixtures({repository, destination}) {
+export async function stageShortQueryFixtures({repository, destination}: FixturePaths) {
   const entry = 'scripts/fixtures/packed-short-queries.mjs';
   const files = [];
   for (const path of packedFixtureSupport(repository, [entry])) {
@@ -74,7 +79,7 @@ export const packedReadOpeningFixtureInputs = Object.freeze([
 ]);
 
 // The isolated copy and its tests use the same installed import decisions.
-export function rewritePackedFixtureSource(text, {repository, path, support, installedHost}) {
+export function rewritePackedFixtureSource(text: string, {repository, path, support, installedHost}: FixtureRewrite) {
   if (path.endsWith('.mjs') && path !== 'scripts/owned-scratch.mjs') {
     text = text.replace(
       "import {openInstalledRemoteHttpHost, publishInstalledEffect} from\n  '../../../host-node/embedded-local.mjs';",
@@ -101,7 +106,7 @@ export function rewritePackedFixtureSource(text, {repository, path, support, ins
         "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
         "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
     }
-    text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original, quote, specifier) => {
+    text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original: string, quote: string, specifier: string) => {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
@@ -122,7 +127,7 @@ export function rewritePackedFixtureSource(text, {repository, path, support, ins
       if (!target.startsWith('adapters/')) throw new Error(`Unpackaged fixture import: ${target}`);
       return `from ${quote}${pathToFileURL(join(installedHost, target)).href}${quote}`;
     }).replace(/new URL\('((?:\.\.\/)+spec\/[^']+)', import.meta.url\)/gu,
-      (_original, specifier) => `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
+      (_original: string, specifier: string) => `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
         relative(repository, resolve(repository, path, '..', specifier)))).href)})`);
     text = text.replace(/new URL\(\s*'\.\.\/\.\.\/\.\.\/\.\.\/_build\/js\/release\/build\/connectors_builtin_node\/' \+\s*'connectors_builtin_node\.js', import\.meta\.url\)/gu,
       `new URL(${JSON.stringify(pathToFileURL(join(installedHost,

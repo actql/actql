@@ -949,3 +949,7 @@ target/
 /scripts/test-explorer-release-install.d.mts
 /scripts/fixtures/explorer-installed-readonly.mjs
 /scripts/fixtures/explorer-installed-readonly.d.mts
+/scripts/packed-fixture-support.mjs
+/scripts/packed-fixture-support.d.mts
+/scripts/test-packed-local-without-duckdb.mjs
+/scripts/test-packed-local-without-duckdb.d.mts
