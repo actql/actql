@@ -12908,7 +12908,7 @@
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -13208,7 +13208,7 @@
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
@@ -54609,7 +54609,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "10ad2ba0b7000648c342ff806274c1b6fa98d7454b3236d4155421d7d1488881",
+      "sha256": "6d19231065e6c7111de5bc8ed04cfd5a836ff8e87fdbabc1155196860f1fb3b2",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -54816,7 +54816,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -54842,7 +54842,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -54868,7 +54868,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -54880,8 +54880,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "return await performInstalledRequest(operation,body,signal);"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -54896,13 +54896,13 @@
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
               },
               {
@@ -54928,8 +54928,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "if (inContext(() => handle.status!()).pending !== false) await inContext(() => handle.retry!());"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -54948,13 +54948,13 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
               },
               {
@@ -54980,7 +54980,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55004,13 +55004,13 @@
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
               },
               {
@@ -55022,8 +55022,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "const deferredRequests = new WeakMap();"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const deferredRequests = new WeakMap<object, Readonly<{operation: ClientHostOperation; prepared: PreparedBody}>>();"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55040,7 +55040,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
               },
               {
@@ -55138,8 +55138,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "function publicResultRows(response, observeConsumed, observeOperation) {"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "function publicResultRows(response: ResultRows, observeConsumed: ObserveConsumed, observeOperation: ResultObservation) {"
               }
             ],
             "inputsOutputs": [
@@ -55148,7 +55148,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "captureResultOperation !== undefined && typeof captureResultOperation"
               }
             ],
@@ -55158,7 +55158,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "const iterator = inContext(() => frames[Symbol.asyncIterator]());"
               }
             ],
@@ -55168,7 +55168,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "const held = original, release = retire;"
               }
             ],
@@ -55178,7 +55178,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
@@ -55188,8 +55188,8 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (error?.cleanupPending === true) cleanupFailure = error;"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "if ((error as CleanupFailure | null | undefined)?.cleanupPending === true) cleanupFailure = error as CleanupFailure;"
               }
             ],
             "cancellation": [
@@ -55208,7 +55208,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "original = resume = retire = undefined;"
               }
             ],
@@ -55218,7 +55218,7 @@
                 "anchor": "An installed consumer may retain that same bounded context for its original"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try {observation = captureResultOperation?.();}"
               }
             ],
@@ -55242,7 +55242,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55268,7 +55268,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55294,7 +55294,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55306,8 +55306,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "return await performInstalledRequest(operation,body,signal);"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55324,7 +55324,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
               },
               {
@@ -55350,8 +55350,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "if (inContext(() => handle.status!()).pending !== false) await inContext(() => handle.retry!());"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -55370,13 +55370,13 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
               },
               {
@@ -55402,7 +55402,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55428,7 +55428,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
               },
               {
@@ -55440,8 +55440,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "const deferredRequests = new WeakMap();"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const deferredRequests = new WeakMap<object, Readonly<{operation: ClientHostOperation; prepared: PreparedBody}>>();"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55458,7 +55458,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
               },
               {
@@ -55526,7 +55526,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55552,7 +55552,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55578,7 +55578,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55590,8 +55590,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "return await performInstalledRequest(operation,body,signal);"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55606,13 +55606,13 @@
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
               },
               {
@@ -55638,8 +55638,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "if (inContext(() => handle.status!()).pending !== false) await inContext(() => handle.retry!());"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -55658,13 +55658,13 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
               },
               {
@@ -55690,7 +55690,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55714,13 +55714,13 @@
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
               },
               {
@@ -55732,8 +55732,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "const deferredRequests = new WeakMap();"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const deferredRequests = new WeakMap<object, Readonly<{operation: ClientHostOperation; prepared: PreparedBody}>>();"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55750,7 +55750,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
               },
               {
@@ -55898,7 +55898,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55924,7 +55924,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "export function createNodeInProcessClientHost({"
               },
               {
@@ -55950,7 +55950,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -55962,8 +55962,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "return await performInstalledRequest(operation,body,signal);"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -55978,13 +55978,13 @@
                 "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
               },
               {
@@ -56010,8 +56010,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "if (inContext(() => handle.status!()).pending !== false) await inContext(() => handle.retry!());"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -56030,13 +56030,13 @@
                 "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
               },
               {
@@ -56062,7 +56062,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
@@ -56086,13 +56086,13 @@
                 "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
               },
               {
@@ -56104,8 +56104,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "const deferredRequests = new WeakMap();"
+                "path": "adapters/host-node/in-process-client.mts",
+                "anchor": "const deferredRequests = new WeakMap<object, Readonly<{operation: ClientHostOperation; prepared: PreparedBody}>>();"
               },
               {
                 "path": "docs/design/public-wire-codecs.md",
@@ -56122,7 +56122,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
               },
               {
@@ -125202,7 +125202,7 @@
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               }
             ],
@@ -125306,7 +125306,7 @@
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               },
               {
-                "path": "adapters/host-node/in-process-client.mjs",
+                "path": "adapters/host-node/in-process-client.mts",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
               }
             ],

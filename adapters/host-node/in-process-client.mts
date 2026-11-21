@@ -16,38 +16,121 @@ import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWire
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
+// @ts-expect-error TS7016: This shared runtime classifier still has its original HTTP JS owner.
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
-const localErrors = new WeakSet();
+import type {ClientHostOperation, WireClientBody, WireClientBodyByOperation, WireRunRef,
+  WireConnection} from '../../packages/client-wire/index.js';
+import type {installHostObservation} from '../host-common/observation.mjs';
+
+type BodyByOperation = WireClientBodyByOperation;
+type BodyKeys<Body> = Body extends unknown ? keyof Body : never;
+type BodyField<Body, Key extends PropertyKey> =
+  Body extends unknown ? Key extends keyof Body ? Body[Key] : never : never;
+// The selected operation establishes which fields are available. This view
+// follows the existing successful wire preparation (or its same retained copy).
+type RoutedBody = Readonly<{[Key in Exclude<BodyKeys<WireClientBody>, 'ref'>]: BodyField<WireClientBody, Key>}> &
+  Readonly<{ref?: WireRunRef}>;
+type PreparedBody = NonNullable<ReturnType<typeof prepareClientHostRequest>>;
+type InstalledRequest = (operation: ClientHostOperation, body: WireClientBody, signal?: AbortSignal) => unknown;
+type HostBody<Operation extends ClientHostOperation> = BodyByOperation[Operation] & Readonly<{
+  principalId: string;
+  signal?: AbortSignal;
+  preparedProgram?: unknown;
+}>;
+type Handler<Operation extends ClientHostOperation> = (request: HostBody<Operation>) => unknown;
+type CheckHandler = Handler<'check'> & NonNullable<Parameters<typeof projectClientCheckUnavailable>[0]>;
+type ExplanationConsumer = (view: unknown) => unknown;
+type HandlerPorts = Readonly<{
+  negotiate: Handler<'connect'>;
+  prepareSubmit?: Handler<'submit'>;
+  submit?: Handler<'submit'>;
+  submitIntent?: Handler<'submit-intent' | 'restart-intent'>;
+  submitNamedIntent?: Handler<'submit-named-intent'>;
+  lookupSubmission?: Handler<'lookup-submission'>;
+  attach?: Handler<'attach'>;
+  lookupRequest?: Handler<'lookup-request'>;
+  observeRun?: Handler<'status'>;
+  observeOwners?: Handler<'owner-observations'>;
+  wait?: Handler<'wait'>;
+  cancel?: Handler<'cancel'>;
+  lookupCancellation?: Handler<'lookup-cancellation'>;
+  cancelRequest?: Handler<'cancel-request'>;
+  reconcile?: Handler<'reconcile'>;
+  checkpoints?: Handler<'checkpoints'>;
+  checkpointReview?: Handler<'checkpoint-review'>;
+  resolve?: Handler<'resolve'>;
+  resources?: Handler<'resources'>;
+  inspectResource?: Handler<'resource-inspect'>;
+  peekResource?: Handler<'resource-peek'>;
+  check?: CheckHandler;
+  plan?: Handler<'plan'>;
+  inspectRun?: Handler<'inspect-run'>;
+  runPlan?: Handler<'run-plan'>;
+  runExplanation?: (request: HostBody<'run-explanation'>, consume: ExplanationConsumer) => unknown;
+}>;
+type DispatchedHandler = (request: Readonly<Record<string, unknown>>, consume?: ExplanationConsumer) => unknown;
+type RunState = Parameters<typeof observeClientRunState>;
+type ResultService = Parameters<typeof authorizedLocalResultFrames>[0];
+type ResultObservation = ReturnType<NonNullable<ReturnType<typeof installHostObservation>>['captureCurrentOperation']>;
+type ResultRows = ReturnType<typeof authorizedLocalResultFrames>;
+type ResultIterator = ReturnType<ResultRows['frames'][typeof Symbol.asyncIterator]>;
+type ObserveConsumed = (() => unknown) | undefined;
+type CleanupFailure = Readonly<{
+  cleanupPending?: unknown;
+  cleanupHandle?: Readonly<{status?: () => Readonly<{pending?: unknown}>; retry?: () => unknown}>;
+}>;
+type HostInstallation = HandlerPorts & Readonly<{
+  authenticate: () => unknown;
+  authorizeConnection: (input: Readonly<{
+    principalId: string;
+    connection: WireConnection;
+    ref: WireRunRef | undefined;
+    operation: ClientHostOperation;
+  }>) => unknown;
+  workspaceForPrincipal?: (principalId: string) => string | undefined | PromiseLike<string | undefined>;
+  bindOwnedRequest?: (parent: object, derived: object) => undefined;
+  stateService?: RunState[1];
+  runStateObservation?: RunState[0];
+  resultService?: ResultService;
+  maxRowBytes: number;
+  observe?: unknown;
+  performInstalledRequest?: InstalledRequest;
+  captureResultObservation?: (ref: WireRunRef) => ObserveConsumed;
+  captureResultOperation?: () => ResultObservation;
+}>;
+
+const localErrors = new WeakSet<ClientError>();
 // Only packets captured here before deferred service construction carry this
 // original operation's immutable shape facts into the activated ingress.
 // Authentication and authorization are never retained in this association.
-const deferredRequests = new WeakMap();
-const publicError = (code, status) => {
+const deferredRequests = new WeakMap<object, Readonly<{operation: ClientHostOperation; prepared: PreparedBody}>>();
+const publicError = (code: string, status: number) => {
   const error = new ClientError(code, {status});
   delete error.stack;
   return error;
 };
-const fail = code => {
+const fail: (code: string) => never = code => {
   const error = publicError(code, publicClientErrorStatus({code}));
   localErrors.add(error);
   throw error;
 };
-const publicFailure = error => localErrors.has(error) ? error
+const publicFailure = (error: unknown) => localErrors.has(error as ClientError) ? error as ClientError
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
 
-function publicResultRows(response, observeConsumed, observeOperation) {
+function publicResultRows(response: ResultRows, observeConsumed: ObserveConsumed, observeOperation: ResultObservation) {
   // Keep a failed delivery record's exact retry owner off public errors. The
   // SDK may release this response only after that owner confirms settlement.
-  let cleanupFailure;
-  let original = observeOperation, resume, retire;
+  let cleanupFailure: CleanupFailure | undefined;
+  let original = observeOperation, resume: NonNullable<ResultObservation>['run'] | undefined,
+    retire: NonNullable<ResultObservation>['release'] | undefined;
   try {resume = original?.run; retire = original?.release;}
   catch { /* An optional observation cannot replace the Result response. */ }
-  const inContext = work => {
+  const inContext = <Result,>(work: () => Result): Result => {
     if (typeof resume !== 'function') return work();
-    let called = false, value, failure, threw = false;
+    let called = false, value: Result, failure: unknown, threw = false;
     const once = () => {
-      if (called) {if (threw) throw failure; return value;}
+      if (called) {if (threw) throw failure; return value!;}
       called = true;
       try {value = work(); return value;}
       catch (error) {threw = true; failure = error; throw error;}
@@ -62,15 +145,15 @@ function publicResultRows(response, observeConsumed, observeOperation) {
     try {if (typeof release === 'function') Reflect.apply(release, held, []);}
     catch { /* Observation release is not the delivery owner's cleanup ACK. */ }
   };
-  const contextualFrames = frames => ({[Symbol.asyncIterator]() {
+  const contextualFrames = (frames: ResultRows['frames']) => ({[Symbol.asyncIterator]() {
     const iterator = inContext(() => frames[Symbol.asyncIterator]());
     const next = inContext(() => iterator.next);
-    const method = name => {
+    const method = <Name extends 'return' | 'throw',>(name: Name): ResultIterator[Name] => {
       const operation = inContext(() => iterator[name]);
-      return typeof operation === 'function'
-        ? (...args) => inContext(() => Reflect.apply(operation, iterator, args)) : operation;
+      return (typeof operation === 'function'
+        ? (...args: unknown[]) => inContext(() => Reflect.apply(operation, iterator, args)) : operation) as ResultIterator[Name];
     };
-    return {next(...args) {return inContext(() => Reflect.apply(next, iterator, args));},
+    return {next(...args: Parameters<ResultIterator['next']>) {return inContext(() => Reflect.apply(next, iterator, args));},
       get return() {return method('return');}, get throw() {return method('throw');},
       [Symbol.asyncIterator]() {return this;}};
   }});
@@ -79,7 +162,7 @@ function publicResultRows(response, observeConsumed, observeOperation) {
       let consumed = false;
       try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }
       catch (error) {
-        if (error?.cleanupPending === true) cleanupFailure = error;
+        if ((error as CleanupFailure | null | undefined)?.cleanupPending === true) cleanupFailure = error as CleanupFailure;
         throw publicFailure(error);
       }
       finally {
@@ -94,8 +177,8 @@ function publicResultRows(response, observeConsumed, observeOperation) {
     try {
       if (typeof handle?.retry !== 'function' ||
           typeof handle?.status !== 'function') throw cleanupFailure;
-      if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());
-      if (inContext(() => handle.status()).pending !== false) throw cleanupFailure;
+      if (inContext(() => handle.status!()).pending !== false) await inContext(() => handle.retry!());
+      if (inContext(() => handle.status!()).pending !== false) throw cleanupFailure;
       cleanupFailure = undefined;
       releaseObservation();
     } catch { throw publicError('ResultReadCleanupUnknown', 500); }
@@ -111,7 +194,7 @@ export function createNodeInProcessClientHost({
   performInstalledRequest,
   captureResultObservation,
   captureResultOperation,
-}) {
+}: HostInstallation) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof negotiate !== 'function' ||
@@ -122,33 +205,33 @@ export function createNodeInProcessClientHost({
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
-  return Object.freeze({async perform(operation, body, signal) {
+  return Object.freeze({async perform(operation: ClientHostOperation, body: unknown, signal?: AbortSignal) {
     try {
       if (operation === 'lookup-submission') signal?.throwIfAborted();
       // Static preparation probes the same funded-original lookup, even
       // though a plan read has no submission producer or execution grant.
       const tracksSource = bindOwnedRequest !== undefined &&
         ['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
-      const own = (parent, derived) => {
-        if (tracksSource && bindOwnedRequest(parent, derived) !== undefined) {
+      const own = <Body,>(parent: unknown, derived: Body): Body => {
+        if (tracksSource && bindOwnedRequest(parent as object, derived as object) !== undefined) {
           fail('SourceManagedPreparationUnavailable');
         }
         return derived;
       };
       // Local rows use the existing JSONL request shape for wire admission.
-      const captured = deferredRequests.get(body);
+      const captured = deferredRequests.get(body as object);
       const retainSnapshot = performInstalledRequest !== undefined && operation !== 'connect';
       const prepared = captured?.operation === operation ? captured.prepared
         : prepareClientHostRequest(operation,
-          operation === 'read' ? {...body, format: 'jsonl'} : body, retainSnapshot);
+          operation === 'read' ? {...(body as object), format: 'jsonl'} : body, retainSnapshot);
       if (prepared === undefined) fail('InvalidClientRequest');
       if (retainSnapshot) {
-        deferredRequests.set(prepared.body, Object.freeze({operation, prepared}));
+        deferredRequests.set(prepared.body as object, Object.freeze({operation, prepared}));
       }
       // A deferred constructor retains the wire Owner's one immutable capture.
       // The activated ingress consumes those same shape facts, but still
       // performs its own current authentication and connection authorization.
-      body = own(body, prepared.body);
+      const admittedBody = own(body, prepared.body) as RoutedBody;
       const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }
@@ -160,7 +243,7 @@ export function createNodeInProcessClientHost({
       if (typeof principalId !== 'string' || !principalId) {
         fail('ClientAuthenticationDenied');
       }
-      const ref = body.ref;
+      const ref = admittedBody.ref;
       if (connection.workspaceId !== undefined) {
         let workspaceId;
         try {
@@ -190,18 +273,19 @@ export function createNodeInProcessClientHost({
         // service construction. Keep this admitted immutable snapshot and its
         // original Source lineage across the wait; never reread a mutable
         // caller packet or replace the prepared Program/permission.
-        return await performInstalledRequest(operation,body,signal);
+        return await performInstalledRequest(operation,admittedBody as WireClientBody,signal);
       }
-      const invoke = async (handler, preparedProgram, consume) => {
+      const invoke = async (handler: HandlerPorts[keyof HandlerPorts], preparedProgram?: unknown, consume?: ExplanationConsumer) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
-        const original = own(body, Object.freeze({principalId, connection,
-          ...Object.fromEntries(Object.entries(body).filter(([key]) =>
+        const original = own(admittedBody, Object.freeze({principalId, connection,
+          ...Object.fromEntries(Object.entries(admittedBody).filter(([key]) =>
             key !== 'connection')),
           ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
-        return consume === undefined ? handler(original) : handler(original, consume);
+        return consume === undefined ? (handler as DispatchedHandler)(original)
+          : (handler as DispatchedHandler)(original, consume);
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -211,16 +295,16 @@ export function createNodeInProcessClientHost({
         return profile;
       }
       if (operation === 'submit') {
-        return await performClientSubmit({connection, requestId: body.requestId,
-          executionProfile: body.executionProfile,
+        return await performClientSubmit({connection, requestId: admittedBody.requestId,
+          executionProfile: admittedBody.executionProfile,
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});
       }
       if (operation === 'submit-named-intent') {
         const answer = await invoke(submitNamedIntent);
-        if (!validNamedSubmissionAttempt(answer, connection, body.requestName,
-          body.submissionRef, body.intentCid, body.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
+        if (!validNamedSubmissionAttempt(answer, connection, admittedBody.requestName,
+          admittedBody.submissionRef, admittedBody.intentCid, admittedBody.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
         return answer;
       }
       if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
@@ -232,32 +316,32 @@ export function createNodeInProcessClientHost({
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         if (!submitting) signal?.throwIfAborted();
         const valid = submitting
-          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
-          : validSubmissionLookup(answer, connection, body.submissionRef);
+          ? validSubmissionAttempt(answer, connection, admittedBody.submissionRef, admittedBody.intentCid, admittedBody.attemptRef, admittedBody.unresolvedHistory)
+          : validSubmissionLookup(answer, connection, admittedBody.submissionRef);
         if (!valid) fail('InvalidClientHostSubmissionOutcome');
         return answer;
       }
       if (operation === 'attach') {
         const admitted = await invoke(attach);
         if (!validClientAdmission(admitted, connection) ||
-            admitted.ref.namespaceId !== ref.namespaceId ||
-            admitted.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            admitted.ref.runDefinitionCid !== ref.runDefinitionCid) {
+            admitted.ref.namespaceId !== ref!.namespaceId ||
+            admitted.ref.authorityScopeCid !== ref!.authorityScopeCid ||
+            admitted.ref.runDefinitionCid !== ref!.runDefinitionCid) {
           fail('InvalidClientHostAdmission');
         }
         return admitted;
       }
       if (operation === 'lookup-request') {
         const found = await invoke(lookupRequest);
-        if (!validRequestLookup(found, body.requestId)) {
+        if (!validRequestLookup(found, admittedBody.requestId)) {
           fail('InvalidClientHostLookupResponse');
         }
         return found;
       }
       if (operation === 'status' || operation === 'wait') {
         const state = operation === 'status' && observeRun === undefined
-          ? await observeClientRunState(runStateObservation, stateService, {
-            indexKey: ref, principalId, purpose: 'inspect',
+          ? await observeClientRunState(runStateObservation, stateService!, {
+            indexKey: ref!, principalId, purpose: 'inspect',
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
         return state;
@@ -270,17 +354,17 @@ export function createNodeInProcessClientHost({
       if (operation === 'run-plan') {
         const view = await invoke(runPlan);
         if (!validWireRunPlanViewShape(view) ||
-            Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunPlanView');
+            (Object.keys(ref!) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref![key])) fail('InvalidClientHostRunPlanView');
         return view;
       }
       if (operation === 'run-explanation') {
         return await invoke(runExplanation, undefined, view => {
           if (!validWireRunExplanationViewShape(view) ||
-              Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunExplanationView');
+              (Object.keys(ref!) as (keyof WireRunRef)[]).some(key => view.run_ref[key] !== ref![key])) fail('InvalidClientHostRunExplanationView');
           // Consume the Host-owned parsed view while its original read is
           // admitted. Only the independent caller value crosses this boundary.
           const wire = JSON.stringify(view);
-          if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) fail('RunExplanationReadLimit');
+          if (wire.length > admittedBody.maxWireBytes || Buffer.byteLength(wire) > admittedBody.maxWireBytes) fail('RunExplanationReadLimit');
           return JSON.parse(wire);
         });
       }
@@ -291,12 +375,12 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'owner-observations') {
         const views = await invoke(observeOwners);
-        if (!validOwnerObservations(views,ref,body)) fail('InvalidClientHostOwnerObservations');
+        if (!validOwnerObservations(views,ref!,admittedBody)) fail('InvalidClientHostOwnerObservations');
         return views;
       }
       if (operation === 'checkpoints') {
         const page = await invoke(checkpoints);
-        if (!validCheckpointPage(page, body.limit)) {
+        if (!validCheckpointPage(page, admittedBody.limit)) {
           fail('InvalidClientHostCheckpointPage');
         }
         return page;
@@ -304,20 +388,20 @@ export function createNodeInProcessClientHost({
       if (operation === 'checkpoint-review') {
         const review = await invoke(checkpointReview);
         if (!validCheckpointReview(review, {
-          checkpointCid: body.checkpointCid, maxBytes: body.maxBytes,
+          checkpointCid: admittedBody.checkpointCid, maxBytes: admittedBody.maxBytes,
         })) fail('InvalidClientHostCheckpointReview');
         return review;
       }
       if (operation === 'resolve') {
         const answered = await invoke(resolve);
-        if (!validResolveResults(answered, body.items)) {
+        if (!validResolveResults(answered, admittedBody.items)) {
           fail('InvalidClientHostResolveReply');
         }
         return answered;
       }
       if (operation === 'cancel-request') {
         const cancelled = await invoke(cancelRequest);
-        if (!validRequestCancellation(cancelled, body.requestId)) {
+        if (!validRequestCancellation(cancelled, admittedBody.requestId)) {
           fail('InvalidClientHostRequestCancellation');
         }
         return cancelled;
@@ -334,10 +418,10 @@ export function createNodeInProcessClientHost({
         const answer = await invoke(operation === 'resources' ? resources
           : operation === 'resource-inspect' ? inspectResource
             : peekResource);
-        const {connection: _connection, ...expected} = body;
+        const {connection: _connection, ...expected} = admittedBody;
         if (!(operation === 'resources'
           ? validResourceListing(answer, {
-            resourceConnection: body.resourceConnection, limit: body.limit})
+            resourceConnection: admittedBody.resourceConnection, limit: admittedBody.limit})
           : operation === 'resource-inspect'
             ? validResourceInspection(answer, expected)
             : validResourcePeek(answer, expected))) {
@@ -347,24 +431,24 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'cancel') {
         const answer = await invoke(cancel);
-        if (!validCancellationAttempt(answer, {...ref, cancelId: body.cancelId,
-          expectedRevision: body.expectedRevision}, body.attemptRef)) fail('InvalidClientHostCancellation');
+        if (!validCancellationAttempt(answer, {...ref!, cancelId: admittedBody.cancelId,
+          expectedRevision: admittedBody.expectedRevision}, admittedBody.attemptRef)) fail('InvalidClientHostCancellation');
         return answer;
       }
       if (operation === 'lookup-cancellation') {
         const answer = await invoke(lookupCancellation);
-        if (!validCancellationLookup(answer, {...ref, cancelId: body.cancelId,
-          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellationLookup');
+        if (!validCancellationLookup(answer, {...ref!, cancelId: admittedBody.cancelId,
+          expectedRevision: admittedBody.expectedRevision})) fail('InvalidClientHostCancellationLookup');
         return answer;
       }
       if (operation === 'result-describe') {
-        const answer = await describeAuthorizedResult(resultService, {
-          indexKey: ref, principalId, purpose: 'inspect',
-          resultName: body.resultName, format: body.format,
-          attemptId: body.attemptId, maxWireBytes: body.maxWireBytes,
-          maxNodes: body.maxNodes, maxDepth: body.maxDepth,
+        const answer = await describeAuthorizedResult(resultService!, {
+          indexKey: ref!, principalId, purpose: 'inspect',
+          resultName: admittedBody.resultName, format: admittedBody.format as BodyByOperation['result-describe']['format'],
+          attemptId: admittedBody.attemptId, maxWireBytes: admittedBody.maxWireBytes,
+          maxNodes: admittedBody.maxNodes, maxDepth: admittedBody.maxDepth,
         }, signal);
-        if (!validResultDescription(answer, body, body)) {
+        if (!validResultDescription(answer, admittedBody as BodyByOperation['result-describe'], admittedBody)) {
           fail('InvalidClientHostResultDescription');
         }
         return answer;
@@ -375,26 +459,26 @@ export function createNodeInProcessClientHost({
         return state;
       }
       if (operation === 'delivery-attempt') {
-        const found = await inspectAuthorizedDeliveryAttempt(resultService, {
-          indexKey: ref, principalId, purpose: 'download',
-          resultName: body.resultName, attemptId: body.attemptId,
+        const found = await inspectAuthorizedDeliveryAttempt(resultService!, {
+          indexKey: ref!, principalId, purpose: 'download',
+          resultName: admittedBody.resultName, attemptId: admittedBody.attemptId,
         });
         if (!validDeliveryAttemptLookup(found, {
-          attemptId: body.attemptId,
-          runDefinitionCid: ref.runDefinitionCid,
-          resultName: body.resultName,
+          attemptId: admittedBody.attemptId,
+          runDefinitionCid: ref!.runDefinitionCid,
+          resultName: admittedBody.resultName,
         })) fail('InvalidClientHostAttemptLookup');
         return found;
       }
       if (operation === 'read') {
         let consumed, observation;
-        try {consumed = captureResultObservation?.(ref);}
+        try {consumed = captureResultObservation?.(ref!);}
         catch { /* An unavailable observation is not a Result permission or failure. */ }
         try {observation = captureResultOperation?.();}
         catch { /* Keep the same Result request even if observation is unavailable. */ }
-        return publicResultRows(authorizedLocalResultFrames(resultService, {
-          indexKey: ref, principalId, purpose: 'download',
-          resultName: body.resultName, attemptId: body.attemptId,
+        return publicResultRows(authorizedLocalResultFrames(resultService!, {
+          indexKey: ref!, principalId, purpose: 'download',
+          resultName: admittedBody.resultName, attemptId: admittedBody.attemptId,
         }, signal, {maxRowBytes}), consumed, observation);
       }
       fail('UnknownClientOperation');
