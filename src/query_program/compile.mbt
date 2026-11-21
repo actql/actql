@@ -1441,9 +1441,9 @@ fn order_aggregate_calls(
 }
 
 ///|
-// Public aliases and lowering share this closed operation-name mapping.
-// COUNTIF's DISTINCT rewrite remains a separate argument/filter contract.
-fn aggregate_common_function(name : String) -> String? {
+// Calls with different checked argument domains retain distinct identities
+// when comparing authored aggregates, even when they share a Common fold.
+fn aggregate_function_key(name : String) -> String? {
   match name {
     "COUNT" => Some("count")
     "COUNTIF" => Some("count_if")
@@ -1451,6 +1451,8 @@ fn aggregate_common_function(name : String) -> String? {
     "AVG" => Some("avg")
     "MIN" => Some("min")
     "MAX" => Some("max")
+    "LOGICAL_AND" => Some("logical_and")
+    "LOGICAL_OR" => Some("logical_or")
     "VAR_POP" => Some("var_pop")
     "VAR_SAMP" | "VARIANCE" => Some("var_samp")
     "STDDEV_POP" => Some("stddev_pop")
@@ -1468,8 +1470,8 @@ fn same_aggregate_call(
   left_resolve : (Array[@query.NamePart]) -> String?,
   right_resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  guard aggregate_common_function(left.function_name) is Some(left_function) &&
-    aggregate_common_function(right.function_name) is Some(right_function) else {
+  guard aggregate_function_key(left.function_name) is Some(left_function) &&
+    aggregate_function_key(right.function_name) is Some(right_function) else {
     return false
   }
   if left_function != right_function ||
@@ -1556,9 +1558,17 @@ fn lower_aggregate_resolved(
   let conditional_count = call.function_name == "COUNTIF" &&
     call.distinct &&
     !analytic
-  let name = match aggregate_common_function(call.function_name) {
-    Some(name) => if conditional_count { "count" } else { name }
-    None => raise Abort(UnsupportedAggregate)
+  guard aggregate_function_key(call.function_name) is Some(function) else {
+    raise Abort(UnsupportedAggregate)
+  }
+  let logical = function == "logical_and" || function == "logical_or"
+  if logical && (analytic || call.distinct) {
+    raise Abort(UnsupportedAggregate)
+  }
+  let name = match function {
+    "logical_and" => "min"
+    "logical_or" => "max"
+    _ => if conditional_count { "count" } else { function }
   }
   let entries : Array[(String, @builder.Node)] = [
     ("fn", construction.text(name)),
@@ -1571,7 +1581,7 @@ fn lower_aggregate_resolved(
         root_index = child
       }
       let root = @query.expression_node(argument, root_index).unwrap()
-      let field = if conditional_count {
+      let field = if conditional_count || logical {
         None
       } else {
         match root.kind {
@@ -1613,6 +1623,19 @@ fn lower_aggregate_resolved(
                           ("literal", construction.add(Null)),
                         ]),
                       ]),
+                    ),
+                  ])
+                } else if logical {
+                  // A single-operand Boolean connective checks the original
+                  // domain and preserves the value, including NULL.
+                  construction.object([
+                    (
+                      if function == "logical_and" {
+                        "and"
+                      } else {
+                        "or"
+                      },
+                      construction.array([argument]),
                     ),
                   ])
                 } else {

@@ -678,6 +678,23 @@ const arrayToStringOriginal = {name: 'array-to-string', format: 'sql',
   expected: [{joined: 'a', skipped: '|x', replaced: 'n||n|x'}],
   columns: ['joined', 'skipped', 'replaced'].map(name => ({name,
     contract: {type: 'string', nullable: false}})), sourceReadCount: 0};
+const logicalAggregateColumns = ['all_true', 'any_true'].map(name => ({name,
+  contract: {type: 'boolean', nullable: true}}));
+const logicalAggregateSuccesses = [
+  {name: 'logical-aggregate-original', format: 'sql',
+    text: 'SELECT LOGICAL_AND(TRUE) AS all_true, LOGICAL_OR(FALSE) AS any_true',
+    expected: [{all_true: true, any_true: false}], columns: logicalAggregateColumns, sourceReadCount: 0},
+  {name: 'logical-aggregate-empty', format: 'sql',
+    text: 'SELECT LOGICAL_AND(TRUE) AS all_true, LOGICAL_OR(FALSE) AS any_true WHERE FALSE',
+    expected: [{all_true: null, any_true: null}], columns: logicalAggregateColumns, sourceReadCount: 0},
+  {name: 'logical-aggregate-grouped', format: 'sql',
+    text: 'WITH f AS (SELECT 1 AS k, TRUE AS flag UNION ALL SELECT 1 AS k, FALSE AS flag '
+      + 'UNION ALL SELECT 2 AS k, CAST(NULL AS BOOLEAN) AS flag) '
+      + 'SELECT k, LOGICAL_AND(flag) AS all_true, LOGICAL_OR(flag WHERE k > 0) AS any_true '
+      + 'FROM f GROUP BY k ORDER BY k',
+    expected: [{k: 1, all_true: false, any_true: true}, {k: 2, all_true: null, any_true: null}],
+    columns: [numberColumn('k'), ...logicalAggregateColumns], sourceReadCount: 0},
+];
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -774,6 +791,7 @@ export const sourceFreeSuccesses = [
   currentDateOriginal,
   arrayConcatOriginal,
   arrayToStringOriginal,
+  ...logicalAggregateSuccesses,
 ];
 export const sourceFreeRefusals = [
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({

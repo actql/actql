@@ -888,6 +888,15 @@ unsupported profile: the existing explicit-frame implementation is not the
 separate default/unordered DISTINCT analytic contract. This connection also
 does not close the statistical DISTINCT gap.
 
+Grouped `LOGICAL_AND(expression)` and `LOGICAL_OR(expression)` require one
+Boolean argument. Preserve its single evaluation and optional per-call filter.
+Lower to the existing common MIN or MAX fold respectively, with a
+single-operand Boolean expression checking the original argument type.
+The common Boolean order is false before true. Both folds exclude NULL and
+return a nullable Boolean, with NULL for an empty or all-NULL group.
+The selected forms apply to SQL SELECT and Pipe AGGREGATE.
+[GoogleSQL Boolean aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#logical_and)
+
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
 `STDDEV_SAMP`) lower to the existing common aggregate functions. They work in

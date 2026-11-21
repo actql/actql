@@ -605,3 +605,46 @@ test "direct group stays within indexed aggregation scaling floors" {
     assert_true(peak < count * 12 + 1000)
   }
 }
+
+///|
+test "Boolean logical aggregate folds ignore NULL and keep typed empty results" {
+  for
+    (rows, expected_and, expected_or) in [
+      ("[{\"flag\":true},{\"flag\":null}]", Boolean(true), Boolean(true)),
+      ("[{\"flag\":false},{\"flag\":null}]", Boolean(false), Boolean(false)),
+      ("[{\"flag\":false},{\"flag\":true}]", Boolean(false), Boolean(true)),
+      ("[{\"flag\":null}]", Null, Null),
+      ("[]", Null, Null),
+    ] {
+    let owner = bound_pipeline(
+      "[{\"values\":{\"schema\":{\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":" +
+      rows +
+      "},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"all_true\":{\"fn\":\"min\",\"expr\":{\"and\":[{\"field\":\"flag\"}]}},\"any_true\":{\"fn\":\"max\",\"expr\":{\"or\":[{\"field\":\"flag\"}]}}}}}]",
+    )
+    let sequence = prepared_sequence(owner)
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      sequence,
+      [sequence_fragment_context(sequence, 1, 2L)],
+      ["group_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let completed = execute_generated_sequence(generated, [], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    }).unwrap()
+    let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+    assert_eq(table.names, ["all_true", "any_true"])
+    assert_eq(table.rows.length(), 1)
+    assert_eq(
+      object_result_wire(table.rows[0][0]),
+      object_result_wire(expected_and),
+    )
+    assert_eq(
+      object_result_wire(table.rows[0][1]),
+      object_result_wire(expected_or),
+    )
+  }
+}
