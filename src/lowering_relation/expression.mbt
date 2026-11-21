@@ -157,6 +157,7 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  SplitPart
   GenerateArray
   ArrayConcat
   ArrayToString
@@ -451,6 +452,7 @@ fn expression_tag(
     | "instr"
     | "replace"
     | "split"
+    | "split_part"
     | "generate_array"
     | "array_concat"
     | "array_to_string"
@@ -510,6 +512,14 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "split_part" => {
+      let object = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(object, "value").unwrap(),
+        @decode.lookup(object, "delimiter").unwrap(),
+        @decode.lookup(object, "index").unwrap(),
+      ]
+    }
     "utf8_truncate" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -1103,7 +1113,7 @@ fn lower_typed_expression_measured(
             None => None
           }
           if [
-              "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
+              "split_part", "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
               "try_timestamp", "format_timestamp", "regex_match", "regex_extract",
               "regex_replace",
             ].contains(operation) &&
@@ -1450,6 +1460,7 @@ fn lower_typed_expression_measured(
         "translate" => Many(Translate, args)
         "instr" => Many(Instr, args)
         "split" => Many(Split, args)
+        "split_part" => Many(SplitPart, args)
         "array_concat" => Many(ArrayConcat, args)
         "array_to_string" => Many(ArrayToString, args)
         "format_strings" => Many(FormatStrings, args)

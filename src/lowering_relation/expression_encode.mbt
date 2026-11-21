@@ -441,6 +441,16 @@ fn emit_frames(
               ),
             )
           }
+          Many(SplitPart, args) => {
+            pending.push(Op("split_part"))
+            @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions(
+                [("delimiter", args[1]), ("index", args[2]), ("value", args[0])],
+                0,
+              ),
+            )
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -463,7 +473,8 @@ fn emit_frames(
                   FormatStrings => "format_strings"
                   ToJsonString => "to_json_string"
                   JsonValue => "json_value"
-                  RegexExtract | RegexReplace => raise @encode.InvalidStructure
+                  SplitPart | RegexExtract | RegexReplace =>
+                    raise @encode.InvalidStructure
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

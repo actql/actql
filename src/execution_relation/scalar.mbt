@@ -710,6 +710,7 @@ pub fn boolean_pair(
     | Translate
     | Instr
     | Split
+    | SplitPart
     | GenerateArray
     | ArrayConcat
     | ArrayToString

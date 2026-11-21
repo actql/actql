@@ -40,8 +40,8 @@ fn evaluation_position(
   }
   guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
     [
-      "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp", "try_timestamp",
-      "format_timestamp", "regex_match", "regex_extract", "regex_replace",
+      "split_part", "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
+      "try_timestamp", "format_timestamp", "regex_match", "regex_extract", "regex_replace",
     ].contains(operation) &&
     @identity.object_field(source, operation) is Some(arguments) else {
     return None
@@ -164,6 +164,7 @@ fn emit_text_evaluation_envelope(
   @encode.string_value(
     out,
     match operation {
+      SplitPart => "split_part"
       TryNumber => "try_number"
       Nfkc => "nfkc"
       CaseFold => "case_fold"
@@ -270,7 +271,8 @@ fn prepare_fragment_evaluations(
       }
       let output = @lower.text_bound_output(original)
       if !(@text_bounds.output_operation(output)
-        is (TryNumber
+        is (SplitPart
+        | TryNumber
         | Utf8Truncate(_)
         | Nfkc
         | CaseFold

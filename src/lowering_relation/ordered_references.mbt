@@ -258,6 +258,24 @@ fn prepare_ordered_reference_material(
                 return Err(ReferenceLimit)
               }
             }
+            Many(SplitPart, children) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(
+                  ObjectFields(
+                    [
+                      ("value", children[0]),
+                      ("delimiter", children[1]),
+                      ("index", children[2]),
+                    ],
+                    0,
+                    body,
+                  ),
+                ) {
+                return Err(ReferenceLimit)
+              }
+            }
             Many(Substring, children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)

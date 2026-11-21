@@ -1632,6 +1632,7 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  SplitPart
   GenerateArray
   ArrayConcat
   ArrayToString

@@ -903,6 +903,7 @@ fn advance_expression_frame_impl(
               op == @lower.RegexExtract ||
               op == @lower.RegexReplace ||
               op == @lower.Split ||
+              op == @lower.SplitPart ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
               op == @lower.Translate ||
@@ -925,6 +926,7 @@ fn advance_expression_frame_impl(
                 children.length() >= 2 && children.length() <= 4
               } else if op == @lower.Replace ||
                 op == @lower.Translate ||
+                op == @lower.SplitPart ||
                 op == @lower.RegexReplace {
                 children.length() == 3
               } else if op == @lower.LeftString ||
@@ -953,6 +955,8 @@ fn advance_expression_frame_impl(
                     TextRegexReplace
                   } else if op == @lower.Split {
                     TextSplit
+                  } else if op == @lower.SplitPart {
+                    TextSplitPart
                   } else if op == @lower.Repeat {
                     TextRepeat
                   } else if op == @lower.Translate {
@@ -1012,6 +1016,7 @@ fn advance_expression_frame_impl(
               | Translate
               | Instr
               | Split
+              | SplitPart
               | Substring
               | LeftString
               | RightString
@@ -2104,6 +2109,7 @@ fn advance_expression_frame_impl(
               | Translate
               | Instr
               | Split
+              | SplitPart
               | GenerateArray
               | ArrayConcat
               | ArrayToString

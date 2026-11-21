@@ -23,6 +23,7 @@ priv enum TextFunctionKind {
   TextInstr
   TextReplace
   TextSplit
+  TextSplitPart
   TextArrayJoin
   TextFormatStrings
   TextSqlJson
@@ -68,9 +69,36 @@ fn is_pad_text_function(kind : TextFunctionKind) -> Bool {
 }
 
 ///|
+fn uses_selected_text_interval(kind : TextFunctionKind) -> Bool {
+  kind == TextUtf8Truncate ||
+  kind == TextSplitPart ||
+  is_trim_text_function(kind) ||
+  is_slice_text_function(kind)
+}
+
+///|
 priv struct Utf8TruncationState {
   max_bytes : Int64
   mut input_bytes : Int64
+}
+
+///|
+priv enum SplitPartPhase {
+  VerifyInput
+  CountParts
+  SelectPart
+  CopyPart
+}
+
+///|
+priv struct SplitPartCursor {
+  max_points : Int64
+  max_bytes : Int64
+  mut input_bytes : Int64
+  mut phase : SplitPartPhase
+  mut index : Int64
+  mut parts : Int64
+  mut part_start : Int
 }
 
 ///|
@@ -119,6 +147,7 @@ priv struct TextFunctionState {
   mut trim_start : Int
   mut trim_end : Int
   truncate : Utf8TruncationState?
+  split_part : SplitPartCursor?
   normalization : @canonical.NormalizationCursor?
   mut normalization_phase : Int
   mut normalization_input_bytes : Int64
@@ -182,6 +211,7 @@ fn start_text_function(
       Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
         ()
       Text(_) if kind != TextChr &&
+        (kind != TextSplitPart || i < 2) &&
         (kind != TextRegexExtract || i < 2) &&
         (kind != TextArrayJoin || i != 0) &&
         (kind != TextFormatTimestamp || i != 0) &&
@@ -197,6 +227,7 @@ fn start_text_function(
           (is_pad_text_function(kind) && i == 2)
         ) => ()
       Number(_) if (kind == TextRegexExtract && i == 2) ||
+        (kind == TextSplitPart && i == 2) ||
         (kind == TextUtf8Truncate && i == 1) ||
         kind == TextChr ||
         (kind == TextInstr && i >= 2) ||
@@ -250,6 +281,29 @@ fn start_text_function(
     ""
   }
   let input = text(values[0])
+  let mut split_index = 0L
+  let split_extent = if kind == TextSplitPart {
+    guard @lower.expression_text_bound(expression) is Some(original) &&
+      @text_bounds.output_operation(@lower.text_bound_output(original))
+      is @text_bounds.SplitPart else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if !null_result {
+      guard values[2] is Number(index) &&
+        @scalar.read_safe_integer(index) is Some(index) &&
+        index != 0L else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      split_index = index
+    }
+    Some(
+      @text_bounds.input_extent(
+        @text_bounds.output_input(@lower.text_bound_output(original)),
+      ),
+    )
+  } else {
+    None
+  }
   let repeat_count = if kind == TextRepeat && !null_result {
     // Count uses the existing finite integral Number domain. Validate before
     // any narrowing and before the empty-input shortcut, including negatives.
@@ -357,6 +411,10 @@ fn start_text_function(
       4
     } else if kind == TextUtf8Truncate {
       6
+    } else if kind == TextSplitPart {
+      // The shared output state and the fixed cursor, including phase,
+      // original input extent and the retained selection coordinates.
+      2 + (if null_result { 0 } else { 10 })
     } else if kind == TextLike {
       3
     } else {
@@ -467,6 +525,7 @@ fn start_text_function(
         " "
       }
     } else if kind == TextReplace ||
+      kind == TextSplitPart ||
       kind == TextStrpos ||
       kind == TextContains ||
       kind == TextLike ||
@@ -492,7 +551,9 @@ fn start_text_function(
       kind == TextSqlJson ||
       kind == TextJsonValue {
       values.length() * 3 + 1 + reserved
-    } else if kind == TextRegexExtract || kind == TextRegexReplace {
+    } else if kind == TextRegexExtract ||
+      kind == TextRegexReplace ||
+      kind == TextSplitPart {
       values.length() * 2 + 1 + reserved
     } else if is_normalization ||
       timestamp_pattern is Some(_) ||
@@ -554,6 +615,19 @@ fn start_text_function(
       input.length()
     },
     truncate,
+    split_part: if null_result {
+      None
+    } else {
+      split_extent.map(extent => {
+        max_points: extent.0,
+        max_bytes: extent.1,
+        input_bytes: 0L,
+        phase: VerifyInput,
+        index: split_index,
+        parts: 1L,
+        part_start: 0,
+      })
+    },
     normalization: if is_normalization && !null_result {
       Some(@canonical.start_normalization(input, kind == TextCaseFold))
     } else {
@@ -725,6 +799,9 @@ fn advance_text_function(
   }
   if state.normalization is Some(cursor) {
     return advance_normalization_function(state, cursor, workspace)
+  }
+  if state.split_part is Some(cursor) && !(cursor.phase is CopyPart) {
+    return advance_split_part(state, cursor).map(_ => None)
   }
   if state.substring_phase == 4 {
     // Validate the complete original input, including the suffix beyond the
@@ -1011,9 +1088,7 @@ fn advance_text_function(
   let end = if state.kind == TextReverse ||
     (state.kind == TextRepeat && state.repetitions == 0) {
     0
-  } else if state.kind == TextUtf8Truncate ||
-    is_trim_text_function(state.kind) ||
-    is_slice_text_function(state.kind) {
+  } else if uses_selected_text_interval(state.kind) {
     state.trim_end
   } else if state.kind == TextChr {
     if state.chr_scalar is Some(_) {
@@ -1034,9 +1109,7 @@ fn advance_text_function(
     }
     state.position = if state.kind == TextReverse {
       state.input.length()
-    } else if state.kind == TextUtf8Truncate ||
-      is_trim_text_function(state.kind) ||
-      is_slice_text_function(state.kind) {
+    } else if uses_selected_text_interval(state.kind) {
       state.trim_start
     } else {
       0
@@ -1113,9 +1186,7 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if state.kind == TextUtf8Truncate ||
-    is_trim_text_function(state.kind) ||
-    is_slice_text_function(state.kind) {
+  if uses_selected_text_interval(state.kind) {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next
