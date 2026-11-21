@@ -130,6 +130,7 @@ fn aggregate_order_fields(
       ParameterReference(_) => ()
       Call(_, _)
       | SearchedCase(_, _)
+      | SimpleCase(_, _, _)
       | Binary(_, _, _)
       | Predicate(_, _)
       | Unary("NOT", _) =>
@@ -230,6 +231,8 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
       SearchedCase(branches, otherwise) =>
         total[otherwise] &&
         branches.all(branch => total[branch.0] && total[branch.1])
+      // Match operands can require the checked comparison domain.
+      SimpleCase(_, _, _) => false
       _ => false
     }
     total.push(admitted)

@@ -135,6 +135,8 @@ fn native_project_mock_model_backed_read(
   pure_file_budget_refusal? : Bool = false,
   pure_file_query? : String? = None,
   static_disclosure? : Bool = false,
+  static_explain? : Bool = false,
+  static_lookup_metadata? : Bool = true,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -142,6 +144,7 @@ fn native_project_mock_model_backed_read(
   // Project metadata stays retained while its SAME immutable originals are
   // borrowed by the separate Request payload, as in the ordinary command.
   let request_facility = if readme_request ||
+    static_explain ||
     pure_file_source ||
     pure_file_plan ||
     pure_file_control ||
@@ -233,6 +236,8 @@ fn native_project_mock_model_backed_read(
       effect_recipe~,
       effect_material_restore~,
       effect_prepared_restore~,
+      static_explain~,
+      static_lookup_metadata~,
     )
   } else if account_initialization {
     native_project_mock_account_in_original_read()
@@ -275,7 +280,14 @@ fn native_project_mock_model_backed_read(
   }
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
-  if request_issue is Some(issue) {
+  if static_explain && !static_lookup_metadata {
+    assert_eq(
+      request_issue,
+      Some(
+        "Request.Preparation(ProgramCheck.EffectInput.Computation.Source.Requests.Capacity.Stage(2,MissingPolicy(1)))",
+      ),
+    )
+  } else if request_issue is Some(issue) {
     fail("whole original README Native Request: " + issue)
   }
 }

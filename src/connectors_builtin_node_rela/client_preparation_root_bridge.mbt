@@ -1724,13 +1724,18 @@ pub fn client_program_borrow_request_effect_plan_input(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
+  static_models : Bool,
 ) -> Result[
   @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientEffectComputation,
   ],
   @client_local_host.ClientRequestPreparationIssue,
 ] {
-  @client_local_host.borrow_request_effect_plan_input(parent, input)
+  @client_local_host.borrow_request_effect_plan_input(
+    parent,
+    input,
+    static_models~,
+  )
 }
 
 ///|
@@ -2852,13 +2857,20 @@ pub fn client_program_read_request_checked_static_plan(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
 ) -> Result[String, ClientRequestStaticPlanBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
   }
   @client_local_host.request_prepared_static_plan_view(
-    parent, input, manifests, max_bytes, max_nodes, max_depth,
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    infers~,
   ).map_err(issue => Preparation(issue))
 }
 

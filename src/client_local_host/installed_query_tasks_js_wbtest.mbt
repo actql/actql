@@ -3,6 +3,53 @@ let installed_query_tasks_document : String =
   #|{"version":"actql/0.1","id":"same-original-query-join","stages":[{"id":"left","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"right","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"joined","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
 
 ///|
+test "Native file Request keeps Query admission errors terminal" {
+  let protocols = (
+    original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+  )
+  for bodies in [Some(protocols), Some(("{}", "{}")), None] {
+    let (parent, input, prepared, request) = request_whole_source_fixture(
+      text=installed_query_tasks_document,
+    )
+    let selected = prepare_request_native_file_source_inputs(
+      parent, input, request, bodies,
+    )
+    match bodies {
+      Some((query, _)) if query == protocols.0 => {
+        guard selected is Ok(QuerySourceInputs(_, direct)) else {
+          fail("the original Query has both authenticated capture occurrences")
+        }
+        assert_eq(
+          @publication_host.client_direct_acquisition_occurrence_count(direct),
+          2,
+        )
+        assert_true(
+          @publication_host.client_direct_acquisition_occurrences_match_program(
+            direct, prepared,
+          ),
+        )
+        assert_eq(
+          @publication_host.client_direct_acquisition_occurrence_at(direct, 0),
+          Some((0, 0, 0)),
+        )
+        assert_eq(
+          @publication_host.client_direct_acquisition_occurrence_at(direct, 1),
+          Some((1, 0, 1)),
+        )
+      }
+      Some(_) =>
+        assert_true(
+          selected
+          is Err(NativeFileQueryContracts(ModelSource(InvalidContracts))),
+        )
+      None => assert_true(selected is Ok(MissingQueryContracts))
+    }
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 // Actual Request/check/Query acquisitions and managed RowRun originals. The
 // existing explicit component admission is not a physical Native/Account grant.
 priv struct InstalledQueryTasksFixture {

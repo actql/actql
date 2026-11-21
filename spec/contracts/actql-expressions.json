@@ -2339,6 +2339,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/expression"
                     }
                   }
                 }
@@ -8604,6 +8607,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/expression"
                     }
                   }
                 }
@@ -13834,7 +13840,9 @@
                   "true",
                   "not_true",
                   "null",
-                  "not_null"
+                  "not_null",
+                  "case_match",
+                  "case_no_match"
                 ]
               }
             }
@@ -14568,7 +14576,9 @@
                         "enum": [
                           "true",
                           "not_true",
-                          "null"
+                          "null",
+                          "case_match",
+                          "case_no_match"
                         ]
                       }
                     }
@@ -14758,7 +14768,9 @@
                             "true",
                             "not_true",
                             "null",
-                            "not_null"
+                            "not_null",
+                            "case_match",
+                            "case_no_match"
                           ]
                         }
                       }
@@ -21072,6 +21084,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/source_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/source_expression"
                     }
                   }
                 }
@@ -26422,6 +26437,9 @@
                       }
                     },
                     "else": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "operand": {
                       "$ref": "#/$defs/machine_expression"
                     }
                   }
@@ -34863,6 +34881,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/source_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/source_expression"
                     }
                   }
                 }
@@ -40214,6 +40235,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/machine_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/machine_expression"
                     }
                   }
                 }
@@ -44820,7 +44844,9 @@
                             "enum": [
                               "true",
                               "not_true",
-                              "null"
+                              "null",
+                              "case_match",
+                              "case_no_match"
                             ]
                           }
                         }
@@ -45010,7 +45036,9 @@
                                 "true",
                                 "not_true",
                                 "null",
-                                "not_null"
+                                "not_null",
+                                "case_match",
+                                "case_no_match"
                               ]
                             }
                           }
@@ -45521,6 +45549,12 @@
       "signature": "SQL MOD and DIV select exact int64/Decimal operand domains. Integer-spelled original SQL literals, including CTE/UNION producer columns required by these signatures, are typed from the original lexeme before binary64 lowering. Existing Number, floating-spelled literals and declared Number parameters/columns are not implicitly int64.",
       "value": "MOD returns the exact remainder with dividend sign; DIV truncates the exact quotient toward zero. NULL propagates after demanded operands. Zero divisor and quotient overflow fail. MIN_INT64 MOD -1 is zero; MIN_INT64 DIV -1 overflows. Decimal operands retain coefficient/scale arithmetic; mixed int64/Decimal has Decimal result. DIV Decimal result has scale zero; MOD has maximum operand scale. No binary64 modulo or quotient intermediary.",
       "demand": "Both original children use existing checked contracts, work/control charges, workspace, cancellation, current and failed-child cleanup. Context selection uses original query-local producer syntax, never observed rows or provider ordering."
+    },
+    "simple_case": {
+      "identity": "The optional case.operand retains the simple CASE selector in both the closed source and machine body. Without it, the body retains searched CASE. The when array preserves authored order. Canonical completion of missing else remains typed NULL.",
+      "signature": "The selector and WHEN operands share an equality-comparable domain under the existing Common comparison rules. An all-literal-NULL comparison list uses the nullable Boolean domain only for the comparison; result typing uses the THEN and ELSE branches alone.",
+      "evaluation": "Evaluate the selector once. Evaluate WHEN operands in order and compare each to that selector with Common equality; only true selects a branch. False and NULL continue. Evaluate only the selected THEN or ELSE. All clauses receive static validation.",
+      "demand": "The selector and first WHEN inherit outer demand. Each later WHEN adds case_no_match tests for earlier WHEN operands. A THEN additionally adds case_match for its own WHEN. ELSE adds case_no_match for every WHEN. The pointer addresses the exact original WHEN operand; the paired selector is the enclosing case.operand in the same evaluation frame. The tests use the retained comparison outcome and do not reevaluate either operand."
     }
   },
   "regex_ast_contract": {

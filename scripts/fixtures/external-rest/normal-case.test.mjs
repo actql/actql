@@ -20,6 +20,7 @@ import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../benchmark
 import {externalRestDefinition, externalRestProvider} from './provider.fixture.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {prepareExternalRestCohort} from './installed-modules.mjs';
+import {isInstalledAuthoringToolkit, observeInstalledAuthoringToolkit} from '../../connector-authoring-toolkit.mjs';
 import {notionUsersProvider,notionUsersConfiguration} from './notion-users.fixture.mjs';
 
 const selectedInput = process.env.ACTQL_REST_CONFORMANCE_INPUT;
@@ -40,6 +41,7 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
   // Installed payload correspondence remains the original separate check.
   const cohort = await prepareExternalRestCohort(selected);
   const {manifest, artifactManifestPath, originalBindings, offeredTarballs, hostPackageVersion} = cohort;
+  const installedToolkit = isInstalledAuthoringToolkit(root);
   await assert.rejects(lstat(selected.outputRoot), {code: 'ENOENT'});
   await mkdir(selected.outputRoot, {mode: 0o700});
   const output = selected.outputRoot, consumer = join(output, 'consumer'), commands = [];
@@ -72,10 +74,11 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     }
   };
   try {
-    const originalSource = (await tool('git', ['rev-parse', 'HEAD'], {cwd: root})).stdout.trim();
-    assert.equal((await tool('git', ['status', '--porcelain'], {cwd: root})).stdout, '',
+    const originalSource = installedToolkit ? await observeInstalledAuthoringToolkit(root, cohort) : {
+      source: (await tool('git', ['rev-parse', 'HEAD'], {cwd: root})).stdout.trim(), clean: true};
+    if (!installedToolkit) assert.equal((await tool('git', ['status', '--porcelain'], {cwd: root})).stdout, '',
       'Authoring tools must stay frozen while the ordinary case runs');
-    await save(join(output, 'author-framework-source-before.json'), {source: originalSource, clean: true});
+    await save(join(output, 'author-framework-source-before.json'), originalSource);
     let plugin = selectedAuthor?.bytes === undefined ? undefined
       : await stagePackedAuthorPackage(output, authorCase, selectedAuthor.bytes, hostPackageVersion);
     if (authorCase) await save(join(output, 'fixture-before.json'), provider.assertState('before'));
@@ -92,26 +95,28 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     // pure validator. No new Common build or framework pack occurs here.
     const author = join(consumer, 'author'), packageRoot = join(output, 'connector-package');
     const cli = join(root, 'scripts/connector.mjs'), introductionStart = performance.now();
+    const authorCommandCwd = installedToolkit ? consumer : root;
     const registration = authorCase?.schema.registration ?? 'acme';
     const generated = !builtin && plugin === undefined;
     if (generated) {
-      await runInstalledFamilyProcess({script: cli, args: ['init', author, registration], cwd: root, env,
+      await runInstalledFamilyProcess({script: cli, args: ['init', author, registration], cwd: authorCommandCwd, env,
         output: join(output, 'author-init-process.json')});
       commands.push({name: 'author-init', command: process.execPath, args: [cli, 'init', author, registration]});
       const definitionPath = await stageAuthorDefinition(author,
         selectedAuthor ?? {definition: externalRestDefinition(family.resourceHttps.origin)},
         family.resourceHttps.origin);
-      await runInstalledFamilyProcess({script: cli, args: ['build', definitionPath, packageRoot], cwd: root, env,
+      await runInstalledFamilyProcess({script: cli, args: ['build', definitionPath, packageRoot], cwd: authorCommandCwd, env,
         output: join(output, 'author-build-process.json')});
       commands.push({name: 'author-build', command: process.execPath, args: [cli, 'build', definitionPath, packageRoot]});
       // Freshness is the exposed author test, independent of the actual Run.
       if (authorCase) {
-        await runTool('author-test', process.execPath, [cli, 'test', definitionPath, packageRoot], root);
+        await runTool('author-test', process.execPath, [cli, 'test', definitionPath, packageRoot], authorCommandCwd);
       }
       const artifacts = join(output, 'artifacts');
       await mkdir(artifacts);
-      const packages = parseNpmPackJson(await runTool('pack-connector', 'npm',
+      const packedOutput = parseNpmPackJson(await runTool('pack-connector', 'npm',
         normalNpmPackJsonArgs(['pack', '--offline', '--json', '--pack-destination', artifacts]), packageRoot));
+      const packages = Array.isArray(packedOutput) ? packedOutput : Object.values(packedOutput);
       assert.equal(packages.length, 1);
       const [packed] = packages;
       const manifest = authorCase ? await readAuthorPackage(packageRoot, authorCase.schema, family.resourceHttps.origin, hostPackageVersion)
@@ -158,15 +163,18 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     if (authorCase) await save(join(output, 'fixture-after-read.json'), provider.assertState('after'));
     report.normalReadPassed = true;
     const firstRequests = provider.requests();
-    const observedSource = (await tool('git', ['rev-parse', 'HEAD'], {cwd: root})).stdout.trim();
-    assert.equal(observedSource, originalSource);
-    const changedFrameworkFiles = (await tool('git', ['status', '--porcelain'], {cwd: root})).stdout;
-    assert.equal(changedFrameworkFiles, '');
-    const coreOrHostDiff = (await tool('git', ['diff', '--name-only', originalSource, '--',
-      'src', 'adapters/host-node', 'adapters/host-common', 'adapters/site-node'], {cwd: root})).stdout
-      .split('\n').filter(Boolean);
-    await save(join(output, 'author-framework-source-after.json'), {source: observedSource,
-      clean: changedFrameworkFiles === '', changedCoreOrHostFiles: coreOrHostDiff});
+    let coreOrHostDiff;
+    if (!installedToolkit) {
+      const observedSource = (await tool('git', ['rev-parse', 'HEAD'], {cwd: root})).stdout.trim();
+      assert.equal(observedSource, originalSource.source);
+      const changedFrameworkFiles = (await tool('git', ['status', '--porcelain'], {cwd: root})).stdout;
+      assert.equal(changedFrameworkFiles, '');
+      coreOrHostDiff = (await tool('git', ['diff', '--name-only', originalSource.source, '--',
+        'src', 'adapters/host-node', 'adapters/host-common', 'adapters/site-node'], {cwd: root})).stdout
+        .split('\n').filter(Boolean);
+      await save(join(output, 'author-framework-source-after.json'), {source: observedSource,
+        clean: changedFrameworkFiles === '', changedCoreOrHostFiles: coreOrHostDiff});
+    }
     // Record automated author effort only AFTER the first actual ordinary
     // read and close pass. This is not human typing time or latency acceptance.
     if (generated) {
@@ -181,7 +189,8 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
         automatedIntroductionSeconds: (performance.now() - introductionStart) / 1000,
         timeScope: 'CLI scaffold/build, generated package pack, fresh ordinary install, public read/first close',
         handwrittenConnectorMoonBitFiles: expectedPlugin.filter(file => /\.(?:mbt|mbti)$|(?:^|\/)moon\.(?:pkg|mod)$/u.test(file.path)).length,
-        perConnectorCoreOrHostEdits: coreOrHostDiff.length, changedCoreOrHostFiles: coreOrHostDiff,
+        ...(coreOrHostDiff === undefined ? {authoringToolkit: 'installed'}
+          : {perConnectorCoreOrHostEdits: coreOrHostDiff.length, changedCoreOrHostFiles: coreOrHostDiff}),
         mechanism: 'existing public installation.connectorTable; no source/Host patch or compiler command',
         normalSourceSha: selected.sourceSha, normalSourceTree: selected.sourceTree,
         humanTypingTimeMeasured: false, performanceAcceptance: false});
@@ -194,6 +203,11 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     assert.deepEqual(provider.requests(), firstRequests);
     assert.deepEqual(family.https.seen(), firstTransport);
     if (authorCase) await save(join(output, 'fixture-after-saved.json'), provider.assertState('after'));
+    if (installedToolkit) {
+      const observedSource = await observeInstalledAuthoringToolkit(root, cohort);
+      assert.deepEqual(observedSource, originalSource);
+      await save(join(output, 'author-framework-source-after.json'), observedSource);
+    }
     report.originalSavedPassed = true;
     report.casePassed = true;
   } catch (cause) {primary = cause;report.failure = nodeBenchmarkFailure(cause);}

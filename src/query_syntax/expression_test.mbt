@@ -207,9 +207,36 @@ test "searched CASE preserves demand branches and does not evaluate them" {
   }
   for
     text in [
-      "CASE x WHEN 1 THEN 2 END", "CASE WHEN x 1 END", "CASE WHEN x THEN 1", "CASE ELSE 1 END",
+      "CASE x THEN 2 END", "CASE WHEN x 1 END", "CASE WHEN x THEN 1", "CASE ELSE 1 END",
     ] {
     assert_true(parse_expression(text, expression_limits()) is Err(_), msg=text)
+  }
+}
+
+///|
+test "simple CASE retains the selector and ordered branches" {
+  let expression = parse_expression(
+    "CASE x + 1 WHEN 2 THEN 'first' WHEN 3 THEN 'second' END",
+    expression_limits(),
+  ).unwrap()
+  let root = expression_root(expression)
+  let original = expression_child(expression, root).unwrap()
+  for expression in [expression, original] {
+    guard kind(expression, expression_root(expression))
+      is SimpleCase(operand, branches, otherwise) else {
+      fail("expected simple CASE")
+    }
+    assert_true(kind(expression, operand) is Binary("+", _, _))
+    assert_eq(branches.length(), 2)
+    assert_eq(kind(expression, branches[0].0), Number("2"))
+    assert_eq(kind(expression, branches[1].0), Number("3"))
+    assert_eq(kind(expression, otherwise), Null)
+    branches.clear()
+    assert_true(
+      kind(expression, expression_root(expression))
+      is SimpleCase(_, retained, _) &&
+      retained.length() == 2,
+    )
   }
 }
 

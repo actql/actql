@@ -32,6 +32,7 @@ fn NativeLocalHostConnection::check_signing_grant_submission_locked(
   grant : @credential.LocalSigningCredentialGrant,
   request : @host.ClientRequestIdentity,
   expected_run : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let scope = @credential.local_signing_credential_grant_scope(grant)
   if !local_signing_grant_matches_request(grant, request) ||
@@ -42,16 +43,24 @@ fn NativeLocalHostConnection::check_signing_grant_submission_locked(
   // alongside the later key/projection reads.
   let reference = {
     let row = match
-      self.database.read("client_submitted_intents", scope.submission_scope_cid) {
+      read_client_journal_value(
+        self.database,
+        "client_submitted_intents",
+        scope.submission_scope_cid,
+        reads,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(Physical(issue))
     }
     let decoded = match
-      self.journal.inspect_submitted_intent_row({
-        key: scope.submission_scope_cid,
-        body: row.body,
-        revision: row.revision,
-      }) {
+      self.journal.inspect_submitted_intent_row(
+        {
+          key: scope.submission_scope_cid,
+          body: row.body,
+          revision: row.revision,
+        },
+        reads~,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -71,6 +80,7 @@ fn NativeLocalHostConnection::check_signing_grant_submission_locked(
       reference,
       @host.client_request_authority_scope_cid(request),
       true,
+      reads~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -84,9 +94,15 @@ fn NativeLocalHostConnection::check_signing_grant_original_locked(
   grant : @credential.LocalSigningCredentialGrant,
   request : @host.ClientRequestIdentity,
   expected_run : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   match
-    self.check_signing_grant_submission_locked(grant, request, expected_run) {
+    self.check_signing_grant_submission_locked(
+      grant,
+      request,
+      expected_run,
+      reads~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

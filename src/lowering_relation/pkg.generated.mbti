@@ -1350,6 +1350,7 @@ pub enum ExpressionBody {
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
+  SimpleCase(Expression, Array[(Expression, Expression)], Expression)
   CurrentTimestamp
 }
 

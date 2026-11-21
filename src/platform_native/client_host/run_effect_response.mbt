@@ -183,12 +183,13 @@ fn effect_ledger_custody_with_responses(
 fn NativeClientRunJournal::require_effect_dispatch_locked(
   self : NativeClientRunJournal,
   dispatch : NativeClientEffectDispatchClaim,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if !physical_equal(self, dispatch.journal) ||
     @effect.effect_ledger_entry_state_code(dispatch.dispatching) != 1 {
     return Err(Checkpoint(InvalidMaterial))
   }
-  let record = match self.retained(dispatch.request) {
+  let record = match self.retained(dispatch.request, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)

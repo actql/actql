@@ -382,12 +382,13 @@ fn local_project_read_execution_bindings(
   selected : LocalProjectConfiguration?,
   operation : String,
 ) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
-  let write_metadata_only = operation == "approve"
+  let saved_decision_metadata_only = operation == "approve" ||
+    operation == "reject"
   guard selected is Some(project) &&
     (
       local_project_execution_operation(operation) ||
       operation == "adopt" ||
-      write_metadata_only
+      saved_decision_metadata_only
     ) else {
     return Ok(selected)
   }
@@ -402,22 +403,22 @@ fn local_project_read_execution_bindings(
     metadata.connectors_file() is Some(_) &&
     metadata.mock_catalog_file() is Some(_) &&
     metadata.mock_data_file() is Some(_) &&
-    (write_metadata_only || metadata.model_tasks_file() is Some(_)) {
+    (saved_decision_metadata_only || metadata.model_tasks_file() is Some(_)) {
     return match
       local_project_read_mock_declarations(
         project,
         local_project_mock_task_limits(),
-        include_models=!write_metadata_only,
+        include_models=!saved_decision_metadata_only,
       ) {
       Ok(original) =>
         Ok(Some({ ..project, mock_declarations: Some(original), }))
       Err(original) => Err(original)
     }
   }
-  // Current Project metadata selects an implementation only; it cannot
-  // replace the Saved Program/Task/Result or refresh its authority. A later
-  // actual write must match the original Preview binding before any IO.
-  if write_metadata_only {
+  // Both decisions reverify the original Request policy with current
+  // declarations. Only approval can bind the write implementation;
+  // neither decision replaces the Saved Program, Task or Result.
+  if saved_decision_metadata_only {
     if project.profile == Some("mock") {
       stop("LocalProjectBindingsUnavailable")
     }

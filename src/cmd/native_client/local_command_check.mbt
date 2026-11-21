@@ -700,6 +700,16 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
+            // Bind the same installation/lookup metadata before the checking
+            // Environment is cached. This reads no Source payload and invokes
+            // no Model.
+            self.bind_project_mock_runtime(
+              self.runtime.unwrap_or_else(() => {
+                stop("LocalBusinessOriginalUnavailable")
+              }),
+              capture,
+              settings.principal,
+            )
             let context = local_check_context(
               host,
               crypto,
@@ -708,7 +718,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               configuration=Some(configuration),
             )
             let input = self.prepare_static_request(capture, input_root, child)
-            context.project_request(self, capture, input, true)
+            context.project_request(
+              self,
+              capture,
+              input,
+              true,
+              installed_contracts=preparation_runtime.map(runtime => {
+                runtime.installed_contracts
+              }),
+            )
           }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(

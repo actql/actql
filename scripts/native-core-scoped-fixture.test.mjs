@@ -97,20 +97,20 @@ test('Native lineage fixtures bind the three original kinds and only the replace
   assert.deepEqual(readdirSync(namespace), []);
 });
 
-test('Native file response fixtures keep export input-free and isolate all three actual file and Journal namespaces', t => {
+test('Native file response fixtures keep export input-free and isolate all four actual file and Journal namespaces', t => {
   assert.equal(nativeScopedTestFiles.filter(file => file === nativeClientFileResponseTestFile).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(nativeClientFileResponseTestFile), 'scoped-review-values');
   assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/run_effect_receipt_wbtest.mbt'), 'runtime-values');
   const source = readFileSync(new URL('../' + nativeClientFileResponseTestFile, import.meta.url), 'utf8');
-  assert.equal([...source.matchAll(/^test /gmu)].length, 4);
+  assert.equal([...source.matchAll(/^test /gmu)].length, 5);
   assert.match(source, /test "export original Native file receipt Checkpoint signing references" \{[\s\S]*?receipt_test_checkpoint\(definition, file=true\)/u);
   assert.deepEqual([...source.matchAll(/^test "[^"]+" \{\n  file_receipt_fixture_physical\((\d+)\)\n\}/gmu)]
-    .map(match => Number(match[1])), [0, 1, 2]);
+    .map(match => Number(match[1])), [0, 1, 2, 3]);
   const exported = fixture(t);
   assert.deepEqual(nativeClientFileResponseFixture(exported, 0), {});
   assert.deepEqual(readdirSync(exported), []);
   const roots = [];
-  for (const index of [1, 2, 3]) {
+  for (const index of [1, 2, 3, 4]) {
     const namespace = fixture(t), env = nativeClientFileResponseFixture(namespace, index);
     const root = join(namespace, 'file-receipt'); roots.push(root);
     assert.deepEqual(env, {ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: root, ACTQL_TEST_NATIVE_SQLITE_ROOT: root});
@@ -124,9 +124,9 @@ test('Native file response fixtures keep export input-free and isolate all three
     assert.throws(() => nativeClientFileResponseFixture(namespace, index), {code: 'EEXIST'});
     assert.equal(readFileSync(join(root, 'backing'), 'utf8'), 'same initialized receipt owner');
   }
-  assert.equal(new Set(roots).size, 3);
+  assert.equal(new Set(roots).size, 4);
   const namespace = fixture(t);
-  for (const index of [-1, 4, 0.5, '1', undefined]) assert.throws(
+  for (const index of [-1, 5, 0.5, '1', undefined]) assert.throws(
     () => nativeClientFileResponseFixture(namespace, index), /exact original/u);
   assert.deepEqual(readdirSync(namespace), []);
 });

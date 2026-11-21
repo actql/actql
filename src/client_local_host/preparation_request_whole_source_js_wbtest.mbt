@@ -39,13 +39,14 @@ fn request_whole_source_fixture(
 }
 
 ///|
-test "Request Whole inputs preserve distinct input coordinates sharing one Compute" {
+test "Native file Request keeps both Whole inputs sharing one Compute" {
   let text =
     #|{"version":"actql/0.1","id":"same-task-whole-join","stages":[{"id":"joined","inputs":{"left":{"connector":"pure-provider","resource":"records"},"right":{"connector":"pure-provider","resource":"records"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
   let (parent, input, prepared, request) = request_whole_source_fixture(text~)
-  let (direct, sources) = reserve_request_whole_source_construction(
-    parent, input, request,
-  ).unwrap()
+  guard prepare_request_native_file_source_inputs(parent, input, request, None).unwrap()
+    is WholeSourceInputs(direct, sources) else {
+    fail("both authenticated occurrences require Whole construction")
+  }
   assert_eq(sources.length(), 2)
   let left = @publication_host.client_direct_acquisition_occurrence_at(
     direct, 0,

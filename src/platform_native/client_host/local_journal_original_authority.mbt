@@ -1,4 +1,75 @@
 ///|
+// Same Read-owned fixed controls for the existing Effect Journal route. This
+// admission runs BEFORE each new accessor/operation/callback bundle exists.
+// Keep its full prefix through the row codec and the original Read's return.
+// Each claim/fence/dispatch/receipt entry admits before its captured callback;
+// neither a successful metadata lookup nor a returned lease pays this cost.
+fn NativeLocalJournalCapture::retain_effect_journal_route_controls(
+  self : NativeLocalJournalCapture,
+  additional_controls? : Int64 = 0L,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard !self.closing && self.original_resources is Some(resources) else {
+    return Err(OriginalResourceScopePending)
+  }
+  resources.retain_effect_journal_route_controls(additional_controls~)
+}
+
+///|
+fn NativeLocalJournalOriginalResources::retain_effect_journal_route_controls(
+  self : Self,
+  additional_controls? : Int64 = 0L,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard !self.interrupted &&
+    self.active_phase is Some(@arena.HostRead) &&
+    additional_controls >= 0L else {
+    return Err(OriginalResourceScopePending)
+  }
+  // Charge fixed newly retained routing controls, not a larger allowance:
+  // two Read accessor bundles (34 headers/86 references), the operation
+  // bundle (13/35), queries plus invalidator (2/6), and callback/options/
+  // Results/temporary handoffs (15/33 plus sixteen scalar words). Each
+  // accessor closure includes its code and original receiver reference.
+  // Keep this prefix in SAME Read metadata so the subsequent row codec
+  // pays its simultaneous overlap; a temporary peak would omit that sum.
+  let controls = @execution.preparation_representation_cost({
+    record_headers: 64L,
+    reference_slots: 160L,
+    scalar_words: 16L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let controls = match
+    @execution.checked_preparation_add_product(
+      controls, additional_controls, 1L,
+    ) {
+    Some(total) => total
+    None => return Err(ConfigurationLimit)
+  }
+  guard @execution.checked_preparation_add_product(
+      self.metadata_retained,
+      controls,
+      1L,
+    )
+    is Some(total) else {
+    return Err(ConfigurationLimit)
+  }
+  // Existing non-grant Owner admission checks the unchanged Ledger policy
+  // and acquires backing before any callback/bundle below is constructed.
+  // Refusal keeps its original resource/cleanup issue and emits no commit.
+  match
+    self.host.prepare_domain_original_read_construction(
+      self.read,
+      total,
+      total,
+      controls,
+    ) {
+    Ok(_) => self.metadata_retained = total
+    Err(issue) => return Err(OriginalResources(@arena.Read(issue)))
+  }
+  Ok(())
+}
+
+///|
 // Only the current captured Read may invoke this observation. The same
 // physical Journal queries leave/reenter that Read around every SQLite call;
 // snapshot facts may be reused only while the same original remains live.
@@ -490,4 +561,36 @@ pub fn NativeLocalJournalCapture::accept_submitted_run_in_original_read(
     )
     .map_err(issue => Journal(issue))
   })
+}
+
+///|
+// A fixed higher signing wrapper overlaps the existing Read routing bundle.
+// This is a real same-Read Owner admission, never an allowance or permission.
+fn NativeLocalJournalCapture::retain_initial_signing_journal_controls(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard !self.closing && self.original_resources is Some(resources) else {
+    return Err(OriginalResourceScopePending)
+  }
+  resources.retain_initial_signing_journal_controls()
+}
+
+///|
+fn NativeLocalJournalOriginalResources::retain_initial_signing_journal_controls(
+  self : Self,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  // Closed additional overlap: two wrapper/work closures and their captured
+  // originals, one typed outcome Ref and its Result/Some/return handoffs
+  // (at most 12 headers, 40 references, 16 words); the finite signing ->
+  // storage/append -> custody -> validation stack adds at most twelve
+  // read/operation option frames and joins (12/24/16). No payload copies,
+  // growing collections or per-row retained wrapper are admitted here.
+  let additional_controls = @execution.preparation_representation_cost({
+    record_headers: 24L,
+    reference_slots: 64L,
+    scalar_words: 32L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  self.retain_effect_journal_route_controls(additional_controls~)
 }

@@ -697,3 +697,79 @@ test "File Work prepared Resource diagnostics retain distinct original ledger re
     )
   }
 }
+
+///|
+test "Checkpoint failure presentation borrows the first closed cause without private payloads" {
+  local_command_diagnostic_reset()
+  let cases : Array[(LocalCommandPreparationIssue, String)] = [
+    (
+      CommandAdoption(Journal(CapacityExceeded)),
+      "Adoption:Journal(CapacityExceeded)",
+    ),
+    (
+      CommandAdoption(Physical(Physical("PRIVATE_SQL_PATH"))),
+      "Adoption:Physical(Physical)",
+    ),
+    (
+      CommandSavedResolution(
+        SavedResolutionSigning(OriginalSigningJournal(ChangedIntent)),
+      ),
+      "SavedResolutionSigning:Journal:ChangedIntent",
+    ),
+    (
+      CommandSavedResolution(
+        SavedResolutionSigning(OriginalSigningProof(ProofOriginal(CustodyLost))),
+      ),
+      "SavedResolutionSigning:ProofJournal:CustodyLost",
+    ),
+    (
+      CommandSavedResolution(
+        SavedResolutionSigning(OriginalSigningPhysical(Signing("PRIVATE_KEY"))),
+      ),
+      "SavedResolutionSigning:Physical",
+    ),
+    (
+      CommandBusinessEffectAcceptance(
+        Materials(Input(MaterialsEvidence("PRIVATE_BODY"))),
+      ),
+      "EffectAcceptanceMaterials:Input",
+    ),
+  ]
+  for (original, cause) in cases {
+    for
+      prefix in [
+        "LocalCheckpointOriginalUnavailable", "LocalCheckpointResolutionUnavailable",
+      ] {
+      for json in [false, true] {
+        let text = local_command_failure_text(
+          prefix,
+          json,
+          primary=Some(original),
+        )
+        assert_eq(text, "actql-native-client: " + prefix + ":" + cause)
+        assert_true(text.length() < 256)
+        assert_false(text.contains("PRIVATE_"))
+      }
+      assert_eq(
+        local_command_failure_text(prefix, true),
+        "actql-native-client: " + prefix,
+      )
+    }
+    assert_eq(
+      local_command_failure_text(
+        "OriginalUnknown ref=preserve",
+        true,
+        primary=Some(original),
+      ),
+      "actql-native-client: OriginalUnknown ref=preserve",
+    )
+  }
+  guard cases[4].0
+    is CommandSavedResolution(
+      SavedResolutionSigning(OriginalSigningPhysical(Signing(payload)))
+    ) else {
+    fail("the original physical failure must remain retained")
+  }
+  assert_eq(payload, "PRIVATE_KEY")
+  local_command_diagnostic_reset()
+}

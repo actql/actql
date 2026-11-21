@@ -1141,62 +1141,182 @@ test "Native finite Store profile retains explicit and legacy object quotas" {
 ///|
 // Actual bounded Project declaration readers, with only the three original
 // metadata documents present. No Host, Run, Account, payload read or IO grant.
-test "Native approval selects write metadata without reopening Model or Source payload" {
-  let directory = @env.get_env_var(
-      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
-    ).unwrap() +
-    "/deal-review-approval"
-  let project = local_project_read_from(
-      command().parse(argv=["check", "never-read.aql"]),
-      directory,
+test "Native checkpoint decisions select original metadata without reopening Model or Source payload" {
+  for operation in ["approve", "reject"] {
+    let directory = @env.get_env_var(
+        "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+      ).unwrap() +
+      "/deal-review-approval"
+    let project = local_project_read_from(
+        command().parse(argv=[operation, "original-checkpoint"]),
+        directory,
+      )
+      .unwrap()
+      .unwrap()
+    let selected = local_project_read_execution_bindings(
+        Some(project),
+        operation,
+      )
+      .unwrap()
+      .unwrap()
+    guard selected.mock_declarations is Some(original) else {
+      fail(operation + " must retain its actual declaration metadata")
+    }
+    defer original.retire()
+    assert_true(
+      physical_equal(project.metadata, original._retained_project.metadata),
     )
-    .unwrap()
-    .unwrap()
-  let selected = local_project_read_execution_bindings(Some(project), "approve")
-    .unwrap()
-    .unwrap()
-  guard selected.mock_declarations is Some(original) else {
-    fail("approval must retain its actual write metadata")
+    assert_eq(original._retained_tasks.length(), 0)
+    assert_true(original.model_profile is None)
+    assert_false(original.model_started)
+    original.prepare_source_declarations().unwrap()
+    guard original.sources
+      .iter()
+      .find_first(source => source._retained_connection == "salesforce")
+      is Some(source) else {
+      fail("original Salesforce declaration required")
+    }
+    assert_eq(source._retained_writes.length(), 1)
+    assert_true(source._retained_rows.length() > 0)
+    assert_true(
+      source._retained_writes[0].mapping.write_fields.contains("StageName"),
+    )
+    assert_true(
+      source._retained_writes[0].mapping.write_fields.contains("NextStep"),
+    )
+    assert_false(
+      source._retained_writes[0]._retained_observe_permission.is_empty(),
+    )
+    let mut clocks = 0
+    assert_true(
+      original.prepare_models(
+        local_project_mock_task_limits(),
+        local_project_mock_answer_limits(),
+        () => {
+          clocks += 1
+          "2026-01-01T00:00:00Z"
+        },
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_eq(clocks, 0)
+    assert_false(original.model_started)
+    assert_true(original.model_profile is None)
+    assert_eq(original.models.length(), 0)
   }
+}
+
+///|
+// Static Source correspondence for the F9 query. No file rows, ResourceRef,
+// Run or permission are issued by this fixture.
+test "Native Mock readonly JOIN has a record source and a typed listing source" {
+  let original = native_project_mock_model_fixture(
+    "deal-review",
+    operation="run",
+  )
   defer original.retire()
-  assert_true(
-    physical_equal(project.metadata, original._retained_project.metadata),
-  )
-  assert_eq(original._retained_tasks.length(), 0)
-  assert_true(original.model_profile is None)
-  assert_false(original.model_started)
   original.prepare_source_declarations().unwrap()
-  guard original.sources
+  let drive = original.sources
     .iter()
-    .find_first(source => source._retained_connection == "salesforce")
-    is Some(source) else {
-    fail("original Salesforce declaration required")
-  }
-  assert_eq(source._retained_writes.length(), 1)
-  assert_true(source._retained_rows.length() > 0)
-  assert_true(
-    source._retained_writes[0].mapping.write_fields.contains("StageName"),
+    .find_first(value => value._retained_connection == "drive")
+    .unwrap()
+  assert_true(local_command_file_listing(original, "drive", "files") is None)
+  original.file_sources = Some([
+    local_project_mock_file_source(drive, "sha256:" + "8".repeat(64)).unwrap(),
+  ])
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
   )
+  .unwrap()
+  let source_environment = original
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let environment = original
+    .prepare_model_environment(source_environment)
+    .unwrap()
+  let (_, publication) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  let context = @source_publication.bind_published_query_context(
+    environment,
+    publication,
+    None,
+  ).unwrap()
+  let text = "SELECT o.id AS id, o.StageName, f.name AS file_name FROM salesforce.opportunities AS o JOIN drive.files AS f ON f.name = o.name |> RESULT main"
+  let query = @frontend.lower(text, @frontend.Text, Some(context)).unwrap().program.unwrap()
+  let prepared = @run_host.prepare_parsed_effect_free_client_program(
+    query,
+    environment,
+    None,
+    @run_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let request = @run_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "native-mock-readonly-join",
+  ).unwrap()
+  let occurrences = @run_host.select_client_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  assert_eq(
+    @run_host.client_direct_acquisition_occurrence_count(occurrences),
+    2,
+  )
+  let observed = []
+  for index in 0..<2 {
+    let (stage, input_index, _) = @run_host.client_direct_acquisition_occurrence_at(
+      occurrences, index,
+    ).unwrap()
+    guard @local_values.select_installed_source_input(
+        prepared, request, stage, input_index,
+      ).unwrap()
+      is @sourceviews.WholeInputRoute(source) else {
+      fail("Both checked inputs must remain on their original Whole route")
+    }
+    let target = @sourceviews.declaration(
+      @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
+    )
+    let declaration = original.sources
+      .iter()
+      .find_first(value => value._retained_connection == target.connector)
+      .unwrap()
+    observed.push(
+      (
+        target.connector,
+        target.resource,
+        declaration._retained_rows.any(row => {
+          row.view.resource == target.resource
+        }),
+        declaration._retained_files.any(file => {
+          file.listing.resource == target.resource
+        }),
+      ),
+    )
+  }
+  assert_true(observed.contains(("salesforce", "Opportunity", true, false)))
+  assert_true(observed.contains(("drive", "files", false, true)))
+  let (declaration, provider, binding) = local_command_file_listing(
+    original, "drive", "files",
+  ).unwrap()
+  assert_true(physical_equal(declaration, drive))
   assert_true(
-    source._retained_writes[0].mapping.write_fields.contains("NextStep"),
+    provider.matches_original(
+      drive._retained_declaration,
+      "files",
+      binding._retained_provider,
+    ),
   )
   assert_false(
-    source._retained_writes[0]._retained_observe_permission.is_empty(),
+    provider.matches_original(
+      drive._retained_declaration,
+      "contents",
+      binding._retained_provider,
+    ),
   )
-  let mut clocks = 0
   assert_true(
-    original.prepare_models(
-      local_project_mock_task_limits(),
-      local_project_mock_answer_limits(),
-      () => {
-        clocks += 1
-        "2026-01-01T00:00:00Z"
-      },
-    )
-    is Err(ForeignOriginal),
+    local_command_file_listing(original, "salesforce", "files") is None,
   )
-  assert_eq(clocks, 0)
-  assert_false(original.model_started)
-  assert_true(original.model_profile is None)
-  assert_eq(original.models.length(), 0)
 }

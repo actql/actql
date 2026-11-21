@@ -506,21 +506,35 @@ fn build_client_effect_keyed_generic_dependency_bodies(
             "source_contract", "source_view_contract", "data_policy", "request_schema",
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {
-          let body = require_generic_keyed_dependency(
-            capture_checked_client_catalog_dependency(
-              program,
-              client_composed_keyed_original_stage(original),
-              kind,
-              cid,
-              remaining,
-              max_nodes,
-              max_depth,
-              before_body,
-            ).map_err(issue => Static(issue)),
-          )
-          require_generic_keyed_dependency(
-            receive_policy_body(body.0, body.1).map_err(issue => Static(issue)),
-          )
+          let funding = match serial {
+            None => before_body
+            Some(catalog) => {
+              if !(catalog.begin_batch)(bodies.length()) {
+                raise GenericKeyedDependencyStop(ConstructionRefused)
+              }
+              catalog.before
+            }
+          }
+          {
+            let body = require_generic_keyed_dependency(
+              capture_checked_client_catalog_dependency(
+                program,
+                client_composed_keyed_original_stage(original),
+                kind,
+                cid,
+                remaining,
+                max_nodes,
+                max_depth,
+                funding,
+              ).map_err(issue => Static(issue)),
+            )
+            require_generic_keyed_dependency(
+              receive_policy_body(body.0, body.1).map_err(issue => Static(issue)),
+            )
+          }
+          if serial is Some(catalog) && !(catalog.record)(bodies) {
+            raise GenericKeyedDependencyStop(ConstructionRefused)
+          }
         }
       }
     }

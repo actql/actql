@@ -290,6 +290,102 @@ fn native_mock_readme_request_issue(
 }
 
 ///|
+fn native_mock_readme_static_explain(
+  facility : NativeMockReadmeRequestFacility,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  document : String,
+  original : LocalProjectMockDeclarations,
+) -> String? raise {
+  @local_values.reserve_request_snapshot(
+    facility.parent,
+    facility.input,
+    document.length().to_int64() + 32L,
+    document.length().to_int64() + 32L,
+  ).unwrap()
+  let checked = @local_values.prepare_request_native_document_check(
+    facility.parent,
+    facility.input,
+    document,
+    @frontend.Text,
+    None,
+    None,
+    environment,
+    publication,
+    static_check=false,
+  )
+  match checked {
+    Err(issue) =>
+      return Some(native_mock_readme_request_issue(@local_host.Request(issue)))
+    Ok(_) => ()
+  }
+  match
+    @local_values.finish_request_checked_computation(
+      facility.parent,
+      facility.input,
+      environment,
+      publication,
+    ) {
+    Err(issue) =>
+      return Some(
+        "static compilation: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
+    Ok(kind) => assert_true(kind == @local_values.Effect)
+  }
+  let body = @local_host.borrow_native_client_request_plan_input(
+    facility.parent,
+    facility.input,
+  ).unwrap()
+  guard body is @local_host.Effect(borrow) &&
+    @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) else {
+    fail("static explanation original Effect borrow")
+  }
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let occurrences = @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 1)
+  let models = original
+    .prepare_effect_models(
+      facility.parent,
+      facility.input,
+      occurrences,
+      environment,
+      contracts,
+    )
+    .unwrap()
+  let result = @local_values.request_prepared_static_plan_view(
+    facility.parent,
+    facility.input,
+    native_request_manifests,
+    65536,
+    8192,
+    64,
+    infers=models.map(value => value.graph),
+  )
+  @local_host.return_native_client_submitted_request_body(body).unwrap()
+  |> ignore
+  match result {
+    Err(issue) =>
+      return Some(
+        "static projection: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
+    Ok(view) => {
+      assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
+      assert_true(view.contains("\"provider_io\":0"))
+      assert_true(view.contains("\"state\":\"unknown\""))
+      return None
+    }
+  }
+}
+
+///|
 // All new Request/body aliases leave this frame before its issuer closes the
 // physical payload. Metadata belongs to its separately retained original Read.
 fn native_mock_readme_request_payload(
@@ -307,8 +403,21 @@ fn native_mock_readme_request_payload(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  if static_explain {
+    let issue = native_mock_readme_static_explain(
+      facility, environment, publication, document, original,
+    )
+    ignore(
+      @local_values.abort_request_preparation_after_cleanup(facility.parent),
+    )
+    facility.arena
+    .leave_domain_retained_execution(facility.physical)
+    .native_content_join_stage("leave same original Native Request frame")
+    return issue
+  }
   let wire : Json = {
     "kind": "aql",
     "input": { "text": Json::string(document), "format": "aql-text" },
@@ -861,6 +970,8 @@ fn native_mock_readme_request_in_metadata_read(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
+  static_lookup_metadata? : Bool = true,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -872,12 +983,15 @@ fn native_mock_readme_request_in_metadata_read(
   original.prepare_source_declarations().unwrap()
   // SAME selected Native file implementation, with the explicit immutable
   // authority metadata port already disclosed for this source component.
-  original.file_sources = Some([
-    local_project_mock_file_source(
-      original.sources[1],
-      "sha256:" + "8".repeat(64),
-    ).unwrap(),
-  ])
+  if static_lookup_metadata {
+    original.file_sources = Some([
+      local_project_mock_file_source(
+        original.sources[1],
+        "sha256:" + "8".repeat(64),
+      ).unwrap(),
+    ])
+  }
+  assert_eq(original.file_lookup_policy() is Some(_), static_lookup_metadata)
   // Exact metadata-only ports of the existing installation projection. This
   // does not qualify Runtime/Account observations or authorize any operation.
   original.write_installations = Some(
@@ -935,6 +1049,7 @@ fn native_mock_readme_request_in_metadata_read(
     effect_recipe~,
     effect_material_restore~,
     effect_prepared_restore~,
+    static_explain~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1893,6 +2008,7 @@ fn native_pure_file_capture_plan(
     facility.input,
     prepared,
     request,
+    source,
     selected._retained_declaration,
     row,
     contracts,
@@ -2622,4 +2738,18 @@ test "Native shared-file Effect joins and binds both original Source observation
   facility.arena
   .try_close()
   .native_file_route_value("close original Effect host")
+}
+
+///|
+test "Native original README static explain retains its same Request compiler without execution" {
+  native_project_mock_model_backed_read(false, static_explain=true)
+}
+
+///|
+test "Native original README static explain refuses an Environment without original lookup metadata" {
+  native_project_mock_model_backed_read(
+    false,
+    static_explain=true,
+    static_lookup_metadata=false,
+  )
 }

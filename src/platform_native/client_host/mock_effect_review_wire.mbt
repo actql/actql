@@ -23,7 +23,7 @@ fn emit_native_mock_effect_review(
   @encode.begin_object(writer)
   for
     (key, value) in [
-      ("version", "actql-native-local-effect-review/0.1"),
+      ("version", "actql-native-local-effect-review-reference/0.1"),
       ("provider", "native-local-project-mock"),
       ("request_scope_cid", @host.client_request_scope_cid(request)),
       ("authority_scope_cid", @host.client_request_authority_scope_cid(request)),
@@ -38,7 +38,7 @@ fn emit_native_mock_effect_review(
         "computation_receipt_wire",
         @publication.publication_contract_json(receipt),
       ),
-      ("captured_run_wire", @publication.publication_contract_json(captured)),
+      ("captured_run_cid", @publication.publication_contract_identity(captured)),
       ("review_wire", review_wire),
       ("authoring_context_cid", authoring_cid),
     ] {
