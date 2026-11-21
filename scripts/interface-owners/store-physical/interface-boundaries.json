@@ -664,7 +664,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/retained-input.mjs",
+                "path": "adapters/local-node/retained-input.mts",
                 "anchor": "readLocalRetainedInput"
               },
               {
@@ -3296,7 +3296,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/store-local/moonbit-row-frames.mjs",
+                "path": "adapters/store-local/moonbit-row-frames.mts",
                 "anchor": "createMoonBitRetainedRowFrames"
               },
               {

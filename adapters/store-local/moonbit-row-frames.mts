@@ -1,13 +1,36 @@
 import {checked} from '../host-common/runtime-result.mjs';
 
-const integer = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
+import type {RetainedRowFrameLimits} from './row-frames.mjs';
+
+export type MoonBitRetainedFrameBindings = Readonly<{
+  retainedFramesPrepare(maxBytes: number, maxRows: number, maxRowBytes: number,
+    maxDepth: number, maxFrameBytes: number): unknown;
+  retainedFramesFeed(frames: unknown, chunk: Uint8Array): unknown;
+  retainedFramesFinish(frames: unknown): unknown;
+  retainedFramesCancel(frames: unknown): void;
+}>;
+type FrameReader = Readonly<{
+  feed(chunk: unknown, signal?: AbortSignal): Promise<void>;
+  finish(): Readonly<{bytes: number; rows: number}>;
+  cancel(): boolean;
+}>;
+type RowConsumer = (row: string) => unknown;
+type RowBatchConsumer = (rows: string[]) => unknown;
+
+const integer = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) <= 2147483647;
 
 // Async environment bridge for the portable MoonBit row framer. The bridge
 // owns callback sequencing only; all structure, capacity, and terminal-state
 // decisions belong to the MoonBit parser.
 // `accept` receives each framed row. With `{batch: true}` it instead receives
 // the complete rows framed from one fed chunk, in order, as one array.
-export function createMoonBitRetainedRowFrames(moon, limits, accept, {batch = false} = {}) {
+export function createMoonBitRetainedRowFrames(moon: MoonBitRetainedFrameBindings,
+  limits: RetainedRowFrameLimits, accept: RowConsumer, options?: {batch?: false}): FrameReader;
+export function createMoonBitRetainedRowFrames(moon: MoonBitRetainedFrameBindings,
+  limits: RetainedRowFrameLimits, accept: RowBatchConsumer, options: {batch: true}): FrameReader;
+export function createMoonBitRetainedRowFrames(moon: MoonBitRetainedFrameBindings,
+  limits: RetainedRowFrameLimits, accept: RowConsumer | RowBatchConsumer, {batch = false} = {}): FrameReader {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.retainedFramesPrepare !== 'function' ||
       typeof moon.retainedFramesFeed !== 'function' ||
@@ -35,7 +58,7 @@ export function createMoonBitRetainedRowFrames(moon, limits, accept, {batch = fa
     return true;
   };
   return Object.freeze({
-    async feed(chunk, signal) {
+    async feed(chunk: unknown, signal?: AbortSignal) {
       if (closed || feeding) {
         throw new TypeError('InvalidRetainedRowFrame');
       }
@@ -52,14 +75,14 @@ export function createMoonBitRetainedRowFrames(moon, limits, accept, {batch = fa
         }
         if (batch) {
           if (rows.length) {
-            const accepted = accept(rows);
-            if (accepted && typeof accepted.then === 'function') await accepted;
+            const accepted = (accept as RowBatchConsumer)(rows);
+            if (accepted && typeof (accepted as {then?: unknown}).then === 'function') await accepted;
           }
         } else {
           for (const row of rows) {
             signal?.throwIfAborted();
-            const accepted = accept(row);
-            if (accepted && typeof accepted.then === 'function') await accepted;
+            const accepted = (accept as RowConsumer)(row as string);
+            if (accepted && typeof (accepted as {then?: unknown}).then === 'function') await accepted;
           }
         }
         signal?.throwIfAborted();
@@ -80,7 +103,7 @@ export function createMoonBitRetainedRowFrames(moon, limits, accept, {batch = fa
           summary.some(value => !integer(value))) {
         throw new TypeError('InvalidRetainedRowFrameSummary');
       }
-      return Object.freeze({bytes: summary[0], rows: summary[1]});
+      return Object.freeze({bytes: summary[0] as number, rows: summary[1] as number});
     },
     cancel,
   });

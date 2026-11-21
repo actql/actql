@@ -10,15 +10,15 @@ test('physical framing accepts portable byte arrays without a Node Buffer global
   const { readFile } = await import('node:fs/promises');
   const source = await readFile(new URL('./row-frames.mjs', import.meta.url), 'utf8');
   const framed = runInNewContext(`${source.replaceAll('export ', '')}\ncreateRetainedRowFrames`,
-    {Uint8Array, TextDecoder});
-  const rows = [];
+    {Uint8Array, TextDecoder}) as typeof createRetainedRowFrames;
+  const rows: string[] = [];
   const parser = framed(limits, row => rows.push(row));
   const bytes = new TextEncoder().encode('[{"name":"😀"}]');
   await parser.feed(bytes);
   assert.equal(parser.finish().bytes, bytes.length);
   assert.deepEqual(rows, ['{"name":"😀"}']);
   const invalid = framed(limits, () => assert.fail('not bytes'));
-  await assert.rejects(invalid.feed([91, 93]), error => error.code === 'InvalidRowFrame');
+  await assert.rejects(invalid.feed([91, 93]), error => (error as {code?: unknown}).code === 'InvalidRowFrame');
 });
 
 test('retained rows are framed across every byte boundary without rewriting Unicode or nested values', async () => {
@@ -26,7 +26,7 @@ test('retained rows are framed across every byte boundary without rewriting Unic
   const text = `[${expected.join(',')}]`;
   const bytes = Buffer.from(text);
   for (let split = 0; split <= bytes.length; split++) {
-    const received = [];
+    const received: string[] = [];
     const parser = createRetainedRowFrames(limits, (row, index) => { assert.equal(index, received.length); received.push(row); });
     await parser.feed(bytes.subarray(0, split));
     await parser.feed(bytes.subarray(split));
@@ -45,7 +45,7 @@ test('row framing enforces cumulative bytes rows depth and scratch bounds before
     [{ maxRowBytes: 2 }, '[{"x":1}]', 'RowSizeLimit'],
     [{ maxDepth: 1 }, '[{"x":[]}]', 'RowDepthLimit'],
     [{ maxFrameBytes: 1 }, '[]', 'RowFrameByteLimit'],
-  ]) {
+  ] as const) {
     const parser = createRetainedRowFrames({ ...limits, ...override }, () => {});
     await assert.rejects(parser.feed(Buffer.from(text)), { code });
     assert.throws(() => parser.finish(), { code: 'RowFramesClosed' });
@@ -70,9 +70,9 @@ test('invalid structure UTF8 and incomplete files cannot seal a conversion', asy
 });
 
 test('awaited row acceptance provides backpressure and cancellation cannot finish successfully', async () => {
-  let entered, release;
-  const inside = new Promise(resolve => { entered = resolve; });
-  const gate = new Promise(resolve => { release = resolve; });
+  let entered!: () => void, release!: () => void;
+  const inside = new Promise<void>(resolve => { entered = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
   const controller = new AbortController();
   let calls = 0;
   const parser = createRetainedRowFrames(limits, async () => { calls++; entered(); await gate; });
@@ -87,7 +87,7 @@ test('awaited row acceptance provides backpressure and cancellation cannot finis
 
 
 test('explicit finite row policy above legacy sixteen MiB initializes only actual payload backing', async () => {
-  const rows = [];
+  const rows: string[] = [];
   const parser = createRetainedRowFrames({maxBytes: 4, maxRows: 1,
     maxRowBytes: 16777217, maxFrameBytes: 16777217, maxDepth: 8}, row => rows.push(row));
   await parser.feed(new TextEncoder().encode('[{}]'));
@@ -111,10 +111,10 @@ test('retained MoonBit frame boundary refuses values outside original signed Int
 
 test('retained MoonBit frame boundary forwards an explicit larger row with the same bounded chunk', () => {
   const original = Object.freeze({});
-  const calls = [];
-  const moon = {retainedFramesPrepare(...args) {calls.push(args); return {$tag: 1, _0: original};},
+  const calls: number[][] = [];
+  const moon = {retainedFramesPrepare(...args: number[]) {calls.push(args); return {$tag: 1, _0: original};},
     retainedFramesFeed() {}, retainedFramesFinish() {},
-    retainedFramesCancel(value) {assert.equal(value, original);}};
+    retainedFramesCancel(value: unknown) {assert.equal(value, original);}};
   const frames = createMoonBitRetainedRowFrames(moon,
     {maxBytes: 16777230, maxRows: 1, maxRowBytes: 16777228, maxDepth: 8, maxFrameBytes: 65536}, () => {});
   assert.deepEqual(calls, [[16777230, 1, 16777228, 8, 65536]]);

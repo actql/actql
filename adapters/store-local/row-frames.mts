@@ -1,12 +1,22 @@
 // Physical framing only. Typed values, normalization laws and row identity are
 // interpreted by the shared MoonBit decoder/admission, never by this splitter.
+export type RetainedRowFrameLimits = Readonly<{
+  maxBytes: number;
+  maxRows: number;
+  maxRowBytes: number;
+  maxDepth: number;
+  maxFrameBytes: number;
+}>;
+
 export class RetainedRowFrameError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  declare code: string;
+
+  constructor(code: string) { super(code); this.code = code; }
 }
 
-export function createRetainedRowFrames(options, accept) {
+export function createRetainedRowFrames(options: RetainedRowFrameLimits, accept: (row: string, index: number) => unknown) {
   const limits = Object.freeze({ ...options });
-  for (const key of ['maxBytes', 'maxRows', 'maxRowBytes', 'maxDepth', 'maxFrameBytes']) {
+  for (const key of ['maxBytes', 'maxRows', 'maxRowBytes', 'maxDepth', 'maxFrameBytes'] as const) {
     if (!Number.isSafeInteger(limits[key]) || limits[key] < 0) throw new RetainedRowFrameError('InvalidRowFrameLimits');
   }
   if (!limits.maxRowBytes || limits.maxRowBytes > 2147483647 ||
@@ -19,9 +29,9 @@ export function createRetainedRowFrames(options, accept) {
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let state = 'start', bytes = 0, rows = 0, size = 0, depth = 0;
   let quoted = false, escaped = false, feeding = false, closed = false;
-  const fail = code => { closed = true; throw new RetainedRowFrameError(code); };
+  const fail: (code: string) => never = code => { closed = true; throw new RetainedRowFrameError(code); };
   return Object.freeze({
-    async feed(chunk, signal) {
+    async feed(chunk: unknown, signal?: AbortSignal) {
       if (closed || feeding) fail('RowFramesClosed');
       if (!(chunk instanceof Uint8Array)) fail('InvalidRowFrame');
       if (chunk.length > limits.maxFrameBytes || chunk.length > limits.maxBytes - bytes) fail('RowFrameByteLimit');

@@ -3,8 +3,27 @@
 // No filesystem, DuckDB runtime or expression semantics belong in this wrapper.
 import {retainedInputContract, retainedStorageBody, consumeRetainedInput} from '../store-local/representations.mjs';
 import {createMoonBitRetainedRowFrames} from '../store-local/moonbit-row-frames.mjs';
+import type {MoonBitRetainedFrameBindings} from '../store-local/moonbit-row-frames.mjs';
+import type {RetainedRowFrameLimits} from '../store-local/row-frames.mjs';
 
-export async function readLocalRetainedInput(moon, operation, checked, signal) {
+type LocalRetainedFrameBindings = Readonly<{
+  strategyPrepareDurableResultRowFrames: MoonBitRetainedFrameBindings['retainedFramesPrepare'];
+  strategyFeedDurableResultRowFrames: MoonBitRetainedFrameBindings['retainedFramesFeed'];
+  strategyFinishDurableResultRowFrames: MoonBitRetainedFrameBindings['retainedFramesFinish'];
+  strategyCancelDurableResultRowFrames: MoonBitRetainedFrameBindings['retainedFramesCancel'];
+}>;
+type RetainedInputOperation = Readonly<{
+  material: object;
+  input: unknown;
+  frames: RetainedRowFrameLimits;
+  begin(): unknown;
+  charge(bytes: bigint): unknown;
+  append(row: string): unknown;
+  finish(): unknown;
+}>;
+
+export async function readLocalRetainedInput(moon: LocalRetainedFrameBindings, operation: RetainedInputOperation,
+  checked: (result: unknown) => unknown, signal?: AbortSignal) {
   // Snapshot the exact attempt/port operations before any asynchronous boundary.
   const {material, input, begin, charge, append, finish} = operation;
   const limits = {...operation.frames};
@@ -23,10 +42,10 @@ export async function readLocalRetainedInput(moon, operation, checked, signal) {
   // the original pre-admitted Task floor and all later import/Store checks.
   const body = retainedStorageBody(material);
   const extent = Object.isFrozen(body) ? Object.getOwnPropertyDescriptor(body, 'bytes') : undefined;
-  const bodyBytes = extent && Object.hasOwn(extent, 'value') ? extent.value : undefined;
-  if (Number.isSafeInteger(bodyBytes) && bodyBytes >= 0 && bodyBytes <= 2147483647) {
-    limits.maxBytes = Math.min(limits.maxBytes, bodyBytes);
-    limits.maxRowBytes = Math.min(limits.maxRowBytes, Math.max(1, bodyBytes));
+  const bodyBytes: unknown = extent && Object.hasOwn(extent, 'value') ? extent.value : undefined;
+  if (Number.isSafeInteger(bodyBytes) && (bodyBytes as number) >= 0 && (bodyBytes as number) <= 2147483647) {
+    limits.maxBytes = Math.min(limits.maxBytes, bodyBytes as number);
+    limits.maxRowBytes = Math.min(limits.maxRowBytes, Math.max(1, bodyBytes as number));
   }
   Object.freeze(limits);
   const frames = createMoonBitRetainedRowFrames(Object.freeze({

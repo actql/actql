@@ -1139,3 +1139,11 @@ target/
 /adapters/store-local/representations.test.d.mts
 /adapters/store-local/process-client.test.mjs
 /adapters/store-local/process-client.test.d.mts
+/adapters/store-local/row-frames.mjs
+/adapters/store-local/row-frames.d.mts
+/adapters/store-local/moonbit-row-frames.mjs
+/adapters/store-local/moonbit-row-frames.d.mts
+/adapters/store-local/row-frames.test.mjs
+/adapters/store-local/row-frames.test.d.mts
+/adapters/local-node/retained-input.mjs
+/adapters/local-node/retained-input.d.mts
