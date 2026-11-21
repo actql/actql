@@ -993,6 +993,10 @@ fn command() -> @argparse.Command {
         about="Show a Program plan or a saved Run plan",
         flags=[
           @argparse.FlagArg(
+            "explanation-json",
+            about="Read the structural Explanation for a Local Effect Program as JSON",
+          ),
+          @argparse.FlagArg(
             "verbose",
             about="Include full plan identities and port details",
           ),

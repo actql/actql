@@ -17,6 +17,15 @@ fn normalize_native_program_arguments(
       local_result_delivery_selection(child, directory, run_presentation=true),
     )
   }
+  if operation == "explain" &&
+    child.flags.get("explanation-json").unwrap_or(false) &&
+    (
+      optional(child, "run") is Some(_) ||
+      child.flags.get("verbose").unwrap_or(false) ||
+      child.flags.get("json").unwrap_or(false)
+    ) {
+    stop("ConflictingLocalStaticExplanationSelection")
+  }
   if operation == "explain" && optional(child, "run") is Some(id) {
     if id.is_empty() || @utf8.encode(id).length() > 4096 {
       stop("InvalidLocalSavedPlanSelection")

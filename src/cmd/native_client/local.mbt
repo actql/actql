@@ -153,6 +153,10 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   if operation != "check" && operation != "explain" {
     stop("LocalOperationUnavailable")
   }
+  if operation == "explain" &&
+    child.flags.get("explanation-json").unwrap_or(false) {
+    stop("LocalStaticExplanationRequiresInstalledHost")
+  }
   let root = required(matches, "config-root")
   let input_root = local_document_root(matches, root)
   let (environment_file, evidence_cid) = local_configuration(

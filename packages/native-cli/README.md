@@ -76,6 +76,7 @@ input. Save the exact admitted Run reference for subsequent operations.
 | --- | --- |
 | connect; new submission | `connect`; `new-submission` |
 | Program/source submit | Local project `run`; Remote `start`/`aql` with explicit format, saved submission reference and explicit invocation attempt ID |
+| Static Effect Explanation | Local project `explain <program> --explanation-json` with current Run-read permission. Returns the original Plan, Facts and Context in one JSON response. |
 | Original operation lookup | `lookup-submission`; `lookup-request`; `lookup-cancellation` |
 | Run attach/status/wait | `attach`; `status`; `wait` |
 | Cancel | `cancel` with saved operation ID, original revision and explicit invocation attempt ID |

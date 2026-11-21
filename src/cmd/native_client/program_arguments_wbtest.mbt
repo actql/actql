@@ -31,6 +31,34 @@ test "public Program positions select the same Native input for check explain an
 }
 
 ///|
+test "structural Explain keeps the same original Program and refuses competing output modes" {
+  let selected = public_program_arguments("explain", [
+    "original.aql", "--explanation-json",
+  ])
+  normalize_native_program_arguments(selected)
+  let child = selected.subcommand.unwrap().1
+  assert_eq(required(child, "program-file"), "original.aql")
+  assert_eq(required(child, "format"), "aql-text")
+  assert_true(child.flags.get("explanation-json").unwrap_or(false))
+  assert_false(child.flags.get("json").unwrap_or(false))
+  for
+    args in [
+      ["original.aql", "--explanation-json", "--json"],
+      ["original.aql", "--explanation-json", "--verbose"],
+      ["--run", "original-run", "--explanation-json"],
+    ] {
+    let matches = public_program_arguments("explain", args[:])
+    let issue = try {
+      normalize_native_program_arguments(matches)
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(issue, "ConflictingLocalStaticExplanationSelection")
+  }
+}
+
+///|
 test "public params aliases preserve the original separate values file" {
   for operation in ["check", "explain", "run"] {
     let matches = public_program_arguments(operation, [

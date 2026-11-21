@@ -385,9 +385,7 @@ fn static_effect_explanation_delivery_construction(
   let (bytes, nodes, depth) = limits
   let decoded_nodes = 3L * nodes.to_int64() + 9L
   // These are the Host's ASCII member names and delimiters, without values.
-  let envelope_bytes = "{\"version\":\"actql-static-explanation/0.1\",\"plan\":,\"facts\":,\"context\":}"
-    .length()
-    .to_int64()
+  let envelope_bytes = static_explanation_shell_bytes().to_int64()
   let delivered_bytes = Int64::min(
     max_wire_bytes.to_int64(),
     3L * bytes.to_int64() + envelope_bytes,
@@ -397,6 +395,45 @@ fn static_effect_explanation_delivery_construction(
     6L * delivered_bytes,
     2L * delivered_bytes,
   )
+}
+
+///|
+let static_explanation_context_prefix = "{\"context\":"
+
+///|
+let static_explanation_facts_prefix = ",\"facts\":"
+
+///|
+let static_explanation_plan_prefix = ",\"plan\":"
+
+///|
+let static_explanation_version_suffix = ",\"version\":\"actql-static-explanation/0.1\"}"
+
+///|
+fn static_explanation_shell_bytes() -> Int {
+  static_explanation_context_prefix.length() +
+  static_explanation_facts_prefix.length() +
+  static_explanation_plan_prefix.length() +
+  static_explanation_version_suffix.length()
+}
+
+///|
+// Count the UTF-8 wire without allocating another copy of any facet.
+fn static_explanation_utf8_bytes(wire : String) -> Int {
+  let mut bytes = 0
+  for character in wire {
+    let value = character.to_int()
+    bytes += if value < 128 {
+      1
+    } else if value < 2048 {
+      2
+    } else if value < 65536 {
+      3
+    } else {
+      4
+    }
+  }
+  bytes
 }
 
 ///|
@@ -413,6 +450,26 @@ pub fn[I] request_prepared_static_effect_explanation(
   max_depth : Int,
   max_work : Int,
   infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+) -> Result[
+  ClientRequestStaticEffectExplanation,
+  ClientRequestStaticContextIssue,
+] {
+  prepare_static_effect_explanation_facets(
+    owner, input, manifests, max_bytes, max_nodes, max_depth, max_work, infers, true,
+  )
+}
+
+///|
+fn[I] prepare_static_effect_explanation_facets(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
+  reserve_js_delivery : Bool,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
@@ -474,14 +531,98 @@ pub fn[I] request_prepared_static_effect_explanation(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      guard static_effect_explanation_delivery_construction(limits, max_bytes)
+      if reserve_js_delivery {
+        guard static_effect_explanation_delivery_construction(limits, max_bytes)
+          is Some(delivery) else {
+          return Err(Preparation(Policy))
+        }
+        match reserve_static_context_construction(capacity, input, delivery) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
+      Ok({ plan, facts, context, })
+    },
+  )
+}
+
+///|
+/// Deliver the bounded closed wire through the same working Request. The
+/// caller supplies current disclosure before entry and again before egress.
+pub fn[I] request_prepared_static_effect_explanation_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+) -> Result[String, ClientRequestStaticContextIssue] {
+  if max_bytes < 1 {
+    return Err(Preparation(Policy))
+  }
+  // The Native compiler uses its existing artifact ceiling. The delivery
+  // limit below applies to the completed aggregate, not private artifacts.
+  let facets = match
+    prepare_static_effect_explanation_facets(
+      owner, input, manifests, 65536, max_nodes, max_depth, max_work, infers, false,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  with_request_static_effect_explanation(
+    owner,
+    input,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    (capacity, _, current, limits) => {
+      let (bytes, nodes, depth) = limits
+      let extent = static_explanation_shell_bytes() +
+        static_explanation_utf8_bytes(facets.plan) +
+        static_explanation_utf8_bytes(facets.facts) +
+        static_explanation_utf8_bytes(facets.context)
+      if extent > bytes {
+        return Err(Encoding(@encode.OutputLimit))
+      }
+      // The original wires stay held while the aggregate writer, returned
+      // text and closed arbitrary-wire validator overlap. Use the same
+      // working capacity and keep the additional bound until cleanup.
+      guard result_read_data_cost(
+          16L,
+          6L * extent.to_int64(),
+          2L * extent.to_int64(),
+        )
+        is Some(output) &&
+        explanation_read_codec_cost(
+          "static_explanation_view", extent, nodes, depth,
+        )
+        is Some(codec) &&
+        @execution.checked_preparation_add_product(output, codec, 1L)
         is Some(delivery) else {
         return Err(Preparation(Policy))
       }
       match reserve_static_context_construction(capacity, input, delivery) {
-        Err(issue) => Err(issue)
-        Ok(_) => Ok({ plan, facts, context, })
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
+      guard current() else { return Err(Preparation(ForeignOriginal)) }
+      let builder = StringBuilder(size_hint=extent)
+      builder.write_string(static_explanation_context_prefix)
+      builder.write_string(facets.context)
+      builder.write_string(static_explanation_facts_prefix)
+      builder.write_string(facets.facts)
+      builder.write_string(static_explanation_plan_prefix)
+      builder.write_string(facets.plan)
+      builder.write_string(static_explanation_version_suffix)
+      let wire = builder.to_string()
+      @publication.parse_interactive_run_control_shape(
+        "static_explanation_view", wire, extent, nodes, depth,
+      )
+      .map(_ => wire)
+      .map_err(issue => Contract(issue))
     },
   )
 }

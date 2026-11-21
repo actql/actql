@@ -671,6 +671,29 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
+            // The structural read uses the same captured Account and Run-read
+            // tuple as saved Explain. Check before opening authoring metadata.
+            let explanation_current = if child.flags
+              .get("explanation-json")
+              .unwrap_or(false) {
+              let scope = local_host_result(
+                capture.authority_scope_cid_in_original_read(
+                  settings.principal,
+                  settings.connection,
+                ),
+              )
+              let current = () => {
+                local_captured_run_operation_allowed(
+                  capture, settings, scope, "read",
+                )
+              }
+              if !current() {
+                stop("LocalRunStateReadAuthorizationDenied")
+              }
+              Some(current)
+            } else {
+              None
+            }
             // Bind the same installation/lookup metadata before the checking
             // Environment is cached. This reads no Source payload and invokes
             // no Model.
@@ -697,6 +720,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               installed_contracts=preparation_runtime.map(runtime => {
                 runtime.installed_contracts
               }),
+              explanation_current~,
             )
           }
         } else if operation == "approve" || operation == "reject" {

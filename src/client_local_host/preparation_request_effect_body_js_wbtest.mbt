@@ -779,6 +779,47 @@ test "prepared static Effect reader issues one Plan with both structural facets"
 }
 
 ///|
+test "prepared static Effect Explanation envelopes enforce the aggregate byte limit" {
+  let manifests = request_program_module_manifests()
+  let (probe, probe_input, _) = request_effect_compile_fixture()
+  let expected = match
+    request_prepared_static_effect_explanation_wire(
+      probe, probe_input, manifests, 65536, 8192, 64, 10000,
+    ) {
+    Ok(wire) => wire
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+  let exact = @utf8.encode(expected).length()
+  let decoded = @publication.parse_interactive_run_control_shape(
+    "static_explanation_view", expected, exact, 8192, 64,
+  ).unwrap()
+  assert_true(
+    @identity.object_field(decoded, "version")
+    is Some(@identity.String("actql-static-explanation/0.1")),
+  )
+  for (limit, exact_limit) in [(exact, true), (exact - 1, false)] {
+    let (parent, input, _) = request_effect_compile_fixture()
+    let wire = request_prepared_static_effect_explanation_wire(
+      parent, input, manifests, limit, 8192, 64, 10000,
+    )
+    if exact_limit {
+      match wire {
+        Ok(value) => assert_eq(value, expected)
+        Err(issue) => fail(@debug.to_string(issue))
+      }
+    } else {
+      assert_true(wire is Err(Encoding(@encode.OutputLimit)))
+    }
+    assert_true(parent.phase == EffectCompiled)
+    assert_true(parent.submitted_intent is None)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  abort_request_preparation_after_cleanup(probe).unwrap()
+  assert_eq(@resources.ledger_usage(probe.ledger).live_reservations, 0)
+}
+
+///|
 test "prepared static Effect Explanation reuses its borrowed singleton or composed Model plans" {
   for plural in [false, true] {
     let (parent, input, holder) = request_effect_model_material_fixture(plural~)
