@@ -1414,8 +1414,8 @@ test('publication commit parses its Binding once across evidence and metadata in
       // Node's test mock adds an apply frame; identify the actual Store
       // function, not a fixed stack depth in the instrumentation wrapper.
       const stack = new Error().stack;
-      if (value === prepared.binding.wire && /at parseContract \(file:.*publication-store\.mjs:/u.test(stack)) bindingParses++;
-      if (value === resultSchemaWire && /at verifyDurableResultBinding \(file:.*publication-store\.mjs:/u.test(stack)) schemaParses++;
+      if (value === prepared.binding.wire && /at parseContract \(file:.*\/publication-contract-store\.mjs:/u.test(stack)) bindingParses++;
+      if (value === resultSchemaWire && /at verifyDurableResultBinding \(file:.*\/publication-result-reader\.mjs:/u.test(stack)) schemaParses++;
     }
     return Reflect.apply(parse, this, [value, ...rest]);
   });
@@ -6814,7 +6814,7 @@ test('Result reader consumes its already parsed Binding once while retaining phy
   t.mock.method(JSON,'parse',function(value,...rest){
     // Count only direct Store DATA interpretation, separately from the
     // actual contract-control admission and its own canonical validation.
-    if(value===prepared.binding.wire&&/at parseContract \(file:.*publication-store\.mjs:/u.test(new Error().stack))bindingParses++;
+    if(value===prepared.binding.wire&&/at parseContract \(file:.*\/publication-contract-store\.mjs:/u.test(new Error().stack))bindingParses++;
     return Reflect.apply(parse,this,[value,...rest]);
   });
   for(let operation=0;operation<2;operation++) {
