@@ -6700,8 +6700,8 @@
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
-                "anchor": "export async function releasePreparedResults(exported, primary, control)"
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
@@ -7855,8 +7855,8 @@
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
-                "anchor": "export async function releasePreparedResults(exported, primary, control)"
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
@@ -8860,8 +8860,8 @@
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
-                "anchor": "export async function releasePreparedResults(exported, primary, control)"
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
@@ -9527,8 +9527,8 @@
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
-                "anchor": "export async function releasePreparedResults(exported, primary, control)"
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
@@ -10317,8 +10317,8 @@
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
-                "anchor": "export async function releasePreparedResults(exported, primary, control)"
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",

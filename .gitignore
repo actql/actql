@@ -1239,3 +1239,5 @@ target/
 /adapters/host-common/publication-capacity.d.mts
 /adapters/host-common/run-publication-preflight.mjs
 /adapters/host-common/run-publication-preflight.d.mts
+/adapters/host-common/completed-run-publication.mjs
+/adapters/host-common/completed-run-publication.d.mts

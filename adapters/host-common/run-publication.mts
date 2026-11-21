@@ -11,6 +11,7 @@ import type {SynchronousRuntimeData} from './runtime-result.mjs';
 
 type Awaitable<Value> = Value | PromiseLike<Value>;
 type CommonObject = Extract<SynchronousRuntimeData, object>;
+type EffectPreview = CommonObject & Readonly<{kind: 'effect-computation-preview'}>;
 type Contract = CommonObject & Readonly<{name: string; identityField: string; identity: string; wire: string}>;
 type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
 type Evidence = Readonly<{
@@ -83,14 +84,14 @@ type ReceiptWires = ReturnType<typeof issuedEffectSetReceiptWires>;
 type EffectReceipts = ReceiptWires & Readonly<{finalWire: string}>;
 type EffectPreparation = {
   chain: EffectChain;
-  preview: Contract;
+  preview: EffectPreview;
   receipts: EffectReceipts;
   privateBinding: CommonObject;
   effectSources: readonly CommonObject[];
   recoveryResources?: ConstructionResources;
 };
 type Effectful = Readonly<{
-  chain: EffectChain; preview: Contract; receipts: EffectReceipts;
+  chain: EffectChain; preview: EffectPreview; receipts: EffectReceipts;
   contracts: readonly Contract[]; sourceSchemaCids: readonly string[];
   preparation: Readonly<EffectPreparation>;
 }>;
@@ -118,13 +119,13 @@ type Control = Readonly<{
     derivations: readonly Contract[], orderings: readonly Contract[], retentions: readonly Contract[],
     durableBindings: readonly Contract[], manifest: Contract, receipt: Contract, capturedRun: Contract,
     request: Contract, attempt: Contract, index: Contract, limits: Limits): Awaitable<boolean>;
-  effectfulCommitValid?(chain: EffectChain, preview: Contract, receipts: EffectReceipts, request: Contract,
+  effectfulCommitValid?(chain: EffectChain, preview: EffectPreview, receipts: EffectReceipts, request: Contract,
     attempt: Contract, index: Contract, limits: Limits): boolean;
 }>;
 type EffectControl = Control & Readonly<{
-  issueEffectfulFinalRunReceipt(chain: EffectChain, preview: Contract, receipts: ReceiptWires, limits: Limits): Contract;
-  effectSetReceiptRunDisposition(preview: Contract, receipts: ReceiptWires, limits: Limits): number;
-  effectPrivateEvidenceBinding(preview: Contract, authorityCid: string): CommonObject;
+  issueEffectfulFinalRunReceipt(chain: EffectChain, preview: EffectPreview, receipts: ReceiptWires, limits: Limits): Contract;
+  effectSetReceiptRunDisposition(preview: EffectPreview, receipts: ReceiptWires, limits: Limits): number;
+  effectPrivateEvidenceBinding(preview: EffectPreview, authorityCid: string): CommonObject;
   capturedEffectSourceArtifactCid(source: CommonObject): string;
 }>;
 type Store = Readonly<{
@@ -153,7 +154,7 @@ type Options = Readonly<{
   limits: Limits; now: Clock; signal: AbortSignal | undefined; preparedHandles?: readonly object[];
 }>;
 type EffectOptions = Omit<Options, 'store' | 'control' | 'evidence' | 'preparedHandles'> & Readonly<{
-  store: Store & {storeAuthorityCid: string}; control: EffectControl; chain: EffectChain; preview: Contract;
+  store: Store & {storeAuthorityCid: string}; control: EffectControl; chain: EffectChain; preview: EffectPreview;
   ledger: unknown; issuedSet: Parameters<typeof issuedEffectSetReceiptWires>[0];
   effectSources: readonly CommonObject[]; sourceArtifacts: readonly Contract[];
   recoveryResources?: ConstructionResources;

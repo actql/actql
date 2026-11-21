@@ -7,22 +7,238 @@ import {publishEffectFreeRun, publishEffectfulRun} from
 import {preparePrivatePublicationHolding} from
   './private-publication-holding.mjs';
 
+import type {publicationAction} from './publication-action.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type CommonObject = Extract<SynchronousRuntimeData, object>;
+type FreePublication = Parameters<typeof publishEffectFreeRun>[0];
+type EffectPublication = Parameters<typeof publishEffectfulRun>[0];
+type Evidence = FreePublication['evidence'];
+type Contract = Evidence['runDefinition'];
+type Limits = FreePublication['limits'];
+type Preview = EffectPublication['preview'];
+type Physical = Readonly<{cid: string; bytes: number}>;
+type Schema = Readonly<{cid: string; wire: string}>;
+type CleanupState = Readonly<{pending: boolean; outcome?: string; errors?: readonly unknown[]}>;
+type Cleanup = Readonly<{status(): CleanupState; retry?(): Awaitable<unknown>}>;
+type Prepared = Cleanup & Readonly<{release(): Awaitable<unknown>}>;
+type PreparedEntry = Readonly<{prepared?: Prepared}>;
+type PreparedPhysical = Prepared & Readonly<{cid: string}>;
+type PreparedSchema = PreparedEntry & Readonly<{prepared: Prepared}>;
+type HoldingStore = Parameters<typeof preparePrivatePublicationHolding>[0];
+type HoldingRecord = Readonly<Omit<Parameters<HoldingStore['commitPhysicalHolding']>[0], 'namespace'> & {
+  namespace: 'publication-private' | 'effect-capture' | 'effect-source';
+}>;
+type PrivateHolding = ReturnType<typeof preparePrivatePublicationHolding>;
+type WireBinding = Parameters<NonNullable<HoldingStore['confirmPrivateEvidence']>>[0];
+type PrivateRead = Readonly<{
+  releaseBytes(): string;
+  confirm(binding: WireBinding): Awaitable<HoldingRecord | undefined>;
+}>;
+type BeforeRead = ((bytes: number) => SynchronousRuntimeData) & Readonly<{
+  reserveEnvelope?: (wire: string) => undefined;
+}>;
+type RecoveryResources = NonNullable<EffectPublication['recoveryResources']> & Readonly<{
+  begin(): undefined;
+  reserve(bytes: number): undefined;
+  finish(failed: boolean, cause: unknown): undefined;
+  retainCleanup(cleanup: () => Awaitable<unknown>): undefined;
+  reserveEnvelope?(wire: string): undefined;
+  reserveDecoded?(wire: string): undefined;
+  admitCapturedRun?(wire: string): Contract;
+}>;
+type Extent = {bytes: number | undefined};
+type CaptureStore = HoldingStore & Readonly<{
+  storeAuthorityCid: string;
+  confirmPrivateEvidence: NonNullable<HoldingStore['confirmPrivateEvidence']>;
+  inspectPhysicalHolding(cid: string): Awaitable<HoldingRecord | undefined>;
+  inspectPhysicalHoldingForRetirement(cid: string): Awaitable<HoldingRecord | undefined>;
+  commitPhysicalHolding(record: HoldingRecord, prepared: readonly Prepared[], borrowed?: readonly string[]): Awaitable<unknown>;
+  retirePhysicalHolding(cid: string): Awaitable<Readonly<{cleanup: Cleanup}>>;
+  retainEffectCaptureCustody(run: Contract, holdings: readonly HoldingRecord[]): Awaitable<unknown>;
+  retireEffectCaptureCustody(run: Contract): Awaitable<boolean>;
+  forgetEffectCaptureCustody(run: Contract): Awaitable<unknown>;
+  readPrivateEvidence<Value>(name: 'effect_capture', semanticCid: string, holdingCid: string,
+    consume: (plaintext: Uint8Array, read: PrivateRead) => Awaitable<Value>, beforeRead?: BeforeRead): Awaitable<Value>;
+  putPreparedResultSchema(wire: string, schemaCid: string, runCid: string): Awaitable<PreparedSchema>;
+}>;
+type ReleaseControl = Readonly<{
+  publicationPreparedReleaseAction(current: number, total: number,
+    checked: boolean, pending: boolean, attempted: boolean): ReturnType<typeof publicationAction<'preparedRelease'>>;
+  publicationCleanupOwnerAction(current: number, total: number, checked: boolean,
+    pending: boolean, retryAvailable: boolean, attempted: boolean): ReturnType<typeof publicationAction<'cleanupOwner'>>;
+}>;
+type AdmitControl = Readonly<{admit(name: string, wire: string, limits: Limits): Contract}>;
+type EvidenceChain = Pick<Evidence, 'runDefinition' | 'invocation' | 'definitions' | 'artifacts' | 'manifest' | 'receipt'>;
+type EffectEvidenceChain = Omit<EvidenceChain, 'receipt'> & Computation;
+type ContentEvidence = Readonly<{contentGenerations?: readonly CommonObject[]}>;
+type ReceiptEvidence = ContentEvidence & Readonly<{
+  bindings: readonly CommonObject[];
+  sourceEvidence: readonly CommonObject[];
+  modelEvidence: readonly CommonObject[];
+  barrierAttemptReceiptCids: readonly string[];
+}>;
+type CaptureEvidence = ContentEvidence & Readonly<{
+  pendingSourceStateAdvances: readonly CommonObject[];
+  modelEvidence: readonly CommonObject[];
+}>;
+type CapturedFacts = CaptureEvidence & Readonly<{snapshots: readonly CommonObject[]; authoringContext: Contract}>;
+type CommonPublicationControl = ReleaseControl & AdmitControl & Readonly<{
+  issueResultManifest(run: Contract, invocation: Contract, definitions: readonly Contract[],
+    artifacts: readonly Contract[], limits: Limits): Contract;
+  issueEffectFreeRunReceipt(chain: Omit<EvidenceChain, 'receipt'> &
+    Readonly<{admission: CommonObject; observation: Contract}>, evidence: ReceiptEvidence &
+    Readonly<{normalizationJournal: Contract}>, limits: Limits): Contract;
+}>;
+type FreeControl = CommonPublicationControl & FreePublication['control'] & Readonly<{
+  issueEffectFreeCapturedRun(chain: EvidenceChain, evidence: CapturedFacts, limits: Limits,
+    signal?: AbortSignal, resource?: unknown): Awaitable<Contract>;
+}>;
+type Source = EffectPublication['effectSources'][number];
+type SourceMember = Readonly<{memberIndex: number; artifact: Contract; schema?: Schema}>;
+type LocalSource = CommonObject & Readonly<{kind: 'captured-local-effect-source'}>;
+type SourceHolding = SourceMember & Readonly<{source: Source; localEvidence: LocalSource; record: HoldingRecord}>;
+type ConnectorRecovery = Readonly<{memberIndex: number; kind: string; observationCid: string; wire: string}>;
+type DependencyFacts = Readonly<{artifact_cid: string; physical_cid: string; byte_count: number}>;
+type DependencyBinding = Readonly<{artifactCid: string; physicalCid: string; byteCount: number}>;
+type DependencyPayload = Readonly<{artifact: Contract; physical: Physical; prepared: PreparedPhysical}>;
+type CaptureControl = CommonPublicationControl & Readonly<{
+  capturedEffectSourceHoldingCid(source: Source): string;
+  capturedEffectSourceArtifactCid(source: Source): string;
+  capturedEffectSourceStoreAuthorityCid(source: Source): string;
+  capturedEffectSourceMatchesPreview(preview: Preview, memberIndex: number, invocation: Contract,
+    source: Source, localEvidence: LocalSource, authorityCid: string, limits: Limits): boolean;
+  capturedEffectDependencyPayloadBindings(captured: Contract, bindings: readonly DependencyFacts[]): readonly DependencyFacts[];
+  capturedEffectDependencySchemas(captured: Contract): readonly Schema[];
+  effectComputationCaptureHoldingCid(run: Contract, authorityCid: string): string;
+  effectComputationRecordHoldingCid(run: Contract, authorityCid: string): string;
+  effectComputationPreviewLedgerIdentity(preview: Preview): SynchronousRuntimeData;
+  effectPrivateEvidenceBinding(preview: Preview, authorityCid: string): WireBinding;
+  admitEffectComputationPreview(wire: string, run: Contract, authoring: Contract, limits: Limits): Preview;
+  admitRunEvidence(name: string, wire: string, limits: Limits): Contract;
+  hasPreparedCapturedEffectRun?(captured: Contract): boolean;
+  effectfulComputationEvidenceChainValid(chain: EffectEvidenceChain, preview: Preview, limits: Limits): boolean;
+  prepareCapturedEffectSourceInventory(chain: EffectEvidenceChain, preview: Preview, sources: readonly SourceMember[],
+    authorityCid: string, limits: Limits): readonly Source[] | undefined;
+  capturedEffectSourceInventoryFromCaptureValid(preview: Preview, sources: readonly SourceMember[], invocation: Contract,
+    captured: Contract, authorityCid: string, limits: Limits): boolean;
+  admitCapturedEffectSourceFromCapture(preview: Preview, memberIndex: number, invocation: Contract, artifact: Contract,
+    captured: Contract, authorityCid: string, limits: Limits): Source;
+  localEffectResultPayloadBinding(artifact: Contract, run: Contract): DependencyBinding;
+  issueEffectfulCapturedRun(chain: EvidenceChain, evidence: CapturedFacts & Readonly<{
+    effectSources: readonly Source[]; localEffectSources: readonly LocalSource[];
+    dependencyInventoryWire?: string; dependencyConstruction?: CommonObject;
+  }>, preview: Preview, plans: readonly Contract[], limits: Limits, signal?: AbortSignal): Awaitable<Contract>;
+}>;
+type ResultPlan = Readonly<{retention: Contract; evidenceContext: object; transformation?: unknown}>;
+type ResultRequest = ResultPlan & Readonly<{
+  outputLimits: unknown; contractLimits: Limits; runDefinition: Contract; invocation: Contract; resultProgress?: unknown;
+}>;
+type StoredResult = PreparedEntry & Readonly<{publication: Readonly<{
+  artifact: Contract; derivation: Contract; ordering: Contract; durableBinding: Contract;
+}>}>;
+type LiveResult = StoredResult & Readonly<{
+  occurrence: Readonly<{name: string; task: number; definition: Contract}>;
+  publication: StoredResult['publication'] & Readonly<{snapshot: CommonObject}>;
+  physical: Physical; schema: Readonly<{semanticCid: string}>;
+  orderedRows: Readonly<{resultSchemaWire: string}>;
+  physicalPrepared?: PreparedPhysical;
+}>;
+type StoredResults<Result extends StoredResult = StoredResult> = Readonly<{
+  results: readonly Result[]; definitions: readonly Contract[]; artifacts: readonly Contract[];
+}>;
+type Execution = Readonly<{
+  status: 'host-tasks-completed';
+  resultInventory: readonly unknown[];
+  publicationInventory: Readonly<{occurrences: readonly Readonly<{
+    name: string; task: number; definitionContract: Contract;
+  }>[] }>;
+  storePublicationResult(index: number, store: unknown, request: ResultRequest, signal?: AbortSignal,
+    resource?: unknown): Awaitable<LiveResult>;
+}>;
+type ResultOptions = Readonly<{
+  execution: Execution; store: CaptureStore; control: ReleaseControl & AdmitControl;
+  runDefinition: Contract; invocation: Contract; results: readonly ResultPlan[];
+  outputLimits: unknown; contractLimits: Limits; signal?: AbortSignal; resultProgress?: unknown;
+}>;
+type CaptureInputs = Readonly<{
+  admission: CommonObject; observation: Contract; authoringContext: Contract; normalizationJournal: Contract;
+  receiptEvidence: ReceiptEvidence; captureEvidence: CaptureEvidence;
+}>;
+type CompletedFreeOptions = Omit<ResultOptions, 'store' | 'control'> & CaptureInputs &
+  Pick<FreePublication, 'request' | 'attempt' | 'now' | 'signal'> &
+  Readonly<{store: FreePublication['store']; control: FreeControl}>;
+type RecoveryOptions = Readonly<{store: CaptureStore; control: CaptureControl; runDefinition: Contract; contractLimits: Limits}>;
+type EffectCaptureOptions = RecoveryOptions & CaptureInputs & Readonly<{
+  execution: Execution; storedResults: StoredResults<LiveResult>; invocation: Contract;
+  preview: Preview; plans: readonly Contract[]; effectSourceHoldings: readonly SourceHolding[];
+  connectorRecovery: readonly ConnectorRecovery[]; signal?: AbortSignal;
+}>;
+type Computation = Readonly<{manifest: Contract; computationReceipt: Contract; capturedRun: Contract}>;
+type EffectConfirmation = Readonly<{store: CaptureStore; control: CaptureControl; computation: Computation; preview: Preview}>;
+type EffectOwnerOptions = EffectConfirmation & Readonly<{execution: Execution | null; storedResults: StoredResults}>;
+type CompletedEffectOptions = Omit<EffectOwnerOptions, 'store' | 'control'> &
+  Pick<EffectPublication, 'ledger' | 'issuedSet' | 'request' | 'attempt' | 'now' | 'signal'> &
+  Readonly<{store: CaptureStore & EffectPublication['store']; control: CaptureControl & EffectPublication['control']; contractLimits: Limits}>;
+type DependencyOptions = Readonly<{
+  execution: Execution; store: CaptureStore; storedResults: StoredResults;
+  control: CaptureControl; runDefinition: Contract; dependencies: readonly DependencyPayload[];
+  dependencyInventoryWire: string; dependencyConstruction?: CommonObject;
+}>;
+type RetainedResult = {
+  execution: Execution | null; store: CaptureStore; control: ReleaseControl & AdmitControl;
+  runDefinition: Contract; retentions: readonly Contract[];
+  releaseComplete: boolean; releaseFlight?: Promise<boolean>;
+  cleanupFailure?: CompletedRunPublicationError;
+  captureHolding?: HoldingRecord; captureRecordOwner?: PrivateHolding;
+  captureRecordWire?: string; capturePublished: boolean; retainCapture?: boolean;
+  privateEffectOwner?: PrivateHolding; publicationFailure?: Readonly<{error: unknown}>;
+  effectDependencyPayloads?: readonly (DependencyPayload & Readonly<{binding: DependencyBinding}>)[];
+  effectDependencyInventoryWire?: string; effectDependencyConstruction?: CommonObject;
+  effectSourceSchemaInputs?: readonly Schema[]; effectSourceSchemas?: PreparedSchema[];
+  effectDependencySchemas?: readonly PreparedSchema[]; effectSourceHoldingCids?: readonly string[];
+};
+type RetainedEffect = Readonly<{
+  execution: Execution | null; store: CaptureStore; storedResults: StoredResults; control: CaptureControl;
+  preview: Preview; runDefinition: Contract; invocation: Contract; captureHolding: HoldingRecord;
+  effectSourceHoldings: readonly (Pick<SourceMember, 'artifact'> & Readonly<{source: Source; memberIndex?: number}>)[];
+  recoveryResources?: RecoveryResources;
+}>;
+// The exact DATA is still checked by the existing guards and original Common admission.
+type CaptureRecord = Readonly<{
+  version: string; store_authority_cid: string; run_definition: string; invocation: string;
+  definitions: readonly string[]; artifacts: readonly string[]; derivations: readonly string[];
+  orderings: readonly string[]; retentions: readonly string[]; durable_bindings: readonly string[];
+  result_schemas: readonly Schema[]; manifest: string; computation_receipt: string; captured_run: string;
+  effect_dependency_payloads: readonly DependencyFacts[]; preview: string; authoring_context: string;
+  effect_source_artifacts: readonly Readonly<{member_index: number; artifact: string; schema?: Schema}>[];
+  connector_recovery: readonly Readonly<{member_index: number; kind: string; observation_cid: string; wire: string}>[];
+}>;
+
 export class CompletedRunPublicationError extends Error {
-  constructor(code, cause) {
+  declare code: string;
+  declare primaryFailure: unknown;
+  declare cleanupPending?: boolean;
+  declare cleanupErrors?: readonly unknown[];
+  declare cleanupError?: unknown;
+  declare cleanupHandle?: Cleanup | PrivateHolding;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
   }
 }
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw new CompletedRunPublicationError(code, cause);
 };
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const contentEvidenceKeys = (value, keys) => exactKeys(value,
+const contentEvidenceKeys = (value: unknown, keys: readonly string[]) => exactKeys(value,
   [...keys, ...(Object.hasOwn(value ?? {}, 'contentGenerations') ? ['contentGenerations'] : [])]);
-const matchingContentEvidence = (receipt, capture) => {
+const matchingContentEvidence = (receipt: ContentEvidence, capture: ContentEvidence) => {
   if (!Object.hasOwn(receipt, 'contentGenerations') &&
       !Object.hasOwn(capture, 'contentGenerations')) return true;
   const left = receipt.contentGenerations, right = capture.contentGenerations;
@@ -30,17 +246,17 @@ const matchingContentEvidence = (receipt, capture) => {
     left.length === right.length &&
     left.every((value, index) => value === right[index]);
 };
-const member = (value, name) => {
+const member = (value: unknown, name: string): unknown => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<string, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
-const contract = value => value !== null && typeof value === 'object' &&
-  typeof value.name === 'string' && typeof value.identity === 'string' &&
-  typeof value.wire === 'string';
-const ownContract = (control, value, limits,
+const contract = (value: unknown) => value !== null && typeof value === 'object' &&
+  typeof (value as Contract).name === 'string' && typeof (value as Contract).identity === 'string' &&
+  typeof (value as Contract).wire === 'string';
+const ownContract = (control: AdmitControl, value: Contract, limits: Limits,
   code = 'InvalidCompletedRunPublicationContract') => {
   const admitted = control.admit(value.name, value.wire, limits);
   if (admitted.identity !== value.identity) {
@@ -48,11 +264,11 @@ const ownContract = (control, value, limits,
   }
   return admitted;
 };
-const completedResultOwners = new WeakMap();
-const completedEffectfulOwners = new WeakMap();
-const privateEffectfulHoldings = new WeakMap();
+const completedResultOwners = new WeakMap<StoredResults, RetainedResult>();
+const completedEffectfulOwners = new WeakMap<Computation, RetainedEffect>();
+const privateEffectfulHoldings = new WeakMap<Computation, PrivateHolding>();
 
-function validateExecution(execution) {
+function validateExecution(execution: Execution) {
   if (execution === null || typeof execution !== 'object' ||
       execution.status !== 'host-tasks-completed' ||
       !Array.isArray(execution.resultInventory) ||
@@ -65,17 +281,17 @@ function validateExecution(execution) {
   }
 }
 
-function validateControl(control) {
+function validateControl(control: CommonPublicationControl) {
   if (control === null || typeof control !== 'object' ||
       !['issueResultManifest', 'issueEffectFreeRunReceipt',
         'issueEffectFreeCapturedRun', 'publicationPreparedReleaseAction',
         'publicationCleanupOwnerAction']
-        .every(name => typeof control[name] === 'function')) {
+        .every(name => typeof control[name as keyof CommonPublicationControl] === 'function')) {
     fail('InvalidCompletedRunPublicationControl');
   }
 }
 
-function validateOptions(options) {
+function validateOptions(options: CompletedFreeOptions) {
   const keys = [
     'execution', 'store', 'control', 'admission', 'runDefinition',
     'invocation', 'observation', 'normalizationJournal', 'authoringContext',
@@ -120,7 +336,7 @@ function validateOptions(options) {
   }
 }
 
-function uniqueContracts(values) {
+function uniqueContracts(values: readonly Contract[]) {
   const seen = new Set();
   return values.filter(value => {
     if (seen.has(value.identity)) return false;
@@ -131,11 +347,12 @@ function uniqueContracts(values) {
 
 // Shared failure cleanup for prepared public Results and private Effect
 // inputs. Always rethrow the primary failure, retaining retryable custody.
-export async function releasePreparedResults(exported, primary, control) {
+export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,
+  control: ReleaseControl): Promise<never> {
   const prepared = [...new Set(exported
     .map(value => value?.prepared)
     .filter(value => value !== undefined))];
-  const errors = [];
+  const errors: unknown[] = [];
   let currentPrepared = prepared.length - 1;
   let preparedStatusChecked = false;
   let preparedPending = false;
@@ -174,9 +391,9 @@ export async function releasePreparedResults(exported, primary, control) {
     if (action === 'finished') break;
     fail('InvalidCompletedRunPublicationReleaseProgress');
   }
-  const owners = [];
-  const ownerHandles = new Set();
-  const addOwner = (handle, required) => {
+  const owners: Readonly<{handle: unknown; required: boolean}>[] = [];
+  const ownerHandles = new Set<unknown>();
+  const addOwner = (handle: unknown, required: boolean) => {
     if (handle !== undefined && ownerHandles.has(handle)) return;
     if (handle !== undefined) ownerHandles.add(handle);
     owners.push(Object.freeze({handle, required}));
@@ -185,12 +402,12 @@ export async function releasePreparedResults(exported, primary, control) {
     addOwner(member(primary, 'cleanupHandle'), true);
   }
   for (const handle of prepared) addOwner(handle, true);
-  const ownerState = owner => {
+  const ownerState = (owner: (typeof owners)[number]) => {
     if (!owner.handle || typeof member(owner.handle, 'status') !== 'function') {
       return {pending: owner.required, errors: []};
     }
     try {
-      const value = owner.handle.status();
+      const value = (owner.handle as Cleanup).status();
       return value && typeof value.pending === 'boolean'
         ? {pending: value.pending,
           outcome: typeof value.outcome === 'string'
@@ -203,7 +420,7 @@ export async function releasePreparedResults(exported, primary, control) {
   const initialErrorCount = errors.length;
   const failure = new CompletedRunPublicationError(
     typeof member(primary, 'code') === 'string'
-      ? member(primary, 'code') : 'CompletedRunPublicationFailed',
+      ? member(primary, 'code') as string : 'CompletedRunPublicationFailed',
     primary,
   );
   const status = () => {
@@ -246,7 +463,7 @@ export async function releasePreparedResults(exported, primary, control) {
         }
         if (action === 'retry') {
           retryAttempted = true;
-          try { await owners[currentOwner].handle.retry(); }
+          try { await (owners[currentOwner].handle as Cleanup).retry!(); }
           catch (error) { retainFirstAndLatestCleanupError(errors, error, initialErrorCount); }
           continue;
         }
@@ -274,7 +491,8 @@ async function exportCompletedRunResultSet({
   execution, store, control, runDefinition, invocation, results,
   outputLimits, contractLimits, signal,
   resultProgress,
-}, exported, publicationResource) {
+}: Omit<ResultOptions, 'store' | 'control'> & Readonly<{store: unknown; control: ReleaseControl}>,
+  exported: LiveResult[], publicationResource?: unknown) {
   validateExecution(execution);
   if (!Array.isArray(results) ||
       results.length !== execution.resultInventory.length ||
@@ -327,8 +545,8 @@ async function exportCompletedRunResultSet({
 // Prepare the exact checked Named Result inventory for either Run kind.
 // This is not publication: the caller retains every prepared Store owner
 // until the enclosing chain is committed or explicitly released.
-export async function storeCompletedRunResultSet(options) {
-  const exported = [];
+export async function storeCompletedRunResultSet(options: ResultOptions) {
+  const exported: LiveResult[] = [];
   try {
     const stored = await exportCompletedRunResultSet(options, exported);
     completedResultOwners.set(stored, {
@@ -357,7 +575,7 @@ export async function storeCompletedRunResultSet(options) {
 export function retainCompletedEffectDependencyPayloads({
   execution, store, storedResults, control, runDefinition, dependencies,
   dependencyInventoryWire, dependencyConstruction,
-}) {
+}: DependencyOptions) {
   const owner = completedResultOwners.get(storedResults);
   if (owner === undefined || owner.execution !== execution || owner.store !== store ||
       owner.control !== control || owner.releaseComplete ||
@@ -403,7 +621,7 @@ export function retainCompletedEffectDependencyPayloads({
 // Release the unpublished physical payload owners. Schema semantic objects
 // have separate Store custody. Concurrent callers join one release flight;
 // failed physical cleanup retains its retry handle.
-export function releaseCompletedRunPreparedPayloads(storedResults, control) {
+export function releaseCompletedRunPreparedPayloads(storedResults: StoredResults, control: ReleaseControl) {
   return releaseCompletedResultOwner(storedResults, control, false);
 }
 
@@ -413,7 +631,7 @@ export function releaseCompletedRunPreparedPayloads(storedResults, control) {
 // Durable retention, transfer and retirement remain with the enclosing owner.
 export async function suspendCompletedEffectfulComputation({
   execution, store, storedResults, control, computation, preview,
-}) {
+}: EffectOwnerOptions) {
   const issued = completedEffectfulOwners.get(computation);
   if (issued === undefined || issued.execution !== execution ||
       issued.store !== store || issued.storedResults !== storedResults ||
@@ -431,7 +649,7 @@ export async function suspendCompletedEffectfulComputation({
   return releaseCompletedResultOwner(storedResults, control, true);
 }
 
-function releaseCompletedResultOwner(storedResults, control, retainCapture) {
+function releaseCompletedResultOwner(storedResults: StoredResults, control: ReleaseControl, retainCapture: boolean) {
   const owner = completedResultOwners.get(storedResults);
   if (owner === undefined || owner.control !== control) {
     fail('InvalidCompletedRunResultSetOwner');
@@ -443,10 +661,10 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
   owner.retainCapture = retainCapture;
   if (owner.releaseComplete) return Promise.resolve(false);
   if (owner.releaseFlight !== undefined) return owner.releaseFlight;
-  let flight;
+  let flight: Promise<boolean>;
   flight = (async () => {
     if (owner.cleanupFailure !== undefined) {
-      const status = await owner.cleanupFailure.cleanupHandle.retry();
+      const status = await (owner.cleanupFailure.cleanupHandle as Cleanup).retry!() as CleanupState;
       if (status.pending) throw owner.cleanupFailure;
     } else {
       const released = new Error('CompletedRunResultSetReleased');
@@ -457,7 +675,7 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
           ...(owner.effectSourceSchemas ?? [])], released, control);
       } catch (error) {
         if (error !== released) {
-          if (error.cleanupPending === true) owner.cleanupFailure = error;
+          if ((error as CompletedRunPublicationError).cleanupPending === true) owner.cleanupFailure = error as CompletedRunPublicationError;
           throw error;
         }
       }
@@ -482,8 +700,8 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
         !owner.capturePublished && !retainCapture) {
       try { await owner.captureRecordOwner.abort(); }
       catch (error) {
-        error.cleanupPending = true;
-        error.cleanupHandle = owner.captureRecordOwner;
+        (error as CompletedRunPublicationError).cleanupPending = true;
+        (error as CompletedRunPublicationError).cleanupHandle = owner.captureRecordOwner;
         throw error;
       }
       const retired = await owner.store.retirePhysicalHolding(
@@ -543,7 +761,7 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
 // Bind an already retained Effectful computation to its exact private
 // Preview. The prepared Store owners remain with the caller until the final
 // publication commit or an explicit release; issuing evidence is not commit.
-export async function issueCompletedEffectfulComputationEvidence(options) {
+export async function issueCompletedEffectfulComputationEvidence(options: EffectCaptureOptions) {
   if (!exactKeys(options, [
     'execution', 'store', 'storedResults', 'control', 'admission', 'runDefinition',
     'invocation', 'observation', 'normalizationJournal', 'authoringContext',
@@ -581,7 +799,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
         'effectComputationCaptureHoldingCid',
         'effectComputationRecordHoldingCid',
         'effectPrivateEvidenceBinding'].every(name =>
-        typeof control?.[name] === 'function') ||
+        typeof control?.[name as keyof CaptureControl] === 'function') ||
       !contentEvidenceKeys(receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
@@ -592,10 +810,10 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       !matchingContentEvidence(receiptEvidence, captureEvidence) ||
       !['issueResultManifest', 'issueEffectFreeRunReceipt',
         'issueEffectfulCapturedRun'].every(name =>
-        typeof control?.[name] === 'function')) {
+        typeof control?.[name as keyof CaptureControl] === 'function')) {
     fail('InvalidCompletedEffectfulComputationOptions');
   }
-  const ownedHoldings = effectSourceHoldings.map(holding => {
+  const ownedHoldings = effectSourceHoldings.map((holding: SourceHolding) => {
     if (!contract(holding?.artifact) ||
         holding.artifact.name !== 'effect_source_artifact' ||
         !Number.isSafeInteger(holding.memberIndex) ||
@@ -618,14 +836,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       artifact: ownContract(control, holding.artifact, contractLimits,
         'InvalidCompletedEffectSourceHolding'),
       record: Object.freeze({...holding.record,
-        objects: Object.freeze(holding.record.objects.map(object =>
+        objects: Object.freeze(holding.record.objects.map((object: HoldingRecord['objects'][number]) =>
           Object.freeze({...object})))}),
     });
   });
   const ownedMemberIndices = new Set(ownedHoldings.map(
     holding => holding.memberIndex));
   const seenRecoveryMembers = new Set();
-  const ownedConnectorRecovery = connectorRecovery.map(entry => {
+  const ownedConnectorRecovery = connectorRecovery.map((entry: ConnectorRecovery) => {
     if (!exactKeys(entry, [
       'memberIndex', 'kind', 'observationCid', 'wire',
     ]) || !Number.isSafeInteger(entry.memberIndex) ||
@@ -695,7 +913,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   const captureHoldingCid = control.effectComputationCaptureHoldingCid(
     runDefinition, store.storeAuthorityCid,
   );
-  const objects = new Map();
+  const objects = new Map<string, Readonly<{physical: Physical; physicalPrepared?: PreparedPhysical}>>();
   for (const result of [...storedResults.results,
     ...(owner.effectDependencyPayloads ?? []).map(value => ({
       physical: value.physical, physicalPrepared: value.prepared,
@@ -713,8 +931,8 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     if (previous === undefined) objects.set(physical.cid, result);
   }
   const captureHolding = Object.freeze({
-    version: 'actql-local-physical-holding/0.1',
-    namespace: 'effect-capture',
+    version: 'actql-local-physical-holding/0.1' as const,
+    namespace: 'effect-capture' as const,
     holding_cid: captureHoldingCid,
     manifest_cid: capturedRun.identity,
     objects: Object.freeze([...objects.values()].map(result => Object.freeze({
@@ -764,10 +982,10 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   // Admit the complete inventory and serialize the capture before yielding.
   // Caller-owned plans and evidence cannot change while Store sync is pending.
   // A later invalid member must not leave earlier members partially synced.
-  const schemas = new Map();
+  const schemas = new Map<string, Schema>();
   for (const {schema} of ownedHoldings) {
     if (schema === undefined) continue;
-    if (schemas.has(schema.cid) && schemas.get(schema.cid).wire !== schema.wire) {
+    if (schemas.has(schema.cid) && schemas.get(schema.cid)!.wire !== schema.wire) {
       fail('InvalidCompletedEffectSourceSchema');
     }
     schemas.set(schema.cid, schema);
@@ -781,14 +999,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   }
   // Retain every successful preparation immediately. A later failure keeps
   // its original cleanup and this same owner's already-acquired prefix.
-  for (let index = owner.effectSourceSchemas.length; index < sourceSchemas.length; index++) {
+  for (let index = owner.effectSourceSchemas!.length; index < sourceSchemas.length; index++) {
     const schema = sourceSchemas[index];
-    owner.effectSourceSchemas.push(await store.putPreparedResultSchema(
+    owner.effectSourceSchemas!.push(await store.putPreparedResultSchema(
       schema.wire, schema.cid, runDefinition.identity,
     ));
   }
   const commitHolding = store.commitPhysicalHolding.bind(store);
-  const prepared = [...objects.values()].map(result => result.physicalPrepared);
+  const prepared = [...objects.values()].map(result => result.physicalPrepared!);
   const sourceHoldingCids = ownedHoldings.map(holding =>
     holding.record.holding_cid);
   // Retain responsibility before any fallible Store operation, including a
@@ -831,19 +1049,19 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
 // Retire a terminal, unpublished Effect capture from its durable private
 // record. The record is deleted last: after a crash, the remaining exact
 // holdings can still be derived without re-running Compute or an Effect.
-export async function retireCompletedEffectfulCapture(options, recoveryResources) {
+export async function retireCompletedEffectfulCapture(options: RecoveryOptions, recoveryResources?: RecoveryResources) {
   return withCaptureRecoveryResources(recoveryResources, beforeRead =>
     retireCompletedEffectfulCaptureOwned(options, beforeRead, recoveryResources));
 }
 
 async function retireCompletedEffectfulCaptureOwned({store, control,
-  runDefinition, contractLimits}, beforeRead, recoveryResources) {
+  runDefinition, contractLimits}: RecoveryOptions, beforeRead: BeforeRead | undefined, recoveryResources?: RecoveryResources) {
   if (!contract(runDefinition) ||
       typeof store?.storeAuthorityCid !== 'string' ||
       !['inspectPhysicalHolding', 'inspectPhysicalHoldingForRetirement',
         'readPrivateEvidence',
         'retirePhysicalHolding'].every(name =>
-        typeof store?.[name] === 'function')) {
+        typeof store?.[name as keyof CaptureStore] === 'function')) {
     fail('InvalidCompletedEffectfulRetirement');
   }
   const run = ownContract(control, runDefinition, contractLimits);
@@ -863,7 +1081,7 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
       record.objects.length !== 1) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  let consuming = false, holdingCids;
+  let consuming = false, holdingCids: readonly string[];
   try {
     holdingCids = await store.readPrivateEvidence('effect_capture',
       record.manifest_cid, recordCid, (_plaintext, read) => {
@@ -893,11 +1111,11 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
 
 // Validate the complete remaining original inventory while its encrypted
 // record is still protected. Deletion starts only after this reader returns.
-async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
-  contractLimits, record, recordCid, captureCid, wire, recoveryResources) {
+async function prepareCompletedEffectfulCaptureRetirement(store: CaptureStore, control: CaptureControl, run: Contract,
+  contractLimits: Limits, record: HoldingRecord, recordCid: string, captureCid: string, wire: string, recoveryResources?: RecoveryResources) {
   recoveryResources?.reserveDecoded?.(wire);
-  let body;
-  try { body = JSON.parse(wire); }
+  let body: CaptureRecord;
+  try { body = JSON.parse(wire) as CaptureRecord; }
   catch (error) { fail('InvalidCompletedEffectfulCaptureRecord', error); }
   if (!exactKeys(body, [
     'version', 'store_authority_cid', 'run_definition', 'invocation',
@@ -914,7 +1132,7 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
       !Array.isArray(body.artifacts)) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  const admit = (name, wire) => control.admit(name, wire, contractLimits);
+  const admit = (name: string, wire: string) => control.admit(name, wire, contractLimits);
   const chain = {
     runDefinition: run,
     invocation: admit('run_invocation', body.invocation),
@@ -1025,7 +1243,7 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
 // Recover a completed computation without re-running its physical work. The
 // encrypted capture record is only a source of bytes; MoonBit re-admits and
 // validates the exact computation chain before any owner is reconstructed.
-export async function recoverCompletedEffectfulComputation(options, recoveryResources) {
+export async function recoverCompletedEffectfulComputation(options: RecoveryOptions, recoveryResources?: RecoveryResources) {
   return withCaptureRecoveryResources(recoveryResources, (beforeRead, extent) =>
     recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent));
 }
@@ -1034,28 +1252,29 @@ export async function recoverCompletedEffectfulComputation(options, recoveryReso
 // Finishing this synchronous/asynchronous constructor does not settle it:
 // successful returned schema/material owners and any failed physical child
 // remain backed until their original caller's actual retirement continuation.
-async function withCaptureRecoveryResources(resources, consume) {
+async function withCaptureRecoveryResources<Value>(resources: RecoveryResources | undefined,
+  consume: (beforeRead: BeforeRead | undefined, extent: Extent | undefined) => Awaitable<Value>): Promise<Value> {
   if (resources === undefined) return consume(undefined, undefined);
-  if (!['begin', 'reserve', 'finish', 'retainCleanup'].every(name => typeof resources?.[name] === 'function')) {
+  if (!['begin', 'reserve', 'finish', 'retainCleanup'].every(name => typeof resources?.[name as keyof RecoveryResources] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryResources');
   }
   const {begin, reserve, finish} = resources;
   Reflect.apply(begin, resources, []);
-  let failed = true, cause;
+  let failed = true, cause: unknown;
   try {
     // This cell records only the SAME acquired outer Store extent after its
     // original parent has admitted the reservation. Inner metadata never
     // supplies this constructor bound or changes the selected resource budget.
-    const extent = {bytes: undefined};
-    const beforeRead = bytes => {
+    const extent: Extent = {bytes: undefined};
+    const beforeRead: BeforeRead = bytes => {
       // Preserve the Store's synchronous-void reservation contract.
       const result = Reflect.apply(reserve, resources, [bytes]);
       if (result !== undefined) return result;
       extent.bytes = bytes;
     };
     if (typeof resources.reserveEnvelope === 'function') {
-      Object.defineProperty(beforeRead, 'reserveEnvelope', {value: wire =>
-        Reflect.apply(resources.reserveEnvelope, resources, [wire])});
+      Object.defineProperty(beforeRead, 'reserveEnvelope', {value: (wire: string) =>
+        Reflect.apply(resources.reserveEnvelope!, resources, [wire])});
     }
     const value = await consume(beforeRead, extent);
     failed = false;
@@ -1068,7 +1287,8 @@ async function withCaptureRecoveryResources(resources, consume) {
   }
 }
 
-async function recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent) {
+async function recoverCompletedEffectfulComputationOwned(options: RecoveryOptions, beforeRead: BeforeRead | undefined,
+  recoveryResources: RecoveryResources | undefined, extent: Extent | undefined) {
   if (!exactKeys(options, [
     'store', 'control', 'runDefinition', 'contractLimits',
   ])) fail('InvalidCompletedEffectfulRecoveryOptions');
@@ -1077,7 +1297,7 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
       typeof store?.storeAuthorityCid !== 'string' ||
       !['inspectPhysicalHolding', 'readPrivateEvidence',
         'confirmPrivateEvidence', 'putPreparedResultSchema']
-        .every(name => typeof store?.[name] === 'function') ||
+        .every(name => typeof store?.[name as keyof CaptureStore] === 'function') ||
       !['admit', 'admitRunEvidence', 'admitEffectComputationPreview',
         'admitCapturedEffectSourceFromCapture',
         'capturedEffectSourceHoldingCid',
@@ -1087,7 +1307,7 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
         'effectfulComputationEvidenceChainValid',
         'capturedEffectSourceInventoryFromCaptureValid',
         'capturedEffectDependencySchemas']
-        .every(name => typeof control?.[name] === 'function')) {
+        .every(name => typeof control?.[name as keyof CaptureControl] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryOptions');
   }
   const admittedRun = ownContract(control, runDefinition, contractLimits);
@@ -1127,20 +1347,21 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
 
 // One trusted consumer of the same temporary decrypted backing. The Store's
 // original reader spans the complete typed/schema construction and its awaits.
-async function recoverCompletedEffectfulPlaintext(store, control, contractLimits,
-  admittedRun, captureHoldingCid, recordHoldingCid, record, read, recoveryResources, extent) {
+async function recoverCompletedEffectfulPlaintext(store: CaptureStore, control: CaptureControl, contractLimits: Limits,
+  admittedRun: Contract, captureHoldingCid: string, recordHoldingCid: string, record: HoldingRecord, read: PrivateRead,
+  recoveryResources: RecoveryResources | undefined, extent: Extent | undefined) {
   if (extent !== undefined) {
     // The acquired original must agree with the inspected immutable holding.
     // This bounded inverse never needs to emit a metadata wire larger than
     // the original outer record that contains it. Preserve a smaller policy.
     const bytes = extent.bytes;
-    if (!Number.isSafeInteger(bytes) || bytes < 1 ||
+    if (!Number.isSafeInteger(bytes) || bytes! < 1 ||
         bytes !== record.objects[0].byte_count ||
         !Number.isSafeInteger(contractLimits?.maxWireBytes) || contractLimits.maxWireBytes < 1) {
       fail('InvalidCompletedEffectfulCaptureRecord');
     }
   }
-  let captured, captureRecordWire;
+  let captured: CaptureRecord | undefined, captureRecordWire: string;
   try {
     captureRecordWire = read.releaseBytes();
   } catch (error) {
@@ -1153,11 +1374,11 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
     // UTF8 selector scan before returning from reserveDecoded. Keep a smaller
     // original semantic policy, and retain the encrypted envelope separately.
     const plaintextBytes = Buffer.byteLength(captureRecordWire, 'utf8');
-    if (plaintextBytes > extent.bytes) fail('InvalidCompletedEffectfulCaptureRecord');
+    if (plaintextBytes > extent.bytes!) fail('InvalidCompletedEffectfulCaptureRecord');
     contractLimits = Object.freeze({maxWireBytes: Math.min(contractLimits.maxWireBytes, plaintextBytes),
       maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
   }
-  try {captured = JSON.parse(captureRecordWire);}
+  try {captured = JSON.parse(captureRecordWire) as CaptureRecord;}
   catch (error) {fail('InvalidCompletedEffectfulCaptureRecord', error);}
   if (!exactKeys(captured, [
     'version', 'store_authority_cid', 'run_definition', 'invocation',
@@ -1172,10 +1393,10 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       !['definitions', 'artifacts', 'derivations', 'orderings',
         'retentions', 'durable_bindings', 'result_schemas',
         'effect_source_artifacts', 'connector_recovery']
-        .every(name => Array.isArray(captured[name]))) {
+        .every(name => Array.isArray(captured![name as keyof CaptureRecord]))) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
-  const admit = (name, wire) => control.admit(name, wire, contractLimits);
+  const admit = (name: string, wire: string) => control.admit(name, wire, contractLimits);
   const definitions = captured.definitions.map(wire =>
     admit('result_definition', wire));
   const artifacts = captured.artifacts.map(wire =>
@@ -1307,14 +1528,14 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   }
   await store.commitPhysicalHolding(captureHolding, []);
   const recordBinding = Object.freeze({
-    name: 'effect_capture', semanticCid: capturedRun.identity,
+    name: 'effect_capture' as const, semanticCid: capturedRun.identity,
     holdingCid: recordHoldingCid, wire: captureRecordWire,
   });
   if (await read.confirm(recordBinding) === undefined) {
     fail('CompletedEffectfulCaptureRecordUnavailable');
   }
-  const preparedSchemas = [];
-  const dependencySchemas = [];
+  const preparedSchemas: PreparedSchema[] = [];
+  const dependencySchemas: PreparedSchema[] = [];
   try {
     for (let index = 0; index < count; index++) {
       const schema = captured.result_schemas[index];
@@ -1373,7 +1594,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   }));
   if (recoveryResources !== undefined) {
     recoveryResources.retainCleanup(async () => {
-      const owner = completedResultOwners.get(storedResults);
+      const owner = completedResultOwners.get(storedResults)!;
       // The ordinary caller already selected retain/terminal retirement when
       // applicable. Host shutdown without a selected terminal outcome only
       // relinquishes process-local children; it never deletes saved evidence.
@@ -1383,7 +1604,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       // aliases have been severed before this same resource duty can return.
       for (const field of Object.keys(owner)) {
         if (!['control', 'retainCapture', 'releaseComplete', 'releaseFlight'].includes(field)) {
-          owner[field] = undefined;
+          (owner as unknown as Record<string, unknown>)[field] = undefined;
         }
       }
     });
@@ -1406,7 +1627,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
 // This is not evidence that publication committed or its cleanup was ACKed.
 export function isCompletedEffectfulPublicationCleanupFailure({
   execution, store, storedResults, control, computation, preview,
-}, error) {
+}: EffectOwnerOptions, error: unknown) {
   const issued = completedEffectfulOwners.get(computation);
   const owner = completedResultOwners.get(storedResults);
   return issued !== undefined && owner !== undefined &&
@@ -1423,7 +1644,7 @@ export function isCompletedEffectfulPublicationCleanupFailure({
 
 // Derive the only final-chain inventory from the same completed Compute and
 // Effect-source owners used at capture. This is not apply or publication.
-export function prepareCompletedEffectfulPublication(options) {
+export function prepareCompletedEffectfulPublication(options: EffectOwnerOptions) {
   if (!exactKeys(options, [
     'execution', 'store', 'storedResults', 'control', 'computation',
     'preview',
@@ -1467,10 +1688,10 @@ export function prepareCompletedEffectfulPublication(options) {
 // Preserve the closed publication inventory. Connector recovery projects exact
 // occurrences separately, through the same existing owners and availability
 // checks, rather than extending final publication's accepted argument shape.
-export function prepareCompletedEffectSourceMembers(options) {
+export function prepareCompletedEffectSourceMembers(options: EffectOwnerOptions) {
   prepareCompletedEffectfulPublication(options);
   const issued = completedEffectfulOwners.get(options.computation);
-  return Object.freeze(issued.effectSourceHoldings.map(
+  return Object.freeze(issued!.effectSourceHoldings.map(
     ({source, artifact, memberIndex}) => Object.freeze({source, artifact, memberIndex})));
 }
 
@@ -1479,7 +1700,7 @@ export function prepareCompletedEffectSourceMembers(options) {
 // This does not authenticate a current Site grant or admit an Effect apply.
 export async function confirmCompletedEffectfulApplySources({
   store, control, computation, preview,
-}) {
+}: EffectConfirmation) {
   const issued = completedEffectfulOwners.get(computation);
   if (issued?.store !== store || issued.control !== control ||
       issued.preview !== preview ||
@@ -1497,7 +1718,7 @@ export async function confirmCompletedEffectfulApplySources({
   const record = completedResultOwners.get(issued.storedResults)
     ?.captureRecordOwner;
   if (record === undefined ||
-      await store.confirmPrivateEvidence(record.binding) === undefined) {
+      await store.confirmPrivateEvidence(record.binding as WireBinding) === undefined) {
     fail('CompletedEffectfulCaptureRecordUnavailable');
   }
   for (const {source, artifact} of issued.effectSourceHoldings) {
@@ -1524,7 +1745,7 @@ export async function confirmCompletedEffectfulApplySources({
 // This removes cleanup eligibility; it grants no mutation authority.
 export async function transferCompletedEffectfulCaptureCustody({
   store, control, computation, preview,
-}) {
+}: EffectConfirmation) {
   const issued = completedEffectfulOwners.get(computation);
   if (issued?.store !== store || issued.control !== control ||
       issued.preview !== preview) fail('InvalidCompletedEffectfulApplyOwner');
@@ -1534,7 +1755,7 @@ export async function transferCompletedEffectfulCaptureCustody({
 // Publish only from the retained completed owner and an issued physical
 // Effect set. A failed or uncertain commit leaves every owner available for
 // reconciliation; a repeated call never re-runs Compute or Effect dispatch.
-export async function publishCompletedEffectfulRun(options) {
+export async function publishCompletedEffectfulRun(options: CompletedEffectOptions) {
   if (!exactKeys(options, [
     'execution', 'store', 'storedResults', 'control', 'computation',
     'preview', 'ledger', 'issuedSet', 'request', 'attempt',
@@ -1545,17 +1766,17 @@ export async function publishCompletedEffectfulRun(options) {
   const inventory = prepareCompletedEffectfulPublication({
     execution, store, storedResults, control, computation, preview,
   });
-  const captureHolding = completedEffectfulOwners.get(computation)
+  const captureHolding = completedEffectfulOwners.get(computation)!
     .captureHolding;
   if (typeof store.inspectPhysicalHolding !== 'function' ||
       JSON.stringify(await store.inspectPhysicalHolding(
         captureHolding.holding_cid)) !== JSON.stringify(captureHolding)) {
     fail('CompletedEffectfulCaptureUnavailable');
   }
-  const captureRecord = completedResultOwners.get(storedResults)
+  const captureRecord = completedResultOwners.get(storedResults)!
     .captureRecordOwner;
   if (captureRecord === undefined ||
-      await store.confirmPrivateEvidence(captureRecord.binding) ===
+      await store.confirmPrivateEvidence(captureRecord.binding as WireBinding) ===
         undefined) {
     fail('CompletedEffectfulCaptureRecordUnavailable');
   }
@@ -1567,15 +1788,15 @@ export async function publishCompletedEffectfulRun(options) {
     privateOwner = preparePrivatePublicationHolding(store, binding);
     privateEffectfulHoldings.set(computation, privateOwner);
   }
-  const resultOwner = completedResultOwners.get(storedResults);
+  const resultOwner = completedResultOwners.get(storedResults)!;
   resultOwner.privateEffectOwner = privateOwner;
   resultOwner.publicationFailure = undefined;
   let publication;
   try {
     await privateOwner.commit();
-    const publicationOptions = {store, control, ...inventory, ledger, issuedSet,
+    const publicationOptions: EffectPublication & {recoveryResources?: RecoveryResources} = {store, control, ...inventory, ledger, issuedSet,
       request, attempt, limits: contractLimits, now, signal};
-    const resources = completedEffectfulOwners.get(computation).recoveryResources;
+    const resources = completedEffectfulOwners.get(computation)!.recoveryResources;
     if (resources !== undefined) publicationOptions.recoveryResources = resources;
     publication = await publishEffectfulRun(publicationOptions);
   } catch (error) {
@@ -1585,7 +1806,7 @@ export async function publishCompletedEffectfulRun(options) {
     throw error;
   }
   if (publication.state === 'succeeded') {
-    completedResultOwners.get(storedResults).capturePublished = true;
+    completedResultOwners.get(storedResults)!.capturePublished = true;
   }
   if (publication.idempotent) {
     await releaseCompletedRunPreparedPayloads(storedResults, control);
@@ -1593,7 +1814,7 @@ export async function publishCompletedEffectfulRun(options) {
   return Object.freeze({publication, computation, storedResults});
 }
 
-export async function publishCompletedEffectFreeRun(options, publicationResource) {
+export async function publishCompletedEffectFreeRun(options: CompletedFreeOptions, publicationResource?: unknown) {
   validateOptions(options);
   const {
     execution,
@@ -1615,9 +1836,9 @@ export async function publishCompletedEffectFreeRun(options, publicationResource
     now,
     signal,
   } = options;
-  const exported = [];
+  const exported: LiveResult[] = [];
   const retireCaptured = member(control, 'retireCapturedComputation');
-  let capturedRun, publicationEntered = false;
+  let capturedRun: Contract | undefined, publicationEntered = false;
   try {
     await exportCompletedRunResultSet({
       execution, store, control, runDefinition, invocation, results,

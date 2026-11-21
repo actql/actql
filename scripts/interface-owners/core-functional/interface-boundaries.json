@@ -7584,7 +7584,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7594,7 +7594,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7604,7 +7604,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7614,7 +7614,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7624,7 +7624,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7634,7 +7634,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7644,7 +7644,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7654,7 +7654,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],
@@ -7664,7 +7664,7 @@
                 "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
               },
               {
-                "path": "adapters/host-common/completed-run-publication.mjs",
+                "path": "adapters/host-common/completed-run-publication.mts",
                 "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
               }
             ],

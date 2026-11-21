@@ -39,7 +39,6 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs';
 import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
-// @ts-expect-error TS7016: remove after migrating completed-run publication.
 import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
 // @ts-expect-error TS7016: remove after migrating the authorization gate.
@@ -1431,7 +1430,7 @@ export async function runInstalledStrategy({
         store,
         control: core.publicationControl,
         signal,
-      }, publicationResource);
+      } as unknown as Parameters<typeof publishCompletedEffectFreeRun>[0], publicationResource);
     },
     async storePublicationResult(result: number, store: unknown, publication: ResultPublication, signal?: AbortSignal, publicationResource?: unknown) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
