@@ -17,6 +17,7 @@ import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 import {productionRuntimeModules} from '../adapters/workers/moon-runtime.mjs';
 import {pythonModuleInterfaces} from './python-interface-sources.mjs';
+import {authoringBinPath} from './connector-authoring-toolkit.mjs';
 
 export async function sourceInterfaceClosure(root, {distributionRoots = npmInterfaceRoots(root), generatedInputs = [],
   reportUnresolvedEntrances = false, authoredEntrances = []} = {}) {
@@ -90,6 +91,12 @@ export async function sourceInterfaceClosure(root, {distributionRoots = npmInter
   const copyReferences = new Map();
   function copiedSource(path) {
     const destination = relative(resolve(root, 'packages/local-node'), path);
+    if (destination === authoringBinPath) {
+      const source = 'scripts/connector.mjs';
+      assert(existsSync(resolve(root, source)), `Missing local-node copy source: ${source}`);
+      copyReferences.set(path, {destination: relative(root, path), source});
+      return resolve(root, source);
+    }
     if (!destination.startsWith('adapters/') && !destination.startsWith('src/')) return;
     const source = resolve(root, destination);
     if (destination.startsWith('src/')) assert(local.dataFiles.includes(destination),

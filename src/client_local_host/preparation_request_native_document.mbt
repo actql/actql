@@ -449,6 +449,7 @@ pub fn[I] request_prepared_static_plan_view(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> Result[String, ClientRequestTerminalIssue] {
   if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(Preparation(Policy))
@@ -456,9 +457,23 @@ pub fn[I] request_prepared_static_plan_view(
   let bytes = Int::min(max_bytes, 65536)
   let nodes = Int::min(max_nodes, 8192)
   let depth = Int::min(max_depth, 64)
-  let kind = match request_prepared_computation_kind(owner, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(value) => value
+  let kind : ClientRequestComputationKind = if owner.phase == EffectPlanReserved &&
+    owner.compiled_effect is Some(_) &&
+    owner.effect_plan is None {
+    // The original Plan-input borrow can prepare its metadata-only Model
+    // graphs on this SAME capacity. It has not constructed an executable body.
+    guard owner.input is Some(original) && physical_equal(original, input) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    Effect
+  } else {
+    match request_prepared_computation_kind(owner, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(value) => value
+    }
+  }
+  if kind == Pure && !infers.is_empty() {
+    return Err(Preparation(ForeignOriginal))
   }
   let data = match owner.program_data {
     None => return Err(Preparation(WrongPhase))
@@ -531,16 +546,9 @@ pub fn[I] request_prepared_static_plan_view(
         }
         Effect => {
           let prepared = owner.compiled_effect.unwrap()
-          if @strategy.graph_captured_prefix(
-              @strategy.checked_effect_computation_graph(
-                @publication_host.prepared_client_effect_computation_graph(
-                  prepared,
-                ),
-              ),
-            ) !=
-            0 {
-            return Err(Preparation(Policy))
-          }
+          // The actual compiler checks every acquired route and the nominal
+          // Model occurrence/Graph binding. A captured prefix is not itself a
+          // reason to reject a legal static Plan; no acquisition is executed.
           let compiled = match
             @publication_host.issue_prepared_client_effect_compilation(
               prepared,
@@ -551,6 +559,10 @@ pub fn[I] request_prepared_static_plan_view(
               bytes,
               nodes,
               depth,
+              // The existing compiler distinguishes its single original from
+              // a genuinely composed inventory; never pass one as composed.
+              infer=if infers.length() == 1 { Some(infers[0]) } else { None },
+              infers=if infers.length() == 1 { [] } else { infers },
             ) {
             Err(_) => return Err(Preparation(Policy))
             Ok(value) => value

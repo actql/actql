@@ -12,9 +12,9 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   runPhase, createDefinition, retainProgramInputs = false, log = value => console.log(JSON.stringify(value))}) {
   if (typeof retainProgramInputs !== 'boolean') throw new TypeError('InvalidRecordApprovalFixtureMode');
   const [phase, configurationPath, receiptPrefix] = argv;
-  if (argv.length !== 3 || !['check', 'capture', 'approve', 'recover'].includes(phase) ||
+  if (argv.length !== 3 || !['check', 'capture', 'approve', 'reject', 'recover'].includes(phase) ||
       !text(configurationPath) || !text(receiptPrefix)) {
-    throw new TypeError('Expected check|capture|approve|recover CONFIGURATION RECEIPT_PREFIX');
+    throw new TypeError('Expected check|capture|approve|reject|recover CONFIGURATION RECEIPT_PREFIX');
   }
   const path = resolve(configurationPath);
   let configuration;
@@ -23,6 +23,11 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   catch {throw new TypeError('InvalidRecordApprovalConfiguration');}
   if (!object(configuration) || !object(configuration.connect)) {
     throw new TypeError('InvalidRecordApprovalConfiguration');
+  }
+  const {decision = 'approved'} = configuration;
+  if (!['approved', 'rejected'].includes(decision) ||
+      (phase === 'approve' && decision !== 'approved') || (phase === 'reject' && decision !== 'rejected')) {
+    throw new TypeError('InvalidRecordApprovalDecision');
   }
   if (configuration.operatorModulePath !== undefined && !text(configuration.operatorModulePath)) {
     throw new TypeError('InvalidRecordApprovalOperatorModule');
@@ -33,7 +38,7 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     throw new TypeError('InvalidRecordApprovalSigner');
   }
   let programs;
-  if (retainProgramInputs && ['approve', 'recover'].includes(phase)) {
+  if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
     try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}
     catch (cause) {
       if (cause?.code === 'ENOENT') throw cause;
@@ -59,12 +64,12 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     await writeFile(receiptPrefix + '.programs.json', JSON.stringify(programs) + '\n',
       {encoding: 'utf8', mode: 0o600, flag: 'wx'});
   }
-  // Capture/recovery never open the operator key. Approval loads it only after
+  // Capture and recovery leave the operator key closed. A resolution loads it after
   // the existing workflow has re-read the SAME original sealed Review.
-  const approve = signer === undefined ?
-    (client, captured) => client.approve(captured.checkpointId) : async (client, captured) => {
+  const resolveDecision = signer === undefined ?
+    (client, captured) => client[decision === 'approved' ? 'approve' : 'reject'](captured.checkpointId) : async (client, captured) => {
       const key = createPrivateKey(await readFile(resolve(dirname(path), signer.privateKeyPath), 'utf8'));
-      return client.resolveCheckpoints([{checkpoint: captured.summary, decision: 'approved'}],
+      return client.resolveCheckpoints([{checkpoint: captured.summary, decision}],
         {signer: {keyId: signer.keyId, reviewerId: signer.reviewerId,
           authorityScopeCid: captured.ref.authorityScopeCid,
           sign: bytes => sign(null, bytes, key)}});
@@ -82,10 +87,12 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     if (!object(connection)) throw new TypeError('InvalidRecordApprovalConnection');
   }
   const client = await connect(connection);
-  await runPhase({phase, client, programs, selection: configuration.selection, approve,
+  await runPhase({phase, client, programs, selection: configuration.selection,
+    ...(decision === 'approved' ? {approve: resolveDecision} : {decision, reject: resolveDecision}),
     load: async name => JSON.parse(await readFile(receiptPrefix + '.' + name + '.json', 'utf8')),
     save: (name, value) => writeFile(receiptPrefix + '.' + name + '.json',
       JSON.stringify(value) + '\n', {encoding: 'utf8', mode: 0o600, flag: 'wx'}),
   });
-  log({phase, status: 'passed', publicClientClose: 'returned'});
+  log({phase, status: 'passed', publicClientClose: 'returned',
+    ...(decision === 'rejected' ? {decision} : {})});
 }

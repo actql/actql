@@ -28,11 +28,13 @@ fn local_initial_signing_issue_storage_locked(
   trusted_sample : () -> Int64,
   current : () -> Result[Unit, NativeClientRunJournalIssue],
   resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[
   NativeLocalInitialSigningStorageResult,
   NativeLocalInitialSigningStorageIssue,
 ] {
   let host = key.original.host
+  let reads = operations.map(value => value.reads)
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(InitialStorageJournal(Fenced))
   }
@@ -44,6 +46,7 @@ fn local_initial_signing_issue_storage_locked(
     host.local_grant_custody(
       host.epoch.crypto,
       capture=key.original.original_read.map(value => value.0),
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(InitialStorageJournal(issue))
@@ -56,7 +59,13 @@ fn local_initial_signing_issue_storage_locked(
   // A retained operation is read before the clock callback. Missing use,
   // corruption, a foreign original or an uncertain earlier commit cannot
   // select a new sample/expiry, ordinal, claim, key or grant.
-  match host.database.read("client_local_grant_originals", row_key) {
+  match
+    read_client_journal_value(
+      host.database,
+      "client_local_grant_originals",
+      row_key,
+      reads,
+    ) {
     Ok(row) => {
       let original = match
         read_local_grant_original(host.epoch.crypto, {
@@ -116,7 +125,13 @@ fn local_initial_signing_issue_storage_locked(
   }
   let original = match
     local_initial_signing_grant_original_locked(
-      key, request, scope, operation_id, sampled_at, earlier_valid_until,
+      key,
+      request,
+      scope,
+      operation_id,
+      sampled_at,
+      earlier_valid_until,
+      reads~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(InitialStorageJournal(issue))
@@ -128,6 +143,7 @@ fn local_initial_signing_issue_storage_locked(
       original,
       current,
       resolution_proof~,
+      operations~,
       capture=key.original.original_read.map(value => value.0),
     ) {
     Ok(_) => ()

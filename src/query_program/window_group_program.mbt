@@ -40,7 +40,7 @@ fn script_window_group_aggregates(
               script_input_scope(
                 construction,
                 sources,
-                input.name,
+                input,
                 query_range_name(query),
               ) {
               Some(scope) =>
@@ -50,6 +50,7 @@ fn script_window_group_aggregates(
                   scope.visible,
                   scope.ranges,
                   limits.max_expression_work,
+                  column_profiles=scope.result_columns,
                   value_ranges=value_range_names(
                     scope.receivers,
                     scope.scalar_ranges,

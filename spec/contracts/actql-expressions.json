@@ -2355,6 +2355,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/expression"
                     }
                   }
                 }
@@ -8936,6 +8939,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/expression"
                     }
                   }
                 }
@@ -14534,7 +14540,9 @@
                   "true",
                   "not_true",
                   "null",
-                  "not_null"
+                  "not_null",
+                  "case_match",
+                  "case_no_match"
                 ]
               }
             }
@@ -15268,7 +15276,9 @@
                         "enum": [
                           "true",
                           "not_true",
-                          "null"
+                          "null",
+                          "case_match",
+                          "case_no_match"
                         ]
                       }
                     }
@@ -15458,7 +15468,9 @@
                             "true",
                             "not_true",
                             "null",
-                            "not_null"
+                            "not_null",
+                            "case_match",
+                            "case_no_match"
                           ]
                         }
                       }
@@ -21788,6 +21800,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/source_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/source_expression"
                     }
                   }
                 }
@@ -27454,6 +27469,9 @@
                       }
                     },
                     "else": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "operand": {
                       "$ref": "#/$defs/machine_expression"
                     }
                   }
@@ -36279,6 +36297,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/source_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/source_expression"
                     }
                   }
                 }
@@ -41946,6 +41967,9 @@
                     },
                     "else": {
                       "$ref": "#/$defs/machine_expression"
+                    },
+                    "operand": {
+                      "$ref": "#/$defs/machine_expression"
                     }
                   }
                 }
@@ -46920,7 +46944,9 @@
                             "enum": [
                               "true",
                               "not_true",
-                              "null"
+                              "null",
+                              "case_match",
+                              "case_no_match"
                             ]
                           }
                         }
@@ -47110,7 +47136,9 @@
                                 "true",
                                 "not_true",
                                 "null",
-                                "not_null"
+                                "not_null",
+                                "case_match",
+                                "case_no_match"
                               ]
                             }
                           }
@@ -47735,6 +47763,12 @@
       "replacement": "After SQL String decoding, a backslash followed by one ASCII digit 0 through 9 selects the whole match or that group. Two backslashes emit one literal backslash. Other backslash escapes fail Check. Preserve literal scalars exactly, including dollar signs and line endings; coalesce adjacent literal parts. Referenced groups must exist in the checked pattern.",
       "progress": "Replace nonoverlapping matches in left-to-right order. Suppress an empty match at the end of the previous match. Advance one original Unicode scalar after an empty match without omitting that scalar from output. At the end of input an empty match terminates matching.",
       "bounds": "Retain the original argument, pattern and template identities and text-time limits. The same capture-count and byte-count evidence applies, including a reference to the whole match. This is an alternate spelling and matching rule on the checked Common replacement operation, with no Host regex fallback."
+    },
+    "simple_case": {
+      "identity": "The optional case.operand retains the simple CASE selector in both the closed source and machine body. Without it, the body retains searched CASE. The when array preserves authored order. Canonical completion of missing else remains typed NULL.",
+      "signature": "The selector and WHEN operands share an equality-comparable domain under the existing Common comparison rules. An all-literal-NULL comparison list uses the nullable Boolean domain only for the comparison; result typing uses the THEN and ELSE branches alone.",
+      "evaluation": "Evaluate the selector once. Evaluate WHEN operands in order and compare each to that selector with Common equality; only true selects a branch. False and NULL continue. Evaluate only the selected THEN or ELSE. All clauses receive static validation.",
+      "demand": "The selector and first WHEN inherit outer demand. Each later WHEN adds case_no_match tests for earlier WHEN operands. A THEN additionally adds case_match for its own WHEN. ELSE adds case_no_match for every WHEN. The pointer addresses the exact original WHEN operand; the paired selector is the enclosing case.operand in the same evaluation frame. The tests use the retained comparison outcome and do not reevaluate either operand."
     }
   },
   "regex_ast_contract": {

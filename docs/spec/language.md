@@ -2783,6 +2783,15 @@ conditions in order until the first true condition, then only that branch;
 otherwise it evaluates its else expression. `coalesce` evaluates arguments
 in order through the first non-null value. Non-selected expressions do not
 produce runtime failures, although all expressions are statically checked.
+
+A structured `case` body can also specify `operand`. This form evaluates the
+selector once and compares each reached `when` expression to that value under
+the existing Common equality rules. The first true comparison selects its
+`then` expression. A false or null comparison continues, including a null
+selector compared with a null `when` expression. Its other branches have the
+same static checking, return typing and omitted-else completion as searched
+CASE. The machine body retains the selector and the original branch order.
+
 Static checking validates syntax, names, arity, types, profile admission, and
 signature-declared static argument constraints in every branch. Checking a
 conversion's input type does not apply its value-conversion law.
@@ -3788,6 +3797,10 @@ tests are appended in the listed logical order.
 | CASE condition i | each earlier condition `not_true` |
 | CASE branch i | each earlier condition `not_true`, then condition i `true` |
 | CASE ELSE | every condition `not_true` |
+| Simple CASE selector | none |
+| Simple CASE WHEN i | each earlier WHEN operand `case_no_match` |
+| Simple CASE THEN i | each earlier WHEN operand `case_no_match`, then WHEN operand i `case_match` |
+| Simple CASE ELSE | every WHEN operand `case_no_match` |
 | coalesce operand i | each earlier operand `null` |
 | aggregate argument | its own filter `true`, if present |
 | other eager child; aggregate filter | none |
@@ -3797,6 +3810,9 @@ Admission MUST rederive demand paths from the expression tree and consumer
 position and require exact equality, not merely valid pointers or self-CIDs.
 Tests reference values already evaluated in the same row and evaluation frame;
 demand testing never reevaluates a condition or operand.
+A simple CASE test points to the original `when` expression within its clause,
+paired with the enclosing CASE's already evaluated selector. `case_match`
+requires a true comparison and `case_no_match` records false or null.
 
 Within one expression frame, failure priority follows its prescribed child
 evaluation order. For a derive operation it is logical input-row order, then
@@ -11786,7 +11802,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:28e28666662b722b8d54058de0ac143aa949062ffd433fb31741f36f7afdba1f
+../../spec/contracts/actql-aoa.json# sha256:f76718e6dd83eeefea3c4e1f982e2b714d6ad9e3817fa29d60ab79a71e2eb129
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11796,13 +11812,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/sql_regex_replacement_ast sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:48c23430edc1c53862c577b27b20f72db62511a84e47242a226a69ab5727bb4d
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:cccd985f9af564a29571835c3f20241cd1a90f0eb351232cd80cf94cda123fe3
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:4ba1e4d13f4ad05be7d600b16fea9621b603ceab4441e568ddd7d7f2e7b1c94d
-../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:8b899bed4cb04e2e64bdaddd5ad31376472fe1243b9900b54afca44074e0591c
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b2be6e567539bf5671e76d1c7d23441cde7814634ae75f5535cdc51c086ef9c0
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0387f61988275e5c086c255cd7cbeec4397069fba9b0e8eb62d7b665d3f98997
+../../spec/contracts/actql-expressions.json# sha256:d32541ab7aaed01e700622f77ef5265d1f19b814d0260713b842b63d8379082e
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:a2b009b820855d8807ce74b678f0ee385d0ec92fdbbb2f25aa19bb9f00d45660
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:35d494fcc202fe8950cb43b2c1d05b919faabe3bd6deb945a691d4b118cc1d18
+../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:00274988e734dc6773c0d87ec2cc5cba740c2d45a2b1077bde86c2e0a2ae4a6c
+../../spec/contracts/actql-expressions.json#/laws sha256:ac218e48fb42cf8fd791bc02156392002494234fed7e9d4f3120c23e515695c7
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:18ccd470fc812f633cc23a2cdb3b346fc6854edb9b7b6519e578fa739655564c
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0d1766c19ccace6cf89c0b4631fe3f1e16244d4d35e154aeed544c6b5fc4f300
 ```
 
 <!-- stage-contract-pins:start -->

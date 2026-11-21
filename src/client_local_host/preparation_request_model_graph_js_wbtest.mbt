@@ -4015,3 +4015,151 @@ test "invalid caller material cannot construct an Effect Model Graph or replace 
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
 }
+
+///|
+test "static Model Plan consumes only the same original graph and retains its input through refusal" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let (
+    foreign,
+    foreign_input,
+    _,
+    foreign_holder,
+    foreign_occurrence,
+    foreign_execution,
+  ) = request_effect_model_graph_inputs()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let foreign_graph = prepare_request_model_graph(
+    foreign,
+    foreign_input,
+    foreign_occurrence,
+    foreign_execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let checks = parent._observed_semantic_check_calls
+  for graphs in [[], [foreign_graph]] {
+    assert_true(
+      request_prepared_static_plan_view(
+        parent,
+        input,
+        request_program_module_manifests(),
+        65536,
+        8192,
+        64,
+        infers=graphs,
+      )
+      is Err(Preparation(Policy)),
+    )
+    assert_true(parent.phase == EffectPlanReserved)
+    assert_true(
+      physical_equal(
+        @resources.preparation_body_borrow_value(holder).unwrap(),
+        prepared,
+      ),
+    )
+  }
+  let wire = request_prepared_static_plan_view(
+    parent,
+    input,
+    request_program_module_manifests(),
+    65536,
+    8192,
+    64,
+    infers=[graph],
+  ).unwrap()
+  assert_true(wire.contains("actql-effectful-static-plan-view/0.1"))
+  assert_eq(parent._observed_semantic_check_calls, checks)
+  assert_true(parent.effect_plan is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_false(
+    @resources.return_preparation_body_borrow(foreign_holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(foreign).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(foreign.ledger).held_bytes, 0L)
+}
+
+///|
+test "static Model inventory grows the same original Request before exposing Host controls" {
+  let (parent, input, prepared, first, _, _) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let bytes = request_effect_static_model_controls_bytes(prepared).unwrap()
+  let holder = borrow_request_effect_plan_input(
+    parent,
+    input,
+    static_models=true,
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_eq(after.0 - before.0, bytes)
+  assert_eq(after.1 - before.1, bytes)
+  assert_true(parent.phase == EffectPlanReserved)
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(first).unwrap())
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+}
+
+///|
+test "static Model inventory refusal preserves current loss before Host construction" {
+  let current = Ref(true)
+  let (parent, input, _, first, _, _) = request_effect_model_graph_inputs(current=() => {
+    current.val
+  })
+  let before = @resources.ledger_usage(parent.ledger)
+  current.val = false
+  assert_true(
+    borrow_request_effect_plan_input(parent, input, static_models=true)
+    is Err(Capacity(_)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  current.val = true
+  assert_false(@resources.return_preparation_body_borrow(first).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "static Model inventory keeps the ordinary non-Model Effect path" {
+  let (parent, input, prepared) = request_effect_compile_fixture()
+  let holder = borrow_request_effect_plan_input(
+    parent,
+    input,
+    static_models=true,
+  ).unwrap()
+  let wire = request_prepared_static_plan_view(
+    parent,
+    input,
+    request_program_module_manifests(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(wire.contains("actql-effectful-static-plan-view/0.1"))
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  assert_true(parent.effect_plan is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

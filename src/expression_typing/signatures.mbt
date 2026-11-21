@@ -138,8 +138,20 @@ fn comparable_operands(
   node : Node,
   ordered : Bool,
 ) -> Array[@contract.Contract] raise Stop {
+  comparable_children(t, nodes, node.children, node.source, ordered, false)
+}
+
+///|
+fn comparable_children(
+  t : Types,
+  nodes : Array[Node],
+  ids : Array[Int],
+  source : @decode.Cursor,
+  ordered : Bool,
+  all_null : Bool,
+) -> Array[@contract.Contract] raise Stop {
   let mut evidence : Int? = None
-  for id in node.children {
+  for id in ids {
     if !immediate_null(nodes[id]) {
       ignore(resolve_type(t, nodes[id].inferred, nodes[id].source))
       evidence = Some(nodes[id].inferred)
@@ -148,10 +160,17 @@ fn comparable_operands(
   }
   let hint = match evidence {
     Some(id) => id
-    None => fail(node.source, NullTypeUnresolved)
+    // An all-NULL simple CASE never matches. Its comparison-only type
+    // has no bearing on the result contract.
+    None =>
+      if all_null {
+        primitive(t, BooleanType, true, source)
+      } else {
+        fail(source, NullTypeUnresolved)
+      }
   }
   let values : Array[@contract.Contract] = []
-  for id in node.children {
+  for id in ids {
     let child = nodes[id]
     if immediate_null(child) {
       provide(t, child.inferred, hint, child.source)
@@ -798,9 +817,22 @@ fn infer(
         branches.push(values[1])
         branches.push(values[2])
       } else if tag == "case" {
-        for i = 0; i + 1 < values.length(); i = i + 2 {
-          ignore(require_type(t, nodes, node.children[i], "boolean"))
-          branches.push(values[i + 1])
+        let body = decoded(@decode.open_object(node.body), node.body)
+        let simple = @decode.lookup(body, "operand") is Some(_)
+        if simple {
+          let matches = [node.children[0]]
+          for i = 1; i + 1 < values.length(); i = i + 2 {
+            spend(t.budget, source)
+            matches.push(node.children[i])
+            branches.push(values[i + 1])
+          }
+          int64_comparison_context(t, nodes, matches)
+          ignore(comparable_children(t, nodes, matches, source, false, true))
+        } else {
+          for i = 0; i + 1 < values.length(); i = i + 2 {
+            ignore(require_type(t, nodes, node.children[i], "boolean"))
+            branches.push(values[i + 1])
+          }
         }
         branches.push(values[values.length() - 1])
       } else {

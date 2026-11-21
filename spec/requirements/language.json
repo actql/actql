@@ -4096,7 +4096,7 @@
     },
     {
       "requirement_id": "actql.language/common-expression-contract.demand-derivation",
-      "statement_sha256": "99b43917c2f4b47350ffc7cfdcf7056b1fa7551c8a65518e23f8bef863f05c0d",
+      "statement_sha256": "28c539d50fc8b41744ca36dd8ee2f7784df3d712660aac419c08a0668aa58432",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -11235,7 +11235,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "c0a13a9f1716bc9d836a2262ffab6291cbe7bc7ef53a82d1aa31fc2a94935528",
+      "statement_sha256": "be840806baa4c8688fd7b1dfd86735496662a46068f60681498b2292e6274d2c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -66,11 +66,15 @@ Client performs no profile negotiation, new Host, reconnect, Run cancellation
 or unknown write retry. It preserves the same unfinished Core/Host and, for
 sync, its original Runner until cleanup succeeds.
 
-The initial runtime recipe selects macOS11 or later on arm64; its platform
-wheel has the `py3-none-macosx_11_0_arm64` tag. Python 3.11 is the package minimum;
-acceptance identifies the combinations actually tested. Other intended
-platforms remain unverified. This source package is a development cohort,
-not the existing PyPI name-reservation placeholder and not a publication GO.
+The development Local profiles cover macOS11+ arm64 and Linux x86-64/glibc2.28+,
+with Python 3.11 as the package minimum. The support matrix above records the
+combinations actually tested; the [runtime recipe](../python-local-runtime/README.md)
+lists the native dependencies. Linux acceptance was on Ubuntu 24.04; the libc
+floor alone does not qualify every Linux host.
+Linux arm64, musl, Windows and other macOS architectures remain unsupported for
+Local; use the Remote Client where its dependencies are supported. These are
+development cohorts, not the existing PyPI name-reservation placeholder or a
+published Python release.
 
 Maintainers build all three candidate wheels from the fixed original artifact
 with `scripts/build-python-product-wheels.py` using `--artifact-directory ORIGINAL`
@@ -109,9 +113,10 @@ permission to submit again. Missing components/capacity or cleanup errors fail
 the process rather than producing a success JSON.
 
 Run `--mode sdk-only` in a separate SDK-only venv to reject any installed Local
-distribution. These fixtures are acceptance commands, not evidence that this
-candidate has passed them. The finite ordinary query/close execution does not
-establish the complete sync/async initial/resume scenarios, general saved-original
-recovery, normal numerical funding or full platform coverage. Those remain
-separate product gates; public-call spies and receipt-file tests only prepare
-them.
+distribution. The [normal-wheel CI](https://github.com/actql/actql/actions/runs/44664959633)
+accepted both development profiles: clean installation, sync/async SQL and typed
+parameters, separate-process Saved reads, invalid-input recovery, active
+cancellation and first close. These results qualify their original cohorts;
+the fixture commands alone do not qualify another candidate. General
+saved-original recovery, every funding profile and full platform or Python
+capability coverage remain separate product gates.

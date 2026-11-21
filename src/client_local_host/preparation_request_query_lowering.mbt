@@ -39,6 +39,7 @@ fn request_query_lowering_data_bytes(
   declarations : String?,
   catalog : @checked.PreparedSourceCatalog,
   request_copy : (Int, Int64),
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> Int64? {
   let usage = @checked.source_catalog_usage(catalog)
   // Each emitted external input has an authored relation occurrence with at
@@ -79,6 +80,24 @@ fn request_query_lowering_data_bytes(
     return None
   }
   guard @execution.checked_preparation_add_product(base, integer_context, 1L)
+    is Some(base) &&
+    request_query_namespace_scope_fields_bytes(occurrences.to_int64())
+    is Some(scope_fields) else {
+    return None
+  }
+  guard request_query_namespace_data_bytes(
+      parsed,
+      publication,
+      catalog,
+      query.document.length().to_int64() +
+      declarations.map(value => value.length().to_int64()).unwrap_or(0L),
+    )
+    is Some(namespace_bytes) &&
+    @execution.checked_preparation_add_product(base, scope_fields, 1L)
+    is Some(base) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(base, namespace_bytes, 1L)
     is Some(base) else {
     return None
   }
@@ -87,6 +106,25 @@ fn request_query_lowering_data_bytes(
     units,
     @query_syntax.rollup_item_count(parsed).to_int64(),
   )
+}
+
+///|
+// One added optional-reference slot at each of the eighteen existing Scope
+// constructor sites and two ScriptSources sites, at most once per original
+// token occurrence. None is not an erased field or spare baseline capacity.
+// The conditional arrays/records require their separate namespace inventory.
+fn request_query_namespace_scope_fields_bytes(tokens : Int64) -> Int64? {
+  guard @execution.checked_preparation_add_product(0L, tokens, 20L)
+    is Some(references) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: references,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -217,7 +255,7 @@ pub fn[I] lower_request_published_query(
       Some(0L)
     }
     guard request_query_lowering_data_bytes(
-        query, declarations, catalog, request_copy,
+        query, declarations, catalog, request_copy, publication,
       )
       is Some(data) &&
       control is Some(control) &&

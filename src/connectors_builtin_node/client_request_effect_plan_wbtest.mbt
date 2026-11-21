@@ -42,7 +42,9 @@ fn request_effect_bridge_fixture() -> (
     ).unwrap(),
     "effectful",
   )
-  let holder = client_program_borrow_request_effect_plan_input(parent, receipt).unwrap()
+  let holder = client_program_borrow_request_effect_plan_input(
+    parent, receipt, false,
+  ).unwrap()
   let prepared = client_program_effect_preparation_input_read(holder).unwrap()
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,

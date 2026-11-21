@@ -254,26 +254,24 @@ test "UNPIVOT qualified star retains its immutable row values after a current SE
 
 ///|
 test "UNPIVOT output stars do not revive displaced or projected-away ranges" {
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT 'anchor' AS a UNION ALL (FROM t |> SELECT x AS kept,y AS extra,-y |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) |> AS old |> AS fresh |> SELECT old.*) ORDER BY a",
-        syntax_limits(),
-      ).unwrap(),
+  for
+    source in [
+      "SELECT 'anchor' AS a UNION ALL (FROM t |> SELECT x AS kept,y AS extra,-y |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) |> AS old |> AS fresh |> SELECT old.*) ORDER BY a",
+      "SELECT 'anchor' AS a UNION ALL (FROM t |> SELECT x AS kept,y AS extra,-y |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) |> AS old |> SELECT label |> SELECT old.*) ORDER BY a",
+    ] {
+    let result = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedProjection),
-  )
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT 'anchor' AS a UNION ALL (FROM t |> SELECT x AS kept,y AS extra,-y |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) |> AS old |> SELECT label |> SELECT old.*) ORDER BY a",
-        syntax_limits(),
-      ).unwrap(),
-      join_order_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedProjection),
-  )
+    match result {
+      Err(UnknownColumn) => ()
+      Err(UnsupportedProjection) => fail(source + ": unsupported projection")
+      Err(Expression(issue)) =>
+        fail(source + ": " + @debug.to_string(issue.issue))
+      Err(UnsupportedSet) => fail(source + ": unsupported set")
+      Ok(program) => fail(source + ": accepted " + semantic(program))
+      Err(_) => fail(source + ": other refusal")
+    }
+  }
 }

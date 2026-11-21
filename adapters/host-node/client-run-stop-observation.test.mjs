@@ -63,17 +63,24 @@ test('signing stop comparison accepts only the same Journal original physical-cl
   assert.equal(after.revision, before.revision + 1);
   assert.equal(before.physicalCloseConfirmed, false); assert.equal(after.physicalCloseConfirmed, true);
   assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, after), true);
+  assert.equal(f.journal.canReinspectRunForSigning(before, after), true);
+  assert.equal(f.journal.canReinspectRunForSigning(before, before), false);
+  assert.equal(f.journal.canReinspectRunForSigning(after, before), false);
+  assert.equal(f.journal.canReinspectRunForSigning({...before}, after), false);
+  assert.equal(f.journal.canReinspectRunForSigning(before, {...after}), false);
   assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, before), false);
   assert.equal(f.journal.canReinspectRunAfterPhysicalClose(after, before), false);
   assert.equal(f.journal.canReinspectRunAfterPhysicalClose({...before}, after), false);
   assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, {...after}), false);
   const other = openClientRequestJournal(f.path); f.journals.add(other);
-  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before,
-    other.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl)), false);
+  const foreign = other.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl);
+  assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, foreign), false);
+  assert.equal(f.journal.canReinspectRunForSigning(before, foreign), false);
   for (const [request, publication] of [[{...f.requestControl}, f.publicationControl],
     [f.requestControl, {...f.publicationControl}]]) {
-    assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before,
-      f.journal.lookupRunDefinition(f.ref, request, publication)), false);
+    const foreignControl = f.journal.lookupRunDefinition(f.ref, request, publication);
+    assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, foreignControl), false);
+    assert.equal(f.journal.canReinspectRunForSigning(before, foreignControl), false);
   }
 });
 
@@ -93,12 +100,20 @@ for (const [name, sql, parameters] of [
     try {writer.prepare(sql).run(...parameters);} finally {writer.close();}
     const after = f.journal.lookupRunDefinition(f.ref, f.requestControl, f.publicationControl, before);
     assert.equal(f.journal.canReinspectRunAfterPhysicalClose(before, after), false);
+    assert.equal(f.journal.canReinspectRunForSigning(before, after), false);
   });
 }
 
-for (const cancellation of [false, true]) {
-  test(cancellation ? 'actual signing reader refuses cancellation during retained recovery'
-    : 'actual signing reader holds recovery while its original Journal records the physical stop', async t => {
+for (const scenario of [
+  {name: 'holds recovery while its original Journal records the physical stop', physical: true},
+  {name: 'refuses cancellation during retained recovery', physical: true, cancellation: true},
+  {name: 'preserves a published observation during retained signing recovery', publication: true},
+  {name: 'preserves physical close plus a published observation during retained signing recovery', physical: true, publication: true},
+  {name: 'refuses cancellation beside a published observation during retained signing recovery', physical: true, publication: true, cancellation: true},
+  {name: 'refuses lookup lifetime drift beside a published observation during retained signing recovery', physical: true, publication: true, drift: true},
+]) {
+  test('actual signing reader ' + scenario.name, async t => {
+  const cancellation = scenario.cancellation === true || scenario.drift === true;
   const f = await fixture(t), materials = {}, preview = {}, original = {}, managed = {};
   const recoveries = new Set(), events = [];
   let enter, release, stale;
@@ -109,6 +124,9 @@ for (const cancellation of [false, true]) {
   const recovered = {materials, requestIdentity: {}, computation: {preview, invocation: {}},
     originalSubmittedIntent: {referenceWire: 'original-submission', assertCurrent() {events.push('original-current');}},
     assertUpdateSelectionCurrent() {events.push('selection-current');}};
+  const publicationFixture = {...f, publicationControl: publication};
+  if (scenario.publication && scenario.physical) publishRunning(publicationFixture,
+    f.journal.lookupRunDefinition(f.ref, f.requestControl, publication));
   const read = createLocalSigningOriginalReader({namespaceId: f.ref.namespaceId,
     authorityScopeCid: f.ref.authorityScopeCid, moon: f.requestControl, control: publication, journal: f.journal,
     async restoreEffectManagedPreparation(ref) {
@@ -135,8 +153,15 @@ for (const cancellation of [false, true]) {
   assert.deepEqual(events, ['restore']);
   const beforeStop = f.journal.lookupRunDefinition(f.ref, f.requestControl, publication);
   assert.equal(beforeStop.physicalCloseConfirmed, false);
-  f.journal.markPhysicalClose(f.ref, null, beforeStop);
-  if (cancellation) f.journal.requestCancellation(f.ref,
+  if (scenario.physical) f.journal.markPhysicalClose(f.ref, null, beforeStop);
+  if (scenario.publication) publishRunning(publicationFixture,
+    f.journal.lookupRunDefinition(f.ref, f.requestControl, publication));
+  if (scenario.drift) {
+    const writer = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    try {writer.prepare('UPDATE client_requests SET lookup_expires_at=?').run('2099-02-01T00:00:00.000Z');}
+    finally {writer.close();}
+  }
+  if (scenario.cancellation) f.journal.requestCancellation(f.ref,
     {currentAuthorization: true, publicationCommitted: false}, f.requestControl, publication);
   release();
   if (cancellation) await assert.rejects(answer, {code: 'LocalSigningOriginalConflict'});

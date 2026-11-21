@@ -35,9 +35,8 @@ fn request_query_syntax_data_bytes(
   guard @execution.preparation_representation_cost({
       record_headers: 4L * units,
       reference_slots: 12L * units,
-      // The Tokens owner retains the actual MOD/DIV demand and the number
-      // of authored ROLLUP items before any lowering expansion is selected.
-      scalar_words: 20L * units + 2L,
+      // The Tokens owner retains the prior parser facts and one ROLLUP item count.
+      scalar_words: 20L * units + 10L,
       owned_utf16_units: 4L * units,
       owned_wire_bytes: 4L * units,
     })

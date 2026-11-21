@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, posix} from 'node:path';
 import {restConnectorPackageMetadata} from '../../connector-authoring.mjs';
-import {checkHostBundle} from '../../connector-host-bundles.mjs';
+import {checkHostBundle} from '../../connector-host-bundle-contract.mjs';
 import {inventory, unpack} from '../../package-release.mjs';
 import {assertAuthorRestSchema, readAuthorBytes} from './conformance-input.mjs';
 

@@ -27,7 +27,7 @@ const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   maxChunkRows: 2, maxChunkBytes: 4096, memoryBytes: 128 * 1024 * 1024, threads: 1};
 // SHA-256 of the independently canonicalized selected managed-profile contract.
-const profileCid = 'sha256:ba6100c8e76b75f746051944c224eec2294a95706ee1405ff544d574916758ac';
+const profileCid = 'sha256:cb70e9fcd0192b8e78c0fab03c76453521d9fbc6f412a443b330dd7f4f9a392d';
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));

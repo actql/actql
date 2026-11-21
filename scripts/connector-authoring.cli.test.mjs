@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync,mkdirSync,symlinkSync} from 'node:fs';
+import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync,mkdirSync,renameSync,symlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -11,6 +11,9 @@ import {projectRestConnector, restConnectorPackageMetadata} from './connector-au
 import {assertAuthorRestRows, createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput}
   from './fixtures/external-rest/conformance-input.mjs';
 import {readAuthorPackage, selectAuthorPackage} from './fixtures/external-rest/author-package.mjs';
+import {authoringToolkitPath, observeInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
+import {inventory, unpack} from './package-release.mjs';
+import {parseNpmPackJson} from './packed-client-packages.mjs';
 
 test('declarative read author projection retains closed request DATA and rejects colliding parameters', () => {
   const definition = {version: 'actql-rest-connector/0.1', id: 'acme', origin: 'https://api.example.invalid',
@@ -134,6 +137,118 @@ test('author child resolves its installed consumer validator and preserves origi
   assert.deepEqual(readFileSync(definition),original);
   assert.deepEqual(readdirSync(author),['connector.json']);
   assert.deepEqual(readdirSync(scratch),['consumer']);
+});
+
+test('author projections and freshness use the selected Host package version', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-host-version-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const author=join(scratch,'author'),output=join(scratch,'output');
+  const cli=join(root,'scripts/connector.mjs');
+  const invoke=(...args)=>spawnSync(process.execPath,[cli,...args],{cwd:scratch,encoding:'utf8',timeout:10000});
+  const init=invoke('init',author,'acme');
+  assert.equal(init.status,0,init.stderr);
+  const definition=join(author,'connector.json');
+  const host=join(author,'node_modules','@actql','local-node');
+  mkdirSync(host,{recursive:true});
+  const manifest=version=>writeFileSync(join(host,'package.json'),JSON.stringify({name:'@actql/local-node',
+    version,type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
+  // A test-owned public validation port isolates peer selection. It does not
+  // stand in for the existing compiled Common validation controls.
+  writeFileSync(join(host,'author.mjs'),'export function validateRestReadDeclaration(wire) {return wire;}\n');
+  manifest('0.2.1-rc.3');
+  const build=invoke('build',definition,output);
+  assert.equal(build.status,0,build.stderr);
+  const generated=join(output,'package.json');
+  const original=readFileSync(generated,'utf8');
+  assert.deepEqual(JSON.parse(original).peerDependencies,{'@actql/local-node':'0.2.1-rc.3'});
+  const fresh=invoke('test',definition,output);
+  assert.equal(fresh.status,0,fresh.stderr);
+  manifest('0.2.2');
+  const stale=invoke('test',definition,output);
+  assert.equal(stale.status,1);
+  assert.match(stale.stderr,/StaleRestConnectorProjection:package\.json/u);
+  assert.equal(readFileSync(generated,'utf8'),original);
+  manifest('*');
+  const refused=invoke('build',definition,output);
+  assert.equal(refused.status,1);
+  assert.match(refused.stderr,/RestAuthoringValidatorUnavailable: invalid selected Host manifest/u);
+  assert.equal(readFileSync(generated,'utf8'),original);
+});
+
+test('the packed author toolkit runs outside the checkout and binds its runner to the selected package bytes', async t => {
+  const {buildConnectorAuthoring} = await import('./build-connector-authoring.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-packed-author-toolkit-'));
+  t.after(() => rmSync(scratch, {recursive: true, force: true}));
+  const stage = join(scratch, 'stage');
+  mkdirSync(stage);
+  const metadata = JSON.parse(readFileSync(join(root, 'packages/local-node/package.json'), 'utf8'));
+  writeFileSync(join(stage, 'package.json'), JSON.stringify(metadata));
+  // Stage the exact producer tool closure with a test-owned validator rather
+  // than building or executing the compiled Local Host in this port test.
+  writeFileSync(join(stage, 'connector-authoring.mjs'), 'export const validateRestReadDeclaration = wire => wire;\n');
+  buildConnectorAuthoring(root, stage);
+  const packResult = parseNpmPackJson(execFileSync('npm', ['pack', '--offline', '--ignore-scripts', '--json',
+    '--pack-destination', scratch, '--cache', join(scratch, 'npm-cache')], {cwd: stage, encoding: 'utf8'}));
+  const packed = Array.isArray(packResult) ? packResult : Object.values(packResult);
+  assert.equal(packed.length, 1);
+  const archive = join(scratch, packed[0].filename);
+  const extracted = await unpack(archive, join(scratch, 'unpacked'));
+  const authorRoot = join(scratch, 'external-author');
+  const host = join(authorRoot, 'node_modules/@actql/local-node');
+  const binDir = join(authorRoot, 'node_modules/.bin');
+  mkdirSync(join(host, '..'), {recursive: true});
+  mkdirSync(binDir);
+  renameSync(extracted, host);
+  const bin = join(binDir, 'actql-connector');
+  symlinkSync(join(host, metadata.bin['actql-connector']), bin);
+  const invoke = (...args) => execFileSync(process.execPath, [bin, ...args],
+    {cwd: authorRoot, encoding: 'utf8', timeout: 10_000});
+  const {definition} = JSON.parse(invoke('init', join(authorRoot, 'definition'), 'harbor'));
+  const definitionData = JSON.parse(readFileSync(definition, 'utf8'));
+  writeFileSync(definition, JSON.stringify({...definitionData, transform: 'transform.mjs'}));
+  const transformPath = join(authorRoot, 'definition/transform.mjs');
+  writeFileSync(transformPath, 'export const decodePage = ({rowsWire}) => ({rowsWire});\n');
+  const output = join(authorRoot, 'generated');
+  assert.deepEqual(JSON.parse(invoke('build', definition, output)), JSON.parse(invoke('test', definition, output)));
+  assert.deepEqual(JSON.parse(readFileSync(join(output, 'package.json'))).peerDependencies,
+    {'@actql/local-node': metadata.version});
+  const checkoutOutput = join(scratch, 'checkout-generated');
+  execFileSync(process.execPath, [join(root, 'scripts/connector.mjs'), 'build', definition, checkoutOutput],
+    {cwd: authorRoot, encoding: 'utf8', timeout: 10_000});
+  assert.deepEqual(await inventory(output), await inventory(checkoutOutput));
+  writeFileSync(transformPath, 'export const =\n');
+  const invalid = spawnSync(process.execPath, [bin, 'build', definition, output], {cwd: authorRoot, encoding: 'utf8'});
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.stderr, /InvalidRestConnectorDefinition:transform syntax/u);
+  assert.deepEqual(await inventory(output), await inventory(checkoutOutput));
+
+  const toolkit = join(host, authoringToolkitPath);
+  const packageDigest = createHash('sha256').update(readFileSync(archive)).digest('hex');
+  const sourceSha = 'a'.repeat(40), sourceTree = 'b'.repeat(40);
+  const files = await inventory(host);
+  const manifest = {sourceSha, sourceTree, packages: [{name: metadata.name, sha256: packageDigest, files}]};
+  assert.deepEqual(await observeInstalledAuthoringToolkit(toolkit, {manifest}),
+    {source: sourceSha, tree: sourceTree, package: metadata.name, sha256: packageDigest,
+      files: files.filter(file => file.path.startsWith(authoringToolkitPath + '/')).length});
+  const input = join(authorRoot, 'normal.json');
+  writeFileSync(input, JSON.stringify({kind:'actql-standard-rest-normal/0.1',sourceSha,sourceTree,
+    manifestPath: join(authorRoot, 'manifest.json'),manifestSha256: packageDigest,
+    outputRoot: join(authorRoot, 'fresh-case'),accountConfigurationPath: join(authorRoot, 'account.json'),mode:'paged'}));
+  const plan = connectorConformancePlan(toolkit, [input, '--timeout-seconds', '180']);
+  assert.equal(plan.root, authorRoot);
+  assert.equal(plan.steps[0].args.at(-1), join(toolkit, 'scripts/fixtures/external-rest/normal-case.test.mjs'));
+  const [step] = plan.steps;
+  const env = {...process.env, ...step.env};
+  delete env.NODE_TEST_CONTEXT;
+  const refused = spawnSync(step.command, step.args,
+    {cwd: plan.root, env, encoding: 'utf8', timeout: 10_000});
+  assert.equal(refused.status, 1);
+  assert.match(refused.stdout + refused.stderr, /ENOENT[^\n]*manifest\.json/u);
+  assert(!readdirSync(authorRoot).includes('fresh-case'), 'Missing normal artifacts must refuse before fixture creation');
+  writeFileSync(join(toolkit, 'scripts/test-execution.mjs'), '// invalid selected payload\n');
+  await assert.rejects(observeInstalledAuthoringToolkit(toolkit, {manifest}), /toolkit payload mismatch/u);
 });
 
 test('author conformance selects the installed reference case without creating an installation', t => {

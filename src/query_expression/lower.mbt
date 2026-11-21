@@ -429,6 +429,10 @@ pub fn append_with_properties(
   max_work : Int,
   resolve_parameter? : ((String) -> Result[String, Issue])? = None,
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
+  resolve_row_with_work? : ((Array[@query.NamePart], Int) -> Result[
+    (Array[(String, String)], Int)?,
+    Issue,
+  ])? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
     ast,
@@ -439,6 +443,7 @@ pub fn append_with_properties(
     true,
     resolve_parameter,
     resolve_row,
+    resolve_row_with_work,
   )
 }
 
@@ -457,8 +462,15 @@ pub fn append_with_macros(
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
-    ast, resolve, resolve_macro, builder, max_work, resolve_properties, resolve_parameter,
+    ast,
+    resolve,
+    resolve_macro,
+    builder,
+    max_work,
+    resolve_properties,
+    resolve_parameter,
     resolve_row,
+    None,
   )
 }
 
@@ -472,6 +484,10 @@ fn append_resolved(
   resolve_properties : Bool,
   resolve_parameter : ((String) -> Result[String, Issue])?,
   resolve_row : ((Array[@query.NamePart]) -> Array[(String, String)]?)?,
+  resolve_row_with_work : ((Array[@query.NamePart], Int) -> Result[
+    (Array[(String, String)], Int)?,
+    Issue,
+  ])?,
 ) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
@@ -653,10 +669,29 @@ fn append_resolved(
               let mut value = match name {
                 Some(name) => lowering.form("field", lowering.add(String(name)))
                 None => {
-                  guard parts.length() == 1 &&
-                    resolve_row.bind(resolver => resolver(parts))
-                    is Some(fields) else {
+                  guard parts.length() == 1 else {
                     raise Abort(UnknownReference)
+                  }
+                  let fields = match resolve_row_with_work {
+                    None =>
+                      match resolve_row.bind(resolver => resolver(parts)) {
+                        Some(fields) => fields
+                        None => raise Abort(UnknownReference)
+                      }
+                    Some(project) =>
+                      match project(parts, max_work - work) {
+                        Err(issue) => raise Abort(issue)
+                        Ok(None) => raise Abort(UnknownReference)
+                        Ok(Some((fields, spent))) => {
+                          // Charge the projection on the SAME remaining Work
+                          // before any row Object/field node is constructed.
+                          if spent < 0 || spent > max_work - work {
+                            raise Abort(InvalidLimits)
+                          }
+                          work += spent
+                          fields
+                        }
+                      }
                   }
                   // The scope supplies only field names and evaluated slots.
                   // Charge construction before appending; the common object
@@ -1247,7 +1282,8 @@ fn append_resolved(
               value
             }
           }
-        SearchedCase(branches, otherwise) => {
+        SearchedCase(branches, otherwise)
+        | SimpleCase(_, branches, otherwise) => {
           let values : Array[@builder.Node] = []
           for branch in branches {
             values.push(
@@ -1258,6 +1294,9 @@ fn append_resolved(
             )
           }
           let fields = [("when", lowering.add(Array(values)))]
+          if node.kind is SimpleCase(operand, _, _) {
+            fields.push(("operand", nodes[operand]))
+          }
           let original_else = @query.expression_node(ast, otherwise).unwrap()
           // The parser anchors an omitted ELSE's synthetic NULL to END.
           // Preserve that omission for the existing Common completion owner;

@@ -34,7 +34,7 @@ test('Calendar opcodes and arities match the existing normative mapping', () => 
   const language = readFileSync('docs/spec/language.md', 'utf8');
   assert(language.includes('`TEA.calendar.bucket` / `TEA.calendar.series`'));
   checkRegistration(aoa, registry);
-  assert.equal(cid(registry), 'sha256:e136c3f3e00a58c30cd69229c1bb0c81ecc302bb0da1735ee1281742ba9587e0');
+  assert.equal(cid(registry), 'sha256:cac01dd33b265af8cef9e5d96afa1c374098164124c70c89fbbb931bfea676fa');
   assert.equal(cid(aoa.execution_contracts[operations[0]]), 'sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227');
   assert.equal(cid(aoa.execution_contracts[operations[1]]), 'sha256:8070a5fa9b6177df0d407b474a2b34aff2ecde9cf9c5b726191f7bd908a4dc83');
   assert.deepEqual(registry[operations[0]].inputs, ['relation']);

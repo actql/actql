@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:e88ea8a6740aca2d2606b376b341ca3c9963b68916b54762c143eb14d4b09969",
+  "artifact_registry_cid": "sha256:0bbf7b5df6608b5fae02dd133d919fcd1665c19c813e63eb1ddc6f91ed13098a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:22017dd6922f108cfb7fd0469d44d2404aa5db4e667c6cb071718bc8baf90637",
+    "executable_plan": "sha256:05f21159bd004c8bbb2dedcfecb7ffa34aec5cc21ffedb268d4004fb692c72cd",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:f8a4b36fc88dc3435bb9366ede14c9f1e4544593d5a48556082ed28eaaca5035",
+    "plan_document": "sha256:22e392c80cffa43d35a6798af60a85e7a3798a945a42f775cd17675dc7f492b0",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -23276,6 +23276,9 @@
                               }
                             },
                             "else": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "operand": {
                               "$ref": "#/$defs/value_expression"
                             }
                           }
@@ -29625,6 +29628,9 @@
                               }
                             },
                             "else": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "operand": {
                               "$ref": "#/$defs/value_expression"
                             }
                           }
@@ -56873,6 +56879,9 @@
                                 },
                                 "else": {
                                   "$ref": "#/$defs/value_expression"
+                                },
+                                "operand": {
+                                  "$ref": "#/$defs/value_expression"
                                 }
                               }
                             }
@@ -63221,6 +63230,9 @@
                                   }
                                 },
                                 "else": {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                "operand": {
                                   "$ref": "#/$defs/value_expression"
                                 }
                               }

@@ -144,13 +144,16 @@ fn flatten(
         }
       }
       "case" => {
+        let obj = decoded(@decode.open_object(body), body)
+        if @decode.lookup(obj, "operand") is Some(operand) {
+          children.push((operand, Form))
+        }
         let clauses = decoded(@decode.elements(part(body, "when")), body)
         spend(budget, body, amount=clauses.length())
         for clause in clauses {
           children.push((part(clause, "when"), Form))
           children.push((part(clause, "then"), Form))
         }
-        let obj = decoded(@decode.open_object(body), body)
         match @decode.lookup(obj, "else") {
           Some(otherwise) => children.push((otherwise, Form))
           None => children.push((body, MissingElse))
