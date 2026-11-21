@@ -165,16 +165,16 @@ function darwinWorkloadInput(path) {
 }
 
 // The shared workflow also changes when unrelated job routing is edited. Check
-// the exact old/new execution steps and environment of the two Mac consumers.
+// the exact old/new runners, execution steps and environment of the two Mac consumers.
 function readDarwinWorkflowChanges(base, head, git) {
   try {
     const {parse} = createRequire(import.meta.url)('yaml');
     const [before, after] = [base, head].map(revision => parse(git(['show', `${revision}:${ciWorkflow}`])));
     const changed = job => {
       const inputs = workflow => {
-        const {steps, env, defaults, container, services} = workflow.jobs[job];
-        assert(Array.isArray(steps) && steps.length);
-        return [workflow.env, workflow.defaults, steps, env, defaults, container, services];
+        const {'runs-on': runner, steps, env, defaults, container, services} = workflow.jobs[job];
+        assert(runner && Array.isArray(steps) && steps.length);
+        return [workflow.env, workflow.defaults, runner, steps, env, defaults, container, services];
       };
       return !isDeepStrictEqual(inputs(before), inputs(after));
     };

@@ -2112,10 +2112,12 @@ test('select Mac wheel and workload platforms from affected inputs and event sco
 test('shared workflow changes select Mac runners only when the corresponding build recipe changes', () => {
   const path = '.github/workflows/ci.yml';
   const base = 'a'.repeat(40);
-  const fixture = (wheel, native, other) => `jobs:
+  const fixture = (wheel, native, other, {wheelRunner = 'macos-15', workloadRunner = 'macos-15'} = {}) => `jobs:
   python-wheels:
+    runs-on: ${wheelRunner}
     steps: [{run: ${wheel}}]
   native-macos-workloads:
+    runs-on: ${workloadRunner}
     steps: [{run: ${native}}]
   lint:
     steps: [{run: ${other}}]
@@ -2125,6 +2127,8 @@ test('shared workflow changes select Mac runners only when the corresponding bui
     [fixture('wheels', 'native', 'changed'), false, false],
     [fixture('changed', 'native', 'lint'), true, false],
     [fixture('wheels', 'changed', 'lint'), false, true],
+    [fixture('wheels', 'native', 'lint', {wheelRunner: 'macos-14'}), true, false],
+    [fixture('wheels', 'native', 'lint', {workloadRunner: 'macos-14'}), false, true],
     [null, true, true],
   ]) {
     const changed = readChanges({pull_request: {base: {sha: base}}}, args => {
