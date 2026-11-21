@@ -1,10 +1,33 @@
 // Physical storage accounting only. Common supplies the four per-kind
 // contract ceilings from its exact issuance emitters; no schema copies here.
-const bytes = value => new TextEncoder().encode(value).byteLength;
-export function completedPublicationCapacity(plan, definitions, request, attempt, resultBounds, frontier) {
+type ContractWire = Readonly<{identity: string; wire: string}>;
+type CapacityPlan = Readonly<{
+  contractLimits: Readonly<{maxWireBytes: number}>;
+  outputLimits: Readonly<{maxWireBytes: number; maxSchemaBytes?: number}>;
+  runDefinition: ContractWire;
+  invocation: ContractWire;
+  results: readonly Readonly<{retention: ContractWire}>[];
+}>;
+export type PublicationFrontierBounds = Readonly<{
+  manifest?: number;
+  receipt?: number;
+  index: number;
+  current: Readonly<{
+    preparing: number;
+    committing: number;
+    publicationUnknown: number;
+    terminal: number;
+  }>;
+  possibleForeignWinnerTerminal: number;
+}>;
+
+const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
+export function completedPublicationCapacity(plan: CapacityPlan, definitions: readonly ContractWire[],
+  request: ContractWire, attempt: ContractWire, resultBounds?: readonly (readonly number[])[],
+  frontier?: PublicationFrontierBounds) {
   const ceiling = plan.contractLimits.maxWireBytes;
   let requiredBytes = 0, objectCount = 0, maxObjectBytes = 0;
-  const add = size => {
+  const add = (size: number) => {
     if (!Number.isSafeInteger(size) || size < 0 ||
         !Number.isSafeInteger(requiredBytes + size)) {
       throw new RangeError('RunPublicationPreflightCapacityOverflow');
@@ -14,7 +37,7 @@ export function completedPublicationCapacity(plan, definitions, request, attempt
   };
   // Identical semantic identities dedup exactly as persistContracts does.
   // Do not dedup unobserved payload/schema/content identities by task or alias.
-  const known = new Map();
+  const known = new Map<string, string>();
   for (const contract of [plan.runDefinition, plan.invocation, ...definitions,
     ...plan.results.map(result => result.retention), request, attempt]) {
     const previous = known.get(contract.identity);
@@ -58,7 +81,7 @@ export function completedPublicationCapacity(plan, definitions, request, attempt
     : [frontier.index, current?.preparing, current?.committing,
       current?.publicationUnknown, current?.terminal,
       frontier.possibleForeignWinnerTerminal];
-  if (!obligations.every(value => Number.isSafeInteger(value) && value >= 0 && value <= ceiling)) {
+  if (!obligations.every((value): value is number => Number.isSafeInteger(value) && value! >= 0 && value! <= ceiling)) {
     throw new TypeError('InvalidPublicationFrontierByteBounds');
   }
   // The final obligation belongs to a distinct winner attempt. A resolved

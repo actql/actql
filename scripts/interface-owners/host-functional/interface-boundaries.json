@@ -10661,7 +10661,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10675,7 +10675,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10689,7 +10689,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10703,7 +10703,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10717,7 +10717,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10731,7 +10731,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10745,7 +10745,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10759,7 +10759,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10773,7 +10773,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10805,7 +10805,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10819,7 +10819,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10833,7 +10833,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10847,7 +10847,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10861,7 +10861,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10875,7 +10875,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10889,7 +10889,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10903,7 +10903,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -10917,7 +10917,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/result-output-limits.mjs",
+                "path": "adapters/host-common/result-output-limits.mts",
                 "anchor": "export const outputLimitFields = Object.freeze(["
               },
               {
@@ -11063,7 +11063,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11077,7 +11077,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11091,8 +11091,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "typeof value.name === 'string' && typeof value.identity === 'string' &&"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "typeof (value as PublicationContract).name === 'string' && typeof (value as PublicationContract).identity === 'string' &&"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -11105,7 +11105,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11119,8 +11119,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "export function prepareCompletedEffectFreeRunPublication(options) {"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "export function prepareCompletedEffectFreeRunPublication(options: unknown) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -11133,7 +11133,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11147,7 +11147,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11161,7 +11161,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "// Immutable admission for publication work that is known before Compute."
               },
               {
@@ -11175,7 +11175,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "fail('RunPublicationCapacityUnsupported');"
               },
               {
@@ -11210,8 +11210,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11220,8 +11220,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11230,8 +11230,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11240,8 +11240,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11250,8 +11250,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11260,8 +11260,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11270,8 +11270,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11280,8 +11280,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11290,8 +11290,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "function ownedDataArray(value, capture = item => item)"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -11314,7 +11314,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11328,7 +11328,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11342,8 +11342,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "typeof value.name === 'string' && typeof value.identity === 'string' &&"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "typeof (value as PublicationContract).name === 'string' && typeof (value as PublicationContract).identity === 'string' &&"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -11356,7 +11356,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11370,8 +11370,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
-                "anchor": "export function prepareCompletedEffectFreeRunPublication(options) {"
+                "path": "adapters/host-common/run-publication-preflight.mts",
+                "anchor": "export function prepareCompletedEffectFreeRunPublication(options: unknown) {"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -11384,7 +11384,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11398,7 +11398,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "export class RunPublicationPreflightError extends Error {"
               },
               {
@@ -11412,7 +11412,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "// Immutable admission for publication work that is known before Compute."
               },
               {
@@ -11426,7 +11426,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "fail('RunPublicationCapacityUnsupported');"
               },
               {
@@ -121942,37 +121942,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "export function completedPublicationCapacity("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "return Object.freeze({requiredBytes, objectCount, maxObjectBytes});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "throw new TypeError('ConflictingPublicationContractIdentity');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
-                "anchor": "const known = new Map();"
+                "path": "adapters/host-common/publication-capacity.mts",
+                "anchor": "const known = new Map<string, string>();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "capacity = completedPublicationCapacity("
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "throw new RangeError('RunPublicationPreflightCapacityOverflow');"
               }
             ],
@@ -121981,7 +121981,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "for (const bound of obligations) add(bound);"
               }
             ],
@@ -122008,37 +122008,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "export function completedPublicationCapacity("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "return Object.freeze({requiredBytes, objectCount, maxObjectBytes});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "throw new TypeError('ConflictingPublicationContractIdentity');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
-                "anchor": "const known = new Map();"
+                "path": "adapters/host-common/publication-capacity.mts",
+                "anchor": "const known = new Map<string, string>();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "path": "adapters/host-common/run-publication-preflight.mts",
                 "anchor": "capacity = completedPublicationCapacity("
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "throw new RangeError('RunPublicationPreflightCapacityOverflow');"
               }
             ],
@@ -122047,7 +122047,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-common/publication-capacity.mjs",
+                "path": "adapters/host-common/publication-capacity.mts",
                 "anchor": "for (const bound of obligations) add(bound);"
               }
             ],

@@ -4,35 +4,64 @@
 
 import {completedPublicationCapacity} from './publication-capacity.mjs';
 import {validResultOutputLimits} from './result-output-limits.mjs';
+import type {PublicationFrontierBounds} from './publication-capacity.mjs';
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type DataRecord = Readonly<Record<PropertyKey, unknown>>;
+type PublicationContract = Readonly<{name: string; identity: string; wire: string}>;
+type IssuedContract = PublicationContract & Extract<SynchronousRuntimeData, object>;
+type ContractLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type Capacity = ReturnType<typeof completedPublicationCapacity>;
+type PublicationStore = Readonly<{publicationCapacitySupports(capacity: Capacity): boolean}>;
+type PreflightControl = Readonly<{
+  issuePublicationRequest(run: PublicationContract, definitions: readonly PublicationContract[],
+    request: DataRecord, limits: ContractLimits): IssuedContract;
+  issuePublicationAttempt(request: IssuedContract, run: PublicationContract,
+    attempt: DataRecord, limits: ContractLimits): IssuedContract;
+  publicationPreflightValid(admission: unknown, run: PublicationContract, invocation: PublicationContract,
+    definitions: readonly PublicationContract[], retentions: readonly PublicationContract[],
+    evidenceContexts: readonly DataRecord[], request: IssuedContract, attempt: IssuedContract,
+    programDefinitionCid: string): boolean;
+  resultPublicationContractByteBounds?(inputs: readonly unknown[], schemaBytes: number,
+    limits: ContractLimits): readonly number[];
+  ordinaryPublicationFrontierByteBounds?(request: IssuedContract, resultCount: number,
+    limits: ContractLimits): PublicationFrontierBounds | undefined;
+  ordinaryPublicationReceiptByteBound?(plan: ReturnType<typeof snapshotPlan>, request: IssuedContract,
+    limits: ContractLimits): number;
+}>;
+
 
 export class RunPublicationPreflightError extends Error {
-  constructor(code, cause) {
+  declare code: string;
+  declare primaryFailure: unknown;
+
+  constructor(code: string, cause?: unknown) {
     super(code, cause === undefined ? undefined : {cause});
     this.code = code;
     this.primaryFailure = cause;
   }
 }
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw new RunPublicationPreflightError(code, cause);
 };
-const exactKeys = (value, keys) => value !== null &&
+const exactKeys = (value: unknown, keys: readonly string[]) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const positive = value => Number.isSafeInteger(value) && value > 0;
-const contract = value => value !== null && typeof value === 'object' &&
-  typeof value.name === 'string' && typeof value.identity === 'string' &&
-  typeof value.wire === 'string';
+const positive = (value: unknown) => Number.isSafeInteger(value) && (value as number) > 0;
+const contract = (value: unknown): value is PublicationContract => value !== null && typeof value === 'object' &&
+  typeof (value as PublicationContract).name === 'string' && typeof (value as PublicationContract).identity === 'string' &&
+  typeof (value as PublicationContract).wire === 'string';
 
 // Capture scalar data bags once. Accessors are not stable publication inputs:
 // neither a measurement nor later issuance may invoke a different getter value.
 // Nominal Common handles are retained, never reconstructed from their fields.
-function ownedDataRecord(value) {
+function ownedDataRecord(value: unknown): DataRecord {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     fail('InvalidRunPublicationPreflight');
   }
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  const entries = [];
+  const descriptors = Object.getOwnPropertyDescriptors(value) as PropertyDescriptorMap;
+  const entries: [PropertyKey, unknown][] = [];
   for (const key of Reflect.ownKeys(descriptors)) {
     const descriptor = descriptors[key];
     if (!descriptor.enumerable) continue;
@@ -44,14 +73,15 @@ function ownedDataRecord(value) {
 
 // Do not invoke caller-owned map, iterators, inherited indices, or accessors.
 // Own dense data elements are captured once and transformed by trusted code.
-function ownedDataArray(value, capture = item => item) {
+function ownedDataArray<Value = unknown, Captured = Value>(value: unknown,
+  capture: (item: Value) => Captured = item => item as unknown as Captured): readonly Captured[] {
   if (!Array.isArray(value)) fail('InvalidRunPublicationPreflight');
-  let descriptors;
+  let descriptors: Record<string, PropertyDescriptor>;
   try { descriptors = Object.getOwnPropertyDescriptors(value); }
   catch (cause) { fail('InvalidRunPublicationPreflight', cause); }
-  const length = descriptors.length?.value;
+  const length = descriptors.length?.value as number;
   if (!Number.isSafeInteger(length) || length < 0) fail('InvalidRunPublicationPreflight');
-  const result = [];
+  const result: Captured[] = [];
   for (let index = 0; index < length; index++) {
     const descriptor = descriptors[index];
     if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) {
@@ -63,12 +93,12 @@ function ownedDataArray(value, capture = item => item) {
   return Object.freeze(result);
 }
 
-function snapshotPlan(plan) {
+function snapshotPlan(plan: DataRecord) {
   plan = ownedDataRecord(plan);
   const receiptEvidence = ownedDataRecord(plan.receiptEvidence);
   const captureEvidence = ownedDataRecord(plan.captureEvidence);
   const outputLimits = ownedDataRecord(plan.outputLimits);
-  const contractLimits = ownedDataRecord(plan.contractLimits);
+  const contractLimits = ownedDataRecord(plan.contractLimits) as ContractLimits;
   const request = ownedDataRecord(plan.request);
   const attempt = ownedDataRecord(plan.attempt);
   const keys = [
@@ -146,26 +176,26 @@ function snapshotPlan(plan) {
     attempt,
     outputLimits,
     contractLimits,
-    now: plan.now,
+    now: plan.now as () => string,
   });
 }
 
-export function prepareCompletedEffectFreeRunPublication(options) {
+export function prepareCompletedEffectFreeRunPublication(options: unknown) {
   options = ownedDataRecord(options);
   if (!exactKeys(options, [
     'store', 'control', 'publicationInventory', 'plan',
   ])) {
     fail('InvalidRunPublicationPreflight');
   }
-  const {store, control} = options;
-  const publicationInventory = ownedDataRecord(options.publicationInventory);
+  const {store, control} = options as Readonly<{store: PublicationStore; control: PreflightControl}>;
+  const publicationInventory = ownedDataRecord((options as DataRecord).publicationInventory);
   const occurrences = ownedDataArray(publicationInventory.occurrences, ownedDataRecord);
   if (store === null || typeof store !== 'object' ||
       typeof store.publicationCapacitySupports !== 'function' ||
       control === null || typeof control !== 'object' ||
       !['issuePublicationRequest', 'issuePublicationAttempt',
         'publicationPreflightValid']
-        .every(name => typeof control[name] === 'function') ||
+        .every(name => typeof control[name as keyof PreflightControl] === 'function') ||
       publicationInventory === null ||
       typeof publicationInventory !== 'object' ||
       !Array.isArray(publicationInventory.occurrences) ||
@@ -173,19 +203,19 @@ export function prepareCompletedEffectFreeRunPublication(options) {
       typeof publicationInventory.programDefinitionCid !== 'string') {
     fail('InvalidRunPublicationPreflight');
   }
-  const plan = snapshotPlan(options.plan);
+  const plan = snapshotPlan((options as DataRecord).plan as DataRecord);
   if (plan.results.length !== occurrences.length) {
     fail('IncompleteRunPublicationInventory');
   }
-  const definitions = ownedDataArray(occurrences, occurrence => {
+  const definitions = ownedDataArray<DataRecord, PublicationContract>(occurrences, occurrence => {
     if (occurrence === null || typeof occurrence !== 'object' ||
         !contract(occurrence.definitionContract)) {
       fail('InvalidRunPublicationPreflight');
     }
     return occurrence.definitionContract;
   });
-  let request;
-  let attempt;
+  let request: IssuedContract;
+  let attempt: IssuedContract;
   try {
     request = control.issuePublicationRequest(
       plan.runDefinition,
@@ -215,10 +245,10 @@ export function prepareCompletedEffectFreeRunPublication(options) {
   ) !== true) {
     fail('IncompatibleRunPublicationPreflight');
   }
-  let capacity;
+  let capacity: Capacity;
   try {
     const bounds = typeof control.resultPublicationContractByteBounds === 'function'
-      ? plan.results.map(result => control.resultPublicationContractByteBounds(
+      ? plan.results.map(result => control.resultPublicationContractByteBounds!(
         result.evidenceContext.inputRelationCids,
         plan.outputLimits.maxSchemaBytes,
         plan.contractLimits,

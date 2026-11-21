@@ -43,7 +43,6 @@ import {createManagedSiteTransferCoordinator} from './managed-site-transfer.mjs'
 import {storeCompletedResultPublicationPayload} from './durable-result-payload.mjs';
 // @ts-expect-error TS7016: remove after migrating completed-run publication.
 import {publishCompletedEffectFreeRun} from './completed-run-publication.mjs';
-// @ts-expect-error TS7016: remove after migrating publication preflight.
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
 // @ts-expect-error TS7016: remove after migrating the authorization gate.
 import {ExecutionAuthorizationError, missingAuthorizationGate} from './authorization-gate.mjs';

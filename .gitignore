@@ -1215,3 +1215,9 @@ target/
 /adapters/host-common/strategy-actions.test.d.mts
 /adapters/host-common/publication-action.test.mjs
 /adapters/host-common/publication-action.test.d.mts
+/adapters/host-common/result-output-limits.mjs
+/adapters/host-common/result-output-limits.d.mts
+/adapters/host-common/publication-capacity.mjs
+/adapters/host-common/publication-capacity.d.mts
+/adapters/host-common/run-publication-preflight.mjs
+/adapters/host-common/run-publication-preflight.d.mts
