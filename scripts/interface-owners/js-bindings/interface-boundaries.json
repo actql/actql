@@ -56143,7 +56143,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "export async function retainInstalledHostInitializationFailure"
               },
               {
@@ -64272,7 +64272,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -68805,7 +68805,7 @@
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
@@ -96006,7 +96006,7 @@
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",

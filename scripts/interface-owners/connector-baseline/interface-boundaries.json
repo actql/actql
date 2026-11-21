@@ -5576,7 +5576,7 @@
       ],
       "imports": [
         "../../../host-node/installed-effect-plan.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
@@ -5999,7 +5999,7 @@
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-credential-source-reader.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -9125,7 +9125,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "handOverCredentialSiteRelease"
               },
               {
@@ -9418,7 +9418,7 @@
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",

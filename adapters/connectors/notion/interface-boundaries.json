@@ -2569,7 +2569,7 @@
         }
       ],
       "imports": [
-        "./installed-host-cleanup.mjs"
+        "./installed-host-cleanup.mts"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],

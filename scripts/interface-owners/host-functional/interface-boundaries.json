@@ -21450,7 +21450,7 @@
         "./effect-target-read-inventory.mjs",
         "./infer-operation.mjs",
         "./installed-effect-limits.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",
@@ -42450,8 +42450,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -42488,8 +42488,8 @@
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -42526,7 +42526,7 @@
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -42564,7 +42564,7 @@
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -42610,7 +42610,7 @@
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -42652,7 +42652,7 @@
                 "anchor": "ResolutionUnknown carries"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -42660,7 +42660,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -42694,11 +42694,11 @@
                 "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               },
               {
@@ -42774,7 +42774,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               },
               {
@@ -43063,7 +43063,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -43293,8 +43293,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -43327,8 +43327,8 @@
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -43365,7 +43365,7 @@
                 "anchor": "value: observation.checkpoint.checkpoint_id"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -43403,7 +43403,7 @@
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -43445,7 +43445,7 @@
                 "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -43487,7 +43487,7 @@
                 "anchor": "ResolutionUnknown carries"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -43495,7 +43495,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -43525,11 +43525,11 @@
                 "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               },
               {
@@ -43605,7 +43605,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               },
               {
@@ -43826,7 +43826,7 @@
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/ledger-contract.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./installed-host-cleanup.mjs"
+        "./installed-host-cleanup.mts"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -63873,7 +63873,7 @@
         "./installed-check-environment.mjs",
         "./installed-effect-limits.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
@@ -65939,7 +65939,7 @@
         "../connectors-builtin/installations.generated.mjs",
         "./installed-connectors.mjs",
         "./installed-effect-inventory.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
@@ -66271,8 +66271,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -66287,8 +66287,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66301,8 +66301,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -66313,8 +66313,8 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -66331,8 +66331,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "async function attempt(name, close) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "async function attempt(name: string, close: Action | undefined) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -66343,11 +66343,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -66369,7 +66369,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -66381,11 +66381,11 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -66401,14 +66401,14 @@
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (publicationOwnership !== undefined) pending.add('publication-ownership');"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await close();"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await close!();"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -66419,15 +66419,15 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "function captureOriginalStatus() {"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -66435,7 +66435,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// Retain a successfully observed callback before any child cleanup await."
               },
               {
@@ -66451,14 +66451,14 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('journal', closeInitializationJournal);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const errors = [];"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const errors: CleanupIssue[] = [];"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -66469,15 +66469,15 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "function observeOriginalCleanup() {"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "Property access can itself fail."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -66485,7 +66485,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
               },
               {
@@ -66493,7 +66493,7 @@
                 "anchor": "retains an unobserved throwing control getter for retry"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -66503,7 +66503,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -66515,11 +66515,11 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               },
               {
@@ -66533,7 +66533,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -66545,8 +66545,8 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "let observationFailure;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "let observationFailure: CleanupIssue | undefined;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66567,8 +66567,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -66583,7 +66583,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               },
               {
@@ -66657,59 +66657,59 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export function retainInstalledHostRuntimeFailure(cause, retire) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export function retainInstalledHostRuntimeFailure<Cause>(cause: Cause, retire: Action) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "failure.cleanupHandle = Object.freeze({status, retry});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = Reflect.apply(childStatus, child, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = Reflect.apply(childStatus, child, []);"
               },
               {
-                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mts",
                 "anchor": "test('same original child methods and receiver remain captured across retry'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "child = childStatus = childRetry = undefined;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "finalize = undefined;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (flight !== undefined) return flight;"
               },
               {
-                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
-                "anchor": "assert.equal(first, failure.cleanupHandle.retry());"
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mts",
+                "anchor": "assert.equal(first, failure.cleanupHandle!.retry());"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "primaryFailure: cause?.primaryFailure ?? cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "primaryFailure: (cause as ObservedFailure | null | undefined)?.primaryFailure ?? cause,"
               },
               {
-                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mts",
                 "anchor": "test('failed child retry retains primary facts and only its latest local failure'"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (observed?.pending !== false) return false;"
               },
               {
@@ -66719,27 +66719,27 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "let retirementComplete = false, finalize = retire, flight, lastError;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "let retirementComplete = false, finalize: Action | undefined = retire,"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "let childErrors = Array.isArray(originalErrors) ? originalErrors : [];"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "let childErrors: readonly unknown[] = Array.isArray(originalErrors) ? originalErrors : [];"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "Never mutate a borrowed/frozen exception"
               },
               {
-                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mts",
                 "anchor": "test('missing cleanup owner cannot become a successful runtime retirement'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mts",
                 "anchor": "test('runtime retirement failure does not repeat confirmed child cleanup'"
               },
               {
@@ -66763,51 +66763,51 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export function retainInstalledCredentialSiteCleanup(site, primary,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export function retainInstalledCredentialSiteCleanup(site: CredentialSite, primary: unknown,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "return handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const earlier = primary?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const earlier = (primary as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "'SalesforceSiteOwnerFailed'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "originalStatus.call(earlier)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function handOverCredentialSiteRelease(site: CredentialSite, primary: unknown, errors: unknown[], ownerFailureCode: string) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (site.cleanupPending() === true) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "An unavailable observation cannot replace the primary failure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "earlierOwned && before?.pending !== false,"
               }
             ],
@@ -66857,14 +66857,14 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -66873,7 +66873,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -66887,7 +66887,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -66897,7 +66897,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -66905,7 +66905,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// Retain a successfully observed callback before any child cleanup await."
               },
               {
@@ -66915,7 +66915,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -66923,7 +66923,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
               },
               {
@@ -66933,11 +66933,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               }
             ],
@@ -66957,7 +66957,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               }
             ],
@@ -66991,14 +66991,14 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -67007,7 +67007,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -67021,7 +67021,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -67031,7 +67031,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -67039,7 +67039,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// Retain a successfully observed callback before any child cleanup await."
               },
               {
@@ -67049,7 +67049,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -67057,7 +67057,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
               },
               {
@@ -67067,11 +67067,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               }
             ],
@@ -67091,7 +67091,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               }
             ],
@@ -67171,7 +67171,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -67302,8 +67302,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -67318,8 +67318,8 @@
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "function originalInitialControlClose(original) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "function originalInitialControlClose(original: InitialControl) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -67332,8 +67332,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -67344,8 +67344,8 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const observed = await Reflect.apply(close, original, []);"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const observed: ObservedStatus | null | undefined = await Reflect.apply(close, original, []);"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -67362,8 +67362,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "async function attempt(name, close) {"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "async function attempt(name: string, close: Action | undefined) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -67374,11 +67374,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "close = original.close;"
               },
               {
@@ -67400,7 +67400,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -67412,11 +67412,11 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (initialControl !== undefined) pending.add('initial-control');"
               },
               {
@@ -67432,14 +67432,14 @@
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if (publicationOwnership !== undefined) pending.add('publication-ownership');"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await close();"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await close!();"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -67450,15 +67450,15 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "originalCleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "originalCleanup = (cause as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "function captureOriginalStatus() {"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "if ([...pending].every(name => name === 'initial-control')) {"
               },
               {
@@ -67466,7 +67466,7 @@
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// Retain a successfully observed callback before any child cleanup await."
               },
               {
@@ -67482,14 +67482,14 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('journal', closeInitializationJournal);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const errors = [];"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "const errors: CleanupIssue[] = [];"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -67500,15 +67500,15 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "function observeOriginalCleanup() {"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "Property access can itself fail."
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "throw new TypeError('InstalledHostInitialControlCleanupPending');"
               },
               {
@@ -67516,7 +67516,7 @@
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// A failed getter has not supplied a callback. Keep the holding in its"
               },
               {
@@ -67524,7 +67524,7 @@
                 "anchor": "retains an unobserved throwing control getter for retry"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -67534,7 +67534,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -67546,11 +67546,11 @@
                 "anchor": "### Program and stage execution"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "await attempt('checkpoint-stop', () => checkpoints.stop());"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "await attempt('checkpoint-stop', () => checkpoints!.stop());"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "await attempt('stop', stop);"
               },
               {
@@ -67564,7 +67564,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "// same retry/status protocol as publication cleanup, without restarting work."
               },
               {
@@ -67576,8 +67576,8 @@
                 "anchor": "# Connector ownership and repository layout"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "let observationFailure;"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "let observationFailure: CleanupIssue | undefined;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -67598,8 +67598,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "export async function retainInstalledHostInitializationFailure(cause,"
+                "path": "adapters/host-node/installed-host-cleanup.mts",
+                "anchor": "export async function retainInstalledHostInitializationFailure(cause: unknown,"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -67614,7 +67614,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
               },
               {
@@ -69076,7 +69076,7 @@
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -69321,7 +69321,7 @@
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -69471,7 +69471,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -69683,7 +69683,7 @@
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
-                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "path": "adapters/host-node/installed-host-cleanup.mts",
                 "anchor": "const pending = new Set(['initialization']);"
               },
               {
@@ -71584,7 +71584,7 @@
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/infer-operation.mjs",
         "../host-node/installed-funded-environment.mjs",
-        "../host-node/installed-host-cleanup.mjs",
+        "../host-node/installed-host-cleanup.mts",
         "../host-node/installed-project-configuration.mjs",
         "../host-node/installed-project-connections.mjs",
         "../host-node/local-account-config.mjs",
@@ -75971,7 +75971,7 @@
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./local-account-config.mjs",
         "./source-alias-construction.mjs",
@@ -117622,7 +117622,7 @@
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/installed-effect-inventory.mjs",
         "../host-node/installed-effect-plan.mjs",
-        "../host-node/installed-host-cleanup.mjs",
+        "../host-node/installed-host-cleanup.mts",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
         "node:crypto"
@@ -127259,7 +127259,7 @@
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-construction-geometry.mjs",
@@ -129533,7 +129533,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-credential-source-reader.mjs",
-        "./installed-host-cleanup.mjs",
+        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-row-source.mjs",
         "./rest-read-original.mjs",
@@ -136676,7 +136676,7 @@
         }
       ],
       "imports": [
-        "./installed-host-cleanup.mjs"
+        "./installed-host-cleanup.mts"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
