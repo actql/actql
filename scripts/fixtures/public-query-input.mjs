@@ -952,7 +952,7 @@ export const sourceFreeSuccesses = [
 export const sourceFreeRefusals = [
   {name: 'try-timestamp-patterned-invalid', format: 'sql',
     text: "SELECT TRY_TIMESTAMP(NULL, 'yyyy') AS result",
-    expectedCode: 'ClientProgramInvalidInput'},
+    expectedCode: 'ClientProgramTimestampPatternInvalid'},
   {name: 'regexp-replace-invalid-escape', format: 'sql',
     text: String.raw`SELECT REGEXP_REPLACE(NULL, 'a', r'\x') AS result`,
     expectedCode: 'ClientProgramInvalidInput'},
