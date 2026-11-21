@@ -74549,7 +74549,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74563,7 +74563,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74577,7 +74577,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74591,7 +74591,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74605,7 +74605,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "import {setImmediate} from 'node:timers/promises';"
               },
               {
@@ -74619,7 +74619,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -74633,7 +74633,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74647,7 +74647,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "// A normal runtime Continue spent positive bounded work. Yield before"
               },
               {
@@ -74661,7 +74661,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74675,7 +74675,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-row-listing.test.mjs",
+                "path": "adapters/host-node/installed-row-listing.test.mts",
                 "anchor": "test('listing transport forwards exact tokens and original charged body to the common owner', async () => {"
               },
               {
@@ -74693,7 +74693,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74707,7 +74707,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74721,7 +74721,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74735,7 +74735,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74749,7 +74749,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "import {setImmediate} from 'node:timers/promises';"
               },
               {
@@ -74763,7 +74763,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -74777,7 +74777,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74791,7 +74791,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "// A normal runtime Continue spent positive bounded work. Yield before"
               },
               {
@@ -74805,7 +74805,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-listing.mjs",
+                "path": "adapters/host-node/installed-row-listing.mts",
                 "anchor": "export function rowListingCallbacks({moon, run, currentRead, signal,"
               },
               {
@@ -74819,7 +74819,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-row-listing.test.mjs",
+                "path": "adapters/host-node/installed-row-listing.test.mts",
                 "anchor": "test('listing transport forwards exact tokens and original charged body to the common owner', async () => {"
               },
               {

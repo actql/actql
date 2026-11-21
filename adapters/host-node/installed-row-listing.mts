@@ -3,8 +3,17 @@
 import {setImmediate} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 
+type ListingRuntime = Readonly<{
+  clientProgramRowSourceBeginListingRequest(run: unknown, token: string | undefined, elapsed: bigint): unknown;
+  clientProgramRowSourceBeginListingPage(run: unknown, body: Uint8Array, elapsed: bigint, charge: unknown): unknown;
+  clientProgramRowSourceAdvanceListingPage(run: unknown, quantum: number, elapsed: bigint): unknown;
+}>;
+type ListingOptions = Readonly<{moon: ListingRuntime; run: unknown; currentRead: () => unknown;
+  signal?: AbortSignal; now?: () => number}>;
+type ListingProgress = Readonly<{status: string; rows: number; work: number}>;
+
 export function rowListingCallbacks({moon, run, currentRead, signal,
-  now = () => performance.now()}) {
+  now = () => performance.now()}: ListingOptions) {
   const started = now();
   const elapsed = () => BigInt(Math.floor(now() - started));
   const checkCurrent = async () => {
@@ -13,19 +22,19 @@ export function rowListingCallbacks({moon, run, currentRead, signal,
     signal?.throwIfAborted();
   };
   return Object.freeze({
-    async beginRequest(token) {
+    async beginRequest(token: string | null | undefined) {
       await checkCurrent();
       return checked(moon.clientProgramRowSourceBeginListingRequest(
         run, token ?? undefined, elapsed()));
     },
-    async consumePage(body, {charge} = {}) {
+    async consumePage(body: Uint8Array, {charge}: Readonly<{charge?: unknown}> = {}) {
       await checkCurrent();
       checked(moon.clientProgramRowSourceBeginListingPage(
         run, body, elapsed(), charge));
       for (;;) {
         await checkCurrent();
         const result = JSON.parse(checked(
-          moon.clientProgramRowSourceAdvanceListingPage(run, 64, elapsed())));
+          moon.clientProgramRowSourceAdvanceListingPage(run, 64, elapsed())) as string) as ListingProgress;
         if (result.status === 'complete') return result.rows;
         // A normal runtime Continue spent positive bounded work. Yield before
         // resuming, so cancellation/current authority can interrupt the scan.

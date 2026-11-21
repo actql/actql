@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {rowListingCallbacks} from './installed-row-listing.mjs';
 
-const ok = value => ({$tag: 1, _0: value});
+type ListingRuntime = Parameters<typeof rowListingCallbacks>[0]['moon'];
+// The refusal fixtures expose only the Core calls each original path can reach.
+const ok = (value: unknown) => ({$tag: 1, _0: value});
 
 test('listing transport forwards exact tokens and original charged body to the common owner', async () => {
   const run = {}, charge = {};
   const body = Buffer.from('{"items":[],"request_token":"é/%2F","next_token":null}');
-  const calls = [];
+  const calls: unknown[][] = [];
   let clock = 100;
   let polls = 0;
-  const moon = {
+  const moon: ListingRuntime = {
     clientProgramRowSourceBeginListingRequest(owner, token, elapsed) {
       assert.equal(owner, run); calls.push(['request', token, elapsed]); return ok(true);
     },
@@ -46,7 +48,7 @@ test('listing transport rechecks cancellation after authority awaits and between
   let requests = 0;
   const listing = rowListingCallbacks({run: {}, signal: controller.signal,
     currentRead: async () => controller.abort(reason),
-    moon: {clientProgramRowSourceBeginListingRequest() { requests++; return ok(true); }},
+    moon: {clientProgramRowSourceBeginListingRequest() { requests++; return ok(true); }} as Partial<ListingRuntime> as ListingRuntime,
   });
   await assert.rejects(listing.beginRequest(undefined), error => error === reason);
   assert.equal(requests, 0);
@@ -61,7 +63,7 @@ test('listing transport rechecks cancellation after authority awaits and between
       clientProgramRowSourceAdvanceListingPage() {
         polls++; return ok('{"status":"continue","work":64}');
       },
-    },
+    } as Partial<ListingRuntime> as ListingRuntime,
   });
   await assert.rejects(mid.consumePage(Buffer.from('fixture')), error => error === reason);
   assert.equal(polls, 1);
@@ -75,7 +77,7 @@ test('listing transport does not accept unknown progress or a driver completion 
     const listing = rowListingCallbacks({run: {}, currentRead: async () => {}, moon: {
       clientProgramRowSourceBeginListingPage: () => ok(true),
       clientProgramRowSourceAdvanceListingPage: () => ok(JSON.stringify(result)),
-    }});
+    } as Partial<ListingRuntime> as ListingRuntime});
     await assert.rejects(listing.consumePage(Buffer.from('fixture')),
       {code: 'InvalidRowListingProgress'});
   }
@@ -83,7 +85,7 @@ test('listing transport does not accept unknown progress or a driver completion 
   const listing = rowListingCallbacks({run: {}, currentRead: async () => {}, moon: {
     clientProgramRowSourceBeginListingPage: () => ({$tag: 0, _0: issue}),
     clientProgramRowSourceAdvanceListingPage() { assert.fail('refused envelope cannot poll'); },
-  }});
+  } as Partial<ListingRuntime> as ListingRuntime});
   await assert.rejects(listing.consumePage(Buffer.from('fixture')),
-    error => error.code === 'MoonBitHostFailure' && error.cause === issue);
+    error => (error as {code?: unknown}).code === 'MoonBitHostFailure' && (error as Error).cause === issue);
 });
