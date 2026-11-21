@@ -93,7 +93,7 @@ type HeldClaim = Claim | Readonly<{claim: Claim; checkpointCid?: string}>;
 type Resumption = Readonly<{claim?: HeldClaim}>;
 type JournalAdmission = Claim & Readonly<{
   kind: CheckpointKind; checkpointCid: string; resolutionCid: string;
-  decisionSubjectCid: string; requiredArtifactCid: string; configurationCid: string;
+  decisionSubjectCid: string | null; requiredArtifactCid: string; configurationCid: string | null;
   authority: string; requestedClaims: readonly string[]; observedClaims: readonly string[];
 }>;
 type JournalEntry = JournalAdmission & Readonly<{mode: 'start' | 'reconcile'; dispatchIdentity: string | null}>;
@@ -104,6 +104,7 @@ type ResumeJournal = Readonly<{
   enterResumedReconciliation?(claim: Claim, options: EntryOptions): JournalEntry;
 }>;
 type ResumeAdmission = JournalAdmission & Readonly<{
+  configurationCid: string;
   enter(dispatchIdentity?: string): JournalEntry;
   reconcile(dispatchIdentity: string): JournalEntry;
 }>;
@@ -181,7 +182,7 @@ type Gate = Readonly<{
   authorize(boundary: Boundary, scope: Scope, options?: AuthorizeOptions): Promise<Decision>;
   resume(boundary: Boundary, scope: Scope, options?: ResumeOptions): Promise<Decision>;
   cover(boundary: Boundary, scope: Scope): Decision; isProtectedSite(key: string): boolean;
-  assertAccountCurrent(decision: Decision): void; assertConfigurationCurrent(): void; withContext(next: Context): Gate;
+  assertAccountCurrent(decision: Decision): undefined; assertConfigurationCurrent(): undefined; withContext(next: Context): Gate;
   counters(): Readonly<Record<Counter, number>>;
   resourceUsage(): Readonly<{retainedDecisions: number; scopeDecisions: number;
     inFlightDecisions: number; scopeInFlightDecisions: number}>;
@@ -291,7 +292,7 @@ function frozenDecision<const Fields extends Decision>(fields: Fields) {
 // a durable approval: after a restart only the gate's own `resume` against
 // its journal decides again.
 const issuedDispatches = new WeakMap<object, Readonly<{configurationCid: string; principal: string}>>();
-const issuedDecisionScopes = new WeakMap<object, Readonly<{assertAccountCurrent(decision: Decision): void}>>();
+const issuedDecisionScopes = new WeakMap<object, Readonly<{assertAccountCurrent(decision: Decision): undefined}>>();
 
 export function authorizationDispatchFacts(decision: unknown) {
   return decision !== null && typeof decision === 'object'
@@ -301,7 +302,7 @@ export function authorizationDispatchFacts(decision: unknown) {
 // Resolve the original issuer, never a lookalike gate with matching facts.
 // The existing provenance projection remains historical after scope closure;
 // this synchronous fence additionally requires that issuer and account now.
-export function assertAuthorizationAccountCurrent(decision: Decision) {
+export function assertAuthorizationAccountCurrent(decision: Decision): undefined {
   const issuer = issuedDecisionScopes.get(decision);
   if (issuer === undefined) fail('ForeignAuthorizationDecision');
   issuer.assertAccountCurrent(decision);
@@ -598,7 +599,7 @@ function gateFor(core: Core, context: Context): Gate {
   };
   const accountObservation = <Value,>(operation: () => Value): Value => core.withAccountObservation === undefined
     ? operation() : core.withAccountObservation(operation);
-  const assertCurrentAccount = (decision: Decision) => accountObservation(() => {
+  const assertCurrentAccount = (decision: Decision): undefined => accountObservation((): undefined => {
     const account = assertScopeAccountCurrent();
     // Only an internal dispatch or an exact issued decision reaches here.
     // With the same admitted immutable Account its pure tuple outcome cannot
@@ -1101,7 +1102,7 @@ function gateFor(core: Core, context: Context): Gate {
     // Recheck this exact scope's original dispatch before later protected work.
     // Callers still own current physical installation and resumed approval/
     // claim entry. Success here returns no new decision or authority.
-    assertAccountCurrent(decision) {
+    assertAccountCurrent(decision): undefined {
       ensureOpen();
       if (issuedDecisionScopes.get(decision) !== gateScope) {
         fail('ForeignAuthorizationDecision');
@@ -1112,7 +1113,7 @@ function gateFor(core: Core, context: Context): Gate {
     // Non-authorizing fence for an existing Checkpoint owner's separate
     // approval path. This admits no tuple or answer and accepts no substitute
     // dispatch. The Checkpoint owner must separately check its approval/claim.
-    assertConfigurationCurrent() {
+    assertConfigurationCurrent(): undefined {
       accountObservation(() => {assertScopeAccountCurrent();});
     },
 
@@ -1412,7 +1413,7 @@ export function admitResumedDispatch(journal: ResumeJournal | undefined, resumpt
     return entered;
   };
   const admission = Object.freeze({
-    ...admitted,
+    ...admitted as JournalAdmission & Pick<ResumeAdmission, 'configurationCid'>,
     // Fence again at the Host trusted time immediately before the send and
     // record the single protected dispatch start of this claim generation,
     // with the send's durable identity when it has one. Throws

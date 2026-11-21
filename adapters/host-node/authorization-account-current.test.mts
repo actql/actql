@@ -4,6 +4,8 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts,
   createAuthorizationDecisionBudget, createAuthorizationGate} from
   '../host-common/authorization-gate.mjs';
 
+import type {admitResumedDispatch} from '../host-common/authorization-gate.mjs';
+
 type GateOptions = NonNullable<Parameters<typeof createAuthorizationGate>[0]>;
 type Runtime = NonNullable<GateOptions['runtime']>;
 type Ask = NonNullable<GateOptions['decide']>;
@@ -13,6 +15,23 @@ type Evaluation = Readonly<{
   account_id: string; entry_id: string; principal: string; connection: string;
   resource: string; operation: string; outcome: 'allow' | 'deny' | 'delegate';
 }>;
+
+type Gate = ReturnType<typeof createAuthorizationGate>;
+type Journal = NonNullable<Parameters<typeof admitResumedDispatch>[0]>;
+type Admission = ReturnType<NonNullable<Journal['admitResume']>>;
+type Entered = ReturnType<NonNullable<Journal['enterResumedDispatch']>>;
+type Bound = Extract<ReturnType<typeof admitResumedDispatch>, {admission: unknown}>['admission'];
+type Assert<Value extends true> = Value;
+type AuthorizationPortCases = [
+  Assert<null extends Admission['configurationCid'] ? true : false>,
+  Assert<null extends Entered['decisionSubjectCid'] ? true : false>,
+  Assert<null extends Bound['configurationCid'] ? false : true>,
+  Assert<null extends Bound['decisionSubjectCid'] ? true : false>,
+  Assert<(() => Promise<undefined>) extends Gate['assertAccountCurrent'] ? false : true>,
+  Assert<(() => PromiseLike<undefined>) extends Gate['assertAccountCurrent'] ? false : true>,
+  Assert<(() => Promise<undefined>) extends Gate['assertConfigurationCurrent'] ? false : true>,
+  Assert<(() => PromiseLike<undefined>) extends Gate['assertConfigurationCurrent'] ? false : true>,
+];
 
 // Real adapter with a finite Core double. These controls establish issuer and
 // account-observation routing, not compiled Core or physical Provider coverage.

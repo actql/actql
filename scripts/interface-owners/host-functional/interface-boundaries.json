@@ -898,7 +898,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "inputsOutputs": [
@@ -916,7 +916,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "identity": [
@@ -934,7 +934,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "ownership": [
@@ -952,7 +952,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "synchronization": [
@@ -970,7 +970,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "failure": [
@@ -988,7 +988,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "cancellation": [
@@ -1034,7 +1034,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "verification": [
@@ -1072,7 +1072,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "inputsOutputs": [
@@ -1090,7 +1090,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "identity": [
@@ -1108,7 +1108,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "ownership": [
@@ -1126,7 +1126,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "synchronization": [
@@ -1144,7 +1144,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "failure": [
@@ -1162,7 +1162,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "cancellation": [
@@ -1208,7 +1208,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "verification": [
@@ -1244,7 +1244,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "inputsOutputs": [
@@ -1262,7 +1262,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "identity": [
@@ -1280,7 +1280,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "ownership": [
@@ -1298,7 +1298,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "synchronization": [
@@ -1316,7 +1316,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "failure": [
@@ -1334,7 +1334,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "cancellation": [
@@ -1380,7 +1380,7 @@
               },
               {
                 "path": "adapters/host-common/authorization-gate.mts",
-                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision) {"
+                "anchor": "export function assertAuthorizationAccountCurrent(decision: Decision): undefined {"
               }
             ],
             "verification": [
