@@ -21,7 +21,7 @@ const inputs = (action, tree = original) => actionInputs({tree, revision, action
 
 test('the real 30-action source catalog preserves every key for an unrelated Node Host edit', () => {
   assert.equal(catalog.actions.length, 30);
-  const candidate = changedTree('adapters/host-node/client-http.mjs');
+  const candidate = changedTree('adapters/host-node/client-http.mts');
   for (const action of catalog.actions) {
     const before = inputs(action), after = inputs(action, candidate);
     assert.equal(after.key, before.key, action.id);
