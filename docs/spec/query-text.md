@@ -437,6 +437,14 @@ anywhere in the input, false for no match and NULL for a NULL input.
 An invalid pattern fails at Check, including with a NULL input.
 The SQL call adds no flags argument.
 
+`REGEXP_EXTRACT(value, pattern)` selects the Common `regex_extract` body with
+no explicit capture index. Check uses the original parsed literal or bound
+String pattern to select the whole match for zero groups or group one for one
+group. More than one group fails Check, including with a NULL input.
+The result is nullable String. No match or an unmatched group returns NULL.
+A participating empty group returns the empty String. The call selects the
+first match and adds no flags, position or occurrence argument.
+
 `JSON_VALUE(input[, path])` selects `json_value`. Input is a String or
 admitted Json and the optional path is String. The Common evaluator
 returns nullable String. It retains the original arguments, supports

@@ -1,11 +1,15 @@
 ///|
-fn original_regex_extract_expression(source : String) -> @lower.Expression {
+fn original_regex_extract_expression(
+  source : String,
+  structured? : Bool = false,
+) -> @lower.Expression {
   // An unconstrained input field has the Host's 256-byte input extent.
   // Extraction may return the whole input, so Check needs that output ceiling.
   let request = original_string_fragment_request(
     expression=source,
     max_pattern_bytes=100,
     max_output_bytes=256,
+    structured~,
   )
   @lower.root_at(
     @lower.fragment_pipeline_roots(@lower.fragment_request_pipeline(request)),
@@ -153,4 +157,28 @@ test "checked regex extract cancels a partial capture copy without releasing the
   )
   assert_false(original.released)
   release_logical_root(logical, original).unwrap()
+}
+
+///|
+test "checked regex extract with omitted capture returns the same retained whole or sole group" {
+  for (pattern, index, expected) in [("a.b", 0, "a🙂b"), ("a(.)b", 1, "🙂")] {
+    let source =
+      #|{"regex_extract":{"value":{"field":"text"},"pattern":{"literal":"PATTERN"}}}
+    let expression = original_regex_extract_expression(
+      source.replace(old="PATTERN", new=pattern),
+      structured=true,
+    )
+    let (_, _, selected) = @lower.text_bound_regex_extract(
+      @lower.expression_text_bound(expression).unwrap(),
+    ).unwrap()
+    assert_eq(selected, index)
+    assert_true(
+      evaluate_expression(expression, { "text": Text("a🙂bx") }, [], {
+        remaining: 1000,
+        max_frames: 100,
+      })
+      is Ok(Text(value)) &&
+      value == expected,
+    )
+  }
 }

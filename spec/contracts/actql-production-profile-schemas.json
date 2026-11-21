@@ -10,9 +10,9 @@
     "content_source": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68",
     "content_barrier": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5",
     "content_evidence": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695",
-    "text_time_expression": "sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd",
+    "text_time_expression": "sha256:41b1da20f35236666cf96d0a751891b057655cc376aa9479f66f20651184878d",
     "text_time_evaluation_envelope": "sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f",
-    "text_time_evaluation_barrier": "sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf",
+    "text_time_evaluation_barrier": "sha256:6aca9bab9d16f1875afda2872190de0712f8d7bfc4762482716616a0474a1acf",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -2418,8 +2418,7 @@
               "additionalProperties": false,
               "required": [
                 "value",
-                "pattern",
-                "capture"
+                "pattern"
               ],
               "properties": {
                 "value": {
@@ -4567,8 +4566,7 @@
                     "additionalProperties": false,
                     "required": [
                       "value",
-                      "pattern",
-                      "capture"
+                      "pattern"
                     ],
                     "properties": {
                       "value": {
@@ -7619,5 +7617,5 @@
       }
     }
   },
-  "registry_cid": "sha256:cdcbf5f5d765bfca98b1d617ebf128f891bbbb6934003db4d97f5f03319aac65"
+  "registry_cid": "sha256:d53506364f09072bc71c81d7e9ce32990fb47e0b21b27676d86ac1d6b10aef66"
 }

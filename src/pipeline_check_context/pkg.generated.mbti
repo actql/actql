@@ -3371,6 +3371,7 @@ pub(all) enum RegexPatternIssue {
   InvalidArgument(Int, String)
   PatternCeiling(Int)
   UnknownCapture(Int)
+  MultipleCaptures(Int)
   Pattern(Int, @regex_pattern.Issue)
   Replacement(Int, @regex_replacement.Issue)
 } derive(Eq, @debug.Debug)

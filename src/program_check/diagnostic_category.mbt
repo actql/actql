@@ -391,7 +391,8 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | Checks(
       Patterns(
         Regex(
-          Pattern(
+          MultipleCaptures(_)
+          | Pattern(
             _,
             InvalidSyntax(_)
             | InvalidRange(_)

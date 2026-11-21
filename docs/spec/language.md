@@ -4355,7 +4355,7 @@ U+000A line boundaries) and `s` (dot also matches U+000A), each at most once,
 in either order. Omitted flags and the empty string both select neither flag.
 
 <!-- requirement-block: text-time.regex-static-capture text-time.regex-static-replacement -->
-The `regex_extract` capture argument MUST be a nonnegative integer literal or
+An explicit `regex_extract` capture argument MUST be a nonnegative integer literal or
 an invocation parameter of number type. The `regex_replace` replacement argument
 MUST be a string literal or an invocation parameter of string type. Neither
 argument admits a row field or a computed expression, including a constant
@@ -4364,8 +4364,15 @@ capture/replacement consistency with the admitted pattern before evaluation;
 declaration-only type checking does not discharge that obligation.
 
 The profile requires positive limits for input codepoints, pattern bytes, output bytes,
-and replacements. `regex_extract` requires an explicit capture index and
-returns null for no match; `regex_replace` applies a bounded left-to-right
+and replacements. The expression-text call `regex_extract` retains its
+explicit capture index. In a structured body with no capture field, including
+the body produced by SQL `REGEXP_EXTRACT`, Check uses the original admitted
+pattern to select index zero for no groups or index one for one group.
+A pattern with multiple groups is invalid in this form. An explicit null
+capture is not an omitted field. The capture selection keeps the same pattern,
+parameter and Host envelope obligations. `regex_extract` returns null for
+no match or a nonparticipating capture, and empty String for a participating
+empty capture. `regex_replace` applies a bounded left-to-right
 global replacement. Its closed replacement grammar uses `$$` for a literal
 dollar and `$1..$99` for captures; references to absent captures are rejected
 at Check, while an unmatched admitted capture expands to the empty string. The
@@ -11767,22 +11774,22 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:fdbeefbbfdf316a403f2c427b2402204bc61ed83bf8c56124922198d7b87fb61
+../../spec/contracts/actql-aoa.json# sha256:e72425fce6e45129d35da5d3f904de54a35e8b37d60151d3109c84275ca69578
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1
-../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:41b1da20f35236666cf96d0a751891b057655cc376aa9479f66f20651184878d
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:215fa41861ab09d304abf16a2c3cdd823c247c31419932234df62134d231a50e
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:33886faef911eaa289081dfc4876cf7fecaa361ae175bd9b08b9812aaffa7426
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:3ef200b2ea09ece9f2b254203df4f68695aa16b53b6a496b597d134c6a005e2d
+../../spec/contracts/actql-expressions.json# sha256:2137a42a14374c15de8a04775cbf047e850a234bc7ebad553bb99542dbe53ee1
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:ae6d6c02fd72b00876f40ef1e41fe14e358c407e4e26838268a6f1209986cb97
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:66ea2e5e1bdb8906cab310ff283899b7b161ea821af61e005adf6794d5dd6c4e
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:2717e040c1acf1877d43d25446ac50bb9b43f605c07e8513863d74d5893221d2
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:9ab0772ec3cbfbb8d6811c40ce1e922bfd2ea45408a521e6ae5e6285a54319b8
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0cb2ede5c7986efbe3df8228780d160061d526881428949685b083d77b87ead7
+../../spec/contracts/actql-expressions.json#/laws sha256:ca6c1eb348331537b725e18f89954570c482b064132af044baff8533bfb9c7c7
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:78b7990cc6c253201291416ae859a8bd0b2776ac640bfede43dd1f54e2efcfd0
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:f450141d58abe67af9af1011cbf580824b9fd2f198d549464a2ee118aebfdd5c
 ```
 
 <!-- stage-contract-pins:start -->

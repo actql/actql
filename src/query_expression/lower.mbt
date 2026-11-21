@@ -303,6 +303,7 @@ fn scalar_call(
     "PARSE_TIMESTAMP" => ("PARSE_TIMESTAMP", "parse_timestamp", 2, 2)
     "FORMAT_TIMESTAMP" => ("FORMAT_TIMESTAMP", "format_timestamp", 2, 2)
     "REGEXP_CONTAINS" => ("REGEXP_CONTAINS", "regex_match", 2, 2)
+    "REGEXP_EXTRACT" => ("REGEXP_EXTRACT", "regex_extract", 2, 2)
     "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -896,7 +897,7 @@ fn append_resolved(
                     ("max_bytes", nodes[args[1]]),
                   ]),
                 )
-              } else if name == "regex_match" {
+              } else if name == "regex_match" || name == "regex_extract" {
                 lowering.form(
                   name,
                   lowering.object([

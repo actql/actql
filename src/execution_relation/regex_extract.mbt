@@ -16,10 +16,13 @@ fn start_regex_extract(
   let invalid = { kind: Scalar(InvalidOperand), expression, }
   guard @lower.expression_text_bound(expression) is Some(bound) &&
     @lower.text_bound_regex_extract(bound) is Some((pattern, flags, capture)) &&
-    args[1] is Text(_) &&
-    args[2] is Number(index) &&
-    index == capture.to_double() else {
+    args[1] is Text(_) else {
     return Err(invalid)
+  }
+  match args.get(2) {
+    None => ()
+    Some(Number(index)) if index == capture.to_double() => ()
+    Some(_) => return Err(invalid)
   }
   let output = @lower.text_bound_output(bound)
   guard @text_bounds.output_operation(output) is RegexExtract else {

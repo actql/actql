@@ -14,9 +14,9 @@ const canonical = value => JSON.stringify(sorted(value));
 test('current Values publication fixture follows the complete normative Unit preimage', () => {
   const expected = valuesDependencyOracle();
   assert.equal(expected.unit,
-    'sha256:65973b5e9310a85bf6236f45935df640e124c7f2f9f1d1663483501255f429b0');
+    'sha256:d315e892ef18bb0eabf485c930779fc8b34010c3a64e4eb44566bb13c6206c80');
   assert.equal(expected.resultPlan,
-    'sha256:f3876cf0496d13d8ec51d942938532f51eda929f1a668c8168319d6b19885fb1');
+    'sha256:2a5ff7a83e88f3bf507493129a8ddfb7a64b6505b23a5841281d4dc807d6dcb5');
   const plan = valuesResultPlan(expected.unit);
   assert.equal(plan.result_plan_logical_cid, expected.resultPlan);
   const document = source.split('\n').find(line => line.includes('#|{"version":"actql/0.1"'));
@@ -33,7 +33,7 @@ test('current Values publication fixture follows the complete normative Unit pre
   assert.ok(source.includes(`    "${expected.resultPlan}",`));
   const identity = valuesProgramOracle();
   assert.equal(identity.programCid,
-    'sha256:6fdfbedacd868aeffe1f134815be31de326c7e268ef54c1105f2e8b5b6728727');
+    'sha256:8836ca770f8b32750d1b720b89979f9995e44ca4e715fdecab8345a3acc8079b');
   assert.equal(independentCid(identity.semantics), identity.semanticsCid);
   assert.equal(independentCid(identity.definition), identity.programCid);
   const intent = independentCid({version: 'actql-logical-request-intent/0.1',
@@ -41,7 +41,7 @@ test('current Values publication fixture follows the complete normative Unit pre
     parameter_values_cid: 'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52',
     program_definition_cid: identity.programCid});
   assert.equal(intent,
-    'sha256:b432fc10b3137dad749146edd6a45a23d5a7c4e5156c561428bdc6306606bc30');
+    'sha256:59960fb17aa32f4dd9f6437865c31ce53791f5a18b369037c85260dd2e13ce91');
   assert.ok(source.includes(`    "${identity.programCid}",`));
   assert.ok(source.includes(`    "${intent}",`));
 });

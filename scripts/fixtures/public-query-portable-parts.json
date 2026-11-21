@@ -3,13 +3,13 @@
   "totalCases": 4240,
   "parts": {
     "portable-1": {
-      "totalCases": 1527,
-      "inventorySha256": "4f1c6b4d41abb7a85eae55c94a461a2c38aa1a3dd0b40fdd1c61bb9fb5ac55d0",
+      "totalCases": 1531,
+      "inventorySha256": "bd172fa2679f70141766a60a91870f68e3190440f028718dde37a8c03e296507",
       "receiptPrefixes": []
     },
     "portable-2": {
       "totalCases": 1382,
-      "inventorySha256": "e04976469f296a6cc60767f9c144da7c7b8e31d1d45612713a5c24707aaedb3d",
+      "inventorySha256": "4ea34e22da6cc247efc48f272f46cccf9729ad351a658d7abecd5754826ade0c",
       "receiptPrefixes": [
         "time-series-primary",
         "temporal-join",
@@ -24,8 +24,8 @@
       ]
     },
     "portable-3": {
-      "totalCases": 1372,
-      "inventorySha256": "576ea5b9b37676ec949102d1f88f40e333199507682721481dfca977504ecbf2",
+      "totalCases": 1371,
+      "inventorySha256": "5f615161aefb9e7beb5a2e06172d615ae97beff2047372824f0794f0231cc38d",
       "receiptPrefixes": [
         "time-series-primary",
         "carrier-continuation",

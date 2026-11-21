@@ -571,11 +571,14 @@ fn expression_children(
     }
     "regex_extract" => {
       let obj = @decode.open_object(body).unwrap()
-      [
+      let children = [
         @decode.lookup(obj, "value").unwrap(),
         @decode.lookup(obj, "pattern").unwrap(),
-        @decode.lookup(obj, "capture").unwrap(),
       ]
+      if @decode.lookup(obj, "capture") is Some(capture) {
+        children.push(capture)
+      }
+      children
     }
     "try_timestamp" => {
       let obj = @decode.open_object(body).unwrap()

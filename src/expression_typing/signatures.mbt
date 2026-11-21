@@ -316,7 +316,9 @@ fn infer(
   }
   if text_time(tag) {
     if tag == "regex_extract" || tag == "regex_replace" {
-      regex_static_argument(tag, nodes[node.children[2]])
+      if node.children.get(2) is Some(option) {
+        regex_static_argument(tag, nodes[option])
+      }
     }
     profiles["actql-text-time/0.1"] = true
     pending.push({

@@ -257,9 +257,8 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     "utf8_truncate" => ["value", "max_bytes"]
     "try_number" => ["value"]
     "try_timestamp" => ["value"]
-    "parse_timestamp" | "format_timestamp" | "regex_match" =>
+    "parse_timestamp" | "format_timestamp" | "regex_match" | "regex_extract" =>
       ["value", "pattern"]
-    "regex_extract" => ["value", "pattern", "capture"]
     "regex_replace" => ["value", "pattern", "replacement"]
     "vector_score" => ["left", "right", "metric"]
     _ => []
@@ -270,6 +269,9 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
   }
   if tag == "try_timestamp" {
     allowed.push("pattern")
+  }
+  if tag == "regex_extract" {
+    allowed.push("capture")
   }
   if tag == "case" {
     allowed.push("else")

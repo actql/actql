@@ -407,9 +407,11 @@ fn emit_frames(
             }
             pending.push(Op("regex_extract"))
             @encode.begin_object(output)
-            @encode.key(output, "capture")
             pending.push(RegexExtractTail(flags, args[1], args[0]))
-            pending.push(Expr(args[2]))
+            if args.get(2) is Some(capture) {
+              @encode.key(output, "capture")
+              pending.push(Expr(capture))
+            }
           }
           Many(op, args) => {
             pending.push(

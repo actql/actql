@@ -132,10 +132,11 @@ fn flatten(
           _ => ["value"]
         }
         for name in names {
-          if tag == "substring" && name == "length" {
+          if (tag == "substring" && name == "length") ||
+            (tag == "regex_extract" && name == "capture") {
             let obj = decoded(@decode.open_object(body), body)
-            if @decode.lookup(obj, name) is Some(length) {
-              children.push((length, Form))
+            if @decode.lookup(obj, name) is Some(optional) {
+              children.push((optional, Form))
             }
           } else {
             children.push((part(body, name), Form))

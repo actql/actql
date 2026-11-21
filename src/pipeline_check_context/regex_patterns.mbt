@@ -17,6 +17,7 @@ pub(all) enum RegexPatternIssue {
   InvalidArgument(Int, String)
   PatternCeiling(Int)
   UnknownCapture(Int)
+  MultipleCaptures(Int)
   Pattern(Int, @regex.Issue)
   Replacement(Int, @replacement.Issue)
 } derive(Eq, Debug)
@@ -251,7 +252,17 @@ pub fn check_regex_patterns(
       text += bytes
       ast_bytes += out
       ast_nodes += nodes
-      let (operation, option_parameter) = if op == "regex_extract" {
+      let (operation, option_parameter) = if op == "regex_extract" &&
+        @decode.lookup(body, "capture") is None {
+        // The closed SQL form selects the whole match or its sole group.
+        // Use the original parsed pattern, including invocation Parameters.
+        regex_spend(b, 1)
+        let capture = @regex.capture_count(pattern)
+        if capture > 1 {
+          raise RegexStop(MultipleCaptures(i))
+        }
+        (RegexOperation::Extract(capture), None)
+      } else if op == "regex_extract" {
         let (value, parameter) = regex_argument(site, body, "capture", i, b)
         let n = match value {
           Number(n) => n

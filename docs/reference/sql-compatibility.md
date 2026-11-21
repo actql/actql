@@ -190,6 +190,12 @@ or bound String pattern, and returns nullable Boolean when the input may be
 NULL. Anchors can constrain a search to the whole input.
 [GoogleSQL REGEXP_CONTAINS](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#regexp_contains)
 
+`REGEXP_EXTRACT(value, pattern)` returns the first whole match or the first
+match's sole capturing group. It uses the same checked String and pattern
+profile. No match, a nonparticipating group or a NULL input returns NULL.
+Check rejects patterns with multiple capturing groups.
+[GoogleSQL REGEXP_EXTRACT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#regexp_extract)
+
 `JSON_VALUE(input[, path])` extracts a scalar from String or admitted Json.
 The default path is `$`. Dot members, double-quoted members and bracket
 indexes select one value. A missing or nonscalar selection returns NULL.
@@ -328,7 +334,8 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
-| `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
+| `REGEXP_EXTRACT` with position or occurrence arguments | The selected two-argument String signature uses the first match. |
+| `REGEXP_REPLACE`, `UNIX_SECONDS`, `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |

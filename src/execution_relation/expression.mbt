@@ -914,9 +914,7 @@ fn advance_expression_frame_impl(
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
-              } else if op == @lower.Replace ||
-                op == @lower.Translate ||
-                op == @lower.RegexExtract {
+              } else if op == @lower.Replace || op == @lower.Translate {
                 children.length() == 3
               } else if op == @lower.LeftString ||
                 op == @lower.RightString ||

@@ -693,6 +693,22 @@ const regexpContainsBoundaries = {name: 'regexp-contains-boundaries', format: 's
   columns: [...['unicode_match', 'anchored_miss'].map(name => ({
     name, contract: {type: 'boolean', nullable: false},
   })), {name: 'absent', contract: {type: 'boolean', nullable: true}}], sourceReadCount: 0};
+export const regexpExtractOriginal = {name: 'regexp-extract-original', format: 'sql',
+  text: "SELECT REGEXP_EXTRACT('abc', 'b.') AS whole, "
+    + "REGEXP_EXTRACT('a🙂b', 'a(.)b') AS captured, "
+    + "REGEXP_EXTRACT('b', '(a)?b') AS unmatched, "
+    + "REGEXP_EXTRACT('b', '(a?)b') AS empty_capture, "
+    + "REGEXP_EXTRACT('abc', '^b$') AS no_match, "
+    + "REGEXP_EXTRACT(NULL, 'a') AS absent",
+  expected: [{whole: 'bc', captured: '🙂', unmatched: null,
+    empty_capture: '', no_match: null, absent: null}],
+  columns: ['whole', 'captured', 'unmatched', 'empty_capture', 'no_match', 'absent']
+    .map(name => ({name, contract: {type: 'string', nullable: true}})), sourceReadCount: 0};
+const regexpExtractBound = {name: 'regexp-extract-bound', format: 'sql',
+  text: "SELECT REGEXP_EXTRACT('abc', @pattern) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}}, parameters: {pattern: 'a(b)c'},
+  expected: [{result: 'b'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: true}}], sourceReadCount: 0};
 export const jsonValueOriginals = [
   {name: 'json-value-original', format: 'sql',
     text: "SELECT JSON_VALUE('{}', '$.n') AS result",
@@ -891,6 +907,8 @@ export const sourceFreeSuccesses = [
   ...jsonValueOriginals,
   regexpContainsOriginal,
   regexpContainsBoundaries,
+  regexpExtractOriginal,
+  regexpExtractBound,
   ...logicalAggregateSuccesses,
   ...anyValueSuccesses,
   navigationDefaultOriginal,
@@ -899,6 +917,9 @@ export const sourceFreeSuccesses = [
   ...aggregateDefaultFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
+  {name: 'regexp-extract-multiple-captures', format: 'sql',
+    text: "SELECT REGEXP_EXTRACT(NULL, '(a)(b)') AS result",
+    expectedCode: 'ClientProgramInvalidInput'},
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
     name: `octal-range-${name}-${digits}`, format: 'sql',
     // A valid published source is present. Lexical refusal must still occur

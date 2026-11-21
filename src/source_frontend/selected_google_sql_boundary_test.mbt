@@ -3,8 +3,8 @@ test "unselected GoogleSQL scalar families retain a named checked lowering refus
   let context = bind_query_context([], "fixture.environment").unwrap()
   for
     expression in [
-      "REGEXP_EXTRACT('abc', 'a')", "REGEXP_REPLACE('abc', 'a', 'b')", "ARRAY_LENGTH([1, 2])",
-      "UNIX_SECONDS(1)", "SHA256('a')",
+      "REGEXP_REPLACE('abc', 'a', 'b')", "ARRAY_LENGTH([1, 2])", "UNIX_SECONDS(1)",
+      "SHA256('a')",
     ] {
     assert_true(
       lower("SELECT " + expression + " AS result", Sql, Some(context))
@@ -72,4 +72,16 @@ test "REGEXP_CONTAINS reaches the checked source-free SQL entrance" {
     Some(context),
   ).unwrap()
   assert_true(prepared.document.contains("\"regex_match\":"))
+}
+
+///|
+test "REGEXP_EXTRACT reaches the checked source-free SQL entrance" {
+  let context = bind_query_context([], "fixture.environment").unwrap()
+  let prepared = lower(
+    "SELECT REGEXP_EXTRACT('abc', '(b)') AS result",
+    Sql,
+    Some(context),
+  ).unwrap()
+  assert_true(prepared.document.contains("\"regex_extract\":"))
+  assert_false(prepared.document.contains("\"capture\":"))
 }
