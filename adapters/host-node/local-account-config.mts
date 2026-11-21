@@ -13,18 +13,36 @@ import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {isAccountConstruction, readAccountOriginal, readAccountCurrent} from './account-construction.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+import type {createAccountConstruction} from './account-construction.mjs';
+import type {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type NodeAuthorizationOptions = NonNullable<Parameters<typeof createNodeAuthorizationGate>[0]>;
+type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
+type Account = ReturnType<AuthorizationRuntime['executionAuthorizationAdmit']>;
+type Construction = ReturnType<typeof createAccountConstruction>;
+type Frame = ReturnType<Construction['begin']>;
+type Selection = Readonly<{
+  accountConfig?: string | null; accountConfiguration?: string | null;
+  accountConstruction?: Construction;
+}>;
+type LocalAuthorizationOptions = NodeAuthorizationOptions & Selection & Readonly<{principal?: string}>;
+type ObservedConfiguration = Readonly<{text: string; accountId: string; path?: string}>;
+type ErrorFields = {code?: unknown; runtimeCode?: string};
+
 export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';
 const MAX_CONFIGURATION_BYTES = 1_000_000;
 
 // Physical observation only. Core admits/evaluates the returned original
 // bytes. The extra byte detects growth without an unbounded read or allocation.
-function observeAccountConfigurationWire(authorization, frame) {
+function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {
   try {
     let wire = authorization?.accountConfiguration;
     if (authorization?.accountConfig !== undefined) {
       if (wire !== undefined) return undefined;
-      if (frame !== undefined) return readAccountCurrent(authorization.accountConfig, frame);
-      const fd = openSync(authorization.accountConfig, 'r');
+      if (frame !== undefined) return readAccountCurrent(authorization.accountConfig!, frame);
+      const fd = openSync(authorization.accountConfig!, 'r');
       try {
         // Size selects only a bounded workspace, never configuration identity
         // or authority. Read the original FD's contents below; one extra byte
@@ -51,8 +69,8 @@ function observeAccountConfigurationWire(authorization, frame) {
 
 // Shared by the installed Model owner and Local account gate. This reads no
 // new identity or permit and preserves the existing Model Missing fallback.
-const installedAccountObservations = new WeakMap();
-export function observeInstalledAccount(moon, authorization, construction) {
+const installedAccountObservations = new WeakMap<AuthorizationRuntime, WeakMap<object, Readonly<{wire: string; account: Account}>>>();
+export function observeInstalledAccount(moon: AuthorizationRuntime, authorization?: Selection | null, construction?: Construction) {
   construction ??= authorization?.accountConstruction;
   if (construction !== undefined) {
     if (!isAccountConstruction(construction)) throw new TypeError('ForeignAccountConstruction');
@@ -61,7 +79,7 @@ export function observeInstalledAccount(moon, authorization, construction) {
   return observeInstalledAccountOriginal(moon, authorization);
 }
 
-function observeInstalledAccountOriginal(moon, authorization, frame, construction) {
+function observeInstalledAccountOriginal(moon: AuthorizationRuntime, authorization?: Selection | null, frame?: Frame, construction?: Construction) {
   try {
     const wire = observeAccountConfigurationWire(authorization, frame);
     if (wire === undefined) return moon.executionAuthorizationMissing();
@@ -82,17 +100,17 @@ function observeInstalledAccountOriginal(moon, authorization, frame, constructio
     observations.set(authorization, {wire, account});
     if (frame !== undefined) {
       frame.hold();
-      construction.onRetire(() => {observations.delete(authorization);});
+      construction!.onRetire(() => {observations!.delete(authorization);});
     }
     return account;
   } catch { return moon.executionAuthorizationMissing(); }
 }
 
-const fail = (code, detail) => {
+const fail: (code: string, detail?: unknown) => never = (code, detail) => {
   throw Object.assign(new Error(code, {cause: detail}), {code});
 };
 
-function normalizedText(value) {
+function normalizedText(value: string) {
   if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
     fail('InvalidCanonicalText');
   }
@@ -102,7 +120,7 @@ function normalizedText(value) {
 // Canonical JSON for Host-local identities: sorted keys, no whitespace,
 // NFC text. Used for Host-local records and operator configuration authoring.
 // Admitted Account identities come from Common, not this Host-local writer.
-export function canonicalJson(value) {
+export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || Object.is(value, -0)) fail('InvalidCanonicalNumber');
@@ -115,13 +133,13 @@ export function canonicalJson(value) {
   }
   const entries = Object.entries(value)
     .filter(([, item]) => item !== undefined)
-    .map(([key, item]) => [normalizedText(key), item]);
+    .map(([key, item]): [string, unknown] => [normalizedText(key), item]);
   entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
   return `{${entries.map(([key, item]) =>
     `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
 }
 
-export function contentCid(value) {
+export function contentCid(value: unknown) {
   return `sha256:${createHash('sha256').update(canonicalJson(value), 'utf8')
     .digest('hex')}`;
 }
@@ -129,7 +147,8 @@ export function contentCid(value) {
 // Immutable private Store policy DATA shared by projected Content and the
 // original lookup transport. This computes identities, never capture authority.
 export function originalLocalContentStoragePolicy({storeAuthorityCid, authorityScopeCid,
-  runDefinitionCid, expiresAt}) {
+  runDefinitionCid, expiresAt}: Readonly<{storeAuthorityCid: string; authorityScopeCid: string;
+  runDefinitionCid: string; expiresAt: string}>) {
   return Object.freeze({
     availabilityEvidenceCid: contentCid({version:'actql-installed-local-policy/0.1',
       name:'content-availability', storeAuthorityCid, runDefinitionCid, expiresAt}),
@@ -138,14 +157,14 @@ export function originalLocalContentStoragePolicy({storeAuthorityCid, authorityS
   });
 }
 
-export function bytesCid(bytes) {
+export function bytesCid(bytes: BinaryLike) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 
-function configurationOf(text, frame) {
+function configurationOf(text: string, frame?: Frame) {
   frame?.nativeJson(text);
-  let document;
-  try { document = JSON.parse(text); }
+  let document: {account_id?: unknown} | null;
+  try { document = JSON.parse(text) as {account_id?: unknown} | null; }
   catch (error) { fail(ACCOUNT_CONFIG_INVALID, error); }
   if (document === null || typeof document !== 'object' ||
       typeof document.account_id !== 'string') {
@@ -159,12 +178,12 @@ function configurationOf(text, frame) {
 
 // Read one original configuration file. Core owns admission (canonical order,
 // overlap) and the admitted complete document's CID; the reader issues no CID.
-export async function readAccountConfiguration(path, frame) {
+export async function readAccountConfiguration(path: string, frame?: Frame) {
   if (typeof path !== 'string' || path.length === 0) {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationPathRequired');
   }
   const absolute = isAbsolute(path) ? path : resolve(path);
-  let text;
+  let text: string;
   if (frame !== undefined) {
     try {text = await readAccountOriginal(absolute, frame);}
     catch (cause) {fail(ACCOUNT_CONFIG_INVALID, cause);}
@@ -180,7 +199,7 @@ export async function readAccountConfiguration(path, frame) {
     }
     text = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
   } catch (error) {
-    if (error?.code === ACCOUNT_CONFIG_INVALID) throw error;
+    if ((error as ErrorFields | null | undefined)?.code === ACCOUNT_CONFIG_INVALID) throw error;
     fail(ACCOUNT_CONFIG_INVALID, error);
   }
   return Object.freeze({path: absolute, ...configurationOf(text)});
@@ -188,7 +207,7 @@ export async function readAccountConfiguration(path, frame) {
 
 // Trusted Local context for one account. The context CID identifies the
 // principal and account the Host installed; it is not Program input.
-export function localAuthorizationContext(principal, accountId) {
+export function localAuthorizationContext(principal: string, accountId: string | undefined) {
   return Object.freeze({
     principal,
     contextCid: contentCid({host: 'actql-local-host', principal,
@@ -201,7 +220,7 @@ export function localAuthorizationContext(principal, accountId) {
 // (`accountConfiguration`), or the Missing gate when neither was selected. A
 // selected but unreadable or rejected configuration is an installation
 // failure; it never degrades to Missing or to allow.
-export async function createLocalAuthorizationGate({accountConstruction, ...options} = {}) {
+export async function createLocalAuthorizationGate({accountConstruction, ...options}: LocalAuthorizationOptions = {}) {
   if (accountConstruction === undefined) return createLocalAuthorizationGateOriginal(options);
   if (!isAccountConstruction(accountConstruction)) fail(ACCOUNT_CONFIG_INVALID, 'ForeignAccountConstruction');
   const frame = accountConstruction.begin();
@@ -217,8 +236,8 @@ export async function createLocalAuthorizationGate({accountConstruction, ...opti
 async function createLocalAuthorizationGateOriginal({
   accountConfig, accountConfiguration, principal = 'local-operator', context,
   ...options
-} = {}, frame, construction) {
-  const none = value => value === undefined || value === null;
+}: LocalAuthorizationOptions = {}, frame?: Frame, construction?: Construction) {
+  const none = (value: unknown): value is null | undefined => value === undefined || value === null;
   if (!none(accountConfig) && !none(accountConfiguration)) {
     fail(ACCOUNT_CONFIG_INVALID, 'ConflictingAccountConfiguration');
   }
@@ -230,15 +249,15 @@ async function createLocalAuthorizationGateOriginal({
   if (!none(accountConfiguration) && typeof accountConfiguration !== 'string') {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationText');
   }
-  const configuration = none(accountConfig)
-    ? configurationOf(accountConfiguration, frame)
+  const configuration: ObservedConfiguration = none(accountConfig)
+    ? configurationOf(accountConfiguration!, frame)
     : await readAccountConfiguration(accountConfig, frame);
   const installedContext = context ?? localAuthorizationContext(principal,
     configuration.accountId);
-  let observation;
-  const withAccountObservation = operation => {
+  let observation: Frame | undefined;
+  const withAccountObservation = <Value extends SynchronousRuntimeData>(operation: () => Value): Value => {
     if (observation !== undefined) fail(ACCOUNT_CONFIG_INVALID, 'AccountObservationReentry');
-    return construction.observe(current => {
+    return construction!.observe(current => {
       observation = current;
       try {return operation();} finally {observation = undefined;}
     });
@@ -264,8 +283,8 @@ async function createLocalAuthorizationGateOriginal({
     return Object.freeze({...gate, accountConfiguration: configuration.text,
       context: installedContext});
   } catch (error) {
-    if (error?.code === 'ExecutionAuthorizationConfigurationRejected') {
-      error.runtimeCode = ACCOUNT_CONFIG_INVALID;
+    if ((error as ErrorFields | null | undefined)?.code === 'ExecutionAuthorizationConfigurationRejected') {
+      (error as ErrorFields).runtimeCode = ACCOUNT_CONFIG_INVALID;
     }
     throw error;
   }
@@ -275,7 +294,8 @@ async function createLocalAuthorizationGateOriginal({
 // source resource (`outcome` may also be `delegate` or `deny`). A helper for
 // writing an operator-owned file; nothing installs it implicitly.
 export function sourceReadAccountConfiguration({connection, resource,
-  outcome = 'allow', accountId = 'local-account', entryId = 'source-read'}) {
+  outcome = 'allow', accountId = 'local-account', entryId = 'source-read'}:
+  Readonly<{connection: string; resource: string; outcome?: 'allow' | 'delegate' | 'deny'; accountId?: string; entryId?: string}>) {
   return canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: accountId,

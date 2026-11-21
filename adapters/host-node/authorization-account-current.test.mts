@@ -5,6 +5,7 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts,
   '../host-common/authorization-gate.mjs';
 
 import type {admitResumedDispatch} from '../host-common/authorization-gate.mjs';
+import type {createAccountConstruction} from './account-construction.mjs';
 
 type GateOptions = NonNullable<Parameters<typeof createAuthorizationGate>[0]>;
 type Runtime = NonNullable<GateOptions['runtime']>;
@@ -31,6 +32,16 @@ type AuthorizationPortCases = [
   Assert<(() => PromiseLike<undefined>) extends Gate['assertAccountCurrent'] ? false : true>,
   Assert<(() => Promise<undefined>) extends Gate['assertConfigurationCurrent'] ? false : true>,
   Assert<(() => PromiseLike<undefined>) extends Gate['assertConfigurationCurrent'] ? false : true>,
+];
+
+type AccountFactory = Parameters<typeof createAccountConstruction>[0];
+type ObserveAccount = ReturnType<typeof createAccountConstruction>['observe'];
+type WithAccountObservation = NonNullable<GateOptions['withAccountObservation']>;
+type AccountConstructionCases = [
+  Assert<(() => Promise<undefined>) extends AccountFactory['current'] ? false : true>,
+  Assert<(() => Promise<undefined>) extends AccountFactory['prepareRead'] ? false : true>,
+  Assert<(() => Promise<undefined>) extends Parameters<ObserveAccount>[0] ? false : true>,
+  Assert<(() => Promise<undefined>) extends WithAccountObservation ? false : true>,
 ];
 
 // Real adapter with a finite Core double. These controls establish issuer and

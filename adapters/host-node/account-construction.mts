@@ -6,12 +6,39 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const valid = value => typeof value === 'bigint' && value >= 0n && value <= 9223372036854775807n;
-const facets = new WeakSet();
-export const isAccountConstruction = value => facets.has(value);
+import type {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-export function createAccountConstruction({moon, prepareRead, current}) {
+type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
+type Account = ReturnType<AuthorizationRuntime['executionAuthorizationAdmit']>;
+type Runtime = AuthorizationRuntime & Readonly<{
+  clientProgramAccountReadControlBytes(): bigint;
+  clientProgramCloseAccountRead(read: unknown, confirmed: boolean): SynchronousRuntimeData;
+  clientProgramPrepareAccountReadConstruction(read: unknown, retained: bigint, execution: bigint): SynchronousRuntimeData;
+  clientProgramCompleteAccountReadConstruction(read: unknown): SynchronousRuntimeData;
+  executionAuthorizationAdmitPrepared(wire: string,
+    reserve: (retained: bigint, execution: bigint) => boolean): Account | undefined;
+}>;
+type Cleanup = Readonly<{handle: unknown; status: unknown; retry: unknown}>;
+type CleanupCallback = () => unknown;
+type GateReference = {original: object; close?: CleanupCallback; pending?: CleanupCallback};
+type FrameState = {
+  read: unknown; retained: bigint; execution: bigint;
+  active: boolean; closed: boolean; retainedOutput: boolean;
+  failed: boolean; unknownClose: boolean; cleaning: boolean; closeRequested: boolean;
+  issue: unknown; cleanup?: Cleanup; gate?: GateReference;
+};
+type Retirement = () => boolean | void | PromiseLike<boolean | void>;
+type AccountConstruction = ReturnType<typeof createAccountConstruction>;
+type AccountFrame = ReturnType<AccountConstruction['begin']>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const valid = (value: unknown): value is bigint => typeof value === 'bigint' && value >= 0n && value <= 9223372036854775807n;
+const facets = new WeakSet<object>();
+export const isAccountConstruction = (value: unknown): value is AccountConstruction => facets.has(value as object);
+
+export function createAccountConstruction({moon, prepareRead, current}:
+  Readonly<{moon: Runtime; prepareRead(): SynchronousRuntimeData; current(): undefined}>) {
   let closing = false;
   const controls = moon.clientProgramAccountReadControlBytes();
   if (!valid(controls) || controls === 0n || typeof prepareRead !== 'function' ||
@@ -19,9 +46,9 @@ export function createAccountConstruction({moon, prepareRead, current}) {
   // The first actual byte-only child funds the facet/registry's fixed controls
   // before their construction. This constant baseline is never consumed by
   // an observation: each frame has its own original Read/control cohort.
-  let firstRead = checked(prepareRead()), closeFlight;
-  const frames = new Set(), retirements = [];
-  function settleFrame(state) {
+  let firstRead = checked(prepareRead()), closeFlight: Promise<boolean> | undefined;
+  const frames = new Set<FrameState>(), retirements: Retirement[] = [];
+  function settleFrame(state: FrameState) {
     if (state.closed) return true;
     if (checked(moon.clientProgramCloseAccountRead(state.read, true)) !== true) return false;
     state.closed = true;
@@ -29,7 +56,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     frames.delete(state);
     return true;
   }
-  function closeOriginalGate(state) {
+  function closeOriginalGate(state: FrameState) {
     const owned = state.gate;
     if (owned === undefined) return true;
     // Only the actual owned Scope's two observations can end this hold. No
@@ -37,7 +64,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     if (typeof owned.close !== 'function' || typeof owned.pending !== 'function') return false;
     try {
       const closed = Reflect.apply(owned.close, owned.original, []);
-      const pending = Reflect.apply(owned.pending, owned.original, []);
+      const pending = Reflect.apply(owned.pending!, owned.original, []);
       if (closed !== true || pending !== false) return false;
       state.gate = undefined;
       return true;
@@ -75,11 +102,11 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     if (closing) fail('AccountConstructionClosed');
     current();
     // Retain the actual Core child before any later constructor or observation.
-    const state = {read: checked(prepareRead()), retained: controls, execution: controls, active: true,
+    const state: FrameState = {read: checked(prepareRead()), retained: controls, execution: controls, active: true,
       closed: false, retainedOutput: false, failed: false, unknownClose: false, cleanup: undefined,
       issue: undefined, gate: undefined, cleaning: false, closeRequested: false};
     frames.add(state);
-    function prepare(retained, execution) {
+    function prepare(retained: bigint, execution: bigint) {
       if (!state.active || state.issue !== undefined || closing) fail('AccountConstructionUnavailable');
       if (!valid(retained) || !valid(execution) || !valid(state.retained + retained) ||
           !valid(state.retained + execution)) fail('AccountConstructionOverflow');
@@ -89,7 +116,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
       catch (cause) {state.issue = cause; state.failed = true; throw cause;}
       state.retained = r; state.execution = e;
     }
-    function failure(cause) {
+    function failure(cause: unknown) {
       state.failed = true;
       state.issue ??= cause;
       const handle = Object.getOwnPropertyDescriptor(Object(cause), 'cleanupHandle')?.value;
@@ -109,10 +136,10 @@ export function createAccountConstruction({moon, prepareRead, current}) {
         if (!settleFrame(state)) fail('AccountReadCleanupPending');
       }
     }
-    let lastWire;
+    let lastWire: string | undefined;
     const frame = Object.freeze({
       prepare,
-      core(retained, execution) {
+      core(retained: bigint, execution: bigint) {
         try {prepare(retained, execution); return true;}
         catch (cause) {failure(cause); return false;}
       },
@@ -120,7 +147,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
       failure,
       finish,
       hold() {state.retainedOutput = true;},
-      retainGate(original) {
+      retainGate(original: object) {
         if (state.gate !== undefined || state.closed) fail('ForeignAccountGateCleanup');
         // Capture the constructed original BEFORE a closing fence can refuse
         // publication. A late constructor remains owned by this SAME frame.
@@ -128,12 +155,12 @@ export function createAccountConstruction({moon, prepareRead, current}) {
         state.retainedOutput = true;
         const close = Object.getOwnPropertyDescriptor(original, 'close');
         const pending = Object.getOwnPropertyDescriptor(original, 'cleanupPending');
-        if (!Object.hasOwn(close ?? {}, 'value') || typeof close.value !== 'function' ||
-            !Object.hasOwn(pending ?? {}, 'value') || typeof pending.value !== 'function') {
+        if (!Object.hasOwn(close ?? {}, 'value') || typeof close!.value !== 'function' ||
+            !Object.hasOwn(pending ?? {}, 'value') || typeof pending!.value !== 'function') {
           fail('InvalidAccountGateCleanup');
         }
-        state.gate.close = close.value;
-        state.gate.pending = pending.value;
+        state.gate.close = close!.value;
+        state.gate.pending = pending!.value;
         if (closing) fail('AccountConstructionClosed');
       },
       closeGate() {
@@ -150,15 +177,15 @@ export function createAccountConstruction({moon, prepareRead, current}) {
         if (state.closed) return false;
         if (state.closeRequested || state.cleaning || state.failed || state.unknownClose || state.cleanup !== undefined) return true;
         const owned = state.gate;
-        return owned === undefined || Reflect.apply(owned.pending, owned.original, []) !== false;
+        return owned === undefined || Reflect.apply(owned.pending!, owned.original, []) !== false;
       },
-      inputBytes(size) {
+      inputBytes(size: number) {
         if (!Number.isSafeInteger(size) || size < 0 || size === Number.MAX_SAFE_INTEGER) fail('AccountInputExtentUnavailable');
         const bytes = BigInt(size);
         prepare(33n + bytes, 128n + 2n * bytes + 1n);
       },
-      decodedBytes(size) {const bytes = BigInt(size); prepare(16n + 2n * bytes, 128n + 4n * bytes);},
-      nativeJson(wire) {
+      decodedBytes(size: number) {const bytes = BigInt(size); prepare(16n + 2n * bytes, 128n + 4n * bytes);},
+      nativeJson(wire: string) {
         if (lastWire === wire) return;
         // One original lexical scan. It does not normalize, JSON.parse or
         // allocate input-dependent key lists before admitting the forest.
@@ -167,12 +194,12 @@ export function createAccountConstruction({moon, prepareRead, current}) {
           1024n * shape.nodes + 1296n * shape.weighted + 512n);
         lastWire = wire;
       },
-      record(units, nodes, depth = 8n) {
+      record(units: bigint, nodes: bigint, depth = 8n) {
         // Closed caller observes borrowed strings/lists without copying them.
         prepare(256n * nodes + 72n * units,
           1024n * nodes + 1296n * units * depth + 512n);
       },
-      admit(runtime, wire) {
+      admit(runtime: AuthorizationRuntime, wire: string): Account {
         if (runtime !== moon) fail('ForeignAccountConstructionRuntime');
         frame.nativeJson(wire);
         const value = moon.executionAuthorizationAdmitPrepared(wire, frame.core);
@@ -180,20 +207,20 @@ export function createAccountConstruction({moon, prepareRead, current}) {
         if (value === undefined) fail('AccountConstructionUnavailable');
         return value;
       },
-      closeUnknown(cause) {state.unknownClose = true; failure(cause);},
+      closeUnknown(cause: unknown) {state.unknownClose = true; failure(cause);},
     });
     try {prepare(0n, 0n);}
     catch (cause) {failure(cause); state.active = false; throw cause;}
     return frame;
   }
-  function observe(operation) {
+  function observe<Value extends SynchronousRuntimeData>(operation: (frame: AccountFrame) => Value): Value {
     const frame = begin();
     try {const value = operation(frame); frame.finish(false); return value;}
     catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
   }
   const facet = Object.freeze({moon, begin, observe,
     pending() {return firstRead !== undefined || frames.size !== 0;},
-    onRetire(callback) {if (closing || typeof callback !== 'function') fail('AccountConstructionClosed'); retirements.push(callback);},
+    onRetire(callback: Retirement) {if (closing || typeof callback !== 'function') fail('AccountConstructionClosed'); retirements.push(callback);},
     close() {
       if (closeFlight !== undefined) return closeFlight;
       closing = true;
@@ -212,9 +239,9 @@ export function createAccountConstruction({moon, prepareRead, current}) {
 
 // Original physical file owner and its exact close/retry carrier remain shared
 // with other installed metadata. The opened FD supplies size BEFORE Buffer.
-export async function readAccountOriginal(path, frame) {
+export async function readAccountOriginal(path: string, frame: AccountFrame) {
   try {
-    return await withOriginalFile(path, value => open(value, 'r'), async original => {
+    return await withOriginalFile(path, (value: string) => open(value, 'r'), async original => {
       const observed = await original.stat();
       frame.inputBytes(observed.size);
       const bytes = Buffer.alloc(observed.size + 1);
@@ -236,8 +263,8 @@ export async function readAccountOriginal(path, frame) {
   } catch (cause) {frame.failure(cause); throw cause;}
 }
 
-export function readAccountCurrent(path, frame) {
-  let fd, primary, closed = false;
+export function readAccountCurrent(path: string, frame: AccountFrame) {
+  let fd: number | undefined, primary: unknown, closed = false;
   try {
     fd = openSync(path, 'r');
     const observed = fstatSync(fd);

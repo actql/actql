@@ -42,6 +42,8 @@ const COUNTERS = Object.freeze([
   'unsupportedDefers', 'hostRejections', 'reusedDecisions',
   'coveredOperations', 'resumedDecisions',
 ] as const);
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
 type Awaitable<Value> = Value | PromiseLike<Value>;
 type Boundary = typeof AUTHORIZATION_BOUNDARIES[number];
 type CheckpointKind = keyof typeof ARTIFACT_TYPE;
@@ -159,7 +161,7 @@ type Budget = Readonly<{
 type AccountPorts = Readonly<{
   readConfiguration?: () => string | null | undefined;
   admitConfiguration?: (runtime: Runtime, wire: string) => RuntimeOriginal;
-  withAccountObservation?: <Value>(operation: () => Value) => Value;
+  withAccountObservation?: <Value extends SynchronousRuntimeData>(operation: () => Value) => Value;
 }>;
 type GateOptions = AccountPorts & Readonly<{
   runtime?: Runtime; configuration?: string | null; configurationCid?: string;
@@ -597,7 +599,7 @@ function gateFor(core: Core, context: Context): Gate {
     }
     return account;
   };
-  const accountObservation = <Value,>(operation: () => Value): Value => core.withAccountObservation === undefined
+  const accountObservation = <Value extends SynchronousRuntimeData>(operation: () => Value): Value => core.withAccountObservation === undefined
     ? operation() : core.withAccountObservation(operation);
   const assertCurrentAccount = (decision: Decision): undefined => accountObservation((): undefined => {
     const account = assertScopeAccountCurrent();

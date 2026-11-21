@@ -7947,7 +7947,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -14917,7 +14917,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -17297,7 +17297,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -19483,7 +19483,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -20763,7 +20763,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -22043,7 +22043,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -23323,7 +23323,7 @@
                 "anchor": "createEmbeddedHostRegistry"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "configuration is always explicit Host installation"
               },
               {
@@ -24736,7 +24736,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],

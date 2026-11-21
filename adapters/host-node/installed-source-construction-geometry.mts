@@ -1,9 +1,20 @@
 // Private geometry of the existing synchronous Host constructors. These
 // functions issue neither a Resource nor admission and never parse JSON.
 import {types as nodeTypes} from 'node:util';
-const invalid = () => {throw new TypeError('InvalidInstalledSourceConstructionGeometry');};
+type SourceWires = Readonly<{
+  evidence_schemas: readonly string[];
+  evidence_capabilities: readonly string[];
+  view_bodies: readonly string[];
+  contracts: readonly string[];
+  command_bodies?: readonly string[];
+  catalog: string;
+  manifest_entry: string;
+}>;
+type SourceWireVector = 'evidence_schemas' | 'evidence_capabilities' | 'view_bodies' | 'contracts' | 'command_bodies';
 
-export function sourceJsonWireGeometry(wire, payloadOnly = false) {
+const invalid: () => never = () => {throw new TypeError('InvalidInstalledSourceConstructionGeometry');};
+
+export function sourceJsonWireGeometry(wire: string, payloadOnly = false) {
   if (typeof wire !== 'string' || typeof payloadOnly !== 'boolean') invalid();
   let nodes = 1n, depth = 0n, maximum = 0n, weighted = 0n, units = 0n;
   let retainedNodes = 1n, retainedText = 0n;
@@ -53,7 +64,7 @@ export function sourceJsonWireGeometry(wire, payloadOnly = false) {
 // export bounds those native records alongside the decoded Host export and
 // the original authored snapshot. Borrowed input strings are conservatively
 // retained again; no cross-owner sharing discount is taken.
-export function sourceDeclarationRetainedGeometry(inputWire, declaredWire) {
+export function sourceDeclarationRetainedGeometry(inputWire: string, declaredWire: string) {
   if (typeof inputWire !== 'string' || typeof declaredWire !== 'string') invalid();
   const input = sourceJsonWireGeometry(inputWire), declared = sourceJsonWireGeometry(declaredWire);
   // Two returned metadata forests (native declaration/view records and the
@@ -69,12 +80,12 @@ export function sourceDeclarationRetainedGeometry(inputWire, declaredWire) {
 // Literal wrapper vocabulary added by rowSourceCheckEnvironment. Include
 // optional members even when absent; input base fields are counted separately.
 const environmentEnvelope = '{"schema_snapshots":[],"connector_capabilities":[],"source_views":[],"contract_registry":[],"connector_catalogs":[],"connector_manifest":{"version":"actql-connectors/0.1","connectors":[]},"mapping_contracts":[],"command_contracts":[],"evidence_bundle_cid":"sha256:' + '0'.repeat(64) + '"}';
-export function sourceEnvironmentConstructionGeometry(baseWire, declared, mappings = []) {
+export function sourceEnvironmentConstructionGeometry(baseWire: string, declared: SourceWires, mappings: readonly string[] = []) {
   const base = sourceJsonWireGeometry(baseWire);
   let nodes = base.retained.nodes, units = base.units, weighted = base.weighted;
   let treeText = base.retained.text;
   let depth = base.depth, members = 0n;
-  const add = wire => {
+  const add = (wire: string) => {
     const measured = sourceJsonWireGeometry(wire);
     nodes += measured.retained.nodes; units += measured.units; weighted += measured.weighted;
     treeText += measured.retained.text;
@@ -83,7 +94,7 @@ export function sourceEnvironmentConstructionGeometry(baseWire, declared, mappin
   // These exact original strings are the inputs of JSON.parse in the existing
   // Environment producer. No complete declaration is reparsed to measure them.
   for (const name of ['evidence_schemas', 'evidence_capabilities', 'view_bodies', 'contracts', 'command_bodies']) {
-    const wires = declared[name] ?? (name === 'command_bodies' ? [] : undefined);
+    const wires = declared[name as SourceWireVector] ?? (name === 'command_bodies' ? [] : undefined);
     if (!Array.isArray(wires)) invalid();
     for (const wire of wires) {add(wire); members++;}
   }
@@ -130,13 +141,13 @@ export function sourceEnvironmentConstructionGeometry(baseWire, declared, mappin
 const viewFields = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',
   'request_schema_wire', 'facts_wire', 'acquisition_wire',
   'data_classification', 'resource_identity_wire'];
-export function sourceAuthoredViewConstructionGeometry(views) {
+export function sourceAuthoredViewConstructionGeometry(views: unknown) {
   if (!Array.isArray(views) || nodeTypes.isProxy(views) || !Object.isFrozen(views)) invalid();
   let fields = 0n, units = 0n;
   for (let index = 0; index < views.length; index++) {
     const element = Object.getOwnPropertyDescriptor(views, String(index));
     if (!element || !Object.hasOwn(element, 'value')) invalid();
-    const view = element.value;
+    const view: unknown = element.value;
     if (view === null || typeof view !== 'object' || nodeTypes.isProxy(view) || !Object.isFrozen(view)) invalid();
     for (const name of viewFields) {
       const field = Object.getOwnPropertyDescriptor(view, name);
@@ -155,10 +166,10 @@ export function sourceAuthoredViewConstructionGeometry(views) {
     text: 2n * (4n * output), wire: 0n};
 }
 
-export function sourceEnvironmentRetainedGeometry(environment) {
+export function sourceEnvironmentRetainedGeometry(environment: unknown) {
   if (!environment || nodeTypes.isProxy(environment) || !Object.isFrozen(environment)) invalid();
-  const wire = Object.getOwnPropertyDescriptor(environment, 'wire');
-  const cid = Object.getOwnPropertyDescriptor(environment, 'evidenceCid');
+  const wire = Object.getOwnPropertyDescriptor(environment as object, 'wire');
+  const cid = Object.getOwnPropertyDescriptor(environment as object, 'evidenceCid');
   if (!wire || !cid || !Object.hasOwn(wire, 'value') || !Object.hasOwn(cid, 'value') ||
       typeof wire.value !== 'string' || typeof cid.value !== 'string') invalid();
   return {nodes: 3n, text: 2n * BigInt(wire.value.length + cid.value.length), wire: 0n};
@@ -168,7 +179,7 @@ export function sourceEnvironmentRetainedGeometry(environment) {
 // their original CIDs, and merges only their inert declaration metadata. Text
 // bytes are not Value nodes. Keep the existing sixteen overlapping tree roles,
 // with the recursive canonical text and hash workspace priced separately.
-export function sourceEnvironmentCompositionGeometry(wires) {
+export function sourceEnvironmentCompositionGeometry(wires: readonly (string | undefined)[]) {
   if (!Array.isArray(wires)) invalid();
   let nodes = 0n, units = 0n, weighted = 0n, depth = 0n;
   for (const wire of wires) {

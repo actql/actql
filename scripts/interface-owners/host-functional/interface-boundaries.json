@@ -72934,7 +72934,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],
@@ -77082,7 +77082,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77094,13 +77094,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77112,13 +77112,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
@@ -77130,13 +77130,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77148,13 +77148,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "import {readFile, stat} from 'node:fs/promises';"
               },
               {
@@ -77166,13 +77166,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "throw Object.assign(new Error(code, {cause: detail}), {code});"
               },
               {
@@ -77184,13 +77184,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77202,13 +77202,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "finally { closeSync(fd); }"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// installs the Missing gate, which denies every protected boundary with"
               },
               {
@@ -77220,13 +77220,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "const MAX_CONFIGURATION_BYTES = 1_000_000;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// The configuration is always explicit Host installation: a file the operator"
               },
               {
@@ -77238,8 +77238,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "verification": [
@@ -77252,8 +77252,8 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
@@ -77272,7 +77272,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77284,13 +77284,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77302,13 +77302,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
@@ -77320,13 +77320,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77338,13 +77338,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "import {readFile, stat} from 'node:fs/promises';"
               },
               {
@@ -77356,13 +77356,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "throw Object.assign(new Error(code, {cause: detail}), {code});"
               },
               {
@@ -77374,13 +77374,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77392,13 +77392,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "finally { closeSync(fd); }"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// installs the Missing gate, which denies every protected boundary with"
               },
               {
@@ -77410,13 +77410,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "const MAX_CONFIGURATION_BYTES = 1_000_000;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// The configuration is always explicit Host installation: a file the operator"
               },
               {
@@ -77428,8 +77428,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "verification": [
@@ -77442,8 +77442,8 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
@@ -77460,7 +77460,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77472,13 +77472,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77490,13 +77490,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// Admitted Account identities come from Common, not this Host-local writer."
               },
               {
@@ -77508,13 +77508,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77526,13 +77526,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "import {readFile, stat} from 'node:fs/promises';"
               },
               {
@@ -77544,13 +77544,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "throw Object.assign(new Error(code, {cause: detail}), {code});"
               },
               {
@@ -77562,13 +77562,13 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';"
               },
               {
@@ -77580,13 +77580,13 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "finally { closeSync(fd); }"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// installs the Missing gate, which denies every protected boundary with"
               },
               {
@@ -77598,13 +77598,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "const MAX_CONFIGURATION_BYTES = 1_000_000;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// The configuration is always explicit Host installation: a file the operator"
               },
               {
@@ -77616,8 +77616,8 @@
                 "anchor": "### Account authorization routing"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "verification": [
@@ -77630,8 +77630,8 @@
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "function observeAccountConfigurationWire(authorization: Selection | null | undefined, frame?: Frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
@@ -77656,14 +77656,14 @@
                 "anchor": "### Funded Account construction on the same original"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               }
             ],
             "identity": [
@@ -116220,7 +116220,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],
@@ -118151,7 +118151,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],
@@ -119243,7 +119243,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "The original file is still read at EVERY protected boundary."
               }
             ],
@@ -119261,7 +119261,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "Keep only one admitted immutable value per actual runtime/installation."
               }
             ],
@@ -119408,7 +119408,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "The original file is still read at EVERY protected boundary."
               }
             ],
@@ -119426,7 +119426,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "Keep only one admitted immutable value per actual runtime/installation."
               }
             ],
@@ -135431,29 +135431,29 @@
                 "anchor": "### Funded Account construction on the same original"
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
-                "anchor": "export function createAccountConstruction({moon, prepareRead, current}) {"
+                "path": "adapters/host-node/account-construction.mts",
+                "anchor": "export function createAccountConstruction({moon, prepareRead, current}:"
               },
               {
                 "path": "src/physical_resources/preparation_account_read.mbt",
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
-                "anchor": "export function createAccountConstruction({moon, prepareRead, current}) {"
+                "path": "adapters/host-node/account-construction.mts",
+                "anchor": "export function createAccountConstruction({moon, prepareRead, current}:"
               },
               {
                 "path": "src/physical_resources/preparation_account_read.mbt",
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135467,7 +135467,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135481,7 +135481,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135499,7 +135499,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135513,7 +135513,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135527,7 +135527,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135545,7 +135545,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -135559,7 +135559,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],

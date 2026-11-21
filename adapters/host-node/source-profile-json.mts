@@ -8,8 +8,8 @@ import {types} from 'node:util';
 // authorize I/O, certify currentness or acknowledge physical retirement.
 type Method = (...args: unknown[]) => unknown;
 interface ReadFileOriginal {
-  read(buffer: Buffer, offset: number, length: number, position: null): Promise<{bytesRead: number}>;
-  stat(): Promise<{size: number}>;
+  read(buffer: Buffer, offset: number, length: number, position: number | null): Promise<{bytesRead: number}>;
+  stat(): Promise<{size: number; mtimeMs?: number; ctimeMs?: number}>;
   close: Method;
 }
 type ReadFileSelection = Pick<ReadFileOriginal, 'read' | 'stat'>;
@@ -311,7 +311,7 @@ export async function withOriginalFile<T>(path: unknown, openFile: unknown, cons
     original = await (openFile as (path: unknown, flags: string) => Promise<ReadFileOriginal>)(path, 'r');
     captureClose();
     const selected = io === undefined ? original : Object.freeze({
-      async read(buffer: Buffer, offset: number, length: number, position: null) {
+      async read(buffer: Buffer, offset: number, length: number, position: number | null) {
         const method = captureMethod('read'), record = begin(length);
         const result = await applyOriginal(method, original, [buffer, offset, length, position]) as {bytesRead: number};
         const received = result.bytesRead;

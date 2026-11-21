@@ -64483,7 +64483,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],
@@ -92460,7 +92460,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
               }
             ],

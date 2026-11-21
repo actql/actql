@@ -27238,8 +27238,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -27264,8 +27264,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27338,8 +27338,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27360,7 +27360,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "} catch { return moon.executionAuthorizationMissing(); }"
               },
               {
@@ -27386,7 +27386,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "import {openSync, readSync, closeSync, fstatSync} from 'node:fs';"
               },
               {
@@ -27404,7 +27404,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// Physical observation only. Core admits/evaluates the returned original"
               },
               {
@@ -27412,7 +27412,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// bytes. The extra byte detects growth without an unbounded read or allocation."
               },
               {
@@ -27679,8 +27679,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -27701,8 +27701,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27763,8 +27763,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+                "path": "adapters/host-node/local-account-config.mts",
+                "anchor": "export function observeInstalledAccount(moon: AuthorizationRuntime,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27781,7 +27781,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "} catch { return moon.executionAuthorizationMissing(); }"
               },
               {
@@ -27803,7 +27803,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "import {openSync, readSync, closeSync, fstatSync} from 'node:fs';"
               },
               {
@@ -27817,7 +27817,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// Physical observation only. Core admits/evaluates the returned original"
               },
               {
@@ -27825,7 +27825,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/local-account-config.mjs",
+                "path": "adapters/host-node/local-account-config.mts",
                 "anchor": "// bytes. The extra byte detects growth without an unbounded read or allocation."
               },
               {
@@ -104843,7 +104843,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104857,7 +104857,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104871,7 +104871,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104885,7 +104885,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104903,7 +104903,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104917,7 +104917,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104931,7 +104931,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104949,7 +104949,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -104963,7 +104963,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105209,7 +105209,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105223,7 +105223,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105237,7 +105237,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105251,7 +105251,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105269,7 +105269,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105283,7 +105283,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105297,7 +105297,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105315,7 +105315,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
@@ -105329,7 +105329,7 @@
                 "anchor": "pub fn complete_account_read_construction("
               },
               {
-                "path": "adapters/host-node/account-construction.mjs",
+                "path": "adapters/host-node/account-construction.mts",
                 "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
