@@ -1,10 +1,12 @@
 import { serveManagedExecution } from './worker-channel.mjs';
+
+type FixtureRequest = {command?: unknown; value?: unknown};
 serveManagedExecution(async (request, signal, context) => {
-  switch (request.command) {
-    case 'echo': return { value: request.value, pid: process.pid };
-    case 'host-call': return {value: await context.callHost(request.value), pid: process.pid};
+  switch ((request as FixtureRequest).command) {
+    case 'echo': return { value: (request as FixtureRequest).value, pid: process.pid };
+    case 'host-call': return {value: await context.callHost((request as FixtureRequest).value), pid: process.pid};
     case 'host-caught':
-      try { await context.callHost(request.value); return {failed: false}; }
+      try { await context.callHost((request as FixtureRequest).value); return {failed: false}; }
       catch { return {failed: true}; }
     case 'undefined-failure': return Promise.reject();
     case 'crash': process.exit(9); break;

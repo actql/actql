@@ -1117,3 +1117,7 @@ target/
 /adapters/host-node/process-channel.d.mts
 /adapters/host-node/worker-channel.mjs
 /adapters/host-node/worker-channel.d.mts
+/adapters/host-node/process-fixture.mjs
+/adapters/host-node/process-fixture.d.mts
+/adapters/host-node/foreign-process-fixture.mjs
+/adapters/host-node/foreign-process-fixture.d.mts
