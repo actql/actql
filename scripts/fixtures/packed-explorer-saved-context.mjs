@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {realpath, readFile, writeFile} from 'node:fs/promises';
 import {join, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {setImmediate} from 'node:timers/promises';
+import {setTimeout} from 'node:timers/promises';
 import {open} from '@actql/node';
 import {startExplorer} from '@actql/explorer/launcher';
 import {createHostObservationConnection} from '@actql/local-node/observation';
@@ -23,20 +23,48 @@ process.chdir(project);
 const target = 'mock/data.json';
 const targetDigest = async () => createHash('sha256').update(await readFile(target)).digest('hex');
 const originalPath = join(evidence, 'saved-original.json');
-const operations = new Set(['source', 'model', 'effect']);
-const attempts = [];
-const client = await open({stateDir: '.actql-node', profile: 'mock', installation: {
-  observation: createHostObservationConnection({deliver(record) {
-    if (record.event === 'attempt_started' && operations.has(record.operation)) {
-      attempts.push({operation: record.operation, run: record.attributes['actql.run.definition_cid']});
+const markers = [];
+const observation = createHostObservationConnection({
+  include: ['source', 'infer', 'effect'],
+  deliver(record) {
+    const {operation, event} = record;
+    if ((operation === 'source' || operation === 'infer') && event === 'attempt_started' ||
+        operation === 'effect' && (event === 'application_observed' || event === 'write_observed')) {
+      markers.push({operation, event, run: record.attributes['actql.run.definition_cid'],
+        outcome: record.attributes['actql.outcome']});
     }
-  }}),
-}});
+  },
+});
+const client = await open({stateDir: '.actql-node', profile: 'mock', installation: {observation}});
 
-let receipt, primary, gateway, browser;
+function drained(status) {
+  return status.queued === 0 && status.queuedBytes === 0 && status.active === 0 && status.activeSegments === 0;
+}
+
+function requireLosslessDrain(status, closed) {
+  assert(status, 'The installed Host must own the selected Observation connection');
+  assert.equal(status.closed, closed);
+  assert.equal(status.cleanupPending, false);
+  assert(drained(status), 'Observation queue, delivery and segments must all be drained');
+  assert.equal(status.dropped, 0);
+  assert.deepEqual(status.loss, {});
+  return status;
+}
+
+async function drainBeforeClose() {
+  const deadline = performance.now() + observation.configuration().limits.shutdownMs;
+  let status = observation.status();
+  while (status && !drained(status) && performance.now() < deadline) {
+    await setTimeout(5);
+    status = observation.status();
+  }
+  return requireLosslessDrain(status, false);
+}
+
+let receipt, expectedTarget, beforeClose, primary, gateway, browser;
 try {
   if (phase === 'produce') {
-    const digest = await targetDigest();
+    expectedTarget = await targetDigest();
     const program = await readFile('churn-risk.aql', 'utf8');
     const original = await client.startSource(program, {format: 'aql', stopBefore: 'commit'});
     assert.equal((await original.wait()).status, 'waiting_checkpoint');
@@ -48,16 +76,12 @@ try {
     assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
     assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
     assert.deepEqual((await original.explain()).explanation.facts, facts);
-    for (let turn = 0; turn < 512 && attempts.filter(item => item.operation === 'source').length < 2;
-      turn++) await setImmediate();
-    assert.equal(attempts.filter(item => item.operation === 'source').length, 2);
-    assert(attempts.every(item => item.operation !== 'effect' && item.run === original.ref.runDefinitionCid));
-    assert.equal(await targetDigest(), digest);
-    receipt = {producerPid: process.pid, ref: original.ref, saved, targetDigest: digest, attempts};
+    receipt = {producerPid: process.pid, ref: original.ref, saved, targetDigest: expectedTarget};
   } else {
     const original = JSON.parse(await readFile(originalPath, 'utf8'));
     assert.notEqual(process.pid, original.producerPid);
     assert(original.firstClose);
+    expectedTarget = original.targetDigest;
     const execution = await client.attach(original.ref);
     assert.equal((await execution.status()).status, 'waiting_checkpoint');
     assert.deepEqual(await execution.explainContext(), original.saved);
@@ -111,12 +135,10 @@ try {
       assert.deepEqual(foreign, []);
       await page.screenshot({path: join(evidence, 'installed-saved-context.png')});
     } finally {await page.close();}
-    await setImmediate();
-    assert.deepEqual(attempts, []);
-    assert.equal(await targetDigest(), original.targetDigest);
     receipt = {producerPid: original.producerPid, consumerPid: process.pid, sameOriginal: true,
-      newBusinessAttempts: attempts.length, targetUnchanged: true, browserRequests: requests};
+      browserRequests: requests};
   }
+  beforeClose = await drainBeforeClose();
 } catch (error) {primary = error;}
 finally {
   for (const owner of [browser, gateway, client]) {
@@ -126,5 +148,18 @@ finally {
   }
 }
 if (primary !== undefined) throw primary;
+const afterClose = requireLosslessDrain(observation.status(), true);
+assert.equal(await targetDigest(), expectedTarget, 'The original target must stay unchanged through close');
+if (phase === 'produce') {
+  assert.equal(markers.filter(item => item.operation === 'source').length, 2);
+  assert(markers.every(item => item.run === receipt.ref.runDefinitionCid));
+  assert(markers.every(item => item.operation !== 'effect' ||
+    item.event === 'application_observed' && item.outcome === 'waiting_checkpoint'));
+  receipt.attempts = markers;
+} else {
+  assert.deepEqual(markers, [], 'Saved read must start no Source or Infer and observe no Effect application or write');
+  receipt.newBusinessAttempts = markers.length;
+}
 await writeFile(phase === 'produce' ? originalPath : join(evidence, 'saved-context-receipt.json'),
-  JSON.stringify({...receipt, firstClose: true}) + '\n', {flag: 'wx'});
+  JSON.stringify({...receipt, targetUnchanged: true, firstClose: true,
+    observation: {beforeClose, afterClose}}) + '\n', {flag: 'wx'});
