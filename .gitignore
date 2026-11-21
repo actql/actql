@@ -1555,3 +1555,5 @@ target/
 /adapters/store-local/publication-reference-owner.d.mts
 /adapters/store-local/publication-result-reader.mjs
 /adapters/store-local/publication-result-reader.d.mts
+/adapters/store-local/publication-object-writes.mjs
+/adapters/store-local/publication-object-writes.d.mts

@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ead04c42229615e3147c3f46b15e4564cde3c2311fd8e46846a26bf55c8f439",
+      "sha256": "3dd10c7a9f25de4b3a2a6105bebb86741e3be40b70b67957209b55b1ebe56b83",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6258,6 +6258,13 @@
           "name": "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
           "parameters": [
             "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -6581,62 +6588,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
-          "parameters": [
-            "maxBytes",
-            "trackCustody"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
-          "parameters": [
-            "bytes",
-            "custody",
-            "cid",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
-          "parameters": [
-            "cid",
-            "bytes",
-            "state",
-            "custody",
-            "installed"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
-          "parameters": [
-            "cid",
-            "bytes",
-            "state",
-            "custody"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
           "parameters": [
             "maxBytes"
@@ -6939,6 +6890,70 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#13",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#14",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#15",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
           "parameters": [
             "cid",
@@ -6948,44 +6963,41 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
-          "parameters": [
-            "args"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
-          "parameters": [
-            "args"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
-          "parameters": [
-            "args"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
           "parameters": [
-            "args"
+            "bytes"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
-          "parameters": [
-            "args"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
           "parameters": [
-            "args"
+            "objects"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
+          "parameters": [],
           "async": false
         },
         {
@@ -7035,24 +7047,6 @@
           "parameters": [
             "cid"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putBytes/putBytes",
-          "parameters": [
-            "value",
-            "expectedCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -7282,23 +7276,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
-          "parameters": [
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
           "parameters": [
             "keyHash"
@@ -7339,6 +7316,13 @@
           "parameters": [
             "keyHash",
             "resultDefinitionCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -7728,13 +7712,6 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
             "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
@@ -7777,9 +7754,6 @@
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
-            "openOriginalLocalPublicationStore/putBytes/putBytes",
-            "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
@@ -7797,9 +7771,6 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
@@ -7833,7 +7804,20 @@
             "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
+            "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#11",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#12",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#13",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#14",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#15",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
+            "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls"
           ],
           "exports": [
             "PublicationStoreError",
@@ -11320,6 +11304,212 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-object-writes.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8747ebc9cf5edb97f9a86c4723f24fd334001f0e5902bce8e3460bc73934b2f6",
+      "exports": [
+        "createPublicationObjectWrites"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationObjectWrites",
+          "parameters": [
+            "configuration",
+            "stagingDirectory",
+            "objectsDirectory",
+            "storeState",
+            "reclaimingMaterialCids",
+            "physicalRetirementFences",
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter",
+          "parameters": [
+            "maxBytes",
+            "trackCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/createObjectWriter",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
+          "parameters": [
+            "bytes",
+            "custody",
+            "cid",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state",
+            "custody",
+            "installed"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state",
+            "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/putBytes/putBytes",
+          "parameters": [
+            "value",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationObjectWrites/putBytesInternal/putBytesInternal/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity",
+          "parameters": [
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationObjectWrites",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/createObjectWriter",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
+            "createPublicationObjectWrites/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
+            "createPublicationObjectWrites/putBytes/putBytes",
+            "createPublicationObjectWrites/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
+            "createPublicationObjectWrites/putBytesInternal/putBytesInternal/status/status",
+            "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity",
+            "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
+            "createPublicationObjectWrites/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity"
+          ],
+          "exports": [
+            "createPublicationObjectWrites"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/object-writer-owner.mts",
+                "anchor": "The Store remains the sole capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "const reserveObjectCapacity = (maxBytes: unknown) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "return await writer.seal(cid);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "if (status.reservationHeld || status.custodyPending)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "storeState.materialRetentionBusy = adoption.catch(() => {});"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "throw primaryFailure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "try { await writer.cancel(); }"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "storeState.reservedBytes -= maxBytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-object-writes.mts",
+                "anchor": "protectInstallation: true,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "concurrent writers share one Store capacity and release exactly once"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical writer observes a lost link reply without replaying the link or leaking its charge"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-result-reader.mjs",

@@ -31,7 +31,7 @@ import {
 } from 'node:crypto';
 import {resolve} from 'node:path';
 import {Buffer as OriginalBuffer} from 'node:buffer';
-import {createObjectWriterOwner} from './object-writer-owner.mjs';
+import {createPublicationObjectWrites} from './publication-object-writes.mjs';
 import {createPhysicalRetirementOwner} from './physical-retirement-owner.mjs';
 import {closedMetadataObjectExtent, createPhysicalHoldingObjectVerifier, createPhysicalHoldingReaders,
   createPhysicalHoldingRecordReader}
@@ -690,84 +690,24 @@ async function openOriginalLocalPublicationStore(
   const trustedClock = createPublicationTrustedClock(configuration, clocksDirectory, contractControl,
     activePhysicalRecordWriters, active, cidHex, syncDirectory);
 
-  const reserveObjectCapacity = maxBytes => {
-    active();
-    if (!quantity(maxBytes) || maxBytes > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    if (objectCount + reservedObjects >= configuration.maxObjects) {
-      fail('PublicationStoreObjectLimit');
-    }
-    if (storedBytes + reservedBytes + maxBytes >
-        configuration.capacityBytes) {
-      fail('PublicationStoreCapacity');
-    }
-    reservedBytes += maxBytes;
-    reservedObjects++;
-    let held = true;
-    return Object.freeze({
-      get held() { return held; },
-      release() {
-        if (!held) return false;
-        reservedBytes -= maxBytes;
-        reservedObjects--;
-        held = false;
-        return true;
-      },
-    });
-  };
-
-  const createObjectWriter = (maxBytes, trackCustody = false) =>
-    createObjectWriterOwner(
-      maxBytes,
-      trackCustody,
-      reserveObjectCapacity(maxBytes),
-      {
-        stagingDirectory,
-        objectsDirectory,
-        open,
-        link,
-        unlink,
-        syncDirectory,
-        fail,
-        objectPath,
-        isReclaiming: cid => reclaimingMaterialCids.has(cid) || physicalRetirementFences.has(cid),
-        registerCustody,
-        protectInstallation: true,
-        async confirmInstalled(cid, bytes, state, custody, installed) {
-          if (installed) confirmPhysicalCapacity([physicalOriginal(cid, bytes, state)]);
-          else if (!trackCustody) {
-            const selected = await lstat(objectPath(cid));
-            const original = physicalOriginal(cid, bytes, selected);
-            if (deliveryIndex.pendingPhysicalObject(original) !== undefined) {
-              const adoption = materialRetentionBusy.then(async () => {
-                // A cleanup may have won while this writer was waiting. Only
-                // the still-present original can become its accepted object.
-                await verifyObject(cid);
-                const current = await lstat(objectPath(cid));
-                if (current.dev !== selected.dev || current.ino !== selected.ino || current.size !== bytes) {
-                  fail('PublicationObjectAccountingMismatch');
-                }
-                confirmPhysicalCapacity([original]);
-              });
-              materialRetentionBusy = adoption.catch(() => {});
-              await adoption;
-            }
-          }
-        },
-        discardInstallation(cid, bytes, state, custody) {
-          settlePhysicalInstalls([physicalOriginal(cid, bytes, state)]);
-          if (custody !== undefined) custody.accounted = false;
-        },
-        finishUntrackedCustody: removeCustodyRecord,
-        reclaimCustody,
-        verifyObject,
-        accountInstalled(bytes, custody, cid, state) {
-          const accounted = accountPhysicalInstall(physicalOriginal(cid, bytes, state));
-          if (custody !== undefined) custody.accounted = accounted;
-        },
-      },
-    );
+  const {reserveObjectCapacity, createObjectWriter, putBytes} = createPublicationObjectWrites(
+    configuration, stagingDirectory, objectsDirectory, {
+      get storedBytes() {return storedBytes;},
+      get objectCount() {return objectCount;},
+      get reservedBytes() {return reservedBytes;},
+      set reservedBytes(bytes) {reservedBytes = bytes;},
+      get reservedObjects() {return reservedObjects;},
+      set reservedObjects(objects) {reservedObjects = objects;},
+      get materialRetentionBusy() {return materialRetentionBusy;},
+      set materialRetentionBusy(operation) {materialRetentionBusy = operation;},
+    }, reclaimingMaterialCids, physicalRetirementFences, {
+      active, syncDirectory, objectPath, currentDeliveryIndex, physicalOriginal,
+      confirmPhysicalCapacity, settlePhysicalInstalls, accountPhysicalInstall, verifyObject,
+      get registerCustody() {return registerCustody;},
+      get removeCustodyRecord() {return removeCustodyRecord;},
+      get reclaimCustody() {return reclaimCustody;},
+    },
+  );
 
   // The recovery record for the installed allocation is shared by every
   // live holder of that generation. A losing seal's temporary inode record
@@ -1073,67 +1013,6 @@ async function openOriginalLocalPublicationStore(
       },
     });
   };
-
-  const putBytesInternal = async (value, expectedCid, trackCustody) => {
-    const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value);
-    const cid = `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
-    if (expectedCid !== undefined && expectedCid !== cid) {
-      fail('PublicationObjectIdentityMismatch');
-    }
-    try {
-      const existing = await verifyObject(cid);
-      if (existing.bytes !== buffer.byteLength) {
-        fail('PublicationObjectIdentityMismatch');
-      }
-      return Object.freeze({...existing, created: false});
-    } catch (error) {
-      if (error?.code !== 'PublicationObjectMissing') throw error;
-    }
-    const writer = createObjectWriter(buffer.byteLength, trackCustody);
-    try {
-      await writer.append(buffer);
-      return await writer.seal(cid);
-    } catch (primaryFailure) {
-      const cleanupErrors = [];
-      try {
-        const status = writer.status();
-        if (status.reservationHeld || status.custodyPending) {
-          await writer.cancel();
-        }
-      } catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error); }
-      if (!writer.status().reservationHeld &&
-          !writer.status().custodyPending) throw primaryFailure;
-      const code = typeof primaryFailure?.code === 'string'
-        ? primaryFailure.code : 'PublicationObjectWriteFailed';
-      const failure = new PublicationStoreError(code, primaryFailure);
-      failure.primaryFailure = primaryFailure;
-      const status = () => Object.freeze({
-        pending: writer.status().reservationHeld ||
-          writer.status().custodyPending,
-        errors: Object.freeze([...cleanupErrors]),
-      });
-      const cleanupHandle = Object.freeze({
-        status,
-        async retry() {
-          if (writer.status().reservationHeld ||
-              writer.status().custodyPending) {
-            try { await writer.cancel(); }
-            catch (error) { retainFirstAndLatestCleanupError(cleanupErrors, error); }
-          }
-          failure.cleanupPending = status().pending;
-          failure.cleanupErrors = status().errors;
-          return status();
-        },
-      });
-      failure.cleanupPending = true;
-      failure.cleanupErrors = status().errors;
-      failure.cleanupHandle = cleanupHandle;
-      throw failure;
-    }
-  };
-
-  const putBytes = (value, expectedCid) =>
-    putBytesInternal(value, expectedCid, false);
 
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
