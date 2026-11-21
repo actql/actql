@@ -170,3 +170,60 @@ test "Request original accepted Dedupe sibling validates the same input setup" {
   }
   assert_true(result is Ok("effect_free"), msg=reason)
 }
+
+///|
+extern "js" fn request_positional_analytic_original_fixture(
+  loader : RequestDiagnosticTestLoader,
+) -> NativeJsonValue =
+  #|(loader)=>{const {setCorrespondingSuccesses}=loader('../../../../../scripts/fixtures/set-corresponding-source-input.mjs');const fixture=setCorrespondingSuccesses.find(item=>item.name==='set-corresponding-positional-anonymous-analytic-scoped-pipe');if(!fixture||fixture.sourceRows.length!==0)throw new Error('ChangedOriginalPositionalAnalyticFixture');return {kind:'aql',input:{format:fixture.format,text:fixture.text},parameters:null};}
+
+///|
+test "Request original scoped positional analytic prepares with ordinary limits" {
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  let assets = @publication_host.client_local_product_assets()
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let captured = request_positional_analytic_original_fixture(loader)
+  client_program_prepare_request_submitted_intent(parent, receipt, captured).unwrap()
+  |> ignore
+  client_program_finish_request_submitted_intent(parent, receipt).unwrap()
+  let result = match
+    client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_dedupe_original_fixture_source(captured),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(_) =>
+      client_program_finish_request_computation(
+        parent, receipt, environment, publication,
+      )
+    Err(issue) => Err(issue)
+  }
+  client_program_abort_request_preparation(parent).unwrap()
+  let reason = match result {
+    Err(QueryLowering(Request(issue))) =>
+      "query_lowering_request/" + issue.to_repr().to_string()
+    Err(QueryLowering(Publication(_))) => "query_lowering_publication"
+    Err(Preparation(issue)) => @debug.to_string(issue)
+    Err(QuerySyntax(Request(issue))) =>
+      "query_syntax_request/" + issue.to_repr().to_string()
+    Err(_) => "other preparation refusal"
+    Ok(kind) => kind
+  }
+  assert_true(result is Ok("effect_free"), msg=reason)
+}

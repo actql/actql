@@ -1311,6 +1311,76 @@ fn QueryParser::mark_positional_output(
 }
 
 ///|
+// In a fresh parenthesized positional RHS, a terminal SELECT can still use
+// the existing positional slots. Keep every demand from nested producers,
+// intermediate projections and unrecognized continuations.
+fn QueryParser::retire_positional_output_demands(
+  self : QueryParser,
+  operand : Query,
+) -> Unit raise QueryAbort {
+  if self.source.anonymous_output_demands == 0 || !operand.sets.is_empty() {
+    return
+  }
+  let mut index = operand.operations.length() - 1
+  let mut range : NamePart? = None
+  while index >= 0 {
+    self.spend(1)
+    match operand.operations[index] {
+      Order(_)
+      | Limit(_, _)
+      | Where(_)
+      | Distinct
+      | AssertUnique(_)
+      | Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | UnnestSource(_, _, _)
+      | Analytic(_)
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => ()
+      Infer(_) | Unpivot(_) | Pivot(_) =>
+        // These keep positional slots, but do not prove a whole-range star.
+        if range is Some(_) {
+          return
+        }
+      Alias(name) =>
+        if range is Some(original) {
+          if !self.binding_name_matches(original, name) {
+            return
+          }
+          range = None
+        }
+      Select(projections, _) => {
+        if range is Some(_) {
+          return
+        }
+        if projections.length() == 1 && projections[0].star == Some("*") {
+          if projections[0].expression is Some(receiver) {
+            guard receiver.nodes[receiver.root].kind is Reference(path) &&
+              path.length() == 1 else {
+              return
+            }
+            range = Some(path[0])
+          }
+        } else {
+          for projection in projections {
+            self.spend(1)
+            if projection.star is None &&
+              projection_public_name(projection) is None {
+              self.source.anonymous_output_demands -= 1
+            }
+          }
+          return
+        }
+      }
+      _ => return
+    }
+    index -= 1
+  }
+}
+
+///|
 fn QueryParser::sql_operand(
   self : QueryParser,
   positional_output? : Bool = false,
@@ -1318,6 +1388,9 @@ fn QueryParser::sql_operand(
 ) -> Query raise QueryAbort {
   if self.peek().value == Symbol(40) {
     let inner = self.parenthesized()
+    if positional_output {
+      self.retire_positional_output_demands(inner)
+    }
     let carry_ranges = !set_operand &&
       !self.has("UNION") &&
       !self.has("INTERSECT") &&
@@ -1606,7 +1679,7 @@ fn QueryParser::projections(
     if !positional_output &&
       projection.star is None &&
       projection_public_name(projection) is None {
-      self.source.anonymous_output_required = true
+      self.source.anonymous_output_demands += 1
     }
     if projection.star is Some(_) {
       stars += 1
@@ -2021,7 +2094,7 @@ fn QueryParser::group_keys(
       let name = self.optional_output_alias()
       names.push(name)
       if name is None && expression_implicit_name(expression) is None {
-        self.source.anonymous_output_required = true
+        self.source.anonymous_output_demands += 1
       }
     }
     if ordering is Some(terms) &&
@@ -3222,6 +3295,9 @@ fn QueryParser::pipe_tail(
       self.source_depth += 1
       let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
+      if !by_name {
+        self.retire_positional_output_demands(parsed)
+      }
       let right = if !parsed.sets.is_empty() {
         self.bind_query(
           if !by_name {
@@ -4289,7 +4365,7 @@ pub fn expression_implicit_name(expression : Expression) -> NamePart? {
 ///|
 // One parser-owned fact shared by the nested queries of this document.
 pub fn anonymous_output_context_required(query : Query) -> Bool {
-  query.source.anonymous_output_required
+  query.source.anonymous_output_demands > 0
 }
 
 ///|

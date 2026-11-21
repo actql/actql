@@ -137,3 +137,30 @@ test "namespace growth saturation and same-source edit counts are construction D
   parser.namespace_replace_factor(2, 3)
   assert_eq(tokens.namespace_field_factor, 2147483647)
 }
+
+///|
+test "parenthesized positional operands only retire the original terminal projection demand" {
+  for
+    source in [
+      "SELECT 0 AS a UNION ALL (SELECT -id FROM records ORDER BY 1 DESC LIMIT 1) ORDER BY a",
+      "SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount |> ASSERT UNIQUE BY (kept) |> SELECT *) ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount |> AS r |> ASSERT UNIQUE BY (R.kept) |> SELECT R.*) ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount |> SET kept = 7) ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS val, -amount, 'A' AS axis |> PIVOT(SUM(val) FOR axis IN ('A')) |> SELECT *) ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b |> UNION ALL (FROM records |> AS original |> SET id = -id |> SELECT ROW_NUMBER() OVER (ORDER BY original.id), ROW_NUMBER() OVER (ORDER BY id)) |> ORDER BY a, b",
+    ] {
+    let query = parse_query(source, selected_query_limits()).unwrap()
+    assert_false(anonymous_output_context_required(query), msg=source)
+  }
+  for
+    source in [
+      "WITH t AS (SELECT 1) SELECT 0 AS a UNION ALL (SELECT 2)", "SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS n, -amount |> SELECT n)",
+      "SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS n, -amount |> AS original |> SELECT (original.n).*)",
+      "SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS n, -amount |> AS original |> SELECT other.*)",
+      "SELECT 0 AS a UNION ALL (SELECT n, 1 FROM (SELECT id AS n, -amount FROM records))",
+      "SELECT 0 AS a UNION ALL (SELECT 1 UNION ALL SELECT 2)", "SELECT 0 AS a UNION ALL BY NAME (SELECT 2)",
+    ] {
+    let query = parse_query(source, selected_query_limits()).unwrap()
+    assert_true(anonymous_output_context_required(query), msg=source)
+  }
+}
