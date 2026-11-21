@@ -1571,3 +1571,5 @@ target/
 /adapters/store-local/publication-index-commit.d.mts
 /adapters/store-local/publication-store-interface.mjs
 /adapters/store-local/publication-store-interface.d.mts
+/adapters/store-local/publication-physical-accounting.mjs
+/adapters/store-local/publication-physical-accounting.d.mts

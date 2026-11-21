@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1cac167235c2fcd7437b2ed2c1561b0f23656aabfd482749b2050bac4cf4d312",
+      "sha256": "7faafd718cf0f11e5e5fd540e9faba5968573e918ba722e97a4dcad19050cdd8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6255,27 +6255,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
-          "parameters": [
-            "usage"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
-          "parameters": [
-            "usage"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/active/active",
           "parameters": [],
           "async": false
@@ -6291,21 +6270,6 @@
             "path"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
-          "parameters": [
-            "originals",
-            "retainPreparations"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
-          "parameters": [
-            "objects"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
@@ -6397,7 +6361,9 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
-          "parameters": [],
+          "parameters": [
+            "args"
+          ],
           "async": false
         },
         {
@@ -6472,10 +6438,7 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
-          "parameters": [
-            "cid",
-            "original"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6507,8 +6470,18 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#24",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
-          "parameters": [],
+          "parameters": [
+            "cid",
+            "original"
+          ],
           "async": false
         },
         {
@@ -6523,9 +6496,7 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
-          "parameters": [
-            "args"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6560,22 +6531,6 @@
           "name": "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
           "parameters": [
             "holdingCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
-          "parameters": [
-            "cid",
-            "bytes",
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
-          "parameters": [
-            "holder"
           ],
           "async": false
         },
@@ -6622,101 +6577,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
-          "parameters": [
-            "objects"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
-          "parameters": [
-            "cid",
-            "holder"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
-          "parameters": [
-            "cid",
-            "bytes",
-            "state"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
           "parameters": [
             "keyHash"
@@ -6759,20 +6619,6 @@
             "resultDefinitionCid"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
-          "parameters": [
-            "objects"
-          ],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
@@ -7141,34 +6987,18 @@
             "<module>",
             "nativeContractRead/nativeContractRead",
             "nativePublicationContract/nativePublicationContract",
-            "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/objectPath/objectPath",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
             "openOriginalLocalPublicationStore/writeState/writeState",
             "openOriginalLocalPublicationStore/writeState/writeState#2",
             "openOriginalLocalPublicationStore/writeState/writeState#3",
-            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
-            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/currentDeliveryIndex/currentDeliveryIndex",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -7176,13 +7006,9 @@
             "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
             "openOriginalLocalPublicationStore/metadataDeletionPath/metadataDeletionPath",
             "openOriginalLocalPublicationStore/metadataFencesAreReady/metadataFencesAreReady",
-            "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
-            "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
             "openOriginalLocalPublicationStore/contractPath/contractPath",
             "openOriginalLocalPublicationStore/custodyPath/custodyPath",
             "openOriginalLocalPublicationStore/materialRetentionCurrent/materialRetentionCurrent",
-            "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
-            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
             "openOriginalLocalPublicationStore/retainMaterialOperation/retainMaterialOperation",
             "cidHex/cidHex",
             "exactUtf8WireMatches/exactUtf8WireMatches",
@@ -7191,45 +7017,41 @@
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/metadataRetentionCurrent/metadataRetentionCurrent",
             "openOriginalLocalPublicationStore/retainMetadataOperation/retainMetadataOperation",
-            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
             "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
             "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
-            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
             "openOriginalLocalPublicationStore/writeState/writeState#4",
             "openOriginalLocalPublicationStore/writeState/writeState#5",
             "openOriginalLocalPublicationStore/writeState/writeState#6",
-            "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
             "openOriginalLocalPublicationStore/writeState/writeState#8",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#3",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#4",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#5",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#11",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#12",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#13",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#14",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#15",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
             "openOriginalLocalPublicationStore/writeState/writeState#7",
-            "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#6",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#7",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#8",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#9",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#16",
-            "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#10",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#2",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#3",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex#4",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#17",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#18",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#19",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#20",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#21",
             "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#22",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#23"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#23",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#24",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore"
           ],
           "exports": [
             "PublicationStoreError",
@@ -7488,8 +7310,8 @@
                 "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) as DurableResultBinding : retainedBinding;"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const accountPhysicalUsage = usage => {"
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "const accountPhysicalUsage = (usage: PhysicalUsage) => {"
               },
               {
                 "path": "adapters/store-local/prepared-publication-schema-owner.mts",
@@ -8979,7 +8801,7 @@
         {
           "operations": [
             "openLocalPublicationStore",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore"
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2"
           ],
           "exports": [
             "assertOriginalPreparedLocalPublicationStoreOwnership",
@@ -10131,6 +9953,303 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/store-local/publication-physical-accounting.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "d1c8cc5b4b30f69f12bd0a0821ceddf01e84651a3aa9787caa8f209c28f82238",
+      "exports": [
+        "createPublicationPhysicalAccounting"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationPhysicalAccounting",
+          "parameters": [
+            "objectsDirectory",
+            "syncDirectory",
+            "currentDeliveryIndex",
+            "assertPriorPhysicalUnborrowed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/accountNativePublication/accountNativePublication",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/accountPhysicalInstall/accountPhysicalInstall",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/accountPhysicalUsage/accountPhysicalUsage",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/confirmPhysicalCapacity/confirmPhysicalCapacity",
+          "parameters": [
+            "originals",
+            "retainPreparations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/confirmPhysicalRemovals/confirmPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/createPublicationPhysicalAccounting",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/createPublicationPhysicalAccounting#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/physicalOriginal/physicalOriginal",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/physicalRemovalFor/physicalRemovalFor/matches/matches",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/releasePhysicalCapacity/releasePhysicalCapacity",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
+          "parameters": [
+            "cid",
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/settlePhysicalInstalls/settlePhysicalInstalls",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationPhysicalAccounting/syncPhysicalRemovals/syncPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationPhysicalAccounting",
+            "createPublicationPhysicalAccounting/accountNativePublication/accountNativePublication",
+            "createPublicationPhysicalAccounting/accountPhysicalInstall/accountPhysicalInstall",
+            "createPublicationPhysicalAccounting/accountPhysicalUsage/accountPhysicalUsage",
+            "createPublicationPhysicalAccounting/confirmPhysicalCapacity/confirmPhysicalCapacity",
+            "createPublicationPhysicalAccounting/confirmPhysicalRemovals/confirmPhysicalRemovals",
+            "createPublicationPhysicalAccounting/createPublicationPhysicalAccounting",
+            "createPublicationPhysicalAccounting/createPublicationPhysicalAccounting#2",
+            "createPublicationPhysicalAccounting/physicalOriginal/physicalOriginal",
+            "createPublicationPhysicalAccounting/physicalRemovalFor/physicalRemovalFor/matches/matches",
+            "createPublicationPhysicalAccounting/releasePhysicalCapacity/releasePhysicalCapacity",
+            "createPublicationPhysicalAccounting/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+            "createPublicationPhysicalAccounting/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+            "createPublicationPhysicalAccounting/settlePhysicalInstalls/settlePhysicalInstalls",
+            "createPublicationPhysicalAccounting/syncPhysicalRemovals/syncPhysicalRemovals"
+          ],
+          "exports": [
+            "createPublicationPhysicalAccounting"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "These calls follow the actual object directory ACK."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "const rememberPhysicalRemoval = async (cid: string, bytes: number, state?: Stats) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "if (physicalRemovalOriginals.get(key) !== holder || selected !== original) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "const holder = createPhysicalRetirementOwner(original, handle, {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "if (physicalRemovalAcquisitions.has(key)) return physicalRemovalAcquisitions.get(key);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "fail('PublicationObjectAccountingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "try { await holder.abandon(); }"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "storedBytes -= pending.byte_count;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "physicalObject(cid,{priorLifetime:true}) !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "missing prior-lifetime holding retains capacity on"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical allocation lifetime recovers after process death at"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/store-local/publication-store-interface.mjs",
@@ -11302,8 +11421,8 @@
                 "anchor": "const appendDeliveryCompletion = async (attempt: Contract, receipt: Contract, contract: Contract) => {"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const accountPhysicalUsage = usage => {"
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "const accountPhysicalUsage = (usage: PhysicalUsage) => {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-store.mts",
@@ -11822,8 +11941,8 @@
                 "anchor": "const putSemanticBatch = async (\n    supplied: readonly SemanticBody[], retainedOriginals?: RetainedOriginals,"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const accountPhysicalUsage = usage => {"
+                "path": "adapters/store-local/publication-physical-accounting.mts",
+                "anchor": "const accountPhysicalUsage = (usage: PhysicalUsage) => {"
               },
               {
                 "path": "adapters/store-local/publication-index-startup.mts",
@@ -21072,7 +21191,7 @@
                 "anchor": "await operations.releaseQuota(original);"
               },
               {
-                "path": "adapters/store-local/publication-store.mjs",
+                "path": "adapters/store-local/publication-physical-accounting.mts",
                 "anchor": "if (physicalRemovalAcquisitions.has(key)) return physicalRemovalAcquisitions.get(key);"
               }
             ],
