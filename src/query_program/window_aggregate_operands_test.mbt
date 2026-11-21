@@ -192,18 +192,27 @@ test "ordinary aggregate nesting and nested windows remain typed syntax refusals
 }
 
 ///|
-test "aggregate window operands retain the explicit frame implementation boundary" {
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT SUM(SUM(t.y)) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x",
-        syntax_limits(),
-      ).unwrap(),
-      qualify_group_collision_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedAnalytic),
-  )
+test "grouped aggregate window operands retain the authored default frame" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT SUM(SUM(t.y)) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x",
+      syntax_limits(),
+    ).unwrap(),
+    qualify_group_collision_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(program).contains("\"frame\":"))
+  match
+    @check.check_parsed(
+      program,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("the authored default frame is closed")
+  }
 }
 
 ///|

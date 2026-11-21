@@ -70,6 +70,43 @@ pub struct TimestampInstant {
 } derive(Eq, Debug)
 
 ///|
+fn timestamp_leap_year(year : Int) -> Bool {
+  year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+///|
+/// Check decoded UTC components before a caller constructs timestamp text.
+/// This is the same calendar domain as the canonical Value reader.
+pub fn timestamp_components_valid(
+  year : Int,
+  month : Int,
+  day : Int,
+  hour : Int,
+  minute : Int,
+  second : Int,
+) -> Bool {
+  if year < 0 ||
+    year > 9999 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59 ||
+    second < 0 ||
+    second > 59 {
+    return false
+  }
+  day <=
+  (match month {
+    2 => if timestamp_leap_year(year) { 29 } else { 28 }
+    4 | 6 | 9 | 11 => 30
+    _ => 31
+  })
+}
+
+///|
 /// Read only canonical UTC Value spelling, without host dates or binary64.
 pub fn timestamp_instant(text : String) -> TimestampInstant? {
   let length = text.length()
@@ -94,31 +131,10 @@ pub fn timestamp_instant(text : String) -> TimestampInstant? {
     timestamp_digits(text, 20, length - 1) is Some(fraction) else {
     return None
   }
-  if month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59 {
+  if !timestamp_components_valid(year, month, day, hour, minute, second) {
     return None
   }
-  let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-  let month_lengths = [
-    31,
-    if leap {
-      29
-    } else {
-      28
-    },
-    31,
-    30,
-    31,
-    30,
-    31,
-    31,
-    30,
-    31,
-    30,
-    31,
-  ]
-  if day < 1 || day > month_lengths[month - 1] {
-    return None
-  }
+  let leap = timestamp_leap_year(year)
   let before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
   let leap_day = if leap && month > 2 { 1 } else { 0 }
   let days = 365 * year +
@@ -236,6 +252,38 @@ fn timestamp_days_before_year(year : Int64) -> Int64 {
 }
 
 ///|
+/// Numeric UTC parts of a canonical Timestamp. Calendar and fractional
+/// admission is shared with all other Timestamp Value consumers.
+pub fn timestamp_numeric_part(text : String, part : String) -> Int64? {
+  guard timestamp_instant(text) is Some(instant) else { return None }
+  let seconds_in_day = instant.seconds % 86400L
+  let within_day = if seconds_in_day < 0L {
+    seconds_in_day + 86400L
+  } else {
+    seconds_in_day
+  }
+  let day_pos = (instant.seconds - within_day) / 86400L
+  match part {
+    "year" => timestamp_digits(text, 0, 4).map(year => year.to_int64())
+    "month" => timestamp_digits(text, 5, 7).map(month => month.to_int64())
+    "quarter" =>
+      timestamp_digits(text, 5, 7).map(month => ((month - 1) / 3 + 1).to_int64())
+    "day" => timestamp_digits(text, 8, 10).map(day => day.to_int64())
+    "dayofweek" => Some(((day_pos + 4L) % 7L + 7L) % 7L + 1L)
+    "dayofyear" =>
+      timestamp_digits(text, 0, 4).map(year => {
+        day_pos + 719528L - timestamp_days_before_year(year.to_int64()) + 1L
+      })
+    "hour" => Some(within_day / 3600L)
+    "minute" => Some(within_day / 60L % 60L)
+    "second" => Some(within_day % 60L)
+    "millisecond" => Some((instant.nanoseconds / 1000000).to_int64())
+    "microsecond" => Some((instant.nanoseconds / 1000).to_int64())
+    _ => None
+  }
+}
+
+///|
 fn timestamp_two_digits(value : Int64) -> String {
   if value < 10L {
     "0" + value.to_string()
@@ -266,6 +314,30 @@ fn timestamp_four_digits(value : Int64) -> String {
   } else {
     value.to_string()
   }
+}
+
+///|
+/// Construct the existing canonical Date from exact Gregorian coordinates.
+pub fn checked_date_parts_value(
+  year : Int64,
+  month : Int64,
+  day : Int64,
+  contract : @contract.Contract,
+) -> CheckedValue? {
+  guard year >= 1L &&
+    year <= 9999L &&
+    month >= 1L &&
+    month <= 12L &&
+    day >= 1L &&
+    day <= 31L else {
+    return None
+  }
+  let text = timestamp_four_digits(year) +
+    "-" +
+    timestamp_two_digits(month) +
+    "-" +
+    timestamp_two_digits(day)
+  checked_date_value(text, contract)
 }
 
 ///|

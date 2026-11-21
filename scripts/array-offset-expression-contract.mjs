@@ -18,7 +18,14 @@ export const arrayOffsetLaws = {
     "identity": "The closed source is {array_safe_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_safe_offset, body: {value: receiver_node, index: offset_node}}. SQL SAFE_OFFSET maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
   }
 };
-const operations = Object.keys(arrayOffsetLaws);
+const arrayLengthLaws = {
+  array_length: {
+    signature: 'One Array operand. The result is signed64 and is nullable exactly when the array operand is nullable.',
+    value: 'A NULL array returns NULL. A present array returns its exact number of entries, including NULL entries and duplicates. An empty array returns zero.',
+    evaluation: 'Evaluate the operand once under the existing demand, limits and cancellation. Propagate its failure. Count the admitted array entries without copying or evaluating elements again.',
+    identity: 'The source form is {array_length: operand}; the machine form is {op: array_length, body: operand_node}. SQL ARRAY_LENGTH selects this same operation.',
+  },
+};
 
 // These are the declared common-expression embeddings, not a global spelling
 // replacement. Each child reference remains local to its owning schema scope.
@@ -41,7 +48,7 @@ const named = (shape, name, kind) => kind === 'source'
   : shape.properties?.op?.const === name;
 function shape(name, kind, reference) {
   const child = {$ref: `#/$defs/${reference}`};
-  const body = name === 'len' ? child : {type: 'object', additionalProperties: false,
+  const body = ['len', 'array_length'].includes(name) ? child : {type: 'object', additionalProperties: false,
     required: ['value', 'index'], properties: {value: child, index: child}};
   return kind === 'source'
     ? {type: 'object', additionalProperties: false, required: [name], properties: {[name]: body}}
@@ -53,7 +60,7 @@ function walk(value, visit) {
   visit(value);
   for (const child of Object.values(value)) walk(child, visit);
 }
-function requireGrammar(grammar) {
+function requireGrammar(grammar, operations) {
   // Comments or a similarly named function do not register a function token.
   const source = grammar.replace(/\(\*[\s\S]*?\*\)/gu, '');
   const productions = [...source.matchAll(/\bfunction_name\s*=([^;]+);/gu)];
@@ -65,8 +72,9 @@ function requireGrammar(grammar) {
   }
 }
 
-export function updateArrayOffsetContracts(expressions, protocol, grammar, write = false) {
-  requireGrammar(grammar);
+function updateArrayContracts(expressions, protocol, grammar, laws, write) {
+  const operations = Object.keys(laws);
+  requireGrammar(grammar, operations);
   const roots = {expressions, protocol};
   const counts = {source: 0, node: 0};
   // Preflight every scope and duplicate before mutating even in write mode.
@@ -82,7 +90,7 @@ export function updateArrayOffsetContracts(expressions, protocol, grammar, write
     counts[kind]++;
     return {scope, kind, name, previous: matches[0], expected: shape(name, kind, reference)};
   }));
-  assert.deepEqual(counts, {source: 14, node: 6}, 'array offset schema embedding count');
+  assert.deepEqual(counts, {source: 7 * operations.length, node: 3 * operations.length}, 'array schema embedding count');
   const ownedScopes = new Set(plans.map(plan => plan.scope));
   for (const root of [expressions.schemas, protocol.artifact_schemas]) walk(root, value => {
     if (!Array.isArray(value.oneOf)) return;
@@ -102,10 +110,10 @@ export function updateArrayOffsetContracts(expressions, protocol, grammar, write
   }
   const grammarHash = createHash('sha256').update(grammar).digest('hex');
   if (write) {
-    for (const name of operations) expressions.laws[name] = structuredClone(arrayOffsetLaws[name]);
+    for (const name of operations) expressions.laws[name] = structuredClone(laws[name]);
     expressions.grammar_sha256 = grammarHash;
   } else {
-    for (const name of operations) assert.deepEqual(expressions.laws[name], arrayOffsetLaws[name], `stale ${name} law`);
+    for (const name of operations) assert.deepEqual(expressions.laws[name], laws[name], `stale ${name} law`);
     assert.equal(expressions.grammar_sha256, grammarHash, 'stale expression grammar pin');
   }
   for (const [name, schema] of Object.entries(protocol.artifact_schemas)) {
@@ -117,13 +125,23 @@ export function updateArrayOffsetContracts(expressions, protocol, grammar, write
   return counts;
 }
 
+export function updateArrayOffsetContracts(expressions, protocol, grammar, write = false) {
+  return updateArrayContracts(expressions, protocol, grammar, arrayOffsetLaws, write);
+}
+
+export function updateArrayLengthContracts(expressions, protocol, grammar, write = false) {
+  return updateArrayContracts(expressions, protocol, grammar, arrayLengthLaws, write);
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const paths = ['spec/contracts/actql-expressions.json', 'spec/contracts/actql-protocol-schemas.json'];
   const bodies = paths.map(path => JSON.parse(readFileSync(path, 'utf8')));
   const grammar = readFileSync(bodies[0].grammar, 'utf8');
   if (process.argv.includes('--write')) {
     updateArrayOffsetContracts(...bodies, grammar, true);
+    updateArrayLengthContracts(...bodies, grammar, true);
     bodies.forEach((body, index) => writeFileSync(paths[index], JSON.stringify(body, null, 2) + '\n'));
   }
   console.log('GoogleSQL array offset contracts verified:', updateArrayOffsetContracts(...bodies, grammar));
+  console.log('GoogleSQL array length contracts verified:', updateArrayLengthContracts(...bodies, grammar));
 }

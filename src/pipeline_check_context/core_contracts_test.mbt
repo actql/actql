@@ -206,7 +206,7 @@ test "core contract collection preserves owned occurrences and shares dependency
         assert_eq(root.body, ProgramSourceGrammar)
         assert_eq(
           core_contract_cid(root.body),
-          "sha256:d6a00d073fe4d15c2c92228da9c12b777a250098bacde8cdb663654eb967a292",
+          "sha256:b8a2b45d00aa9ca0691cdd87efff171887c5c7ed98f146d15cf0a7c5d399648d",
         )
       }
       CatalogReference(_, _, _) => abort("Local fixture has no Catalog inputs")

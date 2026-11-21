@@ -94,7 +94,7 @@ test('combined analytic corpora retain their independent installed ceilings', ()
   const property = groups.find(item => item.name === 'analytic-property');
   assert.deepEqual(order.capacity, capacity(1048576));
   assert.deepEqual(property.capacity, capacity(10000));
-  for (const [group, counts] of [[order, [10, 6, 1]], [property, [12, 7, 0]]]) {
+  for (const [group, counts] of [[order, [10, 6, 1]], [property, [13, 6, 0]]]) {
     assert.deepEqual(['successes', 'refusals', 'executionFailures']
       .map(kind => group.inputs[kind].length), counts);
     for (const kind of ['successes', 'refusals', 'executionFailures']) {
@@ -339,9 +339,9 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // its named order code in the full and portable-1 corpus preimages.
   // The original positional CTE query returns its two values under the left name.
   // The original simple CASE adds one ordinary standard-profile success.
-  assert.equal(pin.totalCases, 4241);
-  assert.deepEqual(pin.counts, {"successes":2660,"executionFailures":53,"refusals":1528});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2606,"executionFailures":51,"refusals":1489}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.equal(pin.totalCases, 4297);
+  assert.deepEqual(pin.counts, {"successes":2714,"executionFailures":53,"refusals":1530});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2659,"executionFailures":51,"refusals":1492}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":14,"executionFailures":0,"refusals":6}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},

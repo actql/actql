@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:65b5fc963550a42e180f7220f35f5719cb5e1867ddfb4f834f47fd98930d4217",
+  "artifact_registry_cid": "sha256:b75e87cc1aa3227bfab840ee4490d332e3267fbe35470ef2d2c99f14719c7b94",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:7a62bb2ca14640d91c856cade1748991399a99ca8f5a13edfa704856e05f149a",
+    "executable_plan": "sha256:95d250035f138bade85a0133a3e97afe142e4d3b64cf9a444aeb1a7a744dea8f",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:d27e189374a5dc52b57af13ac9cf3ef8687068551d0ef7e0d117a756b2ba7f3f",
+    "plan_document": "sha256:a60f385c274779bd3be590e1576cc9f05d810991fc41b856e41b1601eb807abb",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -23179,6 +23179,22 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "array_concat"
+                      ],
+                      "properties": {
+                        "array_concat": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "coalesce"
                       ],
                       "properties": {
@@ -23777,10 +23793,57 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "date_literal"
+                      ],
+                      "properties": {
+                        "date_literal": {
+                          "type": "string",
+                          "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "date_trunc"
                       ],
                       "properties": {
                         "date_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_trunc"
+                      ],
+                      "properties": {
+                        "timestamp_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extract_timestamp"
+                      ],
+                      "properties": {
+                        "extract_timestamp": {
                           "type": "array",
                           "minItems": 2,
                           "items": {
@@ -23815,6 +23878,142 @@
                       ],
                       "properties": {
                         "date_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_diff"
+                      ],
+                      "properties": {
+                        "timestamp_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_interval_add"
+                      ],
+                      "properties": {
+                        "date_interval_add": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "d"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_boundary_diff"
+                      ],
+                      "properties": {
+                        "date_boundary_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "d"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_boundary_trunc"
+                      ],
+                      "properties": {
+                        "date_boundary_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "month"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "make_date"
+                      ],
+                      "properties": {
+                        "make_date": {
                           "type": "array",
                           "minItems": 3,
                           "items": {
@@ -26369,8 +26568,7 @@
                           "additionalProperties": false,
                           "required": [
                             "value",
-                            "pattern",
-                            "capture"
+                            "pattern"
                           ],
                           "properties": {
                             "value": {
@@ -26430,6 +26628,9 @@
                                 "ms",
                                 "sm"
                               ]
+                            },
+                            "dialect": {
+                              "const": "googlesql"
                             }
                           }
                         }
@@ -26542,6 +26743,40 @@
                           "type": "array",
                           "minItems": 1,
                           "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "generate_array"
+                      ],
+                      "properties": {
+                        "generate_array": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_to_string"
+                      ],
+                      "properties": {
+                        "array_to_string": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
                           "items": {
                             "$ref": "#/$defs/value_expression"
                           }
@@ -26839,6 +27074,21 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "current_date"
+                      ],
+                      "properties": {
+                        "current_date": {
+                          "type": "array",
+                          "minItems": 0,
+                          "maxItems": 0,
+                          "items": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "timestamp_add"
                       ],
                       "properties": {
@@ -26989,6 +27239,92 @@
                               "$ref": "#/$defs/value_expression"
                             }
                           }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "format_strings"
+                      ],
+                      "properties": {
+                        "format_strings": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "farm_fingerprint"
+                      ],
+                      "properties": {
+                        "farm_fingerprint": {
+                          "$ref": "#/$defs/value_expression"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "to_json_string"
+                      ],
+                      "properties": {
+                        "to_json_string": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "json_value"
+                      ],
+                      "properties": {
+                        "json_value": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "unix_seconds"
+                      ],
+                      "properties": {
+                        "unix_seconds": {
+                          "$ref": "#/$defs/value_expression"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_length"
+                      ],
+                      "properties": {
+                        "array_length": {
+                          "$ref": "#/$defs/value_expression"
                         }
                       }
                     }
@@ -29219,6 +29555,22 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "array_concat"
+                      ],
+                      "properties": {
+                        "array_concat": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "coalesce"
                       ],
                       "properties": {
@@ -29817,10 +30169,57 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "date_literal"
+                      ],
+                      "properties": {
+                        "date_literal": {
+                          "type": "string",
+                          "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "date_trunc"
                       ],
                       "properties": {
                         "date_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_trunc"
+                      ],
+                      "properties": {
+                        "timestamp_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extract_timestamp"
+                      ],
+                      "properties": {
+                        "extract_timestamp": {
                           "type": "array",
                           "minItems": 2,
                           "items": {
@@ -29855,6 +30254,142 @@
                       ],
                       "properties": {
                         "date_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timestamp_diff"
+                      ],
+                      "properties": {
+                        "timestamp_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 3
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_interval_add"
+                      ],
+                      "properties": {
+                        "date_interval_add": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "d"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_boundary_diff"
+                      ],
+                      "properties": {
+                        "date_boundary_diff": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "d"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "date_boundary_trunc"
+                      ],
+                      "properties": {
+                        "date_boundary_trunc": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "literal"
+                              ],
+                              "properties": {
+                                "literal": {
+                                  "const": "month"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "make_date"
+                      ],
+                      "properties": {
+                        "make_date": {
                           "type": "array",
                           "minItems": 3,
                           "items": {
@@ -32409,8 +32944,7 @@
                           "additionalProperties": false,
                           "required": [
                             "value",
-                            "pattern",
-                            "capture"
+                            "pattern"
                           ],
                           "properties": {
                             "value": {
@@ -32470,6 +33004,9 @@
                                 "ms",
                                 "sm"
                               ]
+                            },
+                            "dialect": {
+                              "const": "googlesql"
                             }
                           }
                         }
@@ -32582,6 +33119,40 @@
                           "type": "array",
                           "minItems": 1,
                           "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "generate_array"
+                      ],
+                      "properties": {
+                        "generate_array": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_to_string"
+                      ],
+                      "properties": {
+                        "array_to_string": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
                           "items": {
                             "$ref": "#/$defs/value_expression"
                           }
@@ -32879,6 +33450,21 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "current_date"
+                      ],
+                      "properties": {
+                        "current_date": {
+                          "type": "array",
+                          "minItems": 0,
+                          "maxItems": 0,
+                          "items": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "timestamp_add"
                       ],
                       "properties": {
@@ -33029,6 +33615,92 @@
                               "$ref": "#/$defs/value_expression"
                             }
                           }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "format_strings"
+                      ],
+                      "properties": {
+                        "format_strings": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "farm_fingerprint"
+                      ],
+                      "properties": {
+                        "farm_fingerprint": {
+                          "$ref": "#/$defs/value_expression"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "to_json_string"
+                      ],
+                      "properties": {
+                        "to_json_string": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "json_value"
+                      ],
+                      "properties": {
+                        "json_value": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "unix_seconds"
+                      ],
+                      "properties": {
+                        "unix_seconds": {
+                          "$ref": "#/$defs/value_expression"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_length"
+                      ],
+                      "properties": {
+                        "array_length": {
+                          "$ref": "#/$defs/value_expression"
                         }
                       }
                     }
@@ -37324,6 +37996,54 @@
                                   ],
                                   "properties": {
                                     "fn": {
+                                      "const": "any_value"
+                                    },
+                                    "field": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "expr": {
+                                      "$ref": "#/$defs/value_expression"
+                                    },
+                                    "filter": {
+                                      "$ref": "#/$defs/predicate"
+                                    }
+                                  },
+                                  "allOf": [
+                                    {
+                                      "oneOf": [
+                                        {
+                                          "required": [
+                                            "field"
+                                          ],
+                                          "not": {
+                                            "required": [
+                                              "expr"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "required": [
+                                            "expr"
+                                          ],
+                                          "not": {
+                                            "required": [
+                                              "field"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "fn"
+                                  ],
+                                  "properties": {
+                                    "fn": {
                                       "const": "sum"
                                     },
                                     "field": {
@@ -38403,7 +39123,7 @@
                           },
                           "order_by": {
                             "type": "array",
-                            "minItems": 1,
+                            "minItems": 0,
                             "items": {
                               "oneOf": [
                                 {
@@ -38466,7 +39186,45 @@
                                       "enum": [
                                         "row_number",
                                         "rank",
-                                        "dense_rank"
+                                        "dense_rank",
+                                        "percent_rank"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "fn",
+                                    "buckets"
+                                  ],
+                                  "properties": {
+                                    "fn": {
+                                      "enum": [
+                                        "ntile"
+                                      ]
+                                    },
+                                    "buckets": {
+                                      "oneOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 1,
+                                          "maximum": 9007199254740991
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "$param"
+                                          ],
+                                          "properties": {
+                                            "$param": {
+                                              "type": "string",
+                                              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                            }
+                                          }
+                                        }
                                       ]
                                     }
                                   }
@@ -38509,6 +39267,9 @@
                                           }
                                         }
                                       ]
+                                    },
+                                    "default": {
+                                      "$ref": "#/$defs/value_expression"
                                     }
                                   }
                                 },
@@ -39652,7 +40413,45 @@
                                             "enum": [
                                               "row_number",
                                               "rank",
-                                              "dense_rank"
+                                              "dense_rank",
+                                              "percent_rank"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn",
+                                          "buckets"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "enum": [
+                                              "ntile"
+                                            ]
+                                          },
+                                          "buckets": {
+                                            "oneOf": [
+                                              {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 9007199254740991
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "$param"
+                                                ],
+                                                "properties": {
+                                                  "$param": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                  }
+                                                }
+                                              }
                                             ]
                                           }
                                         }
@@ -39695,6 +40494,9 @@
                                                 }
                                               }
                                             ]
+                                          },
+                                          "default": {
+                                            "$ref": "#/$defs/value_expression"
                                           }
                                         }
                                       }
@@ -39709,11 +40511,709 @@
                                   "frame"
                                 ]
                               }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "order_by": {
+                                  "maxItems": 0
+                                }
+                              }
                             },
-                            "else": {
-                              "required": [
-                                "frame"
-                              ]
+                            "then": {
+                              "not": {
+                                "required": [
+                                  "frame"
+                                ]
+                              },
+                              "properties": {
+                                "functions": {
+                                  "additionalProperties": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "count"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "not": {
+                                                  "anyOf": [
+                                                    {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "if": {
+                                              "required": [
+                                                "distinct"
+                                              ],
+                                              "properties": {
+                                                "distinct": {
+                                                  "const": true
+                                                }
+                                              }
+                                            },
+                                            "then": {
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "count_if"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "sum"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "avg"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "min"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "const": false
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "max"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "distinct": {
+                                            "const": false
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn",
+                                          "fraction"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "percentile_disc"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "fraction": {
+                                            "oneOf": [
+                                              {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "$param"
+                                                ],
+                                                "properties": {
+                                                  "$param": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn",
+                                          "fraction"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "percentile_cont"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          },
+                                          "fraction": {
+                                            "oneOf": [
+                                              {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "$param"
+                                                ],
+                                                "properties": {
+                                                  "$param": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "var_pop"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "var_samp"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "stddev_pop"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "fn"
+                                        ],
+                                        "properties": {
+                                          "fn": {
+                                            "const": "stddev_samp"
+                                          },
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "expr": {
+                                            "$ref": "#/$defs/value_expression"
+                                          },
+                                          "filter": {
+                                            "$ref": "#/$defs/predicate"
+                                          }
+                                        },
+                                        "allOf": [
+                                          {
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "field"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "expr"
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "required": [
+                                                  "expr"
+                                                ],
+                                                "not": {
+                                                  "required": [
+                                                    "field"
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         ]
@@ -55329,6 +56829,22 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "array_concat"
+                          ],
+                          "properties": {
+                            "array_concat": {
+                              "type": "array",
+                              "minItems": 1,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "coalesce"
                           ],
                           "properties": {
@@ -55927,10 +57443,57 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "date_literal"
+                          ],
+                          "properties": {
+                            "date_literal": {
+                              "type": "string",
+                              "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "date_trunc"
                           ],
                           "properties": {
                             "date_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_trunc"
+                          ],
+                          "properties": {
+                            "timestamp_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "extract_timestamp"
+                          ],
+                          "properties": {
+                            "extract_timestamp": {
                               "type": "array",
                               "minItems": 2,
                               "items": {
@@ -55965,6 +57528,142 @@
                           ],
                           "properties": {
                             "date_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_diff"
+                          ],
+                          "properties": {
+                            "timestamp_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_interval_add"
+                          ],
+                          "properties": {
+                            "date_interval_add": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "d"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_boundary_diff"
+                          ],
+                          "properties": {
+                            "date_boundary_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "d"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_boundary_trunc"
+                          ],
+                          "properties": {
+                            "date_boundary_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "month"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "make_date"
+                          ],
+                          "properties": {
+                            "make_date": {
                               "type": "array",
                               "minItems": 3,
                               "items": {
@@ -58519,8 +60218,7 @@
                               "additionalProperties": false,
                               "required": [
                                 "value",
-                                "pattern",
-                                "capture"
+                                "pattern"
                               ],
                               "properties": {
                                 "value": {
@@ -58580,6 +60278,9 @@
                                     "ms",
                                     "sm"
                                   ]
+                                },
+                                "dialect": {
+                                  "const": "googlesql"
                                 }
                               }
                             }
@@ -58692,6 +60393,40 @@
                               "type": "array",
                               "minItems": 1,
                               "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "generate_array"
+                          ],
+                          "properties": {
+                            "generate_array": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_to_string"
+                          ],
+                          "properties": {
+                            "array_to_string": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 3,
                               "items": {
                                 "$ref": "#/$defs/value_expression"
                               }
@@ -58989,6 +60724,21 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "current_date"
+                          ],
+                          "properties": {
+                            "current_date": {
+                              "type": "array",
+                              "minItems": 0,
+                              "maxItems": 0,
+                              "items": false
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "timestamp_add"
                           ],
                           "properties": {
@@ -59139,6 +60889,92 @@
                                   "$ref": "#/$defs/value_expression"
                                 }
                               }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "format_strings"
+                          ],
+                          "properties": {
+                            "format_strings": {
+                              "type": "array",
+                              "minItems": 1,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "farm_fingerprint"
+                          ],
+                          "properties": {
+                            "farm_fingerprint": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "to_json_string"
+                          ],
+                          "properties": {
+                            "to_json_string": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "json_value"
+                          ],
+                          "properties": {
+                            "json_value": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "unix_seconds"
+                          ],
+                          "properties": {
+                            "unix_seconds": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_length"
+                          ],
+                          "properties": {
+                            "array_length": {
+                              "$ref": "#/$defs/value_expression"
                             }
                           }
                         }
@@ -61369,6 +63205,22 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "array_concat"
+                          ],
+                          "properties": {
+                            "array_concat": {
+                              "type": "array",
+                              "minItems": 1,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "coalesce"
                           ],
                           "properties": {
@@ -61967,10 +63819,57 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "date_literal"
+                          ],
+                          "properties": {
+                            "date_literal": {
+                              "type": "string",
+                              "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "date_trunc"
                           ],
                           "properties": {
                             "date_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_trunc"
+                          ],
+                          "properties": {
+                            "timestamp_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "extract_timestamp"
+                          ],
+                          "properties": {
+                            "extract_timestamp": {
                               "type": "array",
                               "minItems": 2,
                               "items": {
@@ -62005,6 +63904,142 @@
                           ],
                           "properties": {
                             "date_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "timestamp_diff"
+                          ],
+                          "properties": {
+                            "timestamp_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 3
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_interval_add"
+                          ],
+                          "properties": {
+                            "date_interval_add": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "d"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_boundary_diff"
+                          ],
+                          "properties": {
+                            "date_boundary_diff": {
+                              "type": "array",
+                              "minItems": 3,
+                              "maxItems": 3,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "d"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "date_boundary_trunc"
+                          ],
+                          "properties": {
+                            "date_boundary_trunc": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": false,
+                              "prefixItems": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "literal"
+                                  ],
+                                  "properties": {
+                                    "literal": {
+                                      "const": "month"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "make_date"
+                          ],
+                          "properties": {
+                            "make_date": {
                               "type": "array",
                               "minItems": 3,
                               "items": {
@@ -64559,8 +66594,7 @@
                               "additionalProperties": false,
                               "required": [
                                 "value",
-                                "pattern",
-                                "capture"
+                                "pattern"
                               ],
                               "properties": {
                                 "value": {
@@ -64620,6 +66654,9 @@
                                     "ms",
                                     "sm"
                                   ]
+                                },
+                                "dialect": {
+                                  "const": "googlesql"
                                 }
                               }
                             }
@@ -64732,6 +66769,40 @@
                               "type": "array",
                               "minItems": 1,
                               "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "generate_array"
+                          ],
+                          "properties": {
+                            "generate_array": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 3,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_to_string"
+                          ],
+                          "properties": {
+                            "array_to_string": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 3,
                               "items": {
                                 "$ref": "#/$defs/value_expression"
                               }
@@ -65029,6 +67100,21 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "current_date"
+                          ],
+                          "properties": {
+                            "current_date": {
+                              "type": "array",
+                              "minItems": 0,
+                              "maxItems": 0,
+                              "items": false
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "timestamp_add"
                           ],
                           "properties": {
@@ -65179,6 +67265,92 @@
                                   "$ref": "#/$defs/value_expression"
                                 }
                               }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "format_strings"
+                          ],
+                          "properties": {
+                            "format_strings": {
+                              "type": "array",
+                              "minItems": 1,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "farm_fingerprint"
+                          ],
+                          "properties": {
+                            "farm_fingerprint": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "to_json_string"
+                          ],
+                          "properties": {
+                            "to_json_string": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "json_value"
+                          ],
+                          "properties": {
+                            "json_value": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "unix_seconds"
+                          ],
+                          "properties": {
+                            "unix_seconds": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_length"
+                          ],
+                          "properties": {
+                            "array_length": {
+                              "$ref": "#/$defs/value_expression"
                             }
                           }
                         }
@@ -69474,6 +71646,54 @@
                                       ],
                                       "properties": {
                                         "fn": {
+                                          "const": "any_value"
+                                        },
+                                        "field": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "expr": {
+                                          "$ref": "#/$defs/value_expression"
+                                        },
+                                        "filter": {
+                                          "$ref": "#/$defs/predicate"
+                                        }
+                                      },
+                                      "allOf": [
+                                        {
+                                          "oneOf": [
+                                            {
+                                              "required": [
+                                                "field"
+                                              ],
+                                              "not": {
+                                                "required": [
+                                                  "expr"
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "required": [
+                                                "expr"
+                                              ],
+                                              "not": {
+                                                "required": [
+                                                  "field"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "fn"
+                                      ],
+                                      "properties": {
+                                        "fn": {
                                           "const": "sum"
                                         },
                                         "field": {
@@ -70553,7 +72773,7 @@
                               },
                               "order_by": {
                                 "type": "array",
-                                "minItems": 1,
+                                "minItems": 0,
                                 "items": {
                                   "oneOf": [
                                     {
@@ -70616,7 +72836,45 @@
                                           "enum": [
                                             "row_number",
                                             "rank",
-                                            "dense_rank"
+                                            "dense_rank",
+                                            "percent_rank"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "fn",
+                                        "buckets"
+                                      ],
+                                      "properties": {
+                                        "fn": {
+                                          "enum": [
+                                            "ntile"
+                                          ]
+                                        },
+                                        "buckets": {
+                                          "oneOf": [
+                                            {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 9007199254740991
+                                            },
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "$param"
+                                              ],
+                                              "properties": {
+                                                "$param": {
+                                                  "type": "string",
+                                                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                }
+                                              }
+                                            }
                                           ]
                                         }
                                       }
@@ -70659,6 +72917,9 @@
                                               }
                                             }
                                           ]
+                                        },
+                                        "default": {
+                                          "$ref": "#/$defs/value_expression"
                                         }
                                       }
                                     },
@@ -71802,7 +74063,45 @@
                                                 "enum": [
                                                   "row_number",
                                                   "rank",
-                                                  "dense_rank"
+                                                  "dense_rank",
+                                                  "percent_rank"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn",
+                                              "buckets"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "enum": [
+                                                  "ntile"
+                                                ]
+                                              },
+                                              "buckets": {
+                                                "oneOf": [
+                                                  {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 9007199254740991
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "$param"
+                                                    ],
+                                                    "properties": {
+                                                      "$param": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                      }
+                                                    }
+                                                  }
                                                 ]
                                               }
                                             }
@@ -71845,6 +74144,9 @@
                                                     }
                                                   }
                                                 ]
+                                              },
+                                              "default": {
+                                                "$ref": "#/$defs/value_expression"
                                               }
                                             }
                                           }
@@ -71859,11 +74161,709 @@
                                       "frame"
                                     ]
                                   }
+                                }
+                              },
+                              {
+                                "if": {
+                                  "properties": {
+                                    "order_by": {
+                                      "maxItems": 0
+                                    }
+                                  }
                                 },
-                                "else": {
-                                  "required": [
-                                    "frame"
-                                  ]
+                                "then": {
+                                  "not": {
+                                    "required": [
+                                      "frame"
+                                    ]
+                                  },
+                                  "properties": {
+                                    "functions": {
+                                      "additionalProperties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "count"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "not": {
+                                                      "anyOf": [
+                                                        {
+                                                          "required": [
+                                                            "field"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "required": [
+                                                            "expr"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "if": {
+                                                  "required": [
+                                                    "distinct"
+                                                  ],
+                                                  "properties": {
+                                                    "distinct": {
+                                                      "const": true
+                                                    }
+                                                  }
+                                                },
+                                                "then": {
+                                                  "anyOf": [
+                                                    {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "count_if"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "sum"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "avg"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "min"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "const": false
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "max"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "distinct": {
+                                                "const": false
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn",
+                                              "fraction"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "percentile_disc"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "fraction": {
+                                                "oneOf": [
+                                                  {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "$param"
+                                                    ],
+                                                    "properties": {
+                                                      "$param": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                      }
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn",
+                                              "fraction"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "percentile_cont"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              },
+                                              "fraction": {
+                                                "oneOf": [
+                                                  {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "$param"
+                                                    ],
+                                                    "properties": {
+                                                      "$param": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                                      }
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "var_pop"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "var_samp"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "stddev_pop"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "fn"
+                                            ],
+                                            "properties": {
+                                              "fn": {
+                                                "const": "stddev_samp"
+                                              },
+                                              "field": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "expr": {
+                                                "$ref": "#/$defs/value_expression"
+                                              },
+                                              "filter": {
+                                                "$ref": "#/$defs/predicate"
+                                              }
+                                            },
+                                            "allOf": [
+                                              {
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "field"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "expr"
+                                                      ]
+                                                    }
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "expr"
+                                                    ],
+                                                    "not": {
+                                                      "required": [
+                                                        "field"
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             ]

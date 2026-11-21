@@ -157,6 +157,23 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+An unquoted `DATE` followed by STRING literal chunks selects a non-null Date.
+After the usual chunk decoding, the date is `YYYY-[M]M-[D]D`, in the Gregorian
+calendar from `0001-01-01` through `9999-12-31`. SQL lowers the literal to the
+padded `YYYY-MM-DD` spelling of the common `date_literal` expression. Invalid
+calendar dates are refused before execution.
+
+An unquoted `TIMESTAMP` followed by STRING literal chunks selects a Timestamp
+instant. The same civil date spelling can be followed by a space, `T` or `t`
+and one- or two-digit hour, minute and second fields separated by colons.
+The optional decimal fraction has one through six digits. A date alone selects
+midnight UTC. A time can use `Z`, `z`, ` UTC`, ` Etc/UTC` or a numeric offset in
+`±H[H][:M[M]]` with magnitude at most 14 hours. An omitted offset is UTC.
+Second 60 advances to the next minute. Calendar and resulting UTC dates stay
+within years 0001 through 9999. Other named zones require a zone-rule source
+and are outside this literal path. The frontend passes the resulting canonical
+UTC spelling to the existing Timestamp cast expression.
+
 `CASE selector WHEN match THEN result [WHEN …] [ELSE fallback] END`
 lowers to the Common structured CASE with its original selector as `operand`.
 Searched `CASE WHEN condition THEN result … END` has no selector. The Common
@@ -171,6 +188,14 @@ domain there. It does not recover integers from rounded Doubles or observed
 external rows. Floating-spelled literals (`5.0`, `5e0`) and declared Number
 columns/parameters keep their existing contracts. Explicit `CAST(... AS INT64)`
 is a distinct conversion with its documented rounding and range rules.
+
+`GENERATE_ARRAY(start, end[, step])` uses the same exact signed64 literal
+context. It lowers to the common `generate_array` expression in a projection
+or an `UNNEST` operand. The default step is positive one. Generation stops at
+the inclusive end without rounding either bound or a produced item. A step
+pointing away from the end returns an empty array with signed64 items. Any
+NULL operand gives a NULL array. Zero step is an evaluation refusal. The
+complete result must fit the existing array representation and resource limits.
 
 The same unsigned exact-integer decoder supplies literal LIMIT/OFFSET, bounded type arguments, ORDER/GROUP column positions and navigation offsets. Each context retains its own positivity, column-range, parameter and role checks; hex spelling does not bypass them. Named numeric operation arguments use the ordinary expression numeric admission. Integer UNPIVOT row aliases still reach the existing explicitly unsupported lowering boundary; accepting an integer token is not evidence of integer-label execution. No separate numeric runtime, cast or execution owner is introduced.
 
@@ -332,6 +357,12 @@ It is not a frontend clock read, Timestamp literal, authored Parameter or
 authority for a Source/Effect or an operational clock. A missing original
 execution context remains an implementation limitation.
 
+`CURRENT_DATE()` and an unquoted, unqualified `CURRENT_DATE` lower to
+`{current_date: []}`. The Date is the UTC day of the same original query
+invocation time as `CURRENT_TIMESTAMP()`. Quoted bare identifiers and qualified
+field references retain their ordinary field lookup. The zero-argument form
+follows the [GoogleSQL UTC default](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#current_date).
+
 SQL fixed intervals use `TIMESTAMP_ADD(value, INTERVAL amount UNIT)`,
 `TIMESTAMP_SUB(value, INTERVAL amount UNIT)` or Timestamp `+`/`-` that interval.
 The original integral token is retained exactly, and dynamic amounts require
@@ -340,6 +371,37 @@ consumer uses fixed ns/us/ms/s/m/h/d durations without binary64 conversion,
 calendar-month or timezone interpretation. It preserves strict NULL, original
 child failure and enclosing lazy demand. This does not change DATE_ADD's
 existing Number-bit duration meaning or introduce a standalone Interval value.
+
+`DATE(year, month, day)` consumes three exact INT64 coordinates and returns
+a Date. The three operand positions select the existing contextual integer
+path for original integer-spelled SQL literals and their derived CTE columns.
+Explicitly typed INT64 fields and Parameters keep their checked types.
+The ordered Common body is `{make_date: [year, month, day]}`.
+
+`DATE_ADD(date, INTERVAL amount DAY)` lowers to `date_interval_add` with
+the original Date, exact INT64 amount and literal `d`, in order. The signed
+interval has the same exact integer syntax as a fixed Timestamp interval.
+`DATE_DIFF(end, start, DAY)` retains the two original Date operands followed
+by literal `d`, selecting `date_boundary_diff` with an INT64 result.
+`DATE_TRUNC(date, MONTH)` retains the original Date followed by literal
+`month`, selecting `date_boundary_trunc` with a Date result. In the last two
+forms the unit is a bare keyword in its argument position. The separate
+quoted-unit forms keep their existing types and behavior.
+
+`EXTRACT(part FROM value)` selects numeric UTC fields of a Timestamp.
+The unquoted part is YEAR, QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR,
+MINUTE, SECOND, MILLISECOND or MICROSECOND. Lower the original value and
+the selected literal part to `extract_timestamp` in that order.
+
+`TIMESTAMP_DIFF(end, start, unit)` accepts an unquoted unit keyword:
+`MICROSECOND`, `MILLISECOND`, `SECOND`, `MINUTE`, `HOUR` or `DAY`.
+It lowers both original operands, in order, and the selected literal unit
+to the Common `timestamp_diff` operation. Neither argument is implicitly
+converted from Date or String.
+
+`TIMESTAMP_TRUNC(value, unit)` accepts a Timestamp and the same six unquoted
+unit keywords as `TIMESTAMP_DIFF`. It selects `timestamp_trunc` in the original
+operand order. `DAY` starts at UTC midnight. This form uses fixed UTC buckets.
 
 `DATE_TRUNC(value, literal_unit)` is the SQL/Pipe spelling for fixed UTC
 truncation. The unit is an original string literal in `ms`, `s`, `m`, `h`, `d`;
@@ -358,6 +420,10 @@ second, minute, hour or UTC day, rather than toward epoch zero. Date admits only
 value/work limits and cancellation retain their Common owners; operational
 clock domains and the separate quotient law of `date_diff` do not change.
 
+`UNIX_SECONDS(value)` maps the original Timestamp expression to the Common
+unary `unix_seconds` operation. It returns exact `int64` Unix seconds rounded
+down, preserving NULL. It does not parse a String or use a Host clock.
+
 `DATE_ADD(value, amount, literal_unit)` preserves the three original Common
 children in that order. The literal unit is exactly `ms`, `s`, `m`, `h` or `d`;
 a Parameter or computed String cannot choose the operation unit. The existing
@@ -367,6 +433,54 @@ nanoseconds or within the original calendar fails without rounding. Date allows
 only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
+
+`FARM_FINGERPRINT(value)` selects `farm_fingerprint` for one original
+String operand. The result is INT64 with the operand's nullability.
+The checked Common operation consumes the original UTF-8 bytes.
+
+`REGEXP_CONTAINS(value, pattern)` selects the checked Common `regex_match`
+expression with its two original String children in source order. The
+pattern is a String literal or an invocation Parameter and uses the
+admitted text-time grammar and bounds. The result is true for a match
+anywhere in the input, false for no match and NULL for a NULL input.
+An invalid pattern fails at Check, including with a NULL input.
+The SQL call adds no flags argument.
+
+`REGEXP_EXTRACT(value, pattern)` selects the Common `regex_extract` body with
+no explicit capture index. Check uses the original parsed literal or bound
+String pattern to select the whole match for zero groups or group one for one
+group. More than one group fails Check, including with a NULL input.
+The result is nullable String. No match or an unmatched group returns NULL.
+A participating empty group returns the empty String. The call selects the
+first match and adds no flags, position or occurrence argument.
+
+`REGEXP_REPLACE(value, pattern, replacement)` passes all three original
+String arguments to Common `regex_replace` with the explicit GoogleSQL
+dialect. Pattern and replacement are non-null String literals or bound
+String Parameters. After SQL String decoding, a backslash and one ASCII
+digit select the whole match (zero) or that capturing group. A doubled
+backslash emits one literal backslash. Other escapes and references to
+absent groups fail Check. Matching is left-to-right and nonoverlapping
+with the SQL rule for empty matches in the Common language contract.
+NULL value yields NULL after the original arguments have been checked.
+
+`JSON_VALUE(input[, path])` selects `json_value`. Input is a String or
+admitted Json and the optional path is String. The Common evaluator
+returns nullable String. It retains the original arguments, supports
+linear member and array index paths, and reads a JSON String only
+through the selected value.
+
+`TO_JSON_STRING(value[, pretty_print])` selects `to_json_string`.
+The optional Boolean flag and original Value are retained as authored.
+The Common expression emits a String using the admitted Value domains,
+including exact integers and canonical temporal text.
+
+`FORMAT(template[, argument ...])` selects the checked Common
+`format_strings` expression for String inputs. The value of the original
+template can come from a row or Parameter. In this signature `%s` selects
+a String argument with optional static width and scalar precision. `%%`
+emits one literal percent. The frontend retains the complete original
+argument list without interpreting the template.
 
 `TO_DECIMAL(value, precision, scale)` uses the existing explicit Decimal target
 form. Precision and scale are original integral Number literals with
@@ -735,6 +849,35 @@ offset atom. Common checking still rejects invalid parameter values before
 execution; the numeric domain, navigation nullability and window limits do
 not change.
 
+`LAG(value, offset, default)` and `LEAD(value, offset, default)` accept a
+third expression checked without row scope. Its domain matches the value
+expression, and it is used only when the requested row is absent. A referenced
+NULL remains NULL. The same authored window and position checks apply.
+[GoogleSQL navigation functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/navigation_functions#lag)
+
+`NTILE(buckets)` takes a positive safe-integer literal or bound parameter.
+It assigns INT64 buckets from the completed position order, giving the first
+buckets any extra rows. `PERCENT_RANK()` uses the authored peers and partition
+size, returning Number zero in a singleton partition. Both use the
+existing analytic `ORDER BY` checks and take no frame.
+[GoogleSQL numbering functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/numbering_functions#ntile)
+
+For ordered `FIRST_VALUE(value)` and `LAST_VALUE(value)`, omission of the
+frame uses the partition prefix through the current authored peer group
+(`RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`). Equal order keys share
+the same prefix even if the completed order distinguishes their positions.
+The selected endpoint may itself be NULL. The same checked ordering and
+positional evidence apply.
+[GoogleSQL window frames](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
+For an analytic aggregate with no explicit frame, an ordered window extends
+from the partition start through the last authored peer of the current row.
+Without ordering, order-independent aggregates read the whole partition.
+The ordinary aggregate filters, NULL behavior and numeric profile continue
+to apply. Explicit ROWS frames and order-sensitive calls use the existing
+position checks.
+[GoogleSQL aggregate window defaults](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),
@@ -830,6 +973,23 @@ NUMERIC/BIGNUMERIC behavior. DISTINCT analytic MIN/MAX remains an explicit
 unsupported profile: the existing explicit-frame implementation is not the
 separate default/unordered DISTINCT analytic contract. This connection also
 does not close the statistical DISTINCT gap.
+
+Grouped `LOGICAL_AND(expression)` and `LOGICAL_OR(expression)` require one
+Boolean argument. Preserve its single evaluation and optional per-call filter.
+Lower to the existing common MIN or MAX fold respectively, with a
+single-operand Boolean expression checking the original argument type.
+The common Boolean order is false before true. Both folds exclude NULL and
+return a nullable Boolean, with NULL for an empty or all-NULL group.
+The selected forms apply to SQL SELECT and Pipe AGGREGATE.
+[GoogleSQL Boolean aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#logical_and)
+
+Grouped `ANY_VALUE(expression)` returns an original non-NULL value among the
+rows eligible for the call, or NULL when none exists. The result has the
+argument's type and is nullable. Selection requires no authored row order,
+and the selected row is unspecified. The grouped SQL and Pipe forms allow
+the existing per-call `WHERE` filter. `HAVING MAX/MIN` and `OVER` variants
+are outside this signature.
+[GoogleSQL ANY_VALUE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#any_value)
 
 The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
 `STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
@@ -1152,6 +1312,16 @@ An aggregate alias that collides with a retained input key has a separate
 physical result slot. SELECT siblings still see the input key; HAVING and final
 ORDER see the evaluated alias. Private keys and aggregate slots are removed by
 ordinary projection before Result publication.
+
+SQL `GROUP BY ROLLUP(a, b)` groups the same input by each prefix, including
+the empty prefix. A parenthesized item set such as `ROLLUP(a, (b, c))` keeps
+those keys together, so it produces `(a, b, c)`, `(a)` and `()`. Omitted keys
+return a typed NULL. All groups are retained, even when an input NULL or a
+repeated grouping item makes two output rows equal. The empty prefix includes
+one grand total on empty input. Existing grouped projection, HAVING and final
+ORDER consume the combined relation. The Common checker applies the existing
+key, aggregate and capacity rules to these groups.
+[GoogleSQL GROUP BY ROLLUP](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#group_by_rollup).
 
 In a grouped SELECT, a grouping expression may occur inside a larger scalar
 expression. Its input references must resolve to the same pre-group value slots
@@ -1603,6 +1773,13 @@ occurs before durable Run admission and provider I/O. Expression refusals retain
 the common expression's original location; producer-schema refusals identify
 the existing Unit, input/step and field without inventing an expression origin.
 
+SQL `ARRAY_LENGTH(a)` MUST select the common array-cardinality
+operation `array_length` with one operand. Its result is nullable exactly
+when the original Array is nullable and has type `int64`. The operand gives
+the common checker sufficient context to count an otherwise untyped empty
+or all-NULL array, while other ARRAY expressions keep their existing
+item-type requirements. See [GoogleSQL ARRAY_LENGTH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_length).
+
 The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
 also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
 `ARRAY<INT64>`. Those behaviors remain coverage gaps here: the common constructor
@@ -1959,9 +2136,9 @@ execution, capacity or successful publication.
 
 `WITH name AS (body), ... query` is the shared logical producer-binding surface
 for SQL and AQL-text. Both selectors lower accepted WITH/SELECT/CREATE input
-through the same ordinary frontend; SQL keeps its existing top-level head
-selection, while AQL-text also accepts a standalone FROM-headed Pipe. JSON/YAML
-remain supported machine Program inputs.
+and bare `FROM UNNEST(...) AS element` value tables through the same ordinary
+frontend. AQL-text selects standalone FROM-headed Pipes, including those
+starting with a value table. JSON/YAML remain supported machine Program inputs.
 
 A binding does not acquire, copy, store, normalize or publish its value and does
 not request placement or a task boundary. Its body resolves before its name
@@ -2183,7 +2360,14 @@ constructor-definition changes retain their ordinary identity consequences.
 
 SQL/Pipe INNER/LEFT/CROSS JOIN chains use the existing bounded JOIN operations,
 range scopes, ON/USING conditions, evaluated projection slots and alias-priority
-ORDER rules. No legacy Graph conversion or alternate execution owner is allowed.
+ORDER rules.
+A comma in the initial FROM list uses the existing CROSS JOIN operation and
+output bounds. Inputs and joins associate from left to right. A RIGHT or FULL
+JOIN following a comma in the same FROM clause is a syntax error. A comma
+before UNNEST uses the existing correlated CROSS JOIN expansion and keeps its
+range and offset scope.
+
+No legacy Graph conversion or alternate execution owner is allowed.
 Current profile refusals stay explicit rather than being approximated.
 
 ## Named logical SGA calls

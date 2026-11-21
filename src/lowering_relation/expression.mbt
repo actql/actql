@@ -17,6 +17,7 @@ struct Expression {
 pub enum ExpressionBody {
   Field(String, @relation.ReferenceTarget)
   Literal(@value.CheckedValue)
+  DateLiteral(@value.CheckedValue)
   TypedNull
   Array(Array[Expression])
   EmptyArray
@@ -34,6 +35,7 @@ pub enum ExpressionBody {
   Case(Array[(Expression, Expression)], Expression)
   SimpleCase(Expression, Array[(Expression, Expression)], Expression)
   CurrentTimestamp
+  CurrentDate
 }
 
 ///|
@@ -53,7 +55,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ArrayLength
+  UnixSeconds
   ByteLength
+  FarmFingerprint
   Unicode
   Chr
   Reverse
@@ -130,10 +135,15 @@ pub(all) enum BinaryOperator {
   Contains
   Like
   DateTruncate
+  TimestampTruncate
+  DateBoundaryTruncate
+  ExtractTimestamp
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp
+  TryPatternedTimestamp
   FormatTimestamp
+  RegexMatch
 } derive(Eq, Debug)
 
 ///|
@@ -150,6 +160,15 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  SplitPart
+  GenerateArray
+  ArrayConcat
+  ArrayToString
+  FormatStrings
+  ToJsonString
+  JsonValue
+  RegexExtract
+  RegexReplace
   Substring
   LeftString
   RightString
@@ -160,6 +179,10 @@ pub(all) enum ManyOperator {
   DateAddition
   TimestampAddition
   TimestampSubtraction
+  TimestampDifference
+  DateBoundaryDifference
+  DateIntervalAddition
+  MakeDate
 } derive(Eq, Debug)
 
 ///|
@@ -221,8 +244,10 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Case(clauses, _) | SimpleCase(_, clauses, _) => clauses.length()
     Field(_, _)
     | Literal(_)
+    | DateLiteral(_)
     | TypedNull
     | CurrentTimestamp
+    | CurrentDate
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
@@ -343,8 +368,10 @@ fn expression_tag(
 ) -> Unit raise ExpressionStop {
   match tag {
     "current_timestamp"
+    | "current_date"
     | "field"
     | "literal"
+    | "date_literal"
     | "typed_literal"
     | "$param"
     | "negate"
@@ -420,7 +447,10 @@ fn expression_tag(
     | "concat"
     | "concat_strict"
     | "len"
+    | "array_length"
+    | "unix_seconds"
     | "byte_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"
@@ -429,6 +459,13 @@ fn expression_tag(
     | "instr"
     | "replace"
     | "split"
+    | "split_part"
+    | "generate_array"
+    | "array_concat"
+    | "array_to_string"
+    | "format_strings"
+    | "to_json_string"
+    | "json_value"
     | "substring"
     | "left"
     | "right"
@@ -442,6 +479,9 @@ fn expression_tag(
     | "try_timestamp"
     | "parse_timestamp"
     | "format_timestamp"
+    | "regex_match"
+    | "regex_extract"
+    | "regex_replace"
     | "nfkc"
     | "case_fold"
     | "utf8_truncate"
@@ -450,9 +490,16 @@ fn expression_tag(
     | "if"
     | "case"
     | "date_diff"
+    | "make_date"
+    | "timestamp_diff"
     | "date_add"
     | "timestamp_add"
     | "timestamp_sub"
+    | "timestamp_trunc"
+    | "date_boundary_trunc"
+    | "date_boundary_diff"
+    | "date_interval_add"
+    | "extract_timestamp"
     | "date_trunc" => ()
     "array"
     | "empty_array"
@@ -472,6 +519,14 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "split_part" => {
+      let object = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(object, "value").unwrap(),
+        @decode.lookup(object, "delimiter").unwrap(),
+        @decode.lookup(object, "index").unwrap(),
+      ]
+    }
     "utf8_truncate" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -512,10 +567,12 @@ fn expression_children(
     }
     "empty_array"
     | "literal"
+    | "date_literal"
     | "typed_literal"
     | "field"
     | "$param"
-    | "current_timestamp" => []
+    | "current_timestamp"
+    | "current_date" => []
     "decimal_divide" => {
       let obj = @decode.open_object(body).unwrap()
       [
@@ -523,7 +580,7 @@ fn expression_children(
         @decode.lookup(obj, "right").unwrap(),
       ]
     }
-    "parse_timestamp" | "format_timestamp" => {
+    "parse_timestamp" | "try_timestamp" | "format_timestamp" | "regex_match" => {
       let obj = @decode.open_object(body).unwrap()
       let value = @decode.lookup(obj, "value").unwrap()
       if @decode.lookup(obj, "pattern") is Some(pattern) {
@@ -532,12 +589,24 @@ fn expression_children(
         [value]
       }
     }
-    "try_timestamp" => {
+    "regex_extract" => {
       let obj = @decode.open_object(body).unwrap()
-      if @decode.lookup(obj, "pattern") is Some(_) {
-        expression_fail(body, ExpressionNotImplemented("try_timestamp pattern"))
+      let children = [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "pattern").unwrap(),
+      ]
+      if @decode.lookup(obj, "capture") is Some(capture) {
+        children.push(capture)
       }
-      [@decode.lookup(obj, "value").unwrap()]
+      children
+    }
+    "regex_replace" => {
+      let obj = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "pattern").unwrap(),
+        @decode.lookup(obj, "replacement").unwrap(),
+      ]
     }
     "cast" | "try_decimal" | "quantize" | "try_number" => {
       let obj = @decode.open_object(body).unwrap()
@@ -581,7 +650,14 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
+    "len"
+    | "array_length"
+    | "unix_seconds"
+    | "byte_length"
+    | "farm_fingerprint"
+    | "unicode"
+    | "chr"
+    | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -1011,7 +1087,11 @@ fn lower_typed_expression_measured(
               bound=original_context,
             ) {
             Some(@context.Pattern(@context.Timestamp(_))) =>
-              ["parse_timestamp", "format_timestamp"].contains(operation)
+              ["parse_timestamp", "try_timestamp", "format_timestamp"].contains(
+                operation,
+              )
+            Some(@context.Pattern(@context.Regex(regex))) =>
+              regex_resolution_matches(operation, regex)
             Some(@context.Pattern(@context.Like(pattern))) if operation ==
               "like" => {
               let node = @typing.node_at(typed, obligation.node_index).unwrap()
@@ -1047,8 +1127,9 @@ fn lower_typed_expression_measured(
             None => None
           }
           if [
-              "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
-              "format_timestamp",
+              "split_part", "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
+              "try_timestamp", "format_timestamp", "regex_match", "regex_extract",
+              "regex_replace",
             ].contains(operation) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
@@ -1148,6 +1229,7 @@ fn lower_typed_expression_measured(
           Property(args[0], name, ordinal)
         }
         "current_timestamp" => CurrentTimestamp
+        "current_date" => CurrentDate
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -1155,6 +1237,8 @@ fn lower_typed_expression_measured(
           }
           ExpressionBody::Field(name, target)
         }
+        "date_literal" =>
+          DateLiteral(lower_comparison_literal(contract, body, budget))
         "typed_literal" => {
           let literal_type = @decode.text(
             @decode.lookup(@decode.open_object(body).unwrap(), "type").unwrap(),
@@ -1286,7 +1370,10 @@ fn lower_typed_expression_measured(
           }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
+        "array_length" => Unary(ArrayLength, args[0])
+        "unix_seconds" => Unary(UnixSeconds, args[0])
         "byte_length" => Unary(ByteLength, args[0])
+        "farm_fingerprint" => Unary(FarmFingerprint, args[0])
         "unicode" => Unary(Unicode, args[0])
         "chr" => Unary(Chr, args[0])
         "reverse" => Unary(Reverse, args[0])
@@ -1295,9 +1382,17 @@ fn lower_typed_expression_measured(
         "try_number" => Unary(TryNumber, args[0])
         "nfkc" => Unary(Nfkc, args[0])
         "case_fold" => Unary(CaseFold, args[0])
-        "try_timestamp" => Unary(TryTimestamp, args[0])
+        "try_timestamp" =>
+          if args.get(1) is Some(pattern) {
+            Binary(TryPatternedTimestamp, args[0], pattern)
+          } else {
+            Unary(TryTimestamp, args[0])
+          }
         "parse_timestamp" => Binary(ParseTimestamp, args[0], args[1])
         "format_timestamp" => Binary(FormatTimestamp, args[0], args[1])
+        "regex_match" => Binary(RegexMatch, args[0], args[1])
+        "regex_extract" => Many(RegexExtract, args)
+        "regex_replace" => Many(RegexReplace, args)
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
@@ -1331,10 +1426,17 @@ fn lower_typed_expression_measured(
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "date_diff" => Many(DateDifference, args)
+        "make_date" => Many(MakeDate, args)
+        "timestamp_diff" => Many(TimestampDifference, args)
         "date_add" => Many(DateAddition, args)
         "timestamp_add" => Many(TimestampAddition, args)
         "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
+        "date_interval_add" => Many(DateIntervalAddition, args)
+        "date_boundary_diff" => Many(DateBoundaryDifference, args)
+        "date_boundary_trunc" => Binary(DateBoundaryTruncate, args[0], args[1])
+        "timestamp_trunc" => Binary(TimestampTruncate, args[0], args[1])
+        "extract_timestamp" => Binary(ExtractTimestamp, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
         "like" => Binary(Like, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
@@ -1374,6 +1476,13 @@ fn lower_typed_expression_measured(
         "translate" => Many(Translate, args)
         "instr" => Many(Instr, args)
         "split" => Many(Split, args)
+        "split_part" => Many(SplitPart, args)
+        "array_concat" => Many(ArrayConcat, args)
+        "array_to_string" => Many(ArrayToString, args)
+        "format_strings" => Many(FormatStrings, args)
+        "to_json_string" => Many(ToJsonString, args)
+        "json_value" => Many(JsonValue, args)
+        "generate_array" => Many(GenerateArray, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)
         "right" => Many(RightString, args)
@@ -1448,9 +1557,11 @@ fn lower_typed_expression_measured(
             clauses.any(pair => pair.0.uses_veca || pair.1.uses_veca)
           Field(_, _)
           | Literal(_)
+          | DateLiteral(_)
           | TypedNull
           | EmptyArray
-          | CurrentTimestamp => false
+          | CurrentTimestamp
+          | CurrentDate => false
         },
       }
     }
@@ -1605,6 +1716,18 @@ fn original_expression_discharge(
 }
 
 ///|
+fn regex_resolution_matches(
+  operation : String,
+  regex : @context.RegexPatternResolution,
+) -> Bool {
+  match @context.regex_pattern_operation(regex) {
+    Match => operation == "regex_match"
+    Extract(_) => operation == "regex_extract"
+    Replace(_) => operation == "regex_replace"
+  }
+}
+
+///|
 fn original_expression_text_bound(
   bound : BoundPrepared,
   step : Int,
@@ -1622,9 +1745,10 @@ fn original_expression_text_bound(
     is Some(@context.Envelope(original)) else {
     return None
   }
-  let timestamp = match @typing.node_form(typed, obligation.node_index) {
+  let pattern = match @typing.node_form(typed, obligation.node_index) {
     Some(@typing.Expression(operation, _)) if [
-        "parse_timestamp", "format_timestamp",
+        "parse_timestamp", "try_timestamp", "format_timestamp", "regex_match", "regex_extract",
+        "regex_replace",
       ].contains(operation) =>
       match
         original_expression_discharge(
@@ -1634,12 +1758,25 @@ fn original_expression_text_bound(
           budget,
           bound=Some((bound, step)),
         ) {
-        Some(@context.Pattern(@context.Timestamp(pattern))) => Some(pattern)
+        Some(@context.Pattern(pattern)) => {
+          let matches = match pattern {
+            @context.Timestamp(_) =>
+              ["parse_timestamp", "try_timestamp", "format_timestamp"].contains(
+                operation,
+              )
+            @context.Regex(regex) => regex_resolution_matches(operation, regex)
+            @context.Like(_) => false
+          }
+          if !matches {
+            return None
+          }
+          Some(pattern)
+        }
         _ => return None
       }
     _ => None
   }
-  Some({ original, timestamp, })
+  Some({ original, pattern, })
 }
 
 ///|

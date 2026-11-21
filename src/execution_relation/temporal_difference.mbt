@@ -3,9 +3,7 @@
 // eager evaluation, including the admitted literal unit and NULL operands.
 priv struct TemporalArgumentsState {
   expression : @lower.Expression
-  addition : Bool
-  interval : Bool
-  subtract : Bool
+  operation : @lower.ManyOperator
   children : Array[@lower.Expression]
   values : Array[Value]
   roots : Array[ExpressionRootLease?]
@@ -44,8 +42,41 @@ fn temporal_difference(
   if (!dates && !timestamps) || (dates && unit != "d") {
     return Err(InvalidOperand)
   }
+  if unit == "us" {
+    return Err(InvalidOperand)
+  }
+  // The admitted four-digit calendar bounds this whole-unit result well below
+  // 2^53, including the full-range millisecond difference. Conversion is exact.
+  temporal_whole_units(unit, left, right).map(count => Number(count.to_double()))
+}
+
+///|
+fn timestamp_difference(
+  unit : String,
+  left : Value,
+  right : Value,
+) -> Result[Value, ScalarIssue] {
+  if left is Null || right is Null {
+    return Ok(Null)
+  }
+  guard left is Captured(@admitted.Timestamp(_)) &&
+    right is Captured(@admitted.Timestamp(_)) else {
+    return Err(InvalidOperand)
+  }
+  temporal_whole_units(unit, left, right).map(count => {
+    capture(@admitted.signed64_value(count))
+  })
+}
+
+///|
+/// Admitted years 0001 through 9999 fit Int64 even in microseconds.
+fn temporal_whole_units(
+  unit : String,
+  left : Value,
+  right : Value,
+) -> Result[Int64, ScalarIssue] {
   let divisor = match unit {
-    "ms" | "s" => 1L
+    "us" | "ms" | "s" => 1L
     "m" => 60L
     "h" => 3600L
     "d" => 86400L
@@ -61,9 +92,11 @@ fn temporal_difference(
     seconds -= 1L
     nanos += 1000000000
   }
-  let count = if unit == "ms" {
-    let floor = seconds * 1000L + (nanos / 1000000).to_int64()
-    if seconds < 0L && nanos % 1000000 != 0 {
+  let count = if unit == "us" || unit == "ms" {
+    let nanos_per_unit = if unit == "us" { 1000 } else { 1000000 }
+    let units_per_second = (1000000000 / nanos_per_unit).to_int64()
+    let floor = seconds * units_per_second + (nanos / nanos_per_unit).to_int64()
+    if seconds < 0L && nanos % nanos_per_unit != 0 {
       floor + 1L
     } else {
       floor
@@ -76,7 +109,5 @@ fn temporal_difference(
       quotient
     }
   }
-  // The admitted four-digit calendar bounds this whole-unit result well below
-  // 2^53, including the full-range millisecond difference. Conversion is exact.
-  Ok(Number(count.to_double()))
+  Ok(count)
 }

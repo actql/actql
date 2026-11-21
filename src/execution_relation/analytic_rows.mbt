@@ -56,13 +56,14 @@ fn analytic_execution_supported_with_profile(
       PreparedRowNumber
       | PreparedRank
       | PreparedDenseRank
+      | PreparedPercentRank
+      | PreparedNtile(_)
       | PreparedLag(_, _)
       | PreparedLead(_, _)
       | PreparedFirstValue(_)
       | PreparedLastValue(_) => ()
       PreparedFrameAggregate(aggregate) =>
-        if @lower.analytic_frame(analytic) is None ||
-          !direct_aggregate_execution_supported(
+        if !direct_aggregate_execution_supported(
             aggregate,
             @lower.analytic_position_term_count(analytic) > 0,
             numeric~,

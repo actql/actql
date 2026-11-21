@@ -398,3 +398,45 @@ test "wide array roots use original workspace while continuation depth stays ind
   )
   assert_eq(depth_logical.live, 0L)
 }
+
+///|
+test "array length counts admitted entries and returns a signed64 value" {
+  for
+    (body, expected) in [
+      (
+        "{\"array\":[{\"literal\":2},{\"literal\":null},{\"literal\":2}]}",
+        Some(3L),
+      ),
+      ("{\"array\":[]}", Some(0L)),
+      ("{\"array\":[{\"literal\":null}]}", Some(1L)),
+      ("{\"literal\":null}", None),
+    ] {
+    let value = run_expr("{\"array_length\":" + body + "}").unwrap()
+    match expected {
+      Some(count) =>
+        assert_true(
+          value is Captured(@admitted.Signed64(actual)) && actual == count,
+          msg=body,
+        )
+      None => assert_true(value is Null)
+    }
+  }
+}
+
+///|
+test "array length keeps child failures and enclosing lazy demand" {
+  let failure =
+    #|{"array_length":{"array":[{"divide":[{"literal":1},{"literal":0}]}]}}
+  guard run_expr(failure) is Err(issue) else {
+    fail("the array child must fail before counting")
+  }
+  assert_true(issue.kind is Scalar(ArithmeticFailure))
+  assert_true(
+    @lower.expression_body(issue.expression)
+    is @lower.Binary(@lower.Divide, _, _),
+  )
+  let conditional = "{\"if\":[{\"literal\":false}," +
+    failure +
+    ",{\"array_length\":{\"array\":[]}}]}"
+  assert_true(run_expr(conditional) is Ok(Captured(@admitted.Signed64(0L))))
+}

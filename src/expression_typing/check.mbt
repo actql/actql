@@ -4,6 +4,7 @@ fn check_impl(
   environment : Environment,
   limits : Limits,
   argument_domain? : ArgumentDomain? = None,
+  root_null_context? : @contract.Contract? = None,
 ) -> TypedExpression raise Stop {
   let source = @syntax.tree(expression)
   if limits.max_nodes < 0 ||
@@ -43,11 +44,17 @@ fn check_impl(
     }
     ignore(require_type(t, nodes, 0, expected))
   }
+  if root_null_context is Some(context) && immediate_null(nodes[0]) {
+    let root = nodes[0]
+    provide(t, root.inferred, import_type(t, context, root.source), root.source)
+  }
   let annotations : Array[TypedNode] = []
   let safe : Map[Int, Bool] = Map([])
   let mut requires_query_time = false
   for node in nodes {
-    requires_query_time = requires_query_time || node.tag == "current_timestamp"
+    requires_query_time = requires_query_time ||
+      node.tag == "current_timestamp" ||
+      node.tag == "current_date"
     let contract = resolve_type(t, node.inferred, node.source)
     if ["array", "empty_array", "object"].contains(node.tag) &&
       !constructor_safe(t, node.inferred, safe, node.source) {
@@ -104,12 +111,15 @@ pub fn check_argument(
 ///|
 /// A type proof, not a checked Plan or permission to execute. Every branch is
 /// visited. Pending validations must be discharged by subsequent admission.
+/// A root NULL context resolves only that literal against an existing value
+/// contract. Other values and unresolved descendants keep their own types.
 pub fn check(
   expression : @syntax.Expression,
   environment : Environment,
   limits : Limits,
+  root_null_context? : @contract.Contract? = None,
 ) -> Result[TypedExpression, Issue] {
-  Ok(check_impl(expression, environment, limits)) catch {
+  Ok(check_impl(expression, environment, limits, root_null_context~)) catch {
     Stop(source, kind) =>
       Err({
         source,
