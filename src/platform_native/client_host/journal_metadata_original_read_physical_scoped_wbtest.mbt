@@ -473,6 +473,7 @@ test "Host attestation refuses mismatched preparation before entering its captur
     _retained_checkpoint: None,
     _retained_continuation: None,
     _retained_original: None,
+    _retained_store_location: None,
     _retained_restoration: None,
     _retained_file_entry_control: None,
     _retained_publication_construction: None,
@@ -608,4 +609,49 @@ test "Host attestation refuses mismatched preparation before entering its captur
   foreign_crypto.close_checked().unwrap()
   foreign_db.close_checked().unwrap()
   account_original_read_close_fixture(fixture)
+}
+
+///|
+fn saved_capture_probe_quote_case(one_short : Bool) -> Unit raise {
+  let limit = 4194304L
+  let initial = 65536L + 65536L
+  let (retained, _, raw) = saved_effect_capture_probe_construction().unwrap()
+  assert_true(retained > 0L)
+  let fixture = journal_metadata_original_read_fixture(retained_limit=limit)
+  let previous = limit - initial - retained + (if one_short { 1L } else { 0L })
+  fixture.original
+  .stage(@arena.HostRead, fn() {
+    fixture.host
+    .prepare_domain_original_read_construction(
+      fixture.read,
+      previous,
+      previous,
+      raw,
+    )
+    .map_err(issue => OriginalResources(@arena.Read(issue)))
+  })
+  .unwrap()
+  assert_true(
+    prepare_saved_effect_capture_probe(fixture.original, previous)
+    is Err(OriginalResourceScopePending),
+  )
+  let result = fixture.original.stage(@arena.HostRead, fn() {
+    prepare_saved_effect_capture_probe(fixture.original, previous)
+  })
+  if one_short {
+    assert_true(result is Err(OriginalResources(_)))
+  } else {
+    assert_eq(result.unwrap(), limit - initial)
+  }
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+test "Saved Capture probe fits the exact same real Read retained boundary" {
+  saved_capture_probe_quote_case(false)
+}
+
+///|
+test "Saved Capture probe refuses a one-short real Read retained boundary" {
+  saved_capture_probe_quote_case(true)
 }

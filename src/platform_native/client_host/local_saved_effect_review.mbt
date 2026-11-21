@@ -17,6 +17,7 @@ struct NativeLocalSavedEffectReview {
   mut _retained_checkpoint : @publication_store.EffectCheckpointCustody?
   mut _retained_continuation : String?
   mut _retained_original : NativeClientOriginalCheckpointMetadata?
+  mut _retained_store_location : (String, UInt64, UInt64)?
   mut _retained_restoration : NativeLocalSavedEffectRestoration?
   mut _retained_file_entry_control : Result[
     Unit,
@@ -48,7 +49,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
         // input identity/Store/String fields remain original borrowed values.
         // The restoration child retains one original material reference.
         record_headers: 9L,
-        reference_slots: 34L,
+        reference_slots: 35L,
         scalar_words: 8L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -72,6 +73,7 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
     _retained_checkpoint: None,
     _retained_continuation: None,
     _retained_original: None,
+    _retained_store_location: None,
     _retained_restoration: None,
     _retained_file_entry_control: None,
     _retained_publication_construction: None,
@@ -99,8 +101,8 @@ pub fn NativeLocalSavedEffectReview::restore_in_original_read(
       depth=key_depth,
       additional=Some((65536, 4096, 64)),
       additional_controls=Some({
-        record_headers: 8L,
-        reference_slots: 24L,
+        record_headers: 9L,
+        reference_slots: 25L,
         scalar_words: 8L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -148,10 +150,11 @@ pub fn NativeLocalSavedEffectReview::restore_in_original_read(
       metadata.run_definition_cid else {
       return Err(Journal(CustodyLost))
     }
-    let (authority, device, inode) = match self.store.custody_location() {
+    let location = match self.store.custody_location() {
       Ok(value) => value
       Err(issue) => return Err(Journal(PublicationObservation(issue)))
     }
+    let (authority, device, inode) = location
     let binding = match
       installed_publication_binding(self.namespace_id, authority, device, inode) {
       Ok(value) => value
@@ -238,7 +241,10 @@ pub fn NativeLocalSavedEffectReview::restore_in_original_read(
         actual.run_definition_cid == metadata.run_definition_cid &&
         actual.revision == metadata.revision &&
         !actual.cancellation_requested &&
-        current() => Ok(())
+        current() => {
+        self._retained_store_location = Some(location)
+        Ok(())
+      }
       Err(Journal(issue)) => Err(Journal(issue))
       _ => Err(Journal(CustodyLost))
     }
@@ -255,6 +261,7 @@ pub fn NativeLocalSavedEffectReview::retire_read_aliases(
   self._retained_checkpoint = None
   self._retained_continuation = None
   self._retained_original = None
+  self._retained_store_location = None
   self.retained_persisted = None
   self.approval_original = None
   if self._retained_restoration is Some(restoration) &&

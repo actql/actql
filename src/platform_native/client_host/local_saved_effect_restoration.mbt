@@ -5,6 +5,7 @@ priv struct NativeLocalSavedEffectRestoration {
   packet : NativeClientRetainedEffectMaterials
   mut capacity : @execution.ExecutionCapacity
   fields : @decode.ObjectView
+  capture_wire : String?
   schema_cursors : Array[@decode.Cursor]
   mut attempted : Bool
   mut completed : Bool
@@ -26,7 +27,7 @@ priv struct NativeLocalSavedEffectRestoration {
 // computation material uses the complete conservative compiler recovery recipe.
 let native_saved_restoration_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 136L,
-    reference_slots: 536L,
+    reference_slots: 537L,
     scalar_words: 268L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -89,10 +90,37 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     is Some(capacity) else {
     return Err(ConfigurationLimit)
   }
+  let (capture_wire, capacity) = match epoch_text(fields, "captured_run_cid") {
+    None => (None, capacity)
+    Some(cid) => {
+      let captured = match
+        self.read_saved_effect_capture(fields, packet, cid, now) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let geometry = match
+        saved_effect_capture_geometry(captured, wire_limits) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard @local.installed_effect_contract_response_construction_capacity(
+          geometry.input_bytes,
+          geometry.node_upper,
+          geometry.depth_upper,
+        )
+        is Some(construction) &&
+        @execution.add_execution_capacity(capacity, construction)
+        is Some(combined) else {
+        return Err(ConfigurationLimit)
+      }
+      (Some(captured), combined)
+    }
+  }
   let restoration : NativeLocalSavedEffectRestoration = {
     packet,
     capacity,
     fields,
+    capture_wire,
     schema_cursors: [],
     attempted: false,
     completed: false,
@@ -188,6 +216,228 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     }
   }
   Ok(restoration.capacity)
+}
+
+///|
+// The fixed probe owns the Store and original-Journal callback frames, one
+// holding/revision/extent and the scalar Capture preflight. Store location
+// encoding and original key derivation use their existing codec recipes.
+fn saved_effect_capture_probe_construction() -> (Int64, Int64, Int64)? {
+  let controls = @source.json_source_preflight_control_extent()
+  let fixed = @execution.preparation_representation_cost({
+    record_headers: controls.record_headers + 32L,
+    reference_slots: controls.reference_slots + 96L,
+    scalar_words: controls.scalar_words + 40L,
+    owned_utf16_units: 71L,
+    owned_wire_bytes: 32L,
+  }).unwrap()
+  let (key_bytes, key_nodes, key_depth) = native_mock_model_evidence_key_codec_limits
+  guard journal_row_construction_working(key_bytes, key_nodes, key_depth)
+    is Some((key_retained, key_peak, key_raw)) &&
+    journal_row_construction_working(4096, 8, 2)
+    is Some((binding_retained, binding_peak, binding_raw)) else {
+    return None
+  }
+  Some(
+    (
+      fixed + key_retained + binding_retained,
+      fixed + key_peak + binding_peak,
+      Int64::max(fixed, Int64::max(key_raw, binding_raw)),
+    ),
+  )
+}
+
+///|
+fn prepare_saved_effect_capture_probe(
+  original : NativeLocalJournalOriginalResources,
+  previous : Int64,
+) -> Result[Int64, NativeLocalAdoptionIssue] {
+  guard original.active_phase is Some(@arena.HostRead) && !original.interrupted else {
+    return Err(OriginalResourceScopePending)
+  }
+  guard saved_effect_capture_probe_construction() is Some((r, e, raw)) &&
+    @execution.checked_preparation_add_product(previous, r, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(previous, e, 1L)
+    is Some(execution) else {
+    return Err(ConfigurationLimit)
+  }
+  original.host
+  .prepare_domain_original_read_construction(
+    original.read,
+    retained,
+    execution,
+    raw,
+  )
+  .map(_ => retained)
+  .map_err(issue => OriginalResources(@arena.Read(issue)))
+}
+
+///|
+fn NativeLocalSavedEffectReview::read_saved_effect_capture(
+  self : NativeLocalSavedEffectReview,
+  fields : @decode.ObjectView,
+  packet : NativeClientRetainedEffectMaterials,
+  cid : String,
+  now : Double,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  let request = self.selected.request
+  guard self._retained_store_location is Some(location) &&
+    self._retained_original is Some(original) &&
+    self.retained_persisted is Some(persisted) &&
+    @host.client_request_identity_relation(packet.request, request) ==
+    @host.SameRequest &&
+    original.run_definition_cid ==
+    @publication.publication_contract_identity(packet.definition) &&
+    original.checkpoint_cid == persisted.artifact.checkpoint_cid &&
+    persisted.artifact.checkpoint.subject
+    is @checkpoint.RunUnit(run_definition_cid~, ..) &&
+    run_definition_cid == original.run_definition_cid &&
+    epoch_text(fields, "request_scope_cid") ==
+    Some(@host.client_request_scope_cid(request)) &&
+    epoch_text(fields, "authority_scope_cid") ==
+    Some(@host.client_request_authority_scope_cid(request)) &&
+    epoch_text(fields, "request_id") ==
+    Some(@host.client_request_caller_id(request)) &&
+    epoch_text(fields, "run_definition_wire") ==
+    Some(@publication.publication_contract_json(packet.definition)) else {
+    return Err(Journal(CustodyLost))
+  }
+  guard self.capture.original_resources is Some(resources) else {
+    return Err(OriginalResourceScopePending)
+  }
+  match
+    prepare_saved_effect_capture_probe(
+      resources,
+      self._retained_constructor_bytes,
+    ) {
+    Ok(retained) => self._retained_constructor_bytes = retained
+    Err(issue) => return Err(issue)
+  }
+  let capture = self.capture
+  capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let require_current = fn() -> Result[Unit, NativeLocalAdoptionIssue] {
+      guard !self.retired &&
+        self.store.custody_location() is Ok(actual_location) &&
+        actual_location == location &&
+        self.store.retained_data_current() is Ok(_) else {
+        return Err(Journal(CustodyLost))
+      }
+      match
+        host.lookup_submitted_checkpoint_metadata_with_operations(
+          capture.crypto,
+          self.principal,
+          self.connection,
+          self.selected.reference,
+          request,
+          now,
+          operations=Some(operations),
+          capture=Some(capture),
+        ) {
+        Ok(Some(actual)) if actual.checkpoint_cid == original.checkpoint_cid &&
+          actual.run_definition_cid == original.run_definition_cid &&
+          actual.revision == original.revision &&
+          !actual.cancellation_requested &&
+          !self.retired &&
+          capture.operation_scope(
+            host,
+            material,
+            self.principal,
+            self.connection,
+          )
+          is Ok(scope) &&
+          scope == @host.client_request_authority_scope_cid(request) &&
+          capture.operation_account(host, material, {
+            principal: self.principal,
+            connection: self.connection,
+            resource: "run",
+            operation: "read",
+          })
+          is Ok(@authorization.Allow(_)) => Ok(())
+        Err(Journal(issue)) => Err(Journal(issue))
+        _ => Err(Journal(CustodyLost))
+      }
+    }
+    match require_current() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let (authority, device, inode) = location
+    let binding = match
+      installed_publication_binding(self.namespace_id, authority, device, inode) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+    let key = match
+      native_local_private_evidence_key(
+        host,
+        binding,
+        operations.reads,
+        "actql-native-local-effect-review-key/0.1",
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let (extent, layout) = match
+      self.store.effect_capture_restore_construction(packet.definition, cid) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(PublicationObservation(issue)))
+    }
+    match
+      capture.prepare_private_store_layouts_construction(
+        1,
+        _ => Some(layout),
+        additional_retained=self._retained_constructor_bytes,
+      ) {
+      Ok(retained) => self._retained_constructor_bytes = retained
+      Err(Original(issue)) => return Err(issue)
+      Err(_) => return Err(Encoding)
+    }
+    match require_current() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let wire = match extent.read_original_wire(capture.crypto, key) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(PublicationObservation(issue)))
+    }
+    require_current().map(_ => wire)
+  })
+}
+
+///|
+// The authenticated raw wire remains funded by the Read. Its scalar scan
+// supplies the entered constructor's quote without building a second tree.
+fn saved_effect_capture_geometry(
+  wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[@source.JsonSourceGeometry, NativeLocalAdoptionIssue] {
+  let preflight = match
+    @source.start_json_source_preflight(
+      wire,
+      {
+        max_input_bytes: limits.max_wire_bytes,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+      },
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Journal(CustodyLost))
+  }
+  defer @source.cancel_json_source_preflight(preflight)
+  while true {
+    match @source.advance_json_source_preflight(preflight, 4096) {
+      Ok(@source.JsonSourceContinue(..)) => continue
+      Ok(@source.JsonSourceReady(value, ..)) => return Ok(value)
+      _ => return Err(Journal(CustodyLost))
+    }
+  }
+  Err(Journal(CustodyLost))
 }
 
 ///|
@@ -290,10 +540,15 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ] {
-    guard native_saved_material_input_raw(
-        Int::max(wire.length(), restoration.packet.materials_wire.length()),
-      )
-      is Some(raw) else {
+    let input_units = Int::max(
+      wire.length(),
+      restoration.packet.materials_wire.length(),
+    )
+    let input_units = match restoration.capture_wire {
+      None => input_units
+      Some(captured) => Int::max(input_units, captured.length())
+    }
+    guard native_saved_material_input_raw(input_units) is Some(raw) else {
       return Err(ConfigurationLimit)
     }
     match
@@ -357,6 +612,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
       effect_limits,
       publication_present,
       schema_cursors=restoration.schema_cursors,
+      capture_wire=restoration.capture_wire,
     )
   })()
   restoration.candidate = Some(result)
