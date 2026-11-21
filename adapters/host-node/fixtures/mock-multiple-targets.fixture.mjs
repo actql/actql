@@ -62,6 +62,50 @@ export function multipleTargetMockProjectFiles() {
   });
 }
 
+// An ordinary Native Saved application uses one approved Effect set. The
+// first and last members share the Account provider, the middle uses Contact.
+// Each selects a different row in the one declared physical data file.
+export function threeWriteMockProject() {
+  const files = {...multipleTargetMockProjectFiles()};
+  const programFile = 'multiple-targets.program.json';
+  const data = JSON.parse(files['mock/data.json']);
+  data.salesforce.Account.rows.push({id: 'a2', group: 'other', value: 'A2-old'});
+  const before = json(data);
+  files['mock/data.json'] = before;
+  const program = JSON.parse(files[programFile]);
+  program.id = 'fixture.mock-three-ordered-targets';
+  const stage = program.stages[0];
+  const projection = stage.steps.at(-1).select;
+  const row = {
+    account_id: 'a1', contact_id: 'c1', account_before: 'A-old', contact_before: 'C-old',
+    account_next: 'A-new', contact_next: 'C-new', second_account_id: 'a2', second_account_next: 'A2-new',
+  };
+  Object.assign(stage.steps[1].derive, {
+    second_account_id: {literal: row.second_account_id},
+    second_account_next: {literal: row.second_account_next},
+  });
+  projection.push('second_account_id', 'second_account_next');
+  stage.results.rows.fields = projection;
+  const account = stage.effects.account, contact = stage.effects.contact;
+  stage.effects = {a_first: account, b_middle: contact, c_last: {update: {
+    ...account.update, id: 'second_account_id', set: {value: field('second_account_next')},
+  }}};
+  files[programFile] = json(program);
+  const changes = Object.freeze([
+    Object.freeze({resource: 'Account', id: 'a1', before: 'A-old', after: 'A-new'}),
+    Object.freeze({resource: 'Contact', id: 'c1', before: 'C-old', after: 'C-new'}),
+    Object.freeze({resource: 'Account', id: 'a2', before: 'A2-old', after: 'A2-new'}),
+  ]);
+  let after = before;
+  for (const change of changes) {
+    const original = '"value": ' + JSON.stringify(change.before);
+    assert.equal(before.split(original).length, 2);
+    after = after.replace(original, '"value": ' + JSON.stringify(change.after));
+  }
+  return Object.freeze({files: Object.freeze(files), programFile,
+    before, after, changes, rows: Object.freeze([Object.freeze(row)])});
+}
+
 export const multipleTargetMockWriteCount = 2;
 export function checkMultipleTargetMockRows(rows) {
   assert.deepEqual(rows, [{account_id: 'a1', contact_id: 'c1', account_before: 'A-old',

@@ -17,7 +17,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
-import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
@@ -26,6 +26,10 @@ import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplac
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 export function nativeMockInstallOptions(extra, platform) {
+  if (extra.includes('--shared-file-mock')) {
+    assert.deepEqual(extra, ['--shared-file-mock'], 'Shared-file Mock requires a separate acceptance invocation');
+    return {sharedFileMock: true};
+  }
   const selected = extra.indexOf('--release-project-sequences');
   assert(selected < 0 || selected === extra.length - 2 && typeof extra[selected + 1] === 'string' && extra[selected + 1].length,
     'RC sequence selection requires exactly its Node RC directory');
@@ -37,8 +41,10 @@ export function nativeMockInstallOptions(extra, platform) {
   return options;
 }
 export async function runNativeCliMockInstall(input, {measureResources = false, diagnoseSyscalls = false,
-  releaseAdmission, projectSequenceNodeRelease} = {}) {
+  releaseAdmission, projectSequenceNodeRelease, sharedFileMock = false} = {}) {
   assert(input, 'Native mock acceptance requires its fixed release directory');
+  assert(!sharedFileMock || (!measureResources && !diagnoseSyscalls && !releaseAdmission && !projectSequenceNodeRelease),
+    'Shared-file Mock requires its own fixed release admission');
   const syscallTool = diagnoseSyscalls ? {
     path: '/usr/bin/strace',
     sha256: createHash('sha256').update(await readFile('/usr/bin/strace')).digest('hex'),
@@ -163,9 +169,15 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     env.PATH = join(root, 'empty-path');
     env.ACTQL_NATIVE_TIMINGS = '1';
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
-    for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({root, template, launcherTimings: 'required',
-      run: (args, cwd) => run(process.execPath, [launcher, ...args], cwd)}), template));
-    assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips');
+    const runScenarioCommand = (args, cwd) => run(process.execPath, [launcher, ...args], cwd);
+    if (sharedFileMock) {
+      scenarios.push(await observe('scenario', () => runNativeSharedFileMockScenario({root,
+        launcherTimings: 'required', run: runScenarioCommand}), 'shared-file-mock'));
+    } else {
+      for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
+        root, template, launcherTimings: 'required', run: runScenarioCommand}), template));
+      assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips');
+    }
     for (const scenario of scenarios) {
       const approvals = scenario.commands.filter(record => record.args.includes('approve'));
       assert.equal(approvals.length, 1);
@@ -212,7 +224,8 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);
       assert.deepEqual(checkoutState(repository), source);
     });
-    receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'local-mock-approval-recovery',
+    receipt = {version: 'actql-native-cli-install-acceptance/0.1',
+      scope: sharedFileMock ? 'local-shared-file-mock-approval-recovery' : 'local-mock-approval-recovery',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null, artifact,
       scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       scenarioSha256: createHash('sha256').update(await readFile(new URL('./native-cli-mock-scenario.mjs', import.meta.url))).digest('hex'),
@@ -258,7 +271,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }));
   } else {
     const options = nativeMockInstallOptions(extra, process.platform);
-    assert(input, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources] [--diagnose-approval-syscalls] [--release-project-sequences <Node-RC>]');
+    assert(input, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources] [--diagnose-approval-syscalls] [--release-project-sequences <Node-RC>] or <fixed-CLI-RC> --shared-file-mock');
     await runNativeCliMockInstall(input, options);
   }
 }
