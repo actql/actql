@@ -6,7 +6,6 @@ import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
-import {declaredRowUpdateKinds} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
@@ -165,8 +164,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     });
 
   return Object.freeze({
-    kind: 'update', kinds: declaredRowUpdateKinds, targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
-    writeOperation: () => HUBSPOT_INSTALLED_UPDATE_OPERATION,
+    kind: 'update', targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
+    operation: HUBSPOT_INSTALLED_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
     async describe(options) {

@@ -430,8 +430,8 @@ test('a failed capture read leaves no unobserved physical continuation',
 
 test('declared UPDATE requires a pure write preparation and an installed credential recipe', async () => {
   const never = () => assert.fail('Rejected declaration ran a provider callback');
-  const write = Object.freeze({kind: 'update', kinds: Object.freeze(['update']),
-    prepareRequest: never, requestFacts: never, writeOperation: never, prepareUpdateWrite: never,
+  const write = Object.freeze({kind: 'update', operation: 'records.update',
+    prepareRequest: never, requestFacts: never, prepareUpdateWrite: never,
     project: never, footprint: never, recoveryEntry: never, recoverRequests: never, requestCid: never,
     targetRead: Object.freeze({operation: 'read'}), observeTargets: never});
   await assert.rejects(createInstalledRowEffect({write}), {code: 'InvalidInstalledEffectPlanRecipe'});
@@ -439,6 +439,8 @@ test('declared UPDATE requires a pure write preparation and an installed credent
     Object.freeze({...write, send: never}),
     Object.freeze({...write, async prepareUpdateWrite() {never();}}),
     Object.freeze({...write, kinds: ['create', 'update']}),
+    Object.freeze({...write, writeOperation: never}),
+    Object.freeze({...write, get operation() {return never();}}),
   ]) {
     await assert.rejects(createInstalledRowEffect({write: invalid}), {code: 'InvalidInstalledRowEffectDriver'});
   }

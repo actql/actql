@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "bdb3fbef1f3329fb9ed6b8127640fb357ce76235595d0f3f8f2a05289e20a320",
+      "sha256": "15a138edc077b23b9870ad6f513ba0e23f13378e2287e3b912ba2c09a471ac5f",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -8667,11 +8667,6 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/kintoneUpdateDriver#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "kintoneUpdateDriver/readScope/readScope/decision/decision",
           "parameters": [
             "slot"
@@ -8768,7 +8763,6 @@
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/http-exchange.mjs",
         "../../../host-common/installed-row-update-recovery.mjs",
-        "../../../host-common/owned-invocation-context.mjs",
         "../site/kintone-record-delete.mjs",
         "../site/kintone-record-read.mjs",
         "../site/kintone-record-write.mjs",
@@ -8796,7 +8790,6 @@
             "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
             "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
             "kintoneUpdateDriver/kintoneUpdateDriver",
-            "kintoneUpdateDriver/kintoneUpdateDriver#2",
             "kintoneUpdateDriver/readScope/readScope/decision/decision",
             "kintoneUpdateDriver/readScope/readScope/readScope",
             "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",

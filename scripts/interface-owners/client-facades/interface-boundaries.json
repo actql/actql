@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "434c8ec9b2b6cd0029ad5b926480226b7ad45031774d66de3a966e6f550d2fa5",
+      "sha256": "9f45c7fe2dba2b37652b2927a8dcde448ca9f9a61522990477b87dd0bd5b31ae",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -62,6 +62,8 @@
         "RowEffectRequestChild",
         "RowEffectRequestFacts",
         "RowEffectTargetObservation",
+        "RowEffectUpdateRequest",
+        "RowEffectUpdateWrite",
         "RowEffectValue",
         "RowEffectValueKind",
         "RowEffectWriteHttp",
@@ -599,6 +601,61 @@
           "result": "Readonly<{pending: boolean}>"
         },
         {
+          "name": "RowEffectUpdateWrite/observeTargets",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
+          ],
+          "result": "Awaitable<readonly RowEffectTargetObservation<'update'>[]>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget",
+          "parameters": [
+            "rowIndex: number",
+            "request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>",
+            "project: (originalResponse: CredentialResponse) => T",
+            "assertCurrent: () => Awaitable<void>"
+          ],
+          "result": "Promise<T>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget/<call>",
+          "parameters": [
+            "originalResponse: CredentialResponse"
+          ],
+          "result": "T"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget/<call>#2",
+          "parameters": [],
+          "result": "Awaitable<void>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/prepareUpdateWrite",
+          "parameters": [
+            "member: RowEffectMember<'update'>",
+            "request: Request",
+            "current: Current | undefined",
+            "resourceOrigin: string",
+            "connectorRegistration: string",
+            "signal?: AbortSignal"
+          ],
+          "result": "Readonly<RowEffectUpdateRequest & {body: string; responseHeaders?: readonly string[]}>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/recoveryEntry",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    current: Current | undefined; entries: readonly RowEffectEntry<Request, 'update'>[]}>"
+          ],
+          "result": "Readonly<{kind: string; observationCid: string; wire: string}>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/requestCid",
+          "parameters": [
+            "request: Request"
+          ],
+          "result": "string"
+        },
+        {
           "name": "RowPageRequest/authorizationFor",
           "parameters": [
             "index: number"
@@ -767,7 +824,14 @@
             "RowEffectCreateWrite/project#2",
             "RowEffectCreateWrite/request",
             "RowEffectCreateWrite/request#2",
-            "RowEffectCreateWrite/restore"
+            "RowEffectCreateWrite/restore",
+            "RowEffectUpdateWrite/observeTargets",
+            "RowEffectUpdateWrite/observeTargets/readTarget",
+            "RowEffectUpdateWrite/observeTargets/readTarget/<call>",
+            "RowEffectUpdateWrite/observeTargets/readTarget/<call>#2",
+            "RowEffectUpdateWrite/prepareUpdateWrite",
+            "RowEffectUpdateWrite/recoveryEntry",
+            "RowEffectUpdateWrite/requestCid"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -843,7 +907,9 @@
             "RowEffectCreateWrite",
             "RowEffectWriteHttp",
             "RowEffectWriteInput",
-            "RowEffectWriteObservation"
+            "RowEffectWriteObservation",
+            "RowEffectUpdateRequest",
+            "RowEffectUpdateWrite"
           ],
           "attributes": {
             "responsibility": [

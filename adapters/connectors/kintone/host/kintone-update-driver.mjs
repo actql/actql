@@ -5,7 +5,6 @@ import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
-import {declaredRowUpdateKinds} from '../../../host-common/owned-invocation-context.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
@@ -174,8 +173,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
   };
 
   return Object.freeze({
-    kind: 'update', kinds: declaredRowUpdateKinds, targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
-    writeOperation: () => KINTONE_RECORD_UPDATE_OPERATION,
+    kind: 'update', targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
+    operation: KINTONE_RECORD_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
     async describe(options) {

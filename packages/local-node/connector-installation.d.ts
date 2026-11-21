@@ -536,6 +536,41 @@ export interface RowEffectCreateWrite<Request extends object> {
     }>): RowEffectProjection | undefined;
   }>;
 }
+/** DATA for one original guarded UPDATE request. The existing managed
+ * installation plan selects the Credential, operation and transport limits. */
+export interface RowEffectUpdateRequest<Method extends string = 'POST' | 'PUT' | 'PATCH'> {
+  readonly method: Method;
+  readonly path: string;
+  readonly query?: HttpPairs;
+  readonly headers?: HttpPairs;
+  readonly body?: string;
+}
+export interface RowEffectUpdateWrite<Request extends object, Current = unknown> extends Pick<
+  RowEffectDriver<Request, Current, 'update'>,
+  'prepareRequest' | 'requestFacts' | 'project' | 'footprint' | 'describe' | 'recheckRequests' |
+  'admitTargetReadApproval' | 'recoverMemberRequests'> {
+  readonly kind: 'update';
+  readonly operation: string;
+  readonly kinds?: never;
+  readonly writeOperation?: never;
+  readonly send?: never;
+  readonly targetRead: Readonly<{operation: string}>;
+  requestCid(request: Request): string;
+  prepareUpdateWrite(member: RowEffectMember<'update'>, request: Request,
+    current: Current | undefined, resourceOrigin: string, connectorRegistration: string, signal?: AbortSignal):
+    Readonly<RowEffectUpdateRequest & {body: string; responseHeaders?: readonly string[]}>;
+  observeTargets(options: Readonly<{member: RowEffectMember<'update'>;
+    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;
+    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,
+      request: RowEffectUpdateRequest<'GET' | 'POST' | 'HEAD'>,
+      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):
+      Promise<T>;
+    signal?: AbortSignal}>): Awaitable<readonly RowEffectTargetObservation<'update'>[]>;
+  recoveryEntry(options: Readonly<{member: RowEffectMember<'update'>;
+    current: Current | undefined; entries: readonly RowEffectEntry<Request, 'update'>[]}>):
+    Readonly<{kind: string; observationCid: string; wire: string}>;
+  recoverRequests: NonNullable<RowEffectDriver<Request, Current, 'update'>['recoverRequests']>;
+}
 export type InstalledRowEffectOptions<Request extends object,
   Current = unknown, Kind extends RowEffectKind = RowEffectValueKind> = Readonly<{
     moon: ConnectorRuntimeOwner;
@@ -558,7 +593,11 @@ export type InstalledRowEffectOptions<Request extends object,
     limits?: Partial<RowEffectLimits>;
   }> & (Readonly<{
     driver: RowEffectDriver<Request, Current, Kind>; write?: never;
-  }> | (Kind extends 'create' ? Readonly<{
+  }> | (Kind extends 'update' ? Readonly<{
+    driver?: never; write: RowEffectUpdateWrite<Request, Current>;
+    /** The existing installer-prepared UPDATE recipe supplies the exact funded operation. */
+    managedPlanRecipes: Readonly<{update: object}>;
+  }> : never) | (Kind extends 'create' ? Readonly<{
     driver?: never; write: RowEffectCreateWrite<Request>;
   }> : never));
 export declare function createInstalledRowEffect<Request extends object,

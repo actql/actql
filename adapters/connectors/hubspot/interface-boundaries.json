@@ -2114,7 +2114,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "9b14974fbce9fad618946f677fe5fcf491224d76ae0d6dbcccd6ab4bb04cb6bd",
+      "sha256": "a170430d497dd64f968e5a8ea50c49002c7a901d6b69c718e289148d53f58675",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2161,11 +2161,6 @@
             "maxRecoveryBytes",
             "requestRecheckCapacity"
           ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/hubspotUpdateDriver",
-          "parameters": [],
           "async": false
         },
         {
@@ -2329,7 +2324,6 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/installed-row-update-recovery.mjs",
-        "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../site/hubspot-account-read.mjs",
         "../site/hubspot-object-read.mjs",
@@ -2349,7 +2343,6 @@
             "capture/capture/capture",
             "capture/capture/capture/capture",
             "hubspotUpdateDriver",
-            "hubspotUpdateDriver/hubspotUpdateDriver",
             "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
             "hubspotUpdateDriver/init:describe/init:describe",
             "hubspotUpdateDriver/init:footprint/init:footprint",
