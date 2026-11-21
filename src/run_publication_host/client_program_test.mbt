@@ -110,12 +110,12 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     client_result_plan_wire(result_plan),
     (
-      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:c511299e4d003ecfa35c21bcd54d51c57fd99b0e27698ca6022936d7d64adba2","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:a244fd555df2652adf880b37b8447600ee03f42564c5c414eeb6e809b8a85c5c","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
+      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:f7ef665cf939e7503aa7b9c672652a282f20f64b8995ad6bef1b9e31bbc6d5c0","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:5a64690daf826d87cd40169d7bb56516573944012d3c1146191cb3497173f1c6","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
     ),
   )
   assert_eq(
     client_result_plan_cid(result_plan),
-    "sha256:c511299e4d003ecfa35c21bcd54d51c57fd99b0e27698ca6022936d7d64adba2",
+    "sha256:f7ef665cf939e7503aa7b9c672652a282f20f64b8995ad6bef1b9e31bbc6d5c0",
   )
   assert_eq(
     client_result_plan_cid(
@@ -618,7 +618,7 @@ test "ordinary values document prepares one named Effect-free result" {
   )
   assert_eq(
     identity.program_definition_cid,
-    "sha256:cac6325415654bc339474e77fa1dad74d84a1a05e7a8cfbd93251f8dbd9265a0",
+    "sha256:bf1d1a4e049fd5198d28ea105ffa372b29bbe6a723c55992c25d46d9a44c18cb",
   )
   assert_eq(
     identity.parameter_values_cid,
@@ -1276,7 +1276,7 @@ test "ordinary values document prepares one named Effect-free result" {
   )
   assert_eq(
     client_request_intent_cid(request),
-    "sha256:9f6b97350f44b7234aaa174aed03f7bd9373994fef742c11f0d80d415961bf1c",
+    "sha256:674a577f72c5d29af355087862b40d98104264f5ca57b808640319f67a27c9f6",
   )
   let readmitted = admit_client_request_identity_record(
     scope_cid,
