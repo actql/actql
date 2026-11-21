@@ -115,6 +115,7 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current_after_original_sco
 // observation. No Store acquisition or renewed capture holding occurs here.
 fn NativeLocalInitialSigningCurrent::require_locked(
   self : NativeLocalInitialSigningCurrent,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let materials = self.materials
   let reviewer = materials.reviewer
@@ -133,6 +134,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
       reviewer.request,
       reviewer.original.run_definition_cid,
       materials.original.artifact.checkpoint_cid,
+      reads~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

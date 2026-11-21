@@ -2,6 +2,30 @@
 type EffectCaptureCustody
 
 ///|
+type EffectCaptureReadExtent
+
+///|
+pub fn Store::effect_capture_restore_construction(
+  _self : Store,
+  _definition : @publication.PublicationContract,
+  _semantic_cid : String,
+) -> Result[
+  (EffectCaptureReadExtent, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectCaptureReadExtent::read_original_wire(
+  _self : EffectCaptureReadExtent,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[String, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::prepare_effect_capture_custody(
   _self : Store,
   _binding : @publication.EffectCaptureHoldingBinding,

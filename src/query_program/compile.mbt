@@ -636,7 +636,11 @@ fn same_expression(
           pending.push((ax[i], ay[i]))
         }
       }
-      (SearchedCase(ax, a_else), SearchedCase(ay, b_else)) => {
+      (SearchedCase(ax, a_else), SearchedCase(ay, b_else))
+      | (SimpleCase(_, ax, a_else), SimpleCase(_, ay, b_else)) => {
+        if (a, b) is (SimpleCase(left, _, _), SimpleCase(right, _, _)) {
+          pending.push((left, right))
+        }
         if ax.length() != ay.length() {
           return false
         }
@@ -10341,7 +10345,8 @@ fn join_reference_paths(
   let paths : Array[Array[@query.NamePart]] = []
   let pending = [@query.expression_root(expression)]
   while pending.pop() is Some(index) {
-    match @query.expression_node(expression, index).unwrap().kind {
+    let kind = @query.expression_node(expression, index).unwrap().kind
+    match kind {
       Reference(path) => paths.push(path)
       Parenthesized(child)
       | Unary(_, child)
@@ -10366,13 +10371,16 @@ fn join_reference_paths(
           next -= 1
         }
       }
-      SearchedCase(branches, otherwise) => {
+      SearchedCase(branches, otherwise) | SimpleCase(_, branches, otherwise) => {
         pending.push(otherwise)
         let mut next = branches.length() - 1
         while next >= 0 {
           pending.push(branches[next].1)
           pending.push(branches[next].0)
           next -= 1
+        }
+        if kind is SimpleCase(operand, _, _) {
+          pending.push(operand)
         }
       }
       _ => ()

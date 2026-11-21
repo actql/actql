@@ -412,6 +412,7 @@ test('required README gate selects actual SDK Host Core schema and packaging PR 
     assert.equal(gateJobRequired(selection, name), true, path);
     const results = Object.fromEntries(gateJobs.map(key => [key,
       {result: gateJobRequired(selection, key) ? 'success' : 'skipped'}]));
+    results['python-wheels'].outputs = {'linux-x64': sha};
     const envelope = {sourceRevision: sha, selection};
     const context = {event: 'pull_request', sourceRevision: sha, draft: false};
     verifyGate(envelope, results, context);

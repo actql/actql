@@ -1207,7 +1207,8 @@ fn append_resolved(
               value
             }
           }
-        SearchedCase(branches, otherwise) => {
+        SearchedCase(branches, otherwise)
+        | SimpleCase(_, branches, otherwise) => {
           let values : Array[@builder.Node] = []
           for branch in branches {
             values.push(
@@ -1218,6 +1219,9 @@ fn append_resolved(
             )
           }
           let fields = [("when", lowering.add(Array(values)))]
+          if node.kind is SimpleCase(operand, _, _) {
+            fields.push(("operand", nodes[operand]))
+          }
           let original_else = @query.expression_node(ast, otherwise).unwrap()
           // The parser anchors an omitted ELSE's synthetic NULL to END.
           // Preserve that omission for the existing Common completion owner;

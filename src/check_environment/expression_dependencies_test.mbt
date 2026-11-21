@@ -1,7 +1,7 @@
 ///|
 test "current expression references reach both inherited and replacement contracts" {
   let root = expression_contract_body(
-    "sha256:ad4033bb954da7d1a3639c59ca3ec84066a229a21cf3def2275b69ad36486c46",
+    "sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1",
   ).unwrap()
   assert_eq(root, ExpressionRoot)
   let pending = [root]

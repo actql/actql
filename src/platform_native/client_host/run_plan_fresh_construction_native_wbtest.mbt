@@ -161,3 +161,86 @@ test "fresh funded projection preserves UNION 11 17 24 issuer bytes" {
     assert_true(calls >= 3)
   }
 }
+
+///|
+test "Effect original Plan projection holds its variant through every admitted construction" {
+  let (database, _, _, reference) = submitted_test_setup(
+    "effect-plan-projection",
+  )
+  let (_, preparation, _, allowed, definition) = native_client_effect_fixture_input(
+    reference, "effect-plan-projection-run",
+  )
+  guard preparation.preparation is EffectComputation(prepared) else {
+    fail("original Effect preparation")
+  }
+  let observation = @host.capture_client_effect_run_observation_originals(
+    prepared, allowed, definition,
+  ).unwrap()
+  let unowned = capture_native_effect_run_plan_original(
+    prepared, allowed, definition, observation,
+  ).unwrap()
+  let copied = @host.restore_client_run_observation_originals(
+    definition,
+    @publication.run_evidence_value_json(observation.prepared()),
+    @publication.run_evidence_value_json(observation.authorization()),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let mut foreign_calls = 0
+  assert_true(
+    capture_native_effect_run_plan_original(
+      prepared,
+      allowed,
+      definition,
+      copied,
+      before_construction=Some((_, _, _) => {
+        foreign_calls += 1
+        Ok(())
+      }),
+    )
+    is Err(ForeignRun),
+  )
+  assert_eq(foreign_calls, 0)
+  let mut calls = 0
+  let mut valid = true
+  let held = native_effect_plan_projection_hold_bytes
+  let funded = capture_native_effect_run_plan_original(
+    prepared,
+    allowed,
+    definition,
+    observation,
+    before_construction=Some((r, e, raw) => {
+      valid = valid &&
+        r >= held &&
+        e >= r &&
+        raw > 0L &&
+        (calls != 0 || (r == held && e == held))
+      calls += 1
+      Ok(())
+    }),
+  ).unwrap()
+  assert_eq(funded.original.view, unowned.original.view)
+  assert_true(valid)
+  assert_true(calls > 3)
+  for fail_at in 1..<=calls {
+    let mut observed = 0
+    let result = capture_native_effect_run_plan_original(
+      prepared,
+      allowed,
+      definition,
+      observation,
+      before_construction=Some((_, _, _) => {
+        observed += 1
+        if observed == fail_at {
+          Err(CapacityExceeded)
+        } else {
+          Ok(())
+        }
+      }),
+    )
+    assert_true(result is Err(CapacityExceeded))
+    assert_eq(observed, fail_at)
+  }
+  database.close_checked().unwrap()
+}

@@ -70,13 +70,16 @@ assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
   'Preserve original Run/DB/keys/raw on success and failure');
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const argv = process.argv.slice(2), ci = ['--ci', '--ci-evidence-child'].includes(argv[0]);
+const reject = argv.at(-1) === '--reject';
+if (reject) argv.pop();
+assert.equal(process.env.ACTQL_RECORD_APPROVAL_DECISION, undefined, 'Use the explicit packed rejection argument');
 let [source, release, consumer, selection] = ci ? [repository, undefined, undefined, argv[1]] : argv;
 const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
   '--mock-hubspot-approval', '--mock-hubspot-whole-approval',
   '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval', '--mock-kintone-approval'];
 assert(ci ? argv.length === 2 && selections.includes(selection)
   : argv.length === 3 || argv.length === 4 && selections.includes(selection),
-  'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] or --ci SELECTION');
+  'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] [--reject] or --ci SELECTION [--reject]');
 const threeSourceMock = selection === '--mock-hubspot-three-source-approval';
 const binarySourceMock = selection === '--mock-hubspot-binary-source-approval';
 const wholeMock = selection === '--mock-hubspot-whole-approval';
@@ -88,6 +91,8 @@ const approval = approvalConnector !== undefined;
 const replyLossExpectation = installedRecordReplyLossExpectation();
 assert(replyLossExpectation === undefined || approval && mockConnector === undefined,
   'Applied reply loss is an explicit installed provider fixture selection');
+assert(!reject || (approval && mockConnector === undefined && replyLossExpectation === undefined),
+  'Rejection requires the ordinary installed HubSpot or kintone case');
 if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
@@ -177,7 +182,8 @@ try {
       env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
         ...((wholeMock || threeSourceMock || binarySourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
         ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source'
-          : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : ''} : process.env});
+          : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : ''}
+        : reject ? {...process.env, ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : process.env});
 } finally {
   // Return only this fresh link, never its original installed software target.
   assert.equal(await readlink(softwareAlias), software);
@@ -193,10 +199,12 @@ const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.r
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
-const receipt = {fixtureVariant: replyLossExpectation !== undefined ? 'applied-write-reply-loss'
+const receipt = {fixtureVariant: reject ? 'rejected' : replyLossExpectation !== undefined ? 'applied-write-reply-loss'
   : binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
   ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
-  qualification: mockConnector
+  qualification: reject
+  ? 'Owned TLS provider fixture: one same-checkpoint rejection, unchanged full target and control, and separate-process same-Run lookup.'
+  : mockConnector
   ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
   : replyLossExpectation !== undefined
   ? 'Selected installed Local capture, one signed approval and one applied TLS write with lost reply, followed by same-original public lookup without another write. Explicit per-capability outcome expectations; Unknown is not success or physical cleanup ACK.'

@@ -125,6 +125,44 @@ pub fn NativeClientRunJournal::record_effect_file_response(
   current : () -> Bool,
   max_response_bytes : Int,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  self.record_effect_file_response_with_operations(
+    dispatch,
+    preview,
+    member_index,
+    row_index,
+    locator,
+    key,
+    operation,
+    ack,
+    outcome_wire,
+    current,
+    max_response_bytes,
+    None,
+  )
+}
+
+///|
+fn NativeClientRunJournal::record_effect_file_response_with_operations(
+  self : NativeClientRunJournal,
+  dispatch : NativeClientEffectDispatchClaim,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  operation : @publication.EffectFileOperation,
+  ack : @row_file.NativeRelationFileReplacementAck,
+  outcome_wire : String,
+  current : () -> Bool,
+  max_response_bytes : Int,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+
   if !physical_equal(self, dispatch.journal) || !current() {
     return Err(AuthorizationDenied)
   }
@@ -235,75 +273,97 @@ pub fn NativeClientRunJournal::record_effect_file_response(
     body,
     protocol: FileOriginal(response),
   }
-  self.transaction(() => {
-    let record = match self.require_effect_dispatch_locked(dispatch) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    // Semantic Preview identity alone intentionally excludes the Run. Reuse
-    // the original receipt binding before even reading/inserting the immutable
-    // pair: nominal Run, ordered row, locator, key and dispatch all stay exact.
-    match
-      require_client_effect_receipt_binding(
-        record,
-        dispatch,
-        preview,
-        member_index,
-        row_index,
-        locator,
-        key,
-        operation.canonical_request_cid,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    match
-      require_client_file_response_binding(record, dispatch.dispatching, stored) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let cid = dispatch.dispatching.cid
-    match read_client_effect_response_record(self.database, cid) {
-      Ok(Some(prior)) if prior.protocol is FileOriginal(_) &&
-        prior.metadata == metadata &&
-        prior.body == body => return Ok(())
-      Ok(Some(_)) => return Err(Checkpoint(InvalidMaterial))
-      Err(issue) => return Err(issue)
-      Ok(None) => ()
-    }
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    let key = @host.client_request_scope_cid(record.request)
-    let prior = match self.database.read("client_effect_custody", key) {
-      Ok(value) => value
-      Err(issue) => return Err(Physical(issue))
-    }
-    for
-      (table, bytes) in [
-        ("client_effect_response_meta", metadata),
-        ("client_effect_response_bytes", body),
-      ] {
-      match self.database.insert(table, cid, bytes) {
+  self.transaction_with_reads(
+    () => {
+      let record = match self.require_effect_dispatch_locked(dispatch, reads~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      // Semantic Preview identity alone intentionally excludes the Run. Reuse
+      // the original receipt binding before even reading/inserting the immutable
+      // pair: nominal Run, ordered row, locator, key and dispatch all stay exact.
+      match
+        require_client_effect_receipt_binding(
+          record,
+          dispatch,
+          preview,
+          member_index,
+          row_index,
+          locator,
+          key,
+          operation.canonical_request_cid,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match
+        require_client_file_response_binding(
+          record,
+          dispatch.dispatching,
+          stored,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let cid = dispatch.dispatching.cid
+      match read_client_effect_response_record(self.database, cid, reads~) {
+        Ok(Some(prior)) if prior.protocol is FileOriginal(_) &&
+          prior.metadata == metadata &&
+          prior.body == body => return Ok(())
+        Ok(Some(_)) => return Err(Checkpoint(InvalidMaterial))
+        Err(issue) => return Err(issue)
+        Ok(None) => ()
+      }
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      let key = @host.client_request_scope_cid(record.request)
+      let prior = match
+        read_client_journal_value(
+          self.database,
+          "client_effect_custody",
+          key,
+          reads,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      for
+        (table, bytes) in [
+          ("client_effect_response_meta", metadata),
+          ("client_effect_response_bytes", body),
+        ] {
+        match
+          insert_client_journal_value(
+            self.database,
+            table,
+            cid,
+            bytes,
+            operations,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
+      let (witness, _) = match
+        effect_ledger_custody_with_responses(self.database, record, reads~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        compare_exchange_client_journal_value(
+          self.database,
+          "client_effect_custody",
+          key,
+          prior.revision,
+          witness,
+          operations,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(Physical(issue))
       }
-    }
-    let (witness, _) = match
-      effect_ledger_custody_with_responses(self.database, record) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    match
-      self.database.compare_exchange(
-        "client_effect_custody",
-        key,
-        prior.revision,
-        witness,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    self.save(record).map(_ => ())
-  })
+      self.save_with_operations(record, operations~).map(_ => ())
+    },
+    reads~,
+  )
 }

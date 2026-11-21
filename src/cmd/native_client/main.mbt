@@ -2143,7 +2143,11 @@ fn main {
   } catch {
     ClientStop(message) => {
       let bytes = @utf8.encode(
-        local_command_failure_text(message, command_diagnostic_json.val),
+        local_command_failure_text(
+          message,
+          command_diagnostic_json.val,
+          primary=command_preparation_invocation.val.bind(value => value.primary),
+        ),
       )
       report_failure_ffi(bytes, bytes.length())
       true

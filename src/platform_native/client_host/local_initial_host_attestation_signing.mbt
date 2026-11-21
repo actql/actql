@@ -16,6 +16,7 @@ struct NativeLocalInitialHostAttestationSigning {
 ///|
 fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
   self : NativeLocalInitialHostAttestationPreparation,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let binding = self.authenticated.binding
   let host = binding.host
@@ -23,6 +24,7 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
     local_initial_host_attestation_current_locked(
       self.reviewer_current,
       self.account,
+      reads~,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -47,7 +49,13 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard host.database.read("client_local_grant_originals", key) is Ok(row) &&
+  guard read_client_journal_value(
+      host.database,
+      "client_local_grant_originals",
+      key,
+      reads,
+    )
+    is Ok(row) &&
     row.revision == 0L &&
     row.body == packet else {
     return Err(CustodyLost)
@@ -57,11 +65,12 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
       self.original,
       self.scope.run_definition_cid,
       capture=self.account.original.reviewer.original_read.map(value => value.0),
+      reads~,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match local_initial_host_prepared_locked(host, self.original) {
+  match local_initial_host_prepared_locked(host, self.original, reads~) {
     Ok(value) if value == @utf8.encode(self.wire) => ()
     Ok(_) => return Err(ChangedIntent)
     Err(issue) => return Err(issue)
@@ -78,6 +87,32 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
 ///|
 fn NativeLocalInitialHostAttestationPreparation::require_current(
   self : NativeLocalInitialHostAttestationPreparation,
+) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
+  match self.account.original.reviewer.original_read {
+    None => self.require_current_with_reads()
+    Some((capture, _)) => {
+      if self.authenticated.binding.approval_scope is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(HostAttestationUnavailable)
+      }
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
+      }
+      capture.with_initial_host_signing_operations(
+        self.authenticated.binding.host,
+        operations => {
+          self.require_current_with_reads(reads=Some(operations.reads))
+        },
+      )
+    }
+  }
+}
+
+///|
+fn NativeLocalInitialHostAttestationPreparation::require_current_with_reads(
+  self : NativeLocalInitialHostAttestationPreparation,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   let authenticated = self.authenticated
   let binding = authenticated.binding
@@ -103,7 +138,7 @@ fn NativeLocalInitialHostAttestationPreparation::require_current(
     return Err(HostAttestationUnavailable)
   }
   binding.host.journal
-  .transaction(() => self.require_current_locked())
+  .transaction_with_reads(() => self.require_current_locked(reads~), reads~)
   .map_err(issue => HostAttestationJournal(issue))
 }
 
@@ -157,12 +192,16 @@ pub fn NativeLocalInitialHostAttestationPreparation::prepare_signing(
 ///|
 fn NativeLocalInitialHostAttestationSigning::require_current(
   self : NativeLocalInitialHostAttestationSigning,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   match self.require_original_frame() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.preparation.require_current()
+  match reads {
+    None => self.preparation.require_current()
+    Some(_) => self.preparation.require_current_with_reads(reads~)
+  }
 }
 
 ///|
@@ -188,9 +227,10 @@ fn NativeLocalInitialHostAttestationSigning::require_original_frame(
 ///|
 fn NativeLocalInitialHostAttestationSigning::require_use_locked(
   self : NativeLocalInitialHostAttestationSigning,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let preparation = self.preparation
-  match preparation.require_current_locked() {
+  match preparation.require_current_locked(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -236,7 +276,35 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
     return Err(HostAttestationUnavailable)
   }
   self.entered = true
-  match self.require_current() {
+  match self.preparation.account.original.reviewer.original_read {
+    None => self.sign_once_with_operations()
+    Some((capture, _)) => {
+      if self.preparation.authenticated.binding.approval_scope
+        is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(HostAttestationUnavailable)
+      }
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
+      }
+      capture.with_initial_host_signing_operations(
+        self.preparation.authenticated.binding.host,
+        operations => {
+          self.sign_once_with_operations(operations=Some(operations))
+        },
+      )
+    }
+  }
+}
+
+///|
+fn NativeLocalInitialHostAttestationSigning::sign_once_with_operations(
+  self : NativeLocalInitialHostAttestationSigning,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[String, NativeLocalInitialHostAttestationIssue] {
+  let reads = operations.map(value => value.reads)
+  match self.require_current(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -249,62 +317,66 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
   let credential_failure : Ref[
     @credential_resource.NativeCredentialResourceIssue?,
   ] = Ref(None)
-  let claimed = host.journal.transaction(() => {
-    match preparation.require_current_locked() {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let history = @credential_resource.prepare_native_local_initial_host_signing_history_candidate(
-      host.database,
-      grant,
-    )
-    let signing_use = match history {
-      Ok(value) if value.observed_outcome() == @credential_resource.Succeeded => {
-        let signing_use = value.original_use()
-        match
-          local_initial_resolution_result_locked(
-            host,
-            preparation.original,
-            signing_use,
-          ) {
-          Ok((signature, Some(_))) => retained_signature.val = Some(signature)
-          Ok(_) => return Err(CustodyLost)
-          Err(issue) => return Err(issue)
-        }
-        signing_use
+  let claimed = host.journal.transaction_with_reads(
+    () => {
+      match preparation.require_current_locked(reads~) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
-      Ok(_) => return Err(CustodyLost)
-      Err(@credential_resource.Journal(@sqlite.NotFound)) =>
-        // This role-specific claim reader independently refuses any existing
-        // ordinal, missing use, orphan outcome or other earlier attempt.
-        match
-          @credential_resource.claim_native_local_initial_host_signing_use_in_transaction(
-            host.database,
-            grant,
-            preparation.scope,
-            @env.now().reinterpret_as_int64(),
-          ) {
-          Ok(value) => value
-          Err(issue) => {
-            credential_failure.val = Some(issue)
-            return Err(CustodyLost)
+      let history = @credential_resource.prepare_native_local_initial_host_signing_history_candidate(
+        host.database,
+        grant,
+      )
+      let signing_use = match history {
+        Ok(value) if value.observed_outcome() == @credential_resource.Succeeded => {
+          let signing_use = value.original_use()
+          match
+            local_initial_resolution_result_locked(
+              host,
+              preparation.original,
+              signing_use,
+              reads~,
+            ) {
+            Ok((signature, Some(_))) => retained_signature.val = Some(signature)
+            Ok(_) => return Err(CustodyLost)
+            Err(issue) => return Err(issue)
           }
+          signing_use
         }
-      Err(issue) => {
-        credential_failure.val = Some(issue)
-        return Err(CustodyLost)
+        Ok(_) => return Err(CustodyLost)
+        Err(@credential_resource.Journal(@sqlite.NotFound)) =>
+          // This role-specific claim reader independently refuses any existing
+          // ordinal, missing use, orphan outcome or other earlier attempt.
+          match
+            @credential_resource.claim_native_local_initial_host_signing_use_in_transaction(
+              host.database,
+              grant,
+              preparation.scope,
+              @env.now().reinterpret_as_int64(),
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              credential_failure.val = Some(issue)
+              return Err(CustodyLost)
+            }
+          }
+        Err(issue) => {
+          credential_failure.val = Some(issue)
+          return Err(CustodyLost)
+        }
       }
-    }
-    self.original_use = Some(signing_use)
-    self.require_use_locked()
-  })
+      self.original_use = Some(signing_use)
+      self.require_use_locked(reads~)
+    },
+    reads~,
+  )
   match claimed {
     Err(CustodyLost) if credential_failure.val is Some(issue) =>
       return Err(HostAttestationCredential(issue))
     Err(issue) => return Err(HostAttestationJournal(issue))
     Ok(_) => ()
   }
-  match self.require_current() {
+  match self.require_current(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -314,7 +386,11 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
       Ok(_) => ()
     }
   }
-  match host.journal.transaction(() => self.require_use_locked()) {
+  match
+    host.journal.transaction_with_reads(
+      () => self.require_use_locked(reads~),
+      reads~,
+    ) {
     Err(issue) => return Err(HostAttestationJournal(issue))
     Ok(_) => ()
   }
@@ -334,7 +410,7 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
         Ok(value) => value
         Err(_) => return Err(HostAttestationUnavailable)
       }
-      match self.require_current() {
+      match self.require_current(reads~) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
@@ -342,35 +418,40 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
         return Err(HostAttestationUnavailable)
       }
       match
-        host.journal.transaction(() => {
-          match self.require_use_locked() {
-            Err(issue) => return Err(issue)
-            Ok(_) => ()
-          }
-          match
-            store_local_initial_resolution_signature_locked(
-              host,
-              preparation.original,
-              signing_use,
-              signature,
-              capture=preparation.account.original.reviewer.original_read.map(value => {
-                value.0
-              }),
-              attested=Some(preparation.admitted),
-              attested_limits=preparation.authenticated.limits,
-            ) {
-            Err(issue) => return Err(issue)
-            Ok(_) => ()
-          }
-          self.require_use_locked()
-        }) {
+        host.journal.transaction_with_reads(
+          () => {
+            match self.require_use_locked(reads~) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            match
+              store_local_initial_resolution_signature_locked(
+                host,
+                preparation.original,
+                signing_use,
+                signature,
+                capture=preparation.account.original.reviewer.original_read.map(value => {
+                    value.0
+                  },
+                ),
+                operations~,
+                attested=Some(preparation.admitted),
+                attested_limits=preparation.authenticated.limits,
+              ) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            self.require_use_locked(reads~)
+          },
+          reads~,
+        ) {
         Err(issue) => return Err(HostAttestationJournal(issue))
         Ok(_) => signature
       }
     }
   }
   self.signature = Some(signature)
-  self.original_verified_resolution()
+  self.original_verified_resolution_with_operations(operations~)
 }
 
 ///|
@@ -379,7 +460,37 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
 pub fn NativeLocalInitialHostAttestationSigning::original_verified_resolution(
   self : NativeLocalInitialHostAttestationSigning,
 ) -> Result[String, NativeLocalInitialHostAttestationIssue] {
-  match self.require_current() {
+  match self.preparation.account.original.reviewer.original_read {
+    None => self.original_verified_resolution_with_operations()
+    Some((capture, _)) => {
+      if self.preparation.authenticated.binding.approval_scope
+        is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(HostAttestationUnavailable)
+      }
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
+      }
+      capture.with_initial_host_signing_operations(
+        self.preparation.authenticated.binding.host,
+        operations => {
+          self.original_verified_resolution_with_operations(
+            operations=Some(operations),
+          )
+        },
+      )
+    }
+  }
+}
+
+///|
+fn NativeLocalInitialHostAttestationSigning::original_verified_resolution_with_operations(
+  self : NativeLocalInitialHostAttestationSigning,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[String, NativeLocalInitialHostAttestationIssue] {
+  let reads = operations.map(value => value.reads)
+  match self.require_current(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -389,32 +500,39 @@ pub fn NativeLocalInitialHostAttestationSigning::original_verified_resolution(
   }
   let preparation = self.preparation
   let host = preparation.authenticated.binding.host
-  let retained = host.journal.transaction(() => {
-    match self.require_use_locked() {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let history = match
-      local_initial_signing_original_history_locked(host, preparation.original) {
-      Ok(value) if value.observed_outcome() == @credential_resource.Succeeded =>
-        value
-      _ => return Err(CustodyLost)
-    }
-    if @credential.local_signing_credential_use_cid(history.original_use()) !=
-      @credential.local_signing_credential_use_cid(signing_use) {
-      return Err(CustodyLost)
-    }
-    match
-      local_initial_resolution_result_locked(
-        host,
-        preparation.original,
-        signing_use,
-      ) {
-      Ok((actual, Some(wire))) if actual == signature => Ok(wire)
-      Ok(_) => Err(CustodyLost)
-      Err(issue) => Err(issue)
-    }
-  })
+  let retained = host.journal.transaction_with_reads(
+    () => {
+      match self.require_use_locked(reads~) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let history = match
+        local_initial_signing_original_history_locked(
+          host,
+          preparation.original,
+        ) {
+        Ok(value) if value.observed_outcome() == @credential_resource.Succeeded =>
+          value
+        _ => return Err(CustodyLost)
+      }
+      if @credential.local_signing_credential_use_cid(history.original_use()) !=
+        @credential.local_signing_credential_use_cid(signing_use) {
+        return Err(CustodyLost)
+      }
+      match
+        local_initial_resolution_result_locked(
+          host,
+          preparation.original,
+          signing_use,
+          reads~,
+        ) {
+        Ok((actual, Some(wire))) if actual == signature => Ok(wire)
+        Ok(_) => Err(CustodyLost)
+        Err(issue) => Err(issue)
+      }
+    },
+    reads~,
+  )
   let wire = match retained {
     Ok(value) => value
     Err(issue) => return Err(HostAttestationJournal(issue))
@@ -429,12 +547,12 @@ pub fn NativeLocalInitialHostAttestationSigning::original_verified_resolution(
     Ok(value) if value.wire == wire => ()
     _ => return Err(HostAttestationUnavailable)
   }
-  match self.require_current() {
+  match self.require_current(reads~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   host.journal
-  .transaction(() => self.require_use_locked())
+  .transaction_with_reads(() => self.require_use_locked(reads~), reads~)
   .map(_ => wire)
   .map_err(issue => HostAttestationJournal(issue))
 }
@@ -496,6 +614,38 @@ fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_c
   self : NativeLocalInitialHostAttestationSigning,
   wire : String,
 ) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  match self.preparation.account.original.reviewer.original_read {
+    None => self.admit_verified_resolution_with_operations(wire)
+    Some((capture, _)) => {
+      if self.preparation.authenticated.binding.approval_scope
+        is SavedApproval(saved) &&
+        !physical_equal(saved.capture, capture) {
+        return Err(HostAttestationUnavailable)
+      }
+      match capture.retain_initial_signing_journal_controls() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
+      }
+      capture.with_initial_host_signing_operations(
+        self.preparation.authenticated.binding.host,
+        operations => {
+          self.admit_verified_resolution_with_operations(
+            wire,
+            operations=Some(operations),
+          )
+        },
+      )
+    }
+  }
+}
+
+///|
+fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_with_operations(
+  self : NativeLocalInitialHostAttestationSigning,
+  wire : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  let reads = operations.map(value => value.reads)
   let preparation = self.preparation
   let authenticated = preparation.authenticated
   let binding = authenticated.binding
@@ -518,13 +668,20 @@ fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_c
         self.require_original_frame() is Err(_) {
         return false
       }
-      let checked = host.journal.transaction(() => self.require_use_locked())
+      let checked = host.journal.transaction_with_reads(
+        () => self.require_use_locked(reads~),
+        reads~,
+      )
       // A physical/current/Account callback cannot retire this SAME receiver
       // and leave its earlier successful mutable-row observation reusable.
       checked is Ok(_) && self.require_original_frame() is Ok(_)
     } else {
-      self.require_current() is Ok(_) &&
-      host.journal.transaction(() => self.require_use_locked()) is Ok(_)
+      self.require_current(reads~) is Ok(_) &&
+      host.journal.transaction_with_reads(
+        () => self.require_use_locked(reads~),
+        reads~,
+      )
+      is Ok(_)
     }
   }
   if !current() {
@@ -558,32 +715,106 @@ fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_c
       "",
     )
   }
-  host.journal
-  .resolve_effect_checkpoint(
-    binding.request,
-    binding.crypto,
-    wire,
-    authentication,
-    [
-      {
-        key_id: authenticated.registration.key_id,
-        reviewer_id: authenticated.registration.reviewer_id,
-      },
-    ],
-    [
-      {
-        key_id: original.public_key.cid(),
-        public_key_pem: original.public_key_pem,
-      },
-    ],
-    current,
-    now,
+  self
+  .commit_verified_resolution_with_operations(
+    wire, authentication, current, now, operations,
   )
-  .map(record => {
-    // Retain the actual acknowledged commit before another callback or the
-    // caller's physical signer close. No incoming record can issue this view.
-    self.admitted_record = Some(record)
-    record
-  })
   .map_err(issue => HostAttestationJournal(issue))
+}
+
+///|
+fn NativeLocalInitialHostAttestationSigning::commit_verified_resolution_with_operations(
+  self : NativeLocalInitialHostAttestationSigning,
+  wire : String,
+  authentication : @checkpoint.HostAuthentication,
+  current : () -> Bool,
+  now : () -> String,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let preparation = self.preparation
+  let authenticated = preparation.authenticated
+  let binding = authenticated.binding
+  let host = binding.host
+  let original = preparation.account.original
+  match
+    host.journal.resolve_effect_checkpoint_with_operations(
+      binding.request,
+      binding.crypto,
+      wire,
+      authentication,
+      [
+        {
+          key_id: authenticated.registration.key_id,
+          reviewer_id: authenticated.registration.reviewer_id,
+        },
+      ],
+      [
+        {
+          key_id: original.public_key.cid(),
+          public_key_pem: original.public_key_pem,
+        },
+      ],
+      current,
+      now,
+      operations,
+    ) {
+    Ok(record) => {
+      // Preserve the SAME actual acknowledged commit before the enclosing
+      // captured-Read physical-failure/cleanup handoff.
+      self.admitted_record = Some(record)
+      Ok(record)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn[T] NativeLocalJournalCapture::with_initial_host_signing_operations(
+  self : NativeLocalJournalCapture,
+  expected : NativeLocalHostConnection,
+  work : (NativeClientJournalOperationAccess) -> Result[
+    T,
+    NativeLocalInitialHostAttestationIssue,
+  ],
+) -> Result[T, NativeLocalInitialHostAttestationIssue] {
+  let outcome : Ref[Result[T, NativeLocalInitialHostAttestationIssue]?] = Ref(
+    None,
+  )
+  let routed = self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    guard physical_equal(host, expected) &&
+      physical_equal(host.database, operations.reads.database) else {
+      return Err(CustodyLost)
+    }
+    let result = work(operations)
+    outcome.val = Some(result)
+    match result {
+      Ok(_) => Ok(())
+      Err(HostAttestationOriginal(issue)) => Err(issue)
+      Err(HostAttestationJournal(issue)) => Err(Journal(issue))
+      Err(HostAttestationProof(OriginalSigningJournal(issue))) =>
+        Err(Journal(issue))
+      Err(_) => Err(Journal(CustodyLost))
+    }
+  })
+  finish_initial_host_signing_read(outcome.val, routed)
+}
+
+///|
+fn[T] finish_initial_host_signing_read(
+  outcome : Result[T, NativeLocalInitialHostAttestationIssue]?,
+  routed : Result[Unit, NativeLocalAdoptionIssue],
+) -> Result[T, NativeLocalInitialHostAttestationIssue] {
+  if routed is Err(issue) && issue is InstallationReadTransactionFailure(_, _) {
+    return Err(HostAttestationOriginal(issue))
+  }
+  match (outcome, routed) {
+    (Some(Err(primary)), _) => Err(primary)
+    (Some(Ok(value)), Ok(_)) => Ok(value)
+    (_, Err(issue)) => Err(HostAttestationOriginal(issue))
+    _ => Err(HostAttestationUnavailable)
+  }
 }
