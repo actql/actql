@@ -11,14 +11,15 @@ import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight} from './f
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
-type LogicalNode = Node<{original: Logical}, 'logical'>;
+type LogicalNode = Node<{original: Logical; presentation?: {title?: string; state: string}}, 'logical'>;
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;
+  const title = data.presentation?.title ?? (original.names.join(', ') || original.operator || 'Input / output');
   return <div className="actql-explorer-node" data-selected={selected}
     style={{width: flowNodeWidth, height: flowNodeHeight(original.ports.length)}}>
     <div className="actql-explorer-kind">{original.operator}</div>
-    <strong title={original.names.join(', ') || original.id}>{original.names.join(', ') || original.id}</strong>
-    <p>{original.kind}</p>
+    <strong title={title}>{title}</strong>
+    <p>{data.presentation?.state ?? original.kind}</p>
     {original.ports.map((port, index) => <Handle key={port.port_id} id={port.port_id}
       type={port.role === 'input' ? 'target' : 'source'}
       position={port.role === 'input' ? Position.Left : Position.Right}
@@ -35,18 +36,20 @@ function OriginalEdge({id, sourceX, sourceY, targetX, targetY, sourcePosition, t
 // Keep parallel Join input labels at their original target ports, rather than
 // overlapping at the midpoint shared by two edges from one producer.
 const edgeTypes = {default: OriginalEdge};
-export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow'};
+export type PlanExplorerProps = {model: PlanReadModel; scopeKey: string; initialView?: 'list' | 'flow';
+  workspace?: {stepId?: string; select(id: string): void;
+    label(id: string): {title?: string; state: string}}};
 
 // Scope changes remount selection and the renderer. This component accepts an
 // already admitted original model and has no Client, transport or control API.
-export function PlanExplorer({model, scopeKey, initialView = 'list'}: PlanExplorerProps) {
+export function PlanExplorer({model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps) {
   return <BoundPlanExplorer key={`${scopeKey}:${model.compiledPlanCid}:${model.logicalMapCid}`}
-    model={model} initialView={initialView}/>;
+    model={model} initialView={initialView} workspace={workspace}/>;
 }
-function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialView: 'list' | 'flow'}) {
+function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerProps, 'scopeKey'>) {
   const flow = useMemo(() => flowPresentation(model) as {nodes: LogicalNode[]; edges: Edge[]}, [model]);
   const [selected, select] = useState<string | undefined>();
-  const [mode, show] = useState<'flow' | 'list'>(initialView);
+  const [mode, show] = useState<'flow' | 'list'>(initialView ?? 'list');
   // This bounded presentation key excludes labels/observations. Repeated reads
   // of the same topology do not restart ELK or reset the user's viewport.
   const layoutKey = useMemo(() => JSON.stringify(layoutInput(flow)), [flow]);
@@ -65,11 +68,15 @@ function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialV
     // the same coordinates; current labels still come from the original model.
   }, [mode, layoutKey]);
   const currentLayout = layout?.key === layoutKey ? layout : undefined;
+  const selection = workspace?.stepId ?? selected;
+  const selectOriginal = workspace ? workspace.select : select;
   const placed = useMemo(() => currentLayout?.state === 'ready' ? flow.nodes.map((node, index) => ({
     ...node, position: {x: currentLayout.positions[index].x, y: currentLayout.positions[index].y},
+    selected: node.id === selection,
+    data: {...node.data, presentation: workspace?.label(node.id)},
     width: flowNodeWidth, height: flowNodeHeight(node.data.original.ports.length),
-  })) : [], [currentLayout, flow]);
-  const original = model.nodes.find(node => node.id === selected);
+  })) : [], [currentLayout, flow, selection, workspace]);
+  const original = model.nodes.find(node => node.id === selection);
   const originalMetadata = <>
     <dl className="actql-explorer-identities"><dt>Compiled Plan</dt><dd>{model.compiledPlanCid}</dd>
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
@@ -100,9 +107,9 @@ function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialV
         Gate: unknown. Approval: unknown. Sealed Preview: unavailable.</p>
     </section>}
   </>;
-  return <section className="actql-explorer" aria-label="ActQL static Plan">
+  return <section className="actql-explorer" data-workspace={!!workspace} aria-label="ActQL static Plan">
     <header className="actql-explorer-header">
-      <div><p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>
+      <div>{!workspace && <p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>}
         <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
         <p>Recorded ports. Layout does not indicate execution order.</p></div>
       <nav aria-label="Plan presentation">
@@ -115,7 +122,7 @@ function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialV
       <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
         connectOnClick={false} deleteKeyCode={null} zoomOnDoubleClick={false}
-        onNodeClick={(_, node) => select(node.id)}
+        onNodeClick={(_, node) => selectOriginal(node.id)}
         minZoom={0.2} maxZoom={2} aria-label="Original logical ports"/>
     </div> : <p role="status" className="actql-explorer-unavailable">
       {currentLayout?.state === 'unavailable'
@@ -123,17 +130,17 @@ function BoundPlanExplorer({model, initialView}: {model: PlanReadModel; initialV
         : 'Placing original logical ports…'}</p> : <table className="actql-explorer-table"><caption>Original logical occurrences</caption>
       <thead><tr><th scope="col">Operation</th><th scope="col">Identity</th><th scope="col">Ports</th></tr></thead>
       <tbody>{model.nodes.map(node => <tr key={node.id}><td>
-        <Button onClick={() => select(node.id)} aria-pressed={selected === node.id}>
+        <Button onClick={() => selectOriginal(node.id)} aria-pressed={selection === node.id}>
           {node.names.join(', ') || node.operator}</Button></td>
         <td>{node.id}</td><td>{node.ports.length}</td></tr>)}</tbody></table>}
-    <aside aria-label="Selected original occurrence" aria-live="polite">
+    {!workspace && <aside aria-label="Selected original occurrence" aria-live="polite">
       {original ? <><h3>{original.names.join(', ') || original.id}</h3>
         <dl><dt>Step</dt><dd>{original.id}</dd><dt>Operator</dt><dd>{original.operator}</dd></dl>
         <ul>{original.ports.map(port => <li key={port.port_id}>
           {port.role} {port.port_ordinal} · {port.carrier} · {port.port_id}
           {port.source.kind === 'stage_input' ? ' · unresolved Stage input locator' : ''}
         </li>)}</ul></> : <p>Select an original occurrence to inspect its ports.</p>}
-    </aside>
+    </aside>}
     {mode === 'flow' && <details className="actql-explorer-flow-metadata">
       <summary>Original Plan metadata</summary>
       {originalMetadata}

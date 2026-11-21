@@ -76,7 +76,7 @@ try {
   results.push(await run('npm', ['ls', 'react', 'react-dom', '--all', '--json']));
   auditPackedPackages(consumer, manifest.cohort.packages);
   if (savedContext) {
-    const project = scaffoldProject(join(consumer, 'saved-project'), 'churn-risk-mock');
+    const project = scaffoldProject(join(consumer, 'saved-project'), 'deal-review-mock');
     const fixture = join(consumer, 'saved-context.mjs');
     await copyFile(new URL('./fixtures/packed-explorer-saved-context.mjs', import.meta.url), fixture);
     for (const phase of ['produce', 'restore']) {

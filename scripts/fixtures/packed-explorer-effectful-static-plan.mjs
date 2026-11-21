@@ -211,14 +211,16 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     });
     try {
       await page.goto(gateway.origin, {waitUntil: 'networkidle'});
+      await page.getByRole('button', {name: 'Connect to Local', exact: true}).click();
       ui.lastAction = 'fill bootstrap';
       await page.getByLabel('One-use bootstrap').fill(gateway.issueBootstrap().bootstrap);
       ui.lastAction = 'connect';
       await page.getByRole('button', {name: 'Connect', exact: true}).click();
       ui.lastAction = 'wait connected status';
-      await page.getByText('Gateway connected', {exact: true}).waitFor();
+      await page.getByText('Local', {exact: false}).and(page.locator('.connection-menu > summary')).waitFor();
       ui.lastAction = 'edit Program draft';
       await page.getByRole('button', {name: 'Edit', exact: true}).click();
+      await page.getByLabel('Query options').click();
       await page.locator('.query-panel select[name="format"]').selectOption('program');
       await page.getByRole('textbox', {name: 'Program', exact: true}).fill(JSON.stringify(program));
       ui.lastAction = 'read Plan';
@@ -237,10 +239,10 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       assert(text.includes('Required approval does not imply a human-only reviewer.'));
       assert(text.includes('Contract minimum is not current permission.'));
       assert.equal(await section.getByRole('table', {name: 'Original logical occurrences'}).locator('tbody tr').count(), 1);
-      const openRun = page.getByText('Open Run', {exact: true});
+      const openRun = page.getByRole('button', {name: 'Open Run', exact: true});
       await openRun.click();
       assert.equal(await page.locator('textarea[name="ref"]').inputValue(), '');
-      await openRun.click();
+      await page.getByRole('button', {name: 'Close dialog', exact: true}).click();
       assert.equal(await page.locator('input[name="bootstrap"]').count(), 0);
       ui.lastAction = 'explain through the installed Story renderer';
       const received = page.waitForResponse(response =>

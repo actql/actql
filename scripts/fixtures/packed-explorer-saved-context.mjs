@@ -65,14 +65,14 @@ let receipt, expectedTarget, beforeClose, primary, gateway, browser;
 try {
   if (phase === 'produce') {
     expectedTarget = await targetDigest();
-    const program = await readFile('churn-risk.aql', 'utf8');
+    const program = await readFile('deal-review.aql', 'utf8');
     const original = await client.startSource(program, {format: 'aql', stopBefore: 'commit'});
     assert.equal((await original.wait()).status, 'waiting_checkpoint');
     const saved = await original.explainContext();
     assert.deepEqual(saved.run_ref, original.ref);
     assert.equal(saved.explanation.state, 'projected');
     const {plan, facts, context} = saved.explanation.view;
-    assert.deepEqual(context.items.map(item => item.kind), ['source', 'source', 'model_task', 'result', 'effect_set']);
+    assert.deepEqual(context.items.map(item => item.kind), ['source', 'source', 'source', 'model_task', 'result', 'effect_set']);
     assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
     assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
     assert.deepEqual((await original.explain()).explanation.facts, facts);
@@ -110,30 +110,91 @@ try {
     });
     try {
       await page.goto(gateway.origin, {waitUntil: 'networkidle'});
-      await page.getByLabel('One-use bootstrap').fill(gateway.issueBootstrap().bootstrap);
-      await page.getByRole('button', {name: 'Connect', exact: true}).click();
-      await page.getByText('Gateway connected', {exact: true}).waitFor();
-      await page.getByText('Open Run', {exact: true}).click();
-      await page.locator('textarea[name="ref"]').fill(JSON.stringify(original.ref));
-      const reply = page.waitForResponse(response =>
-        response.url() === gateway.origin + '/api/read/run-explanation-context');
-      await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
-      const response = await reply;
-      assert.equal(response.status(), 200);
-      const {data} = await response.json();
-      assert.deepEqual(data.runRef, original.ref);
-      assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
-      assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
-      assert.equal(data.explanation.story.factsCid, facts.self_cid);
-      assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+      assert.equal(await page.locator('input[name="bootstrap"], textarea[name="ref"]').count(), 0);
+      const connect = async name => {
+        await page.getByRole('button', {name, exact: true}).click();
+        await page.getByLabel('One-use bootstrap').fill(gateway.issueBootstrap().bootstrap);
+        await page.getByRole('button', {name: 'Connect', exact: true}).click();
+        await page.locator('.connection-menu > summary').waitFor();
+      };
+      await connect('Connect to Local');
+      await page.getByLabel('Query options').click();
+      await page.getByLabel('Open query file').setInputFiles(join(project, 'deal-review.aql'));
+      await page.getByLabel('Query options').click();
+      const checked = page.waitForResponse(response => response.url() === gateway.origin + '/api/read/static-explanation');
+      await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+      const checkedResponse = await checked;
+      assert.equal(checkedResponse.status(), 200);
+      const {data: beforeRun} = await checkedResponse.json();
+      assert.deepEqual(beforeRun.context.filter(item => item.origin.kind === 'source').map(item =>
+        [item.origin.source_view.connector, item.origin.source_view.resource]), [
+        ['salesforce', 'Opportunity'], ['drive', 'files'], ['drive', 'contents']]);
+      const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});
+      await staticSteps.waitFor();
+      assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);
+      assert.match(await staticSteps.innerText(), /Planned/u);
+      await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
+      const openOriginal = async () => {
+        await page.getByRole('button', {name: 'Open Run', exact: true}).click();
+        await page.locator('textarea[name="ref"]').fill(JSON.stringify(original.ref));
+        const reply = page.waitForResponse(response =>
+          response.url() === gateway.origin + '/api/read/run-explanation-context');
+        await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
+        const response = await reply;
+        assert.equal(response.status(), 200);
+        const {data} = await response.json();
+        assert.deepEqual(data.runRef, original.ref);
+        assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
+        assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
+        assert.equal(data.explanation.story.factsCid, facts.self_cid);
+        assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+        await page.getByRole('dialog', {name: 'Open Run'}).waitFor({state: 'hidden'});
+      };
+      await openOriginal();
       const story = page.getByRole('region', {name: 'Original story', exact: true});
       await story.waitFor();
-      assert.match(await story.textContent(), /model-task:churn-risk\.v1/u);
+      assert.match(await story.textContent(), /model-task:deal-review\.v1/u);
       await page.getByText('Current status unavailable', {exact: true}).waitFor();
-      assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/run-explanation-context']);
+      assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation', '/api/read/run-explanation-context']);
+      await page.screenshot({path: join(evidence, 'installed-saved-context.png')});
+      await page.getByRole('button', {name: /Graph/}).click();
+      const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+      const node = graph.locator('.react-flow__node').first();
+      await node.click();
+      const originalStep = await node.getAttribute('data-id');
+      assert(originalStep && await node.locator('[data-selected="true"]').count() === 1);
+      const step = page.getByRole('region', {name: 'Selected Step', exact: true});
+      await step.waitFor();
+      assert((await step.textContent()).includes(originalStep));
+      await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
+      await page.getByRole('button', {name: 'Steps', exact: true}).click();
+      assert((await story.locator('details.story-card[data-selected="true"]').textContent()).includes(originalStep));
+      await page.getByRole('button', {name: 'Open Run', exact: true}).click();
+      await page.locator('textarea[name="ref"]').fill('{');
+      await page.getByRole('button', {name: 'Open Saved explanation', exact: true}).click();
+      await page.getByRole('alert').getByText('Enter the complete original Run reference as JSON.').waitFor();
+      await page.getByRole('button', {name: 'Close dialog', exact: true}).click();
+      await story.waitFor();
+      assert.equal(requests.length, 4);
+      gateway.invalidateScope();
+      await page.getByRole('button', {name: 'Inspect status', exact: true}).click();
+      await page.getByRole('button', {name: 'Reconnect', exact: true}).waitFor();
+      await story.waitFor({state: 'hidden'});
+      assert.equal(await page.locator('input[name="bootstrap"], textarea[name="ref"]').count(), 0);
+      await page.screenshot({path: join(evidence, 'installed-deal-review-reconnect.png')});
+      await connect('Reconnect');
+      await openOriginal();
+      await page.setViewportSize({width: 390, height: 844});
+      await page.getByRole('button', {name: /Hide query/}).click();
+      assert.equal(await page.locator('#query-pane').count(), 0);
+      await page.getByRole('button', {name: /Show query/}).click();
+      assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
+      await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
+      assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation',
+        '/api/read/run-explanation-context', '/api/read/observation', '/api/session', '/api/read/launch',
+        '/api/read/run-explanation-context']);
       assert.deepEqual(errors, []);
       assert.deepEqual(foreign, []);
-      await page.screenshot({path: join(evidence, 'installed-saved-context.png')});
     } finally {await page.close();}
     receipt = {producerPid: original.producerPid, consumerPid: process.pid, sameOriginal: true,
       browserRequests: requests};
@@ -151,7 +212,7 @@ if (primary !== undefined) throw primary;
 const afterClose = requireLosslessDrain(observation.status(), true);
 assert.equal(await targetDigest(), expectedTarget, 'The original target must stay unchanged through close');
 if (phase === 'produce') {
-  assert.equal(markers.filter(item => item.operation === 'source').length, 2);
+  assert(markers.filter(item => item.operation === 'source').length >= 3);
   assert(markers.every(item => item.run === receipt.ref.runDefinitionCid));
   assert(markers.some(item => item.operation === 'infer'), 'Original Run must witness an Infer start');
   assert(markers.some(item => item.operation === 'effect'), 'Original Run must witness an Effect application');

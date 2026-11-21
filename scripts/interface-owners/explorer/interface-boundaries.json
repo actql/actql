@@ -1830,7 +1830,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "af1c406e392acb0f80fffda9be5101b97bd00843d6b607d422cc0b96b88039c4",
+      "sha256": "e7cc5d3dbed063543a164ce8d7ff81c672662d82ea4fd02f0bf19eb338ea43c1",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1843,11 +1843,25 @@
       ],
       "operations": [
         {
+          "name": "label",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "{title?: string; state: string}"
+        },
+        {
           "name": "PlanExplorer",
           "parameters": [
             "props: PlanExplorerProps"
           ],
           "result": "ReactElement"
+        },
+        {
+          "name": "select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
         }
       ],
       "imports": [
@@ -1866,7 +1880,9 @@
         {
           "operations": [
             "<module>",
-            "PlanExplorer"
+            "label",
+            "PlanExplorer",
+            "select"
           ],
           "exports": [
             "CancellationObservation",
@@ -1969,6 +1985,10 @@
               {
                 "path": "packages/explorer-ui/plan-explorer.test.mjs",
                 "anchor": "array reversal changes presentation positions"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "const originalStep = await node.getAttribute('data-id');"
               }
             ]
           }
@@ -1978,7 +1998,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "857dc9023c55b1757bbaf2c4a74d19029089603cc234e222dc66fedd76e5849d",
+      "sha256": "7b56b85c275539d4d921705a64a9ddeea3aad880bb9969d56533b4b7d8add97d",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -1990,7 +2010,7 @@
         {
           "name": "BoundPlanExplorer",
           "parameters": [
-            "{model, initialView}: {model: PlanReadModel; initialView: 'list' | 'flow'}"
+            "{model, initialView, workspace}: Omit<PlanExplorerProps, 'scopeKey'>"
           ],
           "result": null
         },
@@ -2091,6 +2111,13 @@
           "result": null
         },
         {
+          "name": "label",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "{title?: string; state: string}"
+        },
+        {
           "name": "LogicalCard",
           "parameters": [
             "{data, selected}: NodeProps<LogicalNode>"
@@ -2115,9 +2142,16 @@
         {
           "name": "PlanExplorer",
           "parameters": [
-            "{model, scopeKey, initialView = 'list'}: PlanExplorerProps"
+            "{model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps"
           ],
           "result": null
+        },
+        {
+          "name": "select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
         }
       ],
       "imports": [
@@ -2158,10 +2192,12 @@
             "BoundPlanExplorer/<call>#7",
             "BoundPlanExplorer/<call>#8",
             "BoundPlanExplorer/<call>#9",
+            "label",
             "LogicalCard",
             "LogicalCard/<call>",
             "OriginalEdge",
-            "PlanExplorer"
+            "PlanExplorer",
+            "select"
           ],
           "exports": [
             "CancellationPanel",
@@ -2261,6 +2297,10 @@
               {
                 "path": "packages/explorer-ui/plan-explorer.test.mjs",
                 "anchor": "array reversal changes presentation positions"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "const originalStep = await node.getAttribute('data-id');"
               }
             ]
           }
@@ -4340,7 +4380,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "8a931a095a3d2042268de63f99cca677c6adf92276bfa58e390e7cbf9a899aa3",
+      "sha256": "97afdbbcd27541040f0257ae4dfe7e0f42aa5e1ab5d9afd58e8e67d52e7ba943",
       "exports": [],
       "operations": [
         {
@@ -4411,7 +4451,8 @@
         {
           "name": "App/<call>#10",
           "parameters": [
-            "event"
+            "line",
+            "index"
           ],
           "result": null
         },
@@ -4438,6 +4479,37 @@
         },
         {
           "name": "App/<call>#14",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#15",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#16",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#17",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#18",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#19",
           "parameters": [
             "event"
           ],
@@ -4475,17 +4547,19 @@
         },
         {
           "name": "App/<call>#8",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#9",
           "parameters": [
             "event"
           ],
           "result": null
         },
         {
-          "name": "App/<call>#9",
-          "parameters": [
-            "line",
-            "index"
-          ],
+          "name": "App/closeDrawer",
+          "parameters": [],
           "result": null
         },
         {
@@ -4498,6 +4572,20 @@
         {
           "name": "App/invalidate",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/label",
+          "parameters": [
+            "id"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/label/<call>",
+          "parameters": [
+            "step"
+          ],
           "result": null
         },
         {
@@ -4535,6 +4623,13 @@
           "result": null
         },
         {
+          "name": "App/openDrawer",
+          "parameters": [
+            "next: 'connect' | 'open-run'"
+          ],
+          "result": null
+        },
+        {
           "name": "App/perform",
           "parameters": [
             "action: () => Promise<void>"
@@ -4548,6 +4643,30 @@
         },
         {
           "name": "App/prepareCancellation",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal",
+          "parameters": [
+            "original: RunReference",
+            "action: string",
+            "name = ''"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/adopt",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/current",
           "parameters": [],
           "result": null
         },
@@ -4583,16 +4702,6 @@
           "result": null
         },
         {
-          "name": "App/readRun/<call>",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "App/readRun/current",
-          "parameters": [],
-          "result": null
-        },
-        {
           "name": "App/requestCancellation",
           "parameters": [],
           "result": null
@@ -4612,6 +4721,13 @@
         {
           "name": "App/session/<call>",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/setSelection",
+          "parameters": [
+            "id: string"
+          ],
           "result": null
         },
         {
@@ -4644,11 +4760,46 @@
           "result": null
         },
         {
-          "name": "StoryCard",
+          "name": "stepState",
           "parameters": [
-            "{ordinal, label, title, detail, observed, children}: {\n  ordinal: number; label: string; title: string; detail?: string; observed?: boolean; children: ReactNode;\n}"
+            "stepId: string",
+            "saved: boolean",
+            "boundary?: {stepId: string; state: StepState}"
+          ],
+          "result": "StepState"
+        },
+        {
+          "name": "stepTitle",
+          "parameters": [
+            "step: Step"
           ],
           "result": null
+        },
+        {
+          "name": "stepTitle/<call>",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard",
+          "parameters": [
+            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard/<call>",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard/onToggle",
+          "parameters": [],
+          "result": "void"
         },
         {
           "name": "StoryHeading",
@@ -4665,14 +4816,28 @@
           "result": null
         },
         {
+          "name": "StoryHeading/<call>/<call>",
+          "parameters": [
+            "key"
+          ],
+          "result": null
+        },
+        {
           "name": "StoryHeading/<call>#10",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#11",
           "parameters": [
             "text"
           ],
           "result": "text is string"
         },
         {
-          "name": "StoryHeading/<call>#11",
+          "name": "StoryHeading/<call>#12",
           "parameters": [
             "text"
           ],
@@ -4709,21 +4874,21 @@
         {
           "name": "StoryHeading/<call>#6",
           "parameters": [
-            "step"
+            "{explanation}"
           ],
           "result": null
         },
         {
           "name": "StoryHeading/<call>#7",
           "parameters": [
-            "step"
+            "join"
           ],
           "result": null
         },
         {
           "name": "StoryHeading/<call>#8",
           "parameters": [
-            "item"
+            "step"
           ],
           "result": null
         },
@@ -4737,7 +4902,7 @@
         {
           "name": "StorySteps",
           "parameters": [
-            "{story, context, boundary}: {story: ExplanationStoryModel; context: StoryContext; boundary?: string}"
+            "{story, context, saved, boundary, selectedStep, selectStep, graph}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean;\n}"
           ],
           "result": null
         },
@@ -4772,13 +4937,20 @@
         {
           "name": "StorySteps/<call>/<call>#4",
           "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#5",
+          "parameters": [
             "{origin, text}",
             "index"
           ],
           "result": null
         },
         {
-          "name": "StorySteps/<call>/<call>#5",
+          "name": "StorySteps/<call>/<call>#6",
           "parameters": [
             "{declaration,write_fields}",
             "position"
@@ -4795,7 +4967,8 @@
         {
           "name": "StorySteps/<call>#3",
           "parameters": [
-            "{origin,text}"
+            "{origin,text}",
+            "index"
           ],
           "result": null
         },
@@ -4815,6 +4988,34 @@
           "result": null
         },
         {
+          "name": "StorySteps/card",
+          "parameters": [
+            "id: string",
+            "defaultOpen: boolean",
+            "selected?: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/card/onToggle",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/card/onToggle/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/selectStep",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
+        },
+        {
           "name": "StoryText",
           "parameters": [
             "{text}: {text: string}"
@@ -4828,6 +5029,37 @@
             "index"
           ],
           "result": null
+        },
+        {
+          "name": "WorkspaceDialog",
+          "parameters": [
+            "{title, close, children}: {title: string; close(): void; children: ReactNode}"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>#2",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>#3",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/close",
+          "parameters": [],
+          "result": "void"
         }
       ],
       "imports": [
@@ -4867,6 +5099,11 @@
             "App/<call>#12",
             "App/<call>#13",
             "App/<call>#14",
+            "App/<call>#15",
+            "App/<call>#16",
+            "App/<call>#17",
+            "App/<call>#18",
+            "App/<call>#19",
             "App/<call>#2",
             "App/<call>#3",
             "App/<call>#4",
@@ -4875,14 +5112,18 @@
             "App/<call>#7",
             "App/<call>#8",
             "App/<call>#9",
+            "App/closeDrawer",
             "App/importCancellation",
             "App/invalidate",
+            "App/label",
+            "App/label/<call>",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
             "App/lookupCancellation",
             "App/lookupCancellation/<call>",
             "App/openDraft",
             "App/openDraft/<call>",
+            "App/openDrawer",
             "App/perform",
             "App/perform/<call>",
             "App/prepareCancellation",
@@ -4891,7 +5132,13 @@
             "App/requestCancellation",
             "App/requestCancellation/<call>",
             "App/session",
-            "App/session/<call>"
+            "App/session/<call>",
+            "App/setSelection",
+            "WorkspaceDialog",
+            "WorkspaceDialog/<call>",
+            "WorkspaceDialog/<call>#2",
+            "WorkspaceDialog/<call>#3",
+            "WorkspaceDialog/close"
           ],
           "exports": [],
           "attributes": {
@@ -4991,9 +5238,11 @@
         },
         {
           "operations": [
+            "App/readOriginal",
+            "App/readOriginal/<call>",
+            "App/readOriginal/adopt",
+            "App/readOriginal/current",
             "App/readRun",
-            "App/readRun/<call>",
-            "App/readRun/current",
             "parseLocalJson",
             "sameRun"
           ],
@@ -5075,11 +5324,18 @@
             "App/readPlan/<call>",
             "StepOrigin",
             "StepOrigin/<call>",
+            "stepState",
+            "stepTitle",
+            "stepTitle/<call>",
             "StoryCard",
+            "StoryCard/<call>",
+            "StoryCard/onToggle",
             "StoryHeading",
             "StoryHeading/<call>",
+            "StoryHeading/<call>/<call>",
             "StoryHeading/<call>#10",
             "StoryHeading/<call>#11",
+            "StoryHeading/<call>#12",
             "StoryHeading/<call>#2",
             "StoryHeading/<call>#3",
             "StoryHeading/<call>#4",
@@ -5095,10 +5351,15 @@
             "StorySteps/<call>/<call>#3",
             "StorySteps/<call>/<call>#4",
             "StorySteps/<call>/<call>#5",
+            "StorySteps/<call>/<call>#6",
             "StorySteps/<call>#2",
             "StorySteps/<call>#3",
             "StorySteps/<call>#4",
             "StorySteps/<call>#5",
+            "StorySteps/card",
+            "StorySteps/card/onToggle",
+            "StorySteps/card/onToggle/<call>",
+            "StorySteps/selectStep",
             "StoryText",
             "StoryText/<call>"
           ],
@@ -5166,6 +5427,10 @@
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "Static Context renders deterministic EN and JA"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }
