@@ -5,7 +5,6 @@
 // Source Evidence are the common runtime's and this module's; the connector
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
-import {invocationBindingsMatch} from '../host-common/owned-invocation-context.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, createPrivateKey, randomUUID} from
   'node:crypto';
@@ -33,8 +32,6 @@ import {openSqliteCredentialJournal} from
   '../site-node/sqlite-credential-journal.mjs';
 import {callHttpsCredentialResource} from
   '../site-node/https-credential-resource.mjs';
-import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
-  '../site-node/https-credential-resource.mjs';
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
@@ -47,6 +44,7 @@ import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
 import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
 import {ownCredentialAcquisitionLimits, ownCredentialSecretPresentation} from './installed-row-source-credential-options.mjs';
 import {createInstalledRowSourceCredentialCustody} from './installed-row-source-credential-custody.mjs';
+import {prepareInstallationMetadataSite} from './installed-row-source-metadata-site.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -95,332 +93,6 @@ export const {loadRowSourceCredentialCustody, openRowSourceCredentialCustody} =
   createInstalledRowSourceCredentialCustody({
     operationSites, retainCredentialOperationSite, runtimeCore, text, cidPattern,
   });
-
-// An operational alternative of this same installed Credential Site. Common
-// owns Subject/Scope DATA; the original Host, Account, Site and issuer remain
-// necessary at every action. Resource/egress admission is a separate caller
-// duty, never supplied by a bounded key read or a signed metadata grant.
-async function prepareInstallationMetadataSite(options) {
-  const {installationMetadata: input, profile, principalId, authorization,
-    connection, connectorRegistration, connectorRevision, runtimeBundleCid,
-    commonMoon, resolveSecret, ca, now, grantLifetimeMs} = options;
-  const invalid = () => fail('InvalidRowSourceInstallationMetadata');
-  const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-  const data = (value, keys) => {
-    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
-        Object.getPrototypeOf(value) !== Object.prototype) invalid();
-    const descriptors = Object.getOwnPropertyDescriptors(value);
-    const names = Reflect.ownKeys(descriptors);
-    if (names.length !== keys.length || names.some(key => !keys.includes(key))) invalid();
-    return Object.fromEntries(keys.map(key => {
-      const descriptor = descriptors[key];
-      if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) invalid();
-      return [key, descriptor.value];
-    }));
-  };
-  const original = data(input, ['publicationRequest', 'originals', 'declaration',
-    'declarationSourceCid', 'operations', 'maxOperations', 'maxSecretBytes',
-    'maxIssuerKeyBytes', 'maxCaBytes', 'targetAuthority', 'siteCurrent']);
-  if (original.declaration === null || typeof original.declaration !== 'object' ||
-      !cidPattern.test(original.declarationSourceCid ?? '') ||
-      !positive(original.maxOperations) || !positive(original.maxSecretBytes) ||
-      !positive(original.maxIssuerKeyBytes) || !positive(original.maxCaBytes) ||
-      !Array.isArray(original.operations) || nodeTypes.isProxy(original.operations) ||
-      original.operations.length === 0 || original.operations.length > original.maxOperations ||
-      original.operations.some(operation => !text(operation)) ||
-      typeof authorization?.assertAccountCurrent !== 'function' ||
-      typeof authorization?.assertConfigurationCurrent !== 'function' ||
-      !cidPattern.test(authorization.configurationCid ?? '') ||
-      !text(authorization.accountId) || authorization.principal !== principalId ||
-      !positive(grantLifetimeMs) || !text(connection)) invalid();
-  const operations = new Set(original.operations);
-  if (operations.size !== original.operations.length) invalid();
-  const targetAuthority = data(original.targetAuthority, ['project']);
-  const siteCurrent = data(original.siteCurrent, ['observe', 'assertCurrent']);
-  if ([targetAuthority.project, siteCurrent.observe, siteCurrent.assertCurrent]
-    .some(method => typeof method !== 'function')) invalid();
-  const account = Object.freeze(Object.fromEntries(['accountId', 'configurationCid',
-    'principal', 'contextCid'].map(name => {
-    const descriptor = Object.getOwnPropertyDescriptor(authorization, name);
-    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
-    return [name, descriptor.value];
-  })));
-  const accountMethods = Object.fromEntries(['authorize', 'assertAccountCurrent',
-    'assertConfigurationCurrent'].map(name => {
-    const descriptor = Object.getOwnPropertyDescriptor(authorization, name);
-    if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
-        typeof descriptor.value !== 'function') invalid();
-    return [name, descriptor.value];
-  }));
-  const callAccount = (name, ...args) => Reflect.apply(accountMethods[name], authorization, args);
-  // Capture the actual entry pair once; accessors cannot substitute another
-  // runtime, provider, resolver or checked profile across an await.
-  const pairNames = ['root', 'principalId', 'moon', 'installation', 'profile',
-    'resolveSecret', 'runtimeBundleCid', 'providerMoon'];
-  if (original.originals === null || typeof original.originals !== 'object' ||
-      nodeTypes.isProxy(original.originals)) invalid();
-  const descriptors = Object.getOwnPropertyDescriptors(original.originals ?? {});
-  const pair = Object.freeze(Object.fromEntries(pairNames.map(name => {
-    const descriptor = descriptors[name];
-    if (descriptor === undefined && name === 'providerMoon') return [name, undefined];
-    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
-    return [name, descriptor.value];
-  })));
-  if (pair.principalId !== principalId || pair.moon !== commonMoon ||
-      pair.resolveSecret !== resolveSecret || pair.runtimeBundleCid !== runtimeBundleCid ||
-      pair.installation?.registration !== connectorRegistration ||
-      pair.installation?.revision !== connectorRevision) invalid();
-  const host = await import('./installed-source.mjs');
-  host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
-  const view = runtimeCore(commonMoon).installationPreparationMetadata();
-  const subject = view.prepareSubject({
-    accountConfigurationCid: account.configurationCid,
-    accountId: account.accountId, connection, connectorRegistration,
-    connectorRevision, declarationSourceCid: original.declarationSourceCid,
-    installationRequestId: host.installedSourcePublicationRequestId(original.publicationRequest),
-    principal: principalId, runtimeBundleCid, siteGeneration: profile.siteGeneration,
-    siteKey: profile.siteKey,
-  });
-  const control = view.forSubject(subject);
-  const subjectCid = view.subjectCid(subject);
-  const profileKeys = ['credentialPrivateKeyPath', 'credentialAuthorityId',
-    'credentialKeyId', 'journalRoot', 'resourceOrigin', 'namespaceId',
-    'environment', 'siteKey', 'siteGeneration'];
-  const selectedProfile = Object.freeze(Object.fromEntries(profileKeys.map(key => {
-    const descriptor = Object.getOwnPropertyDescriptor(profile, key);
-    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
-    return [key, descriptor.value];
-  })));
-  // The selected PEM authority is immutable in the exposed credential facts.
-  // This purpose does not accept an arbitrary mutable TLS option object.
-  let authority;
-  if (ca !== undefined) {
-    if (!(typeof ca === 'string' || Buffer.isBuffer(ca)) ||
-        ca.length > original.maxCaBytes) invalid();
-    authority = typeof ca === 'string' ? ca : ca.toString('latin1');
-    if (authority.length > original.maxCaBytes || /[^\x00-\x7f]/u.test(authority)) invalid();
-  }
-  const synchronous = result => {
-    if (result !== undefined) {
-      if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
-      fail('InvalidInstallationMetadataCurrentFence');
-    }
-  };
-  let closing = false, closed = false, binding, bindingClosed = false;
-  let journalClosed = false, retired = false, custody, credential, originalFailure;
-  const entries = new Map(), authorizations = new WeakMap(), children = new Set();
-  const acquisitions = new WeakMap();
-  const profileCurrent = () => profileKeys.every(key => {
-    const descriptor = Object.getOwnPropertyDescriptor(profile, key);
-    return descriptor !== undefined && Object.hasOwn(descriptor, 'value') &&
-      descriptor.value === selectedProfile[key];
-  });
-  const ensureCurrent = operation => { try {
-    if (closing) fail('RowSourceSiteClosed');
-    if (originalFailure !== undefined) throw originalFailure;
-    host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
-    if (!profileCurrent()) {
-      fail('RowSourceInstallationMetadataSiteChanged');
-    }
-    synchronous(Reflect.apply(siteCurrent.assertCurrent, original.siteCurrent, []));
-    if (closing) fail('RowSourceSiteClosed');
-    synchronous(callAccount('assertConfigurationCurrent'));
-    for (const entry of entries.values()) {
-      if ((operation === undefined || entry.facts.operation === operation) && entry.decision !== undefined) {
-        synchronous(callAccount('assertAccountCurrent', entry.decision));
-      }
-    }
-    if (closing) fail('RowSourceSiteClosed');
-    host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
-    if (!profileCurrent()) {
-      fail('RowSourceInstallationMetadataSiteChanged');
-    }
-  } catch (cause) { if (!closing) originalFailure ??= cause; throw cause; } };
-  const factsFor = target => {
-    const facts = data(Reflect.apply(targetAuthority.project, original.targetAuthority,
-      [target, original.declaration]), ['resource', 'operation', 'origin', 'method', 'path', 'bodyBytes']);
-    if (!text(facts.resource) || !operations.has(facts.operation) ||
-        facts.origin !== selectedProfile.resourceOrigin || facts.method !== 'GET' ||
-        !text(facts.path) || facts.bodyBytes !== 0) invalid();
-    return Object.freeze(facts);
-  };
-  const current = async operation => {
-    try {
-      if (!operations.has(operation)) fail('RowSourceMetadataOperationNotRegistered');
-      ensureCurrent(operation);
-      await host.observeInstalledSourcePublicationCurrent(original.publicationRequest, pair);
-      ensureCurrent(operation);
-      synchronous(await Reflect.apply(siteCurrent.observe, original.siteCurrent, []));
-      ensureCurrent(operation);
-    } catch (cause) { originalFailure ??= cause; throw cause; }
-  };
-  return Object.freeze({maxIssuerKeyBytes: original.maxIssuerKeyBytes,
-    privateKeyPath: selectedProfile.credentialPrivateKeyPath,
-    assertInitializingCurrent: () => ensureCurrent(),
-    close() {
-      // Before Journal acquisition, the existing initialization Owner may
-      // retain this view behind an original bounded-key FD cleanup duty.
-      if (custody !== undefined) fail('RowSourceMetadataSiteAlreadyAttached');
-      closing = true;
-      if (!retired) {view.retireMetadataView(); retired = true;}
-    },
-    attach(originalCustody) {
-      custody = originalCustody;
-      const retainedJournal = custody.installationMetadataJournal();
-      const site = {
-        connection,
-        current,
-        async issueMetadataGrant({target, metadataOccurrenceId, useId,
-          expiresUnixMilliseconds, maxUses}) {
-          ensureCurrent();
-          if (!text(metadataOccurrenceId) || !text(useId) ||
-              typeof expiresUnixMilliseconds !== 'bigint' ||
-              !Number.isSafeInteger(maxUses) || maxUses <= 0 || maxUses > 10_000) invalid();
-          if (entries.has(metadataOccurrenceId)) fail('RowSourceMetadataOccurrenceAlreadyPrepared');
-          if (entries.size >= original.maxOperations) fail('RowSourceMetadataOperationLimit');
-          const facts = factsFor(target);
-          const scope = view.prepareScope(subject, {metadataOccurrenceId,
-            operation: facts.operation, resourceOrigin: facts.origin,
-            requestMethod: 'GET', requestPath: facts.path,
-            requestBodyCid: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'});
-          // Retain the original target and fallible outcome before the first
-          // await. A failed/Unknown occurrence cannot be prepared again here.
-          const entry = {target, facts, scope, decision: undefined, failure: undefined};
-          entries.set(metadataOccurrenceId, entry);
-          try {
-            await current(facts.operation);
-            const decision = await callAccount('authorize', 'acquisition', {
-              connection, resource: facts.resource, operation: 'read'}, {subjectCid});
-            ensureCurrent(facts.operation);
-            if (decision.action !== 'dispatch' ||
-                decision.boundary !== 'acquisition' || decision.subjectCid !== subjectCid ||
-                decision.contextCid !== account.contextCid ||
-                decision.tuple?.principal !== principalId ||
-                decision.tuple?.connection !== connection ||
-                decision.tuple?.resource !== facts.resource || decision.tuple?.operation !== 'read') {
-              fail('RowSourceMetadataGrantNotAuthorized');
-            }
-            // The Account Owner checks this exact scope's nominal dispatch;
-            // an equal/copied decision cannot supply current authority.
-            synchronous(callAccount('assertAccountCurrent', decision));
-            entry.decision = decision;
-            ensureCurrent(facts.operation);
-            const observed = factsFor(target);
-            if (Object.keys(facts).some(key => facts[key] !== observed[key])) {
-              fail('RowSourceMetadataTargetChanged');
-            }
-            const trustedNow = now();
-            if (!Number.isSafeInteger(trustedNow) || trustedNow < 0 ||
-                expiresUnixMilliseconds <= BigInt(trustedNow) ||
-                expiresUnixMilliseconds > BigInt(trustedNow) + BigInt(grantLifetimeMs)) invalid();
-            const signed = custody.signInstallationMetadata({control, scope,
-              expiresUnixMilliseconds, maxUses});
-            entry.signed = signed;
-            ensureCurrent(facts.operation);
-            if (binding === undefined) {
-              binding = openHttpsCredentialBinding({scope, control,
-                journal: custody.credential.journal, resolveSecret,
-                maxSecretBytes: original.maxSecretBytes, assertCurrent: () => ensureCurrent()});
-              credential = Object.freeze({binding, control,
-                journal: custody.credential.journal, resolveSecret, ca: authority, now});
-              // The metadata Site retains its original Subject, binding and
-              // Journal. This private operation view can lend only that SAME
-              // original to the shared reader; equal envelopes do not select it.
-              operationSites.set(credential, Object.freeze({site, credential,
-                referenceCurrent: site.referenceCurrent, callResource: site.callResource,
-                authorizationPurpose(authorization) {
-                  const entry = authorizations.get(authorization);
-                  if (entry === undefined) fail('ForeignRowSourceMetadataChild');
-                  ensureCurrent(entry.facts.operation);
-                  return Object.freeze({kind: 'installation-metadata', control});
-                },
-                bindRunAcquisition(authorization, callbacks) {
-                  const entry = authorizations.get(authorization);
-                  if (entry === undefined || entry.child !== undefined || children.size !== 0 || bindingClosed) {
-                    fail('ForeignRowSourceMetadataChild');
-                  }
-                  const methods = data(callbacks, ['assertCurrent', 'observeCurrent']);
-                  if (typeof methods.assertCurrent !== 'function' || typeof methods.observeCurrent !== 'function') invalid();
-                  synchronous(Reflect.apply(methods.assertCurrent, callbacks, []));
-                  ensureCurrent(entry.facts.operation);
-                  // No external callback follows insertion before this original
-                  // is returned. A failed current fence cannot strand a lease.
-                  const record = {retired: false};
-                  const acquisition = Object.freeze({authorization, credential,
-                    close() {
-                      if (this !== acquisition) fail('ForeignRowSourceMetadataChild');
-                      if (!bindingClosed) bindingClosed = closeHttpsCredentialBinding(binding) === 'closed';
-                      return bindingClosed ? 'closed' : 'pending';
-                    },
-                    retire() {
-                      if (this !== acquisition) fail('ForeignRowSourceMetadataChild');
-                      if (record.retired) return true;
-                      if (!bindingClosed) return false;
-                      record.retired = true;children.delete(record);
-                      return true;
-                    }});
-                  entry.child = record;children.add(record);acquisitions.set(acquisition, record);
-                  return acquisition;
-                },
-                readChildCredential(acquisition, authorization) {
-                  const record = acquisitions.get(acquisition), entry = authorizations.get(authorization);
-                  if (record === undefined || record.retired || !children.has(record) || entry === undefined ||
-                      entry.child !== undefined && entry.child !== record || bindingClosed) {
-                    fail('ForeignRowSourceMetadataChild');
-                  }
-                  ensureCurrent(entry.facts.operation);
-                  // The control checks both scopes against the SAME nominal
-                  // metadata Subject, never a copied request/Run substitute.
-                  if (!invocationBindingsMatch(authorization.scope, acquisition.authorization.scope, control)) {
-                    fail('ForeignRowSourceMetadataChild');
-                  }
-                  entry.child = record;
-                  return credential;
-                },
-              }));
-            }
-            const authorization = Object.freeze({...signed, useId});
-            authorizations.set(authorization, entry);
-            return authorization;
-          } catch (cause) {
-            entry.failure = cause;
-            originalFailure ??= cause;
-            throw cause;
-          }
-        },
-        callResource(options) {
-          ensureCurrent();
-          for (const operation of options?.operations?.values?.() ?? []) {
-            if ((operation.responseHeaders ?? []).length !== 0) fail('UndeclaredResponseHeader');
-          }
-          return callHttpsCredentialResource(options);
-        },
-        credential() {
-          ensureCurrent();
-          if (credential === undefined) fail('RowSourceMetadataGrantUnavailable');
-          return credential;
-        },
-        referenceCurrent: () => !closing && originalFailure === undefined && custody.referenceCurrent(),
-        cleanupPending: () => closing && !closed,
-        close() {
-          closing = true;
-          if (closed) return;
-          if (binding !== undefined && !bindingClosed) {
-            bindingClosed = closeHttpsCredentialBinding(binding) === 'closed';
-            if (!bindingClosed) fail('RowSourceMetadataCleanupPending');
-          }
-          // A closed socket is not retirement of the shared reader's
-          // callbacks/response aliases. Keep the SAME Journal while borrowed.
-          if (children.size !== 0) fail('RowSourceMetadataCleanupPending');
-          if (!journalClosed) { retainedJournal.close(); journalClosed = true; }
-          if (!retired) { view.retireMetadataView(); retired = true; }
-          closed = true;
-        },
-      };
-      return Object.freeze({site: Object.freeze(site), failure: retainedJournal.failure});
-    },
-  });
-}
 
 // The credential Site of one installed row source: the credential authority
 // key, the credential journal and the secret resolver. Grants are signed
@@ -492,7 +164,8 @@ export async function openRowSourceCredentialSite({profile, principalId,
     : await prepareInstallationMetadataSite({installationMetadata, profile,
       principalId, authorization, connection, connectorRegistration,
       connectorRevision, runtimeBundleCid, commonMoon, resolveSecret, ca,
-      now, grantLifetimeMs, ...(secretPresentation === undefined ? {} : {secretPresentation})});
+      now, grantLifetimeMs, ...(secretPresentation === undefined ? {} : {secretPresentation})},
+      runtimeCore, operationSites, text, cidPattern);
   const custodyOptions = {profile, principalId,
     connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
     resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal,

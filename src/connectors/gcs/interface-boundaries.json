@@ -147,7 +147,7 @@
                 "anchor": "member_environment(mapping.item)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -359,7 +359,7 @@
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {

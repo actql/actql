@@ -4342,7 +4342,7 @@
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
@@ -4364,7 +4364,7 @@
                 "anchor": "resourceValid"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {

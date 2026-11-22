@@ -14363,11 +14363,489 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-metadata-site.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "prepareInstallationMetadataSite"
+      ],
+      "operations": [
+        {
+          "name": "prepareInstallationMetadataSite",
+          "parameters": [
+            "options",
+            "runtimeCore",
+            "operationSites",
+            "text",
+            "cidPattern"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/account/account",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
+          "parameters": [
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "target",
+            "metadataOccurrenceId",
+            "useId",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/pair/pair",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/owned-invocation-context.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "./installed-row-source-mapping.mjs",
+        "./installed-source.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "a0bf945008d8505fa1c7ff31a3bc39fb74b1cd5747479e89b362bdfa3c95770f",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential"
+          ],
+          "exports": [
+            "prepareInstallationMetadataSite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "export async function prepareInstallationMetadataSite("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "const {installationMetadata: input, profile"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "return Object.freeze({site: Object.freeze(site), failure: retainedJournal.failure});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "view.prepareScope(subject,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "entries.set(metadataOccurrenceId, entry);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "operationSites.set(credential, Object.freeze({site, credential,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "synchronous(callAccount('assertAccountCurrent', decision));"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "await host.observeInstalledSourcePublicationCurrent(original.publicationRequest, pair);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "fail('RowSourceMetadataGrantNotAuthorized');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "originalFailure ??= cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "if (children.size !== 0) fail('RowSourceMetadataCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "retainedJournal.close();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "entries.size >= original.maxOperations"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "maxSecretBytes: original.maxSecretBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
+                "anchor": "Reflect.apply(targetAuthority.project as ClosedMethod, original.targetAuthority,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer sign two exact metadata scopes"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "closing during the original current await cannot sign into the retired Journal"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "a retained original target with changed projected facts refuses before signing"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstallationMetadataSite/account/account",
+            "prepareInstallationMetadataSite/accountMethods/accountMethods",
+            "prepareInstallationMetadataSite/current/current",
+            "prepareInstallationMetadataSite/data/data/data",
+            "prepareInstallationMetadataSite/data/data/data#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/pair/pair",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "2694d577e757dd5a054a43601537d67dcbbce460a0e901345712655919bef4d2",
+      "sha256": "4c80fa8fe44b54b2febee3f9e20437bfb85b6edf05b412d8b6938d4d4bb5439a",
       "operations": [
         {
           "name": "createInstalledRowSource",
@@ -15285,181 +15763,6 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/account/account",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/current/current",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data/data",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data/data#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
-          "parameters": [
-            "originalCustody"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
-          "parameters": [
-            "target",
-            "metadataOccurrenceId",
-            "useId",
-            "expiresUnixMilliseconds",
-            "maxUses"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
-          "parameters": [
-            "authorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
-          "parameters": [
-            "acquisition",
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/pair/pair",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "retainCredentialOperationSite",
           "parameters": [
             "site",
@@ -15519,7 +15822,6 @@
         "../host-common/authorization-gate.mjs",
         "../host-common/checkpoint-approval.mjs",
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
@@ -15534,8 +15836,8 @@
         "./installed-row-source-credential-options.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
+        "./installed-row-source-metadata-site.mjs",
         "./installed-row-source-targets.mjs",
-        "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
         "./original-query-preparation.mjs",
@@ -15832,7 +16134,7 @@
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
@@ -15898,7 +16200,7 @@
                 "anchor": "authorizationFor"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -16659,12 +16961,6 @@
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
             "createInstalledRowSource/sourceBody/sourceBody",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
             "retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite#3"
           ],
@@ -16970,7 +17266,7 @@
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
@@ -17020,7 +17316,7 @@
                 "anchor": "authorizationFor"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -18122,7 +18418,7 @@
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
@@ -18164,7 +18460,7 @@
                 "anchor": "authorizationFor"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -18448,162 +18744,6 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
                 "anchor": "shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareInstallationMetadataSite/account/account",
-            "prepareInstallationMetadataSite/accountMethods/accountMethods",
-            "prepareInstallationMetadataSite/current/current",
-            "prepareInstallationMetadataSite/data/data/data",
-            "prepareInstallationMetadataSite/data/data/data#2",
-            "prepareInstallationMetadataSite/init:attach/init:attach",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
-            "prepareInstallationMetadataSite/init:close/init:close",
-            "prepareInstallationMetadataSite/pair/pair",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
-            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
-            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The installed Row Credential Site accepts this alternative"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Each registered metadata occurrence retains its original selected target,"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "unsafe mutable Journal admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "Account file revoked across await"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Publication completion, failure and abort close new-operation admission."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Closing that Site or its Journal does not retire"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The legacy Run Site retains its existing signing and close behavior."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
-                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source failed read retirement remains with the same Source close retry"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
               }
             ]
           }
