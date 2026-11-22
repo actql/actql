@@ -1890,7 +1890,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.mts",
                 "anchor": "test("
               }
             ]

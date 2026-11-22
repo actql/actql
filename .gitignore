@@ -1904,3 +1904,7 @@ target/
 /adapters/connectors/duckdb/node/test/managed-input-cancellation.test.d.mts
 /adapters/host-node/client-program-preparation.mjs
 /adapters/host-node/client-program-preparation.d.mts
+/adapters/host-node/funded-client-preparation.fixture.mjs
+/adapters/host-node/funded-client-preparation.fixture.d.mts
+/adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.mjs
+/adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.d.mts
