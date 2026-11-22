@@ -7,10 +7,20 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeAcquisition } from '../native-acquisition.mjs';
-import { runBroadAcquisition } from '../broad-acquisition.mjs';
-import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
+import { runNativeAcquisition, type NativeAcquisitionPort } from '../native-acquisition.mjs';
+import { runBroadAcquisition, type BroadAcquisitionPort } from '../broad-acquisition.mjs';
+import { matchesSourceAcquisition, releaseSourceAcquisition, type SourceAccounting, type SourceChunk, type SourceParameters } from '../source-acquisition.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+
+type ReceiptRole = Parameters<NativeAcquisitionPort['beginReceipt']>[0];
+type FixtureCommands = Readonly<{
+  metadata: string; metadataParameters: SourceParameters;
+  validation: string; native: string; nativeParameters: SourceParameters;
+}>;
+type PendingFailure = Readonly<{
+  code: string; cleanupPending: boolean;
+  cleanupHandle: Readonly<{status(): {pending: boolean}; retry(): Promise<{pending: boolean}>}>;
+}>;
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -19,12 +29,12 @@ const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 
 
 // This is a lifecycle test double, not the product MoonBit value verifier or
 // an evidence issuer. Actual SQL comes from the MoonBit checked-query compiler.
-function receiver(commands, rejectRole, abortController) {
-  const events = [];
-  const received = {};
-  let view;
-  const owns = current => { if (view) assert.equal(current, view); else view = current; };
-  const port = {
+function receiver(commands: FixtureCommands, rejectRole?: ReceiptRole, abortController?: AbortController) {
+  const events: string[] = [];
+  const received = {} as Partial<Record<ReceiptRole, SourceChunk[]>> & {error?: unknown};
+  let view: object | undefined;
+  const owns = (current: object) => { if (view) assert.equal(current, view); else view = current; };
+  const port: NativeAcquisitionPort = {
     metadataSql: () => commands.metadata,
     metadataParameters: () => commands.metadataParameters,
     acceptMetadata(chunk, current) {
@@ -45,7 +55,7 @@ function receiver(commands, rejectRole, abortController) {
     acceptChunk(role, chunk, current) {
       owns(current); events.push(`${role}-chunk`);
       if (role === rejectRole) throw new Error('receiver rejection');
-      received[role].push(chunk);
+      received[role]!.push(chunk);
     },
     finishReceipt(role, current) {
       owns(current); events.push(`${role}-finished`);
@@ -63,7 +73,7 @@ test('generated native acquisition awaits validation on the same read view and c
   assert.match(stdout, /Total tests: 1, passed: 1, failed: 0/);
   const lines = stdout.split('\n').filter(line => line.startsWith('ACTQL_DUCKDB_NATIVE_FIXTURE '));
   assert.equal(lines.length, 1);
-  const commands = JSON.parse(lines[0].slice('ACTQL_DUCKDB_NATIVE_FIXTURE '.length));
+  const commands = JSON.parse(lines[0].slice('ACTQL_DUCKDB_NATIVE_FIXTURE '.length)) as FixtureCommands;
   const base = join(root, '_build/duckdb-fixtures');
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'native-read-'));
@@ -77,9 +87,9 @@ test('generated native acquisition awaits validation on the same read view and c
     } finally { connection.closeSync(); instance.closeSync(); }
     const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const good = receiver(commands);
-    const accountingEvents = [];
+    const accountingEvents: (string | boolean)[] = [];
     let charged = 0;
-    const accounting = {
+    const accounting: NonNullable<SourceAccounting> = {
       started() { accountingEvents.push('started'); },
       chargeTransfer(bytes) { charged += bytes; accountingEvents.push('charge'); },
       settled(confirmed) { accountingEvents.push(confirmed); },
@@ -104,11 +114,11 @@ test('generated native acquisition awaits validation on the same read view and c
     assert.equal(matchesSourceAcquisition(result, await authorizeLocalDatabase(path, fixtureSourceAccess), good.port, result.value.readView), false);
     assert.equal(matchesSourceAcquisition(result, grant, { ...good.port }, result.value.readView), false);
     assert.equal(matchesSourceAcquisition(result, grant, good.port, Object.freeze({})), false);
-    assert.deepEqual(good.received.validation_scan[0].columns, [
+    assert.deepEqual(good.received.validation_scan![0].columns, [
       ['403e000000000000', null, '4034000000000000'],
       ['4008000000000000', '3ff0000000000000', '4000000000000000'],
     ]);
-    assert.deepEqual(good.received.native_result[0].columns,
+    assert.deepEqual(good.received.native_result![0].columns,
       [['4008000000000000', '4000000000000000']]);
     assert(good.events.indexOf('validation_scan-finished') < good.events.indexOf('native-command'));
     assert.equal(result.value.validation.transport.rows, 3);
@@ -121,7 +131,7 @@ test('generated native acquisition awaits validation on the same read view and c
     // Broad uses the identical physical accounting boundary, with only one row
     // receipt. This receiver is a transport double, not semantic evidence.
     const broad = receiver(commands);
-    const broadPort = {
+    const broadPort: BroadAcquisitionPort = {
       ...broad.port,
       scanSql: () => commands.validation,
       beginReceipt: (fields, view) => broad.port.beginReceipt('validation_scan', fields, view),
@@ -136,7 +146,7 @@ test('generated native acquisition awaits validation on the same read view and c
     // Rejection by the shared physical ledger occurs before a chunk reaches
     // the receiver. No receipt provenance is published after that failure.
     const denied = receiver(commands);
-    const settlements = [];
+    const settlements: boolean[] = [];
     await assert.rejects(runNativeAcquisition(grant, denied.port, limits, undefined, {
       started() {},
       chargeTransfer() { throw new Error('physical ledger exhausted'); },
@@ -148,12 +158,12 @@ test('generated native acquisition awaits validation on the same read view and c
     // capacity while its receiver callback is still in flight.
     const pending = receiver(commands);
     const pendingAbort = new AbortController();
-    let enter;
-    let release;
-    const entered = new Promise(resolve => { enter = resolve; });
-    const held = new Promise(resolve => { release = resolve; });
-    const pendingSettlements = [];
-    const pendingPort = {
+    let enter!: () => void;
+    let release!: () => void;
+    const entered = new Promise<void>(resolve => { enter = resolve; });
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const pendingSettlements: boolean[] = [];
+    const pendingPort: NativeAcquisitionPort = {
       ...pending.port,
       async acceptMetadata(chunk, view) {
         pending.port.acceptMetadata(chunk, view);
@@ -168,11 +178,11 @@ test('generated native acquisition awaits validation on the same read view and c
       });
     await entered;
     pendingAbort.abort();
-    let pendingFailure;
+    let pendingFailure!: PendingFailure;
     try {
       await assert.rejects(operation, error => {
-        pendingFailure = error;
-        return error.code === 'Cancelled' && error.cleanupPending === true;
+        pendingFailure = error as PendingFailure;
+        return (error as PendingFailure).code === 'Cancelled' && (error as PendingFailure).cleanupPending === true;
       });
       assert.deepEqual(pendingSettlements, [false]);
       assert.equal(pendingFailure.cleanupHandle.status().pending, true);

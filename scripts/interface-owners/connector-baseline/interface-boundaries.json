@@ -434,7 +434,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/native-acquisition.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/native-acquisition.test.mts",
                 "anchor": "test("
               }
             ]
@@ -539,7 +539,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/issued-broad-query.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/issued-broad-query.test.mts",
                 "anchor": "test("
               }
             ]
@@ -2019,7 +2019,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/native-acquisition.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/native-acquisition.test.mts",
                 "anchor": "test("
               }
             ]
@@ -2124,7 +2124,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/issued-native-query.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/issued-native-query.test.mts",
                 "anchor": "test("
               }
             ]
@@ -3419,11 +3419,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/issued-native-query.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/issued-native-query.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "adapters/connectors/duckdb/node/test/issued-broad-query.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/issued-broad-query.test.mts",
                 "anchor": "test("
               }
             ]

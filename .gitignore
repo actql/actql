@@ -1874,3 +1874,11 @@ target/
 /adapters/connectors/duckdb/node/test/native-file-values.test.d.mts
 /adapters/connectors/duckdb/node/test/adopted-contracts.test.mjs
 /adapters/connectors/duckdb/node/test/adopted-contracts.test.d.mts
+/adapters/connectors/duckdb/node/test/native-acquisition.test.mjs
+/adapters/connectors/duckdb/node/test/native-acquisition.test.d.mts
+/adapters/connectors/duckdb/node/test/broad-query.test.mjs
+/adapters/connectors/duckdb/node/test/broad-query.test.d.mts
+/adapters/connectors/duckdb/node/test/issued-native-query.test.mjs
+/adapters/connectors/duckdb/node/test/issued-native-query.test.d.mts
+/adapters/connectors/duckdb/node/test/issued-broad-query.test.mjs
+/adapters/connectors/duckdb/node/test/issued-broad-query.test.d.mts

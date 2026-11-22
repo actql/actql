@@ -12,19 +12,46 @@ import { runBroadQuery } from '../broad-query.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
+import type {BroadAcquisitionPort} from '../broad-acquisition.mjs';
+import type {PrepareQuery} from '../settled-query.mjs';
+import type {FixtureOptions, Requirement, RuntimeCreate} from './issued-query-fixture.mjs';
+
+type FixtureBridge = PrepareQuery<BroadAcquisitionPort, unknown, unknown, [rows: number], string>;
+type BridgeOptions = FixtureOptions & Readonly<{cancel?: AbortController}>;
+type Inspection = {fixture?: unknown; chunks: number; completions: number};
+type ObservationIds = readonly [issuer: string, attempt: string];
+type FixtureRuntime = Readonly<{
+  issuedBroadCreate: RuntimeCreate;
+  issuedBroadAttempt(fixture: unknown): unknown;
+  issuedBroadDocument(fixture: unknown): string;
+  issuedBroadSql(fixture: unknown, metadata: boolean): string;
+  issuedBroadParameter(fixture: unknown, index: number): string;
+  issuedBroadMetadata(fixture: unknown, rows: number, fields: string, columns: string): boolean;
+  issuedBroadBegin(fixture: unknown, fields: string): boolean;
+  issuedBroadAccept(fixture: unknown, rows: number, columns: string): boolean;
+  issuedBroadFinish(fixture: unknown): boolean;
+  issuedBroadComplete(fixture: unknown, bytes: number): boolean;
+  issuedBroadObservation(fixture: unknown): unknown;
+  issuedBroadAbort(fixture: unknown): void;
+  issuedBroadClose(fixture: unknown): void;
+  issuedBroadBind(fixture: unknown, observation: unknown, rows: number): string;
+  issuedBroadRequirement(fixture: unknown): string;
+  issuedBroadIds(fixture: unknown): string;
+}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
+const canonical = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
   : value !== null && typeof value === 'object'
-    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`
     : JSON.stringify(value);
-const hash = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
 // Independent composition from the static requirement and fixed expected rows.
 // No product observation/record or returned database value is an oracle input.
-function expectedObservation(requirement, [issuer, attempt], scan, selected) {
+function expectedObservation(requirement: Requirement, [issuer, attempt]: ObservationIds, scan: readonly unknown[], selected: readonly unknown[]) {
   const requirementCid = hash(requirement);
   const requestCid = hash(requirement.request);
   const scope = hash({ version: 'actql-query-scan-scope/0.1', source_ref: requirement.source_ref,
@@ -48,14 +75,14 @@ function expectedObservation(requirement, [issuer, attempt], scan, selected) {
       filter_evidence_cid: records[1], select_evidence_cid: records[2] }, output, retention: 'process' };
 }
 
-function realBridge(moon, configuration, options, inspect) {
+function realBridge(moon: FixtureRuntime, configuration: readonly string[], options: BridgeOptions, inspect: Inspection): FixtureBridge {
   return verify => {
     const fixture = moon.issuedBroadCreate(...configuration, options.outputRows ?? 100, verify);
     inspect.fixture = fixture;
     const attempt = moon.issuedBroadAttempt(fixture);
-    const accepted = (ok, stage) => { if (!ok) throw new Error(`MoonBitBroadRejected: ${stage}`); };
-    let view;
-    const owns = current => {
+    const accepted = (ok: boolean, stage: string) => { if (!ok) throw new Error(`MoonBitBroadRejected: ${stage}`); };
+    let view: object | undefined;
+    const owns = (current: object) => {
       if (view === undefined) view = current;
       assert.equal(view, current);
       assert.equal(moon.issuedBroadDocument(fixture), 'null');
@@ -104,13 +131,13 @@ function realBridge(moon, configuration, options, inspect) {
 
 test('real DuckDB and public CheckedProgram complete owned broad evidence capture and consumer in one process', async () => {
   await promisify(execFile)('moon', ['build', '--target', 'js', 'src/connectors/duckdb/conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: FixtureRuntime = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')).href);
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
   const contracts = await pinnedEngineContracts(root);
-  const configuration = [JSON.parse(catalog[1]), catalog[2], ...contracts,
+  const configuration: string[] = [JSON.parse(catalog[1]) as string, catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8')];
   const base = join(root, '_build/duckdb-fixtures');
@@ -128,7 +155,7 @@ test('real DuckDB and public CheckedProgram complete owned broad evidence captur
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
-      const inspect = { chunks: 0, completions: 0 };
+      const inspect: Inspection = { chunks: 0, completions: 0 };
       const run = runBroadQuery(grant, realBridge(moon, configuration, {}, inspect), limits);
       if (name === 'invalid-unused') {
         await assert.rejects(run, /MoonBitBroadRejected: admission/);
@@ -139,8 +166,8 @@ test('real DuckDB and public CheckedProgram complete owned broad evidence captur
       const captured = await run;
       const scan = name === 'empty' ? [] : [{ amount: 30, id: 3 }, { amount: null, id: 1 }, { amount: 20, id: 2 }, { amount: 30, id: 3 }];
       const selected = name === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
-      const expected = expectedObservation(JSON.parse(moon.issuedBroadRequirement(inspect.fixture)),
-        JSON.parse(moon.issuedBroadIds(inspect.fixture)), scan, selected);
+      const expected = expectedObservation(JSON.parse(moon.issuedBroadRequirement(inspect.fixture)) as Requirement,
+        JSON.parse(moon.issuedBroadIds(inspect.fixture)) as ObservationIds, scan, selected);
       assert.equal(moon.issuedBroadDocument(inspect.fixture), canonical(expected));
       if (name !== 'empty') assert.throws(() => captured.bindInput(1), /consumer/);
       // Source changes cannot affect the already captured consumer input.
@@ -152,9 +179,9 @@ test('real DuckDB and public CheckedProgram complete owned broad evidence captur
       assert.equal(captured.bindInput(100), hash(selected));
       assert.equal(inspect.completions, 1);
       captured.close();
-      assert.throws(() => captured.bindInput(100), error => error.code === 'IssuerClosed');
+      assert.throws(() => captured.bindInput(100), error => (error as {code?: string}).code === 'IssuerClosed');
       for (const options of [{ outputRows: 0 }, { artifactBytes: 0 }, { early: true }, { cancel: new AbortController() }]) {
-        const failed = { chunks: 0, completions: 0 };
+        const failed: Inspection = { chunks: 0, completions: 0 };
         await assert.rejects(runBroadQuery(grant, realBridge(moon, configuration, options, failed), limits, options.cancel?.signal));
         assert.equal(moon.issuedBroadDocument(failed.fixture), 'null');
       }

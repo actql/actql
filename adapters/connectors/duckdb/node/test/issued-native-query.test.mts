@@ -12,20 +12,52 @@ import { runNativeQuery } from '../native-query.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
+import type {NativeAcquisitionPort} from '../native-acquisition.mjs';
+import type {PrepareQuery} from '../settled-query.mjs';
+import type {FixtureOptions, Requirement, RuntimeCreate} from './issued-query-fixture.mjs';
+
+type FixtureBridge = PrepareQuery<NativeAcquisitionPort, unknown, unknown, [rows: number], string>;
+type BridgeOptions = FixtureOptions & (
+  | Readonly<{cancelRole?: never; cancel?: never}>
+  | Readonly<{cancelRole: Parameters<NativeAcquisitionPort['beginReceipt']>[0]; cancel: AbortController}>
+);
+type Inspection = {fixture?: unknown; nativeQueries: number; completions: number};
+type ObservationIds = readonly [issuer: string, attempt: string, readView: string];
+type FixtureRuntime = Readonly<{
+  issuedNativeCreate: RuntimeCreate;
+  issuedNativeAttempt(fixture: unknown): unknown;
+  issuedNativeDocument(fixture: unknown): string;
+  issuedNativeSql(fixture: unknown, phase: number): string;
+  issuedNativeParameter(fixture: unknown, index: number): string;
+  issuedNativeMetadata(fixture: unknown, rows: number, fields: string, columns: string): boolean;
+  issuedNativeBegin(fixture: unknown, output: boolean, fields: string): boolean;
+  issuedNativeAccept(fixture: unknown, rows: number, columns: string): boolean;
+  issuedNativeFinish(fixture: unknown): boolean;
+  issuedNativeComplete(fixture: unknown, bytes: number): boolean;
+  issuedNativeObservation(fixture: unknown): unknown;
+  issuedNativeAbort(fixture: unknown): void;
+  issuedNativeClose(fixture: unknown): void;
+  issuedNativeBind(fixture: unknown, observation: unknown, rows: number): string;
+  issuedNativeRequirement(fixture: unknown): string;
+  issuedNativeIds(fixture: unknown): string;
+  issuedNativeVerify(fixture: unknown): boolean;
+  issuedNativeMaterialize(fixture: unknown, rows: number): string;
+}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
+const canonical = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
   : value !== null && typeof value === 'object'
-    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`
     : JSON.stringify(value);
-const hash = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 const twoReceiptContractCid = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
 
 // Independent contract preimages and fixed rows; no product receipt, record,
 // observation or returned SQL value is used to construct expected content.
-function expectedObservation(requirement, [issuer, attempt, read_view], scan, selected) {
+function expectedObservation(requirement: Requirement, [issuer, attempt, read_view]: ObservationIds, scan: readonly unknown[], selected: readonly unknown[]) {
   const requirementCid = hash(requirement);
   const requestCid = hash(requirement.request);
   const scope = hash({ version: 'actql-query-scan-scope/0.1', source_ref: requirement.source_ref,
@@ -51,14 +83,14 @@ function expectedObservation(requirement, [issuer, attempt, read_view], scan, se
       filter_evidence_cid: records[1], select_evidence_cid: records[2] }, output, retention: 'process' };
 }
 
-function realBridge(moon, configuration, options, inspect) {
+function realBridge(moon: FixtureRuntime, configuration: readonly string[], options: BridgeOptions, inspect: Inspection): FixtureBridge {
   return verify => {
     const fixture = moon.issuedNativeCreate(...configuration, options.outputRows ?? 100, verify);
     inspect.fixture = fixture;
     const attempt = moon.issuedNativeAttempt(fixture);
-    const accepted = (ok, stage) => { if (!ok) throw new Error(`MoonBitNativeRejected: ${stage}`); };
-    let view;
-    const owns = current => {
+    const accepted = (ok: boolean, stage: string) => { if (!ok) throw new Error(`MoonBitNativeRejected: ${stage}`); };
+    let view: object | undefined;
+    const owns = (current: object) => {
       if (view === undefined) view = current;
       assert.equal(view, current);
       assert.equal(moon.issuedNativeDocument(fixture), 'null');
@@ -107,7 +139,7 @@ function realBridge(moon, configuration, options, inspect) {
 
 test('real native SQL and public CheckedProgram produce independently checked two-receipt capture without Local replay', async () => {
   await promisify(execFile)('moon', ['build', '--target', 'js', 'src/connectors/duckdb/conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: FixtureRuntime = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')).href);
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
@@ -115,7 +147,7 @@ test('real native SQL and public CheckedProgram produce independently checked tw
   const contracts = await pinnedEngineContracts(root);
   const twoReceiptContract = await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8');
   assert.equal(hash(JSON.parse(twoReceiptContract)), twoReceiptContractCid);
-  const configuration = [JSON.parse(catalog[1]), catalog[2], ...contracts,
+  const configuration: string[] = [JSON.parse(catalog[1]) as string, catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
     twoReceiptContract];
@@ -134,7 +166,7 @@ test('real native SQL and public CheckedProgram produce independently checked tw
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
-      const inspect = { nativeQueries: 0, completions: 0 };
+      const inspect: Inspection = { nativeQueries: 0, completions: 0 };
       const run = runNativeQuery(grant, realBridge(moon, configuration, {}, inspect), limits);
       if (name === 'invalid-unused') {
         await assert.rejects(run, /admission-validation_scan/);
@@ -146,8 +178,8 @@ test('real native SQL and public CheckedProgram produce independently checked tw
       const captured = await run;
       const scan = name === 'empty' ? [] : [{ amount: 30, id: 3 }, { amount: null, id: 1 }, { amount: 20, id: 2 }, { amount: 30, id: 3 }];
       const selected = name === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
-      const expected = expectedObservation(JSON.parse(moon.issuedNativeRequirement(inspect.fixture)),
-        JSON.parse(moon.issuedNativeIds(inspect.fixture)), scan, selected);
+      const expected = expectedObservation(JSON.parse(moon.issuedNativeRequirement(inspect.fixture)) as Requirement,
+        JSON.parse(moon.issuedNativeIds(inspect.fixture)) as ObservationIds, scan, selected);
       assert.equal(moon.issuedNativeDocument(inspect.fixture), canonical(expected));
       assert.equal(moon.issuedNativeVerify(inspect.fixture), true);
       if (name !== 'empty') {
@@ -165,11 +197,11 @@ test('real native SQL and public CheckedProgram produce independently checked tw
       captured.close();
       assert.equal(moon.issuedNativeVerify(inspect.fixture), false);
       assert.equal(moon.issuedNativeMaterialize(inspect.fixture, 100), 'null');
-      const options = [{ artifactBytes: 0 }, { early: true },
-        ...['validation_scan', 'native_result'].map(cancelRole => ({ cancelRole, cancel: new AbortController() }))];
+      const options: BridgeOptions[] = [{ artifactBytes: 0 }, { early: true },
+        ...(['validation_scan', 'native_result'] as const).map(cancelRole => ({ cancelRole, cancel: new AbortController() }))];
       if (name !== 'empty') options.push({ outputRows: 0 });
       for (const option of options) {
-        const failed = { nativeQueries: 0, completions: 0 };
+        const failed: Inspection = { nativeQueries: 0, completions: 0 };
         await assert.rejects(runNativeQuery(grant, realBridge(moon, configuration, option, failed), limits, option.cancel?.signal));
         assert.equal(moon.issuedNativeDocument(failed.fixture), 'null');
         assert.equal(moon.issuedNativeVerify(failed.fixture), false);
