@@ -5,7 +5,7 @@
 fn request_capture_fixture(
   document? : String = source_query_original_document,
   environment_wire? : String = source_query_original_environment,
-  environment_cid? : String = "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+  environment_cid? : String = "sha256:40c45acbf81bdf192d79b7e8f65a5731ba6065b1d4b8cc7b4cab89ab4ac85c60",
   current? : () -> Bool = () => true,
   events? : Bool = false,
 ) -> (

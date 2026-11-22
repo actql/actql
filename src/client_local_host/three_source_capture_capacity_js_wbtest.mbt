@@ -5,12 +5,12 @@
 test "three Source occurrences use the complete original capture capacity inventory" {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    "sha256:40c45acbf81bdf192d79b7e8f65a5731ba6065b1d4b8cc7b4cab89ab4ac85c60",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let publication =
-    #|{"environmentCid":"sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8","aliases":[{"name":"left_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"},{"name":"middle_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"},{"name":"right_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"}]}
+    #|{"environmentCid":"sha256:40c45acbf81bdf192d79b7e8f65a5731ba6065b1d4b8cc7b4cab89ab4ac85c60","aliases":[{"name":"left_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"},{"name":"middle_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"},{"name":"right_records","sourceRef":"connector://crm/main/r#v","sourceViewContractCid":"sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3","schemaContractCid":"sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4"}]}
   let context = @source_publication.bind_published_query_context(
     environment,
     publication,
