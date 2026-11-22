@@ -6,13 +6,16 @@ import * as http from '../packages/provider-http/index.mjs';
 import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration}
   from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
 import {createInstalledHttpChatRegistration} from '../packages/provider-http/_internal/installed-http-chat.mjs';
+import {createRegisteredSdkProvider} from '../packages/provider-ai-sdk/_internal/normal-openai-chat.mjs';
 
-test('optional entries expose the original Host assemblers only', () => {
-  assert.deepEqual(Object.keys(sdk),
-    ['createInstalledOpenAIChatRegistration', 'createInstalledUndiciOpenAIChatRegistration']);
+test('optional entries expose Host assemblers and configured registrations', () => {
+  assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration',
+    'createInstalledUndiciOpenAIChatRegistration', 'createOpenAIChatProvider',
+    'createProjectOpenAIChatProvider', 'createRegisteredSdkProvider']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
   assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
   assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
+  assert.strictEqual(sdk.createRegisteredSdkProvider, createRegisteredSdkProvider);
   assert.strictEqual(http.createInstalledHttpChatRegistration, createInstalledHttpChatRegistration);
   for (const entry of [sdk, http]) {
     assert.equal(entry.startSdkTransport, undefined);
@@ -43,12 +46,19 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   assert.deepEqual(shrinkwrap, original);
   const lock = JSON.parse(original);
   assert.equal(lock.packages['node_modules/@ai-sdk/openai'].version, '4.0.91');
+  assert.equal(lock.packages['node_modules/@ai-sdk/google'].version, '4.0.124');
   assert.equal(lock.packages['node_modules/@ai-sdk/typesafe-ai'].version, '3.0.13');
   assert.equal(lock.packages['node_modules/undici'].version, '7.30.0');
   assert.equal(lock.packages[''].dependencies.undici, '7.30.0');
   const manifest = JSON.parse(readFileSync(new URL('../packages/provider-ai-sdk/package.json', import.meta.url)));
   assert.equal(manifest.dependencies.undici, '7.30.0');
   assert.equal(manifest.dependencies['@ai-sdk/provider-utils'], '5.0.58');
+  // The older support library is also a direct pin so npm preserves the same
+  // shared physical placement for OpenAI and the root Provider utilities.
+  assert.equal(manifest.dependencies['@ai-sdk/provider'], '4.0.26');
+  assert.equal(lock.packages[''].dependencies['@ai-sdk/provider'], '4.0.26');
+  assert.equal(lock.packages['node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider'].version, '4.0.39');
+  assert.equal(lock.packages['node_modules/@ai-sdk/google/node_modules/@ai-sdk/provider'].version, '4.0.39');
   assert.equal(lock.packages[''].dependencies['@ai-sdk/provider-utils'], '5.0.58');
   assert.equal(lock.packages['node_modules/@ai-sdk/provider-utils'].version, '5.0.58');
   assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});

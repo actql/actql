@@ -63182,7 +63182,8 @@
           "operations": [
             "connectEmbeddedLocal",
             "openPreparedInstalledHost",
-            "openPreparedInstalledHost/client/client"
+            "openPreparedInstalledHost/client/client",
+            "openPreparedInstalledHost/preparation/init:modelSdkInstallation/init:modelSdkInstallation"
           ],
           "exports": [
             "connectEmbeddedLocal"
@@ -71177,6 +71178,11 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:modelSdkInstallation/init:modelSdkInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
           "parameters": [
             "request",
@@ -72430,7 +72436,6 @@
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -72549,8 +72554,10 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
-      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
+      "sha256": "cf4a8e518cefcd3c0836d6500061e72d35fe73b4727ed07198be4d457c86bc07"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -74567,7 +74574,7 @@
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -77538,7 +77545,9 @@
         },
         {
           "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
-          "parameters": [],
+          "parameters": [
+            "code"
+          ],
           "async": false
         },
         {
@@ -78730,12 +78739,12 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
+      "sha256": "353b51f373852e6c0631057219926346f0c8446307285cd62408d9a046ac5aac"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
+      "sha256": "009a5e886cce57475d261f4737ffd4d91f81fd04c00da26ab6fb1039a2b0f141",
       "role": "physical-io",
       "owner": "A \u2014 existing Model raw custody projection",
       "exports": [
@@ -78852,7 +78861,8 @@
           "name": "createModelRawTransportPersistence/persist/persist",
           "parameters": [
             "call",
-            "raw"
+            "raw",
+            "bytesOnly"
           ],
           "async": true
         },
@@ -85102,9 +85112,9 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
+      "sha256": "45ef03ddf9ba5e3f3a63bb497f3431b2617557565cbef89f441da9b0ea495f51",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -85205,7 +85215,8 @@
             "assertHostRuntime",
             "assertNewHostRuntime",
             "bindSdkStaticOriginals",
-            "taskOriginals"
+            "taskOriginals",
+            "prepareSdkCapability"
           ],
           "async": false
         },
@@ -166927,7 +166938,7 @@
   ],
   "counts": {
     "modules": 59,
-    "operations": 4670,
+    "operations": 4671,
     "exports": 624,
     "explicitContractGroups": 916
   }

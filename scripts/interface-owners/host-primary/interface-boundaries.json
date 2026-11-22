@@ -17525,10 +17525,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequest/cancelRequest",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
@@ -17538,12 +17538,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
@@ -17553,6 +17548,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
@@ -17563,11 +17563,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
@@ -17621,9 +17621,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
@@ -17650,15 +17650,15 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
@@ -17666,9 +17666,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
@@ -17705,6 +17705,7 @@
             "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation",
             "openPreparedInstalledHost/preparation/init:hostInitializationPreparation/init:hostInitializationPreparation/init:hostInitializationPreparation#2",
             "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#3",
+            "openPreparedInstalledHost/preparation/init:modelSdkInstallation/init:modelSdkInstallation",
             "publicKeyCid/publicKeyCid",
             "publishInstalledEffect",
             "publishInstalledSource",
@@ -28890,6 +28891,11 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:modelSdkInstallation/init:modelSdkInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
           "parameters": [
             "request",
@@ -30143,7 +30149,6 @@
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -30262,8 +30267,10 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
-      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
+      "sha256": "cf4a8e518cefcd3c0836d6500061e72d35fe73b4727ed07198be4d457c86bc07"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -35634,7 +35641,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "0b3a6da15f6b5ac0c2826d3494e4176280479874f9d594799c5b27dd9ffa9cf6",
+      "sha256": "807403e5b4a6f70bcfaab7987e1ca0844cc91530106b740625fe0d582ce7ff1a",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -35651,7 +35658,9 @@
             "assertHostRuntime",
             "assertNewHostRuntime",
             "bindSdkStaticOriginals",
-            "runtimeUrl"
+            "runtimeUrl",
+            "verifiedSdkInstallations",
+            "sdkImageCustody"
           ],
           "async": true
         },
@@ -35832,6 +35841,70 @@
         },
         {
           "name": "installConfiguredModelProviders/context/init:prepareRawPolicies/init:prepareRawPolicies/init:prepareRawPolicies/retained/retained#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:project",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:createLanguageModel/init:createLanguageModel",
+          "parameters": [
+            "fetch"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:verifyRequest/init:verifyRequest",
+          "parameters": [
+            "wire",
+            "call"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project#2",
           "parameters": [],
           "async": false
         },
@@ -36075,6 +36148,13 @@
           "async": true
         },
         {
+          "name": "installConfiguredModelProviders/context/init:registeredSdkSelected/init:registeredSdkSelected",
+          "parameters": [
+            "providerId"
+          ],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/context/init:runtimeIdentity/init:runtimeIdentity",
           "parameters": [],
           "async": false
@@ -36143,6 +36223,24 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability",
+          "parameters": [
+            "registration",
+            "providerId",
+            "taskCid",
+            "provider",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/original/original",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/providers/providers",
           "parameters": [],
           "async": false
@@ -36163,12 +36261,34 @@
             "cause"
           ],
           "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./initial-control-package-custody.cjs",
         "./installed-host-services.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
@@ -36186,23 +36306,6 @@
           "operations": [
             "<module>",
             "installConfiguredModelProviders",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct#2",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:bindingOriginalsFor/init:bindingOriginalsFor",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks#2",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material#2",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
-            "installConfiguredModelProviders/context/init:readText/init:readText",
-            "installConfiguredModelProviders/context/init:readText/init:readText/init:readText",
-            "installConfiguredModelProviders/persistOriginals/persistOriginals",
-            "installConfiguredModelProviders/providers/providers",
-            "installConfiguredModelProviders/track/track/track",
-            "installConfiguredModelProviders/track/track/track#2",
             "installConfiguredModelProviders/artifactIdentity/artifactIdentity",
             "installConfiguredModelProviders/artifactIdentity/artifactIdentity/artifactIdentity",
             "installConfiguredModelProviders/artifactIdentity/artifactIdentity/artifactIdentity/holder/holder",
@@ -36232,6 +36335,22 @@
             "installConfiguredModelProviders/context/init:prepareRawPolicies/init:prepareRawPolicies/init:prepareRawPolicies/retained/retained",
             "installConfiguredModelProviders/context/init:prepareRawPolicies/init:prepareRawPolicies/init:prepareRawPolicies/retained/retained#2",
             "installConfiguredModelProviders/context/init:prepareRawPolicies/init:prepareRawPolicies/init:prepareRawPolicies/retained/retained#3",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#2",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#3",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#4",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:createLanguageModel/init:createLanguageModel",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:verifyRequest/init:verifyRequest",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:bindingOriginalsFor/init:bindingOriginalsFor",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor",
@@ -36239,6 +36358,8 @@
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor#3",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor/init:project/init:project",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:executionOriginalsFor/init:executionOriginalsFor/init:executionOriginalsFor/init:project/init:project/values/values",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks#2",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:providerEntries/init:providerEntries",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:providerEntries/init:providerEntries/init:providerEntries",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:providerEntries/init:providerEntries/init:providerEntries/init:project/init:project",
@@ -36249,7 +36370,24 @@
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:project/init:project",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/taskFor/taskFor/original/original",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
+            "installConfiguredModelProviders/context/init:readText/init:readText",
+            "installConfiguredModelProviders/context/init:readText/init:readText/init:readText",
+            "installConfiguredModelProviders/context/init:registeredSdkSelected/init:registeredSdkSelected",
             "installConfiguredModelProviders/context/init:runtimeIdentity/init:runtimeIdentity",
             "installConfiguredModelProviders/install/install",
             "installConfiguredModelProviders/install/install/install",
@@ -36258,20 +36396,19 @@
             "installConfiguredModelProviders/modelInstallationForRuntime/modelInstallationForRuntime/init:project/init:project/init:project",
             "installConfiguredModelProviders/modelInstallationForRuntime/modelInstallationForRuntime/modelInstallationForRuntime",
             "installConfiguredModelProviders/modelInstallationForRuntime/modelInstallationForRuntime/modelInstallationForRuntime#2",
+            "installConfiguredModelProviders/persistOriginals/persistOriginals",
             "installConfiguredModelProviders/policyInventory/init:project/init:project",
             "installConfiguredModelProviders/policyInventory/policyInventory",
             "installConfiguredModelProviders/policyInventory/policyInventory#2",
+            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability",
+            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/original/original",
+            "installConfiguredModelProviders/providers/providers",
             "installConfiguredModelProviders/providers/providers#2",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2"
+            "installConfiguredModelProviders/track/track/track",
+            "installConfiguredModelProviders/track/track/track#2",
+            "originalSdkRecord/originalSdkRecord",
+            "originalSdkRecord/originalSdkRecord#2",
+            "originalSdkRecord/originalSdkRecord#3"
           ],
           "exports": [
             "installConfiguredModelProviders"
@@ -36347,6 +36484,10 @@
               {
                 "path": "adapters/host-node/installed-model-configuration.test.mjs",
                 "anchor": "test('configuration seals the context before consuming a retained provider entry getter'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('the original Host verifies SDK software and closes the options before supplying its factory'"
               }
             ]
           }
@@ -36357,7 +36498,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1169,
+    "operations": 1187,
     "exports": 109,
     "explicitContractGroups": 106
   }

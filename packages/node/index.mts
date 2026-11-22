@@ -34,9 +34,16 @@ function captureOptions(original:object, captured = new Map<PropertyKey,unknown>
   return Object.freeze(Object.create(Object.getPrototypeOf(original), fields)) as UncheckedFields;
 }
 
+function assertOwnModelSdkSelection(installation: unknown) {
+  if (installation != null && typeof installation === 'object' &&
+      !Object.hasOwn(installation, 'modelSdkRegistrations') && 'modelSdkRegistrations' in installation) {
+    throw new ClientError('InvalidInstalledModelSdkInstallation');
+  }
+}
+
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.
-async function localProvider():Promise<ProviderPort> {
+async function localProvider(modelSdkRegistrations: unknown): Promise<ProviderPort> {
   let resolved;
   try {
     resolved = import.meta.resolve('@actql/local-node');
@@ -52,7 +59,16 @@ async function localProvider():Promise<ProviderPort> {
   // it supplies no ActQL admission, checking result, or execution authority.
   const cache = await import('@actql/local-node/_internal/compile-cache');
   cache.enableNodeCompileCache();
-  const provider = await import(resolved) as {connect?:unknown};
+  if (modelSdkRegistrations !== undefined) {
+    // The selected image owner must deliver Host and SDK sources before
+    // Local's ordinary static import can populate Node's JSON/module cache.
+    // @ts-expect-error TS7016: the initial-control dispatch bootstrap still has a CommonJS authored entry.
+    const {default: startup} = await import('@actql/local-node/_internal/initial-control-public-dispatch') as {
+      default: {prepareOrdinaryModelSdkInstallation(registrations: unknown): unknown};
+    };
+    startup.prepareOrdinaryModelSdkInstallation(modelSdkRegistrations);
+  }
+  const provider = await import(resolved) as {connect?: unknown};
   if (typeof provider.connect !== 'function') {
     throw new ClientError('InvalidLocalProvider');
   }
@@ -74,6 +90,7 @@ export async function connect(options:unknown, stringOptions?:unknown):Promise<C
       owner === 'local') && endpoint === undefined;
   } catch { throw new ClientError('InvalidConnectionOptions', {hint}); }
   if (embeddedLocal) {
+    let modelSdkRegistrations: unknown;
     // Detach this new Host-only value before lazy provider loading. Admission
     // stays with the installed Host; connected Remote loads no Local module.
     try {
@@ -88,7 +105,9 @@ export async function connect(options:unknown, stringOptions?:unknown):Promise<C
       let installation = (options as UncheckedFields).installation;
       if (installation !== undefined && installation !== null &&
           typeof installation === 'object' && !Array.isArray(installation)) {
+        assertOwnModelSdkSelection(installation);
         installation = captureOptions(installation);
+        modelSdkRegistrations = Object.getOwnPropertyDescriptor(installation, 'modelSdkRegistrations')?.value;
         const selected = (installation as UncheckedFields).hostCapacityPolicy;
         // Capture omission as well as selection. Later caller mutations must
         // not choose a different Host policy while the provider is loading.
@@ -113,7 +132,7 @@ export async function connect(options:unknown, stringOptions?:unknown):Promise<C
       if (error instanceof ClientError) throw error;
       throw new ClientError('InvalidInstalledHostCapacityPolicy');
     }
-    return (await localProvider()).connect(options);
+    return (await localProvider(modelSdkRegistrations)).connect(options);
   }
   return connectHost(options);
 }
@@ -161,6 +180,7 @@ export async function open(options?:Public.OpenOptions):Promise<Public.LocalSess
         Object.hasOwn(options.installation, 'directory'))) {
     throw new ClientError('InvalidOpenOptions');
   }
+  assertOwnModelSdkSelection(options.installation);
   const stateDir = resolve(options.stateDir ?? '.actql');
   const client = await connect({mode: 'local', owner: 'local',
     ...(Object.hasOwn(options, 'profile') ? {profile: options.profile} : {}),

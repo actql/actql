@@ -151,6 +151,30 @@ assert(client.info.stateDir.endsWith('/.own'));
 `);
 });
 
+test('public open and connect refuse inherited SDK selections before loading Local', async () => {
+  await check(`
+let inheritedReads = 0;
+const registration = Object.freeze([]);
+const getter = Object.defineProperty({}, 'modelSdkRegistrations', {
+  get() { inheritedReads++; return registration; },
+});
+for (const prototype of [getter, {modelSdkRegistrations: registration}]) {
+  const installation = Object.create(prototype);
+  await assert.rejects(node.open({installation}), {code: 'InvalidInstalledModelSdkInstallation'});
+  await assert.rejects(node.connect({mode: 'local', owner: 'local', installation}),
+    {code: 'InvalidInstalledModelSdkInstallation'});
+}
+assert.equal(inheritedReads, 0);
+assert.deepEqual(order, []);
+const installation = Object.defineProperty(Object.create(getter), 'modelSdkRegistrations',
+  {value: undefined, enumerable: true});
+const client = await node.open({installation});
+assert.equal(client.originalClient, true);
+assert.equal(inheritedReads, 0);
+assert.deepEqual(order, ['enable', 'dependency', 'host', 'enable', 'connect']);
+`);
+});
+
 test('Local acquisition preserves captured options and original callback and borrower identities', async () => {
   await check(`
 const callback = () => 'original', borrower = Object.freeze({original: true});

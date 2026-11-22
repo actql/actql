@@ -20,9 +20,9 @@ type OriginalNative = {platform: string; arch: string; node: string; moduleAbi: 
 type Engine = {node: string; v8: string; openssl: string; platform: string; arch: string;
   libraries: NodeJS.ProcessVersions | Record<string, string>};
 type NativeInput = {version: string; source: ReturnType<typeof sourceBinding>;
-  engine: Engine; original: FileFact; binary: FileFact};
+  engine: Engine; compatibilityEngine?: Engine; original: FileFact; binary: FileFact};
 type Selection = {version: string; inputs: {path: string; sha256: string}[]};
-type Target = {platform: string; arch: string; engine: Engine; original: OriginalNative;
+type Target = {platform: string; arch: string; engine: Engine; compatibilityEngine?: Engine; original: OriginalNative;
   originalSource: string; originalSha256: string; inputSha256: string};
 type BuildOptions = {root?: string; destination?: string; check?: boolean};
 type ExportOptions = BuildOptions & {output?: string};
@@ -57,6 +57,7 @@ const inputManifest = 'native-input.json';
 const hashPattern = /^[a-f0-9]{64}$/u;
 const nativeTargets = new Map([['darwin-arm64', '_build/native/directory-darwin-arm64.node'],
   ['linux-x64', '_build/native/local-files-linux-x64.node']]);
+export const ordinaryCompatibilityNode = '24.21.0';
 const recipePaths = [darwinSourcePath, linuxSourcePath, helperPath, platformPath, localFilesPath,
   localWriterPath, 'scripts/build-node-directory-native.mjs', 'scripts/build-local-node-adapters.mjs',
   'scripts/initial-control-package-images.mjs', 'toolchain.json', 'release/client-cohort.json',
@@ -132,15 +133,37 @@ function validateOriginal(original: OriginalNative, bytes: Buffer, target: strin
     names.add(fact.path);
   }
 }
-function validateEngine(engine: Engine, original: OriginalNative) {
+function validateEngine(engine: Engine, original: Pick<OriginalNative, 'platform' | 'arch'> & {node?: string}, node = original.node) {
   exactKeys(engine, ['node', 'v8', 'openssl', 'platform', 'arch', 'libraries']);
-  if (engine.node !== original.node || engine.platform !== original.platform || engine.arch !== original.arch ||
+  if (engine.node !== node || engine.platform !== original.platform || engine.arch !== original.arch ||
       engine.libraries === null || typeof engine.libraries !== 'object' || Array.isArray(engine.libraries) ||
       Object.keys(engine.libraries).length > 64 || Object.values(engine.libraries)
         .some(value => typeof value !== 'string' || value.length > 256) ||
       (['node', 'v8', 'openssl'] as const).some(name => typeof engine[name] !== 'string' || engine[name] !== engine.libraries[name])) {
     fail('InvalidDirectoryNativeEngine');
   }
+}
+
+// Observe the actual separately installed compatibility runtime on this
+// producer. Only the pinned toolchain may supply its executable. The native
+// addon itself is still built and attested by the primary Node toolchain.
+export function observeOrdinaryCompatibilityEngine() {
+  const executable = process.env.ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE;
+  if (executable === undefined) return undefined;
+  if (!isAbsolute(executable) || realpathSync(executable) !== executable ||
+      !lstatSync(executable).isFile()) fail('InvalidDirectoryNativeEngine');
+  const original = lstatSync(executable, {bigint: true});
+  const engine = JSON.parse(execFileSync(executable, ['-e', `
+    const {node, v8, openssl} = process.versions;
+    process.stdout.write(JSON.stringify({node, v8, openssl, platform: process.platform,
+      arch: process.arch, libraries: process.versions}));
+  `], {env: {}, encoding: 'utf8', timeout: 5000, maxBuffer: 16384}));
+  const observed = lstatSync(executable, {bigint: true});
+  for (const key of ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs'] as const) {
+    if (original[key] !== observed[key]) fail('ChangedDirectoryNativeInput');
+  }
+  validateEngine(engine, process, ordinaryCompatibilityNode);
+  return engine;
 }
 
 // This exports immutable build DATA, not a trusted artifact or a loading
@@ -162,6 +185,7 @@ export function exportNodeDirectoryNativeInput({root = repository,
   const engine = {node: process.versions.node, v8: process.versions.v8, openssl: process.versions.openssl,
     platform: process.platform, arch: process.arch, libraries: {...process.versions}};
   validateEngine(engine, original);
+  const compatibilityEngine = observeOrdinaryCompatibilityEngine();
   const binary = {...fileFact(destination, path), path: path.split('/').at(-1)!};
   const record = {...fileFact(destination, directoryNativeDescriptor), path: 'directory-original.json'};
   if (binary.sha256 !== sha(bytes) || record.sha256 !== sha(descriptor)) fail('ChangedDirectoryNativeInput');
@@ -171,7 +195,8 @@ export function exportNodeDirectoryNativeInput({root = repository,
     writeFileSync(join(output, fact.path), value, {flag: 'wx', mode: fact.mode});
     chmodSync(join(output, fact.path), fact.mode);
   }
-  const manifest = {version: 'actql-node-directory-native-input/0.1', source, engine, original: record, binary};
+  const manifest = {version: 'actql-node-directory-native-input/0.1', source, engine,
+    ...(compatibilityEngine === undefined ? {} : {compatibilityEngine}), original: record, binary};
   const contents = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
   writeFileSync(join(output, inputManifest), contents, {flag: 'wx'});
   return {manifest: join(output, inputManifest), sha256: sha(contents)};
@@ -198,7 +223,9 @@ export function assembleNodeDirectoryNative({root = repository,
     const manifestBytes = inputFile(base, input.path, 4 * 1024 * 1024);
     if (sha(manifestBytes) !== input.sha256) fail('ChangedDirectoryNativeInput');
     const manifest = JSON.parse(manifestBytes as unknown as string) as NativeInput;
-    exactKeys(manifest, ['version', 'source', 'engine', 'original', 'binary']);
+    const hasCompatibility = Object.hasOwn(manifest, 'compatibilityEngine');
+    exactKeys(manifest, ['version', 'source', 'engine', 'original', 'binary',
+      ...(hasCompatibility ? ['compatibilityEngine'] : [])]);
     if (manifest.version !== 'actql-node-directory-native-input/0.1' ||
         JSON.stringify(manifest.source) !== JSON.stringify(source)) fail('WrongDirectoryNativeSource');
     const selected = join(base, dirname(input.path));
@@ -206,6 +233,7 @@ export function assembleNodeDirectoryNative({root = repository,
     if (!Buffer.from(descriptor.toString('utf8')).equals(descriptor)) fail('InvalidDirectoryNativeOriginal');
     const original = JSON.parse(descriptor as unknown as string) as OriginalNative, target = `${original.platform}-${original.arch}`;
     validateOriginal(original, bytes, target, root); validateEngine(manifest.engine, original);
+    if (hasCompatibility) validateEngine(manifest.compatibilityEngine!, original, ordinaryCompatibilityNode);
     const path = nativeTargets.get(target);
     if (seen.has(target) || manifest.original.path !== 'directory-original.json' ||
         manifest.binary.path !== path?.split('/').at(-1) ||
@@ -215,6 +243,7 @@ export function assembleNodeDirectoryNative({root = repository,
     }
     seen.add(target); outputs.set(path!, bytes); modes.set(path!, manifest.binary.mode);
     targets.push({platform: original.platform, arch: original.arch, engine: manifest.engine,
+      ...(hasCompatibility ? {compatibilityEngine: manifest.compatibilityEngine} : {}),
       original, originalSource: descriptor.toString('utf8'), originalSha256: manifest.original.sha256,
       inputSha256: input.sha256});
   }

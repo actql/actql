@@ -43,7 +43,8 @@ pub fn bind_prepared_model_io_access(
   for prepared_request in state.requests {
     guard state.physical_plans.get(prepared_request.request.slot) is Some(plan) &&
       physical_equal(plan.request, prepared_request.request) &&
-      plan.invocation is Asynchronous(_) &&
+      plan.invocation
+      is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
       plan.response_profile is Some(profile) else {
       return Err(InvalidProvider)
     }

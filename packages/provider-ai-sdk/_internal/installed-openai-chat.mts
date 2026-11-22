@@ -1,5 +1,7 @@
 import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
+import {createAdmittedRegisteredSdkPreflight} from './model-port.mjs';
+import type {RegisteredSdk} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits,fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
@@ -14,10 +16,10 @@ type Runtime = Preflight['moon'] & Parameters<typeof admitOpenAIOriginalMaterial
 // Unchecked views over the existing borrowed originals. Only the unchanged
 // descriptor, frozen-field, Common and same-original checks below admit them.
 interface ReadOriginal {bootstrap: unknown; nodeInstallation: {
-  layout: {response_profile: unknown}; probability: unknown;
+  layout: {response_profile: unknown}; probability: unknown; installation?: unknown;
 }}
 interface Installation {sdk: {package_name: unknown; version: unknown; interface: unknown; lock_artifact_cid: unknown};
-  endpoint: unknown; http_method: unknown; streaming: unknown; completion_basis: unknown;
+  endpoint: unknown; build_artifact_cid: unknown; http_method: unknown; streaming: unknown; completion_basis: unknown;
 }
 interface RawOriginal {profile: unknown; probability: unknown; installation: Installation}
 interface Configuration {
@@ -61,14 +63,19 @@ function snapshotData(value: unknown, keys: string, code: string): Readonly<Reco
   return Object.freeze(Object.fromEntries(entries));
 }
 const frozen = (value: unknown) => value!==null && typeof value==='object' && Object.isFrozen(value);
-const assertRuntime = (moon: Runtime) => {
-  if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-    'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
+const assertRuntime = (moon: Runtime, registeredSdk?: RegisteredSdk) => {
+  const projection = registeredSdk === undefined
+    ? ['clientProgramStartOpenAIChatProjection', 'clientProgramFinishOpenAIChatSdkV4Projection',
+      'clientProgramModelAsyncPhysicalRequestPlan',
+      'clientProgramModelPhysicalSavedChat']
+    : ['clientProgramStartAdmittedStructuredSdkProjection', 'clientProgramAdmittedStructuredSdkRouteMatches',
+      'clientProgramModelStructuredRequestPlan', 'clientProgramModelPhysicalSavedStructured'];
+  if (![...projection, 'clientProgramAdvanceOpenAIChatProjection',
+    'clientProgramRetireOpenAIChatProjection',
     'clientProgramInstallAsyncModelProvider',
     'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
-    'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
+    'clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
-    'clientProgramModelPhysicalSavedChat',
     'clientProgramModelResponseProfileTransportMatches'].every(name=>typeof moon?.[name]==='function')) {
     issue('OpenAIOriginalRuntimeUnavailable');
   }
@@ -92,17 +99,35 @@ export function createInstalledUndiciOpenAIChatRegistration(config: unknown): Re
 // included these same frozen settings in its original contract/configuration
 // bodies under the initial construction Resource. Legacy public low-level
 // registrations accept no unbound timeout field.
-export function createConfiguredUndiciOpenAIChatRegistration(config: unknown, transportTimeouts: unknown, openAICredentialBytes?: number): Registration {
-  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts), openAICredentialBytes);
+export function createConfiguredUndiciOpenAIChatRegistration(config: unknown, transportTimeouts: unknown,
+  openAICredentialBytes?: number, registeredSdk?: RegisteredSdk): Registration {
+  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts), openAICredentialBytes,
+    registeredSdk);
 }
 
-function installedChatRegistration(config: Configuration, originalUndici: boolean, transportTimeouts?: ReturnType<typeof fixedOriginalTransportTimeouts>, openAICredentialBytes?: number): Registration {
-  if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
+// This private consumer uses the already verified Host route directly. No
+// caller URL or secret is needed to construct the registered transport.
+export function createConfiguredUndiciRegisteredSdkRegistration(config: unknown, transportTimeouts: unknown,
+  credentialBytes: number | undefined, registeredSdk?: RegisteredSdk): Registration {
+  if (registeredSdk?.credential === undefined || credentialBytes === undefined) {
+    issue('RegisteredSdkPhysicalInstallationUnavailable');
+  }
+  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts), credentialBytes,
+    registeredSdk, true);
+}
+
+function installedChatRegistration(config: Configuration, originalUndici: boolean,
+  transportTimeouts?: ReturnType<typeof fixedOriginalTransportTimeouts>, credentialBytes?: number,
+  registeredSdk?: RegisteredSdk, registeredRoute = false): Registration {
+  if (!registeredRoute && config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
     issue('OpenAIOriginalStringLimitsUnavailable');
   }
-  const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,originalStringLimits,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
+  const keys = registeredRoute
+    ? 'bindingOriginals,fetch,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid'
+    : 'apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,originalStringLimits,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
   const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
   const recipeMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalReadRecipe');
+  if (registeredRoute && (!recipeMode || materialMode)) issue('RegisteredSdkPhysicalInstallationUnavailable');
   const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
     .replace(',rawCaptureSelection','') : recipeMode
       ? keys.replace(',originalReadInstallation',',originalReadRecipe') : keys;
@@ -113,21 +138,24 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
   // Refuse before the first input-dependent concatenation, URL, SDK child or
   // encoding. Host acquisition of the supplied originals remains separately
   // owned; this declaration and its snapshot are not physical funding.
-  const originalStringLimits=snapshotData(config.originalStringLimits,
-    'maxApiKeyCodeUnits,maxBaseURLCodeUnits,maxModelIdCodeUnits',
-    'InvalidInstalledOpenAIChatOriginalStringLimits') as unknown as OriginalStringLimits;
-  if (!Object.values(originalStringLimits).every(value=>int(value))) {
-    issue('InvalidInstalledOpenAIChatOriginalStringLimits');
+  let originalStringLimits: OriginalStringLimits | undefined;
+  if (!registeredRoute) {
+    originalStringLimits=snapshotData(config.originalStringLimits,
+      'maxApiKeyCodeUnits,maxBaseURLCodeUnits,maxModelIdCodeUnits',
+      'InvalidInstalledOpenAIChatOriginalStringLimits') as unknown as OriginalStringLimits;
+    if (!Object.values(originalStringLimits).every(value=>int(value))) {
+      issue('InvalidInstalledOpenAIChatOriginalStringLimits');
+    }
+    if (![config.apiKey,config.baseURL,config.modelId].every(text)) {
+      issue('InvalidInstalledOpenAIChatConfiguration');
+    }
+    if (config.apiKey.length>originalStringLimits.maxApiKeyCodeUnits ||
+        config.baseURL.length>originalStringLimits.maxBaseURLCodeUnits ||
+        config.modelId.length>originalStringLimits.maxModelIdCodeUnits) {
+      issue('OpenAIOriginalStringLimitExceeded');
+    }
   }
-  if (![config.apiKey,config.baseURL,config.modelId].every(text)) {
-    issue('InvalidInstalledOpenAIChatConfiguration');
-  }
-  if (config.apiKey.length>originalStringLimits.maxApiKeyCodeUnits ||
-      config.baseURL.length>originalStringLimits.maxBaseURLCodeUnits ||
-      config.modelId.length>originalStringLimits.maxModelIdCodeUnits) {
-    issue('OpenAIOriginalStringLimitExceeded');
-  }
-  config=Object.freeze({...config,originalStringLimits,
+  config=Object.freeze({...config,...(registeredRoute ? {} : {originalStringLimits}),
     ...(originalUndici ? {
       physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits),
     } : {})});
@@ -168,20 +196,25 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
       }
     };
   }
-  const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
+  const {providerId,baseURL,taskCid,promptCid,outputSchemaCid,
     promptPayloadWire,apiKey,fetch,observeAt,observeEgress}=config;
-  if (![providerId,modelSelector,modelId,baseURL,apiKey].every(text) ||
+  const route = registeredSdk?.route;
+  const modelSelector = (registeredRoute ? route?.selector : config.modelSelector)!;
+  const modelId = (registeredRoute ? route?.modelId : config.modelId)!;
+  if (![providerId,modelSelector,modelId].every(text) ||
       ![taskCid,promptCid,outputSchemaCid].every(cid) ||
       typeof promptPayloadWire!=='string' ||
       ![observeAt,observeEgress].every(value=>typeof value==='function') ||
       !originalUndici && typeof fetch!=='function') {
     issue('InvalidInstalledOpenAIChatConfiguration');
   }
+  const endpointText = registeredRoute ? route!.endpoint : `${baseURL}/chat/completions`;
   let endpoint!: URL;
-  try {endpoint=new URL(`${baseURL}/chat/completions`);}
+  try {endpoint=new URL(endpointText);}
   catch {issue('InvalidInstalledOpenAIChatEndpoint');}
-  if (baseURL.endsWith('/') || endpoint.href!==`${baseURL}/chat/completions` ||
-      !['http:','https:'].includes(endpoint.protocol) ||
+  if (endpoint.href!==endpointText ||
+      (registeredRoute ? endpoint.protocol!=='https:' : baseURL.endsWith('/') ||
+        !['http:','https:'].includes(endpoint.protocol)) ||
       endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     issue('InvalidInstalledOpenAIChatEndpoint');
   }
@@ -207,12 +240,19 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
   }
   const installation=raw.installation;
   const sdk=installation.sdk;
+  const sdkMatches = registeredSdk === undefined
+    ? sdk.package_name==='@ai-sdk/openai' && sdk.version==='4.0.91'
+    : route?.providerId===providerId && route.selector===modelSelector && route.modelId===modelId &&
+      route.endpoint===endpoint.href && sdk.package_name===registeredSdk.sdkPackage &&
+      sdk.version===registeredSdk.sdkVersion && sdk.lock_artifact_cid===registeredSdk.lockArtifactCid &&
+      installation.build_artifact_cid===registeredSdk.adapterArtifactCid;
   if (raw.profile===undefined || raw.profile===null ||
       original.nodeInstallation.layout.response_profile!==raw.profile ||
+      registeredRoute && original.nodeInstallation.installation!==installation ||
       original.nodeInstallation.probability!==undefined || raw.probability!==undefined ||
       installation.endpoint!==endpoint.href || installation.http_method!=='POST' ||
       installation.streaming!==false || installation.completion_basis!=='generation_finish' ||
-      sdk.package_name!=='@ai-sdk/openai' || sdk.version!=='4.0.91' ||
+      !sdkMatches ||
       sdk.interface!=='v4' || !cid(sdk.lock_artifact_cid)) {
     issue('OpenAIOriginalInstallationMismatch');
   }
@@ -231,7 +271,7 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
   // SDK preparation, after its existing same-Ledger funding and before Entry.
   let physicalFetch: Preflight['fetch'];
   return moon => {
-    assertRuntime(moon);
+    assertRuntime(moon, registeredSdk);
     if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
       requestLimits.maxBytes,responseLimits.maxBytes,responseLimits.maxChunkBytes,
       responseLimits.maxChunks,responseLimits.maxHeaderBytes)!==true) {
@@ -243,9 +283,13 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
     physicalFetch??=originalUndici ? createOriginalUndiciFetch({
       endpoint:endpoint.href,requestLimits,responseLimits,
       physicalAcquisitionLimits:config.physicalAcquisitionLimits,
-      transportTimeouts, openAICredentialBytes}) : fetch;
+      transportTimeouts,
+      ...(registeredSdk?.credential === undefined ? {openAICredentialBytes: credentialBytes}
+        : {registeredCredential: {...registeredSdk.credential.transport, maxBytes: credentialBytes}}),
+    }) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
-      sdkStaticOriginals:openAIChatStaticOriginals,
+      ...(registeredRoute ? {} : {sdkStaticOriginals:openAIChatStaticOriginals}),
+      ...(registeredSdk === undefined ? {} : {registeredSdk}),
       bindingOriginals:bindings,
       ...(recipeMode ? {originalReadRecipe:original} : {originalReadInstallation:original}),
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
@@ -253,21 +297,29 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
       // comparator selects the installed interpretation, not a JS evaluator.
       validatePrompt:(task: unknown,selector: unknown,payload: unknown)=>task===taskCid &&
         selector===modelSelector && payload===promptPayloadWire,
-      physicalPreflight(request: unknown,notification: Notification,retainRawBinder: Binder,admittedProvider: unknown) {
+      physicalPreflight(request: unknown, notification: Notification, retainRawBinder: Binder,
+        admittedProvider: unknown, structuredAdmission?: unknown) {
         if (typeof notification?.notify!=='function' || typeof retainRawBinder!=='function' ||
             admittedProvider===undefined) issue('OpenAIOriginalPhysicalContextUnavailable');
-        return createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
+        const common = {moon,request,admittedProvider,
           taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
-          modelId,baseURL,apiKey,fetch:physicalFetch,observeAt,notify:notification.notify,
+          fetch:physicalFetch,observeAt,notify:notification.notify,
           rawCaptureBinder:retainRawBinder,profile:raw.profile,installation,
-          needsCredential: openAICredentialBytes !== undefined,
+          needsCredential: credentialBytes !== undefined,
           quantities:quantities.perAttempt,responseLimits,
           maxRequestBytes:requestLimits.maxBytes,
           maxHeaderBytes:requestLimits.maxHeaderBytes,maxHeaders:requestLimits.maxHeaders,
           checked(value: unknown) {
             if (runtimeIsOk(value)) return runtimeField(value, 0);
             issue('OpenAIOriginalCommonRefused');
-          }}).preflight;
+          }};
+        if (registeredSdk !== undefined) {
+          if (structuredAdmission === undefined) issue('RegisteredSdkPhysicalInstallationUnavailable');
+          return createAdmittedRegisteredSdkPreflight({
+            ...common, registeredSdk, admission:structuredAdmission,
+          } as unknown as Parameters<typeof createAdmittedRegisteredSdkPreflight>[0]).preflight;
+        }
+        return createAdmittedOpenAIChatPreflight({...common,modelId,baseURL,apiKey}).preflight;
       },
     })];
   };

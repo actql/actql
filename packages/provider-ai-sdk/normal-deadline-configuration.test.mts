@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAIChatProvider} from './_internal/normal-openai-chat.mjs';
+import {createOpenAIChatProvider, createRegisteredSdkProvider} from './_internal/normal-openai-chat.mjs';
 import type {OriginalReadRecipeData, PhysicalTransportTimeouts} from './index.d.ts';
 
 type Registration = ReturnType<typeof createOpenAIChatProvider>;
@@ -33,6 +33,27 @@ function context(captured: CapturedConfiguration[]) {
     runtimeIdentity() {throw stop;}, artifactIdentity: forbidden, readText: forbidden,
     prepareBindingOriginals: forbidden, prepareTasks: forbidden, prepareRawPolicies: forbidden};
 }
+
+test('registered configuration cannot take route or credential values from caller options', async () => {
+  const {providerId, generation, budget, observeEgress} = options();
+  const config = {providerId, generation, budget, observeEgress,
+    transportTimeouts: settings, dataHandlingContractWire: '{}'};
+  let selections = 0;
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity: () => [100n, 300n],
+    clientProgramInstalledNodeModelDeadlineCapacity: () => [456n, 456n]};
+  const original = {...context([]), async prepareRegisteredSdk(id: string) {
+    assert.equal(id, providerId); selections++; return undefined;
+  }};
+  for (const override of [{modelId: 'foreign'}, {baseURL: 'https://foreign.invalid'}, {apiKeyFile: 'unread'}]) {
+    await assert.rejects(createRegisteredSdkProvider({...config, ...override})(moon as unknown as Runtime, original as unknown as Context),
+      {code: 'InvalidOpenAIProviderConfiguration'});
+  }
+  assert.equal(selections, 0);
+  await assert.rejects(createRegisteredSdkProvider(config)(moon as unknown as Runtime, {...original,
+    runtimeIdentity: () => 'runtime', artifactIdentity: () => 'layout'} as unknown as Context),
+  {code: 'RegisteredSdkCredentialMismatch'});
+  assert.equal(selections, 1);
+});
 
 test('normal deadline adds only the actual Common R/E quote and preserves unselected profile', async () => {
   for (const enabled of [false, true]) {

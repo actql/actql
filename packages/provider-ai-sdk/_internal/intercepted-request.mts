@@ -2,6 +2,8 @@
 // The existing Model Owner supplies identity, admission, accounting and gates.
 // Only its explicitly installed transport can perform network I/O. Neither
 // physical preparation nor transport can issue execution evidence.
+import type {LanguageModelV4, LanguageModelV4CallOptions} from '@ai-sdk/provider';
+import {createHash} from 'node:crypto';
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
 import {prepareOriginalUndiciFetch} from './original-undici-transport.mjs';
 
@@ -9,6 +11,20 @@ type ResponseLimits = Parameters<typeof fixedInferResponseLimits>[0];
 type FixedResponseLimits = ReturnType<typeof fixedInferResponseLimits>;
 type PhysicalResponse = Parameters<typeof readBoundedInferResponse>[0];
 type RawResponse = Awaited<ReturnType<typeof readBoundedInferResponse>>;
+type SavedSdkResponse = Readonly<{receipt?: unknown; bytes?: Uint8Array}>;
+// Each selected SDK has its own V4 result surface. The transport retains
+// that original as opaque until the separately checked decoder consumes it.
+type SdkLanguageModel = Pick<LanguageModelV4, 'specificationVersion' | 'provider' | 'modelId'> & {
+  doGenerate(options: LanguageModelV4CallOptions): PromiseLike<unknown>;
+};
+type RegisteredSdkInput = Readonly<{
+  moon: {clientProgramAdmittedStructuredSdkRouteMatches(admission: unknown, selector: string,
+    modelId: string, apiMode: string, endpoint: string): unknown};
+  admission: unknown; selector: string; modelId: string; apiMode: string; endpoint: string;
+  sdkProvider: string; createLanguageModel(fetch: typeof globalThis.fetch): SdkLanguageModel;
+  options: LanguageModelV4CallOptions; verifyRequest(body: string): unknown;
+  maxRequestBytes: number; maxHeaderBytes: number; maxHeaders: number; signal?: AbortSignal; notify: () => unknown;
+}>;
 interface PreparedRequest {
   url: string; method: 'POST'; body: string;
   headers: readonly (readonly [string, string])[];
@@ -20,7 +36,8 @@ interface TransportState {
   physicalRetired: boolean; physicalRetiring: boolean;
   limits: FixedResponseLimits; observeAt: (() => unknown) | undefined;
   observedAt: unknown; rawObservation: (RawResponse & {observedAt: unknown}) | undefined;
-  responseMode: 'sdk' | 'raw-only' | 'raw-only-retiring';
+  responseMode: 'sdk' | 'raw-only' | 'raw-only-retiring' | 'saved-sdk';
+  rawDigest?: string; saved?: SavedSdkResponse;
   started: boolean; settled: boolean; raw: RawResponse | undefined;
   failure: string | undefined; readerRetired: boolean; retiring: boolean;
   unreadResponse: unknown;
@@ -56,6 +73,42 @@ const record = (handle: unknown): PreparationState => {
   if (value === undefined || value.retired) throw issue('ForeignSdkPreparation');
   return value;
 };
+
+// Borrow the selected V4 model and forward its one generation Promise.
+export function generateSdkLanguageModel(model: SdkLanguageModel, modelId: string, options: LanguageModelV4CallOptions, abortSignal: AbortSignal) {
+  if (model?.specificationVersion !== 'v4' || model.modelId !== modelId ||
+      typeof model.doGenerate !== 'function' ||
+      options.tools !== undefined || options.toolChoice !== undefined) {
+    throw issue('InvalidSdkLanguageModel');
+  }
+  return model.doGenerate({...options, abortSignal});
+}
+
+// Private installer selection. The supplied factory belongs to a verified
+// Host adapter and receives only the intercepted fetch. SDK code is trusted;
+// a fetch override alone is not an isolation boundary for arbitrary modules.
+export function prepareRegisteredSdkLanguageModel({moon, admission, selector, modelId,
+  apiMode, sdkProvider, endpoint, createLanguageModel, options, verifyRequest,
+  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify}: RegisteredSdkInput) {
+  if (admission === undefined ||
+      typeof moon?.clientProgramAdmittedStructuredSdkRouteMatches !== 'function' ||
+      typeof selector !== 'string' || typeof modelId !== 'string' ||
+      typeof apiMode !== 'string' || typeof endpoint !== 'string' ||
+      typeof sdkProvider !== 'string' || sdkProvider.length === 0 ||
+      typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function' ||
+      options === null || typeof options !== 'object' ||
+      options.tools !== undefined || options.toolChoice !== undefined ||
+      moon.clientProgramAdmittedStructuredSdkRouteMatches(admission,
+        selector, modelId, apiMode, endpoint) !== true) {
+    throw issue('RegisteredSdkRouteUnavailable');
+  }
+  return interceptSdkRequest({endpoint,verifyRequest,maxRequestBytes,maxHeaderBytes,maxHeaders,
+    signal,notify,runSdk(fetch,abortSignal) {
+      const model = createLanguageModel(fetch);
+      if (model?.provider !== sdkProvider) throw issue('ForeignSdkLanguageModel');
+      return generateSdkLanguageModel(model,modelId,options,abortSignal);
+    }});
+}
 
 // runSdk belongs to a verified private builder, not an arbitrary public model.
 // Before invocation, the installed caller must fund the complete SDK input,
@@ -223,12 +276,12 @@ export function sdkPreparedRequest(handle: unknown) {
 // The complete request/init, limits and closure are fixed BEFORE Core consumes
 // its original one-shot send gate. Their holdings must already be funded.
 export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, observeAt,
-  responseMode = 'sdk'}: {fetch: typeof globalThis.fetch; responseLimits: ResponseLimits; observeAt?: () => unknown; responseMode?: 'sdk' | 'raw-only'}) {
+  responseMode = 'sdk'}: {fetch: typeof globalThis.fetch; responseLimits: ResponseLimits; observeAt?: () => unknown; responseMode?: 'sdk' | 'raw-only' | 'saved-sdk'}) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready' ||
       state.transport !== undefined || state.delivered || state.settled ||
       typeof fetch !== 'function' ||
-      !['sdk', 'raw-only'].includes(responseMode) ||
+      !['sdk', 'raw-only', 'saved-sdk'].includes(responseMode) ||
       (observeAt !== undefined && typeof observeAt !== 'function')) {
     throw issue('SdkTransportPreparationRefused');
   }
@@ -315,12 +368,13 @@ export function startSdkTransport(handle: unknown) {
       state.responseReject?.(rawConsumerRetired);
       return;
     }
-    // This is a separately funded physical copy for the same suspended SDK.
-    // It is not a raw Artifact CID, Common answer or completion observation.
-    const body = [204, 205, 304].includes(raw.status) ? null : raw.body;
-    deliverOriginalSdkResponse(state, new Response(body as BodyInit | null, {
-      status: raw.status, headers: raw.headers as HeadersInit,
-    }));
+    if (transport.responseMode === 'saved-sdk') {
+      // Seal what the reader actually returned before exposing its mutable
+      // byte backing to the Store port. Decode waits for that exact content.
+      transport.rawDigest = createHash('sha256').update(raw.body).digest('hex');
+      return;
+    }
+    deliverSdkTransportBody(state, raw, raw.body);
   }).catch(() => {
     transport.failure ??= 'SdkTransportUnknown';
     state.responseReject?.(issue('SdkTransportUnknown'));
@@ -330,6 +384,35 @@ export function startSdkTransport(handle: unknown) {
     transport.settled = true;
     wake();
   });
+}
+
+// This separately funded physical copy is given only to the intercepted
+// fetch already suspended inside the selected SDK invocation.
+function deliverSdkTransportBody(state: PreparationState, raw: RawResponse, bytes: Uint8Array) {
+  const body = [204, 205, 304].includes(raw.status) ? null : bytes;
+  deliverOriginalSdkResponse(state, new Response(body as BodyInit | null, {
+    status: raw.status, headers: raw.headers as HeadersInit,
+  }));
+}
+
+// Private continuation after the original Store's durable byte confirmation.
+// Matching semantic CIDs or values from a different fetch cannot feed the SDK.
+// Core independently verifies the nominal saved receipt against the entered Call.
+export function confirmSavedSdkTransportResponse(handle: unknown, originalRaw: TransportState['rawObservation'], saved: SavedSdkResponse) {
+  const state = record(handle);
+  const transport = state.transport;
+  if (transport?.responseMode !== 'saved-sdk' || !transport.settled ||
+      transport.failure !== undefined || originalRaw === undefined ||
+      originalRaw !== transport.rawObservation || state.delivered ||
+      saved?.receipt === undefined || !(saved.bytes instanceof Uint8Array) ||
+      saved.bytes.byteLength !== originalRaw.observedBytes ||
+      createHash('sha256').update(saved.bytes).digest('hex') !== transport.rawDigest) {
+    throw issue('SdkSavedResponseBindingRefused');
+  }
+  // The SDK parses the confirmed Store copy. No caller-supplied decoded
+  // result enters the invocation. Observe the result only through this loan.
+  deliverSdkTransportBody(state, originalRaw, saved.bytes);
+  transport.saved = saved;
 }
 
 export function pollSdkTransport(handle: unknown) {
@@ -397,6 +480,22 @@ export function pollSdkDecode(handle: unknown) {
 // A one-time physical transfer, not a Common output/capture admission.
 export function takeSdkDecodedResult(handle: unknown) {
   const state = record(handle);
+  if (state.transport?.responseMode === 'saved-sdk') {
+    throw issue('SdkDecodedResultUnavailable');
+  }
+  return takeOriginalSdkDecodedResult(handle, state);
+}
+
+// Read once through the exact receipt and byte loan used by the same fetch.
+export function takeSavedSdkDecodedResult(handle: unknown, receipt: unknown, bytes: unknown) {
+  const state = record(handle), saved = state.transport?.saved;
+  if (state.stopped || saved === undefined || saved.receipt !== receipt || saved.bytes !== bytes) {
+    throw issue('SdkSavedResponseBindingRefused');
+  }
+  return takeOriginalSdkDecodedResult(handle, state);
+}
+
+function takeOriginalSdkDecodedResult(handle: unknown, state: PreparationState) {
   if (pollSdkDecode(handle).kind !== 'ready' || state.taken) {
     throw issue('SdkDecodedResultUnavailable');
   }

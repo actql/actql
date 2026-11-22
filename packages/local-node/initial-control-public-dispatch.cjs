@@ -67,6 +67,12 @@ if (typeof preloading === 'function' && apply(preloading, module, []) === true &
   }
 }
 module.exports = {selectedInitialControlHostPreparation:
-  ordinary ? forwardOrdinary : selectedInitialControlHostPreparation};
+  ordinary ? forwardOrdinary : selectedInitialControlHostPreparation,
+  prepareOrdinaryModelSdkInstallation(source) {
+    if (!ordinary) {
+      throw Object.assign(new Error('InitialControlSdkImageUnavailable'), {code: 'InitialControlSdkImageUnavailable'});
+    }
+    require('./adapters/host-node/initial-control-package-custody.cjs').prepareOrdinaryModelSdkInstallation(source);
+  }};
 Object.setPrototypeOf(module.exports, null);
 Object.freeze(module.exports);

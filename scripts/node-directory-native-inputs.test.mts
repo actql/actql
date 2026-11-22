@@ -126,6 +126,25 @@ test('explicit two-target assembly retains both original records and has determi
   assert.deepEqual(f.assemble().get(directoryNativeDescriptor), first.get(directoryNativeDescriptor));
 });
 
+test('ordinary engine observations stay with their native input and cannot change platforms', t => {
+  const f = fixture(t), selected = join(f.inputs, 'linux-x64/native-input.json');
+  const manifest = JSON.parse(readFileSync(selected) as unknown as string);
+  const observed = {...manifest.engine, node: '24.21.0', v8: 'observed-v8',
+    libraries: {...manifest.engine.libraries, node: '24.21.0', v8: 'observed-v8'}};
+  manifest.compatibilityEngine = observed;
+  writeFileSync(selected, wire(manifest)); f.choose();
+  const descriptor = JSON.parse(f.assemble().get(directoryNativeDescriptor) as unknown as string);
+  assert.deepEqual(descriptor.targets[1].compatibilityEngine, observed);
+  assert.equal(descriptor.targets[1].engine.node, '22.22.0');
+  assert.equal(descriptor.targets[0].compatibilityEngine, undefined);
+  for (const changed of [{arch: 'arm64'}, {platform: 'darwin'}, {node: '24.0.0'},
+    {libraries: {...observed.libraries, v8: 'changed-v8'}}]) {
+    manifest.compatibilityEngine = {...observed, ...changed};
+    writeFileSync(selected, wire(manifest)); f.choose();
+    assert.throws(() => f.assemble(), /InvalidDirectoryNativeEngine/);
+  }
+});
+
 test('changed selection, input bytes and source bindings refuse before changing an existing output', t => {
   const f = fixture(t), before = f.assemble().get(directoryNativeDescriptor);
   assert.throws(() => f.assemble({expectedSha256: 'f'.repeat(64)}), /ChangedDirectoryNativeSelection/);

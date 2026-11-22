@@ -1382,16 +1382,19 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec69b1e403ec2c7baf797e8fbd77f5fa82987318db183450cd569a59f3b145e1",
+      "sha256": "16ce45709612d09324784ec87911e666d1d3f724554001eb4790b49d813bf0a4",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
+        "confirmSavedSdkTransportResponse",
         "deliverSdkResponse",
+        "generateSdkLanguageModel",
         "interceptSdkRequest",
         "pollSdkDecode",
         "pollSdkPreparation",
         "pollSdkTransport",
+        "prepareRegisteredSdkLanguageModel",
         "prepareSdkTransport",
         "progressSdkOriginalIoCleanup",
         "retireSdkDecodedResult",
@@ -1400,6 +1403,7 @@
         "sdkTransportRawObservation",
         "sdkTransportResponse",
         "startSdkTransport",
+        "takeSavedSdkDecodedResult",
         "takeSdkDecodedResult"
       ],
       "operations": [
@@ -1469,10 +1473,29 @@
           "async": false
         },
         {
+          "name": "confirmSavedSdkTransportResponse",
+          "parameters": [
+            "handle",
+            "originalRaw",
+            "saved"
+          ],
+          "async": false
+        },
+        {
           "name": "deliverSdkResponse",
           "parameters": [
             "handle",
             "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "generateSdkLanguageModel",
+          "parameters": [
+            "model",
+            "modelId",
+            "options",
+            "abortSignal"
           ],
           "async": false
         },
@@ -1576,6 +1599,35 @@
           "async": false
         },
         {
+          "name": "prepareRegisteredSdkLanguageModel",
+          "parameters": [
+            "moon",
+            "admission",
+            "selector",
+            "modelId",
+            "apiMode",
+            "sdkProvider",
+            "endpoint",
+            "createLanguageModel",
+            "options",
+            "verifyRequest",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk",
+          "parameters": [
+            "fetch",
+            "abortSignal"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSdkTransport",
           "parameters": [
             "handle",
@@ -1672,6 +1724,15 @@
           "async": false
         },
         {
+          "name": "takeSavedSdkDecodedResult",
+          "parameters": [
+            "handle",
+            "receipt",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "takeSdkDecodedResult",
           "parameters": [
             "handle"
@@ -1725,7 +1786,12 @@
             "startSdkTransport/startSdkTransport#3",
             "startSdkTransport/startSdkTransport#4",
             "takeSdkDecodedResult",
-            "bindSdkTransportCredential"
+            "bindSdkTransportCredential",
+            "confirmSavedSdkTransportResponse",
+            "takeSavedSdkDecodedResult",
+            "generateSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk"
           ],
           "exports": [
             "cancelSdkPreparation",
@@ -1744,7 +1810,11 @@
             "sdkTransportResponse",
             "startSdkTransport",
             "takeSdkDecodedResult",
-            "bindSdkTransportCredential"
+            "bindSdkTransportCredential",
+            "confirmSavedSdkTransportResponse",
+            "takeSavedSdkDecodedResult",
+            "generateSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel"
           ],
           "attributes": {
             "responsibility": [
@@ -1849,6 +1919,14 @@
               {
                 "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
+              },
+              {
+                "path": "adapters/host-node/infer-sdk-raw-store.test.mjs",
+                "anchor": "selected SDK decodes the original Store-confirmed fetch response once"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "a selected registered V4 factory serializes and decodes Responses through the guarded port"
               }
             ]
           }
@@ -1856,14 +1934,363 @@
       ]
     },
     {
-      "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+      "module": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ca0b2982273c3d56a387692982b41edea2f93189370e99e567734297ffc9a74",
+      "sha256": "45337aa3733a95dbea1e2250d2863f16cb97b7af6e385edeac826e77f7378570",
       "exports": [
-        "openAIChatStaticOriginals",
-        "prepareOpenAIChatRequest"
+        "createLanguageModel",
+        "credentialBinding",
+        "optionNamespace",
+        "optionSchema",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
       ],
       "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "body",
+            "options",
+            "route",
+            "providerOptions"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLanguageModel",
+            "readReportedUsage",
+            "verifyRequest"
+          ],
+          "exports": [
+            "createLanguageModel",
+            "credentialBinding",
+            "optionNamespace",
+            "optionSchema",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "export function verifyRequest"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "export function readReportedUsage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "factory !== createAnthropic"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "route.apiMode !== 'messages'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "anchor": "readVerifiedSdkImage"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "credentialBinding.placeholder"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "prepareRegisteredSdkLanguageModel"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "SdkAdditionalRequestRefused"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "InvalidRegisteredAnthropicMessages"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "topP !== 1"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
+                "anchor": "optionSchema"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
+                "anchor": "createAdmittedRegisteredSdkPreflight"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "registered Anthropic preserves the selected Messages body"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "@ai-sdk/anthropic",
+        "node:util"
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "950bf1eda729fdc2fe01ad3899fde961cd0940e4a0e355464fc11213bd1c56a2",
+      "exports": [
+        "createLanguageModel",
+        "credentialBinding",
+        "optionNamespace",
+        "optionSchema",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
+      ],
+      "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "body",
+            "options",
+            "_route",
+            "providerOptions"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLanguageModel",
+            "readReportedUsage",
+            "verifyRequest"
+          ],
+          "exports": [
+            "createLanguageModel",
+            "credentialBinding",
+            "optionNamespace",
+            "optionSchema",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "export function verifyRequest"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "export function readReportedUsage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "factory !== createGoogle"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "route.apiMode !== 'generate_content'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "anchor": "readVerifiedSdkImage"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "credentialBinding.placeholder"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "prepareRegisteredSdkLanguageModel"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "SdkAdditionalRequestRefused"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "InvalidRegisteredGoogleGenerateContent"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "seed !== undefined"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
+                "anchor": "optionSchema"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
+                "anchor": "createAdmittedRegisteredSdkPreflight"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "registered Google preserves the selected GenerateContent body"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "@ai-sdk/google",
+        "node:util"
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4b29a79b288c33e90c59ab126097ff1091f3fc28305d944ac9fb78d9c0ff4972",
+      "exports": [
+        "createLanguageModel",
+        "credentialBinding",
+        "openAIChatStaticOriginals",
+        "optionNamespace",
+        "optionSchema",
+        "prepareOpenAIChatRequest",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
+      ],
+      "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
         {
           "name": "prepareOpenAIChatRequest",
           "parameters": [
@@ -1876,15 +2303,40 @@
             "maxHeaders",
             "signal",
             "notify",
-            "verifyRequest"
+            "verifyRequest",
+            "registered"
           ],
           "async": false
         },
         {
           "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
           "parameters": [
+            "fetch"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
+          "parameters": [
             "fetch",
             "abortSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "body",
+            "options",
+            "route",
+            "providerOptions"
           ],
           "async": false
         }
@@ -1895,12 +2347,23 @@
         {
           "operations": [
             "<module>",
+            "createLanguageModel",
             "prepareOpenAIChatRequest",
-            "prepareOpenAIChatRequest/prepareOpenAIChatRequest"
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
+            "readReportedUsage",
+            "verifyRequest"
           ],
           "exports": [
+            "createLanguageModel",
+            "credentialBinding",
             "openAIChatStaticOriginals",
-            "prepareOpenAIChatRequest"
+            "optionNamespace",
+            "optionSchema",
+            "prepareOpenAIChatRequest",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
           ],
           "attributes": {
             "responsibility": [
@@ -2001,12 +2464,19 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./intercepted-request.mjs",
+        "./original-undici-transport.mjs",
+        "@ai-sdk/openai",
+        "@ai-sdk/provider-utils",
+        "node:util"
       ]
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64d0209880bb7e1de69bc06b4ec820446094f2ffa4a6754495aa91ee4f1254de",
+      "sha256": "dc48f630b585e893ba143cb2241f7421631906a99799a453e82a01ef0f3e9674",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -2035,7 +2505,8 @@
             "responseLimits",
             "physicalAcquisitionLimits",
             "transportTimeouts",
-            "openAICredentialBytes"
+            "openAICredentialBytes",
+            "registeredCredential"
           ],
           "async": false
         },
@@ -2448,12 +2919,17 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "node:util",
+        "undici"
       ]
     },
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5d4e2018e9a9e94ea79be1930b73ba4f961c8997df401c4fd0342dc939d9aeda",
+      "sha256": "7118bd72deb316390e27abdbff2fb9173844c228eb39ea1f00d93e57418bc604",
       "exports": [
         "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
@@ -2472,6 +2948,7 @@
         "ProjectOpenAIChatProviderOptions",
         "ProjectionLimits",
         "QuantityCapacity",
+        "RegisteredSdkProviderOptions",
         "RequestLimits",
         "ResponseLimits",
         "Sha256Cid",
@@ -2481,7 +2958,8 @@
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration",
         "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider"
+        "createProjectOpenAIChatProvider",
+        "createRegisteredSdkProvider"
       ],
       "operations": [
         {
@@ -2576,6 +3054,13 @@
             "options: ProjectOpenAIChatProviderOptions"
           ],
           "result": "ConfiguredModelProviderRegistration"
+        },
+        {
+          "name": "createRegisteredSdkProvider",
+          "parameters": [
+            "options: RegisteredSdkProviderOptions"
+          ],
+          "result": "ConfiguredModelProviderRegistration"
         }
       ],
       "role": "physical-io",
@@ -2583,25 +3068,33 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "<call>",
             "<call>#2",
             "<call>#3",
             "<call>#4",
+            "<call>#5",
+            "<call>#6",
+            "<module>",
             "createInstalledOpenAIChatRegistration",
             "createInstalledOpenAIChatRegistration#2",
             "createInstalledOpenAIChatRegistration#3",
             "createInstalledUndiciOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration#2",
             "createInstalledUndiciOpenAIChatRegistration#3",
-            "<call>#5",
-            "<call>#6",
             "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider"
+            "createProjectOpenAIChatProvider",
+            "createRegisteredSdkProvider"
           ],
           "exports": [
+            "ConfiguredModelProviderRegistration",
+            "createInstalledOpenAIChatRegistration",
+            "createInstalledUndiciOpenAIChatRegistration",
+            "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider",
+            "createRegisteredSdkProvider",
             "ModelProviderRegistration",
             "OpenAIChatMaterialsRegistrationOptions",
+            "OpenAIChatProviderOptions",
             "OpenAIChatRecipeRegistrationOptions",
             "OpenAIChatRegistrationOptions",
             "OpenAIInstallationData",
@@ -2611,22 +3104,17 @@
             "OriginalReadRecipeData",
             "OriginalStringLimits",
             "PhysicalAcquisitionLimits",
+            "PhysicalTransportTimeouts",
             "ProjectionLimits",
+            "ProjectOpenAIChatProviderOptions",
             "QuantityCapacity",
+            "RegisteredSdkProviderOptions",
             "RequestLimits",
             "ResponseLimits",
             "Sha256Cid",
             "UndiciOpenAIChatMaterialsRegistrationOptions",
             "UndiciOpenAIChatRecipeRegistrationOptions",
-            "UndiciOpenAIChatRegistrationOptions",
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "ConfiguredModelProviderRegistration",
-            "OpenAIChatProviderOptions",
-            "createOpenAIChatProvider",
-            "PhysicalTransportTimeouts",
-            "ProjectOpenAIChatProviderOptions",
-            "createProjectOpenAIChatProvider"
+            "UndiciOpenAIChatRegistrationOptions"
           ],
           "attributes": {
             "responsibility": [
@@ -2740,12 +3228,13 @@
     {
       "module": "packages/provider-ai-sdk/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "da79d90fdd2e9c9da8767c8120eb2d3786ce7ce0f34d4980a0c0650eaf8ee99d",
+      "sha256": "0aabb5a3a180128459aa0e8dcf57f08d6be06fa1a68631e4a4e62b447f32dff4",
       "exports": [
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration",
         "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider"
+        "createProjectOpenAIChatProvider",
+        "createRegisteredSdkProvider"
       ],
       "operations": [],
       "role": "physical-io",
@@ -2759,7 +3248,8 @@
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
             "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider"
+            "createProjectOpenAIChatProvider",
+            "createRegisteredSdkProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -2864,6 +3354,10 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./_internal/installed-openai-chat.mjs",
+        "./_internal/normal-openai-chat.mjs"
       ]
     },
     {
@@ -3392,10 +3886,11 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d65fd1a033133d21bdf55fbcef1755ad85b47f96f3e510edf4030fc2575c2cb9",
+      "sha256": "2e986ea3daa28161ad6faf0a600eec338eb30d08bbb804ac22f30b79c52de866",
       "exports": [
         "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider"
+        "createProjectOpenAIChatProvider",
+        "createRegisteredSdkProvider"
       ],
       "operations": [
         {
@@ -3413,7 +3908,7 @@
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider",
+          "name": "configureSdkProvider/configureSdkProvider",
           "parameters": [
             "moon",
             "context"
@@ -3421,74 +3916,81 @@
           "async": true
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/bindings/bindings",
+          "name": "configureSdkProvider/configureSdkProvider/bindings/bindings",
           "parameters": [],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config",
+          "name": "configureSdkProvider/configureSdkProvider/config/config",
           "parameters": [],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
+          "name": "configureSdkProvider/configureSdkProvider/config/config/validQuote/validQuote/validQuote",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries/physical/physical",
           "parameters": [],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
           "parameters": [],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/owned/owned",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider#2",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/profile/profile",
+          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "configureSdkProvider/configureSdkProvider/owned/owned",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "configureSdkProvider/configureSdkProvider/profile/profile",
           "parameters": [],
           "async": false
         },
@@ -3501,6 +4003,13 @@
         },
         {
           "name": "createProjectOpenAIChatProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProvider",
           "parameters": [
             "options"
           ],
@@ -3573,7 +4082,23 @@
             "<module>",
             "amount/amount",
             "configuration/configuration",
+            "configureSdkProvider/configureSdkProvider",
+            "configureSdkProvider/configureSdkProvider/bindings/bindings",
+            "configureSdkProvider/configureSdkProvider/config/config",
+            "configureSdkProvider/configureSdkProvider/config/config/validQuote/validQuote/validQuote",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider/configureSdkProvider",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries/physical/physical",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider#2",
+            "configureSdkProvider/configureSdkProvider/configureSdkProvider#3",
+            "configureSdkProvider/configureSdkProvider/owned/owned",
+            "configureSdkProvider/configureSdkProvider/profile/profile",
             "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider",
+            "createRegisteredSdkProvider",
             "data/data",
             "data/data/data",
             "data/data/data#2",
@@ -3581,25 +4106,12 @@
             "observation/observation",
             "observation/observation/fields/fields",
             "observation/observation/observation",
-            "observation/observation/observation#2",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/bindings/bindings",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider#2",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/owned/owned",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/profile/profile",
-            "createProjectOpenAIChatProvider"
+            "observation/observation/observation#2"
           ],
           "exports": [
             "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider"
+            "createProjectOpenAIChatProvider",
+            "createRegisteredSdkProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -3682,7 +4194,7 @@
                 "anchor": "SDK expected wires remain per row"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "an explicit selector binds the resolved Chat model"
               }
             ]

@@ -2,13 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
 import {readFileSync} from 'node:fs';
-import type {LanguageModelV4} from '@ai-sdk/provider';
+import type {RegisteredRequestOptions} from './_internal/model-port.mjs';
+import type {LanguageModelV4, LanguageModelV4CallOptions} from '@ai-sdk/provider';
 import type {JSONSchema7} from 'json-schema';
+import {isDeepStrictEqual} from 'node:util';
+import {createOpenAI} from '@ai-sdk/openai';
+import {createAnthropic} from '@ai-sdk/anthropic';
+import {createGoogle} from '@ai-sdk/google';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
-import {interceptSdkRequest, pollSdkPreparation, sdkPreparedRequest,
+import * as anthropic from './_internal/anthropic-messages.mjs';
+import * as google from './_internal/google-generate-content.mjs';
+import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
   deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
 
+type RegisteredOptions = LanguageModelV4CallOptions & RegisteredRequestOptions;
+type DecodedSdk = Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
 const schema: JSONSchema7 = {type: 'object', properties: {assessment: {type: 'string'}},
   required: ['assessment'], additionalProperties: false};
 const text = 'Original e\u0301\r\n =literal';
@@ -47,6 +56,85 @@ async function release(handle: unknown) {
   assert.fail('SDK physical preparation did not retire');
 }
 
+test('registered Anthropic preserves the selected Messages body and refuses non-neutral topP', async () => {
+  const modelId = 'claude-sonnet-4-6', selector = 'fixture-alias', apiMode = 'messages';
+  const endpoint = 'https://api.anthropic.com/v1/messages';
+  const route = {modelId, selector, apiMode, endpoint}, admission = {};
+  const moon = {clientProgramAdmittedStructuredSdkRouteMatches: (...actual: unknown[]) =>
+    isDeepStrictEqual(actual, [admission, selector, modelId, apiMode, endpoint])};
+  const prompt: RegisteredOptions['prompt'] = [{role: 'system', content: 'Return a typed assessment.'},
+    {role: 'user', content: [{type: 'text', text}]}];
+  const providerOptions = {anthropic: {structuredOutputMode: 'outputFormat'}};
+  const expected = {model: modelId, max_tokens: 16, temperature: 0,
+    system: [{type: 'text', text: 'Return a typed assessment.'}], messages: [prompt[1]],
+    output_config: {format: {type: 'json_schema', schema}}};
+  for (const topP of [1, 0.5]) {
+    const options: RegisteredOptions = {prompt, responseFormat: {type: 'json', schema, name: 'assessment'},
+      providerOptions, temperature: 0, topP, maxOutputTokens: 16};
+    const handle = prepareRegisteredSdkLanguageModel({moon, admission, ...route,
+      sdkProvider: anthropic.sdkProvider,
+      createLanguageModel: fetch => anthropic.createLanguageModel(createAnthropic, modelId, fetch, route),
+      options, verifyRequest: body => anthropic.verifyRequest(body, options, route, providerOptions),
+      maxRequestBytes: 8192, maxHeaderBytes: 8192, maxHeaders: 16, notify() {}});
+    try {
+      if (topP !== 1) {
+        assert.equal((await eventually(() => pollSdkPreparation(handle), 'rejected')).issue, 'SdkOriginalRequestMismatch');
+        assert.equal(sdkPreparedRequest(handle), undefined);
+        continue;
+      }
+      await eventually(() => pollSdkPreparation(handle), 'ready');
+      assert.deepEqual(JSON.parse(sdkPreparedRequest(handle)!.body), expected);
+      const reply = {id: 'anthropic-fixture', type: 'message', role: 'assistant', model: modelId,
+        stop_reason: 'end_turn', content: [{type: 'text', text: '{"assessment":"ok"}'}],
+        usage: {input_tokens: 0, output_tokens: 4}};
+      deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+      await eventually(() => pollSdkDecode(handle), 'ready');
+      assert.equal(((takeSdkDecodedResult(handle) as DecodedSdk).content[0] as {text: string}).text, '{"assessment":"ok"}');
+      assert.deepEqual(anthropic.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 4n});
+      assert.equal(anthropic.readReportedUsage({}), undefined);
+    } finally {await release(handle);}
+  }
+});
+
+test('registered Google preserves the selected GenerateContent body and reported usage', async () => {
+  const modelId = 'gemini-2.5-flash', selector = 'fixture-gemini', apiMode = 'generate_content';
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  const route = {modelId, selector, apiMode, endpoint}, admission = {};
+  const moon = {clientProgramAdmittedStructuredSdkRouteMatches: (...actual: unknown[]) =>
+    isDeepStrictEqual(actual, [admission, selector, modelId, apiMode, endpoint])};
+  const prompt: RegisteredOptions['prompt'] = [{role: 'system', content: 'Return a typed assessment.'},
+    {role: 'user', content: [{type: 'text', text}]}];
+  const providerOptions = {google: {structuredOutputs: true}};
+  const options: RegisteredOptions = {prompt, responseFormat: {type: 'json', schema, name: 'assessment'},
+    providerOptions, temperature: 0, topP: 1, maxOutputTokens: 16};
+  const handle = prepareRegisteredSdkLanguageModel({moon, admission, ...route,
+    sdkProvider: google.sdkProvider, createLanguageModel: fetch => google.createLanguageModel(createGoogle, modelId, fetch, route),
+    options, verifyRequest: body => google.verifyRequest(body, options, route, providerOptions),
+    maxRequestBytes: 8192, maxHeaderBytes: 8192, maxHeaders: 16, notify() {}});
+  try {
+    await eventually(() => pollSdkPreparation(handle), 'ready');
+    const request = sdkPreparedRequest(handle)!;
+    assert.equal(request.url, endpoint);
+    assert.deepEqual(JSON.parse(request.body), {
+      generationConfig: {maxOutputTokens: 16, temperature: 0, topP: 1,
+        responseMimeType: 'application/json', responseJsonSchema: schema},
+      contents: [{role: 'user', parts: [{text}]}],
+      systemInstruction: {parts: [{text: 'Return a typed assessment.'}]},
+    });
+    assert.equal(google.verifyRequest(request.body, {...options, seed: 1}, route, providerOptions), false);
+    assert.equal(google.verifyRequest(request.body, options, route, {google: {structuredOutputs: false}}), false);
+    const reply = {modelVersion: modelId, candidates: [{index: 0, finishReason: 'STOP',
+      content: {role: 'model', parts: [{text: '{"assessment":"ok"}'}]}}],
+    usageMetadata: {promptTokenCount: 0, candidatesTokenCount: 4, thoughtsTokenCount: 2}};
+    deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+    await eventually(() => pollSdkDecode(handle), 'ready');
+    assert.equal(((takeSdkDecodedResult(handle) as DecodedSdk).content[0] as {text: string}).text, '{"assessment":"ok"}');
+    assert.deepEqual(google.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 6n});
+    assert.deepEqual(google.readReportedUsage({usageMetadata: {thoughtsTokenCount: 2}}),
+      {inputTokens: undefined, outputTokens: undefined});
+  } finally {await release(handle);}
+});
+
 test('real pinned SDK captures one exact original request with no ambient network', async t => {
   const ambient = globalThis.fetch;
   let requests = 0;
@@ -81,6 +169,80 @@ test('the same suspended real SDK invocation decodes one supplied response witho
   assert.deepEqual(value.response!.body, JSON.parse(responseWire));
   assert.throws(() => takeSdkDecodedResult(handle),
     {code: 'SdkDecodedResultUnavailable'});
+});
+
+const responsesBase = 'https://fixture.invalid/v1';
+const responsesEndpoint = responsesBase + '/responses';
+const responsesModel = 'fixture-model';
+const responsesAdmission = Object.freeze({});
+const responsesRequest = {model: responsesModel, max_output_tokens: 16,
+  input: [{role: 'user', content: [{type: 'input_text', text}]}],
+  text: {format: {type: 'json_schema', name: 'assessment', schema, strict: true}}};
+
+function registeredResponses(overrides: Partial<Parameters<typeof prepareRegisteredSdkLanguageModel>[0]> = {}) {
+  return prepareRegisteredSdkLanguageModel({admission: responsesAdmission,
+    selector: 'fixture-alias', modelId: responsesModel, apiMode: 'responses',
+    endpoint: responsesEndpoint, sdkProvider: 'openai.responses',
+    moon: {clientProgramAdmittedStructuredSdkRouteMatches(...route) {
+      return isDeepStrictEqual(route, [responsesAdmission, 'fixture-alias',
+        responsesModel, 'responses', responsesEndpoint]);
+    }},
+    createLanguageModel: (fetch: typeof globalThis.fetch) => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).responses(responsesModel),
+    options: {prompt: [{role: 'user', content: [{type: 'text', text}]}],
+      maxOutputTokens: 16, responseFormat: {type: 'json', schema, name: 'assessment'}},
+    verifyRequest: (wire: string) => isDeepStrictEqual(JSON.parse(wire), responsesRequest),
+    maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16, notify() {},
+    ...overrides});
+}
+
+test('a selected registered V4 factory serializes and decodes Responses through the guarded port', async t => {
+  const handle = registeredResponses();
+  t.after(() => release(handle));
+  await eventually(() => pollSdkPreparation(handle), 'ready');
+  assert.equal(sdkPreparedRequest(handle)!.url, responsesEndpoint);
+  assert.deepEqual(JSON.parse(sdkPreparedRequest(handle)!.body), responsesRequest);
+  const raw = {id: 'fixture-response', model: responsesModel, status: 'completed', output: [{
+    id: 'fixture-message', type: 'message', role: 'assistant', content: [{
+      type: 'output_text', text: '{"assessment":"ok"}', annotations: [],
+    }],
+  }], usage: {input_tokens: 3, output_tokens: 4, total_tokens: 7}};
+  deliverSdkResponse(handle, new Response(JSON.stringify(raw), {headers: {
+    'content-type': 'application/json',
+  }}));
+  await eventually(() => pollSdkDecode(handle), 'ready');
+  assert.deepEqual((takeSdkDecodedResult(handle) as DecodedSdk).content, [
+    {type: 'text', text: '{"assessment":"ok"}',
+      providerMetadata: {openai: {itemId: 'fixture-message'}}},
+  ]);
+});
+
+test('a foreign registered route or missing request verifier refuses before the factory', () => {
+  const createLanguageModel = () => assert.fail('No SDK factory for a foreign route');
+  for (const changed of [{modelId: 'other-model'}, {apiMode: 'chat_completions'},
+    {endpoint: 'https://fixture.invalid/other'}, {verifyRequest: undefined}]) {
+    assert.throws(() => registeredResponses({...changed, createLanguageModel}),
+      {code: 'RegisteredSdkRouteUnavailable'});
+  }
+});
+
+test('a different V4 SDK model, SDK transport mode or rendered body cannot prepare a send', async () => {
+  for (const [changed, issue] of [
+    [{createLanguageModel: (fetch: typeof globalThis.fetch) => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).responses('other-model')}, 'SdkPreparationRejected'],
+    [{createLanguageModel: (fetch: typeof globalThis.fetch) => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).chat(responsesModel)}, 'SdkPreparationRejected'],
+    [{verifyRequest: (wire: string) => isDeepStrictEqual(JSON.parse(wire),
+      {...responsesRequest, max_output_tokens: 8})}, 'SdkOriginalRequestMismatch'],
+  ] as const) {
+    const handle = registeredResponses(changed);
+    try {
+      assert.equal((await eventually(() => pollSdkPreparation(handle), 'rejected')).issue, issue);
+      assert.equal(sdkPreparedRequest(handle), undefined);
+    } finally {
+      await release(handle);
+    }
+  }
 });
 
 test('abort before preparation starts invokes no SDK and releases the same handle', () => {

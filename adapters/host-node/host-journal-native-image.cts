@@ -23,7 +23,7 @@ type Current = () => void | (object & Readonly<{then?: never}>);
 type DescriptorDuty = {fd: number; consumed: boolean; unknown: unknown};
 type NativeImage = Readonly<{operations: object; assertCurrent(): void}>;
 type ImageEntry = {
-  root: string; sha256: string; bytes: number; runtimeCurrent: Current; temporaryDirectory: string;
+  root: string; pathKey: string; ordinary: boolean; sha256: string; bytes: number; runtimeCurrent: Current; temporaryDirectory: string;
   source: DescriptorDuty | undefined; writer: DescriptorDuty | undefined; reader: DescriptorDuty | undefined;
   directory: string | undefined; path: string | undefined; identity: BigIntStats | undefined;
   module: {exports: object} | undefined; loadAttempted: boolean; failed: boolean;
@@ -80,16 +80,36 @@ const call = <Name extends keyof FileOperations>(name: Name, args: Parameters<Fi
 const same = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino && a.size === b.size &&
   a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
 
-function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown,
-  assertRuntimeCurrent: Current): NativeImage {
+function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown, assertRuntimeCurrent: Current): NativeImage {
+  if (processOriginal.platform !== 'darwin' || processOriginal.arch !== 'arm64' ||
+      processOriginal.versions.node !== '22.22.0') fail('HostJournalNativeImageUnavailable');
+  return loadDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent,
+    '_build/native/directory-darwin-arm64.node', false);
+}
+
+function loadOrdinaryLocalFilesNative(packageRoot: unknown, images: unknown, limits: unknown, assertRuntimeCurrent: Current): NativeImage {
+  const {platform, arch} = processOriginal;
+  const path = platform === 'darwin' && (arch === 'arm64' || arch === 'x64')
+    ? '_build/native/directory-' + platform + '-' + arch + '.node'
+    : platform === 'linux' && arch === 'x64' ? '_build/native/local-files-linux-x64.node' : undefined;
+  if (path === undefined || !Array.isArray(images) || isProxy(images) || images.length > 2) {
+    fail('HostJournalNativeImageUnavailable');
+  }
+  const matching = images.filter(image => own(image, 'path') === path);
+  if (matching.length !== 1) fail('HostJournalNativeImageUnavailable');
+  // The ordinary caller has checked its exact engine and retained the package
+  // inventory. This selection supplies only the separately held native image.
+  return loadDirectoryNative(packageRoot, matching[0], limits, assertRuntimeCurrent, path, true);
+}
+
+function loadDirectoryNative(packageRoot: unknown, expected: unknown, limits: unknown, assertRuntimeCurrent: Current,
+  expectedPath: string, ordinary: boolean): NativeImage {
   const path = own(expected, 'path'), bytes = own(expected, 'bytes'), sha256 = own(expected, 'sha256');
   const maxImageBytes = own(limits, 'maxImageBytes');
   const temporaryDirectory = own(limits, 'temporaryDirectory');
-  if (processOriginal.platform !== 'darwin' || processOriginal.arch !== 'arm64' ||
-      processOriginal.versions.node !== '22.22.0' ||
-      typeof packageRoot !== 'string' || !isAbsolute(packageRoot) || packageRoot.length > 4096 ||
+  if (typeof packageRoot !== 'string' || !isAbsolute(packageRoot) || packageRoot.length > 4096 ||
       packageRoot.includes('\0') ||
-      path !== '_build/native/directory-darwin-arm64.node' || !integer(bytes) || bytes < 1 ||
+      path !== expectedPath || !integer(bytes) || bytes < 1 ||
       !integer(maxImageBytes) || maxImageBytes < bytes || typeof sha256 !== 'string' ||
       typeof temporaryDirectory !== 'string' || temporaryDirectory.length > 4096 ||
       !isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\0') ||
@@ -98,7 +118,8 @@ function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown,
   }
   currentBindings();
   if (selected !== undefined) {
-    if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||
+    if (selected.root !== packageRoot || selected.pathKey !== path || selected.ordinary !== ordinary ||
+        selected.sha256 !== sha256 || selected.bytes !== bytes ||
         selected.temporaryDirectory !== temporaryDirectory ||
         selected.runtimeCurrent !== assertRuntimeCurrent) fail('HostJournalNativeImageForeign');
     if (selected.failed) throw selected.failure;
@@ -106,7 +127,7 @@ function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown,
     apply(assertRuntimeCurrent, undefined, []);
     return selected.view;
   }
-  const entry: ImageEntry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,
+  const entry: ImageEntry = selected = {root: packageRoot, pathKey: path, ordinary, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,
     temporaryDirectory,
     source: undefined, writer: undefined, reader: undefined, directory: undefined, path: undefined,
     identity: undefined, module: undefined, loadAttempted: false, failed: false, failure: undefined, view: undefined};
@@ -226,20 +247,28 @@ function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown,
     if (!same(copy, call('fstatSync', [entry.reader.fd, {bigint: true}]))) fail('HostJournalNativeImageChanged');
     cleanup();
     if (status().pending) fail('HostJournalNativeImageCleanupPending');
-    const native: object = own(entry.module, 'exports') as object;
+    const native = own(entry.module, 'exports') as object;
     const captured: Record<string, unknown> = {};
-    for (const name of ['open', 'next', 'current', 'close']) {
+    const required = ordinary
+      ? ['openFileRoot', 'fileRootCurrent', 'fileRootClose', 'openStoreOwnerLease',
+        'storeOwnerLeaseReceipt', 'publishStoreOwnerDirectory', 'openFileDirectory', 'replaceStoreOwnerMetadata']
+      : ['open', 'next', 'current', 'close'];
+    for (const name of required) {
       const operation = own(native, name);
       if (typeof operation !== 'function') fail('HostJournalNativeImageUnavailable');
       captured[name] = operation;
     }
-    // The optional Store lease borrows this SAME selected image. Older images
-    // still support directory inspection but supply no recovery capability.
-    for (const name of ['openFileRoot','fileRootCurrent','fileRootClose',
-      'openStoreOwnerLease','storeOwnerLeaseReceipt']) {
-      const operation = descriptor(native, name)?.value;
-      if (typeof operation === 'function') captured[name] = operation;
+    if (!ordinary) {
+      // Older journal images can inspect directories without the Store lease.
+      for (const name of ['openFileRoot', 'fileRootCurrent', 'fileRootClose',
+        'openStoreOwnerLease', 'storeOwnerLeaseReceipt']) {
+        const operation = descriptor(native, name)?.value;
+        if (typeof operation === 'function') captured[name] = operation;
+      }
     }
+    // Ordinary Local Files borrows the entire verified addon, including the
+    // Store lease operations. Preserve that exact export table for its lifetime.
+    if (ordinary) freeze(native);
     fence();
     entry.view = freeze({operations: native, assertCurrent() {
       fence();
@@ -259,4 +288,6 @@ function loadHostJournalDirectoryNative(packageRoot: unknown, expected: unknown,
     throw entry.failure;
   }
 }
-export = Object.freeze({loadHostJournalDirectoryNative});
+const published = module.exports = {loadHostJournalDirectoryNative, loadOrdinaryLocalFilesNative};
+freeze(module.exports);
+export = published;

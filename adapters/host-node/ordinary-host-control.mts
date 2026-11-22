@@ -1,6 +1,8 @@
 import {openSync, fstatSync, readSync, closeSync} from 'node:fs';
 import {resolve, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
+// @ts-expect-error TS7016: the early package custody bootstrap still has a CommonJS authored entry.
+import packageCustody from './initial-control-package-custody.cjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory}
   from './installed-host-policy.mjs';
 
@@ -25,6 +27,7 @@ type Preparation = {
 type HostState = {
   originals?: Originals;
   input?: Configuration;
+  modelSdk?: unknown;
   children: Map<object, Preparation>;
   assets: Map<string, string>;
   assetCodeUnits: number;
@@ -126,7 +129,7 @@ async function close(state: HostState): Promise<CloseObservation> {
       }
       if (!child.released || !child.acknowledged) return observation(state);
     }
-    state.children.clear(); state.assets.clear(); state.input = undefined;
+    state.children.clear(); state.assets.clear(); state.input = state.modelSdk = undefined;
     state.closed = true; state.originals = undefined;
     return observation(state);
   });
@@ -139,7 +142,9 @@ export function beginOrdinaryHostControl(originals: Originals, input?: unknown):
     fail('InstalledHostPreparationChanged');
   }
   const held = Object.freeze(Object.fromEntries(names.map(name => [name, originals[name]]))) as Originals;
-  const state: HostState = {originals: held, input: snapshot(input), children: new Map(), assets: new Map(),
+  const packet = snapshot(input);
+  const state: HostState = {originals: held, input: packet, modelSdk: packageCustody.ordinaryModelSdkInstallation((packet.installation as Configuration | undefined)?.modelSdkRegistrations),
+    children: new Map(), assets: new Map(),
     assetCodeUnits: 0, closing: false, closed: false, flight: undefined, fileCloseUnknown: false};
   const scope: HostControl = Object.freeze({
     retainPreparation(record: object, cleanupHandle?: ChildCleanup) {
@@ -176,6 +181,9 @@ export function beginOrdinaryHostControl(originals: Originals, input?: unknown):
 export function isOrdinaryHostControl(scope: unknown): scope is HostControl {return scopes.has(scope as object);}
 export function assertOrdinaryHostControlCurrent(scope: object, originals: Originals) {stateFor(scope, originals);}
 export function ordinaryHostControlInput(scope: object, originals: Originals) {return stateFor(scope, originals).input!;}
+export function ordinaryHostControlModelSdk(scope: object, originals: Originals) {
+  return stateFor(scope, originals).modelSdk;
+}
 
 export function readOrdinaryHostAsset(scope: object, originals: Originals, path: string) {
   const state = stateFor(scope, originals);

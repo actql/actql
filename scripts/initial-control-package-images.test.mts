@@ -182,7 +182,7 @@ test('the dual-platform original retains both native facts and exact producer en
     registry: 'https://registry.npmjs.org/', access: 'public', tag: 'latest',
     packages: ['client-wire', 'sdk', 'local-node', 'node']};
   f.put('release/client-cohort.json', JSON.stringify(cohort));
-  const outputs = new Map<string, Buffer>(), targets: {platform: string; arch: string; engine: Omit<Engine, 'eager'>; original: {platform: string; arch: string; binary: Fact}; originalSource: string; originalSha256: string}[] = [];
+  const outputs = new Map<string, Buffer>(), targets: {platform: string; arch: string; engine: Omit<Engine, 'eager'>; compatibilityEngine?: Omit<Engine, 'eager'>; original: {platform: string; arch: string; binary: Fact}; originalSource: string; originalSha256: string}[] = [];
   for (const [platform, arch, filename] of [['darwin', 'arm64', 'directory-darwin-arm64.node'],
     ['linux', 'x64', 'local-files-linux-x64.node']] as const) {
     const path = '_build/native/' + filename, bytes = Buffer.from(`Independent ${platform} native DATA`);
@@ -208,6 +208,21 @@ test('the dual-platform original retains both native facts and exact producer en
     sha(outputs.get('_build/native/directory-original.json')!));
   f.options.nativeOutputs = new Map([...outputs].reverse());
   assert.deepEqual(f.render(), bytes);
+
+  for (const target of targets) {
+    target.compatibilityEngine = {...target.engine, node: '24.21.0', v8: 'fixture-v8-24',
+      libraries: {...target.engine.libraries, node: '24.21.0', v8: 'fixture-v8-24'}};
+  }
+  update(); f.options.nativeOutputs = outputs;
+  const compatible = f.read(f.render());
+  assert.deepEqual(compatible.engineProfiles, [...value.engineProfiles,
+    ...targets.map(({compatibilityEngine}) => ({ordinaryEngine: {...compatibilityEngine, eager: false}}))]);
+  assert.deepEqual(compatible.engine, value.engine);
+  assert.deepEqual(compatible.ordinaryEngine, value.ordinaryEngine);
+  delete targets[1].compatibilityEngine; update();
+  assert.throws(f.render, /InvalidInitialControlNativeImage/);
+  delete targets[0].compatibilityEngine; update();
+
   outputs.set('_build/native/local-files-linux-x64.node', Buffer.from('changed native DATA'));
   f.options.nativeOutputs = outputs;
   assert.throws(f.render, /InvalidInitialControlNativeImage/);

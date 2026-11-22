@@ -347,7 +347,7 @@ export function assertInstalledModelDefaultsAdoption(provider, view, moon, provi
 // Closed physical metadata views of the SAME installed Provider. This is not
 // another Provider registry or a Task/authority issuer. Actual Request binding
 // still checks each selected profile, recipe, prompt and schema in Common.
-function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, taskOriginals) {
+function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, taskOriginals, registeredSdk) {
   if (source === undefined) return undefined;
   const owned = taskOriginals?.filter(value => value.providerId === providerId);
   if (!Array.isArray(source) || nodeTypes.isProxy(source) || source.length === 0 ||
@@ -377,7 +377,7 @@ function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, t
     const selected = Object.getOwnPropertyDescriptors(entry);
     const allowed = ['providerId', 'entryPersistence', 'sdkStaticOriginals', 'bindingOriginals',
       'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'quantityCapacity',
-      'observeEgress', 'validatePrompt', 'physicalPreflight', 'reconcileResponse'];
+      'observeEgress', 'validatePrompt', 'physicalPreflight', 'reconcileResponse', 'registeredSdk'];
     if (Reflect.ownKeys(selected).some(key => !allowed.includes(key) ||
         !selected[key].enumerable || !Object.hasOwn(selected[key], 'value'))) {
       throw new TypeError('InvalidInstalledModelTaskInstallations');
@@ -388,6 +388,7 @@ function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, t
     const observeEgress = value('observeEgress'), reconcileResponse = value('reconcileResponse');
     if (value('providerId') !== providerId || value('entryPersistence') !== 'async' ||
         value('bindingOriginals') !== bindings || value('sdkStaticOriginals') !== sdkOriginals ||
+        value('registeredSdk') !== registeredSdk ||
         (originalReadSource === undefined) === (recipeSource === undefined) ||
         typeof physicalPreflight !== 'function' || typeof validatePrompt !== 'function' ||
         typeof observeEgress !== 'function' ||
@@ -412,7 +413,7 @@ function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, t
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
 export function installModelProviders(moon, register, assertHostRuntime,
-  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, taskOriginals) {
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -438,7 +439,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
           'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'sdkStaticOriginals',
-          'taskInstallations'].includes(key))) {
+          'taskInstallations', 'registeredSdk'].includes(key))) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Static registration values are read once before retention/Core calls.
@@ -456,11 +457,14 @@ export function installModelProviders(moon, register, assertHostRuntime,
       rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
-    const taskSources = entry.taskInstallations;
+    const taskSources = entry.taskInstallations, registeredSdk = entry.registeredSdk;
     if (taskSources !== undefined && entryPersistence !== 'async') {
       throw new TypeError('InvalidInstalledModelTaskInstallations');
     }
-    const tasks = snapshotTaskInstallations(taskSources, providerId, bindingSource, sdkStaticOriginals, taskOriginals);
+    const tasks = snapshotTaskInstallations(taskSources, providerId, bindingSource, sdkStaticOriginals, taskOriginals, registeredSdk);
+    if (registeredSdk !== undefined && (tasks === undefined || typeof prepareSdkCapability !== 'function')) {
+      throw new TypeError('InvalidInstalledModelSdkInstallation');
+    }
     const defaultsCallbacks = modelDefaultsCallbacks(moon);
     let requireOriginalEagerStartup;
     // The Host supplies this private same-installation/current connection,
@@ -590,6 +594,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
     if (preparedDefaults !== undefined) installedDefaults.set(retained, preparedDefaults);
     if (tasks !== undefined) {
       for (const [taskCid, data] of tasks) {
+        const capability = registeredSdk === undefined ? undefined : prepareSdkCapability(
+          registeredSdk, providerId, taskCid, provider, data.rawCaptureSelection);
         let view;
         const current = () => {
           assertTrustedRuntime?.();
@@ -612,7 +618,13 @@ export function installModelProviders(moon, register, assertHostRuntime,
           // Common registers the acquired cursor before its existing current
           // guard can refuse advance. Do not lose cleanup by throwing after
           // this factory has already returned an owned physical cursor.
-          physicalPreflight(...args) {current(); return data.physicalPreflight(...args);},
+          physicalPreflight(...args) {
+            current();
+            if (capability === undefined) return data.physicalPreflight(...args);
+            const admitted = checked(moon.clientProgramAdmitInstalledStructuredSdkCapability(
+              capability.opaque, args[3], capability.installation));
+            return data.physicalPreflight(...args, admitted);
+          },
           resolveTaskDefaults(...args) {current(); return retained.resolveTaskDefaults(...args);}});
         taskViews.set(taskCid, view);
       }

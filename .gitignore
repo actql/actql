@@ -216,6 +216,10 @@ target/
 # Generated pinned SDK builder boundary and private declaration.
 /packages/provider-ai-sdk/_internal/openai-chat.mjs
 /packages/provider-ai-sdk/_internal/openai-chat.d.mts
+/packages/provider-ai-sdk/_internal/anthropic-messages.mjs
+/packages/provider-ai-sdk/_internal/anthropic-messages.d.mts
+/packages/provider-ai-sdk/_internal/google-generate-content.mjs
+/packages/provider-ai-sdk/_internal/google-generate-content.d.mts
 
 # Generated existing SDK Model physical port and private declarations.
 /packages/provider-ai-sdk/_internal/model-port.mjs

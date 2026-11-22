@@ -154,3 +154,196 @@ pub fn client_program_observe_infer_raw_capture(
     call, registration, content_cid, byte_count, http_status, transport_eof, observed_at,
   )
 }
+
+///|
+// Bind only the exact original configuration, Profile and admitted Provider.
+#export_name("clientProgramBindAdmittedStructuredModelProvider")
+pub fn client_program_bind_admitted_structured_model_provider(
+  provider : @model.ModelProvider,
+  original : @model.AdmittedModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration : String,
+  selector : String,
+  model_id : String,
+  adapter_kind : String,
+  api_mode : String,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  adapter_supports : Bool,
+  model_supports : Bool,
+) -> Result[
+  @model.AdmittedStructuredModelProvider,
+  @model.StructuredModelCapabilityIssue,
+] {
+  match
+    @model.register_structured_model_capability(
+      provider,
+      binding,
+      configuration,
+      {
+        selector,
+        model_id,
+        adapter_kind,
+        api_mode,
+        endpoint: installation.endpoint,
+      },
+      profile,
+      adapter_supports,
+      model_supports,
+    ) {
+    Ok(capability) =>
+      @model.bind_admitted_structured_model_provider(
+        capability, original, installation,
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Initialization retains this exact capability before any original Request.
+#export_name("clientProgramPrepareInstalledStructuredSdkCapability")
+pub fn client_program_prepare_installed_structured_sdk_capability(
+  provider : @model.ModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration : String,
+  selector : String,
+  model_id : String,
+  api_mode : String,
+  endpoint : String,
+  profile : @check_environment.ModelResponseProfile,
+) -> Result[
+  @model.StructuredModelCapability,
+  @model.StructuredModelCapabilityIssue,
+] {
+  @model.register_structured_model_capability(
+    provider,
+    binding,
+    configuration,
+    { selector, model_id, adapter_kind: "ai-sdk", api_mode, endpoint, },
+    profile,
+    true,
+    true,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitInstalledStructuredSdkCapability")
+pub fn client_program_admit_installed_structured_sdk_capability(
+  capability : @model.StructuredModelCapability,
+  original : @model.AdmittedModelProvider,
+  installation : @check_environment.ModelResponseProfileInstallation,
+) -> Result[
+  @model.AdmittedStructuredModelProvider,
+  @model.StructuredModelCapabilityIssue,
+] {
+  @model.bind_admitted_structured_model_provider(
+    capability, original, installation,
+  )
+}
+
+///|
+#export_name("clientProgramAdmittedStructuredSdkRouteMatches")
+pub fn client_program_admitted_structured_sdk_route_matches(
+  admitted : @model.AdmittedStructuredModelProvider,
+  selector : String,
+  model_id : String,
+  api_mode : String,
+  endpoint : String,
+) -> Bool {
+  @model.admitted_structured_model_route_matches(admitted, {
+    selector,
+    model_id,
+    adapter_kind: "ai-sdk",
+    api_mode,
+    endpoint,
+  })
+}
+
+///|
+#export_name("clientProgramStartAdmittedStructuredSdkProjection")
+pub fn client_program_start_admitted_structured_sdk_projection(
+  admitted : @model.AdmittedStructuredModelProvider,
+  request : @model.ModelRequest,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[@model.OpenAIChatProjection, @model.OpenAIChatProjectionIssue] {
+  @model.start_admitted_structured_sdk_projection(
+    admitted, request, profile, installation, max_bytes, max_nodes, max_depth, max_frames,
+    max_work,
+  )
+}
+
+///|
+// The selected decoder transfers its original answer and optional reported
+// usage from the same SDK read. Core meters and checks the observed quantities.
+#export_name("clientProgramModelStructuredRequestPlan")
+pub fn client_program_model_structured_request_plan(
+  admitted : @model.AdmittedStructuredModelProvider,
+  request : @model.ModelRequest,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
+  read_answer : (@model.ModelPhysicalCall, @model.ModelSavedRawReceipt, Bytes) -> (
+    String,
+    Int64?,
+    Int64?,
+  )?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.bound_structured_model_async_request_plan(
+    admitted,
+    request,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    profile,
+    installation,
+    start,
+    (call, receipt, bytes) => {
+      read_answer(call, receipt, bytes).map(answer => {
+        let (body, input_tokens, output_tokens) = answer
+        {
+          body,
+          observation: {
+            origin: @publication.Reported,
+            provider_model: None,
+            provider_revision: None,
+            provider_request_id: None,
+            gateway_request_id: None,
+            input_tokens,
+            output_tokens,
+            provider_finish_reason: None,
+            historical_finish_reason: None,
+            response_profile_cid: Some(
+              @check_environment.model_response_profile_identity(profile),
+            ),
+            response_complete: Some(true),
+            raw_response_artifact_cid: None,
+            provider_metadata: None,
+            observed_at: "",
+          },
+          transport_eof: true,
+          endpoint_complete: true,
+          answer_complete: true,
+        }
+      })
+    },
+  )
+}
+
+///|
+#export_name("clientProgramModelPhysicalSavedStructured")
+pub fn client_program_model_physical_saved_structured(
+  call : @model.ModelPhysicalCall,
+  receipt : @model.ModelSavedRawReceipt,
+  bytes : Bytes,
+) -> Result[@model.ModelPhysicalCallPoll, @model.ModelExecutionIssue] {
+  @model.model_physical_saved_structured_response(call, receipt, bytes)
+}
