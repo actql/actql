@@ -2208,3 +2208,9 @@ target/
 /adapters/host-node/installed-model-defaults.d.mts
 /adapters/host-node/installed-model.mjs
 /adapters/host-node/installed-model.d.mts
+/adapters/host-node/infer-original-installation.mjs
+/adapters/host-node/infer-original-installation.d.mts
+/adapters/host-node/infer-original-installation-snapshot.test.mjs
+/adapters/host-node/infer-original-installation-snapshot.test.d.mts
+/adapters/host-node/infer-original-publication-selection.test.mjs
+/adapters/host-node/infer-original-publication-selection.test.d.mts

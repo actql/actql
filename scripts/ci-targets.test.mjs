@@ -2381,7 +2381,7 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
   const nest = JSON.parse(readFileSync(new URL('../proofs/bounded-session/nest-obligations.json', import.meta.url), 'utf8'));
   assert(nest.retainedSuites.includes(duckdbWitness), 'Use the actual retained Nest proof input');
   for (const path of [
-    'adapters/host-node/infer-original-installation.mjs',
+    'adapters/host-node/infer-original-installation.mts',
     'packages/python-sdk/src/actql_sdk/_local_core.py',
     'adapters/workers/wrangler.toml',
     'packages/sdk/tsconfig.json',
@@ -2398,7 +2398,7 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
 
 test('unclassified safety changes require proof success while reviewed shallow changes require skips', () => {
   for (const event of ['pull_request', 'push']) for (const [path, deep] of [
-    ['adapters/host-node/infer-original-installation.mjs', true],
+    ['adapters/host-node/infer-original-installation.mts', true],
     ['README.md', false],
   ]) {
     const selection = selectTargets([path], {event});

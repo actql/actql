@@ -57544,7 +57544,7 @@
     {
       "module": "adapters/host-node/infer-original-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6421d80fa294f91a1a1b70159043ef4b8d9fd78c9e567b41f3b17858b9361df4",
+      "sha256": "3426ca0850d8e96c1243e1fdcd865e8e9a9b54adc31d162491143087c2b628f3",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -57777,8 +57777,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec) {"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -57795,8 +57795,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec) {"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -57813,7 +57813,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// scope/layout issuer; these values neither prove physical adequacy nor issue"
               },
               {
@@ -57831,7 +57831,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Retain inspected DATA once. Accessors/Proxy property callbacks cannot swap"
               },
               {
@@ -57849,7 +57849,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Retain inspected DATA once. Accessors/Proxy property callbacks cannot swap"
               },
               {
@@ -57867,8 +57867,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "const unavailable: Refuse = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -57885,7 +57885,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// restore a Ledger, acknowledge cleanup or authorize Model/Result dispatch."
               },
               {
@@ -57903,7 +57903,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Shared codec DATA validation only, never an installation or capacity grant."
               },
               {
@@ -57921,7 +57921,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Trusted installation declaration only. It selects the existing Common"
               },
               {
@@ -57939,7 +57939,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-original-installation-snapshot.test.mjs",
+                "path": "adapters/host-node/infer-original-installation-snapshot.test.mts",
                 "anchor": "test('original installation snapshots the same inspected Model and bootstrap DATA values',()=>{"
               },
               {
@@ -57969,8 +57969,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec) {"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -57983,8 +57983,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec) {"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "export function snapshotInferOriginalCurrentStateCodec(codec: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -57997,7 +57997,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// scope/layout issuer; these values neither prove physical adequacy nor issue"
               },
               {
@@ -58011,7 +58011,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Retain inspected DATA once. Accessors/Proxy property callbacks cannot swap"
               },
               {
@@ -58025,7 +58025,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Retain inspected DATA once. Accessors/Proxy property callbacks cannot swap"
               },
               {
@@ -58039,8 +58039,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
-                "anchor": "const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),"
+                "path": "adapters/host-node/infer-original-installation.mts",
+                "anchor": "const unavailable: Refuse = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -58053,7 +58053,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// restore a Ledger, acknowledge cleanup or authorize Model/Result dispatch."
               },
               {
@@ -58067,7 +58067,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Shared codec DATA validation only, never an installation or capacity grant."
               },
               {
@@ -58081,7 +58081,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-original-installation.mjs",
+                "path": "adapters/host-node/infer-original-installation.mts",
                 "anchor": "// Trusted installation declaration only. It selects the existing Common"
               },
               {
@@ -58095,7 +58095,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-original-installation-snapshot.test.mjs",
+                "path": "adapters/host-node/infer-original-installation-snapshot.test.mts",
                 "anchor": "test('original installation snapshots the same inspected Model and bootstrap DATA values',()=>{"
               },
               {

@@ -4,7 +4,7 @@ import {retainInferOriginalReadInstallation,
   selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
 
 // Independent physical declaration DATA, not a Common profile or reservation.
-const configuration=publicationCapacity=>({
+const configuration=(publicationCapacity?: unknown)=>({
   bootstrap:{bootstrapRetainedBytes:1n,bootstrapExecutionBytes:0n,
     maxReservations:1,maxHoldings:1,maxDelegations:1},
   modelRetainedBytes:1n,modelExecutionBytes:0n,
@@ -25,7 +25,7 @@ test('publication declaration is immutable and selected only from the same retai
   assert.deepEqual(selected,{retainedBytes:101n,workspaceBytes:203n});
   assert.ok(Object.isFrozen(selected));
   assert.strictEqual(selectedInferOriginalPublicationCapacity(original,original.nodeInstallation),selected);
-  assert.throws(()=>selectedInferOriginalPublicationCapacity(supplied,supplied.nodeInstallation),
+  assert.throws(()=>selectedInferOriginalPublicationCapacity(supplied as typeof original,supplied.nodeInstallation),
     {code:'InferOriginalPublicationCapacityUnavailable'});
 });
 
@@ -34,8 +34,8 @@ test('copied original and independently matching node selections cannot select p
   const foreign=retainInferOriginalReadInstallation(configuration({retainedBytes:17n,workspaceBytes:19n}));
   for(const [owner,node] of [[{...original},original.nodeInstallation],
     [original,{...original.nodeInstallation}],[original,foreign.nodeInstallation],
-    [undefined,original.nodeInstallation]]) {
-    assert.throws(()=>selectedInferOriginalPublicationCapacity(owner,node),
+    [undefined,original.nodeInstallation]] as const) {
+    assert.throws(()=>selectedInferOriginalPublicationCapacity(owner as typeof original,node),
       {code:'InferOriginalPublicationCapacityUnavailable'});
   }
 });
@@ -97,7 +97,7 @@ test('publication shape and amount snapshot uses one descriptor read per origina
     get(){assert.fail('No property getter is part of this DATA snapshot');},
     getOwnPropertyDescriptor(target,name){
       const descriptor=Object.getOwnPropertyDescriptor(target,name);
-      reads[name]++;
+      reads[name as keyof typeof reads]++;
       return descriptor;
     },
   });
@@ -113,7 +113,7 @@ test('publication snapshot never re-reads a descriptor that changes after initia
     get(){assert.fail('No delayed amount getter');},
     getOwnPropertyDescriptor(target,name){
       const descriptor=Object.getOwnPropertyDescriptor(target,name);
-      if(++reads[name]===1)return descriptor;
+      if(++reads[name as keyof typeof reads]===1)return descriptor;
       return {...descriptor,enumerable:false,
         value:name==='retainedBytes'?9223372036854775808n:-1n};
     },

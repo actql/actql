@@ -5,7 +5,22 @@ import {retainInferOriginalReadInstallation,
 
 // Independent physical declaration DATA. No numerical profile, reservation,
 // SDK, Store, Source or Common startup is established by these test values.
-function configuration() {
+type Configuration = {
+  bootstrap: {bootstrapRetainedBytes: bigint; bootstrapExecutionBytes: bigint;
+    maxReservations: number; maxHoldings: number; maxDelegations: number; extra?: boolean};
+  modelRetainedBytes: bigint; modelExecutionBytes: bigint;
+  nodeInstallation: {layout: Readonly<{barrier_cid: string; execution_bytes: bigint; layout_artifact_cid: string;
+    parameter_values_cid: string; prepared_rows: bigint; program_definition_cid: string; response_profile: object;
+    retained_bytes: bigint; runtime_artifact_cid: string}>;
+    installation: {sdk?: {version: string}}; layoutArtifactCid: string; probability: undefined; runtimeArtifactCid: string};
+  metadataAcquisition: {metadata: {maxLedgerEntries: number; maxWireBytes: number};
+    directory: {maxDirectoryEntries: number; maxWireBytes: number}; retainedBytes: bigint; workspaceBytes: bigint};
+  storeBootstrap: {maxDirectoryEntries: number; maxWireBytes: number};
+  currentStateCodec?: unknown;
+  [extra: symbol]: unknown;
+};
+
+function configuration(): Configuration {
   return {bootstrap:{bootstrapRetainedBytes:101n,bootstrapExecutionBytes:103n,
     maxReservations:3,maxHoldings:5,maxDelegations:7},
     modelRetainedBytes:107n,modelExecutionBytes:109n,
@@ -61,7 +76,7 @@ test('original nested layout and physical installation preserve inspected opaque
   const original=retainInferOriginalReadInstallation(supplied);
   assert.equal(reads,0);assert.equal(original.nodeInstallation.layout.response_profile,profile);
   assert.deepEqual(original.nodeInstallation.installation.sdk,{version:'4.0.91'});
-  sdk.version='changed';assert.equal(original.nodeInstallation.installation.sdk.version,'4.0.91');
+  sdk.version='changed';assert.equal((original.nodeInstallation.installation.sdk as {version: string}).version,'4.0.91');
 });
 test('original codec and Store bootstrap keep the exact finite DATA snapshot',()=>{
   const plain={quantum:7,comparisonWork:101,decode:{maxWork:103,
@@ -78,7 +93,7 @@ test('original codec and Store bootstrap keep the exact finite DATA snapshot',()
   assert.deepEqual(original.currentStateCodec,plain);assert.equal(reads,0);
 });
 test('accessor, hidden and symbol declaration fields refuse without invoking callbacks',()=>{
-  const changes=[v=>[v,'modelRetainedBytes'],v=>[v.bootstrap,'bootstrapRetainedBytes'],
+  const changes: Array<(value: Configuration) => [object, string]> = [v=>[v,'modelRetainedBytes'],v=>[v.bootstrap,'bootstrapRetainedBytes'],
     v=>[v.nodeInstallation,'layout'],v=>[v.nodeInstallation.layout,'retained_bytes'],
     v=>[v.metadataAcquisition,'workspaceBytes'],v=>[v.metadataAcquisition.metadata,'maxWireBytes'],
     v=>[v.metadataAcquisition.directory,'maxDirectoryEntries'],v=>[v.storeBootstrap,'maxWireBytes']];
@@ -88,9 +103,9 @@ test('accessor, hidden and symbol declaration fields refuse without invoking cal
     assert.throws(()=>retainInferOriginalReadInstallation(source),TypeError);
     assert.equal(called,0);
   }
-  for(const change of [v=>{v[Symbol('extra')]=true;},
-    v=>{Object.defineProperty(v,'modelRetainedBytes',{enumerable:false});},
-    v=>{v.bootstrap.extra=true;}]) {
+  for(const change of [(v: Configuration)=>{v[Symbol('extra')]=true;},
+    (v: Configuration)=>{Object.defineProperty(v,'modelRetainedBytes',{enumerable:false});},
+    (v: Configuration)=>{v.bootstrap.extra=true;}]) {
     const source=configuration();change(source);
     assert.throws(()=>retainInferOriginalReadInstallation(source),TypeError);
   }

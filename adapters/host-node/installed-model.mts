@@ -4,7 +4,6 @@
 import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: the original-read installer is still authored in JavaScript.
 import {retainInferOriginalReadInstallation, retainInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {types as nodeTypes} from 'node:util';
@@ -38,13 +37,13 @@ type ProviderEntry = Readonly<{
   sdkStaticOriginals?: unknown; registeredSdk?: unknown;
 }>;
 type TaskData = Readonly<{
-  originalReadInstallation: unknown; originalReadRecipe: unknown;
+  originalReadInstallation: ReturnType<typeof retainInferOriginalReadInstallation>; originalReadRecipe: ReturnType<typeof retainInferOriginalReadRecipe>;
   rawCaptureSelection: RawSelection; quantityCapacity: QuantityCapacity;
   physicalPreflight: Callback; reconcileResponse: Callback | undefined;
   observeEgress: () => unknown; validatePrompt: Prompt;
 }>;
 type InstalledProvider = Readonly<{
-  provider: unknown; originalReadInstallation: unknown; originalReadRecipe: unknown;
+  provider: unknown; originalReadInstallation: ReturnType<typeof retainInferOriginalReadInstallation>; originalReadRecipe: ReturnType<typeof retainInferOriginalReadRecipe>;
   rawCaptureSelection: RawSelection | undefined; bindingOriginals: BindingOriginals | undefined;
   assertTrustedRuntime: (() => void) | undefined; assertNewTrustedRuntime: (() => void) | undefined;
   requireEagerSdkStartup: (() => void) | undefined;
@@ -303,8 +302,8 @@ function snapshotTaskInstallations(source: unknown, providerId: string, bindings
         reconcileResponse !== undefined && typeof reconcileResponse !== 'function') {
       throw new TypeError('InvalidInstalledModelTaskInstallations');
     }
-    const originalReadInstallation: unknown = retainInferOriginalReadInstallation(originalReadSource);
-    const originalReadRecipe: unknown = retainInferOriginalReadRecipe(recipeSource);
+    const originalReadInstallation = retainInferOriginalReadInstallation(originalReadSource);
+    const originalReadRecipe = retainInferOriginalReadRecipe(recipeSource);
     const rawCaptureSelection = snapshotModelRawCaptureSelection(value('rawCaptureSelection') as ProviderEntry['rawCaptureSelection']);
     const quantityCapacity = retainModelQuantityCapacity(value('quantityCapacity'));
     if (rawCaptureSelection === undefined || quantityCapacity === undefined) {
@@ -398,8 +397,8 @@ export function installModelProviders(moon: ProviderRuntime, register?: (runtime
     if (originalReadSource !== undefined && originalRecipeSource !== undefined) {
       throw new TypeError('InvalidInstalledInferOriginalReadInstallation');
     }
-    const originalReadInstallation: unknown = retainInferOriginalReadInstallation(originalReadSource);
-    const originalReadRecipe: unknown = retainInferOriginalReadRecipe(originalRecipeSource);
+    const originalReadInstallation = retainInferOriginalReadInstallation(originalReadSource);
+    const originalReadRecipe = retainInferOriginalReadRecipe(originalRecipeSource);
     const rawCaptureSelection = snapshotModelRawCaptureSelection(rawSource);
     // This installation profile connects raw custody only to the existing
     // durable asynchronous caller. It grants no raw capture or send authority.
