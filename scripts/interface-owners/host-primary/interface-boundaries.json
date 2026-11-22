@@ -34716,7 +34716,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "37d4a27c36ac80a10a23f7576d9845dc82926f0ea59970f7be6a013b63d52c9f",
+      "sha256": "4aea7627083599edb994f6dc3445563797bdf0469e9219313ea5460e7c8706c2",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -34734,7 +34734,8 @@
             "assertNewHostRuntime",
             "bindSdkStaticOriginals",
             "runtimeUrl",
-            "verifiedSdkInstallations"
+            "verifiedSdkInstallations",
+            "sdkImageCustody"
           ],
           "async": true
         },
@@ -35323,6 +35324,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./initial-control-package-custody.cjs",
         "./installed-host-services.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",

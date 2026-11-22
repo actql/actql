@@ -16,6 +16,8 @@ const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const parse = JSON.parse, NativeMap = Map, NativeSet = Set, NativeError = Error;
 const mapGet = Map.prototype.get, mapSet = Map.prototype.set, mapHas = Map.prototype.has;
 const setHas = Set.prototype.has, setAdd = Set.prototype.add;
+const sdkImages = new WeakMap();
+const sdkImageGet = WeakMap.prototype.get, sdkImageSet = WeakMap.prototype.set;
 const fail = code => { const cause = new NativeError(code); cause.code = code; throw cause; };
 const own = (value, name) => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlPackageImage');
@@ -91,7 +93,7 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
           representation !== expectedRepresentation) {
       fail('InitialControlPackageImageChanged');
     }
-    groups[groups.length] = freeze({root: directory, images: freeze(selected)});
+    groups[groups.length] = freeze({root: directory, images: freeze(selected), version: optionalField(manifest, 'version')});
     return {manifest, representation};
   }
   const local = captureGroup(root, images, '@actql/local-node', optionalField(inventory, 'localVersion'),
@@ -144,6 +146,7 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
   }
   for (let index = 0; index < dependencies.length; index++) captureDependency(dependencies[index], root);
   const optional = own(inventory, 'optionalSdk'), optionalCoverage = own(inventory, 'optionalSdkCoverage');
+  const sdkPackages = new NativeMap();
   if (optionalCoverage === 'prepared') {
     if (typeof consumerEntry !== 'string' || !isAbsolute(consumerEntry)) {
       fail('InvalidInitialControlPackageImage');
@@ -151,6 +154,10 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
     // The actual startup resolves its optional SDK from that SAME consumer
     // entry, not from Local's potentially different nested dependency slot.
     captureDependency({name: '@actql/provider-ai-sdk', package: optional}, dirname(consumerEntry));
+    apply(mapSet, sdkPackages, ['@actql/provider-ai-sdk', actualPackages[optional]]);
+    for (const dependency of own(packages[optional], 'dependencies')) {
+      apply(mapSet, sdkPackages, [own(dependency, 'name'), actualPackages[own(dependency, 'package')]]);
+    }
   } else if (optional !== null || optionalCoverage !== 'absent' && optionalCoverage !== 'unprepared') {
     fail('InvalidInitialControlPackageImage');
   }
@@ -256,11 +263,36 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
     if (typeof path !== 'string') fail('InitialControlPackageCustodyUnavailable');
     return apply(mapGet, mainSources, [path])?.source;
   }
+  function readSdkImage(packageName, path, cid, kind) {
+    loader.assertCurrent();
+    if (typeof packageName !== 'string' || !concrete(path) ||
+        typeof cid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(cid) ||
+        kind !== 'module' && kind !== 'lock' || kind === 'lock' && packageName !== '@actql/provider-ai-sdk') {
+      fail('InitialControlSdkImageUnavailable');
+    }
+    const directory = apply(mapGet, sdkPackages, [packageName]);
+    if (directory === undefined) fail('InitialControlSdkImageUnavailable');
+    const group = groups.find(value => value.root === directory);
+    const image = group.images.find(value => value.path === path);
+    if (image === undefined || 'sha256:' + image.captured.sha256 !== cid ||
+        kind === 'lock' && path !== 'npm-shrinkwrap.json') fail('InitialControlPackageImageChanged');
+    const namespace = kind === 'module' ? loader.loadSelectedModule(join(directory, path), image.captured.sha256) : undefined;
+    loader.assertCurrent();
+    return freeze({namespace, cid, packageName, version: group.version});
+  }
   // Held Sources, module/namespace records, loader hooks and caches remain the
   // original process/module lifetime, including escaped Strings. This table
   // issues no scope and has no synthetic close/GC/capacity acknowledgement.
-  return freeze({initializeHostNamespace, assertCurrent, readAsset});
+  const custody = freeze({initializeHostNamespace, assertCurrent, readAsset});
+  apply(sdkImageSet, sdkImages, [custody, readSdkImage]);
+  return custody;
 }
 
-module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody};
+function readVerifiedSdkImage(custody, packageName, path, cid, kind) {
+  const read = apply(sdkImageGet, sdkImages, [custody]);
+  if (read === undefined) fail('InitialControlSdkImageUnavailable');
+  return read(packageName, path, cid, kind);
+}
+
+module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody, readVerifiedSdkImage};
 freeze(module.exports);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdtemp, writeFile, rm, open, readFile} from 'node:fs/promises';
+import {mkdtemp, writeFile, rm, open, mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -12,6 +12,7 @@ import {installModelProviders, prepareInstalledModelProviderDefaults,
   assertInstalledModelDefaultsPreparation} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {installConfiguredModelProviders} from './installed-model-configuration.mjs';
+import packageCustody from './initial-control-package-custody.cjs';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -40,37 +41,68 @@ const policy = original({schema: 'actql.contract/0.1', id: 'candidate-fixture-po
     retention: 'none', training_use: 'forbidden'}});
 
 test('the original Host verifies SDK software and closes the options before supplying its factory', async t => {
-  for (const mode of ['match', 'foreign-id', 'caller-identity', 'changed-artifact', 'unsupported-option']) {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-sdk-verified-custody-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const write = async (root, path, source) => {
+    await mkdir(join(root, path, '..'), {recursive: true});
+    await writeFile(join(root, path), source);
+    return {path, bytes: Buffer.byteLength(source),
+      sha256: createHash('sha256').update(source).digest('hex')};
+  };
+  const local = join(directory, 'local'), nodeModules = join(directory, 'node_modules');
+  const adapterRoot = join(nodeModules, '@actql/provider-ai-sdk'), sdkRoot = join(nodeModules, 'fixture-sdk');
+  const manifest = (root, name, entry, dependencies = {}) =>
+    write(root, 'package.json', JSON.stringify({name, version: '1.0.0', type: 'module', exports: entry, dependencies}));
+  const host = 'adapters/host-node/embedded-local.mjs';
+  const adapter = await write(adapterRoot, 'index.mjs', `
+    export const optionNamespace = 'controlled';
+    export const optionSchema = Object.freeze({mode: Object.freeze(['strict'])});
+    export const createLanguageModel = (factory, modelId, fetch) => factory(modelId, fetch);
+    export const verifyRequest = (wire, call, route, options) => wire === call.expected &&
+      route.modelId === 'model-a' && options.controlled.mode === 'strict';`);
+  const sdk = await write(sdkRoot, 'index.mjs', `export let calls = 0;
+    export function build(modelId, fetch) { calls++; return {modelId, fetch}; }`);
+  const foreign = await write(sdkRoot, 'foreign.mjs', `export let calls = 0;
+    export function build() { calls++; throw new Error('ForeignSdkFactoryMustNotRun'); }`);
+  const lock = await write(adapterRoot, 'npm-shrinkwrap.json', '{"fixture":"original dependency lock"}');
+  const images = [await manifest(local, '@actql/local-node', './index.mjs'),
+    await write(local, 'index.mjs', ''), await write(local, host, 'export function assertInitialControlHostPreparation() {}')];
+  const packages = [
+    {name: '@actql/provider-ai-sdk', version: '1.0.0', dependencies: [{name: 'fixture-sdk', package: 1}],
+      images: [await manifest(adapterRoot, '@actql/provider-ai-sdk', './index.mjs', {'fixture-sdk': '1.0.0'}), adapter, lock]},
+    {name: 'fixture-sdk', version: '1.0.0', dependencies: [],
+      images: [await manifest(sdkRoot, 'fixture-sdk', './index.mjs'), sdk, foreign]},
+  ];
+  const sdkImageCustody = packageCustody.captureOrdinaryInitialControlPackageCustody({
+    images, packages, dependencies: [], optionalSdk: 0, optionalSdkCoverage: 'prepared',
+    publicNode: null, publicNodeCoverage: 'absent',
+    hostModule: host, hostValidator: 'assertInitialControlHostPreparation', localPublicModule: 'index.mjs',
+  }, local, join(directory, 'entry.mjs'));
+  const file = image => Object.freeze({path: image.path, cid: 'sha256:' + image.sha256});
+  const read = (name, image) => packageCustody.readVerifiedSdkImage(sdkImageCustody,
+    name, image.path, file(image).cid, 'module').namespace;
+  read('@actql/provider-ai-sdk', adapter);
+  const actualSdk = read('fixture-sdk', sdk), foreignSdk = read('fixture-sdk', foreign);
+  assert.notEqual(actualSdk.build, foreignSdk.build);
+  sdkImageCustody.initializeHostNamespace();
+
+  for (const mode of ['match', 'foreign-id', 'caller-identity', 'changed-artifact', 'different-module',
+    'foreign-custody', 'unsupported-option']) {
     await t.test(mode, async t => {
       const resource = await boundConstructionActualFixture(t);
-      const write = async (name, text) => {
-        const path = join(resource.root, name);
-        await writeFile(path, text);
-        return Object.freeze({url: pathToFileURL(path).href,
-          cid: `sha256:${createHash('sha256').update(await readFile(path)).digest('hex')}`});
-      };
-      const sdk = await write('tested-sdk.mjs', `export let calls = 0;
-        export function build(modelId, fetch) { calls++; return {modelId, fetch}; }
-        export function other() { throw new Error('Wrong SDK export'); }`);
-      const adapter = await write('registered-adapter.mjs', `
-        export const optionNamespace = 'controlled';
-        export const optionSchema = Object.freeze({mode: Object.freeze(['strict'])});
-        export const createLanguageModel = (factory, modelId, fetch) => factory(modelId, fetch);
-        export const verifyRequest = (wire, call, route, options) => wire === call.expected &&
-          route.modelId === 'model-a' && options.controlled.mode === 'strict';`);
-      const lock = await write('package-lock.json', '{"fixture":"original dependency lock"}');
       const route = Object.freeze({providerId, selector: 'selected', modelId: 'model-a',
         apiMode: 'fixture', endpoint: 'https://example.invalid/model'});
-      const sdkOriginal = Object.freeze({lock, route,
-        adapter: Object.freeze({...adapter, load: () => import(adapter.url)}),
-        sdk: Object.freeze({...sdk, packageName: 'fixture-sdk', version: '1.0.0', exportName: 'build',
-          load: () => import(sdk.url)}),
+      const sdkOriginal = Object.freeze({route, lock: file(lock),
+        adapter: mode === 'changed-artifact' ? Object.freeze({...file(adapter), cid: file(foreign).cid}) : file(adapter),
+        sdk: Object.freeze({...file(sdk), path: mode === 'different-module' ? foreign.path : sdk.path,
+          packageName: 'fixture-sdk', version: '1.0.0', exportName: 'build'}),
         providerOptions: Object.freeze({mode: mode === 'unsupported-option' ? 'unreviewed' : 'strict'})});
-      if (mode === 'changed-artifact') await write('registered-adapter.mjs', 'throw new Error("Must not import");');
+      const callsBefore = actualSdk.calls;
       let selected, current = true;
       const verifiedSdkInstallations = new Map([[providerId, sdkOriginal]]);
       const install = installConfiguredModelProviders({moon, installationServices: resource.services,
         assertCurrent() {if (!current) throw new Error('OriginalSdkHostClosed');}, verifiedSdkInstallations,
+        sdkImageCustody: mode === 'foreign-custody' ? {...sdkImageCustody} : sdkImageCustody,
         async register(_, context) {
           if (mode === 'caller-identity') {
             selected = await context.prepareRegisteredSdk(providerId, sdkOriginal);
@@ -81,11 +113,10 @@ test('the original Host verifies SDK software and closes the options before supp
         }});
       if (mode === 'match') {
         await install;
-        const {calls} = await import(sdk.url);
-        assert.equal(calls, 0, 'the Host does not initialize the SDK before preflight');
-        assert.equal(selected.sdkArtifactCid, sdk.cid);
-        assert.equal(selected.adapterArtifactCid, adapter.cid);
-        assert.equal(selected.lockArtifactCid, lock.cid);
+        assert.equal(actualSdk.calls, callsBefore, 'the Host does not initialize the SDK before preflight');
+        assert.equal(selected.sdkArtifactCid, file(sdk).cid);
+        assert.equal(selected.adapterArtifactCid, file(adapter).cid);
+        assert.equal(selected.lockArtifactCid, file(lock).cid);
         assert.deepEqual(selected.providerOptions, {controlled: {mode: 'strict'}});
         assert.ok(Object.isFrozen(selected.providerOptions.controlled));
         const fetch = () => assert.fail('no network');
@@ -99,16 +130,19 @@ test('the original Host verifies SDK software and closes the options before supp
         verifiedSdkInstallations.set(providerId, sdkOriginal);
         current = false;
         assert.throws(() => selected.createLanguageModel(fetch), {message: 'OriginalSdkHostClosed'});
-        assert.equal((await import(sdk.url)).calls, 1);
+        assert.equal(actualSdk.calls, callsBefore + 1);
       } else {
         await assert.rejects(install, {code: {
           'foreign-id': 'InvalidInstalledModelSdkInstallation',
           'caller-identity': 'InvalidInstalledModelSdkInstallation',
-          'changed-artifact': 'InstalledModelSdkArtifactMismatch',
+          'changed-artifact': 'InitialControlPackageImageChanged',
+          'different-module': 'InitialControlPackageImageChanged',
+          'foreign-custody': 'InitialControlSdkImageUnavailable',
           'unsupported-option': 'UnsupportedInstalledModelSdkOption',
         }[mode]});
         assert.equal(selected, undefined);
-        assert.equal((await import(sdk.url)).calls, 0);
+        assert.equal(actualSdk.calls, callsBefore);
+        assert.equal(foreignSdk.calls, 0);
       }
       await resource.close();
       assert.equal(resource.pending(), false);

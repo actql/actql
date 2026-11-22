@@ -1164,18 +1164,15 @@ acquisition remains separate, and these materials attest neither implementation
 truth nor current authority. The initial Host constructor must fund all source,
 canonical tree, writer and output overlap before invoking this DATA constructor.
 
-For private SDK installation preparation, the Host supplies the original
-independently verified adapter, SDK entry and dependency-lock files from its
-immutable installation. The callback selects an existing Provider ID. The
-initial Resource owns the file reads and option projection. The Host compares
-the installed bytes with the original digests before opening either module,
-selects the exact SDK export, and retains that export with the verified
-adapter's request verifier. The installation must associate its loaders with
-the verified files and keep those files and their dependencies immutable
-throughout use. The adapter's closed option schema
-checks a bounded snapshot of the original Host configuration before any
-factory call; that snapshot and the resolved route accompany request checking.
-The same installation and current Host remain required at each callback.
+For private SDK installation preparation, the registration callback selects an
+existing Provider ID. The same package image owner verifies the installed
+adapter and dependency closure and retains the exact module namespaces it
+loaded from those images before completing startup. A package-relative image
+selector and digest choose from those originals. The Host borrows the exact
+SDK export and request verifier together under its initial Resource, and
+checks the configured options against the adapter's closed schema before a
+factory call. The option snapshot and resolved route accompany request
+checking, which requires the same installation and current Host.
 
 ### Original physical Model limits in Request Plans
 

@@ -6,6 +6,7 @@
 // to that Owner, supply a missing domain or issue capacity/permission.
 const NodeModule = require('node:module');
 const {join} = require('node:path');
+const {isModuleNamespaceObject} = require('node:util').types;
 const {realpathSync} = require('node:fs');
 const {pathToFileURL, fileURLToPath, URL: OriginalURL} = require('node:url');
 const nativeApply = Reflect.apply;
@@ -71,8 +72,9 @@ function installOrdinaryInitialControlImageLoader(groups) {
 function installImageLoader(groups, ordinary) {
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap(), prefixes = [];
-  const initialCache = new NativeMap(), delivered = new NativeMap();
+  const initialCache = new NativeMap(), delivered = new NativeMap(), selectedModules = new NativeMap();
   const loadedModules = [];
+  const requireSelected = NodeModule.createRequire(__filename);
   let invalidated = false, loadedCaptured = false;
   for (let index = 0; index < groups.length; index++) {
     const group = groups[index], root = realpathSync(own(group, 'root'));
@@ -331,6 +333,30 @@ function installImageLoader(groups, ordinary) {
     // this body to a mutable pathname, synthesize a FileHandle, or issue an ACK.
     return {format: original.format, source: original.source, shortCircuit: true};
   }
+  function loadSelectedModule(filename, sha256) {
+    assertCurrent();
+    const url = pathToFileURL(filename).href;
+    const image = nativeApply(nativeMapGet, images, [url]);
+    if (image?.format !== 'module' || image.sha256 !== sha256) fail('InitialControlPackageImageChanged');
+    const selected = nativeApply(nativeMapGet, selectedModules, [url]);
+    if (selected !== undefined) return selected;
+    if (loadedCaptured) fail('InitialControlSdkImageUnavailable');
+    // Node's synchronous ESM require can return a value from its CJS cache
+    // without running our load hook. A preexisting cache slot, even with a
+    // genuine module namespace as its exports, cannot supply this handoff.
+    if (descriptor(stockCache, filename) !== undefined) fail('InitialControlPackageImageChanged');
+    const namespace = requireSelected(filename);
+    const entry = descriptor(stockCache, filename)?.value;
+    if (!isModuleNamespaceObject(namespace) || !nativeApply(nativeMapHas, delivered, [url]) ||
+        entry === undefined || descriptor(entry, 'exports')?.value !== namespace ||
+        descriptor(entry, 'filename')?.value !== filename || descriptor(entry, 'loaded')?.value !== true) {
+      fail('InitialControlPackageImageChanged');
+    }
+    loadedModules[loadedModules.length] = {filename, module: entry, exports: namespace};
+    assertCurrent();
+    nativeApply(nativeMapSet, selectedModules, [url, namespace]);
+    return namespace;
+  }
   function registerHooksFence(...args) {
     // Calls through this published fence permanently invalidate this helper,
     // even after deregistration. This does not observe calls through a native
@@ -356,7 +382,7 @@ function installImageLoader(groups, ordinary) {
   // Actual loader registration, held Sources and native module registry remain
   // process/module-lifetime duties. A Host close cannot deregister them, infer
   // source/backing collection or acknowledge a different physical allocation.
-  return freeze({assertCurrent, captureLoadedModules});
+  return freeze({assertCurrent, captureLoadedModules, loadSelectedModule});
 }
 
 module.exports = {installInitialControlImageLoader, installOrdinaryInitialControlImageLoader};

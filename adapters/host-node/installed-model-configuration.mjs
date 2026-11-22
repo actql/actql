@@ -7,6 +7,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {types as nodeTypes} from 'node:util';
+import packageCustody from './initial-control-package-custody.cjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 const invalidSdkInstallation = 'InvalidInstalledModelSdkInstallation';
@@ -54,7 +55,7 @@ function sdkProviderOptions(values, namespace, schema) {
 export async function installConfiguredModelProviders({moon, register, project,
   taskLimits, installationServices, assertCurrent, assertHostRuntime,
   assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl,
-  verifiedSdkInstallations}) {
+  verifiedSdkInstallations, sdkImageCustody}) {
   if (register === undefined) return {providers: new Map(), projectTasks: undefined};
   if (typeof register !== 'function' || typeof assertCurrent !== 'function') {
     fail('InvalidInstalledModelProviderRegistration');
@@ -151,47 +152,40 @@ export async function installConfiguredModelProviders({moon, register, project,
             if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
             preparedSdkIds.add(providerId);
             originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
-            originalSdkRecord(original.adapter, ['url', 'cid', 'load']);
-            originalSdkRecord(original.lock, ['url', 'cid']);
-            originalSdkRecord(original.sdk, ['url', 'cid', 'packageName', 'version', 'exportName', 'load']);
+            originalSdkRecord(original.adapter, ['path', 'cid']);
+            originalSdkRecord(original.lock, ['path', 'cid']);
+            originalSdkRecord(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
             originalSdkRecord(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
             const {route, sdk} = original;
             if (route.providerId !== providerId ||
                 [route.selector, route.modelId, route.apiMode, sdk.packageName, sdk.version, sdk.exportName]
                   .some(value => typeof value !== 'string' || value.length === 0 || value.length > 256) ||
-                typeof route.endpoint !== 'string' || route.endpoint.length > 2048 ||
-                typeof sdk.load !== 'function' || typeof original.adapter.load !== 'function') {
+                typeof route.endpoint !== 'string' || route.endpoint.length > 2048) {
               fail(invalidSdkInstallation);
             }
             return Object.freeze({});
           },
           retained: () => capacity(16n),
         }));
-        const verify = async file => {
-          if (typeof file?.url !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(file.cid) ||
-              !file.url.startsWith('file:') || /[?#]/u.test(file.url)) fail(invalidSdkInstallation);
-          if (await artifactIdentity(file.url) !== file.cid) fail('InstalledModelSdkArtifactMismatch');
-          check();
-          requireOriginal();
-        };
-        // The installed package and its dependencies are trusted code. The
-        // original verification identifies immutable files for this Host,
-        // rather than using the loaded module's metadata as proof of itself.
-        await verify(original.adapter);
-        await verify(original.sdk);
-        await verify(original.lock);
-        const adapter = await original.adapter.load();
-        check();
-        requireOriginal();
-        const sdk = await original.sdk.load();
-        check();
-        requireOriginal();
         return construction.prepareModelTaskInput(Object.freeze({
           capacity: () => capacity(64n, 10304n, 0n, 128n, 10304n),
           project() {
-            if (!nodeTypes.isModuleNamespaceObject(adapter) || !nodeTypes.isModuleNamespaceObject(sdk)) {
-              fail(invalidSdkInstallation);
-            }
+            // Borrow module originals only from the package custody already
+            // held by this Host. A registration cannot supply a loader, a
+            // namespace, a file URL or an independent package search.
+            const read = (name, file, kind) => {
+              const image = packageCustody.readVerifiedSdkImage(sdkImageCustody, name, file.path, file.cid, kind);
+              check();
+              requireOriginal();
+              return image;
+            };
+            const adapterName = '@actql/provider-ai-sdk';
+            read(adapterName, original.lock, 'lock');
+            const sdkImage = read(original.sdk.packageName, original.sdk, 'module');
+            if (sdkImage.version !== original.sdk.version) fail(invalidSdkInstallation);
+            const sdk = sdkImage.namespace;
+            const adapter = read(adapterName, original.adapter, 'module').namespace;
+            sdkImageCustody.assertCurrent();
             const factory = sdk[original.sdk.exportName];
             const {createLanguageModel, verifyRequest} = adapter;
             if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
@@ -208,12 +202,14 @@ export async function installConfiguredModelProviders({moon, register, project,
                 assertCurrent();
                 assertNewHostRuntime?.();
                 requireOriginal();
+                sdkImageCustody.assertCurrent();
                 return createLanguageModel(factory, original.route.modelId, fetch);
               },
               verifyRequest(wire, call) {
                 assertCurrent();
                 assertNewHostRuntime?.();
                 requireOriginal();
+                sdkImageCustody.assertCurrent();
                 return verifyRequest(wire, call, original.route, providerOptions);
               }});
           },

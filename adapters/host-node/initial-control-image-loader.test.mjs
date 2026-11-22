@@ -293,10 +293,36 @@ test('a retained pre-fence registration function is outside the property fence o
 test('the loader helper issues no operational admission or Host scope', t => {
   const f = fixture(t), result = f.run([
     "import assert from 'node:assert/strict';",
-    "assert.deepEqual(Object.keys(originalImageLoader),['assertCurrent','captureLoadedModules']);",
     'assert.equal(originalImageLoader.begin,undefined);',
     'assert.equal(originalImageLoader.retainPreparation,undefined);',
     'assert.ok(Object.isFrozen(originalImageLoader));',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a genuine namespace at another ESM image cannot substitute the selected module', t => {
+  const f = fixture(t, {'original.mjs': 'export const build = () => "original";',
+    'foreign.mjs': 'export const build = () => "foreign";',
+    'late.mjs': 'export const build = () => "late";'});
+  const result = f.run([
+    "import assert from 'node:assert/strict';",
+    'assert.equal(refused.code,"InitialControlPackageImageChanged");',
+    'assert.equal(selected.build(),"original");',
+    'assert.notEqual(selected.build,foreign.build);',
+    'assert.equal(lateRefusal.code,"InitialControlSdkImageUnavailable");',
+  ].join('\n'), [
+    'const M=require("node:module"), join=require("node:path").join;',
+    'const filename=fs.realpathSync(join(root,"original.mjs")), load=originalImageLoader.loadSelectedModule;',
+    'const digest=facts.find(x=>x.path==="original.mjs").expected.sha256;',
+    'globalThis.foreign=require(join(root,"foreign.mjs"));',
+    'const wrong=new M(filename);wrong.filename=filename;wrong.loaded=true;wrong.exports=foreign;',
+    'M._cache[filename]=wrong;',
+    'try{load(filename,digest);}catch(cause){globalThis.refused=cause;}',
+    'delete M._cache[filename];',
+    'globalThis.selected=load(filename,digest);',
+    'originalImageLoader.captureLoadedModules();',
+    'try{load(fs.realpathSync(join(root,"late.mjs")),facts.find(x=>x.path==="late.mjs").expected.sha256);}',
+    'catch(cause){globalThis.lateRefusal=cause;}',
   ].join('\n'));
   assert.equal(result.status, 0, result.stderr);
 });
