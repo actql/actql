@@ -10,6 +10,9 @@ priv struct OriginalSDKReadContext {
   view : @publication.PublicationCommitReadView
   result_name : String
   format : String
+  // Enables a fresh probe against the enclosing export's first census.
+  // The physical reader still decides whether any repeated scan is needed.
+  same_reader_census : Bool
   check_current : () -> Result[Unit, Int]
 }
 
@@ -19,9 +22,16 @@ fn original_sdk_read_context(
   record : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   if value.publications.get(record.publication) is None {
-    return saved_sdk_read_context(value, record, run, current_configuration)
+    return saved_sdk_read_context(
+      value,
+      record,
+      run,
+      current_configuration,
+      same_reader_census~,
+    )
   }
   guard value.publications.get(record.publication) is Some(parent) &&
     value.runs.get(run) is Some(original_run) &&
@@ -143,6 +153,7 @@ fn original_sdk_read_context(
         view,
         result_name,
         format,
+        same_reader_census: false,
         check_current,
       })
   }

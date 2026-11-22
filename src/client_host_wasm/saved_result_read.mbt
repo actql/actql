@@ -461,6 +461,7 @@ fn reobserve_saved_result_read(
   configuration : StoredRunConfiguration,
   retained : StoredSavedResultRead,
   incremental? : Bool = false,
+  same_reader_census? : Bool = false,
 ) -> Result[Unit, Int] {
   guard configuration.host_current is Some(current_handle) &&
     value.host_currents.get(current_handle) is Some(current) else {
@@ -486,7 +487,14 @@ fn reobserve_saved_result_read(
     let scan = (table, cursor) => {
       physical_journal_row(current.physical, check, 0, table, cursor)
     }
-    return rebind_saved_result_originals(retained, schema, scan, read)
+    return rebind_saved_result_originals(
+      retained,
+      schema,
+      scan,
+      read,
+      census_ticket=if same_reader_census { current.physical } else { 0 },
+      census_current=physical_journal_current_operation,
+    )
   }
   match
     observe_submission_lookup(
@@ -517,6 +525,8 @@ fn rebind_saved_result_originals(
   schema : Int,
   scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  census_ticket? : Int = 0,
+  census_current? : (Int) -> Int64 = _ => -41L,
 ) -> Result[Unit, Int] {
   if schema != 0 && schema != 1 {
     return Err(-41)
@@ -532,25 +542,38 @@ fn rebind_saved_result_originals(
     Ok(None) => return Err(-32)
     Ok(Some(_)) => ()
   }
-  match
-    @host.inspect_client_cancellation_journal_inventory_with_run_identity(
-      1024,
-      scan,
-      read,
-      (row, request, definition) => {
-        submission_run_row_original_with_identity(
-          row,
-          Some((request, definition)),
-        ).map(record => {
-          request: record.request,
-          definition: record.definition,
-          cancellation_requested: record.cancellation_requested,
-        })
-      },
-      -31,
-    ) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
+  // The caller has already completed the full census in this exact export.
+  // Only the original physical Owner can prove uninterrupted readership.
+  let same = if census_ticket > 0 {
+    match census_current(-census_ticket) {
+      0L => false
+      1L => true
+      _ => return Err(-41)
+    }
+  } else {
+    false
+  }
+  if !same {
+    match
+      @host.inspect_client_cancellation_journal_inventory_with_run_identity(
+        1024,
+        scan,
+        read,
+        (row, request, definition) => {
+          submission_run_row_original_with_identity(
+            row,
+            Some((request, definition)),
+          ).map(record => {
+            request: record.request,
+            definition: record.definition,
+            cancellation_requested: record.cancellation_requested,
+          })
+        },
+        -31,
+      ) {
+      Err(code) => return Err(code)
+      Ok(_) => ()
+    }
   }
   for (table, key, revision, body) in retained.fences {
     match read(table, key) {
@@ -569,6 +592,7 @@ fn validate_saved_result_read(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+  same_reader_census? : Bool = false,
 ) -> Result[Unit, Int] {
   guard record.saved_result is Some(retained) &&
     retained.advances_remaining == 0 &&
@@ -583,6 +607,7 @@ fn validate_saved_result_read(
       configuration,
       retained,
       incremental=record.kind == INCREMENTAL_SAVED_RESULT_KIND,
+      same_reader_census~,
     ) {
     Err(code) => return Err(code)
     Ok(_) => ()

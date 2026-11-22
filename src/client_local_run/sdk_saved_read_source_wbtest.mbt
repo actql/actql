@@ -479,7 +479,27 @@ test "saved SDK source reaches existing payload codecs and terminal observation"
       16,
       256,
     )
-    is Err(_),
+    is Err(Stored(_)),
+  )
+  assert_true(
+    encoding.stored_payload_ordinals(
+      fixture.owner,
+      fixture.view,
+      "answer",
+      17,
+      256,
+    )
+    is Err(InvalidLimit),
+  )
+  assert_true(
+    encoding.stored_payload_ordinals(
+      fixture.owner,
+      fixture.view,
+      "answer",
+      16,
+      1,
+    )
+    is Err(InvalidLimit),
   )
   assert_eq(encoding.feed(b"[{\"n\":1}]", true), Ok(b"{\"n\":1}\n"))
   assert_eq(encoding.confirm_chunk(), Ok(8L))

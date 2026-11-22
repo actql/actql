@@ -67,6 +67,152 @@ class ReadOnlySpanTests(unittest.TestCase):
                 self.assertIs(outer.exception, failures[0])
                 self.assertFalse(store._connection.in_transaction)
 
+    def test_same_size_cancellation_change_invalidates_original_reader(self):
+        store, fences = self.fixture()
+        key = store.namespaced_key('client_cancellations', 'original')
+        store.compare_exchange(key, None, b'initial')
+        failures = []
+
+        def consume(reader):
+            reader.check_unchanged(reader)
+            store._connection.execute('UPDATE core_bytes SET payload = ? WHERE key = ?',
+                                      (b'revised', key))
+            changed = store._connection.execute(
+                'SELECT generation, payload FROM core_bytes WHERE key = ?', (key,)
+            ).fetchone()
+            self.assertEqual(changed, (0, b'revised'))
+            with self.assertRaises(LocalStorageError) as raised:
+                reader.check_unchanged(reader)
+            failures.append(raised.exception)
+
+        with self.assertRaises(LocalStorageError) as outer:
+            self.inspect(store, fences, consume)
+        self.assertIs(outer.exception, failures[0])
+        self.assertFalse(store._connection.in_transaction)
+        self.assertEqual(store.read(key).payload, b'initial')
+
+    def test_other_connection_replacement_is_visible_only_to_a_fresh_reader(self):
+        store, fences = self.fixture()
+        originals = (
+            ('client_cancellations', b'cancel-a', b'cancel-b'),
+            ('client_cancel_originals', b'hash-a', b'hash-b'),
+            ('client_runs', b'run-a', b'run-b'),
+        )
+        for namespace, earlier, later in originals:
+            self.assertEqual(len(earlier), len(later))
+            store.compare_exchange(store.namespaced_key(namespace, 'original'), None, earlier)
+
+        writer = sqlite3.connect(store._physical_path, timeout=0, isolation_level=None)
+        self.addCleanup(writer.close)
+        self.assertEqual(writer.execute('PRAGMA journal_mode').fetchone(), ('delete',))
+        local_changes = store._connection.total_changes
+        held = []
+
+        def stage_replacements():
+            writer.execute('BEGIN IMMEDIATE')
+            for namespace, _, later in originals:
+                cursor = writer.execute('UPDATE core_bytes SET payload = ? WHERE key = ?',
+                                        (later, store.namespaced_key(namespace, 'original')))
+                self.assertEqual(cursor.rowcount, 1)
+                cursor.close()
+
+        def verify(reader, *, changed):
+            for namespace, earlier, later in originals:
+                key, row = reader.query_current(reader, 1, namespace, 'original', current)
+                self.assertEqual((key, row.generation, row.payload),
+                                 ('original', 0, later if changed else earlier))
+
+        def current():
+            return None
+
+        def consume(reader):
+            held.append(reader)
+            verify(reader, changed=False)
+            stage_replacements()
+            try:
+                with self.assertRaises(sqlite3.OperationalError) as blocked:
+                    writer.commit()
+                self.assertEqual(blocked.exception.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+                reader.check_unchanged(reader)
+                verify(reader, changed=False)
+            finally:
+                writer.rollback()
+
+        self.inspect(store, fences, consume, current)
+        stage_replacements()
+        writer.commit()
+        self.assertEqual(store._connection.total_changes, local_changes)
+        with self.assertRaises(ValueError):
+            held[0].check_unchanged(held[0])
+        self.inspect(store, fences, lambda reader: verify(reader, changed=True), current)
+
+    def test_unchanged_transaction_does_not_authorize_a_revoked_current(self):
+        store, fences = self.fixture()
+        original = ValueError('Original current revoked')
+        revoked = False
+
+        def current():
+            if revoked:
+                raise original
+
+        def consume(reader):
+            nonlocal revoked
+            reader.check_unchanged(reader)
+            revoked = True
+            reader.check_unchanged(reader)
+            with self.assertRaises(ValueError) as refused:
+                reader.current()
+            self.assertIs(refused.exception, original)
+
+        with self.assertRaises(ValueError) as outer:
+            self.inspect(store, fences, consume, current)
+        self.assertIs(outer.exception, original)
+        self.assertFalse(store._connection.in_transaction)
+
+    def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader(self):
+        for schema, when in (('main', 'before'), ('temp', 'during')):
+            with self.subTest(schema=schema, when=when):
+                store, fences = self.fixture()
+                database, connection = store._physical, store._connection
+                original_snapshot = type(database)._snapshot_identity
+                failures = []
+
+                def consume(reader):
+                    baseline = original_snapshot(database)
+                    control = connection._transaction_epoch
+                    statements = connection._closed_statement_epoch
+                    cookie = baseline[3][0 if schema == 'main' else 1]
+
+                    def mutate():
+                        connection.execute(f'CREATE TABLE {schema}.replacement (value BLOB)')
+                        connection.execute(f'PRAGMA {schema}.schema_version = {cookie}')
+                        self.assertEqual(original_snapshot(database), baseline)
+                        self.assertEqual(connection._transaction_epoch, control)
+                        self.assertGreater(connection._closed_statement_epoch, statements)
+
+                    def observe(actual):
+                        self.assertIs(actual, database)
+                        mutate()
+                        return original_snapshot(actual)
+
+                    if when == 'before':
+                        mutate()
+                        with self.assertRaises(LocalStorageError) as refused:
+                            reader.check_unchanged(reader)
+                    else:
+                        with patch.object(type(database), '_snapshot_identity', observe):
+                            with self.assertRaises(LocalStorageError) as refused:
+                                reader.check_unchanged(reader)
+                    failures.append(refused.exception)
+                    with self.assertRaises(LocalStorageError) as repeated:
+                        reader.check_unchanged(reader)
+                    self.assertIs(repeated.exception, failures[0])
+
+                with self.assertRaises(LocalStorageError) as outer:
+                    self.inspect(store, fences, consume)
+                self.assertIs(outer.exception, failures[0])
+                self.assertFalse(connection.in_transaction)
+
     def test_transaction_replacement_and_supplier_replacement_are_rejected(self):
         for mutation in ('commit', 'restart', 'raw_commit', 'raw_rollback',
                          'adapter', 'connection', 'store_connection'):

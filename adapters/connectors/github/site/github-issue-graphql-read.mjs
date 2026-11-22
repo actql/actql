@@ -88,6 +88,10 @@ async function readGitHubRowsByNode({moon, repository,
     accept: moon[comments ? 'githubIssueCommentsReadAccept' : `github${family}PageReadAccept`],
     finish: moon[comments ? 'githubIssueCommentsReadPageJson' : `github${family}PageReadFinishJson`],
     close: moon[comments ? 'githubIssueCommentsReadClose' : `github${family}PageReadClose`],
+    ...(comments ? {} : {
+      cursorHistory: moon.githubGraphqlOuterCursorHistory,
+      recordCursor: moon.githubRecordGraphqlOuterCursor,
+    }),
   });
   if (!moon || Object.values(operations).some(value => typeof value !== 'function') ||
       typeof moon.githubGraphqlReadIssueJson !== 'function' ||
@@ -174,7 +178,6 @@ async function readGitHubRowsByNode({moon, repository,
   const responseHeaders = JSON.parse(invoke(moon.githubResponseHeadersJson,[]));
   const accepted = [];
   const rows = [];
-  const cursors = new Set();
   let after;
   let page = 1;
   let pending = true;
@@ -256,6 +259,7 @@ async function readGitHubRowsByNode({moon, repository,
     return {response, charge};
   };
   try {
+    const cursorHistory = comments ? undefined : invoke(operations.cursorHistory, []);
     if (comments) {
       const original = decoded(invoke(operations.begin,[repository.nodeId,
         repository.databaseId, repository.nameWithOwner, owned.maxBytes,
@@ -376,12 +380,9 @@ async function readGitHubRowsByNode({moon, repository,
         pending = false;
         break;
       }
-      // A cursor seen before (including the one just sent) never advances the
-      // read: the provider would return a page already accepted.
-      if (current.endCursor === after || cursors.has(current.endCursor)) {
+      if (!invoke(operations.recordCursor,[cursorHistory,current.endCursor])) {
         stopped('GitHubCursorCycle');
       }
-      cursors.add(current.endCursor);
       after = current.endCursor;
       page += 1;
       // An accepted page with no remaining quota is kept; the read stops

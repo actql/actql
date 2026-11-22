@@ -186,7 +186,13 @@ fn produce_sdk_read_field(
     return -5
   }
   let context = match
-    original_sdk_read_context(value, record, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      record,
+      run,
+      current_configuration,
+      same_reader_census=kind is Decision || kind is DeliveryStorage,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }

@@ -152,7 +152,13 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         with self._host._core._lock:
             if self._reading:
                 return False
+            saved_read = self._saved_read
             if not self._payload_closed:
+                # A trapped input export can still own the first output and
+                # its clock borrow. Start terminal retirement on the same Saved
+                # original before asking those children for their real closes.
+                if saved_read is not None and not saved_read._begin_terminal_cleanup():
+                    return False
                 if not self._reader.close():
                     return False
                 if not self._reader._storage.close_original_first(self._reader._request):
@@ -163,7 +169,6 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
             # The response has returned its actual child loans. Retire this
             # SAME Saved operation now, rather than retaining its area until
             # Client close and blocking the next independently admitted read.
-            saved_read = self._saved_read
             if saved_read is not None:
                 if not saved_read.close():
                     return False

@@ -23,7 +23,7 @@ import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
   '../../../site-node/remote-credential-signature.mjs';
-import {GITHUB_ISSUE_LIST_OPERATION, githubIssueListPath, readGitHubIssues}
+import {GITHUB_ISSUE_LIST_OPERATION, readGitHubIssues}
   from '../site/github-issue-read.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
@@ -97,13 +97,27 @@ const listing = (fixture, items, {query = {}, headers = () => ({})} = {}) => {
   }};
 };
 
-test('the listing path is built only from plain owner and repository names', () => {
-  assert.equal(githubIssueListPath('octo', 'hello.js'), '/repos/octo/hello.js/issues');
+test('the Catalog builds the first locator only from plain repository names and an admitted page size', () => {
+  assert.deepEqual(JSON.parse(moon.githubIssueListStartJson('octo', 'hello.js', 100)),
+    {first: {path: '/repos/octo/hello.js/issues', query: [['per_page', '100']], page: 1}});
   for (const [owner, repo] of [['octo', '..'], ['o/x', 'r'], ['octo', 'r?x'],
     ['', 'r'], ['octo', 'r%2F']]) {
-    assert.throws(() => githubIssueListPath(owner, repo),
-      {code: 'InvalidGitHubRepository'});
+    assert.deepEqual(JSON.parse(moon.githubIssueListStartJson(owner, repo, 2)),
+      {refused: 'InvalidRepository'});
   }
+  assert.deepEqual(JSON.parse(moon.githubIssueListStartJson('octo', 'hello', 101)),
+    {refused: 'InvalidPageSize'});
+});
+
+test('the first locator refuses repository, page-size and unknown filter before authorization', async t => {
+  const context = await setup(t);
+  await assert.rejects(context.read({owner: '..'}), {code: 'InvalidGitHubRepository'});
+  await assert.rejects(context.read({filters: [['per_page', '2']]}), {code: 'InvalidGitHubReadFilters'});
+  await assert.rejects(context.read({limits: {maxPages: 1, maxRows: 1, maxBytes: 1000,
+    maxNodes: 100, maxDepth: 8, maxLocatorUnits: 1024, perPage: 101}}),
+  {code: 'InvalidGitHubReadLimits'});
+  assert.deepEqual(context.decisions, []);
+  assert.deepEqual(context.fixture.seen(), []);
 });
 
 test('pages follow Link to completion, exclude pull requests and keep since',

@@ -20,22 +20,11 @@ const fail = (code, details = {}) => {
   throw Object.assign(new Error(code), {code, ...details});
 };
 const count = value => Number.isSafeInteger(value) && value > 0;
-const segment = /^[A-Za-z0-9._-]{1,100}$/u;
-
-// The Issue listing path of one repository, from its access owner/repo.
-export function githubIssueListPath(owner, repo) {
-  if (!segment.test(owner ?? '') || !segment.test(repo ?? '') ||
-      owner === '.' || owner === '..' || repo === '.' || repo === '..') {
-    fail('InvalidGitHubRepository');
-  }
-  return `/repos/${owner}/${repo}/issues`;
-}
-
 function checkLimits(limits) {
   if (!limits || !count(limits.maxPages) || !count(limits.maxRows) ||
       !count(limits.maxBytes) || !count(limits.maxNodes) ||
       !count(limits.maxDepth) || !count(limits.maxLocatorUnits) ||
-      !count(limits.perPage) || limits.perPage > 100) {
+      !count(limits.perPage) || limits.perPage > 2147483647) {
     fail('InvalidGitHubReadLimits');
   }
   return Object.freeze({...limits});
@@ -53,24 +42,28 @@ export async function readGitHubIssues({moon, origin, owner, repo,
   filters = [], credential, authorizationFor, limits, consumePage,
   callResource = callHttpsCredentialResource, signal}) {
   if (!moon || typeof moon.githubIssuePageJson !== 'function' ||
+      typeof moon.githubIssueListStartJson !== 'function' ||
+      typeof moon.githubIssueListFilterAllowed !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof origin !== 'string') {
     fail('InvalidGitHubRead');
   }
   const owned = checkLimits(limits);
-  const path = githubIssueListPath(owner, repo);
-  const allowed = new Set(['state', 'since', 'labels', 'sort', 'direction']);
+  const start = JSON.parse(moon.githubIssueListStartJson(
+    typeof owner === 'string' ? owner : '', typeof repo === 'string' ? repo : '', owned.perPage));
+  if (start.refused === 'InvalidRepository') fail('InvalidGitHubRepository');
+  if (start.refused === 'InvalidPageSize') fail('InvalidGitHubReadLimits');
   if (!Array.isArray(filters) || filters.some(pair => !Array.isArray(pair) ||
-      pair.length !== 2 || !allowed.has(pair[0]) ||
-      typeof pair[1] !== 'string')) {
+      pair.length !== 2 || typeof pair[0] !== 'string' ||
+      !moon.githubIssueListFilterAllowed(pair[0]) || typeof pair[1] !== 'string')) {
     fail('InvalidGitHubReadFilters');
   }
+  const {path, query, page} = start.first;
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
   const accepted = [];
   const rows = [];
-  let next = {path, query: [...filters, ['per_page', String(owned.perPage)]],
-    page: 1};
+  let next = {path, query: [...filters, ...query], page};
   const stopped = (code, details) => fail(code, {stopped: true,
     acceptedPages: Object.freeze([...accepted]),
     unfetched: next === undefined ? undefined

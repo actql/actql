@@ -94022,7 +94022,7 @@
     },
     {
       "module": "src/connectors/github/host_node/read_construction.mbt",
-      "sha256": "35be1420b64225932796c068304aa70e8e89caa3778c13ab3494064a6b41cdf8",
+      "sha256": "d251edbe174bd370eba400a249d800e77248d1c93f55442d737b523302b4eca2",
       "exports": [],
       "operations": [
         {
@@ -94139,6 +94139,10 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub Source grows the original prefix for each equal-sized response before decode'"
+              },
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source quotes outer cursor history and bounded failure aliases\""
               }
             ]
           }
