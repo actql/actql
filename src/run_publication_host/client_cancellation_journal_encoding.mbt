@@ -13,8 +13,8 @@ pub(all) struct ClientCancellationJournalEncoding {
 }
 
 ///|
-fn cancellation_journal_cursor(wire : String) -> @decode.Cursor? {
-  @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+fn cancellation_journal_cursor(body : Bytes) -> @decode.Cursor? {
+  @source.parse_json_bytes_preserving(body, {
     max_input_bytes: 262144,
     max_nodes: 4096,
     max_depth: 64,
@@ -122,8 +122,7 @@ pub fn decode_client_cancellation_journal_row(
   if row.revision != 0L {
     return Err(CustodyLost)
   }
-  let wire = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
-  guard cancellation_journal_cursor(wire) is Some(cursor) &&
+  guard cancellation_journal_cursor(row.body) is Some(cursor) &&
     @decode.closed_object(cursor, [
       "action", "cancel_id", "expected_revision", "intent_cid", "namespace_id", "observed_revision",
       "request", "run_definition", "version",

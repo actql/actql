@@ -146,11 +146,20 @@ test "shared cancellation codec refuses a false intent CID and noncanonical orig
       is Err(CustodyLost),
     )
   }
+  let original_bytes = @utf8.encode(cancellation_journal_fixture)
+  for body in [b"\xef\xbb\xbf" + original_bytes, original_bytes + b"\xff"] {
+    assert_true(
+      decode_client_cancellation_journal_row(
+        inventory_row(cancellation_journal_key_fixture, body),
+      )
+      is Err(CustodyLost),
+    )
+  }
   assert_true(
     decode_client_cancellation_journal_row(
       inventory_row(
         cancellation_journal_key_fixture,
-        @utf8.encode(cancellation_journal_fixture),
+        original_bytes,
         revision=1L,
       ),
     )

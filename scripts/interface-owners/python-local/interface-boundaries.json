@@ -91905,12 +91905,12 @@
           }
         }
       ],
-      "sha256": "36b0dc367ce3562de7e21cda25b7da94ab02d8a9fd4623eb577e868d46134e5f",
+      "sha256": "abf1b47a74026e8d1f28ac98b1cec5fb670882c7b4ba30735b43cd082d05730a",
       "exports": [],
       "operations": [
         {
           "name": "cancellation_journal_cursor",
-          "declaration": "cancellation_journal_cursor ( wire : String ) - > @ decode . Cursor ?"
+          "declaration": "cancellation_journal_cursor ( body : Bytes ) - > @ decode . Cursor ?"
         },
         {
           "name": "cancellation_journal_text",
