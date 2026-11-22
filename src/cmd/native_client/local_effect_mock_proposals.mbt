@@ -159,6 +159,34 @@ fn native_mock_effect_proposal_member(
 }
 
 ///|
+// Only the single-member, field-only Model path meters all of its proposal
+// rows and returns its own export and Manifest under the original capture.
+fn LocalNativeMockEffectProposals::uses_measured_model_proposal(
+  self : Self,
+) -> Bool {
+  guard self.measured_model_capture &&
+    @strategy.captured_effect_inputs_count(self.inputs) == 1 &&
+    self.members.get(0) is Some(entry) &&
+    @strategy.captured_effect_proposal_plan_field_only_count(entry.plan)
+    is Some(_) else {
+    return false
+  }
+  // Extra Unit Results with no checked row count still use the fixed export
+  // workspace. Keep the old allowance when any local result needs that route.
+  for index in 0..<@strategy.captured_effect_local_result_count(self.inputs) {
+    guard @strategy.captured_effect_local_result_at(self.inputs, index)
+      is Some(result) &&
+      @strategy.captured_any_result_borrow_row_count(
+        @strategy.captured_effect_local_result_borrow(result),
+      )
+      is Some(_) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
   self : LocalCommandBusinessPreparation,
   retention : @publication.PublicationContract,
@@ -421,9 +449,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           acquired,
         )
 
-        // The subsequent proposal still needs its original unmetered fixed
-        // allowance. Do not use that allowance for the measured Model evidence.
-        if measured {
+        // This proposal path has its own export, row, dependency and Manifest
+        // quotes below. Keep the measured Model originals on this operation;
+        // its Preview and recovery envelope is used when Preview begins.
+        if measured && !held.uses_measured_model_proposal() {
           let capture = state._retained_import_recipes[1].copy()
           capture[1] = @execution.execution_capacity(0L, 0L).unwrap()
           if !construction.finish(self.original, capture) {

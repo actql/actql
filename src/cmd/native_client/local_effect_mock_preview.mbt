@@ -189,15 +189,21 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let construction = proposals.construction.unwrap_or_else(() => {
     stop("LocalOriginalEffectPreviewUnavailable")
   })
+  let recipe = if proposals.uses_measured_model_proposal() {
+    let preview = state._retained_import_recipes[1].copy()
+    // The measured proposal already holds its actual retained row pairs.
+    preview[1] = @execution.execution_capacity(0L, 0L).unwrap()
+    preview
+  } else {
+    construction.recipe
+  }
   if !construction
-    .resize_result(
-      construction.recipe,
-      construction.retained,
-      construction.workspace,
-    )
-    .retain_mock_effect_proposal_issue(report) {
+    .resize_result(recipe, construction.retained, construction.workspace)
+    .retain_mock_effect_proposal_issue(report)
+  {
     stop("LocalOriginalEffectPreviewUnavailable")
   }
+  construction.recipe = recipe
   let policy = @run_host.client_standard_effect_computation_limits()
   let codec = policy.program.checking.compilation.artifacts
   let max_nodes = policy.effects.max_admission_nodes
