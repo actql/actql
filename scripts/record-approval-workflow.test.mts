@@ -3,6 +3,7 @@
 // Neither establishes actual Host authentication, Run/Unknown or ordinary acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink, symlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
@@ -17,6 +18,7 @@ import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
   sharedRecordUpdateSelections, recordUpdateFixtureState, recordUpdateReplyLossFaults} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectation} from './fixtures/record-approval/workflow.mjs';
 import {readAuthoredCase, runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
+import type {ConnectorPhaseOptions} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
 import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed.fixture.mjs';
@@ -30,8 +32,46 @@ import {runHubSpotApprovalPhase} from './fixtures/hubspot-approval/workflow.mjs'
 import {mockProjectFiles as kintoneMock,
   mockProjectFilesFromSeed as kintoneMockFromSeed} from './fixtures/kintone-approval/mock-project.mjs';
 import {runKintoneApprovalPhase} from './fixtures/kintone-approval/workflow.mjs';
+import type {RecordApprovalSeed} from './fixtures/record-approval/cases.mjs';
+import type {Exchange} from '../adapters/site-node/https-exchange-fixture.mjs';
 
-const cid = mark => 'sha256:' + mark.repeat(64);
+type Connector = 'salesforce' | 'hubspot' | 'kintone';
+type AuthoredCase = Awaited<ReturnType<typeof readAuthoredCase>>;
+type DoubleState = {status: string; run_id?: string; checkpoint?: {id?: string; checkpoint_cid: string};
+  terminal_error?: {code: string; message: string}};
+type DoubleRef = {authorityScopeCid: string; original: string; runDefinitionCid?: string};
+type CloseObservation = {stage: string; primary?: {code: string}; primaryPresent: boolean;
+  firstClose: {attempted: boolean; returned: boolean; state: string}};
+// These test doubles deliberately expose only the observed SDK calls and may
+// return incomplete or invalid wire data. The real exports keep their types.
+type OriginalPhase = Parameters<typeof runRecordUpdateApprovalPhase>[0];
+type TestPhase = Omit<OriginalPhase, 'client' | 'load' | 'save' | 'observeClose' | 'approve' | 'reject'> & {
+  client: object; load?: OriginalPhase['load']; save?: OriginalPhase['save'];
+  observeClose?: (value: CloseObservation) => unknown;
+  approve?: (client: object, captured: {ref: unknown}) => unknown;
+  reject?: (client: object, captured: {ref: unknown}) => unknown;
+};
+type TestPhaseRunner = (options: TestPhase) => Promise<void>;
+type OriginalCommand = Parameters<typeof runRecordApprovalCommand>[0];
+type TestCommandPhase = Omit<ConnectorPhaseOptions<typeof selection>, 'client' | 'approve' | 'reject' | 'save'> & {
+  client: object;
+  approve?: (client: object, captured: object) => unknown;
+  reject?: (client: object, captured: object) => unknown;
+  save: (name: string, value: Record<string, unknown>) => Promise<unknown>;
+};
+type ProviderFields = Partial<RecordApprovalSeed & typeof selection>;
+type HubSpotResult = {status: string; results: {id: string; properties: {name: string}}[]};
+type HubSpotWrite = {inputs: {id: string; objectWriteTraceId: string;
+  properties: {name: string | null; actql_request_id?: string}; extra?: string}[]};
+type KintoneRecord = Record<string, {value: unknown}>;
+type KintoneWrite = {app: string; records: {id: string; revision?: string; record: KintoneRecord}[]; upsert: boolean};
+type TestCommandOptions = Omit<OriginalCommand, 'argv' | 'runPhase' | 'connect' | 'createDefinition'> & {
+  argv: string[]; runPhase: (options: TestCommandPhase) => unknown; connect: (options: unknown) => Promise<unknown>;
+  createDefinition: (programs: {read: string; update: string}, selected: typeof selection) => AuthoredCase;
+};
+type TestCommandRunner = (options: TestCommandOptions) => Promise<void>;
+
+const cid = (mark: string) => 'sha256:' + mark.repeat(64);
 const selection = {recordId: 'record-1', previousName: 'before', nextName: 'after'};
 
 test('record approval descriptor scope includes root, descendants and deleted originals, not siblings', () => {
@@ -57,14 +97,14 @@ test('record approval descriptor observer sees actual open root and child then t
     await directory?.close(); await child?.close(); await rm(root, {recursive: true});
   }
 });
-async function definition(connector) {
+async function definition(connector: Connector): Promise<AuthoredCase> {
   const files = await Promise.all(['update.aql', 'read.aql'].map(name =>
     readFile(new URL(`./fixtures/${connector}-approval/${name}`, import.meta.url), 'utf8')));
   return ({salesforce: salesforceUpdateCase, hubspot: hubspotUpdateCase, kintone: kintoneUpdateCase}[connector])(
     {update: files[0], read: files[1]}, selection);
 }
-function publicDouble(value) {
-  const events = [], saved = new Map(), ref = {authorityScopeCid: cid('a'), original: 'effect'};
+function publicDouble(value: AuthoredCase) {
+  const events: string[] = [], saved = new Map(), ref: DoubleRef = {authorityScopeCid: cid('a'), original: 'effect'};
   const summary = {reviewProjectionCid: cid('b'), requiredArtifact: {cid: cid('c')},
     requirements: [{original: 'claim'}], checkpointCid: cid('d')};
   const checkpoint = {id: 'checkpoint', checkpoint_cid: cid('d')};
@@ -78,21 +118,22 @@ function publicDouble(value) {
       intended_changes: {state: 'present', value: {...value.review.changes}},
       after: {state: 'present', value: {...value.review.changes}}}]};
   let approved = false, number = 0;
-  const effect = {ref, async wait() {
+  const effect = {ref, async wait(): Promise<DoubleState> {
     events.push('effect:wait');return approved ? {status: 'succeeded', run_id: 'same-run'}
       : {status: 'waiting_checkpoint', run_id: 'same-run', checkpoint};
-  }, async status() {
+  }, async status(): Promise<DoubleState> {
     events.push('effect:status');return approved ? {status: 'succeeded', run_id: 'same-run'}
       : {status: 'waiting_checkpoint', run_id: 'same-run', checkpoint};
-  }, result(name) {
+  }, result(name: string) {
     if (name !== value.effect.resultName) {
       assert(Object.hasOwn(value.effect.additionalResults ?? {}, name));
       events.push('effect:result:' + name);
-      return {async all() {events.push('effect:rows:' + name);return structuredClone(value.effect.additionalResults[name]);}};
+      return {async all() {events.push('effect:rows:' + name);return structuredClone(value.effect.additionalResults![name]);}};
     }
     events.push('effect:result');
     return {async all() {events.push('effect:rows');return structuredClone(value.effect.expectedRows);}};}};
-  const client = {async startSource(document, options) {
+  const client = {async startSource(document: string, options: {stopBefore?: string; parameters?: unknown;
+    format?: string; parameterDeclarations?: unknown}) {
     if (document === value.effect.document) {
       events.push('submit:effect');assert.equal(options.stopBefore, 'commit');
       assert.deepEqual(options.parameters, value.effect.parameters);return effect;
@@ -100,21 +141,29 @@ function publicDouble(value) {
     assert.equal(document, value.read.document);events.push('submit:read');number++;
     assert.deepEqual(options.parameters, value.read.parameters);
     return {ref: {original: 'read-' + number}, async wait() {events.push('read:wait');return {status: 'succeeded'};},
-      result(name) {assert.equal(name, value.read.resultName);return {async all() {
+      result(name: string) {assert.equal(name, value.read.resultName);return {async all() {
         events.push('read:rows');return structuredClone(approved ? value.read.afterRows : value.read.beforeRows);
       }};}};
-  }, async checkpoints(actual) {assert.deepEqual(actual, {checkpointId: 'checkpoint'});return {items: [summary]};},
-  async reviewCheckpoint(actual) {assert.deepEqual(actual, summary);events.push('review');return {bytes: Buffer.from(JSON.stringify(body))};},
-  async attach(actual) {assert.deepEqual(actual, ref);events.push('attach');return effect;},
-  async close() {events.push('close');}};
+  }, async checkpoints(actual: unknown) {assert.deepEqual(actual, {checkpointId: 'checkpoint'});return {items: [summary]};},
+  async reviewCheckpoint(actual: unknown) {assert.deepEqual(actual, summary);events.push('review');return {bytes: Buffer.from(JSON.stringify(body))};},
+  async attach(actual: unknown) {assert.deepEqual(actual, ref);events.push('attach');return effect;},
+  async close() {events.push('close');}} as {
+    startSource: (document: string, options: {stopBefore?: string; parameters?: unknown;
+      format?: string; parameterDeclarations?: unknown}) => Promise<object>;
+    checkpoints: (actual: unknown) => Promise<{items: typeof summary[]}>;
+    reviewCheckpoint: (actual: unknown) => Promise<{bytes: Buffer}>;
+    attach: (actual: unknown) => Promise<typeof effect>;
+    close: () => Promise<void>;
+    approve?: (checkpointId: string) => unknown;
+  };
   return {client, events, saved, body, effect,
-    async load(name) {events.push('load:' + name);assert(saved.has(name));return structuredClone(saved.get(name));},
-    async save(name, data) {events.push('save:' + name);assert(!saved.has(name));saved.set(name, structuredClone(data));},
-    async approve(actual, captured) {assert.strictEqual(actual, client);assert.deepEqual(captured.ref, ref);
+    async load(name: string) {events.push('load:' + name);assert(saved.has(name));return structuredClone(saved.get(name));},
+    async save(name: string, data: unknown) {events.push('save:' + name);assert(!saved.has(name));saved.set(name, structuredClone(data));},
+    async approve(actual: unknown, captured: {ref: unknown}) {assert.strictEqual(actual, client);assert.deepEqual(captured.ref, ref);
       events.push('approve');approved = true;return {results: [{status: 'committed'}]};}};
 }
-async function phase(which, value, f, changes = {}) {
-  return runRecordUpdateApprovalPhase({phase: which, definition: value, ...f, ...changes});
+async function phase(which: string, value: AuthoredCase, f: ReturnType<typeof publicDouble>, changes: object = {}) {
+  return (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: which, definition: value, ...f, ...changes});
 }
 
 test('record rejection resolves the same signed Checkpoint and cold lookup only reads cancelled state', async () => {
@@ -138,7 +187,8 @@ test('record rejection resolves the same signed Checkpoint and cold lookup only 
   original.effect.wait = async () => {original.events.push('effect:wait');return resolved;};
   original.effect.result = () => assert.fail('A rejected update must not read a Result');
   let cursor = original.events.length;
-  await phase('reject', value, original, {decision, async reject(client, captured) {
+  await phase('reject', value, original, {decision, async reject(client: unknown,
+    captured: {checkpointId: string; summary: {checkpointCid: string}}) {
     rejectionCalls++;
     assert.equal(client, original.client);
     assert.equal(captured.checkpointId, 'checkpoint');
@@ -166,11 +216,11 @@ test('record wrapper persists original primary before pending first close and ne
   for (const diagnosticFails of [false, true]) for (const closeFails of [false, true]) {
     const primary = Object.assign(new Error('OriginalCaseRefusal'), {code: 'OriginalCaseRefusal'});
     const cleanup = Object.assign(new Error('OriginalClosePending'), {code: 'ClientCleanupPending'});
-    const observations = [];
-    let release, entered, closes = 0;
-    const waiting = new Promise(resolve => {release = resolve;});
-    const started = new Promise(resolve => {entered = resolve;});
-    const result = runRecordUpdateApprovalPhase({phase: 'capture', createDefinition() {throw primary;},
+    const observations: CloseObservation[] = [];
+    let release: () => void, entered: () => void, closes = 0;
+    const waiting = new Promise<void>(resolve => {release = resolve;});
+    const started = new Promise<void>(resolve => {entered = resolve;});
+    const result = (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: 'capture', createDefinition() {throw primary;},
       client: {async close() {closes++;entered();await waiting;if (closeFails) throw cleanup;}},
       async observeClose(value) {
         observations.push(structuredClone(value));
@@ -178,13 +228,14 @@ test('record wrapper persists original primary before pending first close and ne
       }});
     const rejected = assert.rejects(result, error => {
       if (!closeFails) return error === primary;
-      assert.strictEqual(error.cause, primary); assert.deepEqual(error.errors, [primary, cleanup]);return true;
+      assert.strictEqual((error as AggregateError).cause, primary);
+      assert.deepEqual((error as AggregateError).errors, [primary, cleanup]);return true;
     });
     await started;
     assert.equal(observations.length, 1); assert.equal(observations[0].stage, 'started');
-    assert.equal(observations[0].primary.code, primary.code); assert.equal(observations[0].primaryPresent, true);
+    assert.equal(observations[0].primary!.code, primary.code); assert.equal(observations[0].primaryPresent, true);
     assert.deepEqual(observations[0].firstClose, {attempted: true, returned: false, state: 'pending'});
-    release(); await rejected;
+    release!(); await rejected;
     assert.equal(closes, 1); assert.equal(observations[1].stage, closeFails ? 'threw' : 'returned');
     assert.equal(observations[1].firstClose.returned, !closeFails);
   }
@@ -213,18 +264,18 @@ test('shared command reopens the same externally authored Program, parameters an
   value.fixture = {schema, seed: {recordId: selection.recordId, previousName: selection.previousName,
     controlId: control.id, controlName: control.name}, expected: {
     before: {target: {id: selection.recordId, name: selection.previousName}, control},
-    after: {target: {id: selection.recordId, name: value.effect.parameters.next_name}, control: {...control}},
+    after: {target: {id: selection.recordId, name: value.effect.parameters.next_name as string}, control: {...control}},
   }};
   const f = await commandFixture(t, 'kintone', {casePath: 'case.json', connect: {mode: 'local'}});
   const path = join(f.root, 'case.json'), original = JSON.stringify(value);
   await writeFile(path, original);
   f.options.programDirectory = pathToFileURL(join(f.root, 'absent') + '/');
   f.options.createDefinition = () => assert.fail('Authored input must not construct a default case');
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
   f.options.fixtureSourceSchema = {...schema, carrierSchemaContractCid: cid('c')};
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
   f.options.fixtureSourceSchema = schema;
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
   assert.deepEqual(f.events, []);
 
@@ -241,25 +292,25 @@ test('shared command reopens the same externally authored Program, parameters an
     return sdk.approve(sdk.client, {ref: sdk.effect.ref});
   };
   f.options.connect = async () => sdk.client;
-  f.options.runPhase = runKintoneApprovalPhase;
+  f.options.runPhase = runKintoneApprovalPhase as unknown as TestCommandOptions['runPhase'];
   f.options.argv[0] = 'capture';
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.equal(JSON.parse(await readFile(f.options.argv[2] + '.captured.json', 'utf8')).binding.caseName, value.name);
   f.options.argv[0] = 'approve';
-  for (const mutate of [changed => {changed.effect.expectedRows[0].next_name = 'Wrong independent oracle';},
-    changed => {changed.fixture.expected.after.control.name = 'Wrong control oracle';}]) {
+  for (const mutate of [(changed: AuthoredCase) => {changed.effect.expectedRows[0].next_name = 'Wrong independent oracle';},
+    (changed: AuthoredCase) => {(changed.fixture!.expected.after.control as {name: string}).name = 'Wrong control oracle';}]) {
     const changed = structuredClone(value);
     mutate(changed);
     await writeFile(path, JSON.stringify(changed));
     const cursor = sdk.events.length;
-    await assert.rejects(runRecordApprovalCommand(f.options), /Reopen the same Program/u);
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), /Reopen the same Program/u);
     assert.deepEqual(sdk.events.slice(cursor), ['close']);
   }
   await writeFile(path, original);
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   const cursor = sdk.events.length;
   f.options.argv[0] = 'recover';
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   const recovered = sdk.events.slice(cursor);
   assert.deepEqual(recovered, ['attach', 'effect:result', 'effect:rows', 'effect:status', 'close']);
   assert.equal(sdk.events.filter(event => event === 'approve').length, 1);
@@ -279,7 +330,7 @@ test('authored schema pins compare each original provider schema reference indep
 });
 
 test('the standard HubSpot and kintone case files keep the original Programs and independent oracles', async () => {
-  for (const [connector, build] of [['hubspot', hubspotUpdateCase], ['kintone', kintoneUpdateCase]]) {
+  for (const [connector, build] of [['hubspot', hubspotUpdateCase], ['kintone', kintoneUpdateCase]] as const) {
     const directory = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
     const authored = await readAuthoredCase(fileURLToPath(new URL('case.json', directory)));
     const selected = sharedRecordUpdateSelections[connector];
@@ -287,10 +338,10 @@ test('the standard HubSpot and kintone case files keep the original Programs and
     const read = await readFile(new URL('read.aql', directory), 'utf8');
     const {fixture, ...original} = authored;
     assert.deepEqual(original, build({update, read}, selected));
-    assert.deepEqual(fixture.expected, recordUpdateFixtureState(selected));
-    const {id: recordId, name: previousName} = fixture.expected.before.target;
-    const {id: controlId, name: controlName} = fixture.expected.before.control;
-    assert.deepEqual(fixture.seed, {recordId, previousName, controlId, controlName});
+    assert.deepEqual(fixture!.expected, recordUpdateFixtureState(selected));
+    const {id: recordId, name: previousName} = fixture!.expected.before.target;
+    const {id: controlId, name: controlName} = fixture!.expected.before.control;
+    assert.deepEqual(fixture!.seed, {recordId, previousName, controlId, controlName});
   }
 });
 
@@ -325,16 +376,16 @@ test('authored provider seed differs from the independent expected control befor
     after: {target: {id: seed.recordId, name: 'Expected after'}, control: wrongControl},
   };
   await writeFile(path, JSON.stringify({...value, fixture: {seed, expected}}));
-  let provider;
+  let provider: ReturnType<typeof kintoneApprovalProvider> | undefined;
   await assert.rejects(runInstalledRecordApprovalFixture(t, {casePath: path, createInstallation(actual) {
     assert.deepEqual(actual, seed);
     const fixture = kintoneApprovalInstallation(actual);
     provider = fixture.provider;
     return fixture;
   }}), /Independent provider control state/u);
-  assert.equal(provider.snapshot().control.name, seed.controlName);
-  assert.deepEqual(provider.snapshot().requests, []);
-  assert.equal(provider.snapshot().writes, 0);
+  assert.equal(provider!.snapshot().control.name, seed.controlName);
+  assert.deepEqual(provider!.snapshot().requests, []);
+  assert.equal(provider!.snapshot().writes, 0);
 });
 
 test('authored reply loss requires the exact installed fixture selection before connecting', async t => {
@@ -342,22 +393,22 @@ test('authored reply loss requires the exact installed fixture selection before 
   const selected = sharedRecordUpdateSelections.kintone;
   const seed = {recordId: selected.recordId, previousName: selected.previousName,
     controlId: selected.controlId, controlName: 'Untouched control'};
-  const expected = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
-  const fault = {kind: 'apply-then-lose-reply', expected};
+  const expected = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'} as const;
+  const fault = {kind: 'apply-then-lose-reply', expected} as const;
   value.fixture = {seed, expected: recordUpdateFixtureState(selected), faults: [fault]};
   const f = await commandFixture(t, 'kintone', {casePath: 'case.json', connect: {mode: 'local'}});
   const path = join(f.root, 'case.json');
   for (const faults of [[fault, fault], [{...fault, pathname: '/foreign'}],
     [{...fault, expected: {...expected, lookupStatus: 'retry'}}]]) {
     await writeFile(path, JSON.stringify({...value, fixture: {...value.fixture, faults}}));
-    await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
   }
   await writeFile(path, JSON.stringify(value));
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
   f.options.fixtureReplyLossExpectation = {...expected, lookupStatus: 'succeeded'};
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
   f.options.fixtureReplyLossExpectation = expected;
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
   assert.deepEqual(f.events, []);
   await assert.rejects(runInstalledRecordApprovalFixture(t, {casePath: path, createInstallation: kintoneApprovalInstallation,
@@ -371,17 +422,17 @@ test('shared command refuses incompatible authored case inputs before connecting
     JSON.stringify({...value, effect: {...value.effect, parameters: []}}),
     JSON.stringify({...value, read: {...value.read, afterRows: ['Invalid row']}}), Buffer.from([0xc0, 0xaf])]) {
     await writeFile(path, wire);
-    await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
   }
   await writeFile(path, 'x'.repeat(1024 * 1024 + 1));
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalCaseFile'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'InvalidRecordApprovalCaseFile'});
   await writeFile(f.path, JSON.stringify({...config, selection}));
-  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalCaseSelection'});
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {message: 'InvalidRecordApprovalCaseSelection'});
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, []);
 });
 
-for (const connector of ['salesforce', 'hubspot', 'kintone']) {
+for (const connector of ['salesforce', 'hubspot', 'kintone'] as const) {
   test(`shared ${connector} fixture preserves original reference, explicit approval and Saved-first order`, async () => {
     const value = await definition(connector), f = publicDouble(value);
     await phase('capture', value, f);
@@ -463,7 +514,7 @@ test('shared capture keeps a thrown first wait primary and never invents a retur
   assert.equal(f.events.at(-1), 'close');
 });
 
-for (const connector of ['hubspot', 'kintone']) {
+for (const connector of ['hubspot', 'kintone'] as const) {
   test(`shared ${connector} existing Unknown status cannot approve or resend the original update`, async () => {
     const value = await definition(connector), f = publicDouble(value);
     await phase('capture', value, f);
@@ -515,7 +566,7 @@ for (const connector of ['hubspot', 'kintone']) {
 for (const primary of [undefined, null, false, 0, '']) {
   test(`shared fixture preserves original falsy rejection ${String(primary)} through cleanup`, async () => {
     const value = await definition('salesforce');let closed = 0, rejected = false;
-    try {await runRecordUpdateApprovalPhase({phase: 'capture', definition: value,
+    try {await (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: 'capture', definition: value,
       client: {async startSource() {throw primary;}, async close() {closed++;}}});}
     catch (error) {rejected = true;assert.strictEqual(error, primary);}
     assert(rejected);assert.equal(closed, 1);
@@ -523,7 +574,7 @@ for (const primary of [undefined, null, false, 0, '']) {
 }
 test('shared fixture keeps original and cleanup failures separately even for undefined primary', async () => {
   const cleanup = new Error('original cleanup pending'), value = await definition('hubspot');
-  await assert.rejects(runRecordUpdateApprovalPhase({phase: 'capture', definition: value,
+  await assert.rejects((runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: 'capture', definition: value,
     client: {async startSource() {throw undefined;}, async close() {throw cleanup;}}}), error => {
       assert(error instanceof AggregateError);assert.deepEqual(error.errors, [undefined, cleanup]);
       assert(Object.hasOwn(error, 'cause'));assert.equal(error.cause, undefined);return true;
@@ -534,7 +585,7 @@ for (const [connector, builder, resource, idField, valueField] of [
   ['salesforce', salesforceMock, 'Account', 'Id', 'Name'],
   ['hubspot', hubspotMock, 'companies', 'id', 'name'],
   ['kintone', kintoneMock, 'inquiries', '$id', 'Subject'],
-]) test(`shared ${connector} mock supplies explicit unchanged Program aliases and required approval`, () => {
+] as const) test(`shared ${connector} mock supplies explicit unchanged Program aliases and required approval`, () => {
   const files = builder(selection), catalog = JSON.parse(files['mock/catalog.json']).connections[connector];
   assert.equal(catalog.writes[0].approval, 'required');
   assert.deepEqual(catalog.writes[0].writable_fields, [valueField]);
@@ -547,13 +598,13 @@ for (const [connector, builder, resource, idField, valueField] of [
 for (const [connector, runPhase] of [
   ['salesforce', runSalesforceApprovalPhase], ['hubspot', runHubSpotApprovalPhase],
   ['kintone', runKintoneApprovalPhase],
-]) {
+] as const) {
   for (const [name, invalid] of [
     ['missing record', {...selection, recordId: undefined}],
     ['unchanged values', {...selection, nextName: selection.previousName}],
   ]) test(`shared ${connector} case ${name} closes its connected Client without submission`, async () => {
     const value = await definition(connector), f = publicDouble(value);
-    await assert.rejects(runPhase({phase: 'capture', ...f, selection: invalid,
+    await assert.rejects((runPhase as unknown as (input: object) => Promise<void>)({phase: 'capture', ...f, selection: invalid,
       programs: {update: value.effect.document, read: value.read.document}}), TypeError);
     assert.deepEqual(f.events, ['close']);
     assert.equal(f.saved.size, 0);
@@ -562,7 +613,7 @@ for (const [connector, runPhase] of [
   test(`shared ${connector} invalid case retains primary and cleanup failure separately`, async () => {
     const cleanup = new Error('Original close pending');
     let closes = 0;
-    await assert.rejects(runPhase({phase: 'capture', selection: {}, programs: {},
+    await assert.rejects((runPhase as unknown as (input: object) => Promise<void>)({phase: 'capture', selection: {}, programs: {},
       client: {async close() {closes++; throw cleanup;}}}), error => {
       assert(error instanceof AggregateError);
       assert(error.errors[0] instanceof TypeError);
@@ -626,7 +677,7 @@ for (const [connector, runPhase] of [
 
 test('shared case construction preserves an undefined primary through failing close', async () => {
   const cleanup = new Error('Original close still pending');
-  await assert.rejects(runRecordUpdateApprovalPhase({phase: 'capture',
+  await assert.rejects((runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: 'capture',
     createDefinition() {throw undefined;}, client: {async close() {throw cleanup;}}}), error => {
     assert(error instanceof AggregateError);
     assert.deepEqual(error.errors, [undefined, cleanup]);
@@ -639,7 +690,7 @@ test('shared case construction preserves an undefined primary through failing cl
 test('kintone fixture retains a system record id above the exact Number range', async () => {
   const selected = {...selection, recordId: '9007199254740993'};
   const programs = Object.fromEntries(await Promise.all(['update', 'read'].map(async name =>
-    [name, await readFile(new URL(`./fixtures/kintone-approval/${name}.aql`, import.meta.url), 'utf8')])));
+    [name, await readFile(new URL(`./fixtures/kintone-approval/${name}.aql`, import.meta.url), 'utf8')]))) as {update: string; read: string};
   const value = kintoneUpdateCase(programs, selected);
   assert.equal(value.effect.parameters.record_id, '9007199254740993');
   assert.equal(value.effect.expectedRows[0].id, '9007199254740993');
@@ -648,22 +699,22 @@ test('kintone fixture retains a system record id above the exact Number range', 
   assert.equal(JSON.parse(files['mock/data.json']).kintone.inquiries.rows[0].$id, '9007199254740993');
 });
 
-async function commandFixture(t, connector, configuration = {selection, connect: {mode: 'local'}}) {
+async function commandFixture(t: TestContext, connector: Connector, configuration: unknown = {selection, connect: {mode: 'local'}}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-approval-command-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const path = join(root, 'consumer.json');
   await writeFile(path, JSON.stringify(configuration), {mode: 0o600});
-  const log = [], events = [];
+  const log: unknown[] = [], events: string[] = [];
   return {root, path, log, events,
     options: {argv: ['check', path, join(root, 'receipt')],
       programDirectory: new URL(`./fixtures/${connector}-approval/`, import.meta.url),
       createDefinition: {salesforce: salesforceUpdateCase, hubspot: hubspotUpdateCase,
         kintone: kintoneUpdateCase}[connector],
       connect: async () => {events.push('connect'); throw new Error('Unexpected connection');},
-      runPhase: async () => {throw new Error('Unexpected workflow');}, log: value => log.push(value)}};
+      runPhase: async () => {throw new Error('Unexpected workflow');}, log: (value: unknown) => log.push(value)} as TestCommandOptions};
 }
 
-async function retainedCommandFixture(t) {
+async function retainedCommandFixture(t: TestContext) {
   const command = await commandFixture(t, 'hubspot'), value = await definition('hubspot');
   const sdk = publicDouble(value), directory = join(command.root, 'programs');
   await mkdir(directory);
@@ -674,7 +725,7 @@ async function retainedCommandFixture(t) {
   command.options.argv[0] = 'capture';
   command.options.connect = async () => {command.events.push('connect'); return sdk.client;};
   command.options.runPhase = ({programs, selection: selected, ...rest}) =>
-    runRecordUpdateApprovalPhase({...rest, createDefinition: () => hubspotUpdateCase(programs, selected),
+    (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({...rest, createDefinition: () => hubspotUpdateCase(programs!, selected!),
       approve: sdk.approve});
   return {command, sdk, directory};
 }
@@ -683,15 +734,15 @@ test('retained fixture Programs allow approval and Saved first after original fi
   // Actual fixture file IO and workflow, with the existing explicit public SDK
   // double. This does not qualify installed Source, approval or physical close.
   const {command: f, sdk, directory} = await retainedCommandFixture(t);
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   const path = f.options.argv[2] + '.programs.json';
   const original = await readFile(path, 'utf8'), before = await stat(path);
   assert.equal(before.mode & 0o777, 0o600);
   assert.equal(sdk.events.at(-1), 'close');
   await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
-  f.options.argv[0] = 'approve'; await runRecordApprovalCommand(f.options);
+  f.options.argv[0] = 'approve'; await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   const split = sdk.events.length;
-  f.options.argv[0] = 'recover'; await runRecordApprovalCommand(f.options);
+  f.options.argv[0] = 'recover'; await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   const recovered = sdk.events.slice(split);
   assert(recovered.indexOf('effect:rows') < recovered.indexOf('effect:status'));
   assert(!recovered.some(value => value.startsWith('submit:') || value === 'approve'));
@@ -706,14 +757,14 @@ test('retained fixture Programs allow approval and Saved first after original fi
 test('retained fixture Programs keep original binding and reject changed inputs before attach or approval', async t => {
   for (const change of ['program', 'selection']) {
     const {command: f, sdk, directory} = await retainedCommandFixture(t);
-    await runRecordApprovalCommand(f.options);
+    await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
     await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
     if (change === 'program') {
       const path = f.options.argv[2] + '.programs.json', programs = JSON.parse(await readFile(path, 'utf8'));
       programs.update += '\n-- changed'; await writeFile(path, JSON.stringify(programs));
     } else await writeFile(f.path, JSON.stringify({selection: {...selection, nextName: 'foreign'}, connect: {mode: 'local'}}));
     const split = sdk.events.length; f.options.argv[0] = 'approve';
-    await assert.rejects(runRecordApprovalCommand(f.options), {code: 'ERR_ASSERTION'});
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), {code: 'ERR_ASSERTION'});
     assert.deepEqual(sdk.events.slice(split), ['close']);
   }
 });
@@ -723,17 +774,17 @@ test('retained fixture Programs refuse missing malformed or incompatible receipt
     const {command: f} = await retainedCommandFixture(t);
     f.options.argv[0] = 'approve';
     if (retained !== undefined) await writeFile(f.options.argv[2] + '.programs.json', retained);
-    await assert.rejects(runRecordApprovalCommand(f.options), retained === undefined
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), retained === undefined
       ? {code: 'ENOENT'} : /InvalidRecordApprovalRetainedPrograms/u);
     assert.deepEqual(f.events, []); assert.deepEqual(f.log, []);
   }
 });
 
-for (const connector of ['salesforce', 'hubspot', 'kintone']) {
+for (const connector of ['salesforce', 'hubspot', 'kintone'] as const) {
   test(`shared ${connector} check validates its original case without connection or key IO`, async t => {
     const f = await commandFixture(t, connector, {selection, connect: {mode: 'local'},
       signer: {keyId: 'operator', reviewerId: 'reviewer', privateKeyPath: 'absent.key'}});
-    await runRecordApprovalCommand(f.options);
+    await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
     assert.deepEqual(f.events, []);
     assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
     await assert.rejects(readFile(join(f.root, 'receipt.submitted.json')), {code: 'ENOENT'});
@@ -743,7 +794,7 @@ for (const connector of ['salesforce', 'hubspot', 'kintone']) {
     const f = await commandFixture(t, connector, {selection: {...selection, recordId: undefined},
       connect: {mode: 'local'}});
     f.options.argv[0] = 'capture';
-    await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalSelection/u);
+    await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), /InvalidRecordApprovalSelection/u);
     assert.deepEqual(f.events, []);
     assert.deepEqual(f.log, []);
   });
@@ -752,7 +803,7 @@ for (const connector of ['salesforce', 'hubspot', 'kintone']) {
 test('shared command validates signer configuration without reading its key or connecting', async t => {
   const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
     signer: {keyId: 'operator', privateKeyPath: 'absent.key'}});
-  await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalSigner/u);
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), /InvalidRecordApprovalSigner/u);
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, []);
 });
@@ -761,10 +812,10 @@ test('shared command malformed JSON error does not repeat configuration contents
   const f = await commandFixture(t, 'kintone');
   const privateText = 'do-not-repeat-this-configuration-value';
   await writeFile(f.path, '{"private":"' + privateText + '",');
-  await assert.rejects(runRecordApprovalCommand(f.options), error => {
-    assert.equal(error.message, 'InvalidRecordApprovalConfiguration');
-    assert.equal(String(error.stack).includes(privateText), false);
-    assert.equal(error.cause, undefined);
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), error => {
+    assert.equal((error as Error).message, 'InvalidRecordApprovalConfiguration');
+    assert.equal(String((error as Error).stack).includes(privateText), false);
+    assert.equal((error as Error).cause, undefined);
     return true;
   });
   assert.deepEqual(f.events, []);
@@ -780,7 +831,9 @@ test('shared command signs only explicit approval with a configuration-relative 
   const captured = {summary: {original: 'sealed-checkpoint'}, ref: {authorityScopeCid: cid('a')}};
   const bytes = Buffer.from('original-public-resolution-preimage');
   let called = false;
-  const client = {resolveCheckpoints: async (decisions, {signer}) => {
+  const client = {resolveCheckpoints: async (decisions: unknown, {signer}: {
+    signer: {keyId: string; reviewerId: string; authorityScopeCid: string; sign: (bytes: Uint8Array) => Buffer};
+  }) => {
     called = true;
     assert.deepEqual(decisions, [{checkpoint: captured.summary, decision: 'approved'}]);
     assert.equal(signer.keyId, 'operator');
@@ -795,9 +848,9 @@ test('shared command signs only explicit approval with a configuration-relative 
     assert.equal(phase, 'approve');
     assert.strictEqual(selected, client);
     assert.equal(called, false);
-    await approve(selected, captured);
+    await approve!(selected, captured);
   };
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.equal(called, true);
   assert.deepEqual(f.log, [{phase: 'approve', status: 'passed', publicClientClose: 'returned'}]);
 });
@@ -805,10 +858,10 @@ test('shared command signs only explicit approval with a configuration-relative 
 test('shared command requires explicit rejection and invokes only the matching public SDK method', async t => {
   const f = await commandFixture(t, 'kintone', {selection, decision: 'rejected', connect: {mode: 'local'}});
   f.options.argv[0] = 'approve';
-  await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalDecision/u);
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), /InvalidRecordApprovalDecision/u);
   assert.deepEqual(f.events, []);
   const captured = {checkpointId: 'original-checkpoint'};
-  const client = {async reject(checkpoint) {
+  const client = {async reject(checkpoint: string) {
     assert.equal(checkpoint, captured.checkpointId);
     f.events.push('reject');
   }};
@@ -817,9 +870,9 @@ test('shared command requires explicit rejection and invokes only the matching p
   f.options.runPhase = async ({reject, decision, client: active}) => {
     assert.equal(decision, 'rejected');
     assert.equal(active, client);
-    await reject(active, captured);
+    await reject!(active, captured);
   };
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.deepEqual(f.events, ['reject']);
   assert.deepEqual(f.log, [{phase: 'reject', status: 'passed', publicClientClose: 'returned', decision: 'rejected'}]);
 });
@@ -835,7 +888,7 @@ test('shared command keeps receipt creation exclusive and private with the origi
     await assert.rejects(save('submitted', {ref: {original: 'replacement'}}), {code: 'EEXIST'});
     assert.deepEqual(await load('submitted'), original);
   };
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.equal((await stat(join(f.root, 'receipt.submitted.json'))).mode & 0o777, 0o600);
 });
 
@@ -845,14 +898,14 @@ test('shared command never prints success when its original workflow fails', asy
   f.options.argv[0] = 'capture';
   f.options.connect = async () => ({});
   f.options.runPhase = async () => {throw primary;};
-  await assert.rejects(runRecordApprovalCommand(f.options), error => error === primary);
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), error => error === primary);
   assert.deepEqual(f.log, []);
 });
 
 test('shared command check does not import a configured operator module', async t => {
   const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
     operatorModulePath: 'not-yet-configured-operator.mjs'});
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
 });
@@ -867,14 +920,15 @@ test('shared command forwards an explicit operator callback through the existing
     }\n`);
   f.options.argv[0] = 'capture';
   f.options.connect = async options => {
-    assert.equal(options.mode, 'local');
-    assert.equal(options.installation.directory, '/original/project/.actql');
-    assert.equal(options.installation.authorization.original(), 'original-operator-port');
+    assert.equal((options as {mode: string}).mode, 'local');
+    assert.equal((options as {installation: {directory: string}}).installation.directory, '/original/project/.actql');
+    assert.equal((options as {installation: {authorization: {original(): string}}}).installation.authorization.original(),
+      'original-operator-port');
     f.events.push('connect');
     return {};
   };
   f.options.runPhase = async () => f.events.push('workflow');
-  await runRecordApprovalCommand(f.options);
+  await (runRecordApprovalCommand as unknown as TestCommandRunner)(f.options);
   assert.deepEqual(f.events, ['connect', 'workflow']);
 });
 
@@ -883,17 +937,17 @@ test('shared command rejects an incompatible operator module before connection',
     operatorModulePath: 'operator.mjs'});
   await writeFile(join(f.root, 'operator.mjs'), 'export const authorization = {};\n');
   f.options.argv[0] = 'capture';
-  await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalOperatorModule/u);
+  await assert.rejects((runRecordApprovalCommand as unknown as TestCommandRunner)(f.options), /InvalidRecordApprovalOperatorModule/u);
   assert.deepEqual(f.events, []);
   assert.deepEqual(f.log, []);
 });
 
-function hubspotProviderFixture(alternate = {}) {
+function hubspotProviderFixture(alternate: ProviderFields = {}) {
   const selected = {...selection, controlId: 'untouched-control', ...alternate};
   const value = hubspotApprovalProvider(selected);
-  const exchange = (pathname, body, authorized = true) => ({method: 'POST', pathname,
-    authorized, body: JSON.stringify(body)});
-  const apply = body => value.routes.find(route => route.pathname.endsWith('/batch/update'))
+  const exchange = (pathname: string, body: unknown, authorized = true) => ({method: 'POST', pathname,
+    authorized, body: JSON.stringify(body)} as Exchange);
+  const apply = (body: unknown) => value.routes.find(route => route.pathname.endsWith('/batch/update'))!
     .handle(exchange('/crm/v3/objects/companies/batch/update', body));
   const body = {inputs: [{id: selected.recordId, objectWriteTraceId: cid('a'),
     properties: {name: selected.nextName, actql_request_id: cid('b')}}]};
@@ -905,8 +959,8 @@ test('HubSpot approval provider retains independent original records and accepts
   assert.equal(before.target.name, selection.previousName);
   assert.equal(before.writes, 0);
   const response = f.apply(f.body);
-  assert.equal(response.body.status, 'COMPLETE');
-  assert.equal(response.body.results[0].id, selection.recordId);
+  assert.equal((response.body as HubSpotResult).status, 'COMPLETE');
+  assert.equal((response.body as HubSpotResult).results[0].id, selection.recordId);
   const after = f.value.snapshot();
   assert.equal(after.writes, 1);
   assert.equal(after.target.name, selection.nextName);
@@ -917,11 +971,11 @@ test('HubSpot approval provider retains independent original records and accepts
 });
 
 test('HubSpot approval provider refuses wrong targets, malformed values and markers without writing', () => {
-  for (const mutate of [body => {body.inputs[0].id = 'other';},
-    body => {body.inputs[0].properties.name = null;},
-    body => {delete body.inputs[0].properties.actql_request_id;},
-    body => {body.inputs[0].properties.actql_request_id = 'not-a-cid';},
-    body => {body.inputs[0].extra = 'unapproved';}]) {
+  for (const mutate of [(body: HubSpotWrite) => {body.inputs[0].id = 'other';},
+    (body: HubSpotWrite) => {body.inputs[0].properties.name = null;},
+    (body: HubSpotWrite) => {delete body.inputs[0].properties.actql_request_id;},
+    (body: HubSpotWrite) => {body.inputs[0].properties.actql_request_id = 'not-a-cid';},
+    (body: HubSpotWrite) => {body.inputs[0].extra = 'unapproved';}]) {
     const f = hubspotProviderFixture();
     mutate(f.body);
     assert.throws(() => f.apply(f.body));
@@ -934,12 +988,12 @@ test('HubSpot approval provider refuses wrong targets, malformed values and mark
 test('HubSpot approval provider requires a credential-bearing request before target observation', () => {
   const f = hubspotProviderFixture();
   const path = '/crm/v3/objects/companies/batch/read';
-  const read = f.value.routes.find(route => route.pathname === path);
+  const read = f.value.routes.find(route => route.pathname === path)!;
   assert.throws(() => read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}, false)));
   assert.equal(f.value.snapshot().writes, 0);
   assert.equal(f.value.snapshot().requests.length, 0);
   const response = read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}));
-  assert.equal(response.body.results[0].properties.name, selection.previousName);
+  assert.equal((response.body as HubSpotResult).results[0].properties.name, selection.previousName);
 });
 
 test('shared record approval Account fixture preserves provider policy in one complete Host/Site wire', () => {
@@ -953,7 +1007,7 @@ test('shared record approval Account fixture preserves provider policy in one co
   const actual = JSON.parse(wire);
   assert.equal(actual.version, provider.version);
   assert.equal(actual.account_id, provider.account_id);
-  assert.deepEqual(actual.entries.map(entry => entry.entry_id), ['host-read', 'host-submit', 'provider']);
+  assert.deepEqual(actual.entries.map((entry: {entry_id: string}) => entry.entry_id), ['host-read', 'host-submit', 'provider']);
   assert.deepEqual(actual.entries[2], provider.entries[0]);
   assert.deepEqual(actual.entries[0], {entry_id: 'host-read', outcome: 'allow', exclusions: [],
     principal: {any_of: ['original-principal']}, connection: {any_of: ['actql-remote-host']},
@@ -967,7 +1021,7 @@ test('shared record approval Account fixture selects only explicitly allowed Res
   const provider = JSON.stringify({entries: []});
   const wire = recordApprovalHostAccountConfiguration(JSON.stringify, provider, 'principal', 'row-source-acquired',
     ['main', 'authored_updates']);
-  const entry = JSON.parse(wire).entries.find(entry => entry.entry_id === 'host-read');
+  const entry = JSON.parse(wire).entries.find((entry: {entry_id: string}) => entry.entry_id === 'host-read');
   assert.deepEqual(entry.resource, {any_of: ['result/authored_updates', 'result/main', 'run']});
   for (const names of [[], ['main', 'main'], ['result/main'], ['*'], Array(1)]) {
     assert.throws(() => recordApprovalHostAccountConfiguration(JSON.stringify, provider, 'principal',
@@ -983,21 +1037,21 @@ test('shared record approval Account fixture never overwrites an existing Host r
   }
 });
 
-function kintoneProviderFixture(alternate = {}) {
+function kintoneProviderFixture(alternate: ProviderFields = {}) {
   const selected = {...selection, recordId: '9007199254740993', controlId: '9007199254740994', ...alternate};
   const value = kintoneApprovalProvider(selected);
-  const exchange = (method, pathname, body, headers = {}, authorized = true) =>
-    ({method, pathname, headers, authorized, body: JSON.stringify(body)});
+  const exchange = (method: string, pathname: string, body: unknown, headers: Exchange['headers'] = {}, authorized = true) =>
+    ({method, pathname, headers, authorized, body: JSON.stringify(body)} as Exchange);
   const body = {app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
     record: {Subject: {value: selected.nextName}}}], upsert: false};
-  const update = value.routes.find(route => route.method === 'PUT');
+  const update = value.routes.find(route => route.method === 'PUT')!;
   return {value, selected, body, exchange,
-    apply: (body, authorized = true) => update.handle(exchange('PUT', update.pathname, body, {}, authorized))};
+    apply: (body: unknown, authorized = true) => update.handle(exchange('PUT', update.pathname, body, {}, authorized))};
 }
 
 test('kintone approval provider keeps string identity and original revision for one UPDATE', () => {
   const f = kintoneProviderFixture(), before = f.value.snapshot();
-  assert.deepEqual(f.apply(f.body).body.records,
+  assert.deepEqual((f.apply(f.body).body as {records: unknown[]}).records,
     [{id: f.selected.recordId, revision: '9007199254740995'}]);
   const after = f.value.snapshot();
   assert.equal(after.target.name, selection.nextName);
@@ -1031,7 +1085,7 @@ for (const [connector, makeFixture, buildMockFromSeed, resource, idField, nameFi
     {recordId: '77', controlId: '88', previousName: 'Bureau Est', nextName: 'Bureau Sud', controlName: 'Bureau Nord'}],
   ['kintone', kintoneProviderFixture, kintoneMockFromSeed, 'inquiries', '$id', 'Subject',
     {recordId: '9007199254741991', controlId: '9007199254741998', previousName: '依頼前', nextName: '依頼済', controlName: '照合用'}],
-]) test(`${connector} provider resets to the original alternate case with detached observations`, () => {
+] as const) test(`${connector} provider resets to the original alternate case with detached observations`, () => {
   const fixture = makeFixture(alternate), before = fixture.value.snapshot();
   const expected = {target: {id: alternate.recordId, name: alternate.previousName},
     control: {id: alternate.controlId, name: alternate.controlName}};
@@ -1051,7 +1105,7 @@ for (const [connector, makeFixture, buildMockFromSeed, resource, idField, nameFi
   assert.deepEqual(after.requests, [fixture.value.writeRequest]);
   assert.throws(() => fixture.apply(fixture.body));
   assert.equal(fixture.value.snapshot().failures.length, 1);
-  after.target.name = 'Changed snapshot';
+  (after.target as {name: string}).name = 'Changed snapshot';
   after.requests.length = 0;
   assert.equal(fixture.value.snapshot().target.name, alternate.nextName);
   assert.equal(fixture.value.snapshot().requests.length, 2);
@@ -1070,8 +1124,8 @@ test('record update provider bounds seed, write text and route observations befo
   assert.equal(write.value.snapshot().writes, 0);
 
   const fixture = hubspotProviderFixture(), before = fixture.value.snapshot();
-  const read = fixture.value.routes.find(route => route.method === 'GET');
-  const exchange = {method: 'GET', pathname: read.pathname, authorized: true};
+  const read = fixture.value.routes.find(route => route.method === 'GET')!;
+  const exchange = {method: 'GET', pathname: read.pathname, authorized: true} as Exchange;
   for (let i = 0; i < 64; i++) read.handle(exchange);
   for (let i = 0; i < 2; i++) assert.throws(() => fixture.apply(fixture.body), /RecordApprovalFixtureRequestLimit/u);
   const exhausted = fixture.value.snapshot();
@@ -1088,13 +1142,13 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
     'Before HubSpot approval', 'After HubSpot approval'],
   ['kintone', kintoneMock, 'inquiries', '$id', 'Subject', kintoneApprovalProvider, kintoneUpdateCase,
     'Before kintone approval', 'After kintone approval'],
-]) test(`shared ${connector} record update fixture keeps identical seed and independent Mock HTTP DATA oracles`, async () => {
+] as const) test(`shared ${connector} record update fixture keeps identical seed and independent Mock HTTP DATA oracles`, async () => {
   const selected = sharedRecordUpdateSelections[connector];
   const expectedBefore = {target: {id: '9007199254740993', name: beforeName},
     control: {id: '9007199254740994', name: 'Untouched control'}};
   const expectedAfter = {target: {id: '9007199254740993', name: afterName}, control: expectedBefore.control};
   assert.deepEqual(recordUpdateFixtureState(selected), {before: expectedBefore, after: expectedAfter});
-  assert(Object.isFrozen(selected));assert.throws(() => {selected.controlId = 'foreign';}, TypeError);
+  assert(Object.isFrozen(selected));assert.throws(() => {(selected as {controlId: string}).controlId = 'foreign';}, TypeError);
   const files = builder(selected), catalog = JSON.parse(files['mock/catalog.json']).connections[connector];
   const rows = JSON.parse(files['mock/data.json'])[connector][resource].rows;
   assert.deepEqual(rows, [expectedBefore.target, expectedBefore.control].map(value =>
@@ -1102,7 +1156,7 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
   assert.deepEqual(catalog.views[0].schema, {[idField]: {type: 'string', nullable: false},
     [valueField]: {type: 'string', nullable: false}});
   const programs = Object.fromEntries(await Promise.all(['read', 'update'].map(async name =>
-    [name, await readFile(new URL(`./fixtures/${connector}-approval/${name}.aql`, import.meta.url), 'utf8')])));
+    [name, await readFile(new URL(`./fixtures/${connector}-approval/${name}.aql`, import.meta.url), 'utf8')]))) as {update: string; read: string};
   const definition = makeCase(programs, selected);
   assert.equal(definition.effect.document, programs.update);assert.equal(definition.read.document, programs.read);
   assert.deepEqual(definition.effect.parameters, {record_id: '9007199254740993', next_name: afterName});
@@ -1112,23 +1166,23 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
   assert.deepEqual({id: before.control.id, name: before.control.name}, expectedBefore.control);
   assert.equal(before.writes, 0);
   if (connector === 'hubspot') {
-    const update = provider.routes.find(route => route.pathname.endsWith('/batch/update'));
+    const update = provider.routes.find(route => route.pathname.endsWith('/batch/update'))!;
     const exchange = {method: 'POST', pathname: update.pathname, authorized: true, body: JSON.stringify({inputs: [{
       id: selected.recordId, objectWriteTraceId: cid('a'), properties: {name: selected.nextName, actql_request_id: cid('b')},
     }]})};
-    update.handle(exchange);
-    assert.equal(provider.snapshot().target.marker, cid('b'));
+    update.handle(exchange as Exchange);
+    assert.equal((provider.snapshot().target as {marker: string}).marker, cid('b'));
     assert.equal(Object.hasOwn(provider.snapshot().target, 'revision'), false, 'HubSpot does not gain atomic revision semantics');
-    assert.throws(() => update.handle(exchange), 'A repeated fixture 200 must not prove another write');
+    assert.throws(() => update.handle(exchange as Exchange), 'A repeated fixture 200 must not prove another write');
   } else {
-    const update = provider.routes.find(route => route.method === 'PUT');
+    const update = provider.routes.find(route => route.method === 'PUT')!;
     const exchange = {method: 'PUT', pathname: update.pathname, headers: {}, authorized: true,
       body: JSON.stringify({app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
         record: {Subject: {value: selected.nextName}}}], upsert: false})};
-    update.handle(exchange);
-    assert.equal(provider.snapshot().target.revision, '9007199254740995');
+    update.handle(exchange as Exchange);
+    assert.equal((provider.snapshot().target as {revision: string}).revision, '9007199254740995');
     assert.equal(Object.hasOwn(provider.snapshot().target, 'marker'), false);
-    assert.throws(() => update.handle(exchange), 'Original revision cannot authorize another write');
+    assert.throws(() => update.handle(exchange as Exchange), 'Original revision cannot authorize another write');
   }
   const after = provider.snapshot();
   assert.deepEqual({id: after.target.id, name: after.target.name}, expectedAfter.target);
@@ -1142,16 +1196,16 @@ test('shared record fixture rejects missing or aliased control identity without 
     assert.throws(() => recordUpdateFixtureState({...selected, controlId}), {message: 'InvalidRecordApprovalControl'});
   }
   const state = recordUpdateFixtureState(selected);
-  assert.throws(() => {state.before.control.name = 'changed';}, TypeError);
+  assert.throws(() => {(state.before.control as {name: string}).name = 'changed';}, TypeError);
   assert.deepEqual(selected, before);
 });
 
 test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {
-  for (const mutate of [body => {body.records[0].id = '123';},
-    body => {body.records[0].revision = '7';}, body => {delete body.records[0].revision;},
-    body => {body.records[0].record.Subject.value = 7;},
-    body => {body.records[0].record.Computed = {value: 'unapproved'};},
-    body => {body.upsert = true;}]) {
+  for (const mutate of [(body: KintoneWrite) => {body.records[0].id = '123';},
+    (body: KintoneWrite) => {body.records[0].revision = '7';}, (body: KintoneWrite) => {delete body.records[0].revision;},
+    (body: KintoneWrite) => {body.records[0].record.Subject.value = 7;},
+    (body: KintoneWrite) => {body.records[0].record.Computed = {value: 'unapproved'};},
+    (body: KintoneWrite) => {body.upsert = true;}]) {
     const f = kintoneProviderFixture(), before = f.value.snapshot();
     mutate(f.body); assert.throws(() => f.apply(f.body));
     assert.equal(f.value.snapshot().writes, 0);
@@ -1167,17 +1221,17 @@ test('kintone approval provider refuses changed identity, revision, fields and U
 
 test('kintone approval provider requires credential-bearing Form and exact selected-record reads', () => {
   const f = kintoneProviderFixture();
-  const form = f.value.routes.find(route => route.pathname.endsWith('/app/form/fields.json'));
-  const read = f.value.routes.find(route => route.pathname === '/k/v1/records.json' && route.method === 'POST');
+  const form = f.value.routes.find(route => route.pathname.endsWith('/app/form/fields.json'))!;
+  const read = f.value.routes.find(route => route.pathname === '/k/v1/records.json' && route.method === 'POST')!;
   const headers = {'x-http-method-override': 'GET'};
   assert.throws(() => form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers, false)));
-  assert.equal(form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers)).body.revision, '7');
+  assert.equal((form.handle(f.exchange('POST', form.pathname, {app: '12'}, headers)).body as {revision: string}).revision, '7');
   const body = {app: '12', fields: ['$id', '$revision', 'Computed', 'Subject', 'Tags'],
     query: `$id in (${f.selected.recordId}) order by $id asc limit 1`};
   const response = read.handle(f.exchange('POST', read.pathname, body, headers));
-  assert.equal(response.body.records.length, 1);
-  assert.equal(response.body.records[0].$id.value, f.selected.recordId);
-  assert.equal(response.body.records[0].Subject.value, selection.previousName);
+  assert.equal((response.body as {records: KintoneRecord[]}).records.length, 1);
+  assert.equal((response.body as {records: KintoneRecord[]}).records[0].$id.value, f.selected.recordId);
+  assert.equal((response.body as {records: KintoneRecord[]}).records[0].Subject.value, selection.previousName);
   assert.throws(() => read.handle(f.exchange('POST', read.pathname, {...body, query: 'all'}, headers)));
   assert.equal(f.value.snapshot().writes, 0);
 });
@@ -1227,7 +1281,7 @@ test('binary Whole JOIN fixture refuses incomplete answer Result without losing 
 for (const [connector, makeProvider, credentialHeader] of [
   ['hubspot', hubspotApprovalProvider, 'authorization'],
   ['kintone', kintoneApprovalProvider, 'x-cybozu-api-token'],
-]) test(`shared ${connector} reply loss applies once over real TLS and retains independent control`,
+] as const) test(`shared ${connector} reply loss applies once over real TLS and retains independent control`,
   {timeout: 15000}, async t => {
   const selected = sharedRecordUpdateSelections[connector];
   const expected = recordUpdateFixtureState(selected), provider = makeProvider(selected);
@@ -1256,7 +1310,7 @@ for (const [connector, makeProvider, credentialHeader] of [
     call.setTimeout(5000, () => call.destroy(Object.assign(new Error('FixtureRequestTimeout'),
       {code: 'FixtureRequestTimeout'})));
     call.once('error', reject);call.end(bytes);
-  }), error => error.code === 'ECONNRESET');
+  }), error => (error as NodeJS.ErrnoException).code === 'ECONNRESET');
   assert.equal(receivedResponse, false, 'No returned HTTP success/body was fabricated');
   assert.equal(tls.remainingFaults(), 0);
   assert.equal(tls.seen().length, 1, 'This component sends exactly one original request, with no retry');
@@ -1269,10 +1323,10 @@ for (const [connector, makeProvider, credentialHeader] of [
   assert.deepEqual(after.control, before.control);
   assert.equal(after.failures.length, 0, 'Socket failure followed a real successful provider apply');
   if (connector === 'hubspot') {
-    assert.equal(after.target.marker, cid('b'));
+    assert.equal((after.target as {marker: string}).marker, cid('b'));
     assert.equal(Object.hasOwn(after.target, 'revision'), false);
   } else {
-    assert.equal(after.target.revision, '9007199254740995');
+    assert.equal((after.target as {revision: string}).revision, '9007199254740995');
     assert.equal(Object.hasOwn(after.target, 'marker'), false);
   }
   provider.reset();
@@ -1302,7 +1356,7 @@ test('shared reply-loss selection snapshots only a finite provider-owned write r
 
 // Client doubles qualify only the selected consumer/control flow. These
 // hypothetical capability outcomes are not either provider's runtime evidence.
-for (const connector of ['hubspot', 'kintone']) {
+for (const connector of ['hubspot', 'kintone'] as const) {
   test(`shared installed reply-loss ${connector} keeps Unknown and cold same-Run lookup without Result or another approval`, async () => {
     const value = await definition(connector), f = publicDouble(value);
     const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};

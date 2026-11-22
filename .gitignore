@@ -2004,3 +2004,9 @@ target/
 /scripts/fixtures/packed-kintone-approval.d.mts
 /adapters/connectors/kintone/test/kintone-update-form.fixture.mjs
 /adapters/connectors/kintone/test/kintone-update-form.fixture.d.mts
+/scripts/record-approval-workflow.test.mjs
+/scripts/record-approval-workflow.test.d.mts
+/scripts/fixtures/salesforce-approval/mock-project.mjs
+/scripts/fixtures/salesforce-approval/mock-project.d.mts
+/scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs
+/scripts/fixtures/hubspot-approval/binary-source-mock-project.d.mts
