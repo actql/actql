@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "b50f9a2a827da6bc374bbdab6f0796f5962461e071e480cc4e81b4da0e608850",
+      "sha256": "84e3aad11fd70c581b61de1c4edbc236b4f48437d73bb175c3c4ff3b039f950f",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -770,6 +770,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock admits the closed file CREATE mapping beside an original UPDATE"
               }
             ]
           }

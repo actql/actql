@@ -185,9 +185,10 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = [], ret
 // field of the Effect's source result: [{target, field, null_behavior}].
 export function rowSourceMapping(moon, declaration, writesJson, resource,
   sources, operation = 'create', sourcesJson) {
-  if (operation !== 'create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
+  if (operation !== 'create' && operation !== 'file-create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
   const prepare = operation === 'update' ? moon.clientProgramRowSourcePrepareUpdateMapping
     : operation === 'delete' ? moon.clientProgramRowSourcePrepareDeleteMapping
+    : operation === 'file-create' ? moon.clientProgramRowSourcePrepareFileCreateMapping
     : moon.clientProgramRowSourcePrepareMapping;
   if (typeof prepare !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   if (operation === 'delete' && (!Array.isArray(sources) || sources.length !== 0)) fail('InvalidInstalledEffectMappings');

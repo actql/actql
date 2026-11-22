@@ -97,6 +97,47 @@ test('installed Mock keeps DELETE mapping and permissions distinct from a siblin
     {code: 'InvalidInstalledMockCatalog'});
 });
 
+test('installed Mock admits the closed file CREATE mapping beside an original UPDATE', async () => {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const {views, writes} = catalog.connections.salesforce;
+  const create = writes[0], view = views.find(value => value.resource === create.resource);
+  create.operation = 'create';
+  create.permission = 'salesforce:record:create';
+  create.write_null_fields = ['value'];
+  view.schema.value.nullable = true;
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await assert.rejects(withMockCatalog(() => assert.fail('CREATE admitted an incomplete storage row'), files),
+    {code: 'RowSourceMappingInvalidSpecification'});
+  create.writable_fields = ['value', 'group'];
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await withMockCatalog(async ({directory, bundle}) => {
+    const [account, contact] = bundle.writables;
+    const inserted = JSON.parse(account.mapping.body), updated = JSON.parse(contact.mapping.body);
+    assert.equal(account.write.operation, 'create');
+    assert.equal(inserted.target_ref, 'connector://salesforce/Account');
+    assert.equal(inserted.primary_identity, 'id');
+    assert.equal(inserted.minimum_approval, 'required');
+    assert.deepEqual(inserted.required_fields, ['group', 'value']);
+    assert.deepEqual(inserted.row_mapping, {group: {field: 'group', null_behavior: 'reject'},
+      value: {field: 'value', null_behavior: 'write_null'}});
+    assert.deepEqual(inserted.permission_rules, [{effect_kind: 'create', selector_class: 'none',
+      write_fields: ['group', 'value'], permissions: ['salesforce:record:create']}]);
+    assert.deepEqual(updated.permission_rules.map(rule => rule.effect_kind), ['update']);
+    const dataFile = JSON.parse(files['actql.config.json']).mock.data;
+    assert.equal(await readFile(join(directory, dataFile), 'utf8'), files['mock/data.json']);
+  }, files);
+  create.update_fields = ['value'];
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await assert.rejects(withMockCatalog(() => assert.fail('CREATE admitted an UPDATE selection'), files),
+    {code: 'InvalidInstalledMockCatalog'});
+  delete create.update_fields;
+  view.schema.id.max_utf8_bytes = 63;
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await assert.rejects(withMockCatalog(() => assert.fail('CREATE admitted a short physical key'), files),
+    {code: 'RowSourceMappingInvalidSpecification'});
+});
+
 test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates', async () => {
   await withMockCatalog(async ({bundle}) => {
     const bindingCid = 'sha256:' + 'a'.repeat(64);
