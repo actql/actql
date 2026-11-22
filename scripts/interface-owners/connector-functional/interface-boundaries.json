@@ -2466,7 +2466,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/typed-fixed-host.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/typed-fixed-host.test.mts",
                 "anchor": "standard fixed Host retains typed projected values through completion and checked consumer"
               }
             ]

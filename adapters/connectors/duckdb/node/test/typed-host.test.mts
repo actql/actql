@@ -12,12 +12,38 @@ import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
+type ScalarCase = readonly [
+  name: string, sqlType: string, contract: Parameters<typeof typedCatalog>[1],
+  sql: string, wire: string | number | boolean, badSql: string | null,
+];
+type SourceFixture = Readonly<{
+  issuedNativeCreate(...args: [...string[], number, () => boolean]): unknown;
+  issuedBroadCreate(...args: [...string[], number, () => boolean]): unknown;
+  issuedNativeConfiguration(fixture: unknown): unknown;
+  issuedBroadConfiguration(fixture: unknown): unknown;
+  issuedNativeClose(fixture: unknown): void;
+  issuedBroadClose(fixture: unknown): void;
+  issuedNativeRequirement(fixture: unknown): string;
+  issuedBroadRequirement(fixture: unknown): string;
+  issuedNativeConsumeOutput(fixture: unknown, output: unknown, rows: number): string;
+  issuedBroadConsumer(fixture: unknown): unknown;
+  issuedBroadConsumeInput(fixture: unknown, bound: unknown, rows: number): string;
+}>;
+type NativeOutputCapture = Extract<Awaited<ReturnType<typeof runNativeHostQuery>>, {output(): object}>;
+type QueryObservation = Readonly<{
+  output: Readonly<{rows_cid: string; row_count: number}>;
+  coverage: Readonly<{scope_cid: string}>;
+  execution: Readonly<Record<string, unknown>>;
+  accesses: Readonly<{validation_scan_cid: string}>;
+  actual_access: Readonly<{scope_cid: string}>;
+}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 // Every expected logical value is authored here, never decoded from product output.
-const cases = [
+const cases: readonly ScalarCase[] = [
   ['text', 'VARCHAR', { type: 'string' }, "'日本語'", '日本語', null],
   ['text-decomposed', 'VARCHAR', { type: 'string' },
     "concat('e', chr(769))", 'e\u0301', null],
@@ -39,11 +65,11 @@ test('standard native and broad Hosts admit exact scalar families and reject dis
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: SourceFixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')).href);
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1]
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
-  const seed = JSON.parse(JSON.parse(match[1]));
+  const seed = JSON.parse(JSON.parse(match![1])) as Parameters<typeof typedCatalog>[0];
   const contracts = await pinnedEngineContracts(root);
   const shared = await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
@@ -75,12 +101,13 @@ test('standard native and broad Hosts admit exact scalar families and reject dis
           }
           const capture = await execute(grant, configuration, limits);
           try {
-            const observation = JSON.parse(capture.document());
+            const observation = JSON.parse(capture.document()) as QueryObservation;
             const selected = [{ id: 3 }, { id: 3 }];
             const scan = [{ amount: wire, id: 3 }, { amount: null, id: 1 }, { amount: wire, id: 3 }];
             assert.equal(observation.output.rows_cid, hash(selected), name);
             assert.equal(observation.output.row_count, 2);
-            const requirement = JSON.parse(native ? moon.issuedNativeRequirement(fixture) : moon.issuedBroadRequirement(fixture));
+            const requirement = JSON.parse(native ? moon.issuedNativeRequirement(fixture) : moon.issuedBroadRequirement(fixture)) as
+              Readonly<{source_ref: string; source_contract_cid: string; request: unknown}>;
             const scope = hash({ version: 'actql-query-scan-scope/0.1',
               source_ref: requirement.source_ref, source_contract_cid: requirement.source_contract_cid,
               resolved_request_cid: hash(requirement.request) });
@@ -93,11 +120,11 @@ test('standard native and broad Hosts admit exact scalar families and reject dis
                 received_rows: 3, received_rows_cid: hash(scan), requirement_cid: hash(requirement),
                 role: 'validation_scan', scan_scope_cid: scope, snapshot: null };
               assert.equal(observation.accesses.validation_scan_cid, hash(receipt), name);
-              assert.equal(moon.issuedNativeConsumeOutput(fixture, capture.output(), 100), hash(selected));
+              assert.equal(moon.issuedNativeConsumeOutput(fixture, (capture as NativeOutputCapture).output(), 100), hash(selected));
             } else {
               assert.equal(observation.actual_access.scope_cid, hash({ version: 'actql-query-access-scope/0.1',
                 requirement_cid: hash(requirement), received_fields: ['amount', 'id'], received_rows_cid: hash(scan) }), name);
-              assert.equal(moon.issuedBroadConsumeInput(fixture, capture.bindInput(moon.issuedBroadConsumer(fixture), 0), 100), hash(selected));
+              assert.equal(moon.issuedBroadConsumeInput(fixture, (capture as Awaited<ReturnType<typeof runBroadHostQuery>>).bindInput(moon.issuedBroadConsumer(fixture), 0), 100), hash(selected));
             }
           } finally { capture.close(); }
         }

@@ -9,19 +9,34 @@ import { createHash } from 'node:crypto';
 import { runFixedHostCompute } from '../host.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
+import type {typedCatalog} from './typed-catalog.mjs';
+
+type FieldContract = Parameters<typeof typedCatalog>[1];
+type Scalar = string | number | boolean;
+type FixedCase = readonly [contract: FieldContract, value: Scalar, predicate?: string, expectedRows?: readonly Readonly<{amount: Scalar}>[]];
+type GroupCase = readonly [FieldContract, Scalar, Scalar];
+type FixedFixture = Readonly<{
+  typedFixedCreate(pipeline: string, predicate: string, ...contracts: string[]): unknown;
+  typedCountCreate(pipeline: string, ...contracts: string[]): unknown;
+  typedJoinCreate(pipeline: string, ...contracts: string[]): unknown;
+  ownedFixedConfiguration(fixture: unknown): unknown;
+  ownedFixedLocalCid(fixture: unknown): string;
+  ownedFixedConsumeOutput(fixture: unknown, output: unknown): string;
+}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 test('standard fixed Host retains typed projected values through completion and checked consumer', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: FixedFixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')).href);
   const contracts = await pinnedEngineContracts(root);
-  const cases = [
+  const cases: readonly FixedCase[] = [
     [{ type: 'string', nullable: true }, '日本語'],
     [{ type: 'boolean', nullable: true }, false],
     [{ type: 'boolean', nullable: true }, false, 'amount = false',
@@ -62,7 +77,7 @@ test('standard fixed Host retains typed projected values through completion and 
   // Group ordering and both count forms use literal independent expectations,
   // not a Native-vs-Local equality oracle. Every mapped ActQL scalar participates
   // as a grouping key and as the direct nullable count field.
-  const groups = [
+  const groups: readonly GroupCase[] = [
     [{ type: 'string', nullable: true }, '\ue000', '\u{10000}'],
     [{ type: 'boolean', nullable: true }, true, false],
     [{ type: 'number', nullable: true }, 9007199254740992, -1.5],

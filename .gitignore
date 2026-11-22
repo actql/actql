@@ -1858,3 +1858,7 @@ target/
 /adapters/connectors/duckdb/node/test/physical-appender.test.d.mts
 /adapters/host-node/authorization-fixture.mjs
 /adapters/host-node/authorization-fixture.d.mts
+/adapters/connectors/duckdb/node/test/typed-host.test.mjs
+/adapters/connectors/duckdb/node/test/typed-host.test.d.mts
+/adapters/connectors/duckdb/node/test/typed-fixed-host.test.mjs
+/adapters/connectors/duckdb/node/test/typed-fixed-host.test.d.mts
