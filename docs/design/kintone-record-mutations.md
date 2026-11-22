@@ -37,7 +37,7 @@ is not a physical cleanup acknowledgement. A timeout or missing response has
 no successful constructor here. A later absent record is not a retained delete
 marker: the existing Effect Owner must preserve Unknown without resend.
 
-## Retention and remaining connections
+### Deletion retention and consuming connections
 
 The original page's decode tree, records and Form catalog stay reachable through
 each target until the existing capture/Effect cleanup retires them. A batch also
@@ -46,12 +46,16 @@ pair-comparison work overlap that storage. Explicit positive caller limits
 bound preparation; they are not reservations, a budget SSOT or an adopted
 normal numerical profile.
 
-The physical Credential Site, original current/approval/Preview checks,
-same-attempt journal/Unknown handling, and release of every retained original
-remain mandatory consuming connections. Insert/update/upsert field material,
-attachment custody, process-action metadata and their physical dispatch are
-independent unfinished parts of the same Connector outcome. This protocol
-material does not advertise installed write support or relax those obligations.
+The installed DELETE consumes these projections through the physical Credential
+Site, original current/approval/Preview checks, same-attempt journal and
+Unknown handling. Its owners also retire every retained original.
+
+The standard installed Node Effect supports UPDATE, conditional DELETE and
+[keyed UPSERT](#original-keyed-upsert-material). The UPSERT profile selects one
+writable, provider-enforced unique Text field and the exact declared write
+fields. A complete lookup and the approved original presence select one create
+or one revision-guarded update. Numeric and compound UPSERT keys, attachment
+custody and process-action dispatch are outside this installed profile.
 
 ## Original unique Text-key lookup
 
