@@ -178,9 +178,9 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
         bridge.entries,
         bridge.name_bytes,
         limits,
-        before_row=Some(text => {
+        reserve_row_copy=Some((bytes, decoder) => {
           construction
-          .prepare_row_result(text, row)
+          .reserve_row_copy(bytes, decoder)
           .retain_mock_effect_proposal_issue(report)
         }),
       )

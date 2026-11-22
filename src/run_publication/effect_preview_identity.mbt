@@ -383,6 +383,20 @@ pub fn derive_effect_preview_row_identities(
     Ok(value) => value
     Err(issue) => return Err(PreviewShape(issue))
   }
+  derive_effect_preview_row_identities_original(
+    preview, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// The caller has admitted this exact immutable Preview shape. Authoring can
+// derive row identities beside the template without retaining a second tree.
+fn derive_effect_preview_row_identities_original(
+  preview : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[Array[String]], EffectPreviewIdentityIssue] {
   let members = match @json.object_field(preview, "effects") {
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(InvalidMember)
@@ -575,8 +589,8 @@ pub fn author_effect_preview_semantic_wire(
     Err(issue) => return Err(PreviewShape(issue))
   }
   let rows = match
-    derive_effect_preview_row_identities(
-      template_wire, max_wire_bytes, max_nodes, max_depth,
+    derive_effect_preview_row_identities_original(
+      template, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -638,6 +652,24 @@ pub fn complete_effect_preview_dispatch_keys(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, EffectPreviewIdentityIssue] {
+  complete_effect_preview_dispatch_keys_with_identity(
+    semantic_wire, key_cids, expected_run_identity_cid, expected_authoring_context_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.0)
+}
+
+///|
+/// Return the completed wire with its exact admitted identity so the caller
+/// can check dispatch bindings without decoding the completed wire again.
+pub fn complete_effect_preview_dispatch_keys_with_identity(
+  semantic_wire : String,
+  key_cids : Array[Array[String]],
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
   let semantic = match
     parse_effect_preview_shape(
       semantic_wire, max_wire_bytes, max_nodes, max_depth,
@@ -646,8 +678,8 @@ pub fn complete_effect_preview_dispatch_keys(
     Err(issue) => return Err(PreviewShape(issue))
   }
   let identity = match
-    admit_effect_preview_identity(
-      semantic_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    admit_effect_preview_identity_original(
+      semantic, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
       max_nodes, max_depth,
     ) {
     Ok(value) => value
@@ -687,7 +719,7 @@ pub fn complete_effect_preview_dispatch_keys(
       wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
       max_nodes, max_depth,
     ) {
-    Ok(_) => Ok(wire)
+    Ok(original) => Ok((wire, original))
     Err(issue) => Err(issue)
   }
 }

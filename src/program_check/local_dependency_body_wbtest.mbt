@@ -16,6 +16,24 @@ test "checked dependency bodies retain exact preimages and owner" {
     let closure = checked_local_dependency_bodies(
       program, unit, 4096, 1000000, 100000, 100,
     ).unwrap()
+    let measured = checked_local_dependency_bodies_with_wire_usage(
+      program, unit, 4096, 1000000, 100000, 100,
+    ).unwrap()
+    assert_eq(measured.length(), closure.length())
+    for index, (role, body, bytes, _, _) in measured {
+      let (original_role, original) = closure[index]
+      assert_eq(role, original_role)
+      assert_eq(body.cid, original.cid)
+      assert_eq(body.wire, original.wire)
+      assert_eq(bytes, @utf8.encode(original.wire).length())
+    }
+    // LocalContracts has one root object, one CID array, one version scalar,
+    // and one value node for each member of the immutable original inventory.
+    let (role, _, contract_bytes, contract_nodes, contract_depth) = measured[4]
+    assert_eq(role, "local_contracts")
+    assert_eq(contract_nodes, program.units[unit].contracts.length() + 3)
+    assert_eq(contract_depth, 2)
+    assert_true(contract_nodes < contract_bytes)
     assert_eq(closure[0].0, "local_dependencies")
     assert_eq(closure[5].0, "local_policy")
     assert_eq(

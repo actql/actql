@@ -330,7 +330,7 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     effect_preview_row_key(semantic, 0, 0),
     effect_preview_row_identity(semantic, 0, 0),
   )
-  let final_wire = complete_effect_preview_dispatch_keys(
+  let (final_wire, final_identity) = complete_effect_preview_dispatch_keys_with_identity(
     semantic_wire,
     [[preview_identity_test_cid("4")]],
     run,
@@ -339,9 +339,17 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     256,
     12,
   ).unwrap()
-  let final_identity = admit_effect_preview_identity(
+  let readmitted = admit_effect_preview_identity(
     final_wire, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(
+    effect_preview_semantic_identity(readmitted),
+    effect_preview_semantic_identity(final_identity),
+  )
+  assert_eq(
+    effect_preview_row_key(readmitted, 0, 0),
+    effect_preview_row_key(final_identity, 0, 0),
+  )
   assert_eq(
     effect_preview_member_effect_identity_cid(final_identity, 0),
     Some(preview_identity_test_cid("a")),

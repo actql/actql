@@ -605,8 +605,9 @@ fn file_capture_construction_capacity(
   prepared_provider : NativeRelationFilePreparedProvider?,
   content : NativeRelationFileContentInput?,
   response_bytes : Int?,
-  storage_candidate? : @publication.CapturedContentReference? = None,
-  raw_candidate? : @publication.PublicationContract? = None,
+  storage? : NativeFileStorageCapacity? = None,
+  raw_storage? : NativeFileStorageCapacity? = None,
+  workspace? : NativeFileContentWorkspace = NoContentWorkspace,
 ) -> (Int64, Int64)? {
   let listing = match original {
     ManagedFileListingAcquisition(_, _, _, _)
@@ -672,12 +673,18 @@ fn file_capture_construction_capacity(
   let (metadata_retained, metadata_execution) = match content {
     None => (metadata_retained, metadata_execution)
     Some(input) => {
-      guard native_relation_file_content_capacity(
+      // The keyed provider quote above already funds the target projection.
+      // Reuse it only for the very provider that will perform the Content read.
+      guard original is ManagedFileKeyedAcquisition(_, _, provider, _) &&
+        prepared_provider is Some(selected) &&
+        physical_equal(provider, selected) &&
+        native_relation_file_content_capacity(
           input,
-          prepared_provider,
+          provider,
           response_bytes=response_bound,
-          storage_candidate~,
-          raw_candidate~,
+          storage~,
+          raw_storage~,
+          workspace~,
         )
         is Some((retained, execution)) &&
         @execution.checked_preparation_add_product(
@@ -694,6 +701,57 @@ fn file_capture_construction_capacity(
     }
   }
   Some((metadata_retained, metadata_execution))
+}
+
+///|
+// All keyed Content phases resize the Source's original metadata token.
+// A return requires the prior projection to have unwound or the original
+// Store child I/O to have retired. Every resize crosses the same owner's
+// Resource/current fence before the next constructor.
+fn NativeRelationFileCapture::resize_keyed_content_capacity(
+  self : Self,
+  input : NativeRelationFileContentInput,
+  response_bytes : Int,
+  storage? : NativeFileStorageCapacity? = None,
+  raw_storage? : NativeFileStorageCapacity? = None,
+  workspace? : NativeFileContentWorkspace = NoContentWorkspace,
+  return_workspace? : Bool = false,
+) -> Result[Unit, NativeRelationFileIssue] {
+  guard self.ledger is Some(ledger) &&
+    self.metadata is Some(metadata) &&
+    self.selection is Some(selection) &&
+    self.acquisition is Some(acquisition) else {
+    return Err(Unavailable)
+  }
+  guard file_capture_construction_capacity(
+      selection,
+      self.limits,
+      acquisition,
+      self.response_provider,
+      Some(input),
+      Some(response_bytes),
+      storage~,
+      raw_storage~,
+      workspace~,
+    )
+    is Some((retained, execution)) else {
+    return Err(Capacity)
+  }
+  let changed = if return_workspace {
+    @resources.shrink_capacity_reservation(
+      ledger, metadata, retained, execution,
+    )
+  } else {
+    @resources.grow_capacity_reservation(ledger, metadata, retained, execution)
+  }
+  match changed {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  if !self.retained_keyed_original() {
+    return Err(Unavailable)
+  }
+  Ok(())
 }
 
 ///|

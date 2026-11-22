@@ -2368,6 +2368,65 @@ test "staged constructor phase yields only scratch and grows the same original b
 }
 
 ///|
+test "staged constructor does not reacquire returned scratch when reusing its peak" {
+  let (child, owner, ledger) = effect_output_refinement_fixture(
+    () => (),
+    staged=true,
+  )
+  let first = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50000L, 75000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let next = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(60000L, 65000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, first).unwrap()
+  yield_installed_effect_operation_construction_workspace(child).unwrap()
+  let yielded = @resources.ledger_usage(ledger)
+  let history = @resources.quantity_usage(ledger)
+  let available = @resources.ledger_limits(ledger).execution_bytes -
+    yielded.reserved_execution_bytes
+  let additional = 15000L
+  let short = @resources.reserve_capacity(
+    ledger,
+    0L,
+    available - additional + 1L,
+  ).unwrap()
+  let before_refusal = @resources.ledger_usage(ledger)
+  assert_true(
+    grow_installed_effect_operation_input(
+      child,
+      next,
+      reuse_execution_peak=true,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_refusal)
+  assert_false(child.construction_completed)
+  @resources.settle_capacity(ledger, short).unwrap()
+  let exact = @resources.reserve_capacity(ledger, 0L, available - additional).unwrap()
+  grow_installed_effect_operation_input(child, next, reuse_execution_peak=true).unwrap()
+  @resources.settle_capacity(ledger, exact).unwrap()
+  let continued = @resources.ledger_usage(ledger)
+  assert_eq(
+    continued.reserved_execution_bytes,
+    yielded.reserved_execution_bytes + additional,
+  )
+  assert_eq(
+    continued.reserved_retention_bytes,
+    yielded.reserved_retention_bytes + 10000L,
+  )
+  assert_eq(@resources.quantity_usage(ledger), history)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
 test "staged constructor phase yield refuses static and reentered retired originals" {
   let (fixed, owner, ledger) = effect_output_refinement_fixture(() => ())
   begin_installed_effect_operation_construction(fixed).unwrap()

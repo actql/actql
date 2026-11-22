@@ -221,7 +221,7 @@ pub fn effect_plan_row_field_at(EffectPlanRow, Int) -> (String, @canonical_json.
 
 pub fn effect_plan_row_field_count(EffectPlanRow) -> Int
 
-pub fn effect_plan_row_intended_changes_wire(EffectPlanRow, EffectMappingLiterals, Int, Int, Int, Int, Int) -> Result[String, EffectPlanChangeIssue]
+pub fn effect_plan_row_intended_changes_wire(EffectPlanRow, EffectMappingLiterals, Int, Int, Int, Int, Int, before_encode? : ((Int, Int, Int) -> Bool)?) -> Result[String, EffectPlanChangeIssue]
 
 pub fn effect_plan_row_selector(EffectPlanRow) -> @canonical_json.CanonicalValue
 

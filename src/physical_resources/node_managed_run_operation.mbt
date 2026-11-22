@@ -175,13 +175,14 @@ pub fn[P, E] grow_prepared_run_operation_capacity(
 /// Keep its SAME retained backing and spent slot; dispose only workspace.
 /// This creates no reservation, attempt, physical stop or cleanup ACK. The
 /// closed consumer fence runs after the one original current observation.
+/// The result reports the remaining execution backing on that reservation.
 pub fn[P, E] complete_prepared_run_operation_construction(
   value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
   backing : NodeManagedRunOperationBacking,
-) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+) -> Result[Int64, NodeManagedRunOperationIssue[E]] {
   match
     check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
@@ -191,12 +192,10 @@ pub fn[P, E] complete_prepared_run_operation_construction(
     return Err(Control(InvalidCharge))
   }
   let retained = capacity.reservation.retention
-  resize_capacity_reservation_current(
-    ledger,
-    capacity,
-    retained,
-    Int64::min(retained, capacity.reservation.execution),
-  ).map_err(issue => Control(issue))
+  let execution = Int64::min(retained, capacity.reservation.execution)
+  resize_capacity_reservation_current(ledger, capacity, retained, execution)
+  .map(_ => execution)
+  .map_err(issue => Control(issue))
 }
 
 ///|
@@ -357,7 +356,7 @@ pub fn[P, E] complete_node_managed_run_operation_construction(
     ledger,
     original,
     backing,
-  )
+  ).map(_ => ())
 }
 
 ///|

@@ -539,6 +539,8 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports? : @host.ClientEffectImportedEvidence? = None,
+  before_inventory? : ((Int64) -> Bool)? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   @host.ClientEffectModelAcquiredEvidence,
   @host.ClientEffectAcquiredEvidenceIssue,
@@ -553,6 +555,33 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   defer {
     self.advancing = false
   }
+  if before_inventory is Some(fund) {
+    guard observation.held.owner.call_scope is Some(scope) &&
+      fund(
+        scope.named_sources.length().to_int64() +
+        scope.sources.length().to_int64() +
+        scope.result_inputs.length().to_int64() +
+        (if scope.source is Some(_) { 1L } else { 0L }),
+      ) &&
+      !self.closing &&
+      !self.closed &&
+      self.local_observation is Some(current) &&
+      physical_equal(current, observation) else {
+      return Err(Invocation(Encoding))
+    }
+  }
+  let funded = match before_body {
+    None => None
+    Some(fund) =>
+      Some((kind, geometry) => {
+        fund(kind, geometry) &&
+        !self.closing &&
+        !self.closed &&
+        self.local_observation
+        .map(current => physical_equal(current, observation))
+        .unwrap_or(false)
+      })
+  }
   let result = @infer.issue_original_local_model_acquired_evidence(
     observation,
     retention,
@@ -560,6 +589,7 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
     max_nodes,
     max_depth,
     imports~,
+    before_body=funded,
   )
   if self.closing ||
     self.closed ||
@@ -583,6 +613,7 @@ pub fn NativeClientMockModelWork::local_effect_model_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : @host.ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   @host.ClientEffectLocalResultArtifact,
   @host.ClientEffectLocalResultArtifactIssue,
@@ -597,9 +628,32 @@ pub fn NativeClientMockModelWork::local_effect_model_artifact(
   defer {
     self.advancing = false
   }
+  let funding : @host.ClientEffectModelArtifactFunding? = funding.map(fund => {
+    let current = () => {
+      !self.closing &&
+      !self.closed &&
+      self.local_observation.map(actual => physical_equal(actual, observation)) ==
+      Some(true)
+    }
+    {
+      reserve_measurement: count => {
+        (fund.reserve_measurement)(count) && current()
+      },
+      reserve_bodies: bodies => (fund.reserve_bodies)(bodies) && current(),
+    }
+  })
   let result = @infer.issue_original_local_model_effect_artifact(
-    observation, materials, inputs, exported, acquired, definition, receipt, max_bytes,
-    max_nodes, max_depth,
+    observation,
+    materials,
+    inputs,
+    exported,
+    acquired,
+    definition,
+    receipt,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    funding~,
   )
   if self.closing ||
     self.closed ||

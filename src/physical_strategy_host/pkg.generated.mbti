@@ -277,6 +277,8 @@ pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> Strin
 
 pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
 
+pub fn captured_effect_proposal_plan_staged_rows(CapturedEffectProposalPlan) -> Int?
+
 pub fn captured_effect_published_store_binding(CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, CapturedEffectProposalIssue]
 
 pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
@@ -813,7 +815,7 @@ pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 
 pub fn project_captured_effect_checked_proposal_row(CapturedEffectProposalPlan, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow, Int, Int, @value_admission.Limits) -> Result[CapturedEffectCheckedProposalRow, CapturedEffectCheckedProposalIssue]
 
-pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
+pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int, before_encode? : ((Int, Int, Int, Int) -> Bool)?) -> Result[(String, String), CapturedEffectProposalIssue]
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
 

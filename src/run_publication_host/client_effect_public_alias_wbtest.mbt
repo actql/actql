@@ -26,9 +26,22 @@ test "public Result aliases select their own local definition even when one task
     @strategy.graph_result_task(graph, 0),
     @strategy.graph_result_task(graph, 1),
   )
+  let geometry = client_effect_local_result_definition_construction_geometry(
+    owner, 0, "out", 4096, 16, 4,
+  ).unwrap()
+  assert_eq((geometry.nodes, geometry.fields, geometry.depth), (5, 4, 1))
+  let capacity = client_effect_local_result_definition_issuer_capacity(geometry).unwrap()
   let first = issue_client_effect_local_result_definition(
     owner, 0, "out", 4096, 16, 4,
   ).unwrap()
+  // This fixture is ASCII and the issuer uses the same fixed-width self CID.
+  assert_eq(first.wire.length(), geometry.bytes)
+  assert_eq(first.cid.length(), 71)
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  assert_eq(retained, 96L + 2L * (first.wire.length() + 71).to_int64())
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) > retained,
+  )
   let second = issue_client_effect_local_result_definition(
     owner, 0, "other", 4096, 16, 4,
   ).unwrap()

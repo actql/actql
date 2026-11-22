@@ -19,6 +19,9 @@ fn[T] require_native_lookup_dependency(
 /// executes no Source, Model, compiler or Request issuer. The caller backs the
 /// bounded metadata/first durable wire copies before entry; the lookup still
 /// owns all physical children, consumed work and failed-cleanup obligations.
+/// Encoders can fund writing separately from admission. The last emitter
+/// argument selects the additional digest over a returned Policy wire.
+/// Table quotes supply the live entry, key text and additional wire extents.
 pub fn client_keyed_lookup_native_dependency_bodies(
   lookup : ClientKeyedLookupInput,
   retention : @publication.PublicationContract,
@@ -27,6 +30,8 @@ pub fn client_keyed_lookup_native_dependency_bodies(
   max_depth : Int,
   physical_source? : (String, String)? = None,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
+  before_emit? : ((Int, Int, Int, Bool) -> Bool)? = None,
+  before_tables? : ((Int, Int64, Int64) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -35,8 +40,16 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     return Err(ForeignInput)
   }
   keyed_lookup_native_dependency_bodies_from_original(
-    lookup, completed, retention, limits, max_nodes, max_depth, physical_source,
+    lookup,
+    completed,
+    retention,
+    limits,
+    max_nodes,
+    max_depth,
+    physical_source,
     before_body,
+    before_emit~,
+    before_tables~,
   )
 }
 
@@ -62,6 +75,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   before_body : ((Int, Int, Int) -> Bool)?,
   serial? : KeyedDependencySerialFunding? = None,
   retain_catalog? : Bool = true,
+  before_emit? : ((Int, Int, Int, Bool) -> Bool)? = None,
+  before_tables? : ((Int, Int64, Int64) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -104,9 +119,74 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   let program = @checked.effect_program_static_checked_computation(
     prepared.candidate,
   )
+  let original_current = () => {
+    !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.native_completion
+    .map(value => physical_equal(value, completed))
+    .unwrap_or(false)
+  }
+  fn fund_tables(
+    entries : Int,
+    keys : Int64,
+    wires : Int64,
+  ) -> Result[Unit, ClientEffectDependencyCaptureIssue] {
+    if before_tables is Some(fund) {
+      if !fund(entries, keys, wires) {
+        return Err(ConstructionRefused)
+      }
+      if !original_current() {
+        return Err(ForeignInput)
+      }
+    }
+    Ok(())
+  }
+  match fund_tables(0, 0L, 0L) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let bodies : Array[@publication.CapturedEffectDependencyBody] = []
   let seen : Map[String, String] = Map([])
   let mut remaining = limits.max_total_bytes
+  let mut key_units = 0L
+  let mut wire_units = 0L
+  fn fund_key(
+    kind : String,
+    cid : String,
+  ) -> Result[Unit, ClientEffectDependencyCaptureIssue] {
+    if before_tables is None {
+      return Ok(())
+    }
+    // The two String concatenations can share a live prefix. No entry grows
+    // until the duplicate check and the original admission have succeeded.
+    let key = kind.length().to_int64() + cid.length().to_int64() + 1L
+    fund_tables(bodies.length(), key_units + 2L * key, wire_units)
+  }
+  fn adopt(
+    body : @publication.CapturedEffectDependencyBody,
+    key : String,
+    wire : String,
+    bytes : Int,
+    input_units : Int64,
+    keeps_input : Bool,
+  ) -> Result[Unit, ClientEffectDependencyCaptureIssue] {
+    if before_tables is Some(_) {
+      let keys = key_units + key.length().to_int64()
+      let wires = wire_units + input_units
+      match fund_tables(bodies.length() + 1, keys, wires) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      key_units = keys
+      if keeps_input {
+        wire_units = wires
+      }
+    }
+    bodies.push(body)
+    seen[key] = wire
+    remaining -= bytes
+    Ok(())
+  }
   fn append_measured(
     kind : String,
     cid : String,
@@ -114,6 +194,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     wire_extent : (Int, Int)?,
     scope : NativeLookupAppendScope,
   ) -> Unit raise NativeLookupDependencyStop {
+    require_native_lookup_dependency(fund_key(kind, cid))
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
       if previous != wire {
@@ -141,19 +222,22 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         max_nodes,
         max_depth,
         funding,
-        () => {
-          !lookup.closed &&
-          lookup.left.lookup_issue is None &&
-          lookup.native_completion
-          .map(value => physical_equal(value, completed))
-          .unwrap_or(false)
-        },
+        original_current,
         wire_extent~,
       ),
     )
-    bodies.push(body)
-    seen[key] = wire
-    remaining -= bytes
+    let canonical = @publication.captured_effect_dependency_body_json(body)
+    if before_tables is Some(_) && canonical == wire {
+      // The old duplicate check compares String values. When they match we
+      // can point the table at the SAME returned body instead of its input.
+      require_native_lookup_dependency(
+        adopt(body, key, canonical, bytes, wire.length().to_int64(), false),
+      )
+    } else {
+      require_native_lookup_dependency(
+        adopt(body, key, wire, bytes, wire.length().to_int64(), true),
+      )
+    }
     // The synchronous admission returned. No parser cursor is in the
     // retained dependency body or the duplicate table.
     if scope is ReturnedWire &&
@@ -213,12 +297,13 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     let kind = @publication.captured_effect_dependency_body_kind(body)
     let cid = @publication.captured_effect_dependency_body_cid(body)
     let wire = @publication.captured_effect_dependency_body_json(body)
+    match fund_key(kind, cid) {
+      Ok(_) => ()
+      Err(ConstructionRefused) => return Err(BudgetExceeded)
+      Err(_) => return Err(ForeignBody)
+    }
     let key = kind + "\u0000" + cid
-    if lookup.closed ||
-      lookup.left.lookup_issue is Some(_) ||
-      !lookup.native_completion
-      .map(value => physical_equal(value, completed))
-      .unwrap_or(false) {
+    if !original_current() {
       return Err(ForeignBody)
     }
     if seen.get(key) is Some(previous) {
@@ -229,18 +314,28 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     }
     // The policy codec already admitted this SAME body after its measured
     // construction. Keep its original, rather than decode a wire copy again.
-    bodies.push(body)
-    seen[key] = wire
-    remaining -= bytes
-    Ok(())
+    match adopt(body, key, wire, bytes, 0L, false) {
+      Ok(_) => Ok(())
+      Err(ConstructionRefused) => Err(BudgetExceeded)
+      Err(_) => Err(ForeignBody)
+    }
   }
   let policy_receiver = Some(receive_policy_body)
+  let emit_funding = if before_emit is Some(prepare) {
+    Some((bytes, nodes, depth) => prepare(bytes, nodes, depth, false))
+  } else {
+    before_body
+  }
+  let policy_emit_funding = before_emit.map(prepare => {
+    fn(bytes, nodes, depth) { prepare(bytes, nodes, depth, true) }
+  })
+  let current = before_emit.map(_ => original_current)
   fn emit(
     kind : String,
     cid : String,
     produce : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Unit raise NativeLookupDependencyStop {
-    if before_body is Some(prepare) {
+    if emit_funding is Some(prepare) {
       let measure = try {
         let writer = @encode.measuring_writer(remaining, max_nodes, max_depth)
         produce(writer)
@@ -251,7 +346,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       if !prepare(measure.0, measure.1, measure.2) {
         raise NativeLookupDependencyStop(ConstructionRefused)
       }
-      if lookup.closed || lookup.left.lookup_issue is Some(_) {
+      if !original_current() {
         raise NativeLookupDependencyStop(ForeignInput)
       }
     }
@@ -396,7 +491,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @canonical.object_field(node, "pipeline") is Some(pipeline) else {
       return Err(ForeignInput)
     }
-    if before_body is None {
+    if emit_funding is None {
       let pipeline_wire = @canonical.stringify_value(
         pipeline, remaining, max_nodes, max_depth,
       )
@@ -513,6 +608,13 @@ fn keyed_lookup_native_dependency_bodies_from_original(
               retained_body_keys=Some(seen),
               before_body=funding,
               admitted_body=policy_receiver,
+              before_emit=policy_emit_funding,
+              before_catalog_emit=if before_emit is Some(_) {
+                emit_funding
+              } else {
+                None
+              },
+              current~,
             ).map_err(issue => Static(issue)),
           )
           if serial is Some(_) && !selected.is_empty() {
@@ -551,6 +653,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           is Some((kind, cid)) else {
           return Err(Dependency(InvalidBody))
         }
+        require_native_lookup_dependency(fund_key(kind, cid))
         if seen.contains(kind + "\u0000" + cid) {
           continue
         }
@@ -568,6 +671,26 @@ fn keyed_lookup_native_dependency_bodies_from_original(
             "source_contract", "source_view_contract", "data_policy", "request_schema",
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {
+          if before_emit is Some(_) && serial is None {
+            let (body, bytes) = require_native_lookup_dependency(
+              capture_checked_client_catalog_dependency(
+                program,
+                client_composed_keyed_original_stage(original),
+                kind,
+                cid,
+                remaining,
+                max_nodes,
+                max_depth,
+                before_body,
+                before_emit=emit_funding,
+                current~,
+              ).map_err(issue => Static(issue)),
+            )
+            require_native_lookup_dependency(
+              receive_policy_body(body, bytes).map_err(issue => Static(issue)),
+            )
+            continue
+          }
           let funding = match serial {
             None => before_body
             Some(catalog) => {

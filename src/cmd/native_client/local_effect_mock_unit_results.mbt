@@ -96,6 +96,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
   max_bytes : Int,
+  measure_results? : Bool = false,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     held.construction is Some(construction) &&
@@ -119,18 +120,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     if @strategy.captured_effect_local_result_stage(result) != unit {
       continue
     }
-    let name = @execution.managed_result_occurrence_name(
-      @strategy.captured_any_result_borrow_occurrence(
-        @strategy.captured_effect_local_result_borrow(result),
-      ),
-    )
+    let borrow = @strategy.captured_effect_local_result_borrow(result)
+    let occurrence = @strategy.captured_any_result_borrow_occurrence(borrow)
+    let name = @execution.managed_result_occurrence_name(occurrence)
     if native_mock_effect_result_consumed(state._retained_prepared, unit, name) {
       continue
     }
     let entry = native_mock_effect_unit_result(index)
     held.unit_results.push(entry)
+    // The order and reference collector survive through the returned
+    // receipt. A Carrier without a checked count keeps the original basis.
+    if measure_results &&
+      @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) &&
+      !construction.prepare_proposal_export(self.original, borrow, limits, rows) {
+      stop("LocalOriginalEffectUnitResultsUnavailable")
+    }
     let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
-        @strategy.captured_effect_local_result_borrow(result),
+        borrow,
       ) {
       self.prepare_mock_effect_direct_result_export(state, held, index)
     } else {
@@ -157,11 +163,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
     entry.stream = Some(stream)
+    let funding = if measure_results {
+      let fixed = construction.recipe[0]
+      let workspace = @execution.execution_capacity_execution_bytes(fixed) -
+        @execution.execution_capacity_retained_bytes(fixed)
+      Some(
+        construction.export_row_funding(workspace, issue => {
+          self.original.retain_primary(CommandBusinessEffectProposals(issue))
+        }),
+      )
+    } else {
+      None
+    }
+    let before_emit = funding.map(original => original.0)
+    let before_decode = funding.map(original => original.1)
     while @execution.next_completed_output_export_canonical_row(
             stream,
             wire.max_nodes,
             wire.max_depth,
             limits.output_work,
+            before_emit~,
+            before_decode~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original)
@@ -172,26 +194,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
     entry.receipt = Some(receipt)
-    let name = @execution.managed_result_occurrence_name(
-      @strategy.captured_any_result_borrow_occurrence(
-        @strategy.captured_effect_local_result_borrow(result),
-      ),
-    )
-    let definition = @run_host.issue_client_effect_local_result_definition(
-        state._retained_prepared,
-        unit,
-        name,
-        16384,
-        1024,
-        20,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
-      .native_effect_proposal(self.original)
-    entry._retained_definition = Some(definition)
-    construction.retain_wire(
+    let definition = construction.issue_result_definition(
       self.original,
-      @run_host.client_effect_local_result_definition_json(definition),
+      state._retained_prepared,
+      unit,
+      name,
     )
+    entry._retained_definition = Some(definition)
+    let funding = if measure_results {
+      Some(
+        construction.model_result_artifact_funding(self.original, definition),
+      )
+    } else {
+      None
+    }
     let artifact = business.model_work[0]
       .local_effect_model_artifact(
         materials,
@@ -203,24 +219,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
         16384,
         1024,
         20,
+        funding~,
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
       .native_effect_proposal(self.original)
     entry.artifact = Some(artifact)
-    for
-      body in [
-        @run_host.client_effect_local_result_artifact_json(artifact),
-        @run_host.client_effect_local_result_derivation_json(artifact),
-        @run_host.client_effect_local_result_ordering_json(artifact),
-      ] {
-      construction.retain_wire(self.original, body)
+    if funding is None {
+      for
+        body in [
+          @run_host.client_effect_local_result_artifact_json(artifact),
+          @run_host.client_effect_local_result_derivation_json(artifact),
+          @run_host.client_effect_local_result_ordering_json(artifact),
+        ] {
+        construction.retain_wire(self.original, body)
+      }
     }
     let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
         stream, receipt,
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
-    if !construction.prepare(
+    if !construction.prepare_snapshot(
         self.original,
         Int::max(1, bytes),
         Int::max(1, nodes),

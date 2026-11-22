@@ -2539,6 +2539,48 @@ test "Native shared-file Effect joins and binds both original Source observation
     assert_true(physical_equal(preview._retained_observation, observation))
     assert_true(physical_equal(preview._retained_invocation, invocation))
     assert_eq(preview.proofs.length(), 3)
+    let identity = @strategy.captured_effect_preview_ledger_identity(
+      preview.inputs,
+    )
+    let limits = @run_host.client_standard_effect_computation_limits().effects
+    let stage = @strategy.captured_effect_input_stage(
+      @strategy.captured_effect_input_at(proposals.inputs, 0).unwrap(),
+    )
+    let bind_original = authoring_cid => {
+      @run_host.bind_admitted_captured_client_effect_preview(
+        proposals.materials.unwrap(),
+        state.effect_capture.unwrap(),
+        proposals.inputs,
+        invocation,
+        stage,
+        identity,
+        authoring_cid,
+        preview._retained_identities,
+        limits.max_work,
+        {
+          max_work: limits.max_work,
+          max_fields: 100,
+          max_bytes: file_limits.page.max_bytes,
+          max_nodes: limits.max_admission_nodes,
+          max_depth: limits.max_admission_depth,
+        },
+      )
+    }
+    let authoring_cid = @publication.run_evidence_value_identity(
+      preview._retained_authoring,
+    )
+    assert_true(
+      bind_original(authoring_cid + "x") is Err(Identity(ForeignPreview)),
+    )
+    let rebound = bind_original(authoring_cid).native_file_route_value(
+      "bind the admitted original Preview",
+    )
+    assert_true(
+      physical_equal(
+        @strategy.captured_effect_preview_ledger_identity(rebound),
+        identity,
+      ),
+    )
     guard @json.parse(preview._retained_wire) is Object(fields) &&
       fields.get("model_derived") == Some(Json::boolean(false)) &&
       fields.get("effects") is Some(Array(effects)) else {
