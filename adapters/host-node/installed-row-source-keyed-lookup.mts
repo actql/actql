@@ -5,6 +5,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {rejectInstalledRowSource as fail} from './installed-row-source-mapping.mjs';
 
 import type {createInstalledRowSourceKeyedPreparation} from './installed-row-source-keyed-preparation.mjs';
+import type {createInstalledRowSourceKeyedRead} from './installed-row-source-keyed-read.mjs';
 import type {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
 type KeyedPreparation = ReturnType<typeof createInstalledRowSourceKeyedPreparation>;
@@ -13,13 +14,13 @@ type KeyedPrepared = VerificationOptions['preparedKeyed'];
 type SourceAccess = NonNullable<VerificationOptions['sourceAccess']>;
 type ContractInputs = Pick<Parameters<typeof prepareOriginalSourceQuery>[0], 'registry' | 'values' | 'fragment' | 'ordered'>;
 type SourceCapture = Readonly<{source(): unknown; originalRead?(): unknown}>;
-type LookupPublication = Readonly<{
+type KeyedRead = ReturnType<typeof createInstalledRowSourceKeyedRead>;
+type KeyedReadOptions = Parameters<KeyedRead['openKeyed']>[0];
+type KeyedReadPublication = NonNullable<KeyedReadOptions['lookupPublication']>;
+type LookupPublication = Partial<KeyedReadPublication> & Readonly<{
   protocol?: 'generic-source';
   initialize(lookup: unknown): void;
   finishInput(lookup: unknown): unknown;
-  activate?(lookup: unknown, request: unknown): unknown;
-  retainRawResponse?(lookup: unknown, request: unknown, activation: unknown, bytes: Uint8Array): unknown;
-  adopt?(lookup: unknown, request: unknown, activation: unknown, capture: unknown, raw: unknown): void;
 }>;
 type LookupOptions = {
   preparedProgram?: unknown;
@@ -32,7 +33,7 @@ type LookupOptions = {
   originalCapture?: SourceCapture;
   originalCaptures?: readonly SourceCapture[];
   managedRun?: unknown;
-  keyedContent?: unknown;
+  keyedContent?: KeyedReadOptions['keyedContent'];
   publication?: LookupPublication;
   sourceLookup?: unknown;
   sourceAccess?: SourceAccess;
@@ -40,25 +41,12 @@ type LookupOptions = {
   maxNodes?: number;
   quantum?: number;
 };
-type LookupChild = Readonly<{
-  close(): Promise<void>;
-  verifyRead(): Promise<unknown>;
-  acceptLookup(lookup: unknown): unknown;
-}>;
+type LookupChild = Awaited<ReturnType<KeyedRead['openKeyed']>>;
 type AcquisitionRecovery = Readonly<{
   close(): unknown;
   cleanup(): boolean | PromiseLike<boolean>;
   cleanupPending(): boolean;
 }>;
-type OpenKeyedOptions = Pick<LookupOptions, 'preparedProgram' | 'preparedEffect' | 'managedRun' |
-  'keyedAcquisition' | 'ledger' | 'signal' | 'preparedKeyed' | 'keyedContent'> & {
-  request: unknown;
-  lookupPublication?: LookupPublication;
-  lookupOriginal: unknown;
-  sourceAccess: SourceAccess;
-  capturedResourcePath(verifyRead: LookupChild['verifyRead'], signal?: AbortSignal): Promise<string>;
-  chargeVerification(bytes: number): unknown;
-};
 type ObservationOptions = Readonly<{authorityScopeCid: string; observedAt: string}>;
 type LookupHostOptions = ContractInputs & Readonly<{
   retainedRelationOutput?: boolean;
@@ -113,11 +101,11 @@ export function createInstalledRowSourceKeyedLookup({moon, limits, originalReade
   moon: LookupRuntime;
   limits: Readonly<{maxPageBytes: number}>;
   originalReader?: object;
-  selectedKeyedContent(value: unknown): unknown;
+  selectedKeyedContent: KeyedRead['selectedKeyedContent'];
   sourceAccess: SourceAccess;
   managedPageLimits?: Readonly<{maxDepth: number}>;
   pageLimits?: Readonly<{maxDepth: number}>;
-  openKeyed(options: OpenKeyedOptions): Promise<LookupChild>;
+  openKeyed: KeyedRead['openKeyed'];
 }) {
   // Exact-key sharing changes physical reads, not original left multiplicity.
   // This assembles a right Relation input; it is not Source/task evidence.
@@ -249,7 +237,7 @@ export function createInstalledRowSourceKeyedLookup({moon, limits, originalReade
           try {
             acquired = await openKeyed({preparedProgram, preparedEffect,
               keyedContent, managedRun,
-              lookupPublication: nativePublication ? publication : undefined, lookupOriginal: lookup,
+              lookupPublication: nativePublication ? publication as KeyedReadPublication : undefined, lookupOriginal: lookup,
               keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
               capturedResourcePath: async (verifyRead, activeSignal) => {
                 let locator;

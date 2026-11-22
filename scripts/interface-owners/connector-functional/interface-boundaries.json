@@ -16257,11 +16257,438 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-keyed-read.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "createInstalledRowSourceKeyedRead"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceKeyedRead",
+          "parameters": [
+            "originalReader",
+            "captureContent",
+            "referenceIssuer",
+            "moon",
+            "sourceRefs",
+            "text",
+            "prepareKeyedSourceRead",
+            "closeKeyedSourceRead",
+            "keyedPreparations",
+            "declaration",
+            "limits",
+            "physicalTarget",
+            "valueCid",
+            "keyedTransferBytes",
+            "keyedExecutionBytes",
+            "connectorRegistration",
+            "connectorRevision",
+            "bindingCid",
+            "currentRead",
+            "site",
+            "cid",
+            "operationBindings",
+            "readPages",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "managedRun",
+            "keyedAcquisition",
+            "request",
+            "ledger",
+            "signal",
+            "preparedKeyed",
+            "chargeVerification",
+            "capturedResourcePath",
+            "keyedContent",
+            "lookupPublication",
+            "lookupOriginal",
+            "access"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed",
+          "parameters": [
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed/expire/expire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#11",
+          "parameters": [
+            "lookup"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#13",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#3",
+          "parameters": [
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#4",
+          "parameters": [
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#5",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#6",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#7",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#8",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/responseBackingReleased/responseBackingReleased",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/openKeyed/verifyRead/verifyRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedRead/selectedKeyedContent/selectedKeyedContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-run.mjs",
+        "./installed-row-source-mapping.mjs",
+        "./typed-response-json-codec.mjs",
+        "node:crypto",
+        "node:perf_hooks"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "2ff4d83267c71d46e6eb3f1e9610fa3473aa051298df2b8fd48b3df3d333ca00",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceKeyedRead",
+            "createInstalledRowSourceKeyedRead/openKeyed",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed/expire/expire",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#13",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#2",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#3",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#4",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#5",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#6",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#7",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#8",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#9",
+            "createInstalledRowSourceKeyedRead/openKeyed/responseBackingReleased/responseBackingReleased",
+            "createInstalledRowSourceKeyedRead/openKeyed/verifyRead/verifyRead",
+            "createInstalledRowSourceKeyedRead/selectedKeyedContent/selectedKeyedContent"
+          ],
+          "exports": [
+            "createInstalledRowSourceKeyedRead"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "export function createInstalledRowSourceKeyedRead("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "async function openKeyed("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "type OpenKeyedOptions = {"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "const requestWire = checked("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "scope.keyedAcquisition !== keyedAcquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "valueCid(physicalBinding) !== valueCid(preparedKeyed.physicalBinding)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "session.closeAfterFailure(state, end.recovery);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "await verifyRead();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "session.confirmTransportStopped();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "fail('InstalledSourceCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "throw new AcquisitionOpenError(error, state.closeFailed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "budgetAbort.abort(Object.assign"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "await rowRecovery.cleanup() === false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "capacity: {transferBytes: keyedTransferBytes, executionBytes: keyedExecutionBytes}"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "moon.clientProgramRowSourceConsumeObservationCharge(run, charge)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "lookupPublication.adopt(lookupOriginal, request, lookupActivation, capture, lookupRaw);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed keyed original drives its same RowRun and consumes native bytes before encoded rows"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed keyed failure retains the same physical recovery before Core and parent retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "installed lookup refuses cancellation after positive physical work without publishing partial input"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSourceKeyedRead/openKeyed/cleanup/cleanup",
+            "createInstalledRowSourceKeyedRead/openKeyed/init:close/init:close",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#10",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#11",
+            "createInstalledRowSourceKeyedRead/openKeyed/openKeyed#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-read.mts",
+                "anchor": "const rowRecovery = state.recovery;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const closeOriginal = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c3c3fbab6e0b4d1555cf02593b1ce265492e8d0162c746284320f4a654b82a85",
+      "sha256": "d4c7a77ac974a26bc8b794ef7c7345f23b33b09d3eea325a42d131bc7481ace4",
       "operations": [
         {
           "name": "cid/cid",
@@ -16577,133 +17004,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/openKeyed",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "managedRun",
-            "keyedAcquisition",
-            "request",
-            "ledger",
-            "signal",
-            "preparedKeyed",
-            "chargeVerification",
-            "capturedResourcePath",
-            "keyedContent",
-            "lookupPublication",
-            "lookupOriginal",
-            "access"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/cleanup/cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed",
-          "parameters": [
-            "bytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#10",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#11",
-          "parameters": [
-            "lookup"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#12",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#13",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#3",
-          "parameters": [
-            "bytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#4",
-          "parameters": [
-            "bytes"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#5",
-          "parameters": [
-            "body"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#6",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#7",
-          "parameters": [
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#8",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/openKeyed#9",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/responseBackingReleased/responseBackingReleased",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/operationBindings/operationBindings",
           "parameters": [
             "resource"
@@ -16721,13 +17021,6 @@
           "name": "createInstalledRowSource/resources/resources",
           "parameters": [
             "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -16821,6 +17114,7 @@
         "./installed-row-source-environment.mjs",
         "./installed-row-source-keyed-lookup.mjs",
         "./installed-row-source-keyed-preparation.mjs",
+        "./installed-row-source-keyed-read.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-row-source-preparation.mjs",
         "./installed-row-source-read-authority.mjs",
@@ -16829,7 +17123,6 @@
         "./typed-response-json-codec.mjs",
         "node:crypto",
         "node:fs/promises",
-        "node:perf_hooks",
         "node:url",
         "node:util"
       ],
@@ -16861,20 +17154,6 @@
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
-            "createInstalledRowSource/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed#13",
-            "createInstalledRowSource/openKeyed/openKeyed#2",
-            "createInstalledRowSource/openKeyed/openKeyed#3",
-            "createInstalledRowSource/openKeyed/openKeyed#4",
-            "createInstalledRowSource/openKeyed/openKeyed#5",
-            "createInstalledRowSource/openKeyed/openKeyed#6",
-            "createInstalledRowSource/openKeyed/openKeyed#7",
-            "createInstalledRowSource/openKeyed/openKeyed#8",
-            "createInstalledRowSource/openKeyed/openKeyed#9",
-            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
-            "createInstalledRowSource/openKeyed/responseBackingReleased/responseBackingReleased",
-            "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/resources/resources",
             "text/text",
@@ -16882,8 +17161,7 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
             "cid/cid",
             "createInstalledRowSource/currentPhysicalTargetGeneration",
-            "createInstalledRowSource/prepareOriginalAcquisition",
-            "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent"
+            "createInstalledRowSource/prepareOriginalAcquisition"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -18944,118 +19222,6 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source failed read retirement remains with the same Source close retry"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledRowSource/openKeyed/cleanup/cleanup",
-            "createInstalledRowSource/openKeyed/init:close/init:close",
-            "createInstalledRowSource/openKeyed/openKeyed#10",
-            "createInstalledRowSource/openKeyed/openKeyed#11",
-            "createInstalledRowSource/openKeyed/openKeyed#12"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const rowRecovery = state.recovery;"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const closeOriginal = async () => {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
-                "anchor": "pub fn check_installed_keyed_source_read_ledger("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "other unsupported backend shapes remain separate connections, not language"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
-                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
               },
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
