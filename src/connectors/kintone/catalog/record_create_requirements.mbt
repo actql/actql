@@ -81,3 +81,30 @@ pub fn record_create_required_fields(
   }
   Ok(required)
 }
+
+///|
+/// Construction bound for the copied-target map in the required-field scan.
+/// Count the original lookup destinations up to the same work cutoff, including
+/// repeated destinations as a conservative bound. No field verdict is issued.
+pub fn record_create_copied_target_bound(
+  catalog : FormFieldCatalog,
+  max_fields : Int,
+  max_work : Int,
+) -> Int {
+  if catalog.fields.length() > max_fields || max_work <= 0 {
+    return 0
+  }
+  let mut work = max_work
+  let mut entries = 0
+  for owner in catalog.fields {
+    if work == 0 {
+      break
+    }
+    work -= 1
+    guard owner.write_lookup_targets is Some(targets) else { break }
+    let count = Int::min(work, targets.length())
+    entries += count
+    work -= count
+  }
+  entries
+}

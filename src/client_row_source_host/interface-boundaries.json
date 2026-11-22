@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "78bcbb52cfebe2ad08ac312150ef9096ba30905a5bdd812bb9f5968e5899598b",
+      "sha256": "8247891398bc16ff499241c909c4e514e32b1282e83e1b02e9b3fdf2a6bc3cbb",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [

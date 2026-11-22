@@ -33,12 +33,10 @@ pub fn prepare_record_key_upsert_before(
   for name in names {
     let mut matched = false
     for expected in original.names {
-      for text in [name, expected] {
-        if text.length() > work {
-          return Err(Catalog(@catalog.BudgetExceeded))
-        }
-        work -= text.length()
+      if name.length() > work || expected.length() > work - name.length() {
+        return Err(Catalog(@catalog.BudgetExceeded))
       }
+      work -= name.length() + expected.length()
       if name == expected {
         matched = true
         break

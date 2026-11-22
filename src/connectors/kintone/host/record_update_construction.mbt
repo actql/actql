@@ -46,12 +46,27 @@ pub fn record_update_proposal_construction_inventory(
   if !record_update_mapping_is_original(mapping) {
     return None
   }
+  record_mutation_proposal_values_inventory(
+    mapping.original,
+    mapping.written_fields.length(),
+    max_input_bytes,
+    write,
+    request,
+  )
+}
+
+///|
+// The admitted write values and their synchronous parser have the same
+// construction geometry before either UPDATE or keyed UPSERT looks up a row.
+fn record_mutation_proposal_values_inventory(
+  original : RecordDeclaration,
+  field_count : Int,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> RecordUpdateConstructionInventory? {
   guard record_write_admission_construction_inventory(
-      mapping.original,
-      mapping.written_fields.length(),
-      max_input_bytes,
-      write,
-      request,
+      original, field_count, max_input_bytes, write, request,
     )
     is Some(native) &&
     record_read_decoded_construction(
@@ -61,7 +76,7 @@ pub fn record_update_proposal_construction_inventory(
       false,
     )
     is Some(parser) &&
-    record_write_value_construction_extents(mapping.original, write)
+    record_write_value_construction_extents(original, write)
     is Some((values, _)) else {
     return None
   }
@@ -139,7 +154,7 @@ pub fn record_update_target_construction_inventory(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> RecordUpdateConstructionInventory? {
-  if !record_update_mapping_is_original(mapping) {
+  if !record_update_mapping_is_original(mapping) || pages.max_rows != 1 {
     return None
   }
   record_target_before_construction_inventory(
@@ -162,7 +177,6 @@ fn record_target_before_construction_inventory(
   limits : @catalog.RecordMutationLimits,
 ) -> RecordUpdateConstructionInventory? {
   if !record_target_before_limits_valid(limits) ||
-    pages.max_rows != 1 ||
     before_fields.length() == 2147483647 {
     return None
   }
@@ -302,7 +316,18 @@ pub fn record_update_finalization_construction_inventory(
     limits.max_records != 1 {
     return None
   }
-  let f = mapping.before_fields.length().to_int64()
+  record_update_request_construction_inventory(
+    mapping.before_fields.length(),
+    limits,
+  )
+}
+
+///|
+fn record_update_request_construction_inventory(
+  field_count : Int,
+  limits : @catalog.RecordMutationLimits,
+) -> RecordUpdateConstructionInventory? {
+  let f = field_count.to_int64()
   guard record_read_writer_units(
       limits.max_output_bytes,
       limits.max_output_nodes,
@@ -408,8 +433,25 @@ pub fn record_update_response_construction_inventory(
   body_bytes : Int,
   limits : @catalog.RecordMutationLimits,
 ) -> RecordUpdateConstructionInventory? {
-  if !record_update_mapping_is_original(mapping) ||
-    body_bytes < 0 ||
+  if !record_update_mapping_is_original(mapping) {
+    return None
+  }
+  record_mutation_response_construction_inventory(
+    mapping.before_fields.length(),
+    body_bytes,
+    limits,
+    false,
+  )
+}
+
+///|
+fn record_mutation_response_construction_inventory(
+  field_count : Int,
+  body_bytes : Int,
+  limits : @catalog.RecordMutationLimits,
+  keyed : Bool,
+) -> RecordUpdateConstructionInventory? {
+  if body_bytes < 0 ||
     !record_target_before_limits_valid(limits) ||
     limits.max_records != 1 ||
     body_bytes > limits.max_output_bytes {
@@ -418,9 +460,10 @@ pub fn record_update_response_construction_inventory(
   let b = Int::max(1, body_bytes)
   let nodes = Int::min(b, limits.max_output_nodes)
   let depth = Int::min(nodes, limits.max_output_depth)
+  let extra = if keyed { 1L } else { 0L }
   let outcome_bytes = Int64::min(
     limits.max_output_bytes.to_int64(),
-    6L * Int::min(b, limits.max_identity_bytes).to_int64() + 128L,
+    6L * Int::min(b, limits.max_identity_bytes).to_int64() + 128L + 32L * extra,
   ).to_int()
   guard record_read_decoded_construction(b, nodes, depth, false) is Some(parser) &&
     @decode.closed_object_field_construction_extent(Some(nodes), 2, 0L)
@@ -428,17 +471,19 @@ pub fn record_update_response_construction_inventory(
     @decode.issue_construction_extent(depth) is Some(issue) &&
     @shape.scale_collection_construction_extent(
       @decode.indexed_child_construction_extent(),
-      6L,
+      6L + 4L * extra,
     )
     is Some(children) &&
     @shape.collection_construction_extent({
       // Root and row closed views, exact scalar/identity comparison Results,
       // one-record acknowledgement, SHA/output wrappers and DATA predicates.
-      records: 48L,
-      record_references: 80L,
-      record_words: 48L,
-      reference_arrays: 12L,
-      reference_items: 12L + 4L * mapping.before_fields.length().to_int64(),
+      // Keyed upsert adds its response/branch/outcome wrappers, and the
+      // create codec can hold the separate singleton ID and revision arrays.
+      records: 48L + 16L * extra,
+      record_references: 80L + 28L * extra,
+      record_words: 48L + 12L * extra,
+      reference_arrays: 12L + 2L * extra,
+      reference_items: 12L + 4L * field_count.to_int64() + 2L * extra,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,
@@ -473,9 +518,9 @@ pub fn record_update_response_construction_inventory(
   }
   Some({
     retained: {
-      record_headers: 16L,
-      reference_slots: 24L,
-      scalar_words: 16L,
+      record_headers: 16L + 6L * extra,
+      reference_slots: 24L + 12L * extra,
+      scalar_words: 16L + 4L * extra,
       owned_utf16_units: b.to_int64() + outcome_bytes.to_int64() + 64L,
       owned_wire_bytes: 0L,
     },

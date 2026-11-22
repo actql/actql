@@ -2347,6 +2347,22 @@ jobs:
           ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/delete.case.json
           ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","deleted"]'
         run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone keyed UPSERT present target and original Saved
+        id: packed-kintone-upsert-present
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/upsert-present.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","upserts"]'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone keyed UPSERT absent target and original Saved
+        id: packed-kintone-upsert-absent
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/upsert-absent.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","upserts"]'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
       - name: Test packed Salesforce mock approval and original Saved
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:

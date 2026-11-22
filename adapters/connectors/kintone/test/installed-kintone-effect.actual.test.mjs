@@ -17,11 +17,10 @@ import {form} from './kintone-update-form.fixture.mjs';
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const base = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
 
-async function fixture(t, {field = 'Subject', kind = 'update'} = {}) {
+async function fixture(t, {field = 'Subject', key, unique = true, kind = 'update'} = {}) {
   const dependentCleanup = [];
   let parent, secretReads = 0;
-  // Site and Account must see the same runtime namespace as initialization.
-  // The quantity controls exercise the native quote separately from loading.
+  // The Account gate admits its configuration in this same module namespace.
   const moon = originalMoon;
   const directory = new URL('../../../../_build/kintone-effect-initialization/', import.meta.url);
   await mkdir(directory, {recursive: true});
@@ -37,27 +36,34 @@ async function fixture(t, {field = 'Subject', kind = 'update'} = {}) {
   const keyPath = join(root, 'credential.key');
   await writeFile(keyPath, generateKeyPairSync('ed25519').privateKey.export({format: 'pem', type: 'pkcs8'}), {mode: 0o600});
   const sitePath = join(root, 'site.json'), metadataPath = join(root, 'metadata.json'), sourcePath = join(root, 'source.json');
+  const keyed = key !== undefined;
+  const originalForm = keyed ? {...form, properties: {
+    Subject: {...form.properties.Subject, required: true},
+    Tags: {...form.properties.Tags, required: false},
+    Computed: {...form.properties.Computed, required: false},
+    CustomerKey: {code: 'CustomerKey', type: 'SINGLE_LINE_TEXT', expression: '', unique, required: true},
+  }} : form;
   await writeFile(sitePath, JSON.stringify({version: 'actql-installed-kintone-site/0.1', apiOrigin: tls.origin,
     credentialAuthorityId: 'kintone-initialization', credentialKeyId: 'key', credentialPrivateKeyPath: keyPath,
     environment: 'test', journalRoot: join(root, 'credential-journal'), namespaceId: 'kintone-initialization',
     siteGeneration: 1, siteKey: 'kintone-initialization', tokenEnvironment: 'ACTQL_KINTONE_COMPONENT_TOKEN', caPath: tls.caPath}));
   await writeFile(metadataPath, JSON.stringify({version: 'actql-kintone-record-metadata/0.1', connectorId: 'kintone',
-    appId: '12', apiOrigin: tls.origin, formBody: Buffer.from(JSON.stringify(form)).toString('base64')}));
+    appId: '12', apiOrigin: tls.origin, formBody: Buffer.from(JSON.stringify(originalForm)).toString('base64')}));
   const accountConfigurationWire = canonicalJson({version: 'actql-execution-account-config/0.1', account_id: 'kintone-component',
     entries: [{entry_id: 'records', outcome: 'allow', principal: {all: true}, connection: {any_of: ['kintone:kintone']},
-      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', kind === 'delete' ? 'write' : 'update']},
+      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', keyed ? 'upsert' : kind === 'delete' ? 'write' : 'update']},
       exclusions: []}]}, {dataKeys: true});
   const limits = {maxResponseBytes: 16384, maxNodes: 8000, maxDepth: 32, maxFields: 16, maxNameUnits: 512,
     maxColumns: 8, maxCells: 32, maxTableRows: 16, maxValueNodes: 8000, maxValueDepth: 32,
     maxValueTextBytes: 16384, maxContractPairs: 100, maxRequestBytes: 2048, maxRequests: 6,
     maxPages: 2, perPage: 2, maxSecretBytes: 128, maxRows: 4, maxDeclarationBytes: 65536, maxDeclarationNodes: 8000};
   await writeFile(sourcePath, JSON.stringify({version: 'actql-installed-kintone-source/0.1', connectorId: 'kintone',
-    appId: '12', resource: 'inquiries', formResource: 'form', fieldCodes: ['Subject', 'Tags', 'Computed'],
+    appId: '12', resource: 'inquiries', formResource: 'form', fieldCodes: ['Subject', 'Tags', 'Computed', ...(keyed ? ['CustomerKey'] : [])],
     metadataPath, siteProfilePath: sitePath, accountConfigurationWire, limits}));
   const path = join(root, 'effect.json');
   await writeFile(path, JSON.stringify({version: 'actql-installed-kintone-effect/0.1', connectorId: 'kintone',
     sourceProfilePath: sourcePath, writes: [kind === 'delete' ? {resource: 'inquiries', kind} :
-      {resource: 'inquiries', fields: [field]}],
+      {resource: 'inquiries', ...(keyed ? {kind: 'upsert', key} : {}), fields: [field]}],
     ...(kind === 'delete' ? {queryUpdateTargets: [{name: 'kintone.inquiries', targetRef: 'connector://kintone/inquiries'}]} : {})}));
   parent = createInstalledLoaderParent({root, moon}); parent.open();
   const load = async () => {
@@ -132,6 +138,38 @@ test('standard kintone UPDATE initialization refuses a computed write before Sit
   const f = await fixture(t, {field: 'Computed'});
   await assert.rejects(f.load(), installedFailureCode('MoonBitHostFailure'));
   assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
+  await f.close();
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
+});
+
+test('standard kintone UPSERT initialization binds the selected unique key and both guarded permissions', async t => {
+  const f = await fixture(t, {key: 'CustomerKey'});
+  const identity = await installedEffectIdentity(f.path, {
+    configurationReader: installedSourceConfigurationReader(f.parent.services)});
+  assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
+  const effect = await f.load(), env = JSON.parse(effect.environmentWire);
+  assert.equal(effect.mappings.length, 1);
+  assert.equal(effect.mappings[0].kind, 'upsert');
+  const mapping = env.mapping_contracts.find(value => value.mapping_contract_cid === effect.mappings[0].mappingCid);
+  assert.equal(mapping.target_ref, effect.mappings[0].target);
+  assert.equal(mapping.primary_identity, 'CustomerKey');
+  assert.equal(mapping.minimum_approval, 'required');
+  assert.deepEqual(mapping.required_fields, ['Subject']);
+  assert.deepEqual(mapping.writable_fields, ['Subject']);
+  assert.deepEqual(mapping.permission_rules, [{effect_kind: 'upsert', selector_class: 'key', write_fields: ['Subject'],
+    permissions: ['kintone:records:create', 'kintone:records:update']}]);
+  assert.equal(f.secretReads(), 0);
+  assert.deepEqual(f.tls.seen(), []);
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), false);
+  await f.close();
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
+});
+
+test('standard kintone UPSERT initialization refuses a nonunique Form key before Site or secret use', async t => {
+  const f = await fixture(t, {key: 'CustomerKey', unique: false});
+  await assert.rejects(f.load(), installedFailureCode('MoonBitHostFailure'));
+  assert.equal(f.secretReads(), 0);
+  assert.deepEqual(f.tls.seen(), []);
   await f.close();
   assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
 });

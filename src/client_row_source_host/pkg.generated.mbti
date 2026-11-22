@@ -811,6 +811,7 @@ pub(all) struct RowRelationViewSpec {
 pub(all) enum RowRelationWriteKind {
   RelationCreate
   RelationUpdate
+  RelationKeyUpsert(native_identity~ : String, update_permission~ : String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RowRelationWriteSpec {

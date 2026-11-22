@@ -41,6 +41,7 @@ pub fn installed_described_effect_recipe_capacities(
   metadata_occurrences? : Int = 3,
   target_occurrences? : Int = 3,
   target_on_child? : Bool = false,
+  cold_includes_request? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     entries.length() == 4 &&
@@ -52,10 +53,13 @@ pub fn installed_described_effect_recipe_capacities(
     metadata_response_bytes > 0 else {
     return Err(Unsupported)
   }
-  // Existing callers keep the exact three-phase quantities. A declared
-  // multi-read driver can only add original occurrences, never lower them.
-  // Physical attempts/transfers are still the SAME checked Plan inventory.
-  if metadata_occurrences < 3 ||
+  // A driver may describe locally and perform all its metadata validation in
+  // the guarded target children. Otherwise each phase owns its describe read.
+  let target_metadata_only = metadata_occurrences == 0 &&
+    metadata_on_child &&
+    target_reads &&
+    target_on_child
+  if (metadata_occurrences < 3 && !target_metadata_only) ||
     target_occurrences < 3 ||
     (!target_reads && (target_occurrences != 3 || target_on_child)) {
     return Err(Unsupported)
@@ -87,7 +91,7 @@ pub fn installed_described_effect_recipe_capacities(
     Err(issue) => return Err(issue)
   }
   let capture = capture.copy()
-  if host_input_bytes != Some(0) {
+  if host_input_bytes != Some(0) && !cold_includes_request {
     let retained = @execution.execution_capacity_retained_bytes(request)
     guard @execution.execution_capacity(retained, retained)
       is Some(request_retained) &&
@@ -202,13 +206,13 @@ pub fn installed_described_effect_recipe_capacities(
   // capture/apply/resume Describe grants are distinct original occurrences;
   // grant construction completes before the HTTP await. This does not alter
   // the declared physical-attempt/transfer inventory or refund consumed work.
-  for _ in 0..<3 {
+  for _ in 0..<Int::min(3, metadata_occurrences) {
     guard standard_create_sequence_pair_capacity(controls, grant) is Some(next) else {
       return Err(Unsupported)
     }
     controls = next
   }
-  let metadata_extra = metadata_occurrences - 3
+  let metadata_extra = Int::max(0, metadata_occurrences - 3)
   let target_extra = if target_reads { target_occurrences - 3 } else { 0 }
   if metadata_extra > 0 || target_extra > 0 {
     // Original Grant/auth/purpose records remain for EACH actual occurrence.

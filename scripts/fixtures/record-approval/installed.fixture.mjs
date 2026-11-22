@@ -236,12 +236,11 @@ export async function runInstalledRecordApprovalFixture(t, input) {
       if (loss !== undefined) {
         assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
       }
-      if (rejecting || loss !== undefined || fixture.write.kind === 'delete') {
-        const {method, pathname, bodyIncludes} = provider.writeRequest;
-        const writeCount = tls.seen().filter(request => request.method === method && request.pathname === pathname &&
-          (bodyIncludes === undefined || request.body.includes(bodyIncludes))).length;
-        assert.equal(writeCount, writesExpected, 'Count every selected write request, including refused attempts');
-      }
+      const {method, pathname, methodOverride, bodyIncludes} = provider.writeRequest;
+      const writeCount = tls.seen().filter(request => request.method === method && request.pathname === pathname &&
+        (methodOverride === undefined || (request.headers['x-http-method-override'] ?? null) === methodOverride) &&
+        (bodyIncludes === undefined || request.body.includes(bodyIncludes))).length;
+      assert.equal(writeCount, writesExpected, 'Count every selected write request, including refused attempts');
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,
         requestsBefore: before.requests.length, requestsAfter: after.requests.length, writes: after.writes});
     }
