@@ -64,6 +64,21 @@ Open that file directly if the client does not discover repository skills.
 Runtime builds, tarballs and reviewed generated artifacts follow
 [Runtime package artifacts](docs/development.md#runtime-package-artifacts).
 
+## Pull request CI use
+
+A Ready pull request starts the full hosted checks on every push. A Draft
+starts only the preparation checks. A full run that a later push supersedes
+has already occupied the shared Linux and macOS runners.
+
+- Open a pull request as Draft. Mark it Ready when the change is complete and
+  the focused local checks and the Draft checks pass.
+- When a Ready run fails, convert the pull request to Draft before pushing a
+  fix; the conversion cancels the full run. Mark it Ready again after the fix
+  passes the same local and Draft checks.
+- While Ready, push only review responses and the integration of current main,
+  batched into one push.
+- Do not push an empty commit or merge main only to start a run.
+
 ## Maintainable regression tests
 
 - Exercise actual imported functions or public entry points. Do not reconstruct
