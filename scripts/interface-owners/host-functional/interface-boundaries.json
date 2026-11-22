@@ -59054,8 +59054,8 @@
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -59108,8 +59108,8 @@
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "const startup: object = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -59208,7 +59208,7 @@
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
@@ -59346,7 +59346,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -59562,8 +59562,8 @@
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -59616,8 +59616,8 @@
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "const startup: object = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -59716,7 +59716,7 @@
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
@@ -59854,7 +59854,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -61740,8 +61740,8 @@
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -61896,7 +61896,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -61980,8 +61980,8 @@
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -62136,7 +62136,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -76437,7 +76437,7 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc44f6c16be292448715fcab8b7729594767d9a8a891df6d01acdaa254eac27a",
+      "sha256": "2e8448252397a2b6ed34be820848f77586e6c62d6aa4eec15195d466868fa182",
       "exports": [
         "admitInstalledProjectConfiguration",
         "installedProjectOriginalsForRuntime",
@@ -91160,7 +91160,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "363de0776b2bf111c94d848d5f7b3a6a6889c23faa95e6744e16c944b4d9bddb",
+      "sha256": "f146ec084970255ba2f1c453c82c9041b94a7bf0b0c1c5680121a6fa24db63b1",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
@@ -91262,16 +91262,16 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function beginInitialControlInstallation(originals, rawInput)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function beginInitialControlInstallation(originals: unknown, rawInput?: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -91296,7 +91296,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "same Host/installation/generation/source/backend/recipe"
               },
               {
@@ -91312,8 +91312,8 @@
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "const startup: object = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -91352,11 +91352,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "return apply(begin, startup, [originals, rawInput]);"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
               },
               {
@@ -91372,7 +91372,7 @@
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
@@ -91386,7 +91386,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "NodeInitialControlAdmissionUnavailable"
               },
               {
@@ -91462,7 +91462,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -91476,7 +91476,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "No consumer-side fallback is permitted."
               },
               {
@@ -91582,16 +91582,16 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function beginInitialControlInstallation(originals, rawInput)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function beginInitialControlInstallation(originals: unknown, rawInput?: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function createInitialControlInstallationOwner(operational)"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -91616,7 +91616,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "same Host/installation/generation/source/backend/recipe"
               },
               {
@@ -91632,8 +91632,8 @@
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
+                "path": "adapters/host-node/node-initial-control-installation.mts",
+                "anchor": "const startup: object = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -91672,11 +91672,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "return apply(begin, startup, [originals, rawInput]);"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
               },
               {
@@ -91692,7 +91692,7 @@
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
@@ -91706,7 +91706,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "NodeInitialControlAdmissionUnavailable"
               },
               {
@@ -91782,7 +91782,7 @@
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               },
               {
@@ -91796,7 +91796,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "No consumer-side fallback is permitted."
               },
               {

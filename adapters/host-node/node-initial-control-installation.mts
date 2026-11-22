@@ -2,6 +2,27 @@ import {createRequire} from 'node:module';
 import {beginOrdinaryHostControl, isOrdinaryHostControl, assertOrdinaryHostControlCurrent,
   ordinaryHostControlInput, ordinaryHostControlModelSdk, readOrdinaryHostAsset} from './ordinary-host-control.mjs';
 
+type OrdinaryOriginals = Parameters<typeof beginOrdinaryHostControl>[0];
+type SelectedObservation = Readonly<{
+  pending: boolean;
+  closing: boolean;
+  pendingPreparations: number;
+  errors: readonly unknown[];
+}>;
+type SelectedScope = Readonly<{
+  assertCurrent(sameOriginals: unknown): void;
+  retainPreparation(record: object, cleanupHandle?: Readonly<{status(): unknown; retry(): unknown}>):
+    Readonly<{releaseReferences(original: object): void}>;
+  status(): SelectedObservation;
+  close(): Promise<SelectedObservation>;
+}>;
+type SelectedStartup = {
+  beginInitialControlInstallation(originals: unknown, rawInput?: unknown): SelectedScope | Promise<SelectedScope>;
+  assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown): void;
+  readInitialControlInstallationAsset(scope: unknown, sameOriginals: unknown, path: unknown): string;
+  readInitialControlInstallationInput(scope: unknown, sameOriginals: unknown): object;
+};
+
 // The actual CJS startup may synchronously capture this ESM namespace before
 // entry. Read its already-published original forwarders through that SAME CJS
 // receiver; a static CJS import instead creates a forbidden require/ESM cycle.
@@ -15,7 +36,7 @@ const require = createRequire(import.meta.url);
 // with normal options, multiple Hosts and later reopen in the same process.
 const explicitStartup = process.execArgv.some(value =>
   value === '@actql/node/selected-infer-startup' || value === '@actql/local-node/selected-infer-startup');
-const startup = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
+const startup: object = explicitStartup ? require('./infer-trusted-node-preload.cjs') : Object.freeze({});
 
 const ownDescriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, apply = Reflect.apply;
@@ -28,17 +49,17 @@ const NativeError = Error;
 const descriptor = ownDescriptor(startup,
   'beginInitialControlInstallation');
 const begin = descriptor !== undefined && hasOwn(descriptor, 'value') &&
-  typeof descriptor.value === 'function' ? descriptor.value : undefined;
+  typeof descriptor.value === 'function' ? descriptor.value as SelectedStartup['beginInitialControlInstallation'] : undefined;
 const currentDescriptor = ownDescriptor(startup,
   'assertInitialControlInstallationCurrent');
 const current = currentDescriptor !== undefined && hasOwn(currentDescriptor, 'value') &&
-  typeof currentDescriptor.value === 'function' ? currentDescriptor.value : undefined;
+  typeof currentDescriptor.value === 'function' ? currentDescriptor.value as SelectedStartup['assertInitialControlInstallationCurrent'] : undefined;
 const assetDescriptor = ownDescriptor(startup, 'readInitialControlInstallationAsset');
 const readAsset = assetDescriptor !== undefined && hasOwn(assetDescriptor, 'value') &&
-  typeof assetDescriptor.value === 'function' ? assetDescriptor.value : undefined;
+  typeof assetDescriptor.value === 'function' ? assetDescriptor.value as SelectedStartup['readInitialControlInstallationAsset'] : undefined;
 const inputDescriptor = ownDescriptor(startup, 'readInitialControlInstallationInput');
 const readInput = inputDescriptor !== undefined && hasOwn(inputDescriptor, 'value') &&
-  typeof inputDescriptor.value === 'function' ? inputDescriptor.value : undefined;
+  typeof inputDescriptor.value === 'function' ? inputDescriptor.value as SelectedStartup['readInitialControlInstallationInput'] : undefined;
 
 // The actual startup must supply its nominal receiver, retaining the original
 // same Host/installation/generation/source/backend/recipe and complete finite
@@ -58,10 +79,10 @@ const readInput = inputDescriptor !== undefined && hasOwn(inputDescriptor, 'valu
 // An asynchronous namespace initialization snapshots originals before awaiting;
 // callers await begin and check fixed nominal current before covered work. Its
 // original initialization failure/cleanupHandle is not replaced by this port.
-export function beginInitialControlInstallation(originals, rawInput) {
-  if (!explicitStartup) return beginOrdinaryHostControl(originals, rawInput);
+export function beginInitialControlInstallation(originals: unknown, rawInput?: unknown) {
+  if (!explicitStartup) return beginOrdinaryHostControl(originals as OrdinaryOriginals, rawInput);
   if (begin === undefined) {
-    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable') as Error & {code: string};
     error.code = 'NodeInitialControlAdmissionUnavailable';
     throw error;
   }
@@ -70,10 +91,10 @@ export function beginInitialControlInstallation(originals, rawInput) {
 
 // Membership is checked in the SAME private preload instance. In particular,
 // calling a caller-supplied scope.assertCurrent() cannot authenticate a scope.
-export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
-  if (isOrdinaryHostControl(scope)) return assertOrdinaryHostControlCurrent(scope, sameOriginals);
+export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown) {
+  if (isOrdinaryHostControl(scope)) return assertOrdinaryHostControlCurrent(scope, sameOriginals as OrdinaryOriginals);
   if (current === undefined) {
-    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable') as Error & {code: string};
     error.code = 'NodeInitialControlAdmissionUnavailable';
     throw error;
   }
@@ -83,10 +104,10 @@ export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
 // The package-relative key selects only a fixed image already held by the
 // actual preload. No caller file/data/receiver is admitted or reread here.
 // Escaped original Strings retain their own original envelope/lifetime.
-export function readInitialControlInstallationAsset(scope, sameOriginals, path) {
-  if (isOrdinaryHostControl(scope)) return readOrdinaryHostAsset(scope, sameOriginals, path);
+export function readInitialControlInstallationAsset(scope: unknown, sameOriginals: unknown, path: unknown) {
+  if (isOrdinaryHostControl(scope)) return readOrdinaryHostAsset(scope, sameOriginals as OrdinaryOriginals, path as string);
   if (readAsset === undefined) {
-    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable') as Error & {code: string};
     error.code = 'NodeInitialControlAdmissionUnavailable';
     throw error;
   }
@@ -97,16 +118,16 @@ export function readInitialControlInstallationAsset(scope, sameOriginals, path) 
 // and nominal begin. No enumeration, copy, caller callback or replacement
 // producer occurs here. Coverage must precede the raw packet's first ownKeys;
 // this port and a returned object cannot retroactively supply it.
-export function readInitialControlInstallationInput(scope, sameOriginals) {
-  if (isOrdinaryHostControl(scope)) return ordinaryHostControlInput(scope, sameOriginals);
+export function readInitialControlInstallationInput(scope: unknown, sameOriginals: unknown) {
+  if (isOrdinaryHostControl(scope)) return ordinaryHostControlInput(scope, sameOriginals as OrdinaryOriginals);
   if (readInput === undefined) {
-    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable') as Error & {code: string};
     error.code = 'NodeInitialControlAdmissionUnavailable';
     throw error;
   }
   return apply(readInput, startup, [scope, sameOriginals]);
 }
 
-export function readInitialControlInstallationModelSdk(scope, sameOriginals) {
-  return isOrdinaryHostControl(scope) ? ordinaryHostControlModelSdk(scope, sameOriginals) : undefined;
+export function readInitialControlInstallationModelSdk(scope: unknown, sameOriginals: unknown) {
+  return isOrdinaryHostControl(scope) ? ordinaryHostControlModelSdk(scope, sameOriginals as OrdinaryOriginals) : undefined;
 }

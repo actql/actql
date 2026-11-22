@@ -2,7 +2,6 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {dirname, join, resolve} from 'node:path';
 import {open} from 'node:fs/promises';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
-// @ts-expect-error TS7016: the original startup scope module is still authored in JavaScript.
 import {assertInitialControlInstallationCurrent} from './node-initial-control-installation.mjs';
 
 type WireAdmission = (wire: string) => unknown;
