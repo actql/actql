@@ -1,3 +1,4 @@
+import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../../../host-common/owned-invocation-context.mjs';
 // Actual same-source native request, Form, target and response validators.
 // Explicit Account/Site/read/send ports are component inputs, not ordinary
 // Host approval, durable claims, physical cleanup or provider acceptance.
@@ -56,11 +57,13 @@ function fixture(changes = {}) {
   const observe = (current, entries, options = {}) => driver.observeTargets({...describeOptions, current, entries,
     authorizationForRow: () => target, ...options});
   const finalize = logical => driver.finalizeRequest({request: logical.request, requestTag: cid('c')});
-  const send = (current, request, changes = {}) => driver.send({member, current, request,
+  const send = (current, request, changes = {}) => invokeDeclaredRowUpdate(driver, {member, current, request,
     credential: {binding: {}}, authorization: {grant: {}, useId: 'one-write',
       scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
     async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
-    ...changes});
+    ...changes}, 'kintone:records:update', {phase: 'write',
+    maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes,
+    maxTargetBytes: '/k/v1/records.json'.length});
   const recover = (entry, requestCid) => ({maxRows: config.maxRows, durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     recorded: {members: [{claims: [{canonicalRequestCid: requestCid}]}]}, members: [member],
     body: {effects: [{changes: [{after: {value: structuredClone(value)}, target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});
@@ -72,7 +75,12 @@ test('kintone driver preserves same-issued metadata and distinct serial original
   const logical = [identity, '9007199254740996'].map(id => f.prepare(current, id));
   assert.throws(() => f.finalize(logical[0]), {code: 'KintoneUpdateFinalizationUnavailable'});
   const grants = logical.map((_, row) => Object.freeze({grant: {row}, useId: 'target-' + row})), uses = [];
-  const rows = await f.observe(current, logical, {authorizationForRow(row) {uses.push(row); return grants[row];}});
+  const rows = await withDeclaredUpdateTargetReads({
+    readChild: f.describeOptions.readChild, rowCount: logical.length,
+    operation: 'kintone:records:target-read', slot: {slot: 'target',
+      maxRequestBytes: f.config.limits.maxRequestBytes, maxResponseBytes: f.config.limits.maxResponseBytes},
+    authorizationForRow(row) {uses.push(row); return grants[row];},
+  }, readTarget => f.driver.observeTargets({...f.describeOptions, current, entries: logical, readTarget}));
   assert.deepEqual(rows.map(row => row.identity), [identity, '9007199254740996']);
   assert.deepEqual(rows.map(row => row.before.$id), [identity, '9007199254740996']);
   assert.deepEqual(uses, [0,1]);
@@ -140,7 +148,8 @@ test('kintone driver sends one exact guarded PUT and projects only actual native
     {statusCode: 200, body: bytes({records: [{id: '9007199254740992', revision: '8'}]})}]) {
     assert.equal(f.driver.project({request: final.request, observation: bad}).kind, 'unclassified-response');
   }
-  await assert.rejects(f.send(current, final.request, {authorization: {scope: {resourceOrigin: 'https://other.invalid'}}}),
+  await assert.rejects(f.send(current, final.request, {authorization: {scope: {
+    resourceOrigin: 'https://other.invalid', operation: 'kintone:records:update', connectorRegistration: 'kintone'}}}),
     {code: 'ForeignKintoneUpdateOrigin'});
   assert.equal(f.state.writes.length, 1);
 });

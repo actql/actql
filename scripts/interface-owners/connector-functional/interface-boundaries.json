@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "36ee7b6fd2d4600428fa0a2fbbc4c4f6bf44ca06975fc177f2bb8075baeb1dac",
+      "sha256": "02a17135229e6ab80e6908261ffeccbe964b96334a1ba623f9156006d93074df",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5229,7 +5229,8 @@
             "input",
             "rowIndex",
             "slot",
-            "project"
+            "project",
+            "prepareOperations"
           ],
           "async": false
         },
@@ -5265,6 +5266,13 @@
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
+          "parameters": [
+            "readTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observeRows#2",
           "parameters": [
             "row",
             "index"
@@ -6493,6 +6501,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
@@ -7119,6 +7128,10 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.test.mjs",
+                "anchor": "test('declared UPDATE requires a pure write preparation and an installed credential recipe'"
               },
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
@@ -19748,12 +19761,14 @@
       "role": "common-semantics",
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
+        "captureDeclaredUpdateTargetCapacity",
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
         "effectRecoveryPreviewBounds",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
         "installedEffectSavedControlResponseLimit",
+        "prepareInstalledDeclaredUpdatePlanRecipe",
         "prepareInstalledEffectCaptureChild",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
@@ -19765,6 +19780,21 @@
         "selectInstalledEffectCredentialOperation"
       ],
       "operations": [
+        {
+          "name": "captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "original",
+            "maxTargetBytes"
+          ],
+          "async": false
+        },
         {
           "name": "captureInstalledEffectPlanRecipe",
           "parameters": [
@@ -19875,6 +19905,33 @@
           "name": "installedEffectSavedControlResponseLimit/installedEffectSavedControlResponseLimit",
           "parameters": [
             "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "write",
+            "credentialSite",
+            "limits",
+            "resourceTextUnits",
+            "connectorRegistration"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -20542,11 +20599,13 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6a75414f468cf7e417df30335c189bf28fe7190748bf7102aa80711ac1d041ab",
+      "sha256": "55f903872abc8342dc00cc678e0d60497048f4cee1e46b7a913cd08c76904100",
       "contracts": [
         {
           "operations": [
             "<module>",
+            "captureDeclaredUpdateTargetCapacity",
+            "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
             "captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe#2",
@@ -20597,15 +20656,20 @@
             "prepareInstalledEffectRequestChild",
             "prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
-            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe"
+            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
           ],
           "exports": [
+            "captureDeclaredUpdateTargetCapacity",
             "captureInstalledEffectPlanRecipe",
             "captureInstalledStandardCreateLimits",
             "prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectRequestChild",
-            "prepareInstalledStandardCreatePlanRecipe"
+            "prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe"
           ],
           "attributes": {
             "responsibility": [
@@ -20786,6 +20850,10 @@
               {
                 "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
                 "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
               }
             ]
           }

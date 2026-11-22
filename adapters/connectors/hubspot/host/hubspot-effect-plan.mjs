@@ -4,7 +4,7 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeTupleFromFields, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, captureDeclaredUpdateTargetCapacity} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
   httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum,
@@ -12,7 +12,7 @@ import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
-import {HUBSPOT_INSTALLED_UPDATE_OPERATION} from './hubspot-update-driver.mjs';
+import {HUBSPOT_INSTALLED_UPDATE_OPERATION, hubspotUpdatePathFixedBytes} from './hubspot-update-driver.mjs';
 
 const fail = () => {throw Object.assign(new Error('HubSpotEffectRecipeUnavailable'), {code: 'HubSpotEffectRecipeUnavailable'});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
@@ -36,6 +36,7 @@ const method = (receiver, name) => {
 };
 
 export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
+  const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
   const constructor = method(moon, 'clientProgramHubSpotEffectConstructorCapacity');
   const compose = method(moon, 'clientProgramHubSpotEffectRecipeCapacities');
   const controlBound = method(moon, 'clientProgramInstalledEffectControlWireBound');
@@ -212,10 +213,14 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         kind === 1 ? read.maxRequestBytes : httpsCredentialDefaultRequestBytes, read.maxResponseBytes, kind);
     }
     const writeIndex = rowOperations.length;
+    // A BMP unit can encode to three UTF-8 bytes with three ASCII bytes each.
+    // A supplementary code point uses two units and fits the same bound.
+    const maxTargetBytes = hubspotUpdatePathFixedBytes + 9 * objectTypeUnits;
+    const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
     rowOperations.push({operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION,
-      initial[3], BigInt(write.maxRequestBytes) + httpsCredentialResponseWindowBytes(write.maxResponseBytes), true)});
+      writeCapacity, BigInt(write.maxRequestBytes) + httpsCredentialResponseWindowBytes(write.maxResponseBytes), true)});
     credentialOperations.push(Object.freeze({phase: 'write', operationIndex: writeIndex,
-      maxRequestBytes: write.maxRequestBytes, maxResponseBytes: write.maxResponseBytes}));
+      maxRequestBytes: write.maxRequestBytes, maxResponseBytes: write.maxResponseBytes, maxTargetBytes}));
     const recoveryIndex = memberOperations.length;
     memberOperations.push(memberOperations[0]);
     return captureInstalledEffectPlanRecipe(Object.freeze({

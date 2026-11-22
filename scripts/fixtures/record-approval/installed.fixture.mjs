@@ -32,6 +32,11 @@ export function openRecordApprovalExchange(t, fixture) {
   return openHttpsExchangeFixture(t, {routes: fixture.provider.routes, faults: fixture.faults ?? []});
 }
 
+export function assertRecordApprovalTarget(snapshot, expected) {
+  const {id, name} = snapshot.target;
+  assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
+}
+
 export async function runInstalledRecordApprovalFixture(t, fixture) {
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
@@ -169,8 +174,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       assert.deepEqual({id: after.control.id, name: after.control.name}, expected.before.control);
       const writesExpected = rejecting || phase === 'capture' ? 0 : 1;
       assert.equal(after.writes, writesExpected);
-      assert.deepEqual({id: after.target.id, name: after.target.name},
-        (writesExpected === 0 ? expected.before : expected.after).target);
+      assertRecordApprovalTarget(after, writesExpected === 0 ? expected.before : expected.after);
       if (rejecting) assert.deepEqual(after.target, before.target, 'A rejected checkpoint preserves the entire target and revision');
       if (phase === 'recover' && loss === undefined) assert.equal(after.requests.length, before.requests.length,
         'Saved first sends no provider request');

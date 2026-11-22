@@ -118,7 +118,7 @@ function componentBytes(value, remaining) {
 // pairs, encoded here so that no caller text reaches the wire unencoded. A
 // path that already carries its own encoded query (a provider-built locator)
 // takes no further pairs; the credential resource re-checks the whole target.
-export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.maxQueryBytes} = {}) {
+export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.maxQueryBytes, maxTargetBytes} = {}) {
   if (typeof path !== 'string' || path.length === 0) {
     fail('InvalidHttpRequestTarget');
   }
@@ -128,7 +128,20 @@ export function requestTarget(path, query = [], {maxQueryBytes = exchangeLimits.
       !Array.isArray(query) || query.length > exchangeLimits.maxQueryPairs) {
     fail('InvalidHttpRequestQuery');
   }
-  if (arguments[2] !== undefined && Buffer.byteLength(path) > maxQueryBytes) fail('InvalidHttpRequestTarget');
+  if (maxTargetBytes !== undefined) {
+    if (!Number.isSafeInteger(maxTargetBytes) || maxTargetBytes < 1 || maxTargetBytes > 2147483647 ||
+        path.length > maxTargetBytes) fail('InvalidHttpRequestTarget');
+    const pathBytes = Buffer.byteLength(path);
+    if (pathBytes > maxTargetBytes) fail('InvalidHttpRequestTarget');
+    if (query.length > 0) {
+      // Include the separator before encoding any pair. The running query
+      // guard below now bounds the complete result, not only the suffix.
+      maxQueryBytes = Math.min(maxQueryBytes, maxTargetBytes - pathBytes - 1);
+      if (maxQueryBytes < 1) fail('InvalidHttpRequestQuery');
+    }
+  } else if (arguments[2] !== undefined && Buffer.byteLength(path) > maxQueryBytes) {
+    fail('InvalidHttpRequestTarget');
+  }
   if (query.length === 0) return path;
   if (path.includes('?')) fail('InvalidHttpRequestTarget');
   let bytes = query.length - 1;
