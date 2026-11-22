@@ -9,6 +9,7 @@ import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
+import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -54,7 +55,6 @@ const checkRowsFixture = ({ownerOf, readDecision}) => createInstalledRowEffectRe
   resourceFields: unusedReadPort, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
 }).checkRows;
 const expression=(name,ports)=>{
-  if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
   if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
   }
@@ -291,7 +291,9 @@ test('create original inventory failure retains exact cause before sync or child
 
 test('create cold request preparation receives same admitted Preview identities without issuing another inventory',()=>{
   const identities=issued.map(value=>Object.freeze({...value})),seen=[],claims=identities.map((_,i)=>({canonicalRequestCid:cid(String(i+1))}));
-  const changes=identities.map((identity,i)=>({target_row_identity:identity,after:{value:input[[1,2,0][i]]}}));
+  const order=identities.map((_,i)=>cid(String(i+4)));
+  const changes=identities.map((identity,i)=>({row_preview_cid:order[i],
+    target_row_identity:identity,after:{value:input[[1,2,0][i]]}}));
   const owned={prepareRequest(context){assert.strictEqual(context.createRowIdentity,identities[seen.length]);seen.push(context);
     return {request:{value:context.value},requestCid:claims[seen.length-1].canonicalRequestCid};},requestFacts:request=>({value:request.value,target:undefined})};
   const ownerOf=()=>({owned});
@@ -300,9 +302,12 @@ test('create cold request preparation receives same admitted Preview identities 
     sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields:()=>({}),
     commandContentRow:()=>assert.fail('No Content lookup in the recovered CREATE fixture'),fail,
   });
-  const recover=expression('recoveredEntries',{singular:{owned},members:[member],ownerOf,resourceFields:()=>({runOriginal:{}}),
-    orderedSourceIndexes:()=>[0,1,2],entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),approvedValue:(_kind,change)=>change.after.value,targeted:()=>false,fail});
-  const result=recover({members:[member],body:{effects:[{changes}]},durable:{},recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
+  const {orderedSourceIndexes}=createInstalledRowEffectClaims({fail});
+  const {recoveredEntries}=createInstalledRowEffectRecoveryEntries({singular:{owned},ownerOf,
+    resourceFields:()=>({runOriginal:{}}),orderedSourceIndexes,entryOf,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,targeted:()=>false,fail});
+  const result=recoveredEntries({members:[member],body:{effects:[{changes,row_order:order}]},durable:{},
+    recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
   assert.equal(seen.length,3);assert.equal(result.entries[0].length,3);
 });
 

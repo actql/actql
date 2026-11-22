@@ -12,7 +12,7 @@ import {localContractLimits} from './local-values-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './installed-row-effect-standard-write.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
-import {approvedValue} from './installed-row-effect-commit.mjs';
+import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
@@ -617,19 +617,6 @@ for (const connector of ['github', 'sheets']) {
 // authenticated-capture DATA port. This is not capture authentication, a real
 // Run/Ledger/Store, or physical provider qualification.
 test('standard cold recovery uses saved original requests without calling the provider mapping again', () => {
-  const selected = name => {
-    const matches = [];
-    const visit = node => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'VariableDeclarator' && node.id.name === name) matches.push(node.init);
-      for (const value of Object.values(node)) {
-        if (Array.isArray(value)) value.forEach(visit);
-        else if (value && typeof value === 'object') visit(value);
-      }
-    };
-    visit(rowTree); assert.equal(matches.length, 1, name);
-    return rowSource.slice(matches[0].start, matches[0].end);
-  };
   let mappings = 0;
   const write = declaration({request() {mappings++; return {path: '/records', body: '{"name":"original"}'};}});
   const driver = deriveInstalledRowWrite(write, 'fixture');
@@ -646,13 +633,11 @@ test('standard cold recovery uses saved original requests without calling the pr
     sameEffectValue: (_kind,left,right) => sameValue(left,right), resourceFields: () => ({}),
     commandContentRow: () => assert.fail('No Content lookup in the recovered CREATE fixture'), fail,
   });
-  const ports = {singular: owner, ownerOf, entryOf, approvedValue, resourceFields: () => ({}), fail,
-    sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
-  const recoveredEntries = Function(...Object.keys(ports), `
-    const sameEffectValue = ${selected('sameEffectValue')};
-    const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
-    const validateRecoveredEntries = ${selected('validateRecoveredEntries')};
-    return ${selected('recoveredEntries')};`)(...Object.values(ports));
+  const {orderedSourceIndexes} = createInstalledRowEffectClaims({fail});
+  const {recoveredEntries} = createInstalledRowEffectRecoveryEntries({
+    singular: owner, ownerOf, entryOf, orderedSourceIndexes, resourceFields: () => ({}),
+    sameEffectValue: (_kind, left, right) => sameValue(left, right), sameValue, targeted, fail,
+  });
   // If the standard driver supplies the existing capture codec, retain its
   // original output; a legacy driver has no such saved request material.
   const recovery = driver.recoveryEntry?.({member: originalMember,
