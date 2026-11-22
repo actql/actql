@@ -14,10 +14,11 @@ export const openAIChatStaticOriginals=Object.freeze({openai,providerUtils,creat
 export const sdkProvider = 'openai.chat';
 export const optionNamespace = 'openai';
 export const optionSchema = Object.freeze({store: Object.freeze([false]), strictJsonSchema: Object.freeze([true])});
+export const credentialBinding = Object.freeze({reference: 'OPENAI_API_KEY', header: 'authorization',
+  endpoint: 'https://api.openai.com/v1/chat/completions', prefix: 'Bearer ', placeholder: unboundOpenAICredential});
 
 export function createLanguageModel(factory, modelId, fetch, route) {
-  const endpoint = 'https://api.openai.com/v1/chat/completions';
-  if (factory !== createOpenAI || route.endpoint !== endpoint || route.apiMode !== 'chat_completions') {
+  if (factory !== createOpenAI || route.endpoint !== credentialBinding.endpoint || route.apiMode !== 'chat_completions') {
     throw new TypeError('InvalidRegisteredOpenAIChat');
   }
   // Only the original transport binds the environment credential, after

@@ -191,6 +191,10 @@ function configureOpenAIChatProvider(options, projectMode) {
         registeredSdk.route.endpoint !== config.baseURL + '/chat/completions')) {
       refuse('InstalledModelResolvedConfigurationMismatch');
     }
+    const registeredCredential = registeredSdk?.credential;
+    if (registeredCredential !== undefined && registeredCredential.profile.reference !== 'OPENAI_API_KEY') {
+      refuse('RegisteredSdkCredentialMismatch');
+    }
     const apiKey = projectMode ? unboundOpenAICredential
       : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
     const sdk = Object.freeze({package_name: '@ai-sdk/openai', version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
@@ -202,7 +206,8 @@ function configureOpenAIChatProvider(options, projectMode) {
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid,
         ...(registeredSdk === undefined ? {} : {sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid})}),
       JSON.stringify({provider_id: config.providerId,
-        required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode'],
+        required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode',
+          ...(registeredCredential === undefined ? [] : ['registered_credential'])],
         physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
@@ -213,6 +218,7 @@ function configureOpenAIChatProvider(options, projectMode) {
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
         selector: config.modelSelector, model_id: config.modelId, adapter_kind: 'ai-sdk', api_mode: 'chat_completions',
         ...(registeredSdk === undefined ? {} : {provider_options: registeredSdk.providerOptions}),
+        ...(registeredCredential === undefined ? {} : {registered_credential: registeredCredential.profile}),
         ...(projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
           models: [{model: config.modelSelector, data_handling: handling,

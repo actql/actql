@@ -55376,7 +55376,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "2b6ff6f647fb8557e625a1f1a069007dfc265b0ede0eeb64df8b0d2cd28f3427",
+      "sha256": "41420c57f91f6aac35a2593d16e0bad8efe769668c9f4d09c25c413ca0972202",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -55510,6 +55510,20 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryModelSdkInstallation/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryModelSdkInstallation/data/data/data#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "readVerifiedSdkImage",
           "parameters": [
             "custody",
@@ -55560,6 +55574,8 @@
             "ordinaryModelSdkInstallation",
             "prepareOrdinaryModelSdkInstallation",
             "prepareOrdinaryModelSdkInstallation/data/data/data",
+            "prepareOrdinaryModelSdkInstallation/data/data/data#2",
+            "prepareOrdinaryModelSdkInstallation/data/data/data#3",
             "readVerifiedSdkImage"
           ],
           "exports": [
@@ -137848,7 +137864,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5530,
+    "operations": 5532,
     "exports": 1201,
     "explicitContractGroups": 550
   },

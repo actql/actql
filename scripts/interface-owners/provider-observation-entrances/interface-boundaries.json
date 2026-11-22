@@ -1936,9 +1936,10 @@
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ed4a2e9e510a413136364685cae7dfdb5e1969e0ecf3007ea1f37814e2795e91",
+      "sha256": "4bb5bba1cb4e3f806d2dfe62b8054c152a486e445d0f218a0a00e3420344af65",
       "exports": [
         "createLanguageModel",
+        "credentialBinding",
         "openAIChatStaticOriginals",
         "optionNamespace",
         "optionSchema",
@@ -2023,6 +2024,7 @@
           ],
           "exports": [
             "createLanguageModel",
+            "credentialBinding",
             "openAIChatStaticOriginals",
             "optionNamespace",
             "optionSchema",
@@ -2142,7 +2144,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64d0209880bb7e1de69bc06b4ec820446094f2ffa4a6754495aa91ee4f1254de",
+      "sha256": "6b648cb60e40e5d80a6b0a58f491888b1be0452890da3505e4d2e4c8bf859842",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -2171,7 +2173,8 @@
             "responseLimits",
             "physicalAcquisitionLimits",
             "transportTimeouts",
-            "openAICredentialBytes"
+            "openAICredentialBytes",
+            "registeredCredential"
           ],
           "async": false
         },
@@ -2584,6 +2587,11 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "node:util",
+        "undici"
       ]
     },
     {
@@ -3528,7 +3536,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0b0f45eb065f4aeff14e5c4888624bbd8711698e24691c8232fc34d70e0badaf",
+      "sha256": "ddc9bf7e324c536cdb55d45916a45f1943cb91dde03d0b2c10e99d5e03116462",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider"

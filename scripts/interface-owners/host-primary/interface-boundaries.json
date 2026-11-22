@@ -34723,7 +34723,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "40995fa90a2fc383367be9bf16850ea962ccc7eb7d8956500bf388c7b76453a5",
+      "sha256": "44fe1b7a8d6df463c3beca7f1bbfa82e3121afa92d88a67517c80486fc1cc24c",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -35350,6 +35350,20 @@
             "key"
           ],
           "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -35474,7 +35488,9 @@
             "installConfiguredModelProviders/providers/providers#2",
             "installConfiguredModelProviders/track/track/track",
             "installConfiguredModelProviders/track/track/track#2",
-            "originalSdkRecord/originalSdkRecord"
+            "originalSdkRecord/originalSdkRecord",
+            "originalSdkRecord/originalSdkRecord#2",
+            "originalSdkRecord/originalSdkRecord#3"
           ],
           "exports": [
             "installConfiguredModelProviders"
@@ -35564,7 +35580,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1185,
+    "operations": 1187,
     "exports": 109,
     "explicitContractGroups": 106
   }

@@ -134,35 +134,126 @@ async function witness() {
   }
 }
 
-if (process.env.ACTQL_TEST_ORIGINAL_TLS_CHILD === '1') {
+async function registeredCredentialWitness() {
+  const key = await readFile(process.env.ACTQL_TEST_ORIGINAL_TLS_KEY);
+  const cert = await readFile(process.env.ACTQL_TEST_ORIGINAL_TLS_CERT);
+  const requests = [];
+  const server = createServer({key, cert}, async (request, response) => {
+    for await (const _chunk of request) {}
+    requests.push({path: request.url, credential: request.headers['x-api-key'],
+      authorization: request.headers.authorization});
+    response.writeHead(200, {'content-type': 'application/json', connection: 'close'});
+    response.end('{}');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
+  });
+  const responseLimits = {maxBytes: 16, maxChunkBytes: 16, maxChunks: 2,
+    maxHeaderBytes: 1024, observedHeaders: ['content-type']};
+  const factory = {requestLimits: {maxBytes: 32, maxHeaderBytes: 1024, maxHeaders: 8}, responseLimits,
+    physicalAcquisitionLimits: {maxPlaintextBytes: 1024, maxBorrowedBackingBytes: 2048, maxReads: 64}};
+  try {
+    for (const [path, header, prefix] of [
+      ['/named-key', 'x-api-key', ''],
+      ['/bearer-key', 'authorization', 'Bearer '],
+    ]) {
+      const endpoint = 'https://127.0.0.1:' + server.address().port + path;
+      const registeredCredential = {endpoint, reference: 'ACTQL_TEST_REGISTERED_MODEL_KEY',
+        header, prefix, placeholder: 'unbound-test-marker', maxBytes: 32};
+      assert.throws(() => createOriginalUndiciFetch({...factory, endpoint: endpoint + '/foreign', registeredCredential}),
+        {code: 'RegisteredSdkCredentialUnavailable'});
+      assert.throws(() => createOriginalUndiciFetch({...factory, endpoint,
+        registeredCredential: {...registeredCredential, header: 'host'}}),
+      {code: 'RegisteredSdkCredentialUnavailable'});
+      const fetch = createOriginalUndiciFetch({...factory, endpoint, registeredCredential});
+      registeredCredential.reference = 'ACTQL_TEST_FOREIGN_MODEL_KEY';
+      const init = {method: 'POST', body: '{}', redirect: 'error', signal: new AbortController().signal,
+        headers: [[header, prefix + 'unbound-test-marker']]};
+      assert.throws(() => prepareOriginalUndiciFetch(fetch, endpoint,
+        {...init, headers: [...init.headers, ...init.headers]}, responseLimits),
+      {code: 'UndiciOriginalRequestMismatch'});
+      const call = prepareOriginalUndiciFetch(fetch, endpoint, init, responseLimits);
+      const requestCount = requests.length;
+      try {
+        assert.throws(() => call.invoke(), {code: 'ModelProjectCredentialPreparationUnavailable'});
+        assert.throws(() => call.bindCredential(), {code: 'ModelProjectCredentialUnavailable'});
+        assert.equal(requests.length, requestCount);
+      } finally {
+        assert.equal(await call.cleanup(), true);
+      }
+      const admitted = prepareOriginalUndiciFetch(fetch, endpoint, init, responseLimits);
+      try {
+        process.env.ACTQL_TEST_REGISTERED_MODEL_KEY = 'fixture-key';
+        admitted.bindCredential();
+        assert.throws(() => admitted.bindCredential(), {code: 'ModelProjectCredentialPreparationUnavailable'});
+        assert.equal(requests.length, requestCount);
+        const response = await admitted.invoke();
+        assert.equal(response.status, 200);
+        const reader = response.body.getReader();
+        for (;;) {
+          const next = await reader.read();
+          if (next.done) break;
+        }
+        reader.releaseLock();
+        assert.equal(requests.length, requestCount + 1);
+      } finally {
+        delete process.env.ACTQL_TEST_REGISTERED_MODEL_KEY;
+        assert.equal(await admitted.cleanup(), true);
+      }
+    }
+    assert.deepEqual(requests, [
+      {path: '/named-key', credential: 'fixture-key', authorization: undefined},
+      {path: '/bearer-key', credential: undefined, authorization: 'Bearer fixture-key'},
+    ]);
+    return {scenario: 'registered-credential-real-tls', requests: requests.length};
+  } finally {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+}
+
+async function runTlsWitness(t, mode, verify) {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-c-native-input-tls-'));
+  const key = join(directory, 'key.pem'), cert = join(directory, 'cert.pem');
+  let passed = false;
+  t.after(async () => {
+    if (passed) await rm(directory, {recursive: true, force: true});
+    else t.diagnostic(`Preserved original TLS witness failure: ${directory}`);
+  });
+  // Ephemeral loopback-only credentials with the original certificate checks.
+  await execute('/usr/bin/openssl', ['req', '-x509', '-newkey', 'rsa:2048',
+    '-nodes', '-days', '1', '-subj', '/CN=localhost',
+    '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', key, '-out', cert],
+  {timeout: 10000, maxBuffer: 1048576});
+  const env = {...process.env, NODE_EXTRA_CA_CERTS: cert, ACTQL_TEST_ORIGINAL_TLS_CHILD: mode,
+    ACTQL_TEST_ORIGINAL_TLS_KEY: key, ACTQL_TEST_ORIGINAL_TLS_CERT: cert};
+  delete env.ACTQL_TEST_REGISTERED_MODEL_KEY;
+  const result = await execute(process.execPath, [fileURLToPath(import.meta.url)],
+    {timeout: 15000, maxBuffer: 1048576, env});
+  const report = JSON.parse(result.stdout.trim());
+  verify(report);
+  t.diagnostic(JSON.stringify(report));
+  passed = true;
+}
+
+switch (process.env.ACTQL_TEST_ORIGINAL_TLS_CHILD) {
+case '1':
   console.log(JSON.stringify(await witness()));
-} else {
-  test('original native input survives actual TLS reuse and same connection cleanup', async t => {
-    const directory = await mkdtemp(join(tmpdir(), 'actql-c-native-input-tls-'));
-    const key = join(directory, 'key.pem'), cert = join(directory, 'cert.pem');
-    let passed = false;
-    t.after(async () => {
-      if (passed) await rm(directory, {recursive: true, force: true});
-      else t.diagnostic(`Preserved original TLS witness failure: ${directory}`);
-    });
-    // Ephemeral loopback-only credentials. No disabling peer verification,
-    // live credentials, Provider request, system trust-store change or retry.
-    await execute('/usr/bin/openssl', ['req', '-x509', '-newkey', 'rsa:2048',
-      '-nodes', '-days', '1', '-subj', '/CN=localhost',
-      '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', key, '-out', cert],
-    {timeout: 10000, maxBuffer: 1048576});
-    const result = await execute(process.execPath, [fileURLToPath(import.meta.url)],
-      {timeout: 15000, maxBuffer: 1048576, env: {...process.env,
-        NODE_EXTRA_CA_CERTS: cert, ACTQL_TEST_ORIGINAL_TLS_CHILD: '1',
-        ACTQL_TEST_ORIGINAL_TLS_KEY: key, ACTQL_TEST_ORIGINAL_TLS_CERT: cert}});
-    const report = JSON.parse(result.stdout.trim());
+  break;
+case 'registered':
+  console.log(JSON.stringify(await registeredCredentialWitness()));
+  break;
+default:
+  test('original native input survives actual TLS reuse and same connection cleanup', t => runTlsWitness(t, '1', report => {
     assert.equal(report.scenario, 'original-native-input-real-tls');
     assert.equal(report.passed, 1);
     assert.equal(report.requests, 1);
     assert.equal(report.secureConnections, 1);
     assert.equal(report.closes, 1);
     assert.equal(report.publicE2E, 0);
-    t.diagnostic(JSON.stringify(report));
-    passed = true;
-  });
+  }));
+  test('registered credential replaces only the declared header on one actual TLS request', t =>
+    runTlsWitness(t, 'registered', report => {
+      assert.deepEqual(report, {scenario: 'registered-credential-real-tls', requests: 2});
+    }));
 }

@@ -351,11 +351,11 @@ function prepareOrdinaryModelSdkInstallation(source) {
   if (!Array.isArray(source) || nodeTypes.isProxy(source) || !Object.isFrozen(source) || source.length === 0 || source.length > 64) {
     fail(invalidSdkRegistration);
   }
-  const data = (value, keys) => {
+  const data = (value, keys, optional = []) => {
     if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
         Object.getPrototypeOf(value) !== Object.prototype || !Object.isFrozen(value) ||
-        Reflect.ownKeys(value).length !== keys.length ||
-        keys.some(key => {
+        Reflect.ownKeys(value).some(key => !keys.includes(key) && !optional.includes(key)) ||
+        [...keys, ...optional.filter(key => Object.hasOwn(value, key))].some(key => {
           const field = Object.getOwnPropertyDescriptor(value, key);
           return !field?.enumerable || !Object.hasOwn(field, 'value');
         })) fail(invalidSdkRegistration);
@@ -370,7 +370,8 @@ function prepareOrdinaryModelSdkInstallation(source) {
     const field = Object.getOwnPropertyDescriptor(source, index);
     if (field === undefined || !Object.hasOwn(field, 'value')) fail(invalidSdkRegistration);
     const original = field.value;
-    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
+    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential']);
+    if (Object.hasOwn(original, 'credential')) data(original.credential, ['reference', 'header']);
     data(original.adapter, ['path', 'cid']);
     data(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
     data(original.lock, ['path', 'cid']);

@@ -14,9 +14,10 @@ const invalidSdkInstallation = 'InvalidInstalledModelSdkInstallation';
 const plainSdkRecord = value => value !== null && typeof value === 'object' &&
   !nodeTypes.isProxy(value) && Object.getPrototypeOf(value) === Object.prototype;
 
-function originalSdkRecord(value, keys) {
-  if (!plainSdkRecord(value) || !Object.isFrozen(value) || Reflect.ownKeys(value).length !== keys.length ||
-      keys.some(key => {
+function originalSdkRecord(value, keys, optional = []) {
+  if (!plainSdkRecord(value) || !Object.isFrozen(value) ||
+      Reflect.ownKeys(value).some(key => !keys.includes(key) && !optional.includes(key)) ||
+      [...keys, ...optional.filter(key => Object.hasOwn(value, key))].some(key => {
         const field = Object.getOwnPropertyDescriptor(value, key);
         return !field?.enumerable || !Object.hasOwn(field, 'value');
       })) fail(invalidSdkInstallation);
@@ -155,7 +156,8 @@ export async function installConfiguredModelProviders({moon, register, project,
             preparedSdkIds ??= new Set();
             if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
             preparedSdkIds.add(providerId);
-            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
+            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential']);
+            if (Object.hasOwn(original, 'credential')) originalSdkRecord(original.credential, ['reference', 'header']);
             originalSdkRecord(original.adapter, ['path', 'cid']);
             originalSdkRecord(original.lock, ['path', 'cid']);
             originalSdkRecord(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
@@ -171,8 +173,10 @@ export async function installConfiguredModelProviders({moon, register, project,
           },
           retained: () => capacity(16n),
         }));
+        const explicitCredential = Object.hasOwn(original, 'credential');
+        const credentialNodes = explicitCredential ? 16n : 0n;
         return construction.prepareModelTaskInput(Object.freeze({
-          capacity: () => capacity(64n, 10304n, 0n, 128n, 10304n),
+          capacity: () => capacity(64n + credentialNodes, 10304n, 0n, 128n + credentialNodes, 10304n),
           project() {
             // Borrow module originals only from the package custody already
             // held by this Host. A registration cannot supply a loader, a
@@ -200,8 +204,23 @@ export async function installConfiguredModelProviders({moon, register, project,
             }
             const providerOptions = sdkProviderOptions(original.providerOptions,
               adapter.optionNamespace, adapter.optionSchema);
+            let credential;
+            if (explicitCredential) {
+              // Borrow the nonsecret route contract from the same verified
+              // adapter. User Task options never supply an environment key.
+              const declared = originalSdkRecord(adapter.credentialBinding,
+                ['reference', 'header', 'endpoint', 'prefix', 'placeholder']);
+              if (declared.reference !== original.credential.reference ||
+                  declared.header !== original.credential.header || declared.endpoint !== original.route.endpoint) {
+                fail('RegisteredSdkCredentialMismatch');
+              }
+              credential = Object.freeze({transport: declared,
+                profile: Object.freeze({reference: declared.reference, header: declared.header,
+                  endpoint: declared.endpoint, prefix: declared.prefix})});
+            }
             check();
             const registration = Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
+              ...(credential === undefined ? {} : {credential}),
               sdkPackage: original.sdk.packageName,
               sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
               adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
@@ -223,7 +242,7 @@ export async function installConfiguredModelProviders({moon, register, project,
             preparedSdkRegistrations.set(providerId, registration);
             return registration;
           },
-          retained: () => capacity(64n, 10304n),
+          retained: () => capacity(64n + credentialNodes, 10304n),
         }));
       });
     },
@@ -619,6 +638,7 @@ export async function installConfiguredModelProviders({moon, register, project,
             revision.builder_artifact_cid !== registration.adapterArtifactCid ||
             revision.lock_artifact_cid !== registration.lockArtifactCid ||
             !isDeepStrictEqual(configuration.provider_options, registration.providerOptions) ||
+            !isDeepStrictEqual(configuration.registered_credential, registration.credential?.profile) ||
             installation.build_artifact_cid !== registration.adapterArtifactCid ||
             installation.endpoint !== route.endpoint || sdk?.package_name !== registration.sdkPackage ||
             sdk.version !== registration.sdkVersion || sdk.interface !== 'v4' ||

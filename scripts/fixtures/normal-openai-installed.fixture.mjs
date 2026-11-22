@@ -16,9 +16,11 @@ import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.m
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
-  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid'].includes(phase));
+  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
+  'registered-credential-reference', 'registered-credential-header'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
+const credentialMismatch = phase.startsWith('registered-credential-');
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
 const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk', '@actql/local-node/observation']
@@ -75,6 +77,10 @@ if (registered) {
     route: Object.freeze({providerId: 'models/http', modelId: 'fixture-chat', selector: 'fixture-chat',
       apiMode: 'chat_completions', endpoint: 'https://api.openai.com/v1/chat/completions'}),
     providerOptions: Object.freeze({store: false, strictJsonSchema: true}),
+    credential: Object.freeze({
+      reference: phase === 'registered-credential-reference' ? 'ACTQL_TEST_UNAPPROVED_MODEL_KEY' : 'OPENAI_API_KEY',
+      header: phase === 'registered-credential-header' ? 'x-api-key' : 'authorization',
+    }),
   })]);
 }
 if (phase === 'registered-invalid') {
@@ -309,6 +315,35 @@ const inferEvidence = usageMode === undefined ? undefined : {
     },
   },
 };
+const openOptions = {stateDir: '.state', installation: {
+  registerModelProviders, authorization, observation: work.connection,
+  ...(registered ? {modelSdkRegistrations} : {}),
+  ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}};
+if (credentialMismatch) {
+  const env = process.env, connect = tls.connect;
+  let credentialReads = 0, tlsAttempts = 0;
+  process.env = new Proxy(env, {get(target, name, receiver) {
+    if (name === 'OPENAI_API_KEY' || name === 'ACTQL_TEST_UNAPPROVED_MODEL_KEY') credentialReads++;
+    return Reflect.get(target, name, receiver);
+  }});
+  tls.connect = () => {
+    tlsAttempts++;
+    throw Error('CredentialMismatchReachedTls');
+  };
+  try {
+    await assert.rejects(open(openOptions), {code: 'RegisteredSdkCredentialMismatch'});
+    assert.equal(credentialReads, 0);
+    assert.equal(tlsAttempts, 0);
+    assert.equal(calls, 0);
+  } finally {
+    process.env = env;
+    tls.connect = connect;
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+  console.log(JSON.stringify({phase, rejected: 'RegisteredSdkCredentialMismatch', credentialReads, tlsAttempts, calls}));
+  process.exit(0);
+}
 let client, primary, failed = false;
 const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
@@ -328,10 +363,7 @@ try {
       return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
     };
   }
-  client = await open({stateDir: '.state', installation: {
-    registerModelProviders, authorization, observation: work.connection,
-    ...(registered ? {modelSdkRegistrations} : {}),
-    ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
+  client = await open(openOptions);
   if (fresh) {
     if (project) process.env.OPENAI_API_KEY = fixtureCredential;
     const cases = [

@@ -211,7 +211,10 @@ function installedChatRegistration(config, originalUndici, transportTimeouts, op
     physicalFetch??=originalUndici ? createOriginalUndiciFetch({
       endpoint:endpoint.href,requestLimits,responseLimits,
       physicalAcquisitionLimits:config.physicalAcquisitionLimits,
-      transportTimeouts, openAICredentialBytes}) : fetch;
+      transportTimeouts,
+      ...(registeredSdk?.credential === undefined ? {openAICredentialBytes}
+        : {registeredCredential: {...registeredSdk.credential.transport, maxBytes: openAICredentialBytes}}),
+    }) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       sdkStaticOriginals:openAIChatStaticOriginals,
       ...(registeredSdk === undefined ? {} : {registeredSdk}),

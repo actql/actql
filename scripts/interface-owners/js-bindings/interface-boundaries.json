@@ -71127,7 +71127,7 @@
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -74098,7 +74098,9 @@
         },
         {
           "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
-          "parameters": [],
+          "parameters": [
+            "code"
+          ],
           "async": false
         },
         {
@@ -75290,7 +75292,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
+      "sha256": "353b51f373852e6c0631057219926346f0c8446307285cd62408d9a046ac5aac"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

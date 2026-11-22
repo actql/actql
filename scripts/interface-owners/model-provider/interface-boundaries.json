@@ -5,7 +5,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fd74a6888a51429f8098ef5da44126b9b4b32e67b57a9b2f50d45a1855dd5f61",
+      "sha256": "a15ef0ad548b39480455f21221f8f3d2278342cfcec8e04ff6ea703fa8d73cba",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
         "createInstalledOpenAIChatRegistration",

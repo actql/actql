@@ -17,6 +17,11 @@ import {runLocalCheck} from './local-checks-guard.mjs';
 export function checkPackedProviderObservation({caseId, phase, pid, originalPid, observation: value}) {
   assert.equal(value.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0);
+  if (caseId.startsWith('registered-credential-')) {
+    assert.deepEqual(value, {phase, rejected: 'RegisteredSdkCredentialMismatch',
+      credentialReads: 0, tlsAttempts: 0, calls: 0});
+    return;
+  }
   if (caseId === 'registered-invalid') {
     assert.deepEqual(value, {phase, startupRefused: true, registrations: 0, calls: 0,
       defaultOpened: true, firstCloseReturned: true, aliveScopedFD0: true});
@@ -96,7 +101,8 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ['registered-project', 'cold'], ['registered-too-late'], ['registered-invalid']].filter(([id]) => cases.includes(id));
+    ['registered-project', 'cold'], ['registered-too-late'], ['registered-invalid'],
+    ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
   const report = {source: source.revision, preparations: [],

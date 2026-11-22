@@ -17,6 +17,8 @@ export type InstalledModelSdkRegistration = Readonly<{
   lock: InstalledModelSdkImage;
   route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
   providerOptions: Readonly<Record<string, string | boolean | number>>;
+  /** Nonsecret reference and header, checked against the verified adapter. */
+  credential?: Readonly<{reference: string; header: string}>;
 }>;
 
 export type EmbeddedHostInstallation = Readonly<{
