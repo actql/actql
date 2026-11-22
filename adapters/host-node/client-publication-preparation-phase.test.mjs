@@ -1053,7 +1053,7 @@ test('Native and Broad original close retain pending evidence custody before phy
       else if (value && typeof value === 'object') walk(value, visit);
     }
   };
-  for (const [name, file] of [['runHostNativeQuery', 'host.mjs'],
+  for (const [name, file] of [['runHostNativeQuery', 'native-host-query.mjs'],
     ['runBroadHostQuery', 'broad-host-query.mjs']]) {
     const source = readFileSync(new URL('../connectors/duckdb/node/' + file, import.meta.url), 'utf8');
     const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});

@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "c4fd15df7bec95253db8bb0444d2513b9370bf28024e8f06badf0545242daeea",
+      "sha256": "5a45832d3d5b3c87a42930086cead0f5b3e2515ec59bc9c6f0152f354aadf8ba",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
@@ -93,9 +93,24 @@
           "async": false
         },
         {
+          "name": "logicalComparisonAccounting",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
           "name": "logicalComparisonAccounting/logicalComparisonAccounting",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "logicalMeasurementAccounting",
+          "parameters": [
+            "values",
+            "prefix"
           ],
           "async": false
         },
@@ -491,316 +506,6 @@
           "async": false
         },
         {
-          "name": "runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/accounting/init:settled/init:settled",
-          "parameters": [
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/accounting/init:started/init:started",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured",
-          "parameters": [
-            "verify"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/captured#2",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/captured#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/init:abort/init:abort",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:abort/init:abort",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
-          "parameters": [
-            "role",
-            "chunk",
-            "current"
-          ],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
-          "parameters": [
-            "chunk",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
-          "parameters": [
-            "role",
-            "fields",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
-          "parameters": [
-            "_fields",
-            "current"
-          ],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
-          "parameters": [
-            "role",
-            "current"
-          ],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port/port",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/port#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/recovery/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/recovery/recovery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/run/run",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured#2",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidence/evidence",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidence/evidence/evidence",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidence/evidence/evidence#2",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
-          "parameters": [
-            "context",
-            "identity",
-            "logicalInput",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "issuanceSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/output/output",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/output/output/output",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/result#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/result#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/result#4",
-          "parameters": [
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/result/result#5",
-          "parameters": [
-            "dag",
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/retainedCleanup/retainedCleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/runHostNativeQuery",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/runHostNativeQuery#2",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/runHostNativeQuery#3",
-          "parameters": [
-            "context",
-            "identity",
-            "logicalInput",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "issuanceSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostNativeQuery/runHostNativeQuery#4",
-          "parameters": [
-            "identity"
-          ],
-          "async": false
-        },
-        {
           "name": "runManagedRetainedStrategyHostCompute",
           "parameters": [
             "setup",
@@ -941,7 +646,9 @@
             "importRetainedComputeInput/importRetainedComputeInput",
             "issueNativeSourceEvidence",
             "loadRuntime/loadRuntime",
+            "logicalComparisonAccounting",
             "logicalComparisonAccounting/logicalComparisonAccounting",
+            "logicalMeasurementAccounting",
             "logicalMeasurementAccounting/logicalMeasurementAccounting",
             "nativeSourceIdentityMatches",
             "prepareNativeSourceEvidenceOriginal",
@@ -1003,56 +710,6 @@
             "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/storageReleased/storageReleased",
             "runHostCompute/verify/verify",
-            "runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
-            "runHostNativeQuery/accounting/init:settled/init:settled",
-            "runHostNativeQuery/accounting/init:started/init:started",
-            "runHostNativeQuery/captured/captured",
-            "runHostNativeQuery/captured/captured#2",
-            "runHostNativeQuery/captured/captured/captured",
-            "runHostNativeQuery/captured/captured/captured#2",
-            "runHostNativeQuery/captured/captured/captured#3",
-            "runHostNativeQuery/captured/captured/init:abort/init:abort",
-            "runHostNativeQuery/captured/captured/init:close/init:close",
-            "runHostNativeQuery/captured/captured/init:retry/init:retry",
-            "runHostNativeQuery/captured/captured/port/init:abort/init:abort",
-            "runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
-            "runHostNativeQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
-            "runHostNativeQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
-            "runHostNativeQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
-            "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
-            "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
-            "runHostNativeQuery/captured/captured/port/port",
-            "runHostNativeQuery/captured/captured/port/port#2",
-            "runHostNativeQuery/captured/captured/port/port#3",
-            "runHostNativeQuery/captured/captured/port/port#4",
-            "runHostNativeQuery/captured/captured/port/port#5",
-            "runHostNativeQuery/captured/captured/port/port/port",
-            "runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
-            "runHostNativeQuery/captured/captured/recovery/init:close/init:close",
-            "runHostNativeQuery/captured/captured/recovery/recovery",
-            "runHostNativeQuery/captured/captured/run/run",
-            "runHostNativeQuery/evidence/evidence",
-            "runHostNativeQuery/evidence/evidence/evidence",
-            "runHostNativeQuery/evidence/evidence/evidence#2",
-            "runHostNativeQuery/evidenceOriginal/evidenceOriginal",
-            "runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
-            "runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
-            "runHostNativeQuery/output/output",
-            "runHostNativeQuery/output/output/output",
-            "runHostNativeQuery/result/init:close/init:close",
-            "runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
-            "runHostNativeQuery/result/result",
-            "runHostNativeQuery/result/result#2",
-            "runHostNativeQuery/result/result#3",
-            "runHostNativeQuery/result/result#4",
-            "runHostNativeQuery/result/result#5",
-            "runHostNativeQuery/retainedCleanup/retainedCleanup",
-            "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
-            "runHostNativeQuery/runHostNativeQuery",
-            "runHostNativeQuery/runHostNativeQuery#2",
-            "runHostNativeQuery/runHostNativeQuery#3",
-            "runHostNativeQuery/runHostNativeQuery#4",
-            "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
             "runManagedRetainedStrategyHostCompute",
             "runManagedRetainedStrategyHostCompute/runManagedRetainedStrategyHostCompute",
             "runNativeHostQuery",
@@ -1191,21 +848,538 @@
         "./managed-column-codec.mjs",
         "./managed-output-finish.mjs",
         "./managed-strategy-compute.mjs",
-        "./native-query.mjs",
+        "./native-host-query.mjs",
         "./physical-capacity.mjs",
         "./resident-environment.mjs",
         "./retained-configuration.mjs",
         "./runtime-result.mjs",
         "./session.mjs",
-        "./source-acquisition.mjs",
-        "./source-evidence-original.mjs",
-        "./transport-bounds.mjs",
-        "node:crypto"
+        "./transport-bounds.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
+    },
+    {
+      "module": "adapters/connectors/duckdb/node/native-host-query.mjs",
+      "sha256": "6be37ce21f108206cdf7decb4229a256e9224f60114264ed49f34861a1ca80c4",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
+      "exports": [
+        "createNativeHostQuery"
+      ],
+      "operations": [
+        {
+          "name": "createNativeHostQuery",
+          "parameters": [
+            "loadRuntime",
+            "ownedSourceCaptures",
+            "retainedComputations",
+            "rows",
+            "fieldsFrame",
+            "logicalMeasurementAccounting",
+            "logicalComparisonAccounting"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery",
+          "parameters": [
+            "grant",
+            "setup",
+            "limits",
+            "signal",
+            "ledger",
+            "retained",
+            "outputKey"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/accounting/init:settled/init:settled",
+          "parameters": [
+            "confirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/accounting/init:started/init:started",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured",
+          "parameters": [
+            "verify"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/captured",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/captured#2",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/captured#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/init:abort/init:abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:abort/init:abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
+          "parameters": [
+            "role",
+            "chunk",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
+          "parameters": [
+            "chunk",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
+          "parameters": [
+            "role",
+            "fields",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
+          "parameters": [
+            "_fields",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
+          "parameters": [
+            "role",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port/port",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/captured/captured#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidence/evidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidence/evidence/evidence",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidence/evidence/evidence#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/output/output",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/output/output/output",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/result#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/result#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/result#4",
+          "parameters": [
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/result/result#5",
+          "parameters": [
+            "dag",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/retainedCleanup/retainedCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/retainedCleanup/retainedCleanup#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#2",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#3",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#4",
+          "parameters": [
+            "identity"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNativeHostQuery",
+            "createNativeHostQuery/runHostNativeQuery",
+            "createNativeHostQuery/runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
+            "createNativeHostQuery/runHostNativeQuery/accounting/init:settled/init:settled",
+            "createNativeHostQuery/runHostNativeQuery/accounting/init:started/init:started",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/captured",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/captured#2",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/captured#3",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/init:abort/init:abort",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/init:close/init:close",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/init:retry/init:retry",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:abort/init:abort",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port/port",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#2",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#3",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#4",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/port/port#5",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/init:close/init:close",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/recovery/recovery",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured/run/run",
+            "createNativeHostQuery/runHostNativeQuery/captured/captured#2",
+            "createNativeHostQuery/runHostNativeQuery/evidence/evidence",
+            "createNativeHostQuery/runHostNativeQuery/evidence/evidence/evidence",
+            "createNativeHostQuery/runHostNativeQuery/evidence/evidence/evidence#2",
+            "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal",
+            "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+            "createNativeHostQuery/runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
+            "createNativeHostQuery/runHostNativeQuery/output/output",
+            "createNativeHostQuery/runHostNativeQuery/output/output/output",
+            "createNativeHostQuery/runHostNativeQuery/result/init:close/init:close",
+            "createNativeHostQuery/runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+            "createNativeHostQuery/runHostNativeQuery/result/result",
+            "createNativeHostQuery/runHostNativeQuery/result/result#2",
+            "createNativeHostQuery/runHostNativeQuery/result/result#3",
+            "createNativeHostQuery/runHostNativeQuery/result/result#4",
+            "createNativeHostQuery/runHostNativeQuery/result/result#5",
+            "createNativeHostQuery/runHostNativeQuery/retainedCleanup/retainedCleanup",
+            "createNativeHostQuery/runHostNativeQuery/retainedCleanup/retainedCleanup#2",
+            "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery",
+            "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
+            "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#2",
+            "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#3",
+            "createNativeHostQuery/runHostNativeQuery/runHostNativeQuery#4"
+          ],
+          "exports": [
+            "createNativeHostQuery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/duckdb-relation-execution.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "async function runHostNativeQuery("
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "const captured = await runNativeQuery(grant, verify => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "throw new DuckDBTransportError('ForeignReadView');"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "moon.nativeHostSourceCaptureIdentityMatches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "ownedSourceCaptures.set(result,"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "retainedComputations.set(retainedOutput, Object.freeze({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "if (evidenceOriginal.pending()) throw"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "retainedHandle = checked(moon.nativeHostStreamRetain"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "throw sourceAcquisitionFailure(failure, 'unknown', recovery);"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "Retained acquisition cleanup failed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "checked(moon.nativeHostPhysicalSettle(capturedRun, confirmed))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "capacity.transferBytes, capacity.executionBytes"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "store?.close();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/duckdb/node/test/native-capture-custody.test.mjs",
+                "anchor": "test('adopted source custody requires issuer close and exact retained inode cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('Native and Broad original close retain pending evidence custody before physical retirement"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/files.mjs",
+        "../../../store-local/process-client.mjs",
+        "../../../store-local/representations.mjs",
+        "./native-query.mjs",
+        "./physical-capacity.mjs",
+        "./retained-configuration.mjs",
+        "./runtime-result.mjs",
+        "./session.mjs",
+        "./source-acquisition.mjs",
+        "./source-evidence-original.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/broad-host-query.mjs",
@@ -2051,8 +2225,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
-                "anchor": "ownedSourceCaptures.set(result, Object.freeze({"
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
+                "anchor": "ownedSourceCaptures.set(result, Object.freeze<OwnedSourceCapture>({"
               },
               {
                 "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
@@ -2077,7 +2251,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/native-host-query.mts",
                 "anchor": "}, issuanceSignal);"
               }
             ],

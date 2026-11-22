@@ -60,12 +60,13 @@ test('Source receiver window preserves tighter explicit batch bounds and refuses
 // the real Session handoff, without issuing a capture or claiming native work.
 for (const broad of [false, true]) {
   test(`${broad ? 'Broad' : 'Native'} Source uses the same selected window for quote and Session`, async () => {
-    const file = broad ? '../broad-host-query.mjs' : '../host.mjs';
+    const file = broad ? '../broad-host-query.mjs' : '../native-host-query.mjs';
     const source = readFileSync(new URL(file, import.meta.url), 'utf8');
     const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
     const name = broad ? 'runBroadHostQuery' : 'runHostNativeQuery';
     const topLevel = (ast.body as HostStatement[]).map(value => value.declaration ?? value);
-    const statements = broad ? topLevel.find(value => value.id?.name === 'createBroadHostQuery')?.body?.body : topLevel;
+    const factory = broad ? 'createBroadHostQuery' : 'createNativeHostQuery';
+    const statements = topLevel.find(value => value.id?.name === factory)?.body?.body;
     const node = statements?.find(value => value.id?.name === name);
     assert.ok(node);
     const setup = {}, ledger = {}, grant = {}, primary = new Error('StoppedAtOriginalSession');
