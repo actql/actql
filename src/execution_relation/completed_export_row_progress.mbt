@@ -353,6 +353,80 @@ fn advance_completed_export_row_frame(
 }
 
 ///|
+// This runs at BeginPayload after the measuring cursor has returned. Keep
+// both original writers in the peak. A drain may retain the byte builder,
+// so include the earlier buffer bound beside the next row's writer frames.
+// Source, order and reference backing belong to the export's constructor.
+fn completed_export_row_writer_capacity(
+  stream : CompletedOutputExport,
+  bytes : Int,
+) -> ExecutionCapacity? {
+  // The grow port reports total pending bytes, including an opening
+  // delimiter already in the sink. The writer inventory includes the
+  // current buffer itself; supply only the next row's increment here.
+  let pending = @encode.observed_writer_usage(stream.writer).0 -
+    stream.drained_bytes
+  guard pending >= 0 && bytes >= pending else { return None }
+  let fragment = bytes - pending
+  // The original per-column maxima already include every measured row.
+  // Their sum bounds earlier single-row buffers without revisiting values.
+  // Allow one leading array delimiter and the same key/row framing used by
+  // the measurement. The builder never receives more than its batch limit.
+  let max_buffer = stream.max_batch_bytes.to_int64()
+  let mut earlier = 4L
+  for index, field in stream.order.columns {
+    earlier += stream.column_max_value_bytes[index].to_int64() +
+      4L +
+      6L * field.0.length().to_int64()
+    if earlier >= max_buffer {
+      break
+    }
+  }
+  let buffered_peak = Int64::min(earlier, max_buffer).to_int()
+  // Each emitted JSON node needs at least one payload byte. The payload
+  // writer admits the entire row before the logical writer visits it.
+  let nodes = Int::min(fragment, stream.measurement_max_nodes)
+  let depth = Int::min(nodes, stream.measurement_max_depth)
+  guard @encode.buffered_hash_writer_next_construction_inventory(
+      stream.writer,
+      fragment,
+      buffered_peak,
+      nodes,
+      depth,
+    )
+    is Some(payload) else {
+    return None
+  }
+  let logical : @encode.HashWriterConstructionInventory = match
+    stream.logical_writer {
+    None =>
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }
+    Some(writer) => {
+      guard @encode.hash_writer_next_construction_inventory(
+          writer, nodes, depth,
+        )
+        is Some(inventory) else {
+        return None
+      }
+      inventory
+    }
+  }
+  preparation_representation_cost({
+    record_headers: payload.record_headers + logical.record_headers,
+    reference_slots: payload.reference_slots + logical.reference_slots,
+    scalar_words: payload.scalar_words + logical.scalar_words,
+    owned_utf16_units: payload.owned_utf16_units + logical.owned_utf16_units,
+    owned_wire_bytes: payload.owned_wire_bytes + logical.owned_wire_bytes,
+  }).bind(bytes => execution_capacity(0L, bytes))
+}
+
+///|
 // The SAME row measurement already retained every cell's wire maximum. Only
 // the physical payload writer needs draining; the logical hash stays continuous.
 // Typed Text/key/reference cursors use their existing closed transition bound.

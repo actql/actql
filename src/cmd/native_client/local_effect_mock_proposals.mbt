@@ -559,30 +559,34 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       } else {
         None
       }
-      // The managed export owns its own copied prefix. For a nonempty row
-      // stream keep the entire old one-row construction space before the
-      // original writer emits. Rows never keep this workspace individually.
-      let original_row_workspace = if measure_proposal_rows &&
-        !@execution.completed_output_export_rows_complete(stream)
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original) {
-        let original = state._retained_import_recipes[1]
-        let fixed = original[0]
-        let workspace = @execution.checked_preparation_add_product(
-          @execution.execution_capacity_execution_bytes(fixed) -
-          @execution.execution_capacity_retained_bytes(fixed),
-          @execution.execution_capacity_retained_bytes(original[1]),
-          1L,
-        )
-        let capacity = workspace.bind(workspace => {
-          @execution.execution_capacity(0L, workspace)
-        })
-        if !construction.unwrap().prepare_body(self.original, capacity) {
-          stop("LocalOriginalEffectProposalsUnavailable")
-        }
-        workspace.unwrap()
+      // Keep the original fixed scratch for projection controls and row
+      // measurement. The checked row allowance is reserved at emission and
+      // decoding using this row's actual bounds rather than the full recipe.
+      let fixed_workspace = if measure_proposal_rows {
+        let fixed = state._retained_import_recipes[1][0]
+        @execution.execution_capacity_execution_bytes(fixed) -
+        @execution.execution_capacity_retained_bytes(fixed)
       } else {
         0L
+      }
+      let writer_workspace = Ref(0L)
+      let before_emit = if measure_proposal_rows &&
+        construction is Some(original) {
+        Some(capacity => {
+          // The exporter includes earlier backing retained by its drained
+          // buffer. Carry that quote beside this row's remaining constructors.
+          let next = @execution.execution_capacity_execution_bytes(capacity)
+          let quote = @execution.checked_preparation_add_product(
+            fixed_workspace, next, 1L,
+          ).bind(peak => @execution.execution_capacity(0L, peak))
+          if !original.prepare_body(self.original, quote) {
+            return false
+          }
+          writer_workspace.val = next
+          true
+        })
+      } else {
+        None
       }
       let row_decode_workspace = Ref(0L)
       let before_decode = construction.map(construction => {
@@ -591,12 +595,25 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             bytes, nodes, depth,
           )
           guard capacity is Some(quote) &&
-            construction.prepare_body(self.original, capacity) else {
+            @execution.checked_preparation_add_product(
+              fixed_workspace,
+              writer_workspace.val,
+              1L,
+            )
+            is Some(coheld) &&
+            @execution.checked_preparation_add_product(
+              coheld,
+              @execution.execution_capacity_execution_bytes(quote),
+              1L,
+            )
+            is Some(peak) &&
+            construction.prepare_body(
+              self.original,
+              @execution.execution_capacity(0L, peak),
+            ) else {
             return false
           }
-          row_decode_workspace.val = @execution.execution_capacity_execution_bytes(
-            quote,
-          )
+          row_decode_workspace.val = peak
           true
         }
       })
@@ -608,7 +625,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           construction.prepare_body(
             self.original,
             native_mock_effect_proposal_write_workspace(
-              Int64::max(row_decode_workspace.val, original_row_workspace),
+              row_decode_workspace.val,
               bytes,
               nodes,
               depth,
@@ -626,6 +643,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             wire.max_depth,
             limits.output_work,
             before_decode~,
+            before_emit~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original)

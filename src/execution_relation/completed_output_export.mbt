@@ -534,6 +534,15 @@ pub fn next_completed_output_export(
   value : CompletedOutputExport,
   batch? : Bool = false,
 ) -> Result[String?, CompletedExportIssue] {
+  next_completed_output_export_with_growth(value, batch, None)
+}
+
+///|
+fn next_completed_output_export_with_growth(
+  value : CompletedOutputExport,
+  batch : Bool,
+  before_batch_growth : ((Int) -> Result[Bool, CompletedExportIssue])?,
+) -> Result[String?, CompletedExportIssue] {
   guard completed_output_export_workspace_slots(value.budget.limits, {
       max_columns: 0,
       max_order_work: 0,
@@ -546,7 +555,13 @@ pub fn next_completed_output_export(
   }
   while true {
     let result = match
-      advance_completed_output_export(value, 64, slots, batch~) {
+      advance_completed_output_export(
+        value,
+        64,
+        slots,
+        batch~,
+        before_batch_growth~,
+      ) {
       Ok(result) => result
       Err(issue) => return Err(issue)
     }
@@ -567,14 +582,16 @@ pub fn next_completed_output_export(
 /// parsed at a time; no environment adapter reconstructs the full Relation.
 /// The leading array delimiter is part of the stored byte batch, but not of
 /// the row value. A conversion failure poisons this export occurrence.
-/// The optional constructor callback receives the original writer's batch
-/// bytes, row nodes, and enclosing-array-adjusted depth bound before decoding.
+/// before_emit prices the original payload and logical writers after measuring
+/// the row and before either emits it. before_decode then receives the emitted
+/// batch bytes, row nodes and enclosing-array-adjusted depth before decoding.
 pub fn next_completed_output_export_canonical_row(
   value : CompletedOutputExport,
   max_nodes : Int,
   max_depth : Int,
   max_utf16_units : Int,
   before_decode? : ((Int, Int, Int) -> Bool)? = None,
+  before_emit? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Int, String, @identity.CanonicalValue)?, CompletedExportIssue] {
   if max_nodes < 1 || max_depth < 1 || max_utf16_units < 0 {
     return Err(CanonicalRow)
@@ -585,7 +602,16 @@ pub fn next_completed_output_export_canonical_row(
   } else {
     (0, 0, 0)
   }
-  let batch = match next_completed_output_export(value) {
+  let fund_emit = before_emit.map(fund => {
+    fn(bytes) {
+      guard completed_export_row_writer_capacity(value, bytes) is Some(capacity) else {
+        return Err(CompletedExportIssue::Admission(CaptureLimit))
+      }
+      Ok(fund(capacity))
+    }
+  })
+  let batch = match
+    next_completed_output_export_with_growth(value, false, fund_emit) {
     Ok(Some(batch)) => batch
     Ok(None) => return Ok(None)
     Err(issue) => return Err(issue)
