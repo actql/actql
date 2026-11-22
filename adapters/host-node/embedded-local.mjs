@@ -4891,6 +4891,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
+  const effectStartSettlements = new Set();
+  const retainEffectStartSettlement = settlement => {
+    // Run-state observation can open Store readers after dispatch retires.
+    // Keep this original continuation through Host stop as well.
+    effectStartSettlements.add(settlement);
+    const retire = () => { effectStartSettlements.delete(settlement); };
+    settlement.then(retire, retire);
+    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+  };
   const submitEffect = async (submission, requested, resultNames) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters, preparedProgram} = submission;
@@ -4944,7 +4953,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
       .catch(error => diagnostic('effect_settlement_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
-    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+    retainEffectStartSettlement(settlement);
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
@@ -5357,7 +5366,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
-      try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+      retainEffectStartSettlement(settlement);
       return await observedStart;
     }
     const held = {preparedSource, preparedSources, keyedSource, managedRun,
@@ -6542,7 +6551,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         async drain() {
           // Stop has joined the last sweep. These are only its SAME admitted
           // continuations, not another sweep, start, read or cleanup ACK.
-          await Promise.allSettled([...effectResumeFlights.values()]);
+          await Promise.allSettled([...effectStartSettlements, ...effectResumeFlights.values()]);
           await Promise.allSettled([...effectRetirementFlights.values()]);
         },
       }});

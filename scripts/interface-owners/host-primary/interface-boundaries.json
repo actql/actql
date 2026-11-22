@@ -16702,6 +16702,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainEffectStartSettlement/retainEffectStartSettlement/retire/retire",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
@@ -26639,6 +26640,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retainEffectStartSettlement/retainEffectStartSettlement/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
           "parameters": [],
           "async": true
@@ -29376,7 +29382,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
+      "sha256": "379b9039fba4557c02d7443ecf246d4429d0fa9a2556e21ca7c7062cc4decee0"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -35604,7 +35610,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1187,
+    "operations": 1188,
     "exports": 109,
     "explicitContractGroups": 106
   }

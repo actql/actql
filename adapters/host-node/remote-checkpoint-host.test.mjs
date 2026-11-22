@@ -12,11 +12,11 @@ import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs'
 import {referenceEffectManagedFixture} from './fixtures/reference-effect-managed.fixture.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
-import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
+import fsPromises, {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
-import {createRequire} from 'node:module';
+import {createRequire, syncBuiltinESMExports} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
@@ -2627,18 +2627,61 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     });
     const account = protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
+    const serverClosed = Promise.withResolvers();
     const first = await remoteHost(t, account, {directory,
-      effectInstallation: installed, beforeDispatch: () => barrier});
+      effectInstallation: installed, beforeDispatch: () => barrier,
+      httpObserver: {server: server => server.once('close', serverClosed.resolve)}});
     const submissionClient = await first.as('owner-token');
     const run = await submissionClient.startSource(fixture.document, {format: 'json',
       submissionRef: submissionClient.newSubmission({nonce: 'effect-barrier-wait'})});
     assert.equal(captures, 0);
     assert.deepEqual(sends, []);
-    release();
-    await waitFor(async () => (await run.status()).status === 'succeeded');
-    assert.equal(captures, 1);
-    assert.deepEqual(sends, [[0, 0], [0, 1]]);
-    await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
+    // Hold the real schema FD of the post-dispatch observation. Status opens
+    // its own reader and must still complete while this one is outstanding.
+    const permitReaderClose = Promise.withResolvers();
+    const contracts = join(directory, 'state', 'publication', 'contracts') + '/';
+    const originalOpen = fsPromises.open;
+    let selected = false, readerWaiting = false, readerClosed = false;
+    fsPromises.open = async function (...args) {
+      if (!selected && typeof args[0] === 'string' && args[0].startsWith(contracts)) {
+        const stack = new Error().stack ?? '';
+        if (stack.includes('verifyDurableResultBinding') && stack.includes('settleHeldRun')) {
+          selected = true;
+          const handle = await Reflect.apply(originalOpen, this, args);
+          const close = handle.close.bind(handle);
+          handle.close = async (...options) => {
+            readerWaiting = true;
+            await permitReaderClose.promise;
+            const result = await close(...options);
+            readerClosed = result !== false;
+            return result;
+          };
+          return handle;
+        }
+      }
+      return Reflect.apply(originalOpen, this, args);
+    };
+    syncBuiltinESMExports();
+    try {
+      release();
+      await waitFor(async () => (await run.status()).status === 'succeeded');
+      await waitFor(() => readerWaiting);
+      assert.equal(captures, 1);
+      assert.deepEqual(sends, [[0, 0], [0, 1]]);
+      const closing = closeRetainedStoreFixtureHost(first, t,
+        {observeFirstClose: true, requireFirstClose: true}).then(() => {
+        assert.equal(readerClosed, true, 'First Host close must join the original reader');
+      });
+      void closing.catch(() => {});
+      await serverClosed.promise;
+      assert.equal(readerClosed, false, 'Original reader must still own its FD at shutdown');
+      permitReaderClose.resolve();
+      await closing;
+    } finally {
+      permitReaderClose.resolve();
+      fsPromises.open = originalOpen;
+      syncBuiltinESMExports();
+    }
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({
