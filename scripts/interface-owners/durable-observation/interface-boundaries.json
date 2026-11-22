@@ -6269,6 +6269,14 @@
           "async": false
         },
         {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "httpsCredentialResponseWindowBytes",
           "parameters": [
             "maxResponseBytes"
@@ -6351,102 +6359,6 @@
           "async": false
         },
         {
-          "name": "receive/receive",
-          "parameters": [
-            "resolve",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/finish/finish/finish",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive/receive",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/receive#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request",
-          "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
-          "parameters": [
-            "yes",
-            "no"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/request/request/request#4",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "retainHttpsCredentialBindingReadChild",
           "parameters": [
             "binding"
@@ -6505,25 +6417,15 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
+            "fail/fail",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
+            "openHttpsCredentialBinding/openHttpsCredentialBinding#2",
             "openHttpsCredentialBinding/original/original",
             "ownAuthenticationRegistration/ownAuthenticationRegistration",
             "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
             "prepareHttpsCredentialAuthenticationMaterial",
-            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
-            "receive/receive",
-            "receive/receive/finish/finish/finish",
-            "receive/receive/receive",
-            "receive/receive/receive#2",
-            "receive/receive/receive#3",
-            "receive/receive/receive/receive",
-            "receive/receive/request/request",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
-            "receive/receive/request/request/request",
-            "receive/receive/request/request/request#2",
-            "receive/receive/request/request/request#3",
-            "openHttpsCredentialBinding/openHttpsCredentialBinding#2"
+            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline"
           ],
           "exports": [
             "callHttpsCredentialResource",
@@ -6653,7 +6555,7 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
               },
               {
@@ -6847,11 +6749,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               },
               {
@@ -7094,7 +6996,7 @@
                 "anchor": "- Run response resources:"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
@@ -7157,9 +7059,6 @@
             "callCredentialResource/retainResponse/retainResponse",
             "callCredentialResource/retainResponse/retainResponse#2",
             "httpsCredentialResponseWindowBytes",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
-            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
             "retainHttpsCredentialBindingReadChild",
             "retainHttpsCredentialBindingReadChild/borrow/init:available/init:available",
             "retainHttpsCredentialBindingReadChild/borrow/init:close/init:close",
@@ -7450,7 +7349,7 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "response.rawHeaders[index].toLowerCase()"
               },
               {
@@ -7644,11 +7543,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-response.mts",
                 "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               },
               {
@@ -7799,115 +7698,6 @@
           }
         },
         {
-          "operations": [
-            "receive/receive/request/request/readResponseChunk/readResponseChunk",
-            "receive/receive/request/request/request#4"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Successful original concatenation severs the same copied prefix and reader"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "### Same original secret across Resource bindings"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [
             "httpsCredentialResponseReadQuantum"
@@ -8016,7 +7806,7 @@
           }
         }
       ],
-      "sha256": "bd04fa7701ff93435b1e11c3d689e8446a4ba911df772041bc0b029ab860bfdf",
+      "sha256": "3168084202a9cf2710f495f55810512c520406c4710b93e4435503b74582e9d9",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
@@ -8025,13 +7815,378 @@
         "../host-common/runtime-result.mjs",
         "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
+        "./https-credential-response.mjs",
         "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/site-node/https-credential-response.mjs",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "httpsCredentialAuthorizationPrefix",
+        "httpsCredentialResponseHeaderByteLimit",
+        "httpsCredentialResponseReadQuantum",
+        "receive"
+      ],
+      "operations": [
+        {
+          "name": "receive",
+          "parameters": [
+            "hostname",
+            "port",
+            "path",
+            "method",
+            "body",
+            "bodyMediaType",
+            "requestBytes",
+            "secret",
+            "authenticationForm",
+            "headers",
+            "ca",
+            "cert",
+            "key",
+            "signal",
+            "maxResponseBytes",
+            "binding",
+            "retainRunResponseOriginal",
+            "observeResponseBytes",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/finish/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive/receive",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/receive#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+          "parameters": [
+            "yes",
+            "no"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#4",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
         "node:http",
         "node:https",
         "node:util"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "sha256": "2c0bd0614cc3a286272675939081d8a95319cbb38f6b8fbcb5585b515142fe84",
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "receive",
+            "receive/receive",
+            "receive/receive/finish/finish/finish",
+            "receive/receive/receive",
+            "receive/receive/receive/receive",
+            "receive/receive/receive#2",
+            "receive/receive/receive#3",
+            "receive/receive/request/request",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
+            "receive/receive/request/request/readObservedResponse/readObservedResponse/joined/joined",
+            "receive/receive/request/request/request",
+            "receive/receive/request/request/request#2",
+            "receive/receive/request/request/request#3"
+          ],
+          "exports": [
+            "httpsCredentialAuthorizationPrefix",
+            "httpsCredentialResponseHeaderByteLimit",
+            "httpsCredentialResponseReadQuantum",
+            "receive"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "export function receive("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "request.end(body);"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "finish(resolve, Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "response.rawHeaders[index].toLowerCase()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "binding.request = request;"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "binding.unjoinedResponseCustody ??= {original: observed, cause};"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "request.once('close',"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "observerPending = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "finish(reject, error);"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "response.destroy(error as Error);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "socket?.destroy();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "maxResponseBytes - received + 1"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "httpsCredentialResponseReadQuantum = 16_384;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/site-node/https-credential-response.mts",
+                "anchor": "const physicalHeaders:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "original binary response lengths and body remain exact"
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "native byte observer join failure retains the original"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "receive/receive/request/request/readResponseChunk/readResponseChunk",
+            "receive/receive/request/request/request#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same original secret across Resource bindings"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",

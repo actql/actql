@@ -17,7 +17,8 @@ function mutation(transform, pattern, expected) {
     symlinkSync(join(root, 'adapters/host-common'), join(scratch, 'adapters/host-common'));
     symlinkSync(join(root, '_build'), join(scratch, '_build'));
     for (const name of ['sqlite-credential-journal.mjs', 'remote-credential-signature.mjs',
-      'https-exchange-fixture.test.mjs']) symlinkSync(join(root, 'adapters/site-node', name),
+      'https-credential-response.mjs', 'google-service-account-assertion.mjs',
+      'https-exchange-fixture.mjs', 'https-exchange-fixture.test.mjs']) symlinkSync(join(root, 'adapters/site-node', name),
         join(scratch, 'adapters/site-node', name));
     copyFileSync(join(root, 'adapters/site-node/https-credential-resource.test.mjs'),
       join(scratch, 'adapters/site-node/https-credential-resource.test.mjs'));

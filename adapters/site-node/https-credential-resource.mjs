@@ -1,5 +1,3 @@
-import {request as httpsRequest} from 'node:https';
-import {maxHeaderSize} from 'node:http';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest}
@@ -14,20 +12,19 @@ import {installationPreparationSubjectKeys} from
 import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
   ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {captureSourceResponseCustody} from '../host-common/source-response-custody.mjs';
+import {receive} from './https-credential-response.mjs';
+
+export {
+  httpsCredentialAuthorizationPrefix,
+  httpsCredentialResponseHeaderByteLimit,
+  httpsCredentialResponseReadQuantum,
+} from './https-credential-response.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-
-// The original Node process's existing default, also passed to its actual
-// parser below. This is an implementation bound, never a caller allowance.
-export const httpsCredentialResponseHeaderByteLimit = maxHeaderSize;
-
-// The actual bearer-header constructor and its logical backing quote use
-// the same fixed prefix. No credential material is exposed by this DATA.
-export const httpsCredentialAuthorizationPrefix = 'Bearer ';
 
 // The unchanged default of the original request constructor below. Installed
 // recipe assembly consumes this same bound instead of copying its number.
@@ -43,7 +40,6 @@ const bindings = new WeakMap();
 // cannot construct the original physical claim. This contains no secret.
 const runResponseOriginals = new WeakMap();
 const compareBodyBytes = Buffer.compare;
-const nativePromiseThen = Promise.prototype.then;
 
 // Private synchronous consumer for an original legacy Run response. This is
 // historical DATA, not current authority, a new use, Store custody or an ACK.
@@ -507,7 +503,7 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
     const response = await receive({hostname: 'oauth2.googleapis.com', path: '/token',
       method: 'POST', body, bodyMediaType: 'application/x-www-form-urlencoded',
       requestBytes: body.byteLength, authenticationForm: true, headers: [],
-      ca, cert, key, signal, maxResponseBytes: reader.maxBytes, binding: state});
+      ca, cert, key, signal, maxResponseBytes: reader.maxBytes, binding: state}, fail);
     // Observe the original current authority after the actual response/socket
     // await and before exposing any use of the private token.
     await currentBeforeSend();
@@ -716,215 +712,6 @@ export function httpsCredentialResponseWindowBytes(maxResponseBytes) {
   return BigInt(maxResponseBytes) + 1n;
 }
 
-// Implementation geometry of this original observed binary reader, not a
-// configurable body cap, transfer allowance or authority.
-export const httpsCredentialResponseReadQuantum = 16_384;
-
-function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
-  authenticationForm = false,
-  headers, ca, cert, key, signal, maxResponseBytes, binding,
-  retainRunResponseOriginal = false, observeResponseBytes}) {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let socket;
-    let socketClosed = false;
-    let requestClosed = false;
-    let complete, observerPending = false;
-    const release = () => {
-      if (!binding || !requestClosed || (socket && !socketClosed) || observerPending) return;
-      binding.request = undefined;
-      complete?.();
-    };
-    const finish = (handler, value) => {
-      if (settled) return;
-      settled = true;
-      if (!binding) {
-        handler(value);
-        return;
-      }
-      complete = () => handler(value);
-      // Only this new acquisition port owns a one-request connection. A full
-      // response is retained until its actual request and socket close events.
-      socket?.destroy();
-      release();
-    };
-    const physicalHeaders = Object.freeze({
-      accept: 'application/json',
-      ...Object.fromEntries(headers),
-      ...(authenticationForm ? {} : binding?.secretPresentation === 'kintone-api-token'
-        ? {'x-cybozu-api-token': secret}
-        : {authorization: httpsCredentialAuthorizationPrefix + secret}),
-      ...(body === undefined ? {} : {
-        'content-type': bodyMediaType,
-        'content-length': requestBytes,
-      }),
-    });
-    // Only these non-secret primitive values describe the original physical
-    // representation. Never expose the credential-bearing header dictionary.
-    const requestRepresentation = !retainRunResponseOriginal ? undefined :
-      Object.freeze({
-        accept: typeof physicalHeaders.accept === 'string' ? physicalHeaders.accept : undefined,
-        acceptEncoding: typeof physicalHeaders['accept-encoding'] === 'string'
-          ? physicalHeaders['accept-encoding'] : undefined,
-        ifMatch: typeof physicalHeaders['if-match'] === 'string'
-          ? physicalHeaders['if-match'] : undefined,
-      });
-    const request = httpsRequest({
-      protocol: 'https:',
-      ...(binding ? {agent: false} : {}),
-      hostname,
-      port,
-      path,
-      method,
-      maxHeaderSize: httpsCredentialResponseHeaderByteLimit,
-      ca,
-      cert,
-      key,
-      // A provider may replace `accept`; the credential and body framing
-      // headers are this adapter's own.
-      headers: physicalHeaders,
-      signal,
-    }, response => {
-      // Node's normalized header object can discard duplicate singleton
-      // headers. Conditional evidence needs the actual received multiplicity,
-      // kept only in the existing private original-response projection.
-      let etagCount = 0;
-      let contentEncodingCount = 0;
-      if (retainRunResponseOriginal) {
-        for (let index = 0; index < response.rawHeaders.length; index += 2) {
-          const name = response.rawHeaders[index].toLowerCase();
-          if (name === 'etag') etagCount++;
-          if (name === 'content-encoding') contentEncodingCount++;
-        }
-      }
-      const responseRepresentation = !retainRunResponseOriginal ? undefined :
-        Object.freeze({etagCount, contentEncodingCount});
-      let chunks = [];
-      let detachReader;
-      let received = 0;
-      if (observeResponseBytes === undefined) {
-        const readResponseChunk = chunk => {
-          received += chunk.byteLength;
-          if (received > maxResponseBytes) {
-            response.destroy(Object.assign(
-              new Error('RemoteCredentialResponseLimitExceeded'),
-              {code: 'RemoteCredentialResponseLimitExceeded'},
-            ));
-            return;
-          }
-          chunks.push(Buffer.from(chunk));
-        };
-        response.on('data', readResponseChunk);
-        detachReader = () => response.off('data', readResponseChunk);
-      } else {
-        // Capture the original method and receiver before an external observer
-        // can replace read. Binary read(size) waits for size bytes until EOF,
-        // permitting one final partial copy rather than arbitrary tiny copies.
-        let readOriginal;
-        // Bound the SAME
-        // reader's selected representation to B+1 even when its protocol body
-        // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
-        // offending byte is included, never silently counted as zero.
-        const readObservedResponse = () => {
-          if (settled || observerPending || response.destroyed) return;
-          try {
-            // Capture once under the SAME original error fence. A throwing
-            // getter (including thrown undefined) destroys this response and
-            // follows its existing binding/socket retirement path.
-            readOriginal ??= response.read;
-            let chunk;
-            while ((chunk = Reflect.apply(readOriginal, response, [Math.min(httpsCredentialResponseReadQuantum,
-              maxResponseBytes - received + 1)])) !== null) {
-              const observed = observeResponseBytes(chunk.byteLength);
-              if (observed !== undefined) {
-                if (types.isPromise(observed)) {
-                  // Invalid async borrowing remains joined to this SAME
-                  // request/socket promise until settlement. Cleanup cannot
-                  // ACK or drop the callback's original child in the meantime.
-                  observerPending = true;
-                  const finishObserver = () => { observerPending = false; release(); };
-                  try {
-                    // Register on the native original before observing a
-                    // replaceable public getter/method. A rejected wrapper
-                    // around that method cannot settle the original task.
-                    Reflect.apply(nativePromiseThen, observed, [finishObserver, finishObserver]);
-                  } catch (cause) {
-                    // Constructor/species can refuse before native registration.
-                    // Keep that unresolved original under this existing binding;
-                    // a socket close or failed join is not its cleanup ACK.
-                    binding.unjoinedResponseCustody ??= {original: observed, cause};
-                    observerPending = false;
-                    throw cause;
-                  }
-                  void observed.then;
-                } else {
-                  const then = observed !== null && (typeof observed === 'object' || typeof observed === 'function')
-                    ? observed.then : undefined;
-                  if (typeof then === 'function') {
-                    observerPending = true;
-                    const joined = new Promise((yes, no) => Reflect.apply(then, observed, [yes, no]));
-                    const finishObserver = () => { observerPending = false; release(); };
-                    joined.then(finishObserver, finishObserver);
-                  }
-                }
-                fail('InvalidRemoteCredentialResponseByteObserver');
-              }
-              received += chunk.byteLength;
-              if (received > maxResponseBytes) fail('RemoteCredentialResponseLimitExceeded');
-              chunks.push(Buffer.from(chunk));
-            }
-          } catch (error) {
-            // Native destroy(undefined/null/other falsey values) can close
-            // without an error event. Enter the SAME completion fence with
-            // the original throwable first; it still waits for this binding's
-            // actual request/socket close and any borrowed observer task.
-            finish(reject, error);
-            response.destroy(error);
-          }
-        };
-        response.on('readable', readObservedResponse);
-        detachReader = () => response.off('readable', readObservedResponse);
-      }
-      response.once('error', error => finish(reject, error));
-      response.once('end', () => {
-        let body;
-        try { body = Buffer.concat(chunks, received); }
-        catch (error) { finish(reject, error); return; }
-        // Only successful concatenation retires the copied receive prefix.
-        // Sever the listener and its original Array, not the response/headers
-        // or the request/socket/invalid-observer cleanup responsibilities.
-        detachReader();
-        detachReader = undefined;
-        chunks.length = 0;
-        chunks = undefined;
-        finish(resolve, Object.freeze({
-          statusCode: response.statusCode,
-          headers: response.headers,
-          body,
-          requestRepresentation,
-          responseRepresentation,
-        }));
-      });
-    });
-    if (binding) {
-      binding.request = request;
-      request.once('socket', original => {
-        socket = original;
-        socket.once('close', () => {
-          socketClosed = true;
-          release();
-        });
-      });
-      request.once('close', () => {
-        requestClosed = true;
-        release();
-      });
-    }
-    request.once('error', error => finish(reject, error));
-    request.end(body);
-  });
-}
-
 /// Execute one pre-registered HTTPS operation. Credential material is resolved
 /// and applied inside this adapter and is never returned to Connector code.
 /// An operation is `{method, path, body?, headers?, responseHeaders?}`: the
@@ -1098,7 +885,7 @@ async function callCredentialResource({
       binding,
       retainRunResponseOriginal,
       observeResponseBytes,
-    });
+    }, fail);
     // A response awaiting its original current check remains in this binding's
     // custody. A refusal or unconfirmed outcome cannot publish it or discard it
     // before the caller has retired this original binding. This is not durable

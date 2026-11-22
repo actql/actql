@@ -6,7 +6,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {EventEmitter} from 'node:events';
 import {Readable, Writable} from 'node:stream';
-import {types, types as nodeTypes} from 'node:util';
+import {types as nodeTypes} from 'node:util';
 import {syncBuiltinESMExports} from 'node:module';
 import http from 'node:http';
 import https from 'node:https';
@@ -21,8 +21,7 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../adapters/host-common/http-exchange.mjs';
-import {httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix,
-  httpsCredentialResponseReadQuantum} from '../adapters/site-node/https-credential-resource.mjs';
+import {receive} from '../adapters/site-node/https-credential-response.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 import {localContractLimits} from '../adapters/host-node/local-values-plan.mjs';
 import {invokeScopedCredentialOperation} from '../adapters/host-common/owned-invocation-context.mjs';
@@ -517,34 +516,26 @@ for (const missing of ['sourceReaderImplementation', 'createSourceReader']) {
   });
 }
 
-async function originalExternalTransportReceiver() {
+async function originalExternalFixtureTransport() {
   const {parse} = await import('acorn');
   const fixture = readFileSync(join(repository, 'scripts/fixtures/external-installed/consumer.mjs'), 'utf8');
-  const resource = readFileSync(join(repository, 'adapters/site-node/https-credential-resource.mjs'), 'utf8');
   const declaration = (source, name) => parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
     .find(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
   const transport = declaration(fixture, 'captureFixtureTransport');
-  const receiver = declaration(resource, 'receive');
-  assert(transport && receiver);
-  // Execute both original bodies. Node HTTP/stream ports are explicit here;
-  // this does not issue Account, Credential, Common or physical socket ACKs.
-  const capture = Function('assert', 'https', 'http', 'net', 'tls', 'EventEmitter',
+  assert(transport);
+  // The external fixture is staged with its installed SDK dependencies by the
+  // packed runner. Here its synthetic Node HTTP/stream ports drive the import
+  // of the actual emitted receiver.
+  return Function('assert', 'https', 'http', 'net', 'tls', 'EventEmitter',
     'Readable', 'Writable', 'syncBuiltinESMExports',
     `${fixture.slice(transport.start, transport.end)}; return captureFixtureTransport;`)(
     assert, https, http, net, tls, EventEmitter, Readable, Writable, syncBuiltinESMExports);
-  const receive = Function('httpsRequest', 'httpsCredentialResponseHeaderByteLimit',
-    'httpsCredentialAuthorizationPrefix', 'Buffer', 'types', 'nativePromiseThen',
-    'httpsCredentialResponseReadQuantum', 'fail', `${resource.slice(receiver.start, receiver.end)}; return receive;`)(
-    (...args) => https.request(...args), httpsCredentialResponseHeaderByteLimit,
-    httpsCredentialAuthorizationPrefix, Buffer, types, Promise.prototype.then,
-    httpsCredentialResponseReadQuantum, code => {throw Object.assign(new Error(code), {code});});
-  return {capture, receive};
 }
 
 for (const mode of ['ok', 'hold', 'lost-response']) {
   test(`external fixture original HTTP receiver observes stream close (${mode})`, async t => {
-    const {capture, receive} = await originalExternalTransportReceiver();
+    const capture = await originalExternalFixtureTransport();
     const transport = capture(); t.after(() => transport.restore());
     const controller = new AbortController(); t.after(() => controller.abort());
     const effect = mode === 'lost-response';
@@ -557,7 +548,8 @@ for (const mode of ['ok', 'hold', 'lost-response']) {
       ...(effect ? {body: '{"key":"original","note":"literal note"}'} : {}),
       requestBytes: effect ? Buffer.byteLength('{"key":"original","note":"literal note"}') : 0,
       secret: 'fixture-only-token', headers: [], signal: controller.signal,
-      maxResponseBytes: 4096, binding, observeResponseBytes: count => {charges.push(count);}});
+      maxResponseBytes: 4096, binding, observeResponseBytes: count => {charges.push(count);}},
+    code => {throw Object.assign(new Error(code), {code});});
     pending.then(value => {outcome = {kind: 'resolved', value};}, error => {outcome = {kind: 'rejected', error};});
     const request = binding.request;
     await new Promise(setImmediate); await new Promise(setImmediate);
