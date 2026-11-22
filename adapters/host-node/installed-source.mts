@@ -42,7 +42,6 @@ import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFail
   from './installed-host-cleanup.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,
   installedConfigurationByteLimit} from './source-profile-json.mjs';
-// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader, beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization, finishInstalledSourceInitialization, bindInstalledSourceConstruction, retainBoundInstalledSourceFailure, reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {createInstalledSourcePublicationRequests} from './installed-source-publication.mjs';
@@ -66,7 +65,8 @@ type QueryAliases = AliasProfile['queryAliases'];
 type SnapshottedProfile = {
   queryAliases?: QueryAliases;
 } & Record<string, unknown>;
-type ProfileConstruction = Readonly<{
+type BoundSource = Parameters<typeof bindInstalledSourceConstruction>;
+type ProfileConstruction = NonNullable<BoundSource[3]> & Readonly<{
   value: ProfileSnapshot;
   construct: <Value>(project: () => Value) => Value;
 }>;
@@ -356,7 +356,8 @@ async function loadInstalledSourceMember(path: string, {root, principalId, moon,
       baseEnvironmentWire, resolveSecret, installation: entry, installationServices,
       sourceInitialization, configurationReader,
       construction: sourceInitialization === undefined ? undefined
-        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction), ...runtime}) as InventoryMember;
+        : bindInstalledSourceConstruction(installationServices as BoundSource[0],
+          sourceInitialization, checked, construction), ...runtime}) as InventoryMember;
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {

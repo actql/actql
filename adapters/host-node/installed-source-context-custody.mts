@@ -8,7 +8,7 @@ type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
 type ConfigurationReader = NonNullable<Material['configurationReader']>;
 type CleanupInputs = NonNullable<Parameters<typeof retainHostFailure>[1]>;
 type Role = 'source' | 'effect';
-type Installation = Readonly<{effect?: unknown}>;
+type Installation = Readonly<{registration?: string; revision?: string; effect?: unknown}>;
 type HostOriginal = Parameters<Accounting['sourceMaterial']>[0] & Readonly<{
   selected: WeakMap<Installation, string>;
   current(): void;
@@ -20,7 +20,7 @@ type PublishedEnvironment = Readonly<{body: Readonly<{
   schema_snapshots: readonly Snapshot[];
   connector_catalogs: readonly Readonly<{connector_id: string; source_views: readonly Readonly<{contract_cid: string}>[]}>[];
 }>}>;
-type SourceContext = Readonly<{preparePublishedEnvironment(wire: string): PublishedEnvironment}>;
+type SourceContext = Readonly<{preparePublishedEnvironment(wire: string): Readonly<{body: object}>}>;
 type Prepared = Readonly<{declaration?: unknown; declared?: unknown; environment?: unknown; mappings?: unknown; commands?: unknown}>;
 type SourceScope = Material['contexts'][number] & {
   connectorId?: string;
@@ -36,23 +36,23 @@ type BoundConstruction = {
   adapter?: CleanupInputs['sourceProfile']; site?: CleanupInputs['sourceProfile'];
   reader?: CleanupInputs['sourceReader']; authorization?: CleanupInputs['authorization'];
 };
-type ContextPorts = Pick<Accounting,
+type ContextPorts<Context extends SourceContext, Original extends HostOriginal> = Pick<Accounting,
   'sourceMaterial' | 'reserveSource' | 'reconcileSource' | 'requireSynchronousSourceConstruction' | 'retainSourceFailure'> &
   Readonly<{
     fail(code: string): never;
-    installations: Pick<WeakMap<object, HostOriginal>, 'get'>;
+    installations: Pick<WeakMap<object, Original>, 'get'>;
     sourceContexts: Pick<WeakMap<object, RetainedContext>, 'get'>;
     boundConstructions: Pick<WeakMap<object, BoundConstruction>, 'get'>;
-    createInstalledSourceContext(original: HostOriginal, material: Material, installation: Installation,
-      connectorId: string | undefined, baseEnvironmentWire: string, role: Role, services: object): SourceContext;
+    createInstalledSourceContext(original: Original, material: Material, installation: Installation,
+      connectorId: string | undefined, baseEnvironmentWire: string, role: Role, services: object): Context;
     retainInstalledHostInitializationFailure: typeof retainHostFailure;
     resolveInstalledRowEffectConstruction(source: unknown, adapter: unknown): unknown;
   }>;
 
-export function createInstalledSourceContextCustody({fail: reject, installations, sourceContexts, boundConstructions,
+export function createInstalledSourceContextCustody<Context extends SourceContext, Original extends HostOriginal>({fail: reject, installations, sourceContexts, boundConstructions,
   sourceMaterial, createInstalledSourceContext, retainInstalledHostInitializationFailure,
   reserveSource, reconcileSource, requireSynchronousSourceConstruction, retainSourceFailure,
-  resolveInstalledRowEffectConstruction}: ContextPorts) {
+  resolveInstalledRowEffectConstruction}: ContextPorts<Context, Original>) {
   const fail: (code: string) => never = reject;
 
   function requireSourceConstructor(services: object, installation: Installation,
@@ -63,7 +63,7 @@ export function createInstalledSourceContextCustody({fail: reject, installations
       return installation;
     }
     if (!field || !Object.hasOwn(field, 'value')) fail('InstalledSourceInitializationUnavailable');
-    const context = field.value as SourceContext, selected = sourceContexts.get(context);
+    const context = field.value as Context, selected = sourceContexts.get(context);
     if (selected?.original !== original || selected.material.phase !== 'working' ||
         !selected.scope.active || selected.scope.installation !== installation ||
         prepared && (selected.scope.prepared === undefined ||
@@ -104,7 +104,7 @@ export function createInstalledSourceContextCustody({fail: reject, installations
     }
     const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source', services);
     try {
-      const environment = context.preparePublishedEnvironment(wire);
+      const environment = context.preparePublishedEnvironment(wire) as PublishedEnvironment;
       // Catalog views carry their checked contract identity, not a source_ref.
       // Join the SAME admitted snapshot selector to that exact catalog member;
       // never infer a connector by parsing or repairing the URI-like spelling.
@@ -273,7 +273,7 @@ export function createInstalledSourceContextCustody({fail: reject, installations
     retained.scope.active = false; retained.material.constructors--;
   }
 
-  function retainInstalledHostServiceInstallation(services: object | undefined, installation: Installation, runtimeBundleCid: string) {
+  function retainInstalledHostServiceInstallation(services: object | undefined, installation: Installation, runtimeBundleCid: string | undefined) {
     if (services === undefined) return;
     const original = installations.get(services);
     if (original === undefined) fail('ForeignInstalledHostServices');
@@ -285,7 +285,7 @@ export function createInstalledSourceContextCustody({fail: reject, installations
     const previous = original.selected.get(installation);
     if (previous !== undefined && previous !== runtimeBundleCid) fail(
       'InstalledHostServiceRuntimeChanged');
-    original.selected.set(installation, runtimeBundleCid);
+    original.selected.set(installation, runtimeBundleCid!);
   }
 
   return {requireSourceConstructor, beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization,

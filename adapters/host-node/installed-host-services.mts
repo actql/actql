@@ -5,10 +5,15 @@ import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentCom
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
-  rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
+  rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization}
+  // @ts-expect-error TS7016: the installed Row Source still has a JavaScript entry.
+  from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+// @ts-expect-error TS7016: installed-row-effect still has a JavaScript entry.
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
+// @ts-expect-error TS7016: installed-table-source still has a JavaScript entry.
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
+// @ts-expect-error TS7016: installed-table-effect still has a JavaScript entry.
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -22,11 +27,84 @@ import {createInstalledSourceMaterialAccounting} from './installed-source-materi
 import {createInstalledSourceContextCustody, captureInstalledSourceServices} from './installed-source-context-custody.mjs';
 import {createInstalledSourceContextFactory} from './installed-source-context-construction.mjs';
 
+type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
+type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
+type Physical = ReturnType<typeof createInstalledSourcePhysicalConstruction<HostOriginal, Material>>;
+type ContextFactory = ReturnType<typeof createInstalledSourceContextFactory>;
+type Context = ReturnType<ContextFactory>;
+type ContextPorts = Parameters<typeof createInstalledSourceContextFactory>[0];
+type CustodyPorts = Parameters<typeof createInstalledSourceContextCustody>[0];
+type ContextRecord = NonNullable<ReturnType<ContextPorts['sourceContexts']['get']>>;
+type ContextScope = ContextRecord['scope'];
+type Holdings = Parameters<typeof retainInstalledHostInitializationFailure>[1];
+type CoreMethod = (...args: unknown[]) => unknown;
+type AccountOptions = Parameters<typeof createAccountConstruction>[0];
+type DuckDBOptions = Parameters<typeof createInstalledDuckDBSource>;
+type Runtime = ContextRecord['original']['moon'] & AccountOptions['moon'] &
+  DuckDBOptions[1] & NonNullable<Parameters<typeof installDuckDBSourceProfile>[1]['runtime']> &
+  Readonly<Record<string, unknown>> & {
+    clientProgramRowSourceDeclarationJson: CoreMethod;
+    clientProgramRowSourcePrepareMapping?: CoreMethod;
+    clientProgramRowSourcePrepareUpdateMapping?: CoreMethod;
+    clientProgramRowSourceUpdateMappingConstructionCapacity?: CoreMethod;
+    clientProgramPrepareInstalledAccountRead(capacity: unknown, input: unknown): ReturnType<AccountOptions['prepareRead']>;
+  };
+type CredentialLimits = Readonly<{maxBindings: number; maxSecretBytes: number}>;
+type HostScope = ContextScope & {
+  reader?: Holdings['sourceReader']; readerDemand?: unknown;
+  credentialSelecting?: boolean; credentialLimits?: CredentialLimits;
+};
+type HostOriginal = Omit<ContextRecord['original'], 'moon'> & {
+  moon: Runtime; root: string; principalId: string; selected: WeakMap<object, string>;
+  siteInstallations: WeakMap<object, object>; accountCurrent?: () => undefined;
+  accountConstruction?: ReturnType<typeof createAccountConstruction>;
+  admitAcquisitionContracts?: unknown; acquisitionContractsCapacity?: unknown;
+  sites: WeakMap<object, EffectSelection | undefined>; implementations: WeakMap<object, EffectSelection>;
+  sourceImplementations: WeakMap<object, ImplementationSelection>; sourceProfiles: WeakMap<object, ProfileSelection>;
+};
+type EffectSelection = {constructing?: boolean; sealed?: boolean};
+type Bound = {
+  site?: Holdings['sourceProfile']; authorization?: Holdings['authorization']; reader?: Holdings['sourceReader'];
+  adapter?: Holdings['sourceProfile'] & Readonly<{tableReadTargets?: readonly unknown[]}>; bridge?: unknown;
+  constructing: boolean; attempted: boolean; siteAttempted?: boolean; failed?: boolean; closed?: boolean;
+};
+type SiteSelection = Readonly<{site: NonNullable<Bound['site']>; authorization: NonNullable<Bound['authorization']>}>;
+type ProfileLimits = Readonly<Record<string, number>>;
+type ReaderLimits = Readonly<Record<typeof installedJsonSourceReaderLimitNames[number] | 'maxSecretBytes', number>>;
+type ProfileSelection = Readonly<{runtimeBundleCid: string; metadata: number; origin: number; value: ProfileLimits}>;
+type ReaderImplementation = Readonly<{capacity: unknown; limits: ReaderLimits; runAcquisitionLimits: CredentialLimits}>;
+type RequestConstruction = Readonly<{capacity: unknown; maxRequestBytes: number}>;
+type Sequence = Readonly<{children?: readonly object[]}>;
+type SequenceConstruction = Readonly<{capacity: unknown; sequence?: Sequence; sequences?: Readonly<Record<string, Sequence>>;
+  maxQueryBytes?: number; maxRequestBytes?: number}>;
+type ImplementationSelection = Readonly<{
+  value: ReaderImplementation; runtimeBundleCid: string; columns: number; requestConstruction?: RequestConstruction;
+  readSequenceConstruction?: SequenceConstruction; preservingResponse: boolean; cursorProgress: boolean;
+}>;
+type HostServices = Readonly<{
+  sourceReaderImplementationProfile(options: unknown): ProfileLimits;
+  sourceReaderImplementation(options: unknown): ReaderImplementation;
+  createSourceReader(options: unknown): ReturnType<typeof createInstalledCredentialSourceReader>;
+  openRowSite(options: unknown): Promise<SiteSelection>;
+}>;
+type HostServicesInput = Readonly<{
+  root: unknown; principalId: unknown; moon: Runtime; assertCurrent: unknown;
+  accountCurrent?: () => undefined; receiver?: unknown; initialPreparation?: unknown;
+}>;
+type RowFactory = (input: Readonly<Record<string, unknown>>) => Promise<NonNullable<Bound['adapter']>>;
+type TableTarget = Readonly<{resource: string; schemaWire: string; selector: Readonly<{schema_cid: string}>}>;
+type TableInput = Readonly<{
+  targets: readonly TableTarget[];
+  limits: Readonly<{maxPages: number; maxPageBytes: number; maxPageRows: number; maxCaptureRows: number}>;
+  connection: unknown;
+}>;
+type TableBridge = object & Readonly<{frameLimits?: Readonly<{maxBytes: number}>}>;
+
 const sourceNativeThen = Promise.prototype.then;
-const installations = new WeakMap();
-const sourceContexts = new WeakMap();
-const boundConstructions = new WeakMap();
-const fail = code => {throw Object.assign(new TypeError(code), {code});};
+const installations = new WeakMap<object, HostOriginal>();
+const sourceContexts = new WeakMap<object, Readonly<{original: HostOriginal; material: Material; scope: HostScope}>>();
+const boundConstructions = new WeakMap<object, Bound>();
+const fail: (code: string) => never = code => {throw Object.assign(new TypeError(code), {code});};
 
 const {sourceMaterial, sourceCall, reserveSource, reconcileSource,
   retainSourceFailure, requireSynchronousSourceConstruction, sourceProjectionMethods, freezeSourceProjection,
@@ -42,7 +120,7 @@ export {installedSourceConfigurationReader, withInstalledSourceLoading, installe
   borrowInstalledSourceInitialization, isInstalledSourceInitializationRetired, retireInstalledSourceInitialization};
 
 const {reserveInstalledTableConstruction, installedTableReaderConstruction,
-  reserveInstalledDuckDBConstruction} = createInstalledSourcePhysicalConstruction({fail, sourceCall, reserveSource});
+  reserveInstalledDuckDBConstruction} = createInstalledSourcePhysicalConstruction<HostOriginal, Material>({fail, sourceCall, reserveSource});
 
 const createInstalledSourceContext = createInstalledSourceContextFactory({fail, sourceContexts,
   composeInstalledSourceEnvironment, installedSourceConfigurationReader, reserveSource, reconcileSource,
@@ -53,7 +131,8 @@ const {requireSourceConstructor, beginInstalledSourceInitialization, beginInstal
   retainBoundInstalledSourceFailure, assertInstalledSourceConstruction, readInstalledSourceAcquisitionContract,
   prepareInstalledSourceAcquisitionContracts, retainInstalledSourceConstruction, closeInstalledSourceConstruction,
   finishInstalledSourceInitialization, retainInstalledHostServiceInstallation} =
-  createInstalledSourceContextCustody({fail, installations, sourceContexts, boundConstructions, sourceMaterial,
+  createInstalledSourceContextCustody<Context, HostOriginal>({fail, installations,
+    sourceContexts: sourceContexts as CustodyPorts['sourceContexts'], boundConstructions, sourceMaterial,
     createInstalledSourceContext, retainInstalledHostInitializationFailure, reserveSource, reconcileSource,
     requireSynchronousSourceConstruction, retainSourceFailure, resolveInstalledRowEffectConstruction});
 export {beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization,
@@ -64,12 +143,13 @@ export {beginInstalledSourceInitialization, beginInstalledPublishedSourceInitial
 // The ordinary loader owns this one bound factory. Connector code supplies
 // domain inputs, never the initialization token or registration/retirement order.
 // Keep partial acquisitions in the existing initialization failure carrier.
-export function bindInstalledSourceConstruction(services, context, checkedProfile, profileConstruction) {
-  const retained = sourceContexts.get(context), original = installations.get(services);
+export function bindInstalledSourceConstruction(services: HostServices, context: Context,
+  checkedProfile: unknown, profileConstruction: Parameters<Physical['reserveInstalledTableConstruction']>[3]) {
+  const retained = sourceContexts.get(context), original = installations.get(services)!;
   if (retained === undefined || retained.original !== original) fail('ForeignInstalledSourceConstruction');
   if (boundConstructions.has(context)) fail('InstalledSourceConstructionAlreadyBound');
   const {scope, material} = retained;
-  const owned = {site: undefined, authorization: undefined, reader: undefined, adapter: undefined,
+  const owned: Bound = {site: undefined, authorization: undefined, reader: undefined, adapter: undefined,
     constructing: false, attempted: false};
   boundConstructions.set(context, owned);
   const current = () => {
@@ -77,7 +157,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     original.current();
     if (!scope.active || material.phase !== 'working' || owned.failed || owned.closed) fail('InstalledSourceInitializationClosed');
   };
-  const domain = (options, reserved = []) => {
+  const domain = (options: unknown, reserved: readonly string[] = []): Readonly<Record<string, unknown>> => {
     if (options === null || typeof options !== 'object' || nodeTypes.isProxy(options)) fail('InvalidInstalledSourceConstruction');
     const fields = Object.getOwnPropertyDescriptors(options);
     for (const name of Reflect.ownKeys(fields)) {
@@ -87,15 +167,15 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     }
     return Object.fromEntries(Object.entries(fields).map(([name, field]) => [name, field.value]));
   };
-  const identity = options => ({...domain(options, ['installation', 'sourceInitialization']),
+  const identity = (options: unknown) => ({...domain(options, ['installation', 'sourceInitialization']),
     installation: scope.installation, sourceInitialization: context});
-  const prepare = name => (...args) => {
+  const prepare = <Name extends keyof Context,>(name: Name) => (...args: Parameters<Context[Name]>) => {
     current();
-    const value = Reflect.apply(context[name], context, args);
+    const value = Reflect.apply(context[name] as CoreMethod, context, args) as ReturnType<Context[Name]>;
     current();
     return value;
   };
-  async function construct(options, role, factory) {
+  async function construct(options: unknown, role: ContextScope['role'], factory: RowFactory) {
     current();
     if (scope.role !== role || owned.attempted || owned.constructing || scope.prepared === undefined ||
         owned.site === undefined || owned.authorization === undefined ||
@@ -128,7 +208,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       // No connector callback runs between acquisition and retaining the actual
       // adapter. The constructor itself retains partial physical failures.
       const adapter = await factory({...input, moon: original.moon, sourceInitialization: context,
-        ...prepared, environmentWire: prepared.environment.wire,
+        ...prepared, environmentWire: prepared.environment!.wire,
         connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
         connectorRevision: scope.installation.revision, site, authorization: owned.authorization});
       owned.adapter = adapter;
@@ -144,7 +224,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     prepareNativeDeclaration: prepare('prepareNativeDeclaration'),
     prepareNativeInput: prepare('prepareNativeInput'),
     preparePublishedEnvironment: prepare('preparePublishedEnvironment'),
-    prepareProviderEffect(provider, mappings) {
+    prepareProviderEffect(provider: object, mappings: unknown) {
       current();
       if (owned.site === undefined) fail('InstalledSourceSiteUnavailable');
       const value = context.prepareProviderEffect(owned.site, provider, mappings);
@@ -160,13 +240,13 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     prepareReadTarget: prepare('prepareReadTarget'),
     prepareReadTargetWithMappings: prepare('prepareReadTargetWithMappings'),
     prepareEffectDriverConstruction: prepare('prepareEffectDriverConstruction'),
-    sourceReaderImplementationProfile(options) {
+    sourceReaderImplementationProfile(options: unknown) {
       current(); return services.sourceReaderImplementationProfile(identity(options));
     },
-    sourceReaderImplementation(options) {
+    sourceReaderImplementation(options: unknown) {
       current(); return services.sourceReaderImplementation(identity(options));
     },
-    async openSpecializedSite(options) {
+    async openSpecializedSite(options: unknown) {
       current();
       if (owned.site !== undefined || owned.siteAttempted) fail('InstalledSourceSiteAlreadyConstructed');
       const selected = domain(options);
@@ -190,7 +270,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       current();
       return Object.freeze({site, authorization});
     },
-    async openRowSite(options) {
+    async openRowSite(options: unknown) {
       current();
       if (owned.site !== undefined || owned.siteAttempted) fail('InstalledSourceSiteAlreadyConstructed');
       const selected = domain(options);
@@ -208,7 +288,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       current();
       return opened;
     },
-    createSourceReader(options) {
+    createSourceReader(options: unknown) {
       current();
       if (owned.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
       const selected = domain(options, ['site']);
@@ -226,7 +306,8 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       const prepared = scope.prepared;
       owned.attempted = true; owned.constructing = true;
       try {
-        reserveInstalledDuckDBConstruction(original, material, checkedProfile, prepared.environment);
+        reserveInstalledDuckDBConstruction(original, material, checkedProfile as Parameters<Physical['reserveInstalledDuckDBConstruction']>[2],
+          prepared.environment as unknown as Parameters<Physical['reserveInstalledDuckDBConstruction']>[3]);
         current();
         const profile = await installDuckDBSourceProfile(checkedProfile, {
           root: original.root, principalId: original.principalId, runtime: original.moon,
@@ -242,7 +323,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         // connector DATA cannot supply a factory or register an arbitrary value.
         const adapter = await createInstalledDuckDBSource(profile, original.moon, {
           root: original.root, principalId: original.principalId,
-          sourceInitialization: context, environment: prepared.environment,
+          sourceInitialization: context, environment: prepared.environment as NonNullable<DuckDBOptions[2]['environment']>,
           installation: scope.installation,
         });
         owned.adapter = adapter;
@@ -251,7 +332,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         return adapter;
       } finally {owned.constructing = false;}
     },
-    async createTableSource(options) {
+    async createTableSource(options: unknown) {
       current();
       if (scope.role !== 'source' || owned.attempted || scope.prepared !== undefined) {
         fail('InstalledSourceConstructionUnavailable');
@@ -274,8 +355,9 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         // Reader only sends ONE first selector; later reply-derived payloads
         // grow through that SAME RowRun before their actual allocation.
         const readerProfileCapacity = installedTableReaderConstruction(original, material,
-          checkedProfile, profileConstruction, bridge);
-        const prepared = context.prepareDeclaration(input.targets.map(target => ({
+          checkedProfile as Parameters<Physical['installedTableReaderConstruction']>[2],
+          profileConstruction!, bridge);
+        const prepared = context.prepareDeclaration((input as TableInput).targets.map(target => ({
           resource: target.resource, resource_kind: 'table', schema_wire: target.schemaWire,
           schema_cid: target.selector.schema_cid,
         })));
@@ -294,7 +376,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         if (typeof capacityMethod !== 'function' || nodeTypes.isAsyncFunction(capacityMethod)) {
           fail('InstalledTableSourceReaderUnavailable');
         }
-        const columns = Math.max(...prepared.declared.views.map(view => view.fields.length));
+        const columns = Math.max(...(prepared.declared as unknown as {views: readonly {fields: readonly unknown[]}[]}).views.map(view => view.fields.length));
         const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, readerProfileCapacity]);
         // Preserve the original native reference Option for the existing typed
         // Source composition. Its canonical binding alone exposes the value;
@@ -306,10 +388,10 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         material.providers.push(originalReaderCapacity);
         reserveSource(original, material);
         current();
-        const bindReader = reader => {
+        const bindReader = (reader: NonNullable<Bound['reader']>) => {
           current();
           if (owned.reader !== undefined || scope.reader !== undefined ||
-              bridge.frameLimits === undefined || !Object.isFrozen(bridge.frameLimits)) {
+              (bridge as TableBridge).frameLimits === undefined || !Object.isFrozen((bridge as TableBridge).frameLimits)) {
             fail('InstalledTableSourceReaderUnavailable');
           }
           owned.reader = scope.reader = reader;
@@ -317,10 +399,10 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           // count remains the original row-page profile; protocol transfer is
           // the actual four original bounded bodies, not re-encoded rows.
           scope.readerDemand = Object.freeze({nested:false,responses:4,
-            queryPages:input.limits.maxPages,maxResponseBytes:input.limits.maxPageBytes,
-            maxNodes:400000,maxDepth:32,maxRows:input.limits.maxPageRows,
-            maxTotalRows:input.limits.maxCaptureRows,
-            transferBytes:4n*BigInt(bridge.frameLimits.maxBytes)});
+            queryPages:(input as TableInput).limits.maxPages,maxResponseBytes:(input as TableInput).limits.maxPageBytes,
+            maxNodes:400000,maxDepth:32,maxRows:(input as TableInput).limits.maxPageRows,
+            maxTotalRows:(input as TableInput).limits.maxCaptureRows,
+            transferBytes:4n*BigInt((bridge as TableBridge).frameLimits!.maxBytes)});
         };
         const adapter = await createInstalledTableSource({...input, bridge, site, authorization,
           readerCapacity, bindReader,
@@ -334,7 +416,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         return adapter;
       } finally {owned.constructing = false;}
     },
-    async createTableEffect(options) {
+    async createTableEffect(options: unknown) {
       current();
       if (scope.role !== 'effect' || scope.publishedEnvironment !== true || owned.attempted ||
           scope.prepared?.environment === undefined) fail('InstalledSourceConstructionUnavailable');
@@ -358,8 +440,8 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         owned.authorization = authorization;
         current();
         const adapter = await createInstalledTableEffect({...input, bridge, moon: original.moon,
-          sourceInitialization: context, environment: prepared.environment,
-          environmentWire: prepared.environment.wire, authorization,
+          sourceInitialization: context, environment: prepared.environment as NonNullable<DuckDBOptions[2]['environment']>,
+          environmentWire: prepared.environment!.wire, authorization,
           connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
           connectorRevision: scope.installation.revision,
           runtimeBundleCid: original.selected.get(scope.installation)});
@@ -369,17 +451,19 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         return adapter;
       } finally {owned.constructing = false;}
     },
-    createRowSource: options => construct(options, 'source', createInstalledRowSource),
-    createRowEffect: options => construct(options, 'effect', createInstalledRowEffect),
+    createRowSource: (options: unknown) => construct(options, 'source', createInstalledRowSource),
+    createRowEffect: (options: unknown) => construct(options, 'effect', createInstalledRowEffect),
   });
   return bound;
 }
 
-export function createInstalledHostServices({root, principalId, moon, assertCurrent, accountCurrent, receiver, initialPreparation}) {
+export function createInstalledHostServices({root, principalId, moon, assertCurrent, accountCurrent, receiver, initialPreparation}: HostServicesInput): HostServices {
   if (typeof root !== 'string' || !root || typeof principalId !== 'string' || !principalId ||
       !moon || typeof moon !== 'object' || typeof assertCurrent !== 'function') fail('InvalidInstalledHostServices');
-  const selected = new WeakMap(), sites = new WeakMap(), siteInstallations = new WeakMap();
-  const implementations = new WeakMap(), sourceImplementations = new WeakMap(), sourceProfiles = new WeakMap();
+  const selected = new WeakMap<object, string>(), sites = new WeakMap<object, EffectSelection | undefined>(),
+    siteInstallations = new WeakMap<object, object>();
+  const implementations = new WeakMap<object, EffectSelection>(), sourceImplementations = new WeakMap<object, ImplementationSelection>(),
+    sourceProfiles = new WeakMap<object, ProfileSelection>();
   const publicationOnly = false;
   const sourcePolicy = moon.clientProgramInstalledSourceReaderPolicy;
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
@@ -392,8 +476,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
     if (Reflect.apply(assertCurrent, receiver, []) !== undefined) fail('InstalledHostServiceCurrentCheckNotSynchronous');
   };
   current();
-  const services = Object.freeze({
-    sourceReaderImplementationProfile(options) {
+  const services: HostServices = Object.freeze({
+    sourceReaderImplementationProfile(options: unknown) {
       current();
       if (publicationOnly) fail('InstalledEffectPublicationSourceUnavailable');
       if (nodeTypes.isProxy(options ?? {})) fail('InvalidInstalledSourceReaderSelection');
@@ -427,7 +511,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       current(); sourceProfiles.set(selection, Object.freeze({runtimeBundleCid, metadata, origin, value}));
       return value;
     },
-    sourceReaderImplementation(options) {
+    sourceReaderImplementation(options: unknown) {
       current();
       if (publicationOnly) fail('InstalledEffectPublicationSourceUnavailable');
       if (nodeTypes.isProxy(options ?? {})) {
@@ -455,7 +539,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
           preservingResponse || Object.hasOwn(fields, 'readSequenceConstruction'))) {
         fail('InvalidInstalledSourceReaderSelection');
       }
-      let requestConstruction;
+      let requestConstruction: RequestConstruction | undefined;
       if (Object.hasOwn(fields, 'requestConstruction') || preservingResponse) {
         const field = preservingResponse ? fields.preservingRequestConstruction : fields.requestConstruction;
         if (!Object.hasOwn(field, 'value') || !field.value || nodeTypes.isProxy(field.value) ||
@@ -473,15 +557,15 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // The selected Source supplies its SAME complete Core quote and original
       // occurrence declaration. This is retained construction DATA, not a grant,
       // owner, profile knob or a recipe selected again by registration here.
-      let readSequenceConstruction;
+      let readSequenceConstruction: SequenceConstruction | undefined;
       if (Object.hasOwn(fields, 'readSequenceConstruction')) {
         const field = fields.readSequenceConstruction;
         if (!Object.hasOwn(field, 'value') || field.value === null || typeof field.value !== 'object' ||
             nodeTypes.isProxy(field.value) || !Object.isFrozen(field.value)) fail('InvalidInstalledSourceSequenceConstruction');
         const original = Object.getOwnPropertyDescriptors(field.value);
         const names = Reflect.ownKeys(original);
-        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes', 'maxQueryBytes'].includes(name)) ||
-            names.some(name => !Object.hasOwn(original[name], 'value')) ||
+        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes', 'maxQueryBytes'].includes(name as string)) ||
+            names.some(name => !Object.hasOwn(original[name as string], 'value')) ||
             !Object.hasOwn(original, 'capacity') || !Object.hasOwn(original, 'originalLimits') ||
             Object.hasOwn(original, 'sequence') === Object.hasOwn(original, 'sequences') ||
             original.capacity.value === undefined || original.capacity.value === null ||
@@ -508,7 +592,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (requestConstruction !== undefined && readSequenceConstruction !== undefined) {
         fail('InstalledSourceReaderRequestConstructionChanged');
       }
-      const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
+      const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'] as const;
       if (names.some(name => !Object.hasOwn(supplied[name] ?? {}, 'value') ||
           !Number.isSafeInteger(supplied[name].value) || supplied[name].value < 1 || supplied[name].value > 2147483647)) {
         fail('InvalidInstalledSourceReaderLimits');
@@ -531,7 +615,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
         !Number.isSafeInteger(columns) || columns < 1 || columns > 2147483647 ||
         supplied.maxSecretBytes.value > policy[0]) fail('InstalledSourceReaderPolicyUnavailable');
-      const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
+      const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value]))) as ReaderLimits;
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
         if (previous.requestConstruction !== requestConstruction || previous.preservingResponse !== preservingResponse ||
@@ -542,7 +626,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         return previous.value;
       }
       const capacity = readSequenceConstruction !== undefined ? readSequenceConstruction.capacity
-        : Reflect.apply(requestConstruction === undefined ? selectedPageCapacity : selectedRequestCapacity, moon,
+        : Reflect.apply((requestConstruction === undefined ? selectedPageCapacity : selectedRequestCapacity) as CoreMethod, moon,
           [installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
             ...(requestConstruction === undefined ? [] : [requestConstruction.capacity])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
@@ -551,7 +635,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, readSequenceConstruction, requestConstruction, preservingResponse, cursorProgress, value}));
       return value;
     },
-    createSourceReader(options) {
+    createSourceReader(options: unknown) {
       current();
       if (publicationOnly) fail('InstalledEffectPublicationSourceUnavailable');
       if (nodeTypes.isProxy(options ?? {})) fail('InvalidInstalledSourceReaderSelection');
@@ -584,7 +668,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // Optional separately bound Resources are declared by this SAME complete
       // native sequence recipe. Names bound construction; only each original
       // Site-issued decision/grant authorizes the actual child.
-      let resourceChildren;
+      let resourceChildren: string[] | undefined;
       const sequences = sequence?.sequences === undefined ? [sequence?.sequence]
         : Object.values(sequence.sequences);
       for (const originalSequence of sequences) {
@@ -628,7 +712,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       return factory;
     },
-    openRowSite(options) {
+    openRowSite(options: unknown) {
       current();
       if (publicationOnly) fail('InstalledEffectPublicationPhysicalUnavailable');
       const presentation = Object.getOwnPropertyDescriptor(options ?? {}, 'secretPresentation');
@@ -649,7 +733,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       let effectCredentialLimits;
       if (constructor?.scope.role === 'effect') {
         const {scope} = constructor;
-        if (Object.hasOwn(options, 'runAcquisitionLimits') || scope.credentialSelecting) {
+        if (Object.hasOwn(options as object, 'runAcquisitionLimits') || scope.credentialSelecting) {
           fail('InstalledEffectCredentialSelectionUnavailable');
         }
         if (scope.credentialLimits === undefined) {
@@ -677,11 +761,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const implementation = implementations.get(installation);
       if (implementation?.constructing) fail('InstalledEffectDefinitionSelectionReentry');
       if (implementation !== undefined) implementation.sealed = true;
-      return openInstalledRowSite({...options,
+      return openInstalledRowSite({...options as object,
         ...(effectCredentialLimits === undefined ? {} : {runAcquisitionLimits: effectCredentialLimits}),
         root, principalId, commonMoon: moon, runtimeBundleCid, assertCurrent: current,
         accountConstruction: installedAccountConstruction(services),
-        configurationReader: installedSourceConfigurationReader(services)}).then(original => {
+        configurationReader: installedSourceConfigurationReader(services)}).then((original: SiteSelection) => {
           sites.set(original.site, implementation);
           siteInstallations.set(original.site, selection);
         return original;
@@ -706,7 +790,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
 // Private Account facet on the SAME initial/continued Host material. A
 // nominal/control scope is insufficient; this entrance requires the actual
 // selected Core capacity retained by this installed service.
-export function installedAccountConstruction(services) {
+export function installedAccountConstruction(services: object) {
   const original = installations.get(services);
   // Standalone legacy installers have no original numeric carrier. Ordinary
   // Host construction always supplies its actual initialization preparation.
@@ -720,7 +804,7 @@ export function installedAccountConstruction(services) {
     prepareRead: () => original.moon.clientProgramPrepareInstalledAccountRead(material.capacity, material.input)});
 }
 
-export async function closeInstalledAccountConstruction(services) {
+export async function closeInstalledAccountConstruction(services: object) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   return original.accountConstruction === undefined || await original.accountConstruction.close();

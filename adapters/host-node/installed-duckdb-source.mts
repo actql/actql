@@ -12,7 +12,6 @@ import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
-// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource, prepareRetainedCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,

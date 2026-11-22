@@ -74,7 +74,7 @@ type InventoryLoaderPorts = Readonly<{
     (path: string, options: LoadOptions): Promise<InventoryMember>;
     (path: string | undefined, options: LoadOptions): Promise<InventoryMember | undefined>;
   };
-  installedSourceConfigurationReader(services: EnvironmentInputs[0]): ConfigurationReader;
+  installedSourceConfigurationReader(services: EnvironmentInputs[0]): ConfigurationReader | undefined;
   installedSourceEnvironmentConstructionReader(services: LoadOptions['installationServices'],
     moon: LoadOptions['moon']): unknown;
 }>;

@@ -134406,7 +134406,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "a78c9d19e41c21dcdad742ba2cbddbe3a037f551b9f04b1e6e3eda3b866f8ed3",
+      "sha256": "6d0a0a60c11ed2587f7598e45c46b89ec33cae9d1a37a84b9b6e97e7f4f85e99",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134827,7 +134827,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134835,13 +134835,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134849,13 +134849,13 @@
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134863,13 +134863,13 @@
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134877,13 +134877,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134891,13 +134891,13 @@
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "fail('ForeignInstalledSourceReaderSelection')"
               },
               {
@@ -134905,13 +134905,13 @@
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "fail('ForeignInstalledSourceReaderSelection')"
               },
               {
@@ -134919,7 +134919,7 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
@@ -134929,11 +134929,11 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               },
               {
@@ -134947,7 +134947,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -134955,7 +134955,7 @@
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
@@ -135570,7 +135570,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135584,7 +135584,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135598,7 +135598,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135612,7 +135612,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135626,7 +135626,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135640,7 +135640,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "fail('ForeignInstalledSourceReaderSelection')"
               },
               {
@@ -135654,7 +135654,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "fail('ForeignInstalledSourceReaderSelection')"
               },
               {
@@ -135672,7 +135672,7 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -135682,7 +135682,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "export function createInstalledHostServices"
               },
               {
@@ -136370,7 +136370,7 @@
                 "anchor": "export function createInstalledSourceContextConstruction"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "createInstalledSourceContextFactory({fail, sourceContexts,"
               }
             ],
@@ -137337,8 +137337,8 @@
                 "anchor": "export function createInstalledSourceContextCustody"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "createInstalledSourceContextCustody({fail, installations, sourceContexts, boundConstructions, sourceMaterial,"
+                "path": "adapters/host-node/installed-host-services.mts",
+                "anchor": "createInstalledSourceContextCustody<Context, HostOriginal>({fail, installations,"
               }
             ],
             "inputsOutputs": [
@@ -138053,7 +138053,7 @@
                 "anchor": "if (this !== io) fail('ForeignInstalledSourceIo');"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen, installations, bindInstalledEnvironmentConstruction,"
               }
             ],
@@ -138272,8 +138272,8 @@
                 "anchor": "Reflect.apply(field!.value as InspectSelector, bridge"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "createInstalledSourcePhysicalConstruction({fail, sourceCall, reserveSource})"
+                "path": "adapters/host-node/installed-host-services.mts",
+                "anchor": "createInstalledSourcePhysicalConstruction<HostOriginal, Material>({fail, sourceCall, reserveSource})"
               }
             ],
             "ownership": [
@@ -138329,7 +138329,7 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-host-services.mts",
                 "anchor": "const readerProfileCapacity = installedTableReaderConstruction"
               }
             ],

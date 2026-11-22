@@ -4,7 +4,6 @@ import {checked} from '../host-common/runtime-result.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {ConfigurationReader} from './source-alias-construction.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
 import {installedSourceEnvironmentConstructionReader, isInstalledSourceInitializationRetired} from './installed-host-services.mjs';
 import {composeAdmittedCheckEnvironmentOriginals} from './installed-check-environment.mjs';
 import type {PublicationBody} from './installed-check-environment.mjs';

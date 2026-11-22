@@ -4,7 +4,6 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
 import {captureInstalledSourceServices} from './installed-host-services.mjs';
 // @ts-expect-error TS7016: remove after installed-row-source has an authored TypeScript entry.
 import {createInstalledRowSource} from './installed-row-source.mjs';
