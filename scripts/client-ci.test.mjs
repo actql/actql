@@ -1224,6 +1224,15 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   const producer = jobs['client-packages'];
   const required = producer.steps.filter(step => step.run?.startsWith('node scripts/packed-client-packages.mjs '));
   assert.equal(required.length, 1, 'The required cohort has one original producer entrance');
+  const toolchain = producer.steps.find(step => step.uses === './.github/actions/setup-toolchain');
+  const compatTool = producer.steps.find(step => step.with?.['node-version'] === '24.21.0');
+  const compat = producer.steps.find(step => step.run?.includes('ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE'));
+  const sdk = producer.steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts');
+  assert(toolchain && compatTool && compat && sdk);
+  assert(producer.steps.indexOf(compatTool) < producer.steps.indexOf(compat));
+  assert(producer.steps.indexOf(compat) < producer.steps.indexOf(toolchain));
+  assert(producer.steps.indexOf(toolchain) < producer.steps.indexOf(sdk));
+  assert(producer.steps.indexOf(sdk) < producer.steps.indexOf(required[0]));
   const upload = producer.steps.find(step => step.id === 'packages');
   assert(producer.steps.indexOf(required[0]) < producer.steps.indexOf(upload));
   assert.equal(upload.uses, 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
