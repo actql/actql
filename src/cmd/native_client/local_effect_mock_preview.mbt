@@ -202,7 +202,9 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let max_nodes = policy.effects.max_admission_nodes
   let max_depth = policy.effects.max_admission_depth
   let max_work = policy.effects.max_work
-  let encode = fn(value : Json) -> String raise ClientStop {
+  let encode_with_usage = fn(
+    value : Json,
+  ) -> (String, Int, Int, Int) raise ClientStop {
     let original = @canonical.from_json(
       value,
       max_nodes,
@@ -212,10 +214,13 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     ) catch {
       _ => stop("LocalOriginalEffectPreviewEncodingUnavailable")
     }
-    @canonical.stringify_value(original, max_bytes, max_nodes, max_depth) catch {
+    @canonical.stringify_value_with_usage(
+      original, max_bytes, max_nodes, max_depth,
+    ) catch {
       _ => stop("LocalOriginalEffectPreviewEncodingUnavailable")
     }
   }
+  let encode = fn(value) raise ClientStop { encode_with_usage(value).0 }
   let digest = fn(value : Json) -> String raise ClientStop {
     "sha256:" +
     @sha.text_hex(encode(value)).unwrap_or_else(() => {
@@ -473,7 +478,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   if target_index != state.targets.length() {
     stop("LocalOriginalEffectPreviewTargetUnavailable")
   }
-  let draft = encode({
+  let (draft, draft_bytes, draft_nodes, draft_depth) = encode_with_usage({
     "version": "actql-effect-preview/0.1",
     "sensitivity": "private",
     "retention_class": "authority-evidence",
@@ -528,17 +533,24 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     })
     is Some(_)
   let (semantic, authored, identity) = if measured_keys {
-    // The authored carrier, the eventual completion carrier and their
-    // return controls stay paid through dispatch completion.
+    // Member/row/digest placeholders use the same 71 ASCII units as their
+    // issued CIDs. The emitted shape adds only row_order strings to this
+    // draft; target_index is the number of changes already constructed.
     construction
     .prepare_body_result(
-      @execution.preparation_representation_cost({
-        record_headers: 5L,
-        reference_slots: 7L,
-        scalar_words: 9L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      }).bind(bytes => @execution.execution_capacity(0L, bytes)),
+      @publication.effect_preview_semantic_authoring_construction_inventory(
+        draft_bytes, draft_nodes, draft_depth, target_index, max_bytes, max_nodes,
+      ).bind(inventory => {
+        @execution.preparation_representation_cost({
+          // The authored and later completion carriers stay paid here.
+          record_headers: inventory.record_headers + 5L,
+          reference_slots: inventory.reference_slots + 7L,
+          scalar_words: inventory.scalar_words + 9L,
+          owned_utf16_units: inventory.owned_utf16_units +
+          draft.length().to_int64(),
+          owned_wire_bytes: inventory.owned_wire_bytes,
+        }).bind(bytes => @execution.execution_capacity(0L, bytes))
+      }),
     )
     .native_effect_proposal_with_cause(report)
     let authored = @publication.prepare_authored_effect_preview(

@@ -513,6 +513,8 @@ pub fn effect_preview_row_states_not_applicable(EffectPreviewIdentity, Int, Int)
 
 pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
+pub fn effect_preview_semantic_authoring_construction_inventory(Int, Int, Int, Int, Int, Int) -> EffectPreviewIdentityConstructionInventory?
+
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_review_original_construction_inventory(EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?

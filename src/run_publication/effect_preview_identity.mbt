@@ -582,54 +582,59 @@ pub fn author_effect_preview_semantic_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
-  let template = match
-    parse_effect_preview_shape(
-      template_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(PreviewShape(issue))
-  }
-  let rows = match
-    derive_effect_preview_row_identities_original(
-      template, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (draft, _, _, _) = match
-    emit_authored_effect_preview(
-      template,
-      rows,
-      None,
-      None,
-      None,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (preview_cid, member_cids) = match
-    derive_effect_preview_identities(
-      draft, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (wire, _, _, _) = match
-    emit_authored_effect_preview(
-      template,
-      rows,
-      Some(member_cids),
-      Some(preview_cid),
-      None,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  // Return only the emitted wire across the full final admission boundary.
+  let wire = {
+    let template = match
+      parse_effect_preview_shape(
+        template_wire, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(PreviewShape(issue))
+    }
+    let rows = match
+      derive_effect_preview_row_identities_original(
+        template, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let (preview_cid, member_cids) = {
+      let (draft, _, _, _) = match
+        emit_authored_effect_preview(
+          template,
+          rows,
+          None,
+          None,
+          None,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        derive_effect_preview_identities(
+          draft, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
+    match
+      emit_authored_effect_preview(
+        template,
+        rows,
+        Some(member_cids),
+        Some(preview_cid),
+        None,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok((wire, _, _, _)) => wire
+      Err(issue) => return Err(issue)
+    }
   }
   match
     admit_effect_preview_identity(

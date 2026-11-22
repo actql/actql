@@ -449,9 +449,45 @@ test "Authored Preview dispatch preserves a nontrivial original row order" {
     .replace_all(old="\"max_items\":1", new="\"max_items\":2")
     .replace_all(old="\"kind\":\"exact_targets\"", new="\"kind\":\"opaque\"")
     .replace_all(old="[\"" + preview_identity_test_cid("1") + "\"]", new="[]")
+  // The Native author starts from empty row_order with fixed CID placeholders.
+  let parsed = parse_effect_preview_shape(template, 8192, 256, 12).unwrap()
+  guard @json.object_field(parsed, "effects")
+    is Some(@json.Array(augmented_members)) &&
+    @json.object_field(
+      @json.array_at(augmented_members, 0).unwrap(),
+      "row_order",
+    )
+    is Some(old_order) else {
+    abort("Expected the original authored order placeholder")
+  }
+  let order = @json.stringify_value(old_order, 8192, 256, 12)
+  let template = template.replace_all(
+    old="\"row_order\":" + order,
+    new="\"row_order\":[]",
+  )
+  let (_, bytes, nodes, depth) = @json.stringify_value_with_usage(
+    parse_effect_preview_shape(template, 8192, 256, 12).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  let geometry = effect_preview_semantic_authoring_construction_inventory(
+    bytes, nodes, depth, 2, 8192, 256,
+  )
+  assert_true(geometry is Some(_))
   let authored = prepare_authored_effect_preview(
     template, run, authoring, 8192, 256, 12,
   ).unwrap()
+  let (_, written_bytes, written_nodes, written_depth) = @json.stringify_value_with_usage(
+    parse_effect_preview_shape(authored.wire, 8192, 256, 12).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  assert_eq(
+    (written_bytes, written_nodes, written_depth),
+    (bytes + 147, nodes + 2, depth),
+  )
   let semantic = authored_effect_preview_identity(authored)
   let second_key = preview_identity_test_cid("5")
   let keys = [[original_key, second_key]]

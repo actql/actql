@@ -40,6 +40,66 @@ pub fn effect_preview_identity_construction_inventory(
 }
 
 ///|
+/// Preview authoring over a canonical template whose derived CID placeholders
+/// have their final width. Its row_order arrays are initially empty. The
+/// caller still owns the template wire and anything used to assemble it.
+pub fn effect_preview_semantic_authoring_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  rows : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  if bytes > max_bytes || nodes > max_nodes || rows < 0 {
+    return None
+  }
+  // A row_order entry adds a 71-byte SHA256 CID, two quotes and at most
+  // one comma. The existing empty array already accounts for its depth.
+  let authored_bytes = Int64::min(
+    max_bytes.to_int64(),
+    bytes.to_int64() + 74L * rows.to_int64(),
+  ).to_int()
+  let authored_nodes = Int64::min(
+    max_nodes.to_int64(),
+    nodes.to_int64() + rows.to_int64(),
+  ).to_int()
+  guard protocol_wire_codec_construction_inventory(bytes, nodes, depth)
+    is Some(template) &&
+    protocol_wire_codec_construction_inventory(
+      authored_bytes, authored_nodes, depth,
+    )
+    is Some(intermediate) &&
+    effect_preview_identity_construction_inventory(
+      authored_bytes, authored_nodes, depth,
+    )
+    is Some(admission) else {
+    return None
+  }
+  // The template and returned row CID vectors coexist with intermediate
+  // shape/identity derivation and the authored writer. They return before
+  // the final admission, which keeps only the completed wire alongside its
+  // full validator. The Native caller owns the original draft separately.
+  Some({
+    record_headers: template.record_headers +
+    intermediate.record_headers +
+    admission.record_headers,
+    reference_slots: template.reference_slots +
+    intermediate.reference_slots +
+    admission.reference_slots,
+    scalar_words: template.scalar_words +
+    intermediate.scalar_words +
+    admission.scalar_words,
+    owned_utf16_units: template.owned_utf16_units +
+    intermediate.owned_utf16_units +
+    admission.owned_utf16_units,
+    owned_wire_bytes: template.owned_wire_bytes +
+    intermediate.owned_wire_bytes +
+    admission.owned_wire_bytes,
+  })
+}
+
+///|
 fn preview_identity_member_row_inventory(
   count : Int64,
 ) -> EffectPreviewIdentityConstructionInventory? {
