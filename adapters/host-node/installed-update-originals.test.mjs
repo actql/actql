@@ -481,7 +481,7 @@ test('ordinary full Effect materials use the same funded Request for issue and i
   assert.deepEqual(seen, ['issue', 'admit', 'admit']);
 });
 
-test('a requested stop binds full Effect materials to its original preparation before adoption', async t => {
+test('signed review binds full Effect materials to its original preparation before adoption', async t => {
   const f = await fixture(t);
   const calls = [];
   const facts = {prepared: f.prepared, allowed: f.allowed, definition: f.definition,
@@ -502,13 +502,13 @@ test('a requested stop binds full Effect materials to its original preparation b
       calls.push('admit');
       return {prepared: f.prepared, compilation: f.compilation, allowed: f.allowed, definition: f.definition};
     }});
-  assert.equal(originals.captureEffectMaterials({...facts, requestedStop: false}), f.materialsWire);
+  assert.equal(originals.captureEffectMaterials({...facts, retainForReview: false}), f.materialsWire);
   assert.deepEqual(calls, ['issue']);
-  assert.equal(originals.captureEffectMaterials({...facts, requestedStop: true}), f.materialsWire);
+  assert.equal(originals.captureEffectMaterials({...facts, retainForReview: true}), f.materialsWire);
   assert.deepEqual(calls, ['issue', 'issue', 'admit']);
   const foreign = installUpdateTargetOriginals({...f, limits, issueMaterials: () => f.materialsWire,
     admitMaterials: () => ({prepared: {}, compilation: f.compilation, allowed: f.allowed, definition: f.definition})});
-  assert.throws(() => foreign.captureEffectMaterials({...facts, requestedStop: true}),
+  assert.throws(() => foreign.captureEffectMaterials({...facts, retainForReview: true}),
     {code: 'InstalledEffectOriginalSelectionChanged'});
 });
 

@@ -1376,7 +1376,7 @@ test('retained Host reuses its live Plan without cold material and refuses missi
   assert.deepEqual(cold.calls, []);
 });
 
-function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
+function ordinaryEffectDefinitionFixture({target = false, stop = false, submitted = stop, localPolicySigning = false} = {}) {
   const prepared = {}, identity = {}, compilation = {}, allowed = {}, definition = {}, targetOriginal = {};
   const calls = [], runDefinition = {identity: 'original-definition'}, wire = 'original-full-materials';
   const reserveOriginal = () => assert.fail('Only the original converter owns reservation');
@@ -1390,7 +1390,7 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
     clientProgramAllowedEffectRunAuthorization: a => {assert.strictEqual(a, allowed); return 'authorization-evidence';},
     strategyRunEvidenceJson: value => value,
   };
-  const ports = {moon, checked, prepared, identity, reserveOriginal, limits: {}, requiresQueryTime: false, requestedStop: stop,
+  const ports = {moon, checked, prepared, identity, reserveOriginal, limits: {}, requiresQueryTime: false, localPolicySigning,
     assertRequestedStopAvailable() {calls.push('requested-stop');},
     policy: {createdAt: 'original-time', expiresAt: 'original-expiry'}, namespaceId: 'original-scope',
     randomUUID: () => 'original-run', now: () => 'current-time', expired: () => new Error('expired'),
@@ -1405,7 +1405,8 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
       calls.push('capture-target'); return target ? targetOriginal : undefined;
     }, captureEffectMaterials(facts) {
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
-      assert.strictEqual(facts.runDefinition, runDefinition); assert.equal(facts.requestedStop, stop);
+      assert.strictEqual(facts.runDefinition, runDefinition);
+      assert.equal(facts.retainForReview, stop || (submitted && localPolicySigning));
       assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
       assert.strictEqual(facts.identity, identity); calls.push('capture-full-original'); return wire;
     }, compilationFor(value) {assert.strictEqual(value, prepared);return compilation;}}, prepareDefinition(facts) {
@@ -1440,7 +1441,7 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
   return {async issue() {
     await owner.accept({prepared, authorityScopeCid: 'original-authority', requestId: 'original-request',
       namespaceId: 'original-scope', principalId: 'owner', connection: {},
-      ...(stop ? {submission: {intentCid: 'original-intent-cid'}} : {})});
+      ...(submitted ? {submission: {intentCid: 'original-intent-cid'}} : {})});
     return issued;
   }, wire, targetOriginal, runDefinition, calls};
 }
@@ -1460,6 +1461,15 @@ test('ordinary Effect target custody keeps its one original codec and requested 
   const stop = ordinaryEffectDefinitionFixture({stop: true}), stopped = await stop.issue();
   assert.equal(stopped.runAdmissionEvidence.effectOriginalRunWire, stop.wire);
   assert.deepEqual(stop.calls, ['requested-stop', 'capture-target', 'capture-full-original', 'same-parent-constructor']);
+});
+
+test('policy Checkpoints retain typed review materials only for the local signer and an original submission', async () => {
+  for (const [submitted, localPolicySigning] of [[true, true], [true, false], [false, true]]) {
+    const fixture = ordinaryEffectDefinitionFixture({submitted, localPolicySigning});
+    const issued = await fixture.issue();
+    assert.equal(issued.runAdmissionEvidence.effectOriginalRunWire, fixture.wire);
+    assert.deepEqual(fixture.calls, ['capture-target', 'capture-full-original', 'same-parent-constructor']);
+  }
 });
 
 test('existing whole Effect resume forwards the same restored Plan before recovering its capture', async () => {
@@ -1547,7 +1557,10 @@ test('Local signing original uses the same restored parent and keeps its borrow 
     effectComputationPreviewSemanticCid: value => {assert.strictEqual(value, preview); return 'preview-cid';}},
     journal: {lookupRunDefinition: () => retained},
     restoreEffectManagedPreparation: async () => {calls.push('same-parent'); return {managedEffect: managed, original};},
-    recoverEffectCapture(ref, signal, parent, retain, binding) {assert.strictEqual(parent, managed); assert.strictEqual(binding, original); calls.push('capture'); return recovered;},
+    recoverEffectCapture(ref, signal, parent, retain, binding, signing) {
+      assert.strictEqual(parent, managed); assert.strictEqual(binding, original); assert.equal(signing, true);
+      calls.push('capture'); return recovered;
+    },
     localSigningRecoveries: recoveries, assertCurrent() {},
     clientOperationError: code => Object.assign(new Error(code), {code}),
     async releaseLocalSigningRecovery(value) {assert.strictEqual(value, recovered); assert.equal(consuming, false); calls.push('release-original'); recoveries.delete(value);}};

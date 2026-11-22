@@ -66293,7 +66293,8 @@
             "signal",
             "managed",
             "retainRecoveryResources",
-            "boundOriginal"
+            "boundOriginal",
+            "signing"
           ],
           "async": false
         },
@@ -69164,7 +69165,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
+      "sha256": "9d082d492e42f0c5f44c1fa1fda1e5c7641632095602d3fe64869c824ee638aa"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

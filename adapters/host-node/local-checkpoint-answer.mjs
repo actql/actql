@@ -28,7 +28,7 @@ export function createLocalSigningOriginalReader({namespaceId, authorityScopeCid
       throw clientOperationError('LocalSigningOriginalConflict');
     }
     let restored = await restoreEffectManagedPreparation(ref, signal);
-    let recovered = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
+    let recovered = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original, true);
     localSigningRecoveries.add(recovered);
     let originalFailure, failed = false;
     try {
