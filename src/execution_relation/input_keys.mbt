@@ -219,7 +219,8 @@ fn input_key_admitted_atom(
     @admitted.Array(_)
     | @admitted.Object(_)
     | @admitted.Vector(_)
-    | @admitted.JsonData(_) => Err(UnsupportedKeyDomain)
+    | @admitted.JsonData(_)
+    | @admitted.Binary(_) => Err(UnsupportedKeyDomain)
   }
 }
 

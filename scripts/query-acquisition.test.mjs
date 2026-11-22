@@ -155,6 +155,16 @@ test('query-time owner extends only the complete legacy owner and retains old ab
   const stripped = structuredClone(contract);
   for (const schema of Object.values(stripped.schemas)) delete schema.properties.owner.properties.run_definition_cid;
   delete stripped.semantics.query_time_owner;
+  const values = read('portability/corpus/signed64-identities.json').canonicalGrammar;
+  assert.equal(previous.dependencies.canonical_value_contract.cid, values.cid);
+  const currentValues = structuredClone(
+    read('spec/contracts/actql-protocol-schemas.json').schemas.canonical_value_contract);
+  assert.deepEqual(currentValues.$defs.value_contract.oneOf.pop(), {
+    type: 'object', required: ['type', 'nullable'], additionalProperties: false,
+    properties: {type: {const: 'bytes'}, nullable: {type: 'boolean'}},
+  });
+  assert.equal(cid(currentValues), values.cid);
+  stripped.dependencies.canonical_value_contract.cid = cid(currentValues);
   assert.deepEqual(stripped, previous, 'all other complete legacy contract fields remain exact');
   assert.equal(Object.hasOwn(requirement.owner, 'run_definition_cid'), false);
   assert.ok(matches(previous.schemas.requirement, requirement));

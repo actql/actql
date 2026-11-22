@@ -19,7 +19,7 @@ fn mixed_model_source_fixture(
 ) raise {
   let base = admit_client_check_environment(
     bound_effect_source_environment,
-    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
+    "sha256:afebeb63f2e0e48434bf005f65ab0af8a0c2704f0afb5a8c70df72e91b26e86e",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

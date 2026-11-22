@@ -59,6 +59,7 @@ pub(all) enum UnaryOperator {
   UnixSeconds
   ByteLength
   FarmFingerprint
+  Sha256
   Unicode
   Chr
   Reverse
@@ -451,6 +452,7 @@ fn expression_tag(
     | "unix_seconds"
     | "byte_length"
     | "farm_fingerprint"
+    | "sha256"
     | "unicode"
     | "chr"
     | "reverse"
@@ -655,6 +657,7 @@ fn expression_children(
     | "unix_seconds"
     | "byte_length"
     | "farm_fingerprint"
+    | "sha256"
     | "unicode"
     | "chr"
     | "reverse" => [body]
@@ -798,6 +801,13 @@ fn charge_bound_literal(
       @value.Decimal(d) => charge_expression_text(b, source, decimal_wire(d))
       @value.Signed64(value) =>
         charge_expression_text(b, source, value.to_string())
+      @value.Binary(value) => {
+        let bytes = @value.bytes_wire_text(value).length()
+        if bytes > b.limits.max_literal_text_bytes - b.literal_bytes {
+          expression_fail(source, ExpressionBudgetExceeded)
+        }
+        b.literal_bytes += bytes
+      }
       @value.Array(items) => {
         let count = @value.element_count(items)
         if count > b.limits.max_literal_nodes - b.literal_nodes - todo.length() {
@@ -1374,6 +1384,7 @@ fn lower_typed_expression_measured(
         "unix_seconds" => Unary(UnixSeconds, args[0])
         "byte_length" => Unary(ByteLength, args[0])
         "farm_fingerprint" => Unary(FarmFingerprint, args[0])
+        "sha256" => Unary(Sha256, args[0])
         "unicode" => Unary(Unicode, args[0])
         "chr" => Unary(Chr, args[0])
         "reverse" => Unary(Reverse, args[0])

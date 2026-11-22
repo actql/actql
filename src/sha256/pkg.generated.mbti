@@ -24,6 +24,8 @@ pub fn update_ascii_range(Hasher, String, Int, Int) -> Unit raise HashFailure
 
 pub fn update_byte(Hasher, Byte) -> Unit raise HashFailure
 
+pub fn update_utf8_scalar(Hasher, Char) -> Unit raise HashFailure
+
 // Errors
 pub(all) suberror HashFailure {
   ClosedHasher

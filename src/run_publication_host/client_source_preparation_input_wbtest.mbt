@@ -7,7 +7,7 @@ fn source_original_input_fixture(
 ) -> (ClientSourceInput, @source_publication.PreparedPublishedQueryEnvironment) {
   let environment = admit_client_check_environment(
     local_update_source_environment,
-    "sha256:aeb50e7260b47a2a152ee593bac2956835f53570c6c5fc68b5caf39c1da3959e",
+    "sha256:949cc11385ce3efa9c7f77467a9adc1dceedcf15e68d951b0c313bc9e8fab1f7",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

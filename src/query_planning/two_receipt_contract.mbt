@@ -9,7 +9,7 @@ struct QueryTwoReceiptContract {
 }
 
 ///|
-let query_two_receipt_cid : String = "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
+let query_two_receipt_cid : String = "sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807"
 
 ///|
 pub fn query_two_receipt_contract_cid(

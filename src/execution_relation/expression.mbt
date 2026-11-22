@@ -153,6 +153,7 @@ priv enum Evaluation {
   SqlJsonText(TextFunctionState, SqlJsonCursor)
   JsonValueText(TextFunctionState, JsonValueQuery)
   Fingerprint(FarmFingerprint)
+  Digest(Sha256Expression)
   SplitFunction(SplitFunctionState)
   GenerateArray(GenerateArrayState)
   ArrayConcat(ArrayConcatState)
@@ -1698,6 +1699,13 @@ fn advance_expression_frame_impl(
               frame.state = TextFunction(state)
               continue
             }
+            if op == @lower.Sha256 && !(value is Null) {
+              match start_sha256_expression(expr, value, workspace) {
+                Ok(state) => frame.state = Digest(state)
+                Err(issue) => return Err(issue)
+              }
+              continue
+            }
             if op == @lower.FarmFingerprint && value is Text(text) {
               match start_farm_fingerprint(expr, text, workspace) {
                 Ok(state) => frame.state = Fingerprint(state)
@@ -2495,6 +2503,24 @@ fn advance_expression_frame_impl(
               Ok(_) => ()
               Err(issue) => return Err(issue)
             }
+        }
+      }
+      Digest(state) => {
+        frame.active = state.expression
+        match advance_sha256_expression(state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            if release(frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: frame.active,
+              })
+            }
+            frame.current_root = None
+            release_slots(workspace, SHA256_WORKSPACE_SLOTS)
+            frame.state = Return(value)
+          }
         }
       }
       Fingerprint(state) => {

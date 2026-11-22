@@ -17,5 +17,5 @@ fn protocol_value_kind(kind : String) -> Bool {
 
 ///|
 fn protocol_value_grammar_cid() -> String {
-  "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+  "sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1"
 }

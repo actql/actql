@@ -184,6 +184,11 @@ types. It preserves order and duplicates and returns NULL for a NULL array
 operand. The function uses the existing array value bounds.
 [GoogleSQL ARRAY_CONCAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_concat)
 
+`SHA256(value)` hashes String UTF-8 or the original BYTES and returns a
+32-byte BYTES value. NULL returns NULL. JSON results carry the digest in
+padded Base64 with a `bytes` column contract.
+[GoogleSQL SHA256](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#sha256)
+
 `FARM_FINGERPRINT(value)` accepts String and returns the stable signed
 INT64 fingerprint of its UTF-8 bytes. NULL returns NULL.
 [GoogleSQL FARM_FINGERPRINT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#farm_fingerprint)
@@ -322,6 +327,20 @@ INT64 Result values use canonical decimal strings on the existing wire.
 
 SQL `GROUP BY ROLLUP` returns each prefix subtotal and the grand total with typed NULLs for omitted grouping keys.
 
+A SELECT with a single scalar subquery projection accepts a one-column query,
+with access to the enclosing WITH bindings. Zero rows give a typed NULL, one
+row gives its value, and more than one row fails execution.
+
+`WHERE value IN (SELECT …)` accepts an uncorrelated, single-column subquery
+with comparable keys. Input rows survive a non-null equality match and
+preserve their multiplicity when the subquery repeats the key.
+
+Standalone `SELECT EXISTS (SELECT …)` returns a non-null Boolean based on
+row presence. `WHERE EXISTS (SELECT …)` supports an independent subquery, or
+a qualified inner-to-outer equality with the inner key as its sole
+projection. A correlated NULL comparison does not match, and inner
+duplicates do not duplicate left rows.
+
 A comma in the initial FROM list uses the bounded CROSS JOIN operation.
 A comma before UNNEST supports correlated expansion and offsets.
 
@@ -335,21 +354,21 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | User-defined functions, `CREATE FUNCTION`, lambdas, inline JavaScript or Python | ActQL has no escape hatches; see [Language design](../concepts/language-design.md#no-escape-hatches). |
 | Procedural SQL (`BEGIN`, `LOOP`, `IF … THEN`, variables, cursors) | A Program is finite and declarative. |
 | `SELECT … INTO`, `MERGE`, DDL other than `CREATE [OR REPLACE] TABLE … AS` | Changes to external systems are Effects with their declared forms (`UPSERT` replaces `MERGE`). |
-| `BYTES` literals and functions, collations, `SAFE_CAST`, `::` casts, `DATE` as a cast target | Not in the selected profile. |
+| `BYTES` literals and other BYTES function overloads, collations, `SAFE_CAST`, `::` casts, `DATE` as a cast target | Not in the selected profile. |
 | Computed `LIMIT`/`OFFSET`, `LIMIT 0` | Only integer literals or parameters. |
 | Non-equality join keys, joins on computed keys | Keys are columns compared for equality. |
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
 | `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
-| Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
+| Other correlated expression subqueries, scalar subqueries within other expressions, `NOT IN (SELECT …)`, and nested or projected `IN (SELECT …)` | The selected subquery forms and their scopes are listed above. |
 | `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
 | `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
 | `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
 | `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
 | `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
 | `REGEXP_EXTRACT` with position or occurrence arguments | The selected two-argument String signature uses the first match. |
-| `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
+| `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
 | String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |

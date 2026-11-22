@@ -2111,6 +2111,7 @@ pub(all) enum UnaryOperator {
   UnixSeconds
   ByteLength
   FarmFingerprint
+  Sha256
   Unicode
   Chr
   Reverse

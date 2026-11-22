@@ -171,6 +171,188 @@ fn lower_script_primary(
 }
 
 ///|
+// Other scalar subqueries need both the nullable cell and the original row
+// count. Keep the assertion ahead of the enclosing projection.
+fn scalar_subquery_cardinality(
+  construction : Construction,
+  input : Input,
+  original : String,
+  value : String,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Unit raise Abort {
+  let count = pipe_physical_name([value], "aql_scalar_count_")
+  let grouped = pipe_physical_name(reserved, "aql_scalar_group_")
+  reserved.push(grouped)
+  steps.push(
+    construction.object([
+      ("from", construction.text(input.name)),
+      (
+        "group",
+        construction.object([
+          ("by", construction.array([])),
+          (
+            "aggregates",
+            construction.object([
+              (
+                value,
+                construction.object([
+                  ("fn", construction.text("any_value")),
+                  ("field", construction.text(original)),
+                ]),
+              ),
+              (count, construction.object([("fn", construction.text("count"))])),
+            ]),
+          ),
+        ]),
+      ),
+      ("as", construction.text(grouped)),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      ("from", construction.text(grouped)),
+      (
+        "assert_rows",
+        construction.object([
+          (
+            "where",
+            construction.object([
+              (
+                "lte",
+                construction.array([
+                  construction.object([("field", construction.text(count))]),
+                  construction.object([
+                    ("literal", construction.add(Number(1.0))),
+                  ]),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+}
+
+///|
+fn scalar_subquery_output(
+  construction : Construction,
+  sources : ScriptSources,
+  query : @query.Query,
+  input : Input,
+  name : @query.NamePart?,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Input raise Abort {
+  guard input.visible_fields.length() == 1 else {
+    raise Abort(UnsupportedProjection)
+  }
+  let original = input.visible_fields[0]
+  let value = name.map(name => name.value).unwrap_or("aql_scalar_value")
+  let singleton = @query.is_single_extremum_projection(query)
+  let selected = if singleton {
+    original
+  } else {
+    scalar_subquery_cardinality(
+      construction, input, original, value, steps, reserved,
+    )
+    value
+  }
+  let projected = pipe_physical_name(reserved, "aql_scalar_result_")
+  reserved.push(projected)
+  let entries = if singleton {
+    [("from", construction.text(input.name))]
+  } else {
+    []
+  }
+  entries.push(("select", set_select_fields(construction, [value], [selected])))
+  entries.push(("as", construction.text(projected)))
+  steps.push(construction.object(entries))
+  let original_column = result_column_profile(
+    script_result_columns(sources, input.name),
+    original,
+    original,
+  )
+  let name_view = original_column.bind(column => column.name_view)
+  if name is None || name_view is Some(_) {
+    put_script_result_columns(sources, projected, [
+      { slot: value, label: value, name, name_view, },
+    ])
+  }
+  { ..input, name: projected, visible_fields: [value], }
+}
+
+///|
+// A keyless COUNT has one output row even for empty input, and consumes no
+// projected value. Retain the same checked producer and all its row operators.
+fn exists_subquery_output(
+  construction : Construction,
+  sources : ScriptSources,
+  input : Input,
+  name : @query.NamePart?,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Input raise Abort {
+  let value = name.map(name => name.value).unwrap_or("aql_exists_value")
+  let count = pipe_physical_name([value], "aql_exists_count_")
+  let projected = pipe_physical_name(reserved, "aql_exists_result_")
+  reserved.push(projected)
+  steps.push(
+    construction.object([
+      ("from", construction.text(input.name)),
+      (
+        "group",
+        construction.object([
+          ("by", construction.array([])),
+          (
+            "aggregates",
+            construction.object([
+              (count, construction.object([("fn", construction.text("count"))])),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      (
+        "derive",
+        construction.object([
+          (
+            value,
+            construction.object([
+              (
+                "gt",
+                construction.array([
+                  construction.object([("field", construction.text(count))]),
+                  construction.object([
+                    ("literal", construction.add(Number(0.0))),
+                  ]),
+                ]),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ]),
+  )
+  steps.push(
+    construction.object([
+      ("select", set_select_fields(construction, [value], [value])),
+      ("as", construction.text(projected)),
+    ]),
+  )
+  if name is None {
+    put_script_result_columns(sources, projected, [
+      { slot: value, label: value, name, name_view: None, },
+    ])
+  }
+  { ..input, name: projected, visible_fields: [value], }
+}
+
+///|
 // Resolve a body before installing its name. Both output kinds share this
 // binding owner, so a nearer binding shadows an outer one regardless of kind.
 // A Graph continuation receives its actual producer explicitly; a generated
@@ -308,6 +490,23 @@ fn lower_script_bindings(
         graphs=body_graphs,
         allow_nonrelation=true,
       )
+    }
+    let bound = match binding.origin {
+      ScalarSubquery(name) =>
+        scalar_subquery_output(
+          construction,
+          sources,
+          binding.query,
+          bound,
+          name,
+          steps,
+          reserved,
+        )
+      ExistsSubquery(name) =>
+        exists_subquery_output(
+          construction, sources, bound, name, steps, reserved,
+        )
+      _ => bound
     }
     if !binding.carry_ranges &&
       sources.value_tables.get(bound.name) is Some(scope) {

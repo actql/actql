@@ -86,6 +86,7 @@ struct Tokens {
   // Set only at parser-owned source/peer selection, never from a caller hint.
   mut published_namespace_possible : Bool
   mut rollup_items : Int
+  mut scalar_projections : Int
 }
 
 ///|
@@ -199,6 +200,7 @@ fn scan_tokens(
       namespace_references: 0,
       published_namespace_possible: false,
       rollup_items: 0,
+      scalar_projections: 0,
     })
   } catch {
     LexicalAbort(issue, at) =>
