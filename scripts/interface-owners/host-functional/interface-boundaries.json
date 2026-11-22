@@ -72075,8 +72075,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const retained = rowInstallations.get(adapter);"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "const retained = rowInstallations.get(adapter as object);"
               }
             ],
             "synchronization": [

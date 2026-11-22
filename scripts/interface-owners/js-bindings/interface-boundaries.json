@@ -68577,8 +68577,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const retained = rowInstallations.get(adapter);"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "const retained = rowInstallations.get(adapter as object);"
               }
             ],
             "synchronization": [
@@ -88664,6 +88664,342 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-owner-projection.mjs",
+      "sha256": "3672eae01386fad5ee285b86742c25bd86680e355ee0a21963264d97c29fbff3",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowEffectOwnerProjection"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectOwnerProjection",
+          "parameters": [
+            "rowInstallations",
+            "installedEffectKinds"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/collectInstalledRowEffectUpdateObservations",
+          "parameters": [
+            "adapters",
+            "selections",
+            "originals",
+            "observations",
+            "installationData"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/installationFacts/installationFacts",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/installedRowEffectOwnerBinding",
+          "parameters": [
+            "adapter"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateObservation",
+          "parameters": [
+            "adapters",
+            "ownerCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateObservations",
+          "parameters": [
+            "adapter"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateTargetReadAccess",
+          "parameters": [
+            "adapter",
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/selectionChanged/selectionChanged",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation/updateObservation",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation/updateObservation#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/updateObservations/updateObservations/updateObservations",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/validateInstalledUpdateOwnerSelections",
+          "parameters": [
+            "adapter",
+            "selections",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectOwnerProjection/validateOwnerSelections/validateOwnerSelections",
+          "parameters": [
+            "owners",
+            "selections",
+            "prepared"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectOwnerProjection",
+            "createInstalledRowEffectOwnerProjection/installationFacts/installationFacts",
+            "createInstalledRowEffectOwnerProjection/selectionChanged/selectionChanged",
+            "createInstalledRowEffectOwnerProjection/validateOwnerSelections/validateOwnerSelections",
+            "createInstalledRowEffectOwnerProjection/collectInstalledRowEffectUpdateObservations",
+            "createInstalledRowEffectOwnerProjection/installedRowEffectOwnerBinding",
+            "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateObservation",
+            "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateObservations",
+            "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation",
+            "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation/updateObservation",
+            "createInstalledRowEffectOwnerProjection/updateObservation/updateObservation/updateObservation/updateObservation#2",
+            "createInstalledRowEffectOwnerProjection/updateObservations/updateObservations/updateObservations",
+            "createInstalledRowEffectOwnerProjection/validateInstalledUpdateOwnerSelections"
+          ],
+          "exports": [
+            "createInstalledRowEffectOwnerProjection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data_wbtest.mbt",
+                "anchor": "test \"same-call typed installation shares full current purpose Mapping and unchanged virtual wire bounds\" {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('plural current issues each actual physical owner once per fresh observation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectOwnerProjection/installedRowEffectUpdateTargetReadAccess"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "const retained = rowInstallations.get(adapter as object);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/effect-preparation-result.mjs",
+        "./update-target-original-shape.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
@@ -89706,7 +90042,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9533efc7a275e3df13fa7fa78933c55b00a07468f3b9853d48fcb91da2c76030",
+      "sha256": "1250217b15b133801abd31ae2816c7adf281a7e965ea6f17e57109e8841e3fc3",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -89726,24 +90062,6 @@
         "validateInstalledUpdateOwnerSelections"
       ],
       "operations": [
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "collectInstalledRowEffectUpdateObservations",
-          "parameters": [
-            "adapters",
-            "selections",
-            "originals",
-            "observations",
-            "installationData"
-          ],
-          "async": false
-        },
         {
           "name": "commandContentBorrower/init:borrow/init:borrow",
           "parameters": [
@@ -91353,13 +91671,6 @@
           "async": false
         },
         {
-          "name": "installedRowEffectOwnerBinding",
-          "parameters": [
-            "adapter"
-          ],
-          "async": false
-        },
-        {
           "name": "installedRowEffectUnit",
           "parameters": [
             "moon",
@@ -91372,29 +91683,6 @@
           "parameters": [
             "stage",
             "stageIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectUpdateObservation",
-          "parameters": [
-            "adapters",
-            "ownerCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectUpdateObservations",
-          "parameters": [
-            "adapter"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectUpdateTargetReadAccess",
-          "parameters": [
-            "adapter",
-            "target"
           ],
           "async": false
         },
@@ -91461,43 +91749,6 @@
           "name": "text/text",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservation/updateObservation/updateObservation",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservation/updateObservation/updateObservation/updateObservation",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservation/updateObservation/updateObservation/updateObservation#2",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservations/updateObservations/updateObservations",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateInstalledUpdateOwnerSelections",
-          "parameters": [
-            "adapter",
-            "selections",
-            "prepared"
           ],
           "async": false
         }
@@ -92367,9 +92618,7 @@
           }
         },
         {
-          "operations": [
-            "cid/cid"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -94643,21 +94892,12 @@
         },
         {
           "operations": [
-            "collectInstalledRowEffectUpdateObservations",
             "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
-            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
-            "installedRowEffectOwnerBinding",
-            "installedRowEffectUpdateObservation",
-            "installedRowEffectUpdateObservations",
-            "updateObservation/updateObservation/updateObservation",
-            "updateObservation/updateObservation/updateObservation/updateObservation",
-            "updateObservation/updateObservation/updateObservation/updateObservation#2",
-            "updateObservations/updateObservations/updateObservations",
-            "validateInstalledUpdateOwnerSelections"
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected"
           ],
           "exports": [
             "collectInstalledRowEffectUpdateObservations",
@@ -94669,8 +94909,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94679,8 +94919,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94699,8 +94939,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94709,8 +94949,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94719,8 +94959,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94729,8 +94969,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94739,8 +94979,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -94749,8 +94989,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "export function installedRowEffectOwnerBinding(adapter) {"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -98239,9 +98479,7 @@
           }
         },
         {
-          "operations": [
-            "installedRowEffectUpdateTargetReadAccess"
-          ],
+          "operations": [],
           "exports": [
             "installedRowEffectUpdateTargetReadAccess"
           ],
@@ -98266,8 +98504,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const retained = rowInstallations.get(adapter);"
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "const retained = rowInstallations.get(adapter as object);"
               }
             ],
             "synchronization": [
@@ -98336,6 +98574,7 @@
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-effect-driver.mjs",
+        "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-plan-capture.mjs",
         "./installed-row-effect-standard-write.mjs",
         "./installed-row-source.mjs",
