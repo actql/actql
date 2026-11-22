@@ -82733,7 +82733,7 @@
                 "anchor": "descriptor.value !== original.bindings![name]"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication equal configuration and runtime do not replace another original request"
               }
             ],
@@ -82771,7 +82771,7 @@
                 "anchor": "publicationFailure('InstalledSourcePublicationChanged')"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication missing original profile remains failed rather than authorizing equal later data"
               }
             ],
@@ -82811,15 +82811,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication actual selected callback binds the same request to Common metadata DATA"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication failed physical cleanup holds the request but never reopens send admission"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication cleanup without an original status cannot retire or manufacture an ACK"
               }
             ]
@@ -83774,7 +83774,7 @@
                 "anchor": "descriptor.value !== original.bindings![name]"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication equal configuration and runtime do not replace another original request"
               }
             ],
@@ -83812,7 +83812,7 @@
                 "anchor": "publicationFailure('InstalledSourcePublicationChanged')"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication missing original profile remains failed rather than authorizing equal later data"
               }
             ],
@@ -83852,15 +83852,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication actual selected callback binds the same request to Common metadata DATA"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication failed physical cleanup holds the request but never reopens send admission"
               },
               {
-                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "path": "adapters/host-node/installed-source-publication-original.test.mts",
                 "anchor": "publication cleanup without an original status cannot retire or manufacture an ACK"
               }
             ]

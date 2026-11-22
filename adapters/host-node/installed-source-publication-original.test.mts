@@ -6,26 +6,44 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {publishInstalledSourceProfile, installedSourcePublicationRequestId,
   assertInstalledSourcePublicationRequest, observeInstalledSourcePublicationCurrent}
   from './installed-source.mjs';
+// @ts-expect-error TS7016: remove after runtime-core has an authored TypeScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {OriginalPublication} from './installed-source-publication.mjs';
 
 assert(process.env.ACTQL_METADATA_COMMON_RUNTIME,
   'Select an actual matching retained Common runtime explicitly');
 const runtimeUrl = pathToFileURL(process.env.ACTQL_METADATA_COMMON_RUNTIME);
 const moon = await import(runtimeUrl.href);
 const version = 'actql-installed-publication-original-source/0.1';
-const cid = digit => 'sha256:' + digit.repeat(64);
+const cid = (digit: string) => 'sha256:' + digit.repeat(64);
 const foreign = {code: 'ForeignInstalledSourcePublication'};
 const mismatched = {code: 'ForeignInstalledSourcePublicationBinding'};
 const closed = {code: 'InstalledSourcePublicationClosed'};
-const fence = ({publicationRequest, ...options}, profile) => ({
+type FixtureProfile = Readonly<{version: string; connection: string; generation: number}>;
+type FixtureBindings = Omit<NonNullable<OriginalPublication['bindings']>, 'profile' | 'runtimeBundleCid'> &
+  Readonly<{publicationRequest: object; runtimeBundleCid: string}>;
+type Publish = (profile: FixtureProfile, options: FixtureBindings) => unknown;
+type FixtureSettings = Readonly<{
+  check?: (profile: FixtureProfile) => FixtureProfile;
+  sourcePublish?: boolean;
+  signal?: AbortSignal;
+}>;
+type ObservedCleanupFailure = Readonly<{
+  primaryFailure: unknown;
+  cleanupHandle: {status(): {pending: boolean}; retry(): Promise<void>};
+}>;
+
+const fence = ({publicationRequest, ...options}: FixtureBindings, profile: FixtureProfile) => ({
   request: publicationRequest, originals: {...options, profile},
 });
 
-async function fixture(t, publish, {check, sourcePublish = true, signal} = {}) {
+async function fixture(t: TestContext, publish: Publish,
+  {check, sourcePublish = true, signal}: FixtureSettings = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-publication-original-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const path = join(root, 'profile.json');
@@ -35,7 +53,7 @@ async function fixture(t, publish, {check, sourcePublish = true, signal} = {}) {
   const module = {check: check ?? (profile => Object.freeze({...profile})),
     identityParts: () => {assert.fail('Publication does not rediscover identity');},
     load: () => {assert.fail('Publication does not load a query Source');},
-    ...(sourcePublish ? {async publish(profile, options) {
+    ...(sourcePublish ? {async publish(profile: FixtureProfile, options: FixtureBindings) {
       publishes++;
       return publish(profile, options);
     }} : {})};
@@ -50,7 +68,7 @@ async function fixture(t, publish, {check, sourcePublish = true, signal} = {}) {
 }
 
 test('publication actual selected callback binds the same request to Common metadata DATA', async t => {
-  let original;
+  let original!: ReturnType<typeof fence>;
   const f = await fixture(t, async (profile, options) => {
     original = fence(options, profile);
     assertInstalledSourcePublicationRequest(original.request, original.originals);
@@ -85,9 +103,9 @@ test('publication copied request or mixed original installation references refus
       assert.throws(() => assertInstalledSourcePublicationRequest(copy, originals), foreign);
     }
     for (const key of ['root', 'principalId', 'moon', 'installation', 'profile',
-      'resolveSecret', 'runtimeBundleCid']) {
+      'resolveSecret', 'runtimeBundleCid'] as const) {
       const replacement = typeof originals[key] === 'string' ? originals[key] + '-other'
-        : typeof originals[key] === 'function' ? () => {} : {...originals[key]};
+        : typeof originals[key] === 'function' ? () => {} : {...originals[key] as object};
       assert.throws(() => assertInstalledSourcePublicationRequest(request,
         {...originals, [key]: replacement}), mismatched);
     }
@@ -121,7 +139,7 @@ test('publication checked profile remains its original pair instead of an equal 
 });
 
 test('publication equal configuration and runtime do not replace another original request', async t => {
-  let first;
+  let first: ReturnType<typeof fence> | undefined;
   const f = await fixture(t, async (profile, options) => {
     const original = fence(options, profile);
     if (first === undefined) {
@@ -132,8 +150,8 @@ test('publication equal configuration and runtime do not replace another origina
       assert.notEqual(installedSourcePublicationRequestId(first.request),
         installedSourcePublicationRequestId(original.request));
       assert.throws(() => assertInstalledSourcePublicationRequest(original.request,
-        first.originals), mismatched);
-      assert.throws(() => assertInstalledSourcePublicationRequest(first.request,
+        first!.originals), mismatched);
+      assert.throws(() => assertInstalledSourcePublicationRequest(first!.request,
         original.originals), mismatched);
     }
   });
@@ -191,7 +209,7 @@ test('publication abort after an await refuses the same original pair', async t 
 });
 
 test('publication failed physical cleanup holds the request but never reopens send admission', async t => {
-  let original, allowClose = false, retries = 0, reads = 0;
+  let original!: ReturnType<typeof fence>, allowClose = false, retries = 0, reads = 0;
   const cleanup = {status() {assert.equal(this, cleanup); return {pending: !allowClose};},
     retry() {assert.equal(this, cleanup); retries++;}};
   const primary = Object.assign(new Error('OriginalUnknown'), {
@@ -204,8 +222,8 @@ test('publication failed physical cleanup holds the request but never reopens se
     assertInstalledSourcePublicationRequest(original.request, original.originals);
     throw primary;
   });
-  let failure;
-  await assert.rejects(f.run(), error => {failure = error; return error.primaryFailure === primary;});
+  let failure!: ObservedCleanupFailure;
+  await assert.rejects(f.run(), error => {failure = error as ObservedCleanupFailure; return (error as ObservedCleanupFailure).primaryFailure === primary;});
   assert.equal(reads, 1); assert.equal(retries, 0);
   const requestId = installedSourcePublicationRequestId(original.request);
   assert.throws(() => assertInstalledSourcePublicationRequest(original.request, original.originals), closed);
@@ -224,13 +242,13 @@ test('publication failed physical cleanup holds the request but never reopens se
 });
 
 test('publication cleanup without an original status cannot retire or manufacture an ACK', async t => {
-  let original;
+  let original!: ReturnType<typeof fence>;
   const primary = Object.freeze(Object.assign(new Error('UnknownCleanup'), {
     cleanupPending: true, cleanupHandle: Object.freeze({retry() {assert.fail('No status');}}),
   }));
   const f = await fixture(t, (profile, options) => {original = fence(options, profile); throw primary;});
-  let failure;
-  await assert.rejects(f.run(), error => {failure = error; return error.primaryFailure === primary;});
+  let failure!: ObservedCleanupFailure;
+  await assert.rejects(f.run(), error => {failure = error as ObservedCleanupFailure; return (error as ObservedCleanupFailure).primaryFailure === primary;});
   assert.equal(failure.cleanupHandle.status().pending, true);
   await assert.rejects(failure.cleanupHandle.retry(), error => error === failure);
   assert.match(installedSourcePublicationRequestId(original.request), /^[0-9a-f-]{36}$/u);
