@@ -82,8 +82,10 @@ test "hash sink shares text emission embedding and exact admission" {
   }
   let embedded = hashing_writer(size, 100, 8)
   emit_document(embedded, document)
-  assert_eq(finish_hash(embedded), baseline)
   assert_true(embedded.output is HashOutput(_))
+  assert_eq(finish_hash(embedded), baseline)
+  assert_true(embedded.output is MeasureOutput)
+  assert_eq(embedded.frames.capacity(), 0)
 }
 
 ///|
