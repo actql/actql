@@ -58,6 +58,46 @@ test "Native saved file request measures the same original canonical subtrees be
     )
     is Err(_),
   )
+  let removal = native_local_effect_file_request_wire(
+    "binding",
+    "mapping",
+    target,
+    None,
+    before,
+    "version",
+    4096,
+    64,
+    8,
+  ).unwrap()
+  let expected =
+    #|{"before":{"Name":"日😀","id":"é"},"binding":"binding","mapping":"mapping","target":"row","version":"version"}
+  assert_eq(removal, expected)
+  let measuring_removal = @encode.measuring_writer(4096, 64, 8)
+  emit_native_local_effect_file_request(
+    measuring_removal,
+    "binding",
+    "mapping",
+    target,
+    None,
+    before,
+    "version",
+  )
+  let (delete_bytes, _, _) = @encode.finish_measurement_usage(measuring_removal)
+  assert_eq(delete_bytes, @utf8.encode(expected).length())
+  assert_true(
+    native_local_effect_file_request_wire(
+      "binding",
+      "mapping",
+      target,
+      None,
+      before,
+      "version",
+      delete_bytes - 1,
+      64,
+      8,
+    )
+    is Err(_),
+  )
 }
 
 ///|

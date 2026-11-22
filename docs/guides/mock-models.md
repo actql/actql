@@ -42,8 +42,9 @@ not the spelling of the key. The catalog describes:
   UPDATE. The other selected fields retain the default NULL rejection, and
   fields outside the UPDATE remain unchanged. These Mapping declarations do
   not grant current authorization or approval.
-  In the Node Local Host, `operation: "delete"` selects a DELETE Mapping for
-  that resource. Omit all three field lists on a DELETE. Keep the exact
+  In the Node Local Host and the Native Source-only Mock path,
+  `operation: "delete"` selects a DELETE Mapping for that resource. Omit all
+  three field lists on a DELETE. Keep the exact
   primary identity, read and write permissions, required approval and aliases.
   The Preview seals the original row and version before any write. Apply
   removes that row only if the original version still matches under the file lock.

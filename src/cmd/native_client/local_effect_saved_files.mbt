@@ -266,13 +266,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
     self.business is Some(business) &&
     business.saved_effect_files is Some(actual) &&
     physical_equal(work, actual) &&
-    @row_file.native_relation_file_target_update_construction(
-      row._retained_row_binding.provider,
-      row._retained_installation.write.writable_fields.length(),
-      bytes,
-      row.changes_wire,
-    )
-    is Some((physical, raw)) &&
+    row.file_write_construction(bytes) is Some((physical, raw)) &&
     saved_effect_file_application_capacity(
       business.saved_effect_rows.length(),
       physical,
@@ -480,34 +474,47 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       ).map_err(issue => CommandSavedFileResource(issue))
       let reservation = command_preparation_result(reservation)
       work.reservation = Some(reservation)
-      let staging = "actql-update-" +
+      let deleting = row.deleting()
+      let staging = (if deleting { "actql-delete-" } else { "actql-update-" }) +
         member_index.to_string() +
         "-" +
         ordinal.to_string()
       let holder : Ref[@row_file.NativeRelationFileTargetIO?] = Ref(None)
+      let prepare_response = bytes => {
+        guard holder.val is Some(child) &&
+          work.child is Some(actual) &&
+          physical_equal(child, actual) &&
+          !self.closing &&
+          !self.closed &&
+          self.primary is None &&
+          work.ledger is Some(original) &&
+          physical_equal(original, ledger) else {
+          return false
+        }
+        self.prepare_saved_effect_response_construction(
+          work, row, ledger, bytes,
+        )
+      }
       let child = match
-        @row_file.prepare_native_relation_file_target_update_io(
-          provider,
-          row._retained_installation.write.writable_fields,
-          row.identity,
-          (row.version, row.changes_wire, staging),
-          bytes => {
-            guard holder.val is Some(child) &&
-              work.child is Some(actual) &&
-              physical_equal(child, actual) &&
-              !self.closing &&
-              !self.closed &&
-              self.primary is None &&
-              work.ledger is Some(original) &&
-              physical_equal(original, ledger) else {
-              return false
-            }
-            self.prepare_saved_effect_response_construction(
-              work, row, ledger, bytes,
-            )
-          },
-          predecessor~,
-        ) {
+        (if deleting {
+          @row_file.prepare_native_relation_file_target_delete_io(
+            provider,
+            row.identity,
+            row.version,
+            staging,
+            prepare_response,
+            predecessor~,
+          )
+        } else {
+          @row_file.prepare_native_relation_file_target_update_io(
+            provider,
+            row._retained_installation.write.writable_fields,
+            row.identity,
+            (row.version, row.changes_wire, staging),
+            prepare_response,
+            predecessor~,
+          )
+        }) {
         Ok(value) => value
         Err(issue) => {
           self.retain_primary(CommandBusinessSource(issue))

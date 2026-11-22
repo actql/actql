@@ -423,12 +423,12 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     )
     is Some(@publication.Mapping(_, original_mapping)) &&
     original_mapping == mapping &&
+    @publication.effect_preview_member_kind(original.preview, member_index)
+    is Some(kind) &&
     original.ordered_row_original(member_index, row_ordinal) is Some(row) &&
     @canonical.object_field(row, "target_row_identity") is Some(target) &&
     target is @canonical.String(identity) &&
     @canonical.object_field(row, "intended_changes") is Some(intended) &&
-    @canonical.object_field(intended, "state")
-    is Some(@canonical.String("present")) &&
     @canonical.object_field(row, "before") is Some(before) &&
     @canonical.object_field(before, "state")
     is Some(@canonical.String("present")) &&
@@ -441,15 +441,34 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     return Err(HostAttestationUnavailable)
   }
   let original_value = @canonical.object_field(intended, "value")
-  guard original_value is Some(changes) else {
-    return Err(HostAttestationUnavailable)
+  match kind {
+    "update" => {
+      guard @canonical.object_field(intended, "state")
+        is Some(@canonical.String("present")) &&
+        original_value is Some(_) else {
+        return Err(HostAttestationUnavailable)
+      }
+    }
+    "delete" => {
+      guard @canonical.object_field_count(intended) == Some(1) &&
+        @canonical.object_field(intended, "state")
+        is Some(@canonical.String("not_applicable")) &&
+        original_value is None &&
+        @canonical.object_field(row, "after") is Some(after) &&
+        @canonical.object_field_count(after) == Some(1) &&
+        @canonical.object_field(after, "state")
+        is Some(@canonical.String("absent")) else {
+        return Err(HostAttestationUnavailable)
+      }
+    }
+    _ => return Err(HostAttestationUnavailable)
   }
   let limits = request_limits
   // A request adds three structural scalar fields to the admitted data
   // subtrees. Its existing installed request limit is checked by the writer;
   // no separate subtree admission multiplies the accepted JSON limits.
   // Before learning output size, back only the non-text observation frame.
-  // The outer request has six unordered keys; canonical children use ordered
+  // The outer request has at most six keys; canonical children use ordered
   // keys. Each active canonical container retains one rest cursor and at most
   // one pending key/value cursor, bounded by the admitted traversal depth.
   guard limits.max_depth >= 1 &&
@@ -561,13 +580,17 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     Ok(value) => value
     Err(_) => return Err(HostAttestationUnavailable)
   }
-  let changes_wire = @canonical.stringify_value(
-    changes,
-    limits.max_wire_bytes,
-    limits.max_nodes,
-    limits.max_depth,
-  ) catch {
-    _ => return Err(HostAttestationUnavailable)
+  let changes_wire = match original_value {
+    None => ""
+    Some(changes) =>
+      @canonical.stringify_value(
+        changes,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) catch {
+        _ => return Err(HostAttestationUnavailable)
+      }
   }
   let cid = match @sha.text_hex(request) {
     Ok(value) => "sha256:" + value

@@ -440,8 +440,10 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       effect_id,
       policy.effects.max_work,
     ).unwrap_or_else(() => stop("LocalOriginalEffectInstallationUnavailable"))
+    let deleting = descriptor.2 == "delete"
     guard descriptor.0 == member_index &&
-      descriptor.2 == "update" &&
+      @publication.effect_preview_member_kind(preview, member_index) ==
+      Some(descriptor.2) &&
       @publication.effect_preview_member_source_binding_cid(
         preview, member_index,
       )
@@ -455,6 +457,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       installations
       .iter()
       .find_first(value => {
+        value.matches_file_operation(descriptor.2) &&
         value.binding == binding_cid &&
         value.target == descriptor.3 &&
         value.write.mapping.mapping_ref == reference &&
@@ -514,14 +517,21 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         .ordered_row_original(member_index, row_ordinal)
         .unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
       let selected_fields = installation.write.mapping.write_fields
-      guard @canonical.object_field(original_row, "intended_changes")
-        is Some(intended) &&
-        @canonical.object_field(intended, "value") is Some(changes) &&
-        @canonical.object_field_count(changes) == Some(selected_fields.length()) &&
-        selected_fields.all(name => {
-          @canonical.object_field(changes, name) is Some(_)
-        }) else {
-        stop("LocalOriginalEffectRequestUnavailable")
+      if deleting {
+        guard selected_fields.is_empty() && changes_wire.is_empty() else {
+          stop("LocalOriginalEffectRequestUnavailable")
+        }
+      } else {
+        guard @canonical.object_field(original_row, "intended_changes")
+          is Some(intended) &&
+          @canonical.object_field(intended, "value") is Some(changes) &&
+          @canonical.object_field_count(changes) ==
+          Some(selected_fields.length()) &&
+          selected_fields.all(name => {
+            @canonical.object_field(changes, name) is Some(_)
+          }) else {
+          stop("LocalOriginalEffectRequestUnavailable")
+        }
       }
       let target_value = @canonical.object_field(
         original_row, "target_row_identity",
@@ -548,7 +558,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         row_binding.limits.page.max_bytes,
       ).unwrap_or_else(() => stop("LocalOriginalEffectOutcomeUnavailable"))
       // Retain before any later constructor or scope return can fail.
-      business.saved_effect_rows.push({
+      let prepared_row : LocalNativeSavedEffectFileRow = {
         _retained_member_index: member_index,
         _retained_row_ordinal: row_ordinal,
         _retained_installation: installation,
@@ -560,13 +570,11 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
         identity,
         changes_wire,
         version,
-      })
-      let (physical, raw) = @row_file.native_relation_file_target_update_construction(
-        row_binding.provider,
-        installation.write.writable_fields.length(),
-        0,
-        changes_wire,
-      ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+      }
+      business.saved_effect_rows.push(prepared_row)
+      let (physical, raw) = prepared_row
+        .file_write_construction(0)
+        .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
       demand = Some(
         match demand {
           None => (physical, raw)
