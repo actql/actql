@@ -4,10 +4,7 @@ test "HTTP Chat original request preserves typed input and explicit one-choice p
   let projected = project_http_chat_request(
     provider, request, "fixture-http", 10000, 1000, 40, 100, 20000,
   ).unwrap()
-  assert_eq(
-    projected.0,
-    "{\"max_tokens\":16,\"messages\":[{\"content\":\"é\\r\\né\\n😀\",\"role\":\"system\"},{\"content\":\"{\\\"absent\\\":null,\\\"amount\\\":\\\"9007199254740993.00\\\",\\\"text\\\":\\\"é\\\\r\\\\n😀\\\"}\",\"role\":\"user\"}],\"model\":\"fixture-http\",\"n\":1,\"response_format\":{\"json_schema\":{\"name\":\"actql_output\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]}},\"required\":[\"answer\"],\"type\":\"object\"},\"strict\":true},\"type\":\"json_schema\"},\"seed\":-7,\"stream\":false,\"temperature\":0.25,\"top_p\":0.875}",
-  )
+  assert_eq(projected.0, http_chat_expected_wire)
   assert_eq(
     (projected.1, projected.2, projected.3, projected.4),
     (
@@ -153,4 +150,83 @@ test "SDK v4 convenience preserves exact body and refuses a foreign original bef
   )
   assert_eq(calls(), 0)
   assert_eq(foreign_calls(), 0)
+}
+
+///|
+let http_chat_expected_wire : String = "{\"max_tokens\":16,\"messages\":[{\"content\":\"é\\r\\né\\n😀\",\"role\":\"system\"},{\"content\":\"{\\\"absent\\\":null,\\\"amount\\\":\\\"9007199254740993.00\\\",\\\"text\\\":\\\"é\\\\r\\\\n😀\\\"}\",\"role\":\"user\"}],\"model\":\"fixture-http\",\"n\":1,\"response_format\":{\"json_schema\":{\"name\":\"actql_output\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]}},\"required\":[\"answer\"],\"type\":\"object\"},\"strict\":true},\"type\":\"json_schema\"},\"seed\":-7,\"stream\":false,\"temperature\":0.25,\"top_p\":0.875}"
+
+///|
+test "portable HTTP borrows only the paid codec result of the exact request and installation" {
+  let (basis, request, calls) = openai_projection_fixture()
+  let foreign_request = { ..request, slot_cid: request.slot_cid, }
+  let installation = structured_capability_fixture_installation()
+  let configuration =
+    #|{"adapter_kind":"portable-http","api_mode":"chat-completions","endpoint":"https://models.example/v1/structured","model_id":"fixture-http","provider_id":"models/fixture","selector":"fixture-chat"}
+  let binding = @publication_host.issue_client_model_provider_binding(
+    "models/fixture", "{}", "{}", configuration,
+  ).unwrap()
+  let profile_wire =
+    #|{"adapter":{"build_artifact_cid":"sha256:12b1a34ce23743c38303cc50fb4eb040689c50f37c1a594b1382d754a4c578a2","builder_id":"fixture/http-builder","builder_revision":"1","codec_id":"fixture/chat-one","codec_revision":"1","port_abi":"model-physical-port/1","sdk":null},"completion":{"basis":"generation_finish","endpoint_envelope":true,"output_contract":true,"transport_eof":true,"validator_artifact_cid":"sha256:9dde7d7e6c108739d709824371c425f8d26afd8451d470d7477ef2ac8ecffacd","validator_id":"fixture/chat-envelope","validator_revision":"1"},"controls":{"cache":false,"fallback":false,"hedging":false,"media_fetch":false,"model_requests":1,"redirect":false,"repair":false,"retry":false,"sdk_telemetry":false,"tools":false,"workflow_restore":false},"limits":{"active_slots":4,"adapter_holding_bytes":4096,"adapter_workspace_bytes":2048,"chunk_bytes":512,"chunks":16,"header_bytes":256,"metadata_bytes":128,"metadata_depth":4,"metadata_nodes":16,"parse_depth":16,"parse_nodes":256,"parse_work":20000,"request_bytes":1024,"response_bytes":2048,"unsettled_slots":4},"observations":["provider_request_id","provider_reported_model_id","finish_reason","input_tokens","output_tokens","provider_metadata"],"operation":{"endpoint":"https://models.example/v1/structured","method":"POST","streaming":false},"probability":null,"self_cid":"sha256:e3e456f4e1d5246eaf227870f1031185241d2d004922efc2d2e3934068868409","task":{"contract_cid":"sha256:35db189b1ef0b8e41d799f6aa6420dc1acaf572afc290a2e28873e191ed01d4f","input_schema_cid":"sha256:72b560b69347d1b6e7b74fa3ebca73f808d0be12a7cd6b53b3a53da4a3954b2a","kind":"structured_generate","output_schema_cid":"sha256:773858f1a0187020cb634048b5062e82163816ebf568902ff7c89d78ebacd317"},"version":"actql-model-response-profile/0.1"}
+  let profile = @environment.read_model_response_profile(
+    @utf8.encode(profile_wire),
+    "sha256:e3e456f4e1d5246eaf227870f1031185241d2d004922efc2d2e3934068868409",
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
+    100000,
+  ).unwrap()
+  let physical = install_async_model_provider("models/fixture").unwrap()
+  let selected : ResolvedStructuredModel = {
+    selector: "fixture-chat",
+    model_id: "fixture-http",
+    adapter_kind: "portable-http",
+    api_mode: "chat-completions",
+    endpoint: installation.endpoint,
+  }
+  let declared = register_structured_model_capability(
+    physical, binding, configuration, selected, profile, true, true,
+  ).unwrap()
+  let admit = () => {
+    admit_structured_model_provider(
+      declared,
+      selected,
+      basis.execution,
+      basis.dependencies,
+      installation,
+      (_, prompt) => {
+        @environment.model_openai_chat_instructions(prompt) is Some(_)
+      },
+    ).unwrap()
+  }
+  let admitted = admit()
+  let original = prepare_model_http_chat_request(
+    admitted, request, installation, 100,
+  ).unwrap()
+  guard prepared_model_http_chat_material(original, request, admitted)
+    is Some((endpoint, actual_profile, body)) else {
+    abort("the exact paid projection must be borrowable")
+  }
+  assert_eq(endpoint, installation.endpoint)
+  assert_true(physical_equal(profile, actual_profile))
+  assert_eq(body, @utf8.encode(http_chat_expected_wire))
+  let foreign = prepare_model_http_chat_request(
+    admitted, foreign_request, installation, 100,
+  ).unwrap()
+  let (_, _, foreign_body) = prepared_model_http_chat_material(
+    foreign, foreign_request, admitted,
+  ).unwrap()
+  assert_eq(foreign_body, body)
+  assert_true(
+    prepared_model_http_chat_material(foreign, request, admitted) is None,
+  )
+  assert_true(
+    prepared_model_http_chat_material(original, request, admit()) is None,
+  )
+  let other_endpoint = {
+    ..installation,
+    endpoint: "https://other.example/v1/structured",
+  }
+  assert_true(
+    prepare_model_http_chat_request(admitted, request, other_endpoint, 100)
+    is Err(ForeignRequest),
+  )
+  assert_eq(calls(), 0)
 }

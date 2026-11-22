@@ -89,6 +89,8 @@ pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) 
 
 pub fn check_model_physical_call_dispatch_current(ModelPhysicalCall, ModelRequest, @check_environment.ModelResponseProfile, @run_publication_host.ClientModelRawCaptureRegistration) -> Result[Unit, ModelPhysicalDispatchReadIssue]
 
+pub fn check_prepared_model_http_chat_dispatch_current(ModelPhysicalCall, PreparedModelHttpChatRequest, @run_publication_host.ClientModelRawCaptureRegistration) -> Result[Unit, ModelPhysicalDispatchReadIssue]
+
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
@@ -309,6 +311,8 @@ pub fn original_model_usage_item_count(ModelUsagePublication) -> Int
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
+pub fn prepare_model_http_chat_request(AdmittedStructuredModelProvider, ModelRequest, @check_environment.ModelResponseProfileInstallation, Int) -> Result[PreparedModelHttpChatRequest, OpenAIChatProjectionIssue]
+
 pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
 
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
@@ -328,6 +332,8 @@ pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.Run
 pub fn prepared_model_call_count(ModelPreparedCallSet) -> Int?
 
 pub fn prepared_model_call_set(ModelExecution) -> ModelPreparedCallSet?
+
+pub fn prepared_model_http_chat_material(PreparedModelHttpChatRequest, ModelRequest, AdmittedStructuredModelProvider) -> (String, @check_environment.ModelResponseProfile, Bytes)?
 
 pub fn prepared_model_identities(ModelPreparedCallSet) -> (String, String, String)?
 
@@ -983,6 +989,10 @@ pub(all) enum OpenAIChatProjectionIssue {
 type OriginalModelPublicationCapacity
 
 type OriginalModelStartup
+
+pub struct PreparedModelHttpChatRequest {
+  // private fields
+}
 
 pub(all) struct ResolvedStructuredModel {
   selector : String
