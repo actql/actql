@@ -9,7 +9,9 @@ from typing import Any, TypeVar
 from ._local_core import (LocalCore, _Input, _Output, _Workspace, _PhysicalInput,
                           _PublisherCallbacks, _PublisherFact)
 from ._local_host_files import LocalHostFiles, _HostFile
-from ._local_storage import ByteFence, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
+from ._local_storage import (ByteFence, LocalByteStore, LocalStorageError, StoredBytes,
+                             _ClosedReadBaseline, _NamespaceReader, _SAVED_READER_FACTS_EXPORT,
+                             _TERMINAL_STORAGE_EXPORT)
 from ._local_submission import LocalSubmissionAuthority
 from ._local_storage_physical import _TrackedSQLiteConnection
 
@@ -208,6 +210,12 @@ class _InvocationObservation:
         self._guard_sql()
         return True
 
+    def terminal_read_baseline(self) -> _ClosedReadBaseline | None:
+        baseline = self.reader._terminal_read_baseline
+        if baseline is not None and self.wasm_export is not None:
+            return baseline(self.wasm_export[1])
+        return None
+
     def supports_saved_census_read(self) -> bool:
         if (self.wasm_export is None or not self.admitted or not self.closed_import
                 or self.suspended or self.effect_seen):
@@ -215,14 +223,15 @@ class _InvocationObservation:
         name = self.wasm_export[1]
         if name in ('actql_publication_commit_export_produce_sdk_read_evidence_decision',
                     'actql_publication_commit_export_produce_sdk_read_delivery_storage',
-                    'actql_publication_commit_export_produce_sdk_terminal_storage'):
+                    _TERMINAL_STORAGE_EXPORT):
             prewrite = self.reader._projected_prewrite
-            return prewrite is not None and prewrite()
+            return (prewrite is not None and prewrite()
+                    or self.terminal_read_baseline() is not None)
         return name in (
             'actql_publication_commit_export_prepare_sdk_payload_codecs',
             'actql_publication_commit_export_sdk_payload_ordinal',
             'actql_publication_commit_export_bind_sdk_payload_record',
-            'actql_publication_commit_export_validate_payload_binding',
+            _SAVED_READER_FACTS_EXPORT,
             'actql_publication_commit_export_prepare_sdk_payload_input',
             'actql_publication_commit_export_produce_sdk_payload_chunk',
             'actql_publication_commit_export_observe_sdk_terminal',
@@ -729,7 +738,7 @@ class OriginalHostBinding:
                     raise span._fail(error)
                 raise
 
-    def _new_invocation_observation(self) -> _InvocationObservation | None:
+    def _new_invocation_observation(self, export_name: str) -> _InvocationObservation | None:
         from ._local_installation import OriginalLocalInstallation
         core, reader, installation = self._core, self._observed_reader, self._source._installation
         connection = self._store._connection
@@ -744,7 +753,9 @@ class OriginalHostBinding:
                 or installation is not self._state._installation
                 or self._source._observe_roots is not None or self._state._observe_roots is not None
                 or reader is None or reader._invocation_check is None
-                or (reader._projected_prewrite is not None and not reader._projected_prewrite())
+                or (reader._projected_prewrite is not None and not reader._projected_prewrite()
+                    and (reader._terminal_read_baseline is None
+                         or reader._terminal_read_baseline(export_name) is None))
                 or reader._invocation_candidate is None
                 or type(connection) is not _TrackedSQLiteConnection
                 or not connection._closed_eligible()):

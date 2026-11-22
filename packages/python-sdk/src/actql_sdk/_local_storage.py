@@ -9,6 +9,7 @@ from threading import RLock, get_ident
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ._local_host_binding import _InvocationObservation
     from ._local_store_reconciliation import OriginalStoreReconciliation
 
 from ._local_files import LocalFileRoot, _PayloadFile
@@ -28,6 +29,10 @@ class StoredBytes:
 
 
 _NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
+_SQLiteSnapshot = tuple[sqlite3.Connection, int, int, tuple[int, int]]
+_ClosedReadBaseline = tuple[_SQLiteSnapshot, int]
+_SAVED_READER_FACTS_EXPORT = 'actql_publication_commit_export_validate_payload_binding'
+_TERMINAL_STORAGE_EXPORT = 'actql_publication_commit_export_produce_sdk_terminal_storage'
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +80,7 @@ class _NamespaceReader:
 
     # A Store-owned Saved projection can supply this prewrite lifetime.
     _projected_prewrite: Callable[[], bool] | None = None
+    _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -954,7 +960,8 @@ class LocalByteStore:
             current: Callable[[], object] | None, *,
             successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
             _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None,
-            _projected_prewrite: Callable[[], bool] | None = None) -> None:
+            _projected_prewrite: Callable[[], bool] | None = None,
+            _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -964,14 +971,10 @@ class LocalByteStore:
         failure: BaseException | None = None
         observing_current: Callable[[], object] | None = None
         observing_invocation = False
-        # A projected Saved delivery read has a closed observation phase only
-        # before the Store consumes its proposal. The one reader retains the
-        # cumulative read and copy counters through the writes and precommit.
+        # The same reader retains its cumulative read and copy counters
+        # through the writes and the separate closed precommit observation.
         closed_phase = (_readonly is True or _prewrite is True
                         or _projected_prewrite is not None) and not successors
-
-        def closed_observation_open() -> bool:
-            return closed_phase and (_projected_prewrite is None or _projected_prewrite())
 
         database = self._physical
         original_snapshot = (database._snapshot_identity()
@@ -982,7 +985,15 @@ class LocalByteStore:
         original_statement_epoch = (original_snapshot[0]._closed_statement_epoch
             if original_snapshot is not None
             and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
-        last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
+        last_fenced_snapshot: _SQLiteSnapshot | None = None
+
+        def closed_baseline(
+                span: '_InvocationObservation') -> tuple[_SQLiteSnapshot, int | None] | None:
+            if not closed_phase or original_snapshot is None:
+                return None
+            if _projected_prewrite is None or _projected_prewrite():
+                return original_snapshot, original_statement_epoch
+            return span.terminal_read_baseline()
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
@@ -993,9 +1004,9 @@ class LocalByteStore:
                 span = (connection._closed_invocation
                         if type(connection) is _TrackedSQLiteConnection else None)
                 if span is not None and span._reuse_sql_snapshot():
-                    invocation_frame(reader, current, span, metadata=True)
-                    check_invocation_snapshot(span, original_snapshot)
-                    if last_fenced_snapshot != original_snapshot:
+                    baseline, _ = invocation_frame(reader, current, span, metadata=True)
+                    check_invocation_snapshot(span, baseline, baseline)
+                    if last_fenced_snapshot != baseline:
                         raise LocalStorageError('Closed Local metadata baseline is unavailable')
                     return
             # Only the exact stdlib adapter supplies SQLite's own mutation
@@ -1029,12 +1040,14 @@ class LocalByteStore:
             metadata_fence(reuse_snapshot=reuse_snapshot)
 
         def invocation_frame(view: _NamespaceReader, observer: Callable[[], object] | None,
-                             span: object, *, metadata: bool = False) -> None:
+                             span: object, *, metadata: bool = False
+                             ) -> tuple[_SQLiteSnapshot, int | None]:
             from ._local_host_binding import _InvocationObservation
+            baseline = closed_baseline(span) if type(span) is _InvocationObservation else None
             if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
                     or view is not reader or type(self) is not LocalByteStore
                     or view.owner is not self or not active or get_ident() != thread
-                    or observing_invocation or not closed_observation_open() or observer is not current
+                    or observing_invocation or baseline is None or observer is not current
                     or view.scan_after is not scan_after or view.read is not read
                     or view.query_current is not query_current or view.journal_schema is not journal_schema
                     or view.check_frame is not check_frame or view.check_fences is not check_fences
@@ -1044,20 +1057,25 @@ class LocalByteStore:
                     or view._invocation_candidate is not invocation_candidate
                     or view._invocation_check is not invocation_check
                     or view._projected_prewrite is not _projected_prewrite
+                    or view._terminal_read_baseline is not _terminal_read_baseline
                     or span.reader is not view or span.binding._current_observer is not observer
                     or span.core._invocation_observation is not span or not span.core._invoking
                     or reading and observing_current is not observer and not metadata):
                 raise ValueError('Foreign or reentrant closed Local observation')
+            return baseline
 
         def invocation_candidate(view: _NamespaceReader, observer: Callable[[], object], span: object) -> bool:
+            from ._local_host_binding import _InvocationObservation
             nonlocal failure, observing_invocation
             entered = False
             try:
                 if failure is not None:
                     raise failure
-                if not closed_observation_open():
+                if type(span) is not _InvocationObservation:
+                    raise ValueError('Foreign closed Local invocation')
+                if closed_baseline(span) is None:
                     return False
-                invocation_frame(view, observer, span)
+                baseline, statement_epoch = invocation_frame(view, observer, span)
                 if (span.admitted or span.connection._closed_invocation is not None
                         or type(database) is not _SQLiteByteDatabase or original_snapshot is None
                         or self._physical is not database or self._connection is not original_snapshot[0]
@@ -1082,16 +1100,15 @@ class LocalByteStore:
                 # Recheck callback eligibility after SQL too: customization
                 # during this unadmitted probe must not admit a closed span.
                 return (connection._closed_eligible()
-                        and snapshot[2] == original_snapshot[2]
+                        and snapshot == baseline
                         and connection._transaction_epoch == original_control_epoch
                         and (span.wasm_export is None or (
-                            type(original_statement_epoch) is int
-                            and 0 <= original_statement_epoch < 2**63
-                            and connection._closed_statement_epoch == original_statement_epoch)))
+                            type(statement_epoch) is int
+                            and 0 <= statement_epoch < 2**63
+                            and connection._closed_statement_epoch == statement_epoch)))
             except BaseException as error:
                 if failure is None:
                     failure = error
-                from ._local_host_binding import _InvocationObservation
                 if type(span) is _InvocationObservation and span.reader is reader:
                     span._fail(failure)
                 raise failure
@@ -1099,15 +1116,16 @@ class LocalByteStore:
                 if entered:
                     observing_invocation = False
 
-        def check_invocation_snapshot(span: object, snapshot: tuple[object, int, int, tuple[int, int]]) -> None:
+        def check_invocation_snapshot(span: '_InvocationObservation', snapshot: _SQLiteSnapshot,
+                                      baseline: _SQLiteSnapshot) -> None:
             if failure is not None:
                 raise failure
             if (original_snapshot is None or self._physical is not database
                     or self._connection is not original_snapshot[0]
                     or database._connection is not original_snapshot[0]
-                    or snapshot[0] is not original_snapshot[0]
-                    or snapshot[1:] != original_snapshot[1:]
-                    or self._connection.total_changes != original_snapshot[2]
+                    or snapshot[0] is not baseline[0]
+                    or snapshot[1:] != baseline[1:]
+                    or self._connection.total_changes != baseline[2]
                     or not self._connection.in_transaction
                     or self._connection._outer_transaction_epoch != original_snapshot[1]
                     or self._connection._transaction_epoch != original_control_epoch):
@@ -1120,16 +1138,16 @@ class LocalByteStore:
             try:
                 if failure is not None:
                     raise failure
-                invocation_frame(view, observer, span)
+                baseline, _ = invocation_frame(view, observer, span)
                 observing_invocation = entered = True
                 span._guard_sql()
                 # A closed real Wasm import has no arbitrary Python exits. All
                 # scalar/custom exports retain live schema reads. Exact current
                 # callbacks inside fence already have its before/after checks.
-                snapshot = (original_snapshot if not span.checking_physical and (
+                snapshot = (baseline if not span.checking_physical and (
                     observing_current is observer or span._reuse_sql_snapshot())
                     else database._snapshot_identity())
-                check_invocation_snapshot(span, snapshot)
+                check_invocation_snapshot(span, snapshot, baseline)
                 if span.checking_physical and span.wasm_export is not None:
                     # Force actual metadata at entry/effect/return, even if the
                     # preceding full check saw identical mutation counters.
@@ -1227,7 +1245,13 @@ class LocalByteStore:
                     raise LocalStorageError('Original Local read-only supplier changed')
                 # A write-free reader also needs the sticky trace observation.
                 # DDL can restore the same schema_version without changing total_changes.
-                if self._connection._closed_statement_epoch != original_statement_epoch:
+                baseline, statement_epoch = original_snapshot, original_statement_epoch
+                span = self._connection._closed_invocation
+                if span is not None and span.reader is view and span._reuse_sql_snapshot():
+                    terminal = span.terminal_read_baseline()
+                    if terminal is not None:
+                        baseline, statement_epoch = terminal
+                if self._connection._closed_statement_epoch != statement_epoch:
                     raise LocalStorageError('Original Local read-only statements changed')
                 snapshot = database._snapshot_identity()
                 if failure is not None:
@@ -1236,9 +1260,9 @@ class LocalByteStore:
                         or self._connection is not original_snapshot[0]
                         or database._connection is not self._connection
                         or self._connection._transaction_epoch != original_control_epoch
-                        or self._connection._closed_statement_epoch != original_statement_epoch
-                        or snapshot[0] is not original_snapshot[0]
-                        or snapshot[1:] != original_snapshot[1:]):
+                        or self._connection._closed_statement_epoch != statement_epoch
+                        or snapshot[0] is not baseline[0]
+                        or snapshot[1:] != baseline[1:]):
                     raise LocalStorageError('Original Local read-only snapshot changed')
             except BaseException as error:
                 if failure is None:
@@ -1480,7 +1504,8 @@ class LocalByteStore:
                 _prepare_check=prepare_check if closed_reader and _reconciliation is not None else None,
                 _invocation_check=invocation_check if closed_reader else None,
                 _invocation_candidate=invocation_candidate if closed_reader else None,
-                _projected_prewrite=_projected_prewrite if closed_reader else None)
+                _projected_prewrite=_projected_prewrite if closed_reader else None,
+                _terminal_read_baseline=_terminal_read_baseline if closed_reader else None)
             result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
                       else inspect(reader) if inspect is not None else None)
             if failure is not None:
@@ -1735,7 +1760,8 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False,
+            _sdk_terminal_precommit: bool = False) -> tuple[int, ...] | None:
         """Apply Core's original CAS under this same write/current snapshot.
 
         This reuses the existing projected transaction and generation checks.
@@ -1744,11 +1770,14 @@ class LocalByteStore:
         """
         if not callable(inspect) or not callable(current):
             raise ValueError('Invalid Local projected CAS inspection')
+        if _sdk_terminal_precommit and (not _sdk_delivery_prewrite or count != 3):
+            raise ValueError('Invalid Local Saved terminal Store projection')
         self._validate_metadata_fences(fences, ())
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
             reuse_identical=False, fences=fences, inspect=inspect, current=current,
-            _sdk_delivery_prewrite=_sdk_delivery_prewrite)
+            _sdk_delivery_prewrite=_sdk_delivery_prewrite,
+            _sdk_terminal_precommit=_sdk_terminal_precommit)
 
     def store_publication_projected_inspected(
             self, count: int,
@@ -1783,7 +1812,8 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...] = (),
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
             current: Callable[[], object] | None = None,
-            _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
+            _sdk_delivery_prewrite: bool = False,
+            _sdk_terminal_precommit: bool = False) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
@@ -1806,6 +1836,27 @@ class LocalByteStore:
                 keys: set[str] = set()
                 thread = get_ident()
                 write_attempted = False
+                terminal_baseline: _ClosedReadBaseline | None = None
+                terminal_precommit = False
+
+                def terminal_read_baseline(export_name: str) -> _ClosedReadBaseline | None:
+                    if (export_name == _SAVED_READER_FACTS_EXPORT
+                            or terminal_precommit and export_name == _TERMINAL_STORAGE_EXPORT):
+                        return terminal_baseline
+                    return None
+
+                def capture_terminal_baseline() -> _ClosedReadBaseline | None:
+                    connection = self._connection
+                    if (type(database) is not _SQLiteByteDatabase
+                            or type(connection) is not _TrackedSQLiteConnection
+                            or database._connection is not connection or not connection._closed_eligible()):
+                        return None
+                    epoch = connection._closed_statement_epoch
+                    snapshot = database._snapshot_identity()
+                    if (0 <= epoch < 2**63 and connection._closed_statement_epoch == epoch
+                            and connection._closed_eligible()):
+                        return snapshot, epoch
+                    return None
 
                 def consume_ordinal(ordinal: int) -> None:
                     nonlocal record_count, payload_bytes
@@ -1815,13 +1866,18 @@ class LocalByteStore:
 
                     def consume(write: ByteWrite) -> None:
                         nonlocal delivered, failure, record_count, payload_bytes, write_attempted
+                        nonlocal terminal_baseline
                         try:
                             if not active or get_ident() != thread or delivered:
                                 raise ValueError('Local physical projection consumer is not active')
-                            if (_sdk_delivery_prewrite and reuse_identical
+                            if (_sdk_delivery_prewrite and (reuse_identical or _sdk_terminal_precommit)
                                     and type(self._connection) is _TrackedSQLiteConnection
                                     and self._connection._closed_invocation is not None):
-                                raise LocalStorageError('Evidence writes require the original prewrite invocation to return')
+                                purpose = 'Terminal' if _sdk_terminal_precommit else 'Evidence'
+                                raise LocalStorageError(
+                                    f'{purpose} writes require the original prewrite invocation to return')
+                            # End the old observation before entering physical CAS.
+                            terminal_baseline = None
                             write_attempted = True
                             self._exchange_write_keys((write,))
                             if (write.key in original_keys
@@ -1861,6 +1917,8 @@ class LocalByteStore:
                             generations.append(generation)
                             record_count, payload_bytes = next_count, next_bytes
                             delivered = True
+                            if _sdk_terminal_precommit:
+                                terminal_baseline = capture_terminal_baseline()
                         except BaseException as error:
                             failure = error
                             raise
@@ -1881,6 +1939,7 @@ class LocalByteStore:
 
                 def consume_all() -> None:
                     nonlocal consumed, complete, consumption_failure
+                    nonlocal terminal_baseline, terminal_precommit
                     try:
                         if consumed:
                             raise ValueError('Original Local projection was already consumed')
@@ -1888,14 +1947,21 @@ class LocalByteStore:
                         if (_sdk_delivery_prewrite and type(self._connection) is _TrackedSQLiteConnection
                                 and self._connection._closed_invocation is not None):
                             raise LocalStorageError('Delivery writes require the original prewrite invocation to return')
+                        if _sdk_terminal_precommit:
+                            terminal_baseline = capture_terminal_baseline()
                         for ordinal in range(count):
                             consume_ordinal(ordinal)
+                        # Only the final validation can admit the terminal export.
+                        terminal_precommit = _sdk_terminal_precommit
                         if before_commit() is not None:
                             raise ValueError('Invalid Local physical precommit callback result')
                         complete = True
                     except BaseException as error:
                         consumption_failure = error
                         raise
+                    finally:
+                        terminal_baseline = None
+                        terminal_precommit = False
 
                 if inspect is None:
                     consume_all()
@@ -1907,7 +1973,8 @@ class LocalByteStore:
                         lambda reader: inspect(reader, consume_all), fences, current,
                         _projected_prewrite=(
                             (lambda: not (write_attempted if reuse_identical else consumed))
-                            if _sdk_delivery_prewrite else None))
+                            if _sdk_delivery_prewrite else None),
+                        _terminal_read_baseline=terminal_read_baseline if _sdk_terminal_precommit else None)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:

@@ -3991,9 +3991,13 @@ snapshot input handle. Core performs both validations in their original order,
 and their refusals retain their original roles. After a complete first census,
 the second validation can reuse it only under the existing uninterrupted
 closed-reader proof. All point reads and fences, and the snapshot's original
-physical generation comparison, still run. Older suppliers, an interrupted
-proof and the staged-write phase use full validation. Nothing from the pair
-survives the invocation.
+physical generation comparison, still run. Older suppliers and an interrupted
+proof use full validation. Nothing from the pair survives the invocation.
+The original terminal Store can supply a fresh observation for the pair
+before and after each of its three staged CAS writes. It ends the
+observation before entering CAS and captures the next one after actual
+write success. In each invocation, binding still performs a complete first
+census and snapshot validation can reuse only that invocation's census.
 
 Only success of both judgments and the final original physical observation retains
 same-owner immutable material. A failed enclosing current/physical observation
@@ -4118,7 +4122,12 @@ Saved terminal projection may reuse the first census within its write-free
 proposal invocation. The original Store closes this phase before consuming the
 CAS proposal. The same transaction and reader keep their cumulative copy and
 query budgets, and precommit validation runs its full checks on the staged
-rows. An eligible guest can ask the existing current operation import about
+rows. After all three terminal CAS writes succeed, that Store can capture
+a fresh closed observation for the same terminal export before COMMIT.
+Only its own complete census can be reused within that invocation. No
+proposal proof survives the writes. The first complete check, actual
+terminal rows, current fences, and separate committed readback still run.
+An eligible guest can ask the existing current operation import about
 optional unchanged-reader proof
 support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
 or the original unallocated-ticket refusal leaves full validation active. The
