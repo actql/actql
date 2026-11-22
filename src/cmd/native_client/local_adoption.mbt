@@ -424,6 +424,29 @@ fn execute_native_local_adoption(
   // The operator selects installation originals separately from submitted
   // Program data. Their bytes and generations join the same adoption intent;
   // naming a file installs no Source, Policy, credential or execution grant.
+  if settings.model_http_installation is Some(_) && preparation is Some(_) {
+    let installed = settings.installation_files
+    let host_file = settings.initial_host_signing is Some(_) ||
+      installed.contains("host.json")
+    let add_host = settings.initial_host_signing is Some(_) &&
+      !installed.contains("host.json")
+    let count = installed.length() + 2 + (if add_host { 1 } else { 0 })
+    let allowed = Int::min(
+      @run_host.client_local_model_configuration_file_limit(),
+      count - (if host_file { 1 } else { 0 }),
+    )
+    if !@run_host.client_local_configuration_file_count_supported(
+        count, host_file, allowed,
+      ) {
+      stop("LocalModelHttpConfigurationLimit")
+    }
+    // The command's distinct input vector and the selected Model descriptor
+    // are live through the next capture's separately funded snapshot.
+    let inventory = local_host_metadata_price(
+      local_host_metadata_units(9L, 30L + 2L * count.to_int64(), 16L, 0L),
+    )
+    local_host_metadata_prepare(inventory, inventory)
+  }
   let selected_files = [name, environment_file]
   for file in settings.installation_files {
     if selected_files.contains(file) || file == settings.account_file {

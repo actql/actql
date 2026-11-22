@@ -1323,6 +1323,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   self : LocalCommandPreparationOriginal,
   input : @local_host.NativeLocalExistingAdoptionInput,
   initialize : Bool,
+  model_configuration? : @local_host.NativeLocalModelConfigurationSelection? = None,
 ) -> Result[
   @local_host.NativeLocalAdoptionSession,
   LocalCommandPreparationIssue,
@@ -1338,17 +1339,22 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   }
   try {
     let crypto = command_preparation_value(self.library(true))
+    let construction = Some(value => self.prepare_account_construction(value))
     let selected = if initialize {
       @local_host.prepare_native_local_initial_adoption_capture_in_current_read_context(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
+        model_configuration~,
+        construction~,
       )
     } else {
       @local_host.prepare_native_local_existing_adoption_capture_in_current_read_context(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
+        model_configuration~,
+        construction~,
       )
     }
     let capture = command_preparation_value(
@@ -1364,13 +1370,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
         )
       None => None
     }
-    if capture
-      .open(
-        product=self.product,
-        operator_host~,
-        construction=Some(value => self.prepare_account_construction(value)),
-      )
-      .issue()
+    if capture.open(product=self.product, operator_host~, construction~).issue()
       is Some(issue) {
       self.retain_primary(CommandCapture(issue))
       return Err(self.primary.unwrap_or(CommandCapture(issue)))

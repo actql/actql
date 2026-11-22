@@ -547,6 +547,12 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         local_quick_query_requested(operation, child) &&
         self.initial_product_selected
       ),
+      model_configuration=settings.model_http_installation.map(selected => {
+        files: selected.files,
+        execution: selected.execution_file,
+        policy: selected.policy_file,
+        limits: local_project_mock_task_limits().bodies,
+      }),
     ),
     stage=Some("adoption-open"),
   )
