@@ -61,7 +61,7 @@ type RecoveredInputControl = Readonly<{
 }>;
 type SyncMethod<Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData> =
   (this: Receiver, ...args: Args) => Value;
-type ControlWork = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+export type ControlWork = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
   receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
   nativeConstruction?: unknown, memberReceipt?: boolean) => Value;
 type Run = Readonly<{
