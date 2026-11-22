@@ -56288,7 +56288,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "// only the real early preload retains the runtime/module original and can"
+                "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -56456,7 +56456,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "// only the real early preload retains the runtime/module original and can"
+                "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
                 "path": "docs/design/reference-host.md",
