@@ -1386,6 +1386,16 @@ fn native_mock_readme_effect_recipe(
   // Raw response Bytes remain two simultaneous full original buffers.
   assert_true(control_r >= 2L * codec.response_bytes.to_int64())
   assert_true(control_e >= control_r)
+  let target_controls = native_mock_effect_target_control_capacity(
+    quantities[4],
+  ).unwrap()
+  // Only the target's input reference persists for each row on this
+  // control. One row can still use the entire old construction envelope.
+  assert_eq(@execution.execution_capacity_retained_bytes(target_controls), 8L)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(target_controls),
+    control_e + 8L,
+  )
   if @env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE") == Some("1") {
     let (imports, maximum) = native_mock_effect_import_construction(
       prepared, wire,
