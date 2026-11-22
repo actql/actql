@@ -478,7 +478,12 @@ pub fn validate_submission_append(
     return validate_submission_preparation_failure(value, record, configuration)
   }
   if selected(nonce).bind(value => value.submissions.get(handle))
-    is Some({ kind: 4 | 5 | 6 | 7 | 8 | 11, .. }) {
+    is Some({ kind, .. }) &&
+    (
+      (kind >= 4 && kind <= 8) ||
+      kind == 11 ||
+      kind == INCREMENTAL_SAVED_RESULT_KIND
+    ) {
     return validate_submission_lookup(nonce, handle, current)
   }
   guard selected(nonce) is Some(value) &&

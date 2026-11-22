@@ -100,6 +100,8 @@ await test('ordinary installed Local Explorer shows checked update declarations 
           {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [], principal: {all: true},
             connection: {any_of: ['salesforce:00D000000000001EAA']},
             resource: {any_of: ['Test_Record__c']}, operation: {any_of: ['effect']}},
+          {entry_id: 'structural-run-read', outcome: 'allow', exclusions: [], principal: {all: true},
+            connection: {all: true}, resource: {any_of: ['run']}, operation: {any_of: ['read']}},
           {entry_id: 'target-read', outcome: 'allow', exclusions: [], principal: {all: true},
             connection: {any_of: ['salesforce:00D000000000001EAA']},
             resource: {any_of: ['Test_Record__c']}, operation: {any_of: ['read']}},
@@ -209,22 +211,25 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     });
     try {
       await page.goto(gateway.origin, {waitUntil: 'networkidle'});
+      await page.getByRole('button', {name: 'Connect to Local', exact: true}).click();
       ui.lastAction = 'fill bootstrap';
       await page.getByLabel('One-use bootstrap').fill(gateway.issueBootstrap().bootstrap);
       ui.lastAction = 'connect';
       await page.getByRole('button', {name: 'Connect', exact: true}).click();
       ui.lastAction = 'wait connected status';
-      await page.getByText('Connected. Session expires after at most five minutes; reconnect explicitly.', {exact: true}).waitFor();
-      ui.lastAction = 'select Program format';
-      await page.getByRole('combobox', {name: /^Format(?:\s|$)/u}).selectOption('program');
-      ui.lastAction = 'fill Program';
-      await page.getByRole('textbox', {name: /^Program(?:\s|$)/u}).fill(JSON.stringify(program));
+      await page.getByText('Local', {exact: false}).and(page.locator('.connection-menu > summary')).waitFor();
+      ui.lastAction = 'edit Program draft';
+      await page.getByRole('button', {name: 'Edit', exact: true}).click();
+      await page.getByLabel('Query options').click();
+      await page.locator('.query-panel select[name="format"]').selectOption('program');
+      await page.getByRole('textbox', {name: 'Program', exact: true}).fill(JSON.stringify(program));
       ui.lastAction = 'read Plan';
       await page.getByRole('button', {name: 'Read Plan', exact: true}).click();
       const section = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
       ui.lastAction = 'wait computation component';
       await section.getByRole('heading', {name: 'Computation component', exact: true}).waitFor();
-      ui.lastAction = 'verify original declared Effects';
+      ui.lastAction = 'verify original declared Effects in List';
+      await section.getByRole('button', {name: 'List', exact: true}).click();
       const text = await section.getByRole('region', {name: 'Declared Effects', exact: true}).innerText();
       for (const expected of ['unit source', 'save', 'update', mapping.mappingRef, mapping.mappingCid,
         direct.check_environment_cid, direct.parameter_values_cid,
@@ -234,14 +239,41 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       assert(text.includes('Required approval does not imply a human-only reviewer.'));
       assert(text.includes('Contract minimum is not current permission.'));
       assert.equal(await section.getByRole('table', {name: 'Original logical occurrences'}).locator('tbody tr').count(), 1);
-      assert.equal(await page.getByLabel('Original Run reference JSON').inputValue(), '');
-      assert.equal(await page.getByLabel('One-use bootstrap').inputValue(), '');
-      assert.deepEqual(browserPaths, ['/api/session', '/api/read/launch', '/api/read/plan']);
+      const openRun = page.getByRole('button', {name: 'Open Run', exact: true});
+      await openRun.click();
+      assert.equal(await page.locator('textarea[name="ref"]').inputValue(), '');
+      await page.getByRole('button', {name: 'Close dialog', exact: true}).click();
+      assert.equal(await page.locator('input[name="bootstrap"]').count(), 0);
+      ui.lastAction = 'explain through the installed Story renderer';
+      const received = page.waitForResponse(response =>
+        response.url() === gateway.origin + '/api/read/static-explanation');
+      await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+      const response = await received;
+      assert.equal(response.status(), 200, 'Installed Gateway must load the structural renderer');
+      const {data: explained} = await response.json();
+      assert.equal(explained.plan.logicalMapCid, direct.computation.plan_view.logical_map.self_cid);
+      assert.equal(explained.plan.compiledPlanCid, direct.computation.plan_view.compiled_plan_cid);
+      assert.equal(explained.plan.programDefinitionCid, direct.program_definition_cid);
+      assert.deepEqual(explained.plan.effectful.members, [expectedMember]);
+      const declared = explained.context.find(item => item.origin.kind === 'effect_set');
+      assert.deepEqual(declared.origin.members, [{declaration: expectedMember,
+        write_fields: {state: 'declared', fields: ['Name']}}]);
+      assert.equal(declared.origin.unit_id, direct.effect_set.unit_id);
+      assert.match(declared.text, /Current decision unknown/u);
+      assert.doesNotMatch(JSON.stringify(explained), /must-remain-unknown/u);
+      await page.getByRole('region', {name: 'Original story', exact: true}).waitFor();
+      const heading = await page.getByRole('heading', {level: 1}).textContent();
+      assert.match(heading, /Declare an update to Name/u);
+      assert.doesNotMatch(heading, /connector:\/\/|\baql_|Predicate form not projected/u);
+      const effectCard = page.locator('.story-card').filter({hasText: 'Declared changes'});
+      assert.match(await effectCard.innerText(), /connector:\/\/crm-main\/Test_Record__c/u);
+      assert.match(await effectCard.innerText(), /Current decision unknown/u);
+      assert.deepEqual(browserPaths, ['/api/session', '/api/read/launch', '/api/read/plan', '/api/read/static-explanation']);
       assert.deepEqual(errors, []); assert.deepEqual(foreign, []);
       assert.deepEqual(await page.evaluate(() => ({local: Object.keys(localStorage), session: Object.keys(sessionStorage),
         cookie: document.cookie, query: location.search, hash: location.hash})), {local: [], session: [], cookie: '', query: '', hash: ''});
       await page.screenshot({path: join(evidence, 'installed-effectful-static-plan.png'), fullPage: true});
-      receipt.cases.push({name: 'installed Local SDK/Gateway/built React checked update Plan', passed: true,
+      receipt.cases.push({name: 'installed Local SDK/Gateway/built React checked update Plan and Story', passed: true,
         paths, browserPaths, member: expectedMember, sourceFreeValues: true, executionEdges: 0,
         permission: 'unknown', gate: 'unknown', approval: 'unknown', preview: 'unavailable'});
     } catch (error) {

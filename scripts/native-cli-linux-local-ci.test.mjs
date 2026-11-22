@@ -131,6 +131,10 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(functional.run.includes('node scripts/test-native-cli-mock-install.mjs'));
   assert(functional.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
   assert(!/--measure|--diagnos/u.test(functional.run), 'Keep the ordinary maximum-only smoke check');
+  const sharedFile = mockJob.steps.find(step => step.id === 'shared_file_mock');
+  assert.equal(sharedFile.run, 'node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release" --shared-file-mock');
+  assert.equal(sharedFile['timeout-minutes'], 5);
+  assert.equal(sharedFile['continue-on-error'], undefined);
   const mock = mockJob.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
   for (const argument of ['--normal "$RUNNER_TEMP/native-cli-linux-local/release"',
     '--binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"',
@@ -142,6 +146,7 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     const selected = step => Function('github', 'return (' +
       step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event});
     assert.equal(selected(functional), event !== 'schedule');
+    assert.equal(selected(sharedFile), event !== 'schedule');
     assert.equal(selected(mock), event === 'schedule');
   }
   assert.equal(mock['continue-on-error'], undefined);
@@ -149,6 +154,7 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(functional));
+  assert(mockJob.steps.indexOf(functional) < mockJob.steps.indexOf(sharedFile));
   assert(!/--measure|performance-diagnostic/u.test(mock.run), 'The formal collector is not the diagnostic consumer');
   assert(!mockJob.steps.some(step => /produce-native|native-cli-release/u.test(step.run ?? '')),
     'Neither formal sampling nor failure diagnostics may rebuild the fixed Native payload');
@@ -347,7 +353,7 @@ test('selected Linux compiler acquisition keeps official signed sources and fini
 
 // Exercise only the selected shell control flow. No APT, network, compiler or
 // system repository is invoked; the absolute paths use private fixtures.
-function compilerAcquisitionControl(failure) {
+function compilerAcquisitionControl(failure, {closedDiagnostic = false} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'actql-compiler-acquisition-'));
   try {
     const bin = join(root, 'bin'), mirror = join(root, 'apt-mirrors.txt');
@@ -360,7 +366,10 @@ function compilerAcquisitionControl(failure) {
     const sudo = join(bin, 'sudo');
     writeFileSync(sudo, `#!/bin/bash
 set -euo pipefail
-if [[ "$1" == tee ]]; then exec /usr/bin/tee "$2"; fi
+if [[ "$1" == tee ]]; then
+  if [[ "$ACQUISITION_FAILURE" == mirror ]]; then exit 97; fi
+  exec /usr/bin/tee "$2"
+fi
 [[ "$1" == apt-get ]] || exit 99
 printf '%s\\n' "$*" >> "$ACQUISITION_CALLS"
 if [[ "$*" == *' update '* && "$ACQUISITION_FAILURE" == update ]]; then exit 100; fi
@@ -377,11 +386,11 @@ fi
       .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
     // Bound the fake-command probe without making shell startup a 3s CI target.
-    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 10000,
+    const result = spawnSync('bash', ['-c', (closedDiagnostic ? 'exec 2>&-\n' : '') + shell], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
         ACQUISITION_COMPILER: compiler, ACQUISITION_FAILURE: failure}});
     assert.equal(result.error, undefined);assert.equal(result.signal, null);
-    return {status: result.status, mirror: readFileSync(mirror, 'utf8'), sources,
+    return {status: result.status, stdout: result.stdout, stderr: result.stderr, mirror: readFileSync(mirror, 'utf8'), sources,
       calls: existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n') : []};
   } finally {rmSync(root, {recursive: true, force: true});}
 }
@@ -389,6 +398,7 @@ fi
 test('compiler acquisition selects the canonical Ubuntu mirror before update and exact clang install', () => {
   const result = compilerAcquisitionControl('none');
   assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
   assert.equal(result.mirror, 'https://archive.ubuntu.com/ubuntu/\n');
   assert.deepEqual(result.calls, [
     `apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=- update --error-on=any`,
@@ -397,11 +407,27 @@ test('compiler acquisition selects the canonical Ubuntu mirror before update and
 });
 
 test('compiler acquisition fails closed on update, fetch and missing selected executable', () => {
-  for (const [failure, code, calls] of [['sources', 1, 0], ['update', 100, 1], ['install', 100, 2], ['missing', 1, 2]]) {
+  for (const [failure, code, calls, stage] of [
+    ['sources', 1, 0, 'require-ubuntu-sources'],
+    ['mirror', 97, 0, 'select-ubuntu-mirror'],
+    ['update', 100, 1, 'update-ubuntu-index'],
+    ['install', 100, 2, 'install-clang'],
+    ['missing', 1, 2, 'verify-selected-clang'],
+  ]) {
     const result = compilerAcquisitionControl(failure);
     assert.equal(result.status, code, failure);
     assert.equal(result.calls.length, calls, failure);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, `ActQL Linux compiler preparation failed: stage=${stage} status=${code}\n`);
   }
+});
+
+test('compiler acquisition diagnostic failure cannot replace the original command status', () => {
+  const result = compilerAcquisitionControl('update', {closedDiagnostic: true});
+  assert.equal(result.status, 100);
+  assert.equal(result.calls.length, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
 });
 
 

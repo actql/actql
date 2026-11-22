@@ -156,7 +156,10 @@ fn direct_aggregate_execution_supported(
     (@relation.Count, @lower.AggregateRows)
     | (@relation.Count, @lower.AggregateField(_))
     | (@relation.Count, @lower.AggregateExpression(_)) => ()
-    (@relation.CountIf, _) => if !has_argument { return false }
+    (@relation.CountIf, _) | (@relation.AnyValue, _) =>
+      if !has_argument {
+        return false
+      }
     (@relation.Min, _) | (@relation.Max, _) => {
       if !has_argument {
         return false

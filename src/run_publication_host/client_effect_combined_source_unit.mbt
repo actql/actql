@@ -87,12 +87,42 @@ pub fn prepare_client_effect_combined_source_unit(
   max_depth : Int,
 ) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue] {
   prepare_client_effect_source_unit_body(
-    {
-      owner: value.owner,
-      source: value.source.original,
-      run_definition_cid: value.run_definition_cid,
-    },
+    client_effect_direct_source_unit_inputs(value),
     Some((value.source.invocation, value.source.observation)),
+    unit,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn client_effect_direct_source_unit_inputs(
+  value : ClientEffectDirectSourcesPublication,
+) -> ClientEffectSourceUnitInputs {
+  {
+    owner: value.owner,
+    source: value.source.original,
+    run_definition_cid: value.run_definition_cid,
+  }
+}
+
+///|
+/// Measure the same original Unit used by the final-context constructor.
+pub fn client_effect_combined_source_unit_construction_geometry(
+  value : ClientEffectDirectSourcesPublication,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectAcquiredEvidenceIssue,
+] {
+  client_effect_source_unit_construction_geometry(
+    client_effect_direct_source_unit_inputs(value),
     unit,
     retention,
     max_bytes,
@@ -280,6 +310,15 @@ pub fn client_effect_combined_source_unit_invocation(
   value : ClientEffectCombinedSourceUnit,
 ) -> ClientEffectLocalInvocation {
   value.invocation
+}
+
+///|
+/// The scope and policy, followed by eight original bodies per contribution.
+/// Use this count before building the Host dependency vectors.
+pub fn client_effect_combined_source_unit_dependency_body_count(
+  value : ClientEffectCombinedSourceUnit,
+) -> Int64 {
+  2L + 8L * value.contributions.length().to_int64()
 }
 
 ///|
@@ -847,6 +886,77 @@ pub fn client_effect_combined_source_unit_matches_inputs(
   inputs : ClientEffectSourceUnitInputs,
 ) -> Bool {
   physical_equal(value.original, inputs)
+}
+
+///|
+/// Borrow the public Named Result provenance from this same final Source Unit.
+/// A pre-consumer Unit, a different Result or a different Run cannot lend it.
+pub fn client_effect_combined_source_public_result_evidence_refs(
+  materials : ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  combined : ClientEffectCombinedSourceUnit,
+  artifact : ClientEffectLocalResultArtifact,
+  result : Int,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Result[
+  (String, Array[String], String, String, String),
+  ClientEffectLocalResultArtifactIssue,
+] {
+  if !physical_equal(materials.compilation, materials.allowed.compilation) ||
+    !physical_equal(materials.compilation.owner, materials.prepared) ||
+    !physical_equal(combined.original.owner, materials.prepared) ||
+    !physical_equal(artifact.invocation, combined.invocation) ||
+    !physical_equal(artifact.retention, combined.retention) ||
+    !client_effect_local_artifact_matches_computation(
+      artifact,
+      materials.prepared,
+    ) ||
+    !client_effect_local_artifact_matches_inputs(artifact, inputs) {
+    return Err(ForeignOwner)
+  }
+  guard artifact.source is ResultSource(_, definition) &&
+    effect_local_result_definition_matches_public_result(
+      materials.prepared,
+      definition,
+      result,
+    ) else {
+    return Err(ForeignDefinition)
+  }
+  guard combined.final_context
+    is Some((original_invocation, original_observation)) &&
+    physical_equal(invocation, original_invocation) &&
+    physical_equal(observation, original_observation) else {
+    return Err(ForeignInvocation)
+  }
+  let run_cid = @publication.publication_contract_identity(
+    materials.run_definition,
+  )
+  if combined.original.run_definition_cid != run_cid ||
+    client_effect_local_artifact_run_definition_cid(artifact) != Some(run_cid) ||
+    client_effect_local_artifact_run_invocation_cid(artifact) !=
+    Some(@publication.publication_contract_identity(invocation)) {
+    return Err(ForeignRun)
+  }
+  @publication.resolve_run_local_result_evidence_refs(
+    materials.allowed.admission,
+    materials.run_definition,
+    invocation,
+    observation,
+    artifact.retention,
+  )
+  .map_err(issue => Context(issue))
+  .map(value => {
+    (
+      @publication.publication_contract_identity(
+        client_effect_compilation_compiled_plan(materials.compilation),
+      ),
+      combined.relations.map(@publication.publication_contract_identity),
+      @publication.publication_contract_identity(combined.scope),
+      value.1,
+      value.2,
+    )
+  })
 }
 
 ///|

@@ -22,7 +22,9 @@ fn row_reference_fields(
     }
     seen[key] = true
   }
-  Some(fields.copy())
+  // This private view stays inside one synchronous compiler expression.
+  // The consumer only reads it; materialized Object fields get their own array.
+  Some(fields)
 }
 
 ///|
@@ -111,6 +113,8 @@ fn append_pipe_range_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
   value_ranges? : Array[@query.NamePart] = [],
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   let row_ranges = ranges.filter(range => {
     !value_ranges.any(name => same_name(name, range.0))
@@ -118,13 +122,21 @@ fn append_pipe_range_expression(
   append_resolved_range_expression(
     construction,
     expression,
-    path => pipe_expression_slot(path, visible, ranges, value_ranges~),
+    path => {
+      if path.length() == 1 &&
+        ordinary_range_name(path[0], ranges, value_ranges) {
+        return None
+      }
+      profiled_pipe_slot(path, visible, ranges, column_profiles)
+    },
     name => {
       pipe_name_exists(visible, name) &&
       !ordinary_range_name(name, ranges, value_ranges)
     },
     max_work,
     resolve_row=Some(path => row_reference_fields(path, _ => false, row_ranges)),
+    column_profiles~,
+    namespace_out~,
   )
 }
 
@@ -138,27 +150,61 @@ fn append_resolved_range_expression(
   value_name_exists : (@query.NamePart) -> Bool,
   max_work : Int,
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
+  column_profiles? : Array[ResultColumn]? = None,
+  namespace_out? : Array[NamespaceView?]? = None,
 ) -> @builder.Node raise Abort {
   let (lowered, slots, remaining) = bind_range_property_expression(
     expression, resolve, value_name_exists, max_work,
   )
+  let bound_resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 {
+      for (name, slot) in slots {
+        if path[0].value == name {
+          return Some(slot)
+        }
+      }
+    }
+    resolve(path)
+  }
+  let namespace_frame = if column_profiles is Some(_) {
+    Some(
+      expression_namespace(
+        lowered,
+        bound_resolve,
+        path => resolve_row.bind(resolver => resolver(path)),
+        column_profiles,
+        remaining,
+      ),
+    )
+  } else {
+    None
+  }
+  if namespace_out is Some(output) {
+    output.push(namespace_frame.bind(frame => frame.root))
+  }
   match
     @expression.append_with_properties(
       lowered,
-      path => {
-        if path.length() == 1 {
-          for (name, slot) in slots {
-            if path[0].value == name {
-              return Some(slot)
-            }
-          }
-        }
-        resolve(path)
-      },
+      bound_resolve,
       construction.builder,
-      remaining,
+      namespace_frame.map(frame => frame.remaining).unwrap_or(remaining),
       resolve_parameter=construction.parameter_resolver(),
       resolve_row~,
+      resolve_row_with_work=match namespace_frame {
+        None => None
+        Some(frame) =>
+          Some((path, available) => {
+            for (original, fields) in frame.rows {
+              if same_path(path, original) {
+                return namespace_row_fields(fields, column_profiles, available).map(projected => {
+                    Some(projected)
+                  },
+                )
+              }
+            }
+            Ok(None)
+          })
+      },
     ) {
     Ok(node) => node
     Err(issue) => raise Abort(Expression(issue))

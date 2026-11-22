@@ -20,6 +20,24 @@ pub fn client_program_prepare_model_provider_originals(
 }
 
 ///|
+/// Verify the retained route used by the standard fixed Chat installer.
+/// A current installation must supply its fully resolved route.
+#export_name("clientProgramInstalledChatConfigurationMatches")
+pub fn client_program_installed_chat_configuration_matches(
+  binding : @publication.RunEvidenceValue,
+  configuration_wire : String,
+  provider_id : String,
+  selector : String,
+  model_id : String,
+  endpoint : String,
+) -> Bool {
+  @publication_host.client_model_resolved_configuration_matches(
+    binding, configuration_wire, provider_id, selector, model_id, "ai-sdk", "chat_completions",
+    endpoint,
+  )
+}
+
+///|
 /// The SAME original admitted body's retained representation, priced through
 /// the existing checked Common fold. Traversal scratch and Host alias holders
 /// remain the caller's separately prefunded construction responsibilities.

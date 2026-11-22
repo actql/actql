@@ -71,6 +71,20 @@ pub fn NativeRelationFileListingProvider::capacity(
 }
 
 ///|
+/// Match the original typed listing and the physical locator that funds its
+/// caller. This comparison does not issue a reference or open the Source.
+pub fn NativeRelationFileListingProvider::matches_original(
+  self : Self,
+  declaration : @rows.RowDeclaration,
+  resource : String,
+  physical : NativeRelationFilePreparedProvider,
+) -> Bool {
+  physical_equal(self.declaration, declaration) &&
+  self.resource == resource &&
+  physical_equal(self.physical, physical)
+}
+
+///|
 fn file_listing_provider_capacity(
   physical : NativeRelationFilePreparedProvider,
   response_bytes : Int?,

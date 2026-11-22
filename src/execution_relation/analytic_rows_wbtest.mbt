@@ -770,3 +770,141 @@ test "analytic collection limits bind exact prepared calls" {
     is Err(InputSet),
   )
 }
+
+///|
+test "analytic envelope counts omitted frame value references" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"amount\":\"asc\"}]," +
+    "\"functions\":{\"first\":{\"fn\":\"first_value\",\"expr\":\"amount\"}," +
+    "\"last\":{\"fn\":\"last_value\",\"expr\":\"amount\"}}}",
+  )
+  let exact = analytic_test_envelope(10000L, 10000L, 10000L, 10L, 5L)
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some(exact),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some({ ..exact, frame_memberships: 9L, }),
+    )
+    is Err(AnalyticEnvelope(FrameMemberships)),
+  )
+}
+
+///|
+test "aggregate default frames meter full peer prefixes and entire unordered partitions" {
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  for
+    (partition, order, total, mean, count, min, cap) in [
+      (
+        "[\"group\"]",
+        "[{\"field\":\"amount\",\"dir\":\"asc\",\"nulls\":\"first\"}]",
+        [Number(70), Number(20), Number(10), Null, Number(70)],
+        [Number(70.0 / 3.0), Number(20), Number(10), Null, Number(70.0 / 3.0)],
+        [Number(3), Number(2), Number(1), Number(1), Number(3)],
+        [Number(10), Number(20), Number(10), Null, Number(10)],
+        40L,
+      ),
+      (
+        "[\"group\"]",
+        "[]",
+        [Number(70), Number(20), Number(70), Number(20), Number(70)],
+        [
+          Number(70.0 / 3.0),
+          Number(20),
+          Number(70.0 / 3.0),
+          Number(20),
+          Number(70.0 / 3.0),
+        ],
+        [Number(3), Number(2), Number(3), Number(2), Number(3)],
+        [Number(10), Number(20), Number(10), Number(20), Number(10)],
+        52L,
+      ),
+      (
+        "[]",
+        "[]",
+        Array::make(5, Number(90)),
+        Array::make(5, Number(22.5)),
+        Array::make(5, Number(5)),
+        Array::make(5, Number(10)),
+        100L,
+      ),
+    ] {
+    let owner = analytic_execution_owner(
+      "\"analytic\":{\"partition_by\":" +
+      partition +
+      ",\"order_by\":" +
+      order +
+      ",\"functions\":{\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}," +
+      "\"mean\":{\"fn\":\"avg\",\"field\":\"amount\"}," +
+      "\"count\":{\"fn\":\"count\"},\"min\":{\"fn\":\"min\",\"field\":\"amount\"}}}",
+    )
+    let execute = fn(max_memberships) {
+      let numeric = numeric_aggregate_execution((
+        _step,
+        name,
+        _occurrence,
+        contributors,
+        expected_count,
+        max_work,
+      ) => {
+        Some(
+          @numeric.execute(
+            reduction,
+            if name == "mean" {
+              @numeric.Average
+            } else {
+              @numeric.Sum
+            },
+            contributors,
+            expected_count,
+            max_work,
+          ),
+        )
+      })
+      evaluate_rows_with_workspace(
+        row_kernel(owner, 0),
+        analytic_execution_input(owner),
+        5,
+        { remaining: 100000, max_frames: 100, },
+        row_output(),
+        row_workspace(100000),
+        analytic_envelope=Some(
+          analytic_test_envelope(10000L, 10000L, 10000L, max_memberships, 5L),
+        ),
+        numeric=Some(numeric),
+      )
+    }
+    let table = execute(cap).unwrap()
+    for
+      (name, expected) in [
+        ("total", total),
+        ("mean", mean),
+        ("count", count),
+        ("min", min),
+      ] {
+      let column = analytic_domain_column(table, name)
+      assert_eq(
+        table.rows.map(row => object_result_wire(row[column])),
+        expected.map(object_result_wire),
+      )
+    }
+    assert_true(execute(cap - 1L) is Err(AnalyticEnvelope(FrameMemberships)))
+  }
+}

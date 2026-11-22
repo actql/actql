@@ -404,6 +404,8 @@ pub fn client_values_host_remote_task_run_fields(@run_publication_host.ClientRem
 
 pub fn client_values_host_remote_task_run_work(@run_publication_host.ClientRemoteTaskRunProjection) -> Array[String]
 
+pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]
+
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
 pub fn client_values_host_request_caller_id(@run_publication_host.ClientRequestIdentity) -> String

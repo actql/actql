@@ -6,10 +6,10 @@ pub(all) enum NativeClientMockEffectReviewIssue {
 }
 
 ///|
-// A child of the SAME ModelWork. Store owns encryption/persistence/retirement;
+// A child of the original command. Store owns encryption/persistence/retirement;
 // Journal owns waiting. This record retains their partial outcomes before the
 // next call/Read return. It issues no new Run, execution or approval authority.
-priv struct NativeMockEffectReview {
+struct NativeMockEffectReview {
   _retained_store : @publication_store.Store
   mut capture : @publication_store.EffectCaptureCustody?
   mut preview : @publication_store.EffectPreviewCustody?
@@ -27,8 +27,15 @@ priv struct NativeMockEffectReview {
 /// waiting to this SAME accepted/started Request. No ResidentSourceCompute is
 /// manufactured for the Native multi-Source/Model path. A failed/unknown
 /// persistence or Journal return retains the original child and prohibits retry.
-fn NativeClientMockModelWork::save_effect_review_original_in_scope(
-  self : NativeClientMockModelWork,
+fn NativeLocalJournalCapture::save_effect_review_original_in_scope(
+  self : Self,
+  first : NativeClientWorkFirstStart,
+  definition : @publication.PublicationContract,
+  namespace_id : String,
+  principal : String,
+  current_time : () -> String,
+  owner_current : () -> Bool,
+  retain : (NativeMockEffectReview) -> Unit,
   store : @publication_store.Store,
   allowed : @host.ClientEffectAllowedRun,
   binding : @publication.EffectCaptureHoldingBinding,
@@ -45,18 +52,6 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
   retained_metadata : Int64,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
-    guard !self.closing &&
-      !self.closed &&
-      !self.advancing &&
-      self.first_start is Some(_) &&
-      self.local_observation is Some(_) &&
-      self.effect_review is None else {
-      return Err(ForeignOriginal)
-    }
-    self.advancing = true
-    defer {
-      self.advancing = false
-    }
     let saved : NativeMockEffectReview = {
       _retained_store: store,
       capture: None,
@@ -69,13 +64,13 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
       waiting: None,
       _retained_display_constructor_bytes: 0L,
     }
-    self.effect_review = Some(saved)
+    retain(saved)
     let capture_wire = @publication.publication_contract_json(
       @publication.effect_capture_holding_contract(binding),
     )
     let (bytes, nodes, depth) = native_mock_model_evidence_key_codec_limits
     mock_model_require(
-      self.capture
+      self
       .prepare_model_entry_construction(
         Some(bytes),
         nodes~,
@@ -85,7 +80,7 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
       .map_err(issue => Original(issue)),
     )
     let retained_construction = mock_model_require(
-      self.capture.prepare_private_store_layouts_construction(
+      self.prepare_private_store_layouts_construction(
         4,
         index => {
           store.private_evidence_custody_construction(
@@ -102,12 +97,12 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
     )
     saved._retained_display_constructor_bytes = retained_construction
     guard @publication.effect_computation_record_holding_cid(
-        self.definition,
+        definition,
         @publication.effect_capture_holding_authority(binding),
       ) ==
       Some(@publication.effect_capture_holding_identity(binding)) &&
       @publication.effect_preview_run_identity(preview_identity) ==
-      @publication.publication_contract_identity(self.definition) &&
+      @publication.publication_contract_identity(definition) &&
       checkpoint.checkpoint.required_artifact_cid ==
       @publication.effect_preview_semantic_identity(preview_identity) &&
       checkpoint.checkpoint.review_projection_cid ==
@@ -117,19 +112,19 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
     mock_model_require(
       @host.admit_client_effect_review_checkpoint_binding(
         allowed,
-        self.definition,
+        definition,
         checkpoint.wire,
         native_checkpoint_limits(),
       ).map_err(issue => Review(Checkpoint(issue))),
     )
     |> ignore
-    let result = self.capture.with_current_adoption_material_in_original_read((
+    let result = self.with_current_adoption_material_in_original_read((
       host,
       material,
       operations,
     ) => {
       let record = match
-        host.journal.retained(self.request, reads=Some(operations.reads)) {
+        host.journal.retained(first.request, reads=Some(operations.reads)) {
         Ok(Some(value)) => value
         Ok(None) => return Err(Journal(CustodyLost))
         Err(issue) => return Err(Journal(issue))
@@ -139,16 +134,15 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
         Err(issue) => return Err(Journal(PublicationObservation(issue)))
       }
       let store_binding = match
-        installed_publication_binding(
-          self.namespace_id,
-          authority,
-          device,
-          inode,
-        ) {
+        installed_publication_binding(namespace_id, authority, device, inode) {
         Ok(value) => value
         Err(issue) => return Err(Journal(issue))
       }
-      if !record.dispatch_reserved ||
+      if !physical_equal(first.journal, host.journal) ||
+        first.definition_cid !=
+        @publication.publication_contract_identity(definition) ||
+        record.revision < first.observed_revision ||
+        !record.dispatch_reserved ||
         !record.physical_start_claimed ||
         record.cancellation_requested ||
         record.checkpoint is Some(_) ||
@@ -156,17 +150,15 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
         record.publication_binding != Some(store_binding) ||
         authority != @publication.effect_capture_holding_authority(binding) ||
         @publication.publication_contract_identity(record.definition) !=
-        @publication.publication_contract_identity(self.definition) {
+        @publication.publication_contract_identity(definition) {
         return Err(Journal(ForeignRun))
       }
       let current = () => {
-        !self.closing &&
-        !self.closed &&
-        self.capture.operation_scope(host, material, self.principal, connection)
-        is Ok(scope) &&
-        scope == @host.client_request_authority_scope_cid(self.request) &&
-        self.capture.operation_account(host, material, {
-          principal: self.principal,
+        owner_current() &&
+        self.operation_scope(host, material, principal, connection) is Ok(scope) &&
+        scope == @host.client_request_authority_scope_cid(first.request) &&
+        self.operation_account(host, material, {
+          principal,
           connection,
           resource: "run",
           operation: "submit",
@@ -189,7 +181,7 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
       let persist = fn() -> Result[Unit, NativeClientMockModelIssue] raise NativeMockModelStop {
         let capture = mock_model_require(
           store
-          .prepare_effect_capture_custody(binding, self.capture.crypto, key)
+          .prepare_effect_capture_custody(binding, self.crypto, key)
           .map_err(issue => Store(issue)),
         )
         saved.capture = Some(capture)
@@ -211,7 +203,7 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
             review_wire,
             authoring_cid,
             authority,
-            self.capture.crypto,
+            self.crypto,
             key,
             max_bytes,
             max_nodes,
@@ -237,7 +229,7 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
             checkpoint,
             continuation_wire,
             authority,
-            self.capture.crypto,
+            self.crypto,
             key,
           )
           .map_err(issue => Store(issue)),
@@ -258,13 +250,13 @@ fn NativeClientMockModelWork::save_effect_review_original_in_scope(
         saved.waiting_attempted = true
         let waiting = match
           host.journal.wait_effect_checkpoint_with_operations(
-            self.request,
+            first.request,
             allowed,
             persisted,
             record.revision,
             resume_binding,
             [],
-            (self.current_time)(),
+            current_time(),
             current,
             operations=Some(operations),
           ) {
@@ -306,13 +298,26 @@ fn NativeClientMockModelWork::close_effect_review(
   self : NativeClientMockModelWork,
 ) -> Result[Bool, NativeClientMockModelIssue] {
   guard self.effect_review is Some(saved) else { return Ok(true) }
+  match saved.close() {
+    Err(issue) => Err(issue)
+    Ok(false) => Ok(false)
+    Ok(true) => {
+      self.effect_review = None
+      Ok(true)
+    }
+  }
+}
+
+///|
+pub fn NativeMockEffectReview::close(
+  saved : Self,
+) -> Result[Bool, NativeClientMockModelIssue] {
   if saved.waiting is Some(_) {
     if !saved.capture_confirmed ||
       !saved.preview_confirmed ||
       !saved.checkpoint_confirmed {
       return Err(ForeignOriginal)
     }
-    self.effect_review = None
     return Ok(true)
   }
   if saved.waiting_attempted {
@@ -339,6 +344,5 @@ fn NativeClientMockModelWork::close_effect_review(
       Ok(_) => saved.capture = None
     }
   }
-  self.effect_review = None
   Ok(true)
 }

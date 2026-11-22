@@ -31,7 +31,9 @@ export function assertProjectStaticCheckControls(controls) {
 
 export async function runReleaseProjectNodeAction({connect, request, readProgram, retainAccepted,
   assertPendingTarget, retainClose, getCheckInput}) {
-  assert(['static', 'start', 'resolve', 'status', 'result'].includes(request.kind));
+  assert(['static', 'start', 'read', 'resolve', 'status', 'result'].includes(request.kind));
+  assert(request.resultName === undefined || request.resultName === 'main');
+  assert(request.kind !== 'read' || request.decision === undefined);
   assert(request.decision === undefined || ['approved', 'rejected'].includes(request.decision));
   let client, primary, failed = false, closeFailure, closeFailed = false, response;
   try {
@@ -40,7 +42,7 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
     client = await connect({mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
     if (request.kind === 'static') {
       const source = await readProgram();
-      response = {check: await client.check(source, {format: 'aql'}),
+      response = {check: await client.check(source, {kind: 'text', format: 'aql', scope: 'bound_input'}),
         plan: await client.plan(source, {format: 'aql'})};
       response.staticChecks = [];
       for (const control of projectStaticCheckControls(request.program, source)) {
@@ -53,21 +55,36 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
       assertProjectStaticCheckControls(response.staticChecks);
     } else {
       let execution, original = request.original;
-      if (request.kind === 'start') {
-        execution = await client.startSource(await readProgram(), {format: 'aql', stopBefore: 'commit'});
+      if (request.kind === 'start' || request.kind === 'read') {
+        const source = await readProgram();
+        if (request.kind === 'read') {
+          const check = await client.check(source, {kind: 'text', format: 'aql', scope: 'bound_input'});
+          assert.equal(check.outcome, 'completed');
+          assert.equal(check.report?.verdict, 'verified');
+          assert.equal(check.report.runnable?.verdict, 'yes');
+          response = {check};
+        }
+        execution = await client.startSource(source, request.kind === 'read'
+          ? {format: 'aql'} : {format: 'aql', stopBefore: 'commit'});
         // Preserve the public accepted original before a failing wait or close.
         await retainAccepted({ref: execution.ref});
         const waiting = await execution.wait();
-        assert.equal(waiting.status, 'waiting_checkpoint');
-        const checkpointId = waiting.checkpoint?.id;
-        assert.equal(typeof checkpointId, 'string');
-        original = {ref: execution.ref, runId: waiting.run_id, checkpointId,
-          checkpointCid: waiting.checkpoint.checkpoint_cid};
-        // Immediate approval must not gain an extra asynchronous lookup,
-        // review, filesystem read or sleep between wait() and approve().
-        const pending = assertPendingTarget();
-        assert(!pending || typeof pending.then !== 'function', 'Pending target observation must be synchronous');
-        response = {original, state: waiting};
+        if (request.kind === 'read') {
+          assert.equal(waiting.status, 'succeeded');
+          original = {ref: execution.ref, runId: waiting.run_id};
+          response = {...response, original, state: waiting};
+        } else {
+          assert.equal(waiting.status, 'waiting_checkpoint');
+          const checkpointId = waiting.checkpoint?.id;
+          assert.equal(typeof checkpointId, 'string');
+          original = {ref: execution.ref, runId: waiting.run_id, checkpointId,
+            checkpointCid: waiting.checkpoint.checkpoint_cid};
+          // Immediate approval must not gain an extra asynchronous lookup,
+          // review, filesystem read or sleep between wait() and approve().
+          const pending = assertPendingTarget();
+          assert(!pending || typeof pending.then !== 'function', 'Pending target observation must be synchronous');
+          response = {original, state: waiting};
+        }
       } else {
         assert(original && typeof original.runId === 'string');
         execution = await client.attach(original.ref);
@@ -106,16 +123,18 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
         assert.equal(answer.signed.length, 1);
         const resolution = JSON.parse(answer.signed[0].resolutionWire);
         assert.equal(resolution.decision, request.decision);
+        assert.equal(resolution.checkpoint_id, original.checkpointId);
+        assert.equal(resolution.checkpoint_cid, original.checkpointCid);
         assert.equal(resolution.run_id, original.runId);
         assert.equal(resolution.run_definition_cid, original.ref.runDefinitionCid);
         response.state = await execution.wait();
         assert.equal(response.state.run_id, original.runId);
         assert.equal(response.state.status, request.decision === 'approved' ? 'succeeded' : 'cancelled');
       }
-      if (request.kind === 'result') {
+      if (request.kind === 'result' || request.kind === 'read') {
         // A new process reads the Named Result before asking status. Do not
         // let a preceding status hide a missing cold Result implementation.
-        const result = await execution.result('updates');
+        const result = await execution.result(request.kind === 'read' ? 'main' : request.resultName ?? 'updates');
         response.rows = await result.all();
         response.description = await result.describe();
         response.state = await execution.status();
@@ -130,7 +149,8 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
   if (client) try {await client.close();} catch (cause) {closeFailure = cause; closeFailed = true;}
   try {await retainClose({attempted: client !== undefined, returned: client !== undefined && !closeFailed,
     outcome: closeFailed ? 'threw' : client ? 'returned' : 'not-attempted'});} catch (cause) {
-    if (!failed) {primary = cause; failed = true;}
+    // A later observation failure cannot replace the actual first-close issue.
+    if (!failed && !closeFailed) {primary = cause; failed = true;}
   }
   if (failed) throw primary;
   if (closeFailed) throw closeFailure;

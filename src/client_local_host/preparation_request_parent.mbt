@@ -3,9 +3,11 @@ priv enum ClientRequestPreparationPhase {
   Open
   ResultRead
   ExplanationRead
+  ExplanationContextRead
   // Selected read-only bounds live in this existing phase slot, not a new
   // unconditional parent field. Other phases remain their inline unit tags.
   ExplanationReadReady(Int, Int, Int, Int)
+  ExplanationContextReadReady(Int, Int, Int, Int, Int, Int)
   ExplanationReadComplete
   Selecting
   QuerySyntaxQuoted

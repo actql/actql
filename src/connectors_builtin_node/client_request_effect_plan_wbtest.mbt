@@ -42,7 +42,9 @@ fn request_effect_bridge_fixture() -> (
     ).unwrap(),
     "effectful",
   )
-  let holder = client_program_borrow_request_effect_plan_input(parent, receipt).unwrap()
+  let holder = client_program_borrow_request_effect_plan_input(
+    parent, receipt, false,
+  ).unwrap()
   let prepared = client_program_effect_preparation_input_read(holder).unwrap()
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
@@ -86,6 +88,87 @@ fn request_effect_bridge_fixture() -> (
     provider_factory=_ => [],
   ).unwrap()
   (parent, receipt, holder, prepared, plan, request)
+}
+
+///|
+test "checked static Effect Explanation bridge reads the original Request and its three wires" {
+  let (parent, receipt, holder, prepared, _, _) = request_effect_bridge_fixture()
+  let foreign = request_diagnostic_test_receipt()
+  assert_true(
+    client_program_read_request_checked_static_effect_explanation(
+      parent,
+      foreign,
+      65536,
+      8192,
+      64,
+      10000,
+      [],
+    )
+    is Err(Projection(Preparation(ForeignOriginal))),
+  )
+  {
+    let projection = client_program_read_request_checked_static_effect_explanation(
+      parent,
+      receipt,
+      65536,
+      8192,
+      64,
+      10000,
+      [],
+    ).unwrap()
+    let parse = (name, wire) => {
+      @publication.parse_interactive_run_control_shape(
+        name, wire, 65536, 8192, 64,
+      ).unwrap()
+    }
+    let plan = parse(
+      "effectful_static_plan_view",
+      client_program_static_effect_explanation_plan_wire(projection),
+    )
+    let facts = parse(
+      "explanation_facts",
+      client_program_static_effect_explanation_facts_wire(projection),
+    )
+    let context = parse(
+      "explanation_context",
+      client_program_static_effect_explanation_context_wire(projection),
+    )
+    let view = @identity.object_field(
+      @identity.object_field(plan, "computation").unwrap(),
+      "plan_view",
+    ).unwrap()
+    let map = @identity.object_field(view, "logical_map").unwrap()
+    let binding = @identity.object_field(context, "binding").unwrap()
+    guard @identity.object_field(view, "compiled_plan_cid")
+      is Some(@identity.String(plan_cid)) &&
+      @identity.object_field(map, "self_cid") is Some(@identity.String(map_cid)) else {
+      fail("an original Plan and Map must be present")
+    }
+    for facet in [facts, binding] {
+      assert_true(
+        @identity.object_field(facet, "compiled_plan_cid")
+        is Some(@identity.String(value)) &&
+        value == plan_cid,
+      )
+      assert_true(
+        @identity.object_field(facet, "logical_map_cid")
+        is Some(@identity.String(value)) &&
+        value == map_cid,
+      )
+    }
+    assert_true(
+      @identity.object_field(plan, "provider_io") is Some(@identity.Number(0.0)),
+    )
+    assert_true(
+      physical_equal(
+        client_program_effect_preparation_input_read(holder).unwrap(),
+        prepared,
+      ),
+    )
+  }
+  assert_false(client_program_effect_preparation_input_return(holder).unwrap())
+  client_program_abort_request_preparation(parent).unwrap()
+  assert_true(client_program_effect_preparation_input_read(holder) is None)
 }
 
 ///|

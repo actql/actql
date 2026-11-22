@@ -168,7 +168,48 @@ export const pipeResultExecutionFailures = [
     text: 'FROM records |> RESULT original |> SET id = id / (id - id) |> RESULT invalid',
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
+export const arrayLengthOriginal = {name: 'array-length-original', format: 'sql',
+  text: "WITH t AS (SELECT ['coffee', NULL, 'milk'] AS items) SELECT ARRAY_LENGTH(items) AS entries, "
+    + 'ARRAY_LENGTH([]) AS empty_count, ARRAY_LENGTH([NULL]) AS null_entry_count, '
+    + 'ARRAY_LENGTH(CAST(NULL AS ARRAY<INT64>)) AS missing_count FROM t',
+  expected: [{entries: '3', empty_count: '0', null_entry_count: '1', missing_count: null}],
+  columns: ['entries', 'empty_count', 'null_entry_count', 'missing_count']
+    .map(name => ({name, contract: {type: 'int64', nullable: name === 'missing_count'}})),
+  sourceReadCount: 0};
+
+export const unixSecondsOriginal = {name: 'unix-seconds-original', format: 'sql',
+  text: "SELECT UNIX_SECONDS(CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)) AS before_epoch, "
+    + "UNIX_SECONDS(CAST('2008-12-25T15:30:00.000Z' AS TIMESTAMP)) AS present_seconds, "
+    + 'UNIX_SECONDS(CAST(NULL AS TIMESTAMP)) AS missing_seconds',
+  expected: [{before_epoch: '-1', present_seconds: '1230219000', missing_seconds: null}],
+  columns: ['before_epoch', 'present_seconds', 'missing_seconds']
+    .map(name => ({name, contract: {type: 'int64', nullable: name === 'missing_seconds'}})),
+  sourceReadCount: 0};
+
+export const commaJoinOriginal = {
+  name: 'comma-join-original', format: 'sql',
+  text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT a.n AS a_n, b.n AS b_n FROM t AS a, t AS b ORDER BY a_n, b_n",
+  expected: [
+    {a_n: 1, b_n: 1}, {a_n: 1, b_n: 2}, {a_n: 1, b_n: 3},
+    {a_n: 2, b_n: 1}, {a_n: 2, b_n: 2}, {a_n: 2, b_n: 3},
+    {a_n: 3, b_n: 1}, {a_n: 3, b_n: 2}, {a_n: 3, b_n: 3},
+  ],
+  columns: [
+    {name: 'a_n', contract: {type: 'number', nullable: false}},
+    {name: 'b_n', contract: {type: 'number', nullable: false}},
+  ],
+  sourceReadCount: 0, sourceReadSessionCount: 0,
+};
+
 export const queryCompositionSuccesses = [
+  arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
+  {
+    name: 'simple-case-original', format: 'sql',
+    text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",
+    expected: [{result: 'one'}, {result: 'other'}, {result: 'other'}],
+    columns: [{name: 'result', contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}],
+    unordered: true, sourceReadCount: 0, sourceReadSessionCount: 0,
+  },
   ...['sql', 'aql-text'].map(format => ({
     name: `cte-join-right-shared-capture-${format}`, format,
     text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id',
@@ -608,6 +649,249 @@ export const querySuccesses = [
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+export const dateLiteralOriginal = {name: 'date-literal', format: 'sql',
+  text: "SELECT DATE '2026-01-02' AS x", expected: [{x: '2026-01-02'}],
+  columns: [{name: 'x', contract: {type: 'date', nullable: false}}], sourceReadCount: 0};
+export const timestampLiteralOriginal = {name: 'timestamp-literal', format: 'sql',
+  text: "SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS x", expected: [{x: '2026-01-02T03:04:05.000Z'}],
+  columns: [{name: 'x', contract: {type: 'timestamp', nullable: false}}], sourceReadCount: 0};
+export const generateArrayOriginalCases = [
+  {name: 'generate-array-signed64', format: 'sql', text: 'SELECT GENERATE_ARRAY(1, 3) AS x',
+    results: {main: {rows: [{x: ['1', '2', '3']}], columns: [{name: 'x',
+      contract: {type: 'array', nullable: false, max_items: 3, items: {type: 'int64', nullable: false}}}]}},
+    sourceReadCount: 0},
+  {name: 'generate-array-unnest', format: 'sql', text: 'FROM UNNEST(GENERATE_ARRAY(1, 3)) AS x',
+    results: {main: {rows: [{x: '1'}, {x: '2'}, {x: '3'}], unordered: true,
+      columns: [{name: 'x', contract: {type: 'int64', nullable: false}}]}}, sourceReadCount: 0},
+];
+export const timestampDiffOriginal = {name: 'timestamp-diff', format: 'sql',
+  text: "WITH t AS (SELECT TIMESTAMP '2026-01-02 03:04:05+00' AS a, "
+    + "TIMESTAMP '2026-01-02 00:00:00+00' AS b) "
+    + "SELECT TIMESTAMP_DIFF(a, b, HOUR) AS hours, TIMESTAMP_DIFF(b, a, HOUR) AS reverse_hours FROM t",
+  expected: [{hours: '3', reverse_hours: '-3'}],
+  columns: ['hours', 'reverse_hours'].map(name => ({name,
+    contract: {type: 'int64', nullable: false}})), sourceReadCount: 0};
+export const timestampTruncOriginal = {name: 'timestamp-trunc', format: 'sql',
+  text: "WITH t AS (SELECT TIMESTAMP '1969-12-31 23:59:59.999999+00' AS ts) "
+    + "SELECT TIMESTAMP_TRUNC(ts, DAY) AS day_start, TIMESTAMP_TRUNC(ts, MICROSECOND) AS at_micros FROM t",
+  expected: [{day_start: '1969-12-31T00:00:00.000Z', at_micros: '1969-12-31T23:59:59.999999Z'}],
+  columns: ['day_start', 'at_micros'].map(name => ({name,
+    contract: {type: 'timestamp', nullable: false}})), sourceReadCount: 0};
+export const extractTimestampOriginal = {name: 'extract-timestamp-year', format: 'sql',
+  text: "SELECT EXTRACT(YEAR FROM CAST('2026-01-02T03:04:05.000Z' AS TIMESTAMP)) AS year_part",
+  expected: [{year_part: '2026'}],
+  columns: [{name: 'year_part', contract: {type: 'int64', nullable: false}}],
+  sourceReadCount: 0};
+export const makeDateOriginal = {name: 'date-constructor', format: 'sql',
+  text: 'SELECT DATE(2026, 1, 2) AS constructed, DATE(2000, 2, 29) AS leap_day',
+  expected: [{constructed: '2026-01-02', leap_day: '2000-02-29'}],
+  columns: ['constructed', 'leap_day'].map(name => ({name,
+    contract: {type: 'date', nullable: false}})), sourceReadCount: 0};
+export const groupingRollupOriginal = {name: 'grouping-rollup-original', format: 'sql',
+  text: "WITH t AS (SELECT 'a' AS k, CAST(NULL AS STRING) AS s, 10 AS v "
+    + "UNION ALL SELECT 'a' AS k, 'x' AS s, 20 AS v UNION ALL SELECT 'b' AS k, 'x' AS s, 30 AS v) "
+    + 'SELECT k, s, SUM(v) AS total, COUNT(*) AS n FROM t GROUP BY ROLLUP(k, s)',
+  results: {main: {unordered: true, rows: [
+    {k: 'a', s: null, total: 10, n: 1},
+    {k: 'a', s: 'x', total: 20, n: 1},
+    {k: 'b', s: 'x', total: 30, n: 1},
+    {k: 'a', s: null, total: 30, n: 2},
+    {k: 'b', s: null, total: 30, n: 1},
+    {k: null, s: null, total: 60, n: 3},
+  ], columns: [
+    {name: 'k', contract: {type: 'string', nullable: true, max_utf8_bytes: 1}},
+    {name: 's', contract: {type: 'string', nullable: true}},
+    {name: 'total', contract: {type: 'number', nullable: true}},
+    {name: 'n', contract: {type: 'number', nullable: false}},
+  ]}}, sourceReadCount: 0};
+const dateCalendarOriginal = {name: 'date-calendar-boundaries', format: 'sql',
+  text: "WITH t AS (SELECT DATE '2000-02-29' AS a, DATE '2000-03-01' AS b) "
+    + 'SELECT DATE_ADD(a, INTERVAL 1 DAY) AS next_day, DATE_DIFF(a, b, DAY) AS days, '
+    + 'DATE_TRUNC(a, MONTH) AS first_day FROM t',
+  expected: [{next_day: '2000-03-01', days: '-1', first_day: '2000-02-01'}],
+  columns: [
+    {name: 'next_day', contract: {type: 'date', nullable: false}},
+    {name: 'days', contract: {type: 'int64', nullable: false}},
+    {name: 'first_day', contract: {type: 'date', nullable: false}},
+  ], sourceReadCount: 0};
+const currentDateOriginal = {name: 'current-date-query-time', format: 'sql',
+  text: 'WITH query_clock AS (SELECT CURRENT_TIMESTAMP() AS ts) '
+    + 'SELECT CURRENT_DATE = CURRENT_DATE() AS same_day, '
+    + 'CURRENT_DATE() = DATE(EXTRACT(YEAR FROM ts), EXTRACT(MONTH FROM ts), EXTRACT(DAY FROM ts)) '
+    + 'AS same_original_utc_day FROM query_clock',
+  expected: [{same_day: true, same_original_utc_day: true}],
+  columns: ['same_day', 'same_original_utc_day'].map(name => ({name,
+    contract: {type: 'boolean', nullable: false}})), sourceReadCount: 0};
+const arrayConcatOriginal = {name: 'array-concat', format: 'sql',
+  text: 'SELECT ARRAY_CONCAT([1], [2]) AS joined, ARRAY_CONCAT([], [3, 3], [1]) AS duplicates, '
+    + 'ARRAY_CONCAT(NULL, [2]) AS absent',
+  expected: [{joined: [1, 2], duplicates: [3, 3, 1], absent: null}],
+  columns: [['joined', false, 2], ['duplicates', false, 3], ['absent', true, 1]]
+    .map(([name, nullable, max_items]) => ({name, contract: {type: 'array', nullable, max_items,
+      items: {type: 'number', nullable: false}}})), sourceReadCount: 0};
+const arrayToStringOriginal = {name: 'array-to-string', format: 'sql',
+  text: "SELECT ARRAY_TO_STRING(['a'], ',') AS joined, "
+    + "ARRAY_TO_STRING([NULL, '', NULL, 'x'], '|') AS skipped, "
+    + "ARRAY_TO_STRING([NULL, '', NULL, 'x'], '|', 'n') AS replaced",
+  expected: [{joined: 'a', skipped: '|x', replaced: 'n||n|x'}],
+  columns: ['joined', 'skipped', 'replaced'].map(name => ({name,
+    contract: {type: 'string', nullable: false}})), sourceReadCount: 0};
+export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', format: 'sql',
+  text: "SELECT FARM_FINGERPRINT('a') AS result",
+  expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
+    contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
+export const regexpContainsOriginal = {name: 'regexp-contains-original', format: 'sql',
+  text: "SELECT REGEXP_CONTAINS('abc', 'a') AS result",
+  expected: [{result: true}], columns: [{name: 'result',
+    contract: {type: 'boolean', nullable: false}}], sourceReadCount: 0};
+const regexpContainsBoundaries = {name: 'regexp-contains-boundaries', format: 'sql',
+  text: "SELECT REGEXP_CONTAINS('a🙂b', '[🙂-🙃]') AS unicode_match, "
+    + "REGEXP_CONTAINS('abc', '^b$') AS anchored_miss, REGEXP_CONTAINS(NULL, 'a') AS absent",
+  expected: [{unicode_match: true, anchored_miss: false, absent: null}],
+  columns: [...['unicode_match', 'anchored_miss'].map(name => ({
+    name, contract: {type: 'boolean', nullable: false},
+  })), {name: 'absent', contract: {type: 'boolean', nullable: true}}], sourceReadCount: 0};
+export const regexpExtractOriginal = {name: 'regexp-extract-original', format: 'sql',
+  text: "SELECT REGEXP_EXTRACT('abc', 'b.') AS whole, "
+    + "REGEXP_EXTRACT('a🙂b', 'a(.)b') AS captured, "
+    + "REGEXP_EXTRACT('b', '(a)?b') AS unmatched, "
+    + "REGEXP_EXTRACT('b', '(a?)b') AS empty_capture, "
+    + "REGEXP_EXTRACT('abc', '^b$') AS no_match, "
+    + "REGEXP_EXTRACT(NULL, 'a') AS absent",
+  expected: [{whole: 'bc', captured: '🙂', unmatched: null,
+    empty_capture: '', no_match: null, absent: null}],
+  columns: ['whole', 'captured', 'unmatched', 'empty_capture', 'no_match', 'absent']
+    .map(name => ({name, contract: {type: 'string', nullable: true}})), sourceReadCount: 0};
+const regexpExtractBound = {name: 'regexp-extract-bound', format: 'sql',
+  text: "SELECT REGEXP_EXTRACT('abc', @pattern) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}}, parameters: {pattern: 'a(b)c'},
+  expected: [{result: 'b'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: true}}], sourceReadCount: 0};
+export const regexpReplaceOriginal = {name: 'regexp-replace-original', format: 'sql',
+  text: String.raw`SELECT REGEXP_REPLACE('banana', 'ana', 'X') AS overlap,
+    REGEXP_REPLACE('abc', 'b(.)', r'[\0|\1]$') AS capture,
+    REGEXP_REPLACE('a🙂a', 'a?', '$1') AS adjacent,
+    REGEXP_REPLACE('a', '(a)', r'\12\\') AS one_digit,
+    REGEXP_REPLACE(NULL, 'a', 'X') AS absent`,
+  expected: [{overlap: 'bXna', capture: 'a[bc|c]$', adjacent: '$1🙂$1',
+    one_digit: 'a2\\', absent: null}],
+  columns: [...['overlap', 'capture', 'adjacent', 'one_digit'].map(name => ({
+    name, contract: {type: 'string', nullable: false},
+  })), {name: 'absent', contract: {type: 'string', nullable: true}}], sourceReadCount: 0};
+const regexpReplaceBound = {name: 'regexp-replace-bound', format: 'sql',
+  text: "SELECT REGEXP_REPLACE('abc', @pattern, @replacement) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}, replacement: {type: 'string'}},
+  parameters: {pattern: 'a(b)c', replacement: 'e\u0301\r\n\\1$'},
+  expected: [{result: 'e\u0301\r\nb$'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
+const tryTimestampPatterned = {name: 'try-timestamp-patterned', format: 'sql',
+  text: "SELECT TRY_TIMESTAMP('2000-02-29', 'yyyy-MM-dd') AS valid, "
+    + "TRY_TIMESTAMP('1900-02-29', 'yyyy-MM-dd') AS invalid, "
+    + "TRY_TIMESTAMP(NULL, 'yyyy-MM-dd') AS absent",
+  expected: [{valid: '2000-02-29T00:00:00.000Z', invalid: null, absent: null}],
+  columns: ['valid', 'invalid', 'absent'].map(name => ({name,
+    contract: {type: 'timestamp', nullable: true}})), sourceReadCount: 0};
+const tryTimestampPatternedBound = {name: 'try-timestamp-patterned-bound', format: 'sql',
+  text: "SELECT TRY_TIMESTAMP('29/02/2000', @pattern) AS result",
+  parameterDeclarations: {pattern: {type: 'string'}}, parameters: {pattern: 'dd/MM/yyyy'},
+  expected: [{result: '2000-02-29T00:00:00.000Z'}], columns: [{name: 'result',
+    contract: {type: 'timestamp', nullable: true}}], sourceReadCount: 0};
+export const jsonValueOriginals = [
+  {name: 'json-value-original', format: 'sql',
+    text: "SELECT JSON_VALUE('{}', '$.n') AS result",
+    expected: [{result: null}], columns: [{name: 'result',
+      contract: {type: 'string', nullable: true}}], sourceReadCount: 0},
+  {name: 'json-value-prefix', format: 'sql',
+    text: `SELECT JSON_VALUE('{"n":9007199254740993,"tail":', '$.n') AS result`,
+    expected: [{result: '9007199254740993'}], columns: [{name: 'result',
+      contract: {type: 'string', nullable: true}}], sourceReadCount: 0},
+];
+export const toJsonStringOriginal = {name: 'to-json-string-original', format: 'sql',
+  text: 'SELECT TO_JSON_STRING(1) AS result',
+  expected: [{result: '1'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
+const formatStringsOriginal = {name: 'format-strings-original', format: 'sql',
+  text: "SELECT FORMAT('%s', 'a') AS result",
+  expected: [{result: 'a'}], columns: [{name: 'result',
+    contract: {type: 'string', nullable: false}}], sourceReadCount: 0};
+const logicalAggregateColumns = ['all_true', 'any_true'].map(name => ({name,
+  contract: {type: 'boolean', nullable: true}}));
+const logicalAggregateSuccesses = [
+  {name: 'logical-aggregate-original', format: 'sql',
+    text: 'SELECT LOGICAL_AND(TRUE) AS all_true, LOGICAL_OR(FALSE) AS any_true',
+    expected: [{all_true: true, any_true: false}], columns: logicalAggregateColumns, sourceReadCount: 0},
+  {name: 'logical-aggregate-empty', format: 'sql',
+    text: 'SELECT LOGICAL_AND(TRUE) AS all_true, LOGICAL_OR(FALSE) AS any_true WHERE FALSE',
+    expected: [{all_true: null, any_true: null}], columns: logicalAggregateColumns, sourceReadCount: 0},
+  {name: 'logical-aggregate-grouped', format: 'sql',
+    text: 'WITH f AS (SELECT 1 AS k, TRUE AS flag UNION ALL SELECT 1 AS k, FALSE AS flag '
+      + 'UNION ALL SELECT 2 AS k, CAST(NULL AS BOOLEAN) AS flag) '
+      + 'SELECT k, LOGICAL_AND(flag) AS all_true, LOGICAL_OR(flag WHERE k > 0) AS any_true '
+      + 'FROM f GROUP BY k ORDER BY k',
+    expected: [{k: 1, all_true: false, any_true: true}, {k: 2, all_true: null, any_true: null}],
+    columns: [numberColumn('k'), ...logicalAggregateColumns], sourceReadCount: 0},
+];
+const anyValueSuccesses = [
+  {name: 'any-value-original', format: 'sql',
+    text: 'SELECT ANY_VALUE(1) AS result',
+    expected: [{result: 1}], columns: [{name: 'result', contract: {type: 'number', nullable: true}}], sourceReadCount: 0},
+  {name: 'any-value-grouped', format: 'sql',
+    text: 'WITH f AS (SELECT 1 AS k, CAST(NULL AS INT64) AS v UNION ALL '
+      + 'SELECT 1 AS k, CAST(7 AS INT64) AS v UNION ALL SELECT 2 AS k, CAST(11 AS INT64) AS v) '
+      + 'SELECT k, ANY_VALUE(v WHERE k = 1) AS result FROM f GROUP BY k ORDER BY k',
+    expected: [{k: 1, result: '7'}, {k: 2, result: null}],
+    columns: [numberColumn('k'), {name: 'result', contract: {type: 'int64', nullable: true}}],
+    sourceReadCount: 0},
+];
+const navigationDefaultOriginal = {name: 'navigation-default-original', format: 'sql',
+  text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
+    + "20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+    + 'SELECT LAG(v, 1, 0) OVER (ORDER BY n) AS x FROM t',
+  results: {main: {rows: [{x: 0}, {x: 10}, {x: 20}], unordered: true,
+    columns: [{name: 'x', contract: {type: 'number', nullable: true}}]}},
+  sourceReadCount: 0};
+const numberingInputs = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, "
+  + "20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) ";
+const numberingSuccesses = [
+  {name: 'ntile-original', format: 'sql',
+    text: numberingInputs + 'SELECT NTILE(2) OVER (ORDER BY n) AS result FROM t',
+    results: {main: {rows: [{result: '1'}, {result: '1'}, {result: '2'}], unordered: true,
+      columns: [{name: 'result', contract: {type: 'int64', nullable: false}}]}},
+    sourceReadCount: 0},
+  {name: 'percent-rank-original', format: 'sql',
+    text: numberingInputs + 'SELECT PERCENT_RANK() OVER (ORDER BY n) AS result FROM t',
+    results: {main: {rows: [{result: 0}, {result: 0.5}, {result: 1}], unordered: true,
+      columns: [numberColumn('result')]}},
+    sourceReadCount: 0},
+];
+const navigationFrameSuccesses = [
+  {name: 'first-value-default-original', op: 'FIRST_VALUE', values: [10, 10, 10]},
+  {name: 'last-value-default-original', op: 'LAST_VALUE', values: [10, 20, 30]},
+].map(({name, op, values}) => ({name, format: 'sql',
+  text: numberingInputs + `SELECT ${op}(v) OVER (ORDER BY n) AS result FROM t`,
+  results: {main: {rows: values.map(result => ({result})), unordered: true,
+    columns: [{name: 'result', contract: {type: 'number', nullable: true}}]}},
+  sourceReadCount: 0}));
+const aggregateDefaultWindows = [
+  ['ordered', 'ORDER BY n'], ['partition', 'PARTITION BY s'], ['whole', ''],
+];
+const aggregateDefaultFrameSuccesses = [
+  {name: 'sum', call: 'SUM(v)', nullable: true,
+    rows: [[10, 30, 60], [40, 20, 40], [60, 60, 60]]},
+  {name: 'count', call: 'COUNT(*)', nullable: false,
+    rows: [[1, 2, 3], [2, 1, 2], [3, 3, 3]]},
+  {name: 'avg', call: 'AVG(v)', nullable: true,
+    rows: [[10, 15, 20], [20, 20, 20], [20, 20, 20]]},
+  {name: 'min', call: 'MIN(v)', nullable: true,
+    rows: [[10, 10, 10], [10, 20, 10], [10, 10, 10]]},
+].flatMap(({name, call, nullable, rows}) =>
+  aggregateDefaultWindows.map(([mode, window], index) => ({
+    name: `default-frame-${name}-${mode}-original`, format: 'sql',
+    text: numberingInputs + `SELECT ${call} OVER (${window}) AS x FROM t`,
+    results: {main: {rows: rows[index].map(x => ({x})), unordered: true,
+      columns: [{name: 'x', contract: {type: 'number', nullable}}]}},
+    sourceReadCount: 0,
+  })));
 const octalQuotes = [['single', "'"], ['double', '"'],
   ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
@@ -693,8 +977,50 @@ export const sourceFreeSuccesses = [
   {name: 'source-free-cte', format: 'sql',
     text: 'WITH seed AS (SELECT 2 AS x |> WHERE x > 0 |> SELECT x) SELECT x FROM seed ORDER BY x',
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
+  dateLiteralOriginal,
+  timestampLiteralOriginal,
+  ...generateArrayOriginalCases,
+  timestampDiffOriginal,
+  timestampTruncOriginal,
+  extractTimestampOriginal,
+  makeDateOriginal,
+  dateCalendarOriginal,
+  groupingRollupOriginal,
+  currentDateOriginal,
+  arrayConcatOriginal,
+  arrayToStringOriginal,
+  formatStringsOriginal,
+  farmFingerprintOriginal,
+  toJsonStringOriginal,
+  ...jsonValueOriginals,
+  regexpContainsOriginal,
+  regexpContainsBoundaries,
+  regexpExtractOriginal,
+  regexpExtractBound,
+  regexpReplaceOriginal,
+  regexpReplaceBound,
+  tryTimestampPatterned,
+  tryTimestampPatternedBound,
+  ...logicalAggregateSuccesses,
+  ...anyValueSuccesses,
+  navigationDefaultOriginal,
+  ...numberingSuccesses,
+  ...navigationFrameSuccesses,
+  ...aggregateDefaultFrameSuccesses,
 ];
 export const sourceFreeRefusals = [
+  {name: 'try-timestamp-patterned-invalid', format: 'sql',
+    text: "SELECT TRY_TIMESTAMP(NULL, 'yyyy') AS result",
+    expectedCode: 'ClientProgramTimestampPatternInvalid'},
+  {name: 'regexp-replace-invalid-escape', format: 'sql',
+    text: String.raw`SELECT REGEXP_REPLACE(NULL, 'a', r'\x') AS result`,
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'regexp-replace-missing-capture', format: 'sql',
+    text: String.raw`SELECT REGEXP_REPLACE(NULL, '(a)', r'\2') AS result`,
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'regexp-extract-multiple-captures', format: 'sql',
+    text: "SELECT REGEXP_EXTRACT(NULL, '(a)(b)') AS result",
+    expectedCode: 'ClientProgramInvalidInput'},
   ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
     name: `octal-range-${name}-${digits}`, format: 'sql',
     // A valid published source is present. Lexical refusal must still occur
@@ -762,6 +1088,20 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
 
+export function assertPublicQueryRows(actual, expected, unordered) {
+  // An unordered SQL Relation is compared as a multiset. Sorting this test
+  // copy preserves duplicates and leaves the product output intact.
+  const canonicalRow = value => Array.isArray(value)
+    ? '[' + value.map(canonicalRow).join(',') + ']'
+    : value !== null && typeof value === 'object'
+      ? '{' + Object.keys(value).sort().map(key =>
+        JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+      : JSON.stringify(value);
+  if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
+    expected.map(canonicalRow).sort());
+  else assert.deepEqual(actual, expected);
+}
+
 // Public text without an explicit RESULT exports main. Explicit text names
 // belong to authored fixture metadata; structured Programs retain their own
 // declared exports. None of these names comes from a product reply.
@@ -821,23 +1161,10 @@ export async function exercisePublicQueryInput(connect, options,
             JSON.stringify((await observe()).sourceReadCommands));
       }
       const expectedResults = publicQueryResultOracles(item, primaryResultName);
-      const compare = (actual, expected, unordered) => {
-        // An unordered SQL Relation is compared as a multiset. Sorting this
-        // test copy preserves duplicates and never changes the product output.
-        const canonicalRow = value => Array.isArray(value)
-          ? '[' + value.map(canonicalRow).join(',') + ']'
-          : value !== null && typeof value === 'object'
-            ? '{' + Object.keys(value).sort().map(key =>
-              JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
-            : JSON.stringify(value);
-        if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
-          expected.map(canonicalRow).sort());
-        else assert.deepEqual(actual, expected);
-      };
       const observedResults = Object.create(null);
       for (const [resultName, result] of Object.entries(expectedResults)) {
         const rows = await execution.result(resultName).all();
-        compare(rows, result.rows, result.unordered);
+        assertPublicQueryRows(rows, result.rows, result.unordered);
         observedResults[resultName] = {rows};
         if (result.columns !== undefined) {
           const columns = (await execution.result(resultName).describe()).columns;
@@ -848,7 +1175,7 @@ export async function exercisePublicQueryInput(connect, options,
       }
       const attached = await client.attach(execution.ref);
       for (const [resultName, result] of Object.entries(expectedResults)) {
-        compare(await attached.result(resultName).all(), result.rows, result.unordered);
+        assertPublicQueryRows(await attached.result(resultName).all(), result.rows, result.unordered);
       }
       const resent = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(resent.ref, execution.ref);

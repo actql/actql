@@ -191,7 +191,12 @@ fn prepare_ordered_reference_material(
               bytes -= size
               entries.push({ at: path, target, })
             }
-            Literal(_) | TypedNull | EmptyArray | CurrentTimestamp => ()
+            Literal(_)
+            | DateLiteral(_)
+            | TypedNull
+            | EmptyArray
+            | CurrentTimestamp
+            | CurrentDate => ()
             Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)
@@ -253,6 +258,24 @@ fn prepare_ordered_reference_material(
                 return Err(ReferenceLimit)
               }
             }
+            Many(SplitPart, children) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(
+                  ObjectFields(
+                    [
+                      ("value", children[0]),
+                      ("delimiter", children[1]),
+                      ("index", children[2]),
+                    ],
+                    0,
+                    body,
+                  ),
+                ) {
+                return Err(ReferenceLimit)
+              }
+            }
             Many(Substring, children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)
@@ -283,7 +306,7 @@ fn prepare_ordered_reference_material(
                 return Err(ReferenceLimit)
               }
             }
-            Case(clauses, otherwise) => {
+            Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
               guard append_path(path, "/body/else") is Some(else_path) else {
                 return Err(ReferenceLimit)
               }
@@ -293,6 +316,14 @@ fn prepare_ordered_reference_material(
               if !push(Visit(otherwise, else_path)) ||
                 !push(Clauses(clauses, 0, when_path)) {
                 return Err(ReferenceLimit)
+              }
+              if expr.body is SimpleCase(operand, _, _) {
+                guard append_path(path, "/body/operand") is Some(operand_path) else {
+                  return Err(ReferenceLimit)
+                }
+                if !push(Visit(operand, operand_path)) {
+                  return Err(ReferenceLimit)
+                }
               }
             }
           }

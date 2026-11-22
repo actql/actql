@@ -558,6 +558,75 @@ pub fn borrow_buffer(
     !slot.input_complete {
     return Err(Closed)
   }
+  admit_buffer_borrow(pool, slot, physical_stop)
+}
+
+///|
+/// Borrow the original filled delivery input while its bytes remain unavailable
+/// through the structured input and generic wire accessors.
+pub fn borrow_filled_payload_input(
+  pool : BufferPool,
+  slot : BufferSlot,
+  physical_stop : () -> Bool,
+) -> Result[BufferBorrow, BufferIssue] {
+  if !physical_equal(pool, slot.owner) {
+    return Err(ForeignOwner)
+  }
+  if !slot.published ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    slot.output_only {
+    return Err(Closed)
+  }
+  if slot.written != slot.wire_length {
+    return Err(Incomplete)
+  }
+  if !slot.input_complete &&
+    (
+      slot.bytes.length() != slot.wire_length ||
+      slot.wire is Some(_) ||
+      slot.parser_working is Some(_) ||
+      slot.parser_preflight is Some(_) ||
+      slot.parser is Some(_)
+    ) {
+    return Err(Closed)
+  }
+  admit_buffer_borrow(pool, slot, physical_stop)
+}
+
+///|
+/// Materialize delivery bytes after the caller has retained the original
+/// borrow. Its input reservation already covers the mutable and immutable
+/// wire overlap. A completed structured input retains its original wire.
+pub fn filled_payload_input_bytes(
+  pool : BufferPool,
+  borrow : BufferBorrow,
+) -> Bytes? {
+  let slot = borrow.slot
+  guard physical_equal(pool, borrow.owner) &&
+    !borrow.returned &&
+    slot.published &&
+    !pool.closing &&
+    !slot.retired &&
+    !slot.cleaned &&
+    !slot.output_only &&
+    slot.written == slot.wire_length else {
+    return None
+  }
+  if slot.input_complete {
+    slot.wire
+  } else {
+    Some(Bytes::from_array(slot.bytes))
+  }
+}
+
+///|
+fn admit_buffer_borrow(
+  pool : BufferPool,
+  slot : BufferSlot,
+  physical_stop : () -> Bool,
+) -> Result[BufferBorrow, BufferIssue] {
   if pool.slots.length() + pool.live_borrows >= pool.max_slots {
     return Err(Capacity)
   }

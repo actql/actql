@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
 import zipfile
@@ -142,9 +143,11 @@ class RepeatedHostAcceptanceTests(unittest.TestCase):
         result = 'result-complete' if phase == 'warm' else 'saved-result-complete'
         data += [{'phase': result, 'ordinal': ordinal, 'pid': pid} for ordinal in range(1, 11)]
         if phase == 'warm':
-            data += [{'phase': 'checkpoint-complete', 'ordinal': ordinal, 'pid': pid}
+            data += [{'phase': 'checkpoint-complete', 'ordinal': ordinal, 'pid': pid,
+                      'retirement_checked': True}
                      for ordinal in (1, 3, 10)]
-        return data + [{'phase': phase + '-complete', 'runs': 10, 'pid': pid},
+        return data + [{'phase': phase + '-complete', 'runs': 10, 'pid': pid,
+                        'retirement_checked': phase == 'saved'},
                        {'phase': 'first-close-attempted', 'mode': phase, 'pid': pid},
                        {'phase': 'first-close-returned', 'mode': phase, 'pid': pid}]
 
@@ -171,6 +174,8 @@ class RepeatedHostAcceptanceTests(unittest.TestCase):
                          [('installed-ordinary-repeated-warm', 'warm', 900),
                           ('installed-ordinary-repeated-saved', 'saved', 180)])
         self.assertEqual(result, {'runs': 10, 'warm_pid': 41, 'saved_pid': 42,
+                                  'successful_retirement_checkpoints': [1, 3, 10],
+                                  'closed_saved_read_retirement_checked': True,
                                   'original_first_closes_returned': True})
 
     def test_missing_result_checkpoint_close_or_same_process_cannot_pass(self):
@@ -186,6 +191,49 @@ class RepeatedHostAcceptanceTests(unittest.TestCase):
                 ci.require_installed_repeated_host(warm + [{'phase': failure, 'pid': 41}], 'warm', None)
         with self.assertRaises(ValueError):
             ci.require_installed_repeated_host(warm + self.events('saved', 41), 'saved', 41)
+        for phase, checkpoint in (('warm', 'checkpoint-complete'), ('saved', 'saved-complete')):
+            with self.subTest(phase=phase), self.assertRaises(ValueError):
+                ci.require_installed_repeated_host([
+                    event | {'retirement_checked': False} if event['phase'] == checkpoint else event
+                    for event in self.events(phase, 42)], phase, 41)
+
+    def test_retirement_inventory_targets_execution_and_closed_readers_only(self):
+        fixture = load('repeated_host_inventory', SCRIPTS / 'fixtures/python-local-repeated-host.py')
+        snapshot = dict.fromkeys(fixture.SETTLED_COUNTS, 0) | {
+            'core_retained_work': False, 'core_loans': 17, '_inputs': 2,
+        }
+        with patch.object(fixture, 'inventory', return_value=snapshot), patch.object(fixture, 'write_event') as emit:
+            self.assertIs(fixture.settled_inventory(None, 'warm', 1), snapshot)
+            emit.assert_not_called()
+            for name in ('_physical_work', 'core_task_loans', '_result_exports', 'custody_runs',
+                         'custody_preparations', '_saved_result_reads', 'core_retained_work'):
+                with self.subTest(name=name):
+                    snapshot[name] = 1
+                    with self.assertRaises(AssertionError):
+                        fixture.settled_inventory(None, 'warm', 3)
+                    emit.assert_called_with('retirement-pending', mode='warm', ordinal=3,
+                                            inventory=snapshot)
+                    snapshot[name] = 0
+
+    def test_reference_survives_failed_start_without_the_signed_input(self):
+        fixture = load('repeated_host_reference', SCRIPTS / 'fixtures/python-local-repeated-host.py')
+        original = {'epoch': {'authenticator': 'private'}, 'nonce': 'synthetic'}
+        failure = RuntimeError('original start failure')
+        def start(*args, **kwargs):
+            self.assertIs(kwargs['submission_ref'], original)
+            raise failure
+        client = SimpleNamespace(new_submission=lambda: original, start_source=start, close=lambda: None)
+        api = SimpleNamespace(Client=SimpleNamespace(open=lambda: client))
+        with tempfile.TemporaryDirectory() as tmp, patch.object(fixture, 'ROOT', Path(tmp)), \
+                patch.object(fixture, 'inventory', return_value={}), patch.dict(sys.modules, {'actql': api}):
+            with self.assertRaises(RuntimeError) as raised:
+                fixture.run_phase('warm')
+            self.assertIs(raised.exception, failure)
+            recorded = json.loads((Path(tmp) / 'original-reference.json').read_text())
+            expected = hashlib.sha256(json.dumps(original, sort_keys=True, separators=(',', ':')).encode())
+            self.assertEqual(recorded, {'producer_pid': fixture.os.getpid(),
+                                        'runs': [{'ordinal': 1, 'submission_sha256': expected.hexdigest()}]})
+            self.assertFalse((Path(tmp) / 'originals.json').exists())
 
     def test_first_actual_failure_stops_without_retry_or_saved_launch(self):
         failure, calls = RuntimeError('original ordinary failure'), []
@@ -562,6 +610,73 @@ class MixedTaskDriveTraceTests(unittest.TestCase):
         trace = trace_module.MixedTaskDriveTrace(stream=BrokenStream())
         trace.mark('first-cleanup-begin')
         trace.mark('first-cleanup-returned')
+
+
+class CurrentHistoryTraceTests(unittest.TestCase):
+    def trace_module(self):
+        # Import the actual fixture; no Source slicing, Core construction or
+        # installed-history operation is performed by these scalar controls.
+        with patch.object(sys, 'path', list(sys.path)), \
+                patch.object(sys, 'argv', ['current-history-trace-unit']):
+            return load('current_history_trace_unit',
+                        SCRIPTS / 'fixtures/python-local-sdk-current-history.py')
+
+    def test_first_original_failure_and_phase_survive_rethrow_and_later_failure(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+
+        class OpaqueFailure(RuntimeError):
+            def __str__(self):
+                raise AssertionError('Never format the original failure')
+
+        first, later = OpaqueFailure(), OpaqueFailure()
+        for phase, original in [('select', first), ('drive', later)]:
+            def invoke():
+                raise original
+            with patch('sys.stdout', io.StringIO()), \
+                    self.assertRaises(OpaqueFailure) as raised:
+                trace.call(phase, invoke)
+            self.assertIs(raised.exception, original)
+            self.assertIs(trace.refusal, first)
+            self.assertEqual(trace.refusal_phase, 'select')
+            self.assertIsNone(trace.active)
+        self.assertEqual([step['phase'] for step in trace.steps], ['select', 'drive'])
+
+    def test_same_scalar_core_refusal_and_success_result_are_preserved(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+        result = object()
+        with patch('sys.stdout', io.StringIO()):
+            self.assertIs(trace.call('select', lambda: result), result)
+        self.assertIsNone(trace.refusal)
+        original = module.LocalCoreError('reserve_next_sdk_task', -35)
+        def invoke():
+            raise original
+        with patch('sys.stdout', io.StringIO()), \
+                self.assertRaises(module.LocalCoreError) as raised:
+            trace.call('select', invoke)
+        self.assertIs(raised.exception, original)
+        self.assertIs(trace.refusal, original)
+        self.assertEqual((trace.refusal.operation, trace.refusal.code),
+                         ('reserve_next_sdk_task', -35))
+        self.assertEqual(trace.refusal_phase, 'select')
+
+    def test_reporting_failure_cannot_replace_original_base_exception(self):
+        module = self.trace_module()
+        trace = module.Trace()
+        trace.enabled, trace.target = True, 'unit-original'
+        original = KeyboardInterrupt()
+        def invoke():
+            raise original
+        with patch('builtins.print', side_effect=BrokenPipeError()), \
+                self.assertRaises(KeyboardInterrupt) as raised:
+            trace.call('select', invoke)
+        self.assertIs(raised.exception, original)
+        self.assertIs(trace.refusal, original)
+        self.assertEqual(trace.refusal_phase, 'select')
+        self.assertIsNone(trace.active)
 
 
 class PublicLifecycleTests(unittest.TestCase):

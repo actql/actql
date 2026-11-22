@@ -1382,8 +1382,9 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d726bf5b420baae8b6218e1ae783773e7915a18afa63014f04e9eef1c9da099",
+      "sha256": "ec69b1e403ec2c7baf797e8fbd77f5fa82987318db183450cd569a59f3b145e1",
       "exports": [
+        "bindSdkTransportCredential",
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
         "deliverSdkResponse",
@@ -1417,6 +1418,13 @@
         {
           "name": "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindSdkTransportCredential",
+          "parameters": [
+            "handle"
+          ],
           "async": false
         },
         {
@@ -1716,7 +1724,8 @@
             "startSdkTransport/startSdkTransport#2",
             "startSdkTransport/startSdkTransport#3",
             "startSdkTransport/startSdkTransport#4",
-            "takeSdkDecodedResult"
+            "takeSdkDecodedResult",
+            "bindSdkTransportCredential"
           ],
           "exports": [
             "cancelSdkPreparation",
@@ -1734,7 +1743,8 @@
             "sdkTransportRawObservation",
             "sdkTransportResponse",
             "startSdkTransport",
-            "takeSdkDecodedResult"
+            "takeSdkDecodedResult",
+            "bindSdkTransportCredential"
           ],
           "attributes": {
             "responsibility": [
@@ -1996,12 +2006,13 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44b15dd2e68ba97f6d10daaaddfefdf104a20ea27712268cfb04926d51c24539",
+      "sha256": "64d0209880bb7e1de69bc06b4ec820446094f2ffa4a6754495aa91ee4f1254de",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
         "fixedOriginalTransportTimeouts",
-        "prepareOriginalUndiciFetch"
+        "prepareOriginalUndiciFetch",
+        "unboundOpenAICredential"
       ],
       "operations": [
         {
@@ -2023,7 +2034,8 @@
             "requestLimits",
             "responseLimits",
             "physicalAcquisitionLimits",
-            "transportTimeouts"
+            "transportTimeouts",
+            "openAICredentialBytes"
           ],
           "async": false
         },
@@ -2137,6 +2149,11 @@
             "responseLimits",
             "controller"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/bindCredential/bindCredential",
+          "parameters": [],
           "async": false
         },
         {
@@ -2254,12 +2271,12 @@
           "async": false
         },
         {
-          "name": "withOriginalCallDeadline/init:cleanup/init:cleanup",
+          "name": "withOriginalCallDeadline/port/init:cleanup/init:cleanup",
           "parameters": [],
           "async": false
         },
         {
-          "name": "withOriginalCallDeadline/init:invoke/init:invoke",
+          "name": "withOriginalCallDeadline/port/init:invoke/init:invoke",
           "parameters": [],
           "async": false
         }
@@ -2309,14 +2326,16 @@
             "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
             "withOriginalCallDeadline/expire/expire",
             "withOriginalCallDeadline/finishResponse/finishResponse",
-            "withOriginalCallDeadline/init:cleanup/init:cleanup",
-            "withOriginalCallDeadline/init:invoke/init:invoke"
+            "prepareOriginalUndiciFetch/bindCredential/bindCredential",
+            "withOriginalCallDeadline/port/init:cleanup/init:cleanup",
+            "withOriginalCallDeadline/port/init:invoke/init:invoke"
           ],
           "exports": [
             "createOriginalUndiciFetch",
             "fixedOriginalAcquisitionLimits",
             "fixedOriginalTransportTimeouts",
-            "prepareOriginalUndiciFetch"
+            "prepareOriginalUndiciFetch",
+            "unboundOpenAICredential"
           ],
           "attributes": {
             "responsibility": [
@@ -2434,7 +2453,7 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b70e0978a7998d020d66d4e58dd3bf18fef93e862667f00b012b7c9626361316",
+      "sha256": "5d4e2018e9a9e94ea79be1930b73ba4f961c8997df401c4fd0342dc939d9aeda",
       "exports": [
         "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
@@ -2450,6 +2469,7 @@
         "OriginalStringLimits",
         "PhysicalAcquisitionLimits",
         "PhysicalTransportTimeouts",
+        "ProjectOpenAIChatProviderOptions",
         "ProjectionLimits",
         "QuantityCapacity",
         "RequestLimits",
@@ -2460,7 +2480,8 @@
         "UndiciOpenAIChatRegistrationOptions",
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration",
-        "createOpenAIChatProvider"
+        "createOpenAIChatProvider",
+        "createProjectOpenAIChatProvider"
       ],
       "operations": [
         {
@@ -2548,6 +2569,13 @@
             "options: OpenAIChatProviderOptions"
           ],
           "result": "ConfiguredModelProviderRegistration"
+        },
+        {
+          "name": "createProjectOpenAIChatProvider",
+          "parameters": [
+            "options: ProjectOpenAIChatProviderOptions"
+          ],
+          "result": "ConfiguredModelProviderRegistration"
         }
       ],
       "role": "physical-io",
@@ -2568,7 +2596,8 @@
             "createInstalledUndiciOpenAIChatRegistration#3",
             "<call>#5",
             "<call>#6",
-            "createOpenAIChatProvider"
+            "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider"
           ],
           "exports": [
             "ModelProviderRegistration",
@@ -2595,7 +2624,9 @@
             "ConfiguredModelProviderRegistration",
             "OpenAIChatProviderOptions",
             "createOpenAIChatProvider",
-            "PhysicalTransportTimeouts"
+            "PhysicalTransportTimeouts",
+            "ProjectOpenAIChatProviderOptions",
+            "createProjectOpenAIChatProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -2709,11 +2740,12 @@
     {
       "module": "packages/provider-ai-sdk/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8fa10583204c9108e139d599aa3ffa3f003845e74e269b2c96a8c81448674cfe",
+      "sha256": "da79d90fdd2e9c9da8767c8120eb2d3786ce7ce0f34d4980a0c0650eaf8ee99d",
       "exports": [
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration",
-        "createOpenAIChatProvider"
+        "createOpenAIChatProvider",
+        "createProjectOpenAIChatProvider"
       ],
       "operations": [],
       "role": "physical-io",
@@ -2726,7 +2758,8 @@
           "exports": [
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
-            "createOpenAIChatProvider"
+            "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -3359,9 +3392,10 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8daa036704fd7622f54acd0b96f99c2d1db74ed86b9f40adc3a1656861bdecc",
+      "sha256": "d65fd1a033133d21bdf55fbcef1755ad85b47f96f3e510edf4030fc2575c2cb9",
       "exports": [
-        "createOpenAIChatProvider"
+        "createOpenAIChatProvider",
+        "createProjectOpenAIChatProvider"
       ],
       "operations": [
         {
@@ -3379,14 +3413,7 @@
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider",
           "parameters": [
             "moon",
             "context"
@@ -3394,75 +3421,89 @@
           "async": true
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/bindings/bindings",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/register/register",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/owned/owned",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/owned/owned",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/profile/profile",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/profile/profile",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createProjectOpenAIChatProvider",
+          "parameters": [
+            "options"
+          ],
           "async": false
         },
         {
@@ -3533,19 +3574,6 @@
             "amount/amount",
             "configuration/configuration",
             "createOpenAIChatProvider",
-            "createOpenAIChatProvider/createOpenAIChatProvider",
-            "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
-            "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
-            "createOpenAIChatProvider/createOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/register/register",
-            "createOpenAIChatProvider/createOpenAIChatProvider/owned/owned",
-            "createOpenAIChatProvider/createOpenAIChatProvider/profile/profile",
             "data/data",
             "data/data/data",
             "data/data/data#2",
@@ -3553,10 +3581,25 @@
             "observation/observation",
             "observation/observation/fields/fields",
             "observation/observation/observation",
-            "observation/observation/observation#2"
+            "observation/observation/observation#2",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/bindings/bindings",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider#2",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/owned/owned",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/profile/profile",
+            "createProjectOpenAIChatProvider"
           ],
           "exports": [
-            "createOpenAIChatProvider"
+            "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -3637,6 +3680,10 @@
               {
                 "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
                 "anchor": "SDK expected wires remain per row"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "anchor": "an explicit selector binds the resolved Chat model"
               }
             ]
           }

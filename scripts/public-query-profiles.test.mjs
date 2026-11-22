@@ -94,7 +94,7 @@ test('combined analytic corpora retain their independent installed ceilings', ()
   const property = groups.find(item => item.name === 'analytic-property');
   assert.deepEqual(order.capacity, capacity(1048576));
   assert.deepEqual(property.capacity, capacity(10000));
-  for (const [group, counts] of [[order, [10, 6, 1]], [property, [12, 7, 0]]]) {
+  for (const [group, counts] of [[order, [10, 6, 1]], [property, [13, 6, 0]]]) {
     assert.deepEqual(['successes', 'refusals', 'executionFailures']
       .map(kind => group.inputs[kind].length), counts);
     for (const kind of ['successes', 'refusals', 'executionFailures']) {
@@ -266,9 +266,6 @@ test('semantic refusal fixtures retain 21 exact invalid-input policies', () => {
     assert.equal(matches.length, 1, name);
     assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
   }
-  assert.equal(windowScalarRefusals.find(value => value.name ===
-    'window-scalar-refuse-aggregate-operand-missing-frame').expectedCode,
-  'ClientProgramImplementationLimit', 'the valid missing-frame connection remains unsupported');
   const unsafe = groupSelectScopeRefusals.find(value => value.name ===
     'group-select-scope-numeric-unsafe-integer');
   assert.equal(Object.hasOwn(unsafe, 'expectedCode'), false,
@@ -337,9 +334,11 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // portable-1 digests include those five preimages, not unrelated fixtures.
   // The window-group unresolved-order refusal retains its Program and uses
   // its named order code in the full and portable-1 corpus preimages.
-  assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2658,"executionFailures":53,"refusals":1529});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2604,"executionFailures":51,"refusals":1490}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  // The original positional CTE query returns its two values under the left name.
+  // The original simple CASE adds one ordinary standard-profile success.
+  assert.equal(pin.totalCases, 4297);
+  assert.deepEqual(pin.counts, {"successes":2719,"executionFailures":53,"refusals":1525});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2664,"executionFailures":51,"refusals":1487}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":14,"executionFailures":0,"refusals":6}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},

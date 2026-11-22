@@ -66,9 +66,28 @@ fn integer_context_name(
 }
 
 ///|
-fn integer_context_call_name(path : Array[NamePart]) -> Bool {
-  guard path.length() == 1 && path[0].value.length() == 3 else { return false }
+fn integer_context_call_name(
+  path : Array[NamePart],
+  argument_count : Int,
+) -> Bool {
+  guard path.length() == 1 else { return false }
   let name = path[0].value
+  if name.length() == 14 || (name.length() == 4 && argument_count == 3) {
+    let expected = if name.length() == 14 { "GENERATE_ARRAY" } else { "DATE" }
+    for index in 0..<expected.length() {
+      let actual = name[index].to_int()
+      let unit = if actual >= 97 && actual <= 122 {
+        actual - 32
+      } else {
+        actual
+      }
+      if unit != expected[index].to_int() {
+        return false
+      }
+    }
+    return true
+  }
+  guard name.length() == 3 else { return false }
   let a = name[0].to_int()
   let b = name[1].to_int()
   let c = name[2].to_int()
@@ -81,8 +100,17 @@ fn integer_context_call_name(path : Array[NamePart]) -> Bool {
 ///|
 fn integer_context_call(
   path : Array[NamePart],
+  argument_count : Int,
   budget : IntegerContextBudget,
 ) -> Bool raise IntegerContextStop {
+  if path.length() == 1 &&
+    (
+      path[0].value.length() == 14 ||
+      (path[0].value.length() == 4 && argument_count == 3)
+    ) {
+    integer_context_spend(budget, amount=path[0].value.length())
+    return integer_context_call_name(path, argument_count)
+  }
   // Preserve the existing short-circuit character Work accounting. The same
   // fixed predicate supplies both the parser fact and the selected pass.
   ignore(
@@ -92,7 +120,7 @@ fn integer_context_call(
       integer_context_name(path[0], { value: "DIV", quoted: false, }, budget)
     ),
   )
-  integer_context_call_name(path)
+  integer_context_call_name(path, argument_count)
 }
 
 ///|
@@ -242,6 +270,7 @@ fn integer_context_expressions(
   match operation {
     Where(expression) | Having(expression, _) | Qualify(expression, _) =>
       [expression]
+    UnnestSource(expression, _, _) => [expression]
     Extend(projections) | Select(projections, _) =>
       projections.filter_map(p => p.expression)
     Group(keys, projections, _) =>
@@ -389,7 +418,8 @@ fn integer_context_expression(
   let targets = if force { [expression.root] } else { [] }
   for node in expression.nodes {
     integer_context_spend(budget)
-    if node.kind is Call(path, arguments) && integer_context_call(path, budget) {
+    if node.kind is Call(path, arguments) &&
+      integer_context_call(path, arguments.length(), budget) {
       targets.append(arguments)
     }
   }
@@ -501,6 +531,12 @@ fn integer_context_operation(
       )
     Where(expression) =>
       Where(integer_context_expression(expression, false, budget, tasks, task))
+    UnnestSource(expression, element, offset) =>
+      UnnestSource(
+        integer_context_expression(expression, false, budget, tasks, task),
+        element,
+        offset,
+      )
     Having(expression, calls) =>
       Having(
         integer_context_expression(expression, false, budget, tasks, task),
@@ -566,7 +602,8 @@ fn integer_context_ordinary_expression(
   let exact = Array::make(expression.nodes.length(), false)
   for node in expression.nodes {
     integer_context_spend(budget)
-    if node.kind is Call(path, arguments) && integer_context_call(path, budget) {
+    if node.kind is Call(path, arguments) &&
+      integer_context_call(path, arguments.length(), budget) {
       for argument in arguments {
         let mut index = argument
         while expression.nodes[index].kind is Parenthesized(child) {
@@ -883,7 +920,7 @@ pub fn with_integer_function_context(
           for node in expression.nodes {
             integer_context_spend(budget)
             if node.kind is Call(path, arguments) &&
-              integer_context_call(path, budget) {
+              integer_context_call(path, arguments.length(), budget) {
               required = true
               for argument in arguments {
                 if integer_context_reference(expression, argument, budget)

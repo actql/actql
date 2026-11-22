@@ -135,6 +135,8 @@ fn native_project_mock_model_backed_read(
   pure_file_budget_refusal? : Bool = false,
   pure_file_query? : String? = None,
   static_disclosure? : Bool = false,
+  static_explain? : Bool = false,
+  static_lookup_metadata? : Bool = true,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -142,6 +144,7 @@ fn native_project_mock_model_backed_read(
   // Project metadata stays retained while its SAME immutable originals are
   // borrowed by the separate Request payload, as in the ordinary command.
   let request_facility = if readme_request ||
+    static_explain ||
     pure_file_source ||
     pure_file_plan ||
     pure_file_control ||
@@ -233,9 +236,12 @@ fn native_project_mock_model_backed_read(
       effect_recipe~,
       effect_material_restore~,
       effect_prepared_restore~,
+      static_explain~,
+      static_lookup_metadata~,
     )
   } else if account_initialization {
     native_project_mock_account_in_original_read()
+    native_project_mock_plural_account_in_original_read()
   } else if lookup_policy {
     native_mock_lookup_policy_in_original_read()
   } else if file_references {
@@ -274,7 +280,14 @@ fn native_project_mock_model_backed_read(
   }
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
-  if request_issue is Some(issue) {
+  if static_explain && !static_lookup_metadata {
+    assert_eq(
+      request_issue,
+      Some(
+        "Request.Preparation(ProgramCheck.EffectInput.Computation.Source.Requests.Capacity.Stage(2,MissingPolicy(1)))",
+      ),
+    )
+  } else if request_issue is Some(issue) {
     fail("whole original README Native Request: " + issue)
   }
 }
@@ -968,7 +981,9 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     operation="adopt",
   )
   defer original.retire()
-  assert_true(original.account_subjects() is Err(ForeignOriginal))
+  assert_true(
+    original.account_subjects(_ => true) is Some(Err(ForeignOriginal)),
+  )
   original.prepare_source_declarations().unwrap()
   original
   .prepare_models(
@@ -977,7 +992,12 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     local_utc_now,
   )
   .unwrap()
-  let subjects = original.account_subjects().unwrap()
+  assert_true(original.account_subjects(_ => false) is None)
+  let (subjects, targets) = original
+    .account_subjects(_ => true)
+    .unwrap()
+    .unwrap()
+  assert_eq(targets, [("salesforce", "Opportunity")])
   assert_eq(subjects.sources.length(), 3)
   for
     subject in [
@@ -1037,12 +1057,99 @@ fn native_project_mock_account_in_original_read() -> Unit raise {
     is @authorization.Deny(_),
   )
   original.retire()
-  assert_true(original.account_subjects() is Err(ForeignOriginal))
+  assert_true(
+    original.account_subjects(_ => true) is Some(Err(ForeignOriginal)),
+  )
+}
+
+///|
+fn native_project_mock_plural_account_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture(
+    "deal-review-plural",
+    operation="adopt",
+  )
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let calls = Ref(0)
+  let (subjects, targets) = original
+    .account_subjects(_ => {
+      calls.val += 1
+      true
+    })
+    .unwrap()
+    .unwrap()
+  assert_eq(calls.val, 1)
+  let expected = [
+    ("salesforce", "Opportunity"),
+    ("salesforce", "Contacts"),
+    ("outreach", "Leads"),
+  ]
+  assert_eq(targets.length(), expected.length())
+  assert_true(subjects.update_target is None)
+  for target in expected {
+    assert_true(targets.contains(target))
+    assert_true(subjects.sources.contains(target))
+  }
+  assert_true(subjects.sources.contains(("outreach", "Control")))
+  assert_false(targets.contains(("outreach", "Control")))
+  let contacts = original.sources
+    .iter()
+    .find_first(source => source._retained_connection == "salesforce")
+    .unwrap()._retained_rows
+    .iter()
+    .find_first(row => row.view.resource == "Contacts")
+    .unwrap()._retained_selection
+  let leads = original.sources
+    .iter()
+    .find_first(source => source._retained_connection == "outreach")
+    .unwrap()._retained_rows
+    .iter()
+    .find_first(row => row.view.resource == "Leads")
+    .unwrap()._retained_selection
+  assert_eq(contacts.directory, leads.directory)
+  assert_eq(contacts.name, leads.name)
+  assert_eq(contacts.primary_identity, "contact_key")
+  assert_eq(leads.primary_identity, "lead_key")
+  assert_eq(contacts.items_path, ["crossover", "directory", "rows"])
+  assert_eq(leads.items_path, ["crossover", "inbox", "rows"])
+}
+
+///|
+fn native_project_mock_refuse_overlapping_writes() -> Unit raise {
+  for name in ["deal-review-overlapping-writes", "deal-review-nested-writes"] {
+    let original = native_project_mock_model_fixture(name, operation="adopt")
+    defer original.retire()
+    assert_true(
+      original.prepare_source_declarations()
+      is Err(OverlappingWritableCollections),
+    )
+    assert_true(
+      original.prepare_source_declarations()
+      is Err(OverlappingWritableCollections),
+    )
+    let account_attempts = Ref(0)
+    assert_true(
+      original.account_subjects(_ => {
+        account_attempts.val += 1
+        false
+      })
+      is Some(Err(ForeignOriginal)),
+    )
+    assert_eq(account_attempts.val, 0)
+  }
 }
 
 ///|
 test "Native Mock first adoption retains only the original Project Account subjects" {
   native_project_mock_model_backed_read(false, account_initialization=true)
+  native_project_mock_refuse_overlapping_writes()
 }
 
 ///|
@@ -1226,8 +1333,9 @@ fn native_mock_original_journal_body(
     local_utc_now,
   )
   .native_mock_journal_required("prepare original Model metadata")
-  let subjects = original
-    .account_subjects()
+  let (subjects, _) = original
+    .account_subjects(_ => true)
+    .native_mock_journal_required("fund original Account subjects")
     .native_mock_journal_required("retain original Account subjects")
   let path = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").native_mock_journal_required(
     "select fresh process root",

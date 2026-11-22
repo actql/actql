@@ -6,6 +6,8 @@ import {
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/text_time_bounds" @text_bounds,
   "actql/actql/timestamp_pattern" @timestamp,
+  "actql/actql/regex_pattern" @regex,
+  "actql/actql/regex_replacement" @replacement,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/infer_typing" @infer,
   "actql/actql/pipeline_typing" @pipeline,

@@ -27,6 +27,7 @@ priv struct LocalCommandBusinessPreparation {
   preparation : @local_host.NativeClientSubmittedPreparation
   requirements : @local_values.ClientLocalRequirements?
   normalization : @run_host.ClientLocalNormalization?
+  authoring : @run_host.ClientAuthoringContextPreparation?
   mut file_source : LocalCommandFileSources?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   assets : @run_host.ClientLocalProductAssets
@@ -135,7 +136,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let intent = self.with_business_request(capture, () => {
     self.construct_business_intent()
   })
-  let (preparation, normalization) = self.prepare_business_request(
+  let (preparation, normalization, authoring) = self.prepare_business_request(
     capture, intent, environment,
   )
   let (requirements, file_source) = match
@@ -146,8 +147,15 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       guard normalization is Some(_) else {
         stop("LocalOriginalNormalizationNotInstalled")
       }
+      guard authoring is Some(_) else {
+        stop("LocalAuthoringEvidenceUnavailable")
+      }
       let assets = runtime.assets
-      if @run_host.prepared_client_acquisition_count(prepared) != 0 {
+      // This gate only separates Programs with checked Source work from
+      // source-free Programs. Their actual file route is selected later on
+      // the same Request, once its original occurrences are backed.
+      let graph = @run_host.prepared_client_graph(prepared)
+      if @checked.source_execution_count(@strategy.graph_program(graph)) > 0 {
         let selected = self
           .select_business_file_source(prepared)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
@@ -201,6 +209,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     preparation,
     requirements,
     normalization,
+    authoring,
     file_source,
     installed_contracts: runtime.installed_contracts,
     assets: runtime.assets,
@@ -291,10 +300,7 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
     return None
   }
   let graph = @run_host.prepared_client_graph(prepared)
-  let count = @run_host.prepared_client_acquisition_count(prepared)
-  if count <= 0 ||
-    @strategy.graph_captured_prefix(graph) != count ||
-    @strategy.graph_result_count(graph) != 1 ||
+  if @strategy.graph_result_count(graph) != 1 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
     return None

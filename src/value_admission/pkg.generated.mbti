@@ -94,6 +94,8 @@ pub fn canonical_scalar_text(CheckedValue, Int) -> String?
 
 pub fn checked_boolean_value(Bool, @value_contract.Contract) -> CheckedValue?
 
+pub fn checked_date_parts_value(Int64, Int64, Int64, @value_contract.Contract) -> CheckedValue?
+
 pub fn checked_date_value(String, @value_contract.Contract) -> CheckedValue?
 
 pub fn checked_null_value(@value_contract.Contract) -> CheckedValue?
@@ -128,6 +130,8 @@ pub fn contract_value_phase_construction_inventory(@value_contract.Contract, @de
 
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
+pub fn decimal_wire_text(DecimalValue) -> String
+
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] element_count(FrozenArray[T]) -> Int
@@ -157,6 +161,8 @@ pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, Refere
 pub fn json_payload(Value) -> Value?
 
 pub fn normalize_decimal_text(String, Int, Int, Int) -> Result[String, DecimalTextIssue]
+
+pub fn normalize_sql_timestamp_literal(String) -> String?
 
 pub fn normalize_timestamp_text(String, Int) -> String?
 
@@ -206,6 +212,8 @@ pub fn reference_wire(ReferenceValue) -> String
 
 pub fn signed64_comparison_literal_value(Double) -> Value?
 
+pub fn signed64_progression_count(Int64, Int64, Int64) -> Int?
+
 pub fn signed64_value(Int64) -> Value
 
 pub fn start_bounded_author_order_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
@@ -244,9 +252,13 @@ pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
 pub fn text_value(String, Int) -> Value?
 
+pub fn timestamp_components_valid(Int, Int, Int, Int, Int, Int) -> Bool
+
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 pub fn timestamp_instant(String) -> TimestampInstant?
+
+pub fn timestamp_numeric_part(String, String) -> Int64?
 
 pub fn timestamp_order_text(String) -> String?
 

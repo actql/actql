@@ -138,8 +138,20 @@ fn comparable_operands(
   node : Node,
   ordered : Bool,
 ) -> Array[@contract.Contract] raise Stop {
+  comparable_children(t, nodes, node.children, node.source, ordered, false)
+}
+
+///|
+fn comparable_children(
+  t : Types,
+  nodes : Array[Node],
+  ids : Array[Int],
+  source : @decode.Cursor,
+  ordered : Bool,
+  all_null : Bool,
+) -> Array[@contract.Contract] raise Stop {
   let mut evidence : Int? = None
-  for id in node.children {
+  for id in ids {
     if !immediate_null(nodes[id]) {
       ignore(resolve_type(t, nodes[id].inferred, nodes[id].source))
       evidence = Some(nodes[id].inferred)
@@ -148,10 +160,17 @@ fn comparable_operands(
   }
   let hint = match evidence {
     Some(id) => id
-    None => fail(node.source, NullTypeUnresolved)
+    // An all-NULL simple CASE never matches. Its comparison-only type
+    // has no bearing on the result contract.
+    None =>
+      if all_null {
+        primitive(t, BooleanType, true, source)
+      } else {
+        fail(source, NullTypeUnresolved)
+      }
   }
   let values : Array[@contract.Contract] = []
-  for id in node.children {
+  for id in ids {
     let child = nodes[id]
     if immediate_null(child) {
       provide(t, child.inferred, hint, child.source)
@@ -198,6 +217,43 @@ fn cast_target(body : @decode.Cursor) -> @contract.Contract raise Stop {
     match scalar_kind(name) {
       Some(kind) => @contract.primitive(kind, nullable=false)
       None => fail(body, InvalidStaticOption("cast target"))
+    }
+  }
+}
+
+///|
+priv enum SqlJsonTypeVisit {
+  InspectJsonType(@contract.Contract, Int)
+  InspectJsonFields(@contract.Fields, Int, Int)
+}
+
+///|
+fn check_sql_json_type(
+  t : Types,
+  contract : @contract.Contract,
+  source : @decode.Cursor,
+) -> Unit raise Stop {
+  let pending = [InspectJsonType(contract, 0)]
+  while pending.pop() is Some(task) {
+    spend(t.budget, source)
+    match task {
+      InspectJsonType(current, depth) => {
+        if depth > t.budget.limits.max_depth {
+          fail(source, BudgetExceeded)
+        }
+        match current.shape {
+          ResourceRef(..) | ContentRef(..) =>
+            fail(source, TypeMismatch("JSON-serializable Value"))
+          Array(item, ..) => pending.push(InspectJsonType(item, depth + 1))
+          Object(fields) => pending.push(InspectJsonFields(fields, 0, depth))
+          _ => ()
+        }
+      }
+      InspectJsonFields(fields, index, depth) =>
+        if @contract.field_at(fields, index) is Some(field) {
+          pending.push(InspectJsonFields(fields, index + 1, depth))
+          pending.push(InspectJsonType(field.contract, depth + 1))
+        }
     }
   }
 }
@@ -279,7 +335,9 @@ fn infer(
   }
   if text_time(tag) {
     if tag == "regex_extract" || tag == "regex_replace" {
-      regex_static_argument(tag, nodes[node.children[2]])
+      if node.children.get(2) is Some(option) {
+        regex_static_argument(tag, nodes[option])
+      }
     }
     profiles["actql-text-time/0.1"] = true
     pending.push({
@@ -343,6 +401,120 @@ fn infer(
     )
   }
   match tag {
+    "farm_fingerprint" => {
+      let nullable = arguments(t, nodes, node, "string")
+      primitive(t, Signed64Type, nullable, source)
+    }
+    "make_date" => {
+      let nullable = arguments(t, nodes, node, "int64")
+      primitive(t, DateType, nullable, source)
+    }
+    "json_value" => {
+      let input = nodes[node.children[0]]
+      if immediate_null(input) {
+        let hint = primitive(t, StringType, false, input.source)
+        provide(t, input.inferred, hint, input.source)
+      }
+      match resolve_type(t, input.inferred, input.source).shape {
+        Json | Text(_) => ()
+        _ => fail(input.source, TypeMismatch("String or Json"))
+      }
+      if node.children.get(1) is Some(path) {
+        ignore(require_type(t, nodes, path, "string"))
+      }
+      primitive(t, StringType, true, source)
+    }
+    "to_json_string" => {
+      let input = nodes[node.children[0]]
+      if immediate_null(input) {
+        let hint = primitive(t, JsonType, false, input.source)
+        provide(t, input.inferred, hint, input.source)
+      }
+      check_sql_json_type(
+        t,
+        resolve_type(t, input.inferred, input.source),
+        input.source,
+      )
+      let nullable = match node.children.get(1) {
+        Some(pretty) => require_type(t, nodes, pretty, "boolean").nullable
+        None => false
+      }
+      primitive(t, StringType, nullable, source)
+    }
+    "format_strings" => {
+      let nullable = arguments(t, nodes, node, "string")
+      primitive(t, StringType, nullable, source)
+    }
+    "array_to_string" => {
+      let item = primitive(t, StringType, false, source)
+      let hint = put(t, Sequence(item, None), false, source)
+      provide(t, values[0], hint, source)
+      let (base, nullable) = head(t, values[0], source)
+      guard t.entries[base].kind is Sequence(actual_item, _) &&
+        type_name(resolve_type(t, actual_item, source)) == "string" else {
+        fail(source, TypeMismatch("array of strings"))
+      }
+      let mut result_nullable = nullable
+      for i in 1..<node.children.length() {
+        let checked = require_type(t, nodes, node.children[i], "string")
+        result_nullable = result_nullable || checked.nullable
+      }
+      primitive(t, StringType, result_nullable, source)
+    }
+    "array_concat" => {
+      let mut maximum = Some(0L)
+      for value in values {
+        let (base, _) = head(t, value, source)
+        match t.entries[base].kind {
+          Hole => ()
+          Sequence(_, maximum_operand) =>
+            maximum = match (maximum, maximum_operand) {
+              (Some(left), Some(right)) if left <= 9007199254740991L - right =>
+                Some(left + right)
+              _ => None
+            }
+          _ => fail(source, TypeMismatch("typed array operand"))
+        }
+      }
+      let (base, nullable) = head(t, peers(t, values, source), source)
+      guard t.entries[base].kind is Sequence(item, _) else {
+        fail(source, TypeMismatch("typed array operand"))
+      }
+      put(t, Sequence(item, maximum), nullable, source)
+    }
+    "generate_array" => {
+      let nullable = arguments(t, nodes, node, "int64")
+      fn literal_argument(id : Int) -> Int64? raise Stop {
+        let child = nodes[id]
+        if child.tag == "typed_literal" {
+          let spelling = string(part(child.body, "value"))
+          spend(t.budget, child.source, amount=spelling.length())
+          @scalar.read_decimal_int64(spelling).to_option()
+        } else {
+          None
+        }
+      }
+      let maximum = match
+        (
+          literal_argument(node.children[0]),
+          literal_argument(node.children[1]),
+          match node.children.get(2) {
+            Some(step) => literal_argument(step)
+            None => Some(1L)
+          },
+        ) {
+        (Some(start), Some(end), Some(step)) =>
+          @value.signed64_progression_count(start, end, step)
+        _ => None
+      }
+      let item = @contract.primitive(Signed64Type, nullable=false)
+      let max_items = maximum.map(count => count.to_int64())
+      typed(
+        t,
+        @contract.array_contract(item, nullable~, max_items~).unwrap(),
+        source,
+      )
+    }
     "split" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable
@@ -471,6 +643,17 @@ fn infer(
     }
     "#null" => put(t, Hole, true, source)
     "current_timestamp" => primitive(t, TimestampType, false, source)
+    "current_date" => primitive(t, DateType, false, source)
+    "date_literal" => {
+      let text = string(node.body)
+      charge(t.budget, source, text)
+      let contract = @contract.primitive(DateType, nullable=false)
+      guard !text.has_prefix("0000-") &&
+        @value.checked_date_value(text, contract) is Some(_) else {
+        fail(source, InvalidStaticOption("Gregorian DATE literal"))
+      }
+      typed(t, contract, source)
+    }
     "typed_literal" => {
       if string(part(node.body, "type")) == "int64" {
         let contract = @contract.primitive(Signed64Type, nullable=false)
@@ -634,9 +817,22 @@ fn infer(
         branches.push(values[1])
         branches.push(values[2])
       } else if tag == "case" {
-        for i = 0; i + 1 < values.length(); i = i + 2 {
-          ignore(require_type(t, nodes, node.children[i], "boolean"))
-          branches.push(values[i + 1])
+        let body = decoded(@decode.open_object(node.body), node.body)
+        let simple = @decode.lookup(body, "operand") is Some(_)
+        if simple {
+          let matches = [node.children[0]]
+          for i = 1; i + 1 < values.length(); i = i + 2 {
+            spend(t.budget, source)
+            matches.push(node.children[i])
+            branches.push(values[i + 1])
+          }
+          int64_comparison_context(t, nodes, matches)
+          ignore(comparable_children(t, nodes, matches, source, false, true))
+        } else {
+          for i = 0; i + 1 < values.length(); i = i + 2 {
+            ignore(require_type(t, nodes, node.children[i], "boolean"))
+            branches.push(values[i + 1])
+          }
         }
         branches.push(values[values.length() - 1])
       } else {
@@ -714,6 +910,30 @@ fn infer(
         Sequence(item, _) => refine(t, item, true, source)
         _ => fail(source, TypeMismatch("typed array receiver"))
       }
+    }
+    "array_length" => {
+      let child = nodes[node.children[0]]
+      if immediate_null(child) {
+        let item = primitive(t, Signed64Type, false, child.source)
+        let hint = put(t, Sequence(item, None), false, child.source)
+        provide(t, child.inferred, hint, child.source)
+      }
+      let (base, nullable) = head(t, child.inferred, child.source)
+      guard t.entries[base].kind is Sequence(item, _) else {
+        fail(child.source, TypeMismatch("typed array receiver"))
+      }
+      let (item_base, _) = head(t, item, child.source)
+      if t.entries[item_base].kind is Hole {
+        // No element is read. Supply the default integer domain only for an
+        // otherwise untyped empty or all-NULL array constructor.
+        let hint = primitive(t, Signed64Type, false, child.source)
+        provide(t, item, hint, child.source)
+      }
+      primitive(t, Signed64Type, nullable, source)
+    }
+    "unix_seconds" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      primitive(t, Signed64Type, value.nullable, source)
     }
     "is_null" | "not_null" => {
       let child = nodes[node.children[0]]
@@ -1010,8 +1230,18 @@ fn infer(
       }
       typed(t, @contract.with_nullability(target, nullable), source)
     }
-    "timestamp_add" | "timestamp_sub" => {
-      let value = require_type(t, nodes, node.children[0], "timestamp")
+    "timestamp_add" | "timestamp_sub" | "date_interval_add" => {
+      let date = tag == "date_interval_add"
+      let value = require_type(
+        t,
+        nodes,
+        node.children[0],
+        if date {
+          "date"
+        } else {
+          "timestamp"
+        },
+      )
       let amount = nodes[node.children[1]]
       // The interval's immediate canonical integer atom receives only this
       // consumer's exact int64 context. Text fields/expressions do not promote.
@@ -1033,7 +1263,43 @@ fn infer(
       }
       let amount = require_type(t, nodes, node.children[1], "int64")
       ignore(require_type(t, nodes, node.children[2], "string"))
-      primitive(t, TimestampType, value.nullable || amount.nullable, source)
+      primitive(
+        t,
+        if date {
+          DateType
+        } else {
+          TimestampType
+        },
+        value.nullable || amount.nullable,
+        source,
+      )
+    }
+    "date_boundary_diff" => {
+      let end = require_type(t, nodes, node.children[0], "date")
+      let start = require_type(t, nodes, node.children[1], "date")
+      ignore(require_type(t, nodes, node.children[2], "string"))
+      primitive(t, Signed64Type, end.nullable || start.nullable, source)
+    }
+    "date_boundary_trunc" => {
+      let date = require_type(t, nodes, node.children[0], "date")
+      ignore(require_type(t, nodes, node.children[1], "string"))
+      primitive(t, DateType, date.nullable, source)
+    }
+    "extract_timestamp" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      ignore(require_type(t, nodes, node.children[1], "string"))
+      primitive(t, Signed64Type, value.nullable, source)
+    }
+    "timestamp_trunc" => {
+      let value = require_type(t, nodes, node.children[0], "timestamp")
+      ignore(require_type(t, nodes, node.children[1], "string"))
+      primitive(t, TimestampType, value.nullable, source)
+    }
+    "timestamp_diff" => {
+      let end = require_type(t, nodes, node.children[0], "timestamp")
+      let start = require_type(t, nodes, node.children[1], "timestamp")
+      ignore(require_type(t, nodes, node.children[2], "string"))
+      primitive(t, Signed64Type, end.nullable || start.nullable, source)
     }
     "date_trunc" | "date_add" | "date_diff" => {
       let vi = if tag == "date_trunc" { 1 } else { 0 }

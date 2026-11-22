@@ -3,19 +3,31 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, packClientPackages, packedClientPackage} from './packed-client-packages.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
+import {inventory} from './package-inventory.mjs';
+
+export {inventory} from './package-inventory.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
 const exact = (object, keys) => assert.deepEqual(Object.keys(object).sort(), [...keys].sort());
 const packageName = name => `@actql/${name}`;
+export const nodePackages = Object.freeze(['client-wire', 'sdk', 'local-node', 'node']);
+const nodeOpenAIPackages = Object.freeze([...nodePackages, 'provider-ai-sdk']);
 const run = (command, args, cwd) => execFileSync(command, args, {
   cwd, encoding: 'utf8', timeout: 600_000, maxBuffer: 16 * 1024 * 1024});
+
+export function nodeReleaseIncludesProvider(packages) {
+  const includesProvider = packages.length === nodeOpenAIPackages.length;
+  assert.deepEqual(packages, includesProvider ? nodeOpenAIPackages : nodePackages,
+    'Select the complete standard Node cohort or the explicit Node and Provider cohort');
+  return includesProvider;
+}
 
 export function admitCohort(value) {
   exact(value, ['version', 'packageVersion', 'registry', 'access', 'tag', 'packages']);
@@ -24,9 +36,10 @@ export function admitCohort(value) {
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
   admitReleaseChannel(value.tag);
-  assert.deepEqual(value.packages, value.version === 'actql-explorer-release-cohort/0.1'
-    ? ['client-wire', 'sdk', 'local-node', 'node', 'explorer-ui', 'explorer']
-    : ['client-wire', 'sdk', 'local-node', 'node']);
+  assert(Array.isArray(value.packages));
+  if (value.version === 'actql-explorer-release-cohort/0.1')
+    assert.deepEqual(value.packages, [...nodePackages, 'explorer-ui', 'explorer']);
+  else nodeReleaseIncludesProvider(value.packages);
   return structuredClone(value);
 }
 
@@ -56,26 +69,6 @@ export function releasePackageMetadata(original, name, cohort) {
   return manifest;
 }
 
-export async function inventory(directory, prefix = '', {ignoreInstalledDependencies = false} = {}) {
-  assert.equal(typeof ignoreInstalledDependencies, 'boolean');
-  const files = [];
-  for (const name of (await readdir(directory)).sort()) {
-    // Only the public consumer asks to separate npm's installed dependency
-    // subtree from this package's own frozen payload. Archive checks never do.
-    if (ignoreInstalledDependencies && prefix === '' && name === 'node_modules') continue;
-    const path = join(directory, name), relative = prefix + name;
-    const stat = await lstat(path);
-    assert(!stat.isSymbolicLink(), `Release payload symlink: ${relative}`);
-    if (stat.isDirectory()) files.push(...await inventory(path, `${relative}/`));
-    else {
-      assert(stat.isFile(), `Non-file payload: ${relative}`);
-      files.push({path: relative, bytes: stat.size, mode: stat.mode & 0o777,
-        sha256: hash(await readFile(path))});
-    }
-  }
-  return files;
-}
-
 export async function unpack(archive, destination, {rootName = 'package'} = {}) {
   assert(typeof rootName === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(rootName) && rootName === rootName.trim(),
     'Archive root must be one literal directory name');
@@ -95,12 +88,27 @@ export async function unpack(archive, destination, {rootName = 'package'} = {}) 
   return join(destination, rootName);
 }
 
+async function verifyProviderPackage(name, directory, metadata, files) {
+  if (name !== 'provider-ai-sdk') return;
+  assert.deepEqual(metadata.exports, {'.': {types: './index.d.ts', default: './index.mjs'}},
+    'Provider has one matching public runtime and type entrance');
+  for (const path of ['index.mjs', 'index.d.ts', 'npm-shrinkwrap.json'])
+    assert(files.some(member => member.path === path), `Missing original Provider release member: ${path}`);
+  const shrinkwrap = JSON.parse(await readFile(join(directory, 'npm-shrinkwrap.json'), 'utf8'));
+  assert.equal(shrinkwrap.name, metadata.name);
+  assert.equal(shrinkwrap.packages?.['']?.name, metadata.name);
+  assert.equal(shrinkwrap.lockfileVersion, 3);
+  assert.deepEqual(shrinkwrap.packages[''].dependencies ?? {}, metadata.dependencies ?? {},
+    'Provider runtime dependencies must match the original packed shrinkwrap');
+}
+
 export async function stagePackage({archive, destination, name, cohort, license}) {
   const scratch = await mkdtemp(join(destination, '.stage-'));
   try {
     const directory = await unpack(archive, scratch);
     const before = await inventory(directory);
     const original = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
+    await verifyProviderPackage(name, directory, original, before);
     const manifest = releasePackageMetadata(original, name, cohort);
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     await copyFile(license, join(directory, 'LICENSE'));
@@ -185,6 +193,7 @@ export async function verifyPackageRelease(directory) {
       const payload = await unpack(join(directory, item.file), scratch);
       assert.deepEqual(await inventory(payload), item.files);
       const metadata = JSON.parse(await readFile(join(payload, 'package.json'), 'utf8'));
+      await verifyProviderPackage(item.name.slice(7), payload, metadata, item.files);
       assert.deepEqual(releasePackageMetadata(metadata, item.name.slice(7), cohort), metadata);
       assert.deepEqual(metadata.dependencies ?? {}, item.dependencies);
       const originalDirectory = await unpack(original, join(scratch, 'original'));

@@ -309,10 +309,43 @@ pub fn NativeClientRunJournal::resolve_effect_checkpoint(
   current : () -> Bool,
   now : () -> String,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  self.resolve_effect_checkpoint_with_operations(
+    request,
+    crypto,
+    verified_wire,
+    authentication,
+    reviewers,
+    keys,
+    current,
+    now,
+    None,
+  )
+}
+
+///|
+// The same original operation, with its existing bounded SQL/constructor
+// routes. None preserves the unchanged public legacy codec profile.
+fn NativeClientRunJournal::resolve_effect_checkpoint_with_operations(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  crypto : @crypto.Library,
+  verified_wire : String,
+  authentication : @checkpoint.HostAuthentication,
+  reviewers : Array[@checkpoint.ReviewerAuthority],
+  keys : Array[@effect_resolution.NativeEffectHostAuthority],
+  current : () -> Bool,
+  now : () -> String,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if !current() {
     return Err(AuthorizationDenied)
   }
-  let before = match self.lookup(request, true) {
+  if operations is Some(original) &&
+    !physical_equal(self.database, original.reads.database) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(original => original.reads)
+  let before = match self.lookup_with_reads(request, true, reads~) {
     Ok(Retained(value)) => value
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
@@ -338,96 +371,102 @@ pub fn NativeClientRunJournal::resolve_effect_checkpoint(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  self.transaction(() => {
-    let record = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if record.revision != before.revision {
-      return Err(Checkpoint(StaleRevision))
-    }
-    guard record.checkpoint is Some(checkpoint) else {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let closure = match checkpoint.resolution_cid {
-      Some(cid) => @checkpoint.CheckpointClosure::Resolved(cid)
-      None => @checkpoint.CheckpointClosure::Open
-    }
-    match
-      @checkpoint.decide_resolution_commit(
-        checkpoint.artifact,
-        closure,
-        verified,
-      ) {
-      DuplicateResolution => return Ok(record)
-      ConflictingResolution => return Err(Checkpoint(ConflictingResolution))
-      CheckpointExpired => return Err(Checkpoint(Expired))
-      CommitResolution => ()
-    }
-    // Historical verification cannot extend an open Checkpoint's answer
-    // deadline. Duplicates above still identify the original durable answer.
-    match @checkpoint.checkpoint_expired_at(checkpoint.artifact, updated_at) {
-      Ok(false) => ()
-      _ => return Err(Checkpoint(Expired))
-    }
-    if record.cancellation_requested &&
-      verified.decision == @checkpoint.Approved {
-      return Err(Checkpoint(NeedsOriginalContinuation))
-    }
-    let next = match
-      @checkpoint.resolution_effect(
-        checkpoint.artifact,
-        verified.decision,
-        unknown_effects=checkpoint.unknown_effects,
-      ) {
-      MoveRun(value) => value
-      _ => return Err(Checkpoint(InvalidMaterial))
-    }
-    if !@checkpoint.run_transition_allowed(checkpoint.state.status, next) {
-      return Err(Checkpoint(InvalidMaterial))
-    }
-    let wire = if verified.decision == @checkpoint.Approved {
-      @checkpoint.issue_lifecycle_run_state(
-        checkpoint.state.run_id,
-        next,
-        updated_at,
-        checkpoint.declared_results,
-        native_checkpoint_limits(),
-      )
-    } else {
-      @checkpoint.issue_waiting_exit_run_state(
-        checkpoint.state.run_id,
-        updated_at,
-        checkpoint.declared_results,
-        checkpoint.unknown_effects,
-        native_checkpoint_limits(),
-      )
-    }
-    let wire = match wire {
-      Ok(value) => value
-      Err(issue) => return Err(Checkpoint(State(issue)))
-    }
-    self.save({
-      ..record,
-      checkpoint: Some({
-        ..checkpoint,
-        updated_at,
-        state: @checkpoint.admit_run_state_wire(
-          wire,
+  self.transaction_with_reads(
+    () => {
+      let record = match self.retained(request, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      if record.revision != before.revision {
+        return Err(Checkpoint(StaleRevision))
+      }
+      guard record.checkpoint is Some(checkpoint) else {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let closure = match checkpoint.resolution_cid {
+        Some(cid) => @checkpoint.CheckpointClosure::Resolved(cid)
+        None => @checkpoint.CheckpointClosure::Open
+      }
+      match
+        @checkpoint.decide_resolution_commit(
+          checkpoint.artifact,
+          closure,
+          verified,
+        ) {
+        DuplicateResolution => return Ok(record)
+        ConflictingResolution => return Err(Checkpoint(ConflictingResolution))
+        CheckpointExpired => return Err(Checkpoint(Expired))
+        CommitResolution => ()
+      }
+      // Historical verification cannot extend an open Checkpoint's answer
+      // deadline. Duplicates above still identify the original durable answer.
+      match @checkpoint.checkpoint_expired_at(checkpoint.artifact, updated_at) {
+        Ok(false) => ()
+        _ => return Err(Checkpoint(Expired))
+      }
+      if record.cancellation_requested &&
+        verified.decision == @checkpoint.Approved {
+        return Err(Checkpoint(NeedsOriginalContinuation))
+      }
+      let next = match
+        @checkpoint.resolution_effect(
+          checkpoint.artifact,
+          verified.decision,
+          unknown_effects=checkpoint.unknown_effects,
+        ) {
+        MoveRun(value) => value
+        _ => return Err(Checkpoint(InvalidMaterial))
+      }
+      if !@checkpoint.run_transition_allowed(checkpoint.state.status, next) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let wire = if verified.decision == @checkpoint.Approved {
+        @checkpoint.issue_lifecycle_run_state(
+          checkpoint.state.run_id,
+          next,
+          updated_at,
+          checkpoint.declared_results,
           native_checkpoint_limits(),
-        ).unwrap(),
-        resolution_cid: Some(verified.resolution_cid),
-        verified_wire: Some(verified.wire),
-        resume_intent_id: verified.resume_intent_id,
-        resume_intent: verified.resume_intent_id.map(_ => {
-          state: @checkpoint.ResumePending,
-          generation: 0L,
-          claimant: "",
-          lease_expires_ms: 0L,
-        }),
-        settlement_only: false,
-      }),
-    })
-  })
+        )
+      } else {
+        @checkpoint.issue_waiting_exit_run_state(
+          checkpoint.state.run_id,
+          updated_at,
+          checkpoint.declared_results,
+          checkpoint.unknown_effects,
+          native_checkpoint_limits(),
+        )
+      }
+      let wire = match wire {
+        Ok(value) => value
+        Err(issue) => return Err(Checkpoint(State(issue)))
+      }
+      self.save_with_operations(
+        {
+          ..record,
+          checkpoint: Some({
+            ..checkpoint,
+            updated_at,
+            state: @checkpoint.admit_run_state_wire(
+              wire,
+              native_checkpoint_limits(),
+            ).unwrap(),
+            resolution_cid: Some(verified.resolution_cid),
+            verified_wire: Some(verified.wire),
+            resume_intent_id: verified.resume_intent_id,
+            resume_intent: verified.resume_intent_id.map(_ => {
+              state: @checkpoint.ResumePending,
+              generation: 0L,
+              claimant: "",
+              lease_expires_ms: 0L,
+            }),
+            settlement_only: false,
+          }),
+        },
+        operations~,
+      )
+    },
+    reads~,
+  )
 }

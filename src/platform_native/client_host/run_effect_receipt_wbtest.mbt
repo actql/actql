@@ -184,6 +184,7 @@ fn receipt_test_dispatch(
   file? : Bool = false,
   original_database? : @sqlite.Database? = None,
   preview_wire_sink? : (String) -> Unit = _ => (),
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> (
   @sqlite.Database,
   NativeClientRunJournal,
@@ -259,6 +260,7 @@ fn receipt_test_dispatch(
       } else {
         "RECEIPT_APPROVE"
       },
+      operations~,
     )
     is Ok(Claimed(claim)) else {
     fail("receipt resume claim missing")
@@ -281,13 +283,14 @@ fn receipt_test_dispatch(
     "sha256:" + "1".repeat(64),
     "sha256:" + "2".repeat(64),
   ).unwrap()
-  guard journal.record_effect_row_dispatch(
+  guard journal.record_effect_row_dispatch_with_operations(
       claim,
       locator,
       key,
       basis,
       () => true,
       () => 1001L,
+      operations,
     )
     is Ok(DispatchRecorded(dispatch)) else {
     fail("dispatch missing")

@@ -62,21 +62,78 @@ task files and the providers they may use:
     "model-task:draft-reply.v1": "./model-tasks/draft-reply.v1.yaml"
   },
   "providers": {
-    "openai": { "type": "openai", "api_key_env": "OPENAI_API_KEY" },
-    "anthropic": { "type": "anthropic", "api_key_env": "ANTHROPIC_API_KEY" }
+    "openai": { "type": "openai", "api_key_env": "OPENAI_API_KEY" }
   },
   "default_provider": "openai"
 }
 ```
 
-API keys are referenced by environment variable; the Host reads them when it
-calls the provider. `actql model-task list` and `actql model-task show
-model-task:churn-risk.v1` print what is registered and what a task expects.
+### OpenAI on Node
 
-Calling a model is a protected boundary like a read, decided on the
-provider's connection and the task. A Local Host's standard policy lets a
-registered task run; an account configuration can restrict it. Only the
-columns named in `INPUT` ever leave the Host.
+This path requires `@actql/node` and `@actql/provider-ai-sdk` from the same
+[optional five-package cohort](../../release/README.md#optional-node-and-openai-provider-cohort).
+Check that both packages are available at the exact selected version before
+installing from npm. The historical release covers the four Node and SDK
+packages. Set `ACTQL_VERSION` to the selected cohort's exact version. When
+that five-package cohort is published, install its two public entries:
+
+```sh
+npm install --save-exact "@actql/node@${ACTQL_VERSION}" "@actql/provider-ai-sdk@${ACTQL_VERSION}"
+```
+
+For a local candidate, install the five original staged tarballs together in
+an empty project directory.
+
+```sh
+npm install --save-exact \
+  "./actql-client-wire-${ACTQL_VERSION}.tgz" \
+  "./actql-sdk-${ACTQL_VERSION}.tgz" \
+  "./actql-local-node-${ACTQL_VERSION}.tgz" \
+  "./actql-node-${ACTQL_VERSION}.tgz" \
+  "./actql-provider-ai-sdk-${ACTQL_VERSION}.tgz"
+```
+
+Start the application in the project directory with `OPENAI_API_KEY` set in
+its environment. The registry contains only the reference name. The standard
+Node path supports the exact name `OPENAI_API_KEY` for the project's default
+`openai` provider, for structured, non-streaming Chat Completions. Set the
+model selector, deadlines and ceilings in the trusted application setup.
+
+```js
+import {open} from '@actql/node';
+import {createProjectOpenAIChatProvider} from '@actql/provider-ai-sdk';
+
+const client = await open({installation: {
+  authorization: configuredAuthorization,
+  registerModelProviders: createProjectOpenAIChatProvider({
+    modelId: configuredModelId,
+    generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+    transportTimeouts: {connectMs: 3_000, headersMs: 10_000, bodyMs: 5_000, callMs: 15_000},
+    budget: {maxCalls: 1n, maxRows: 1, maxTokens: 1000n,
+      maxCostUnits: 100_000n, maxDurationMs: 15_000n},
+    observeEgress: observeOpenAIEgress,
+  }),
+}});
+try {
+  const run = await client.startSource(program, {format: 'aql'});
+  if ((await run.wait()).status === 'succeeded') {
+    console.log(await run.result('out').all());
+  }
+} finally {
+  await client.close();
+}
+```
+
+`configuredAuthorization` is the application's existing Account and signer
+configuration. `observeOpenAIEgress` returns the application's current
+`classification`, `region`, `providerRetention` and `trainingUse` facts.
+Account and egress rules apply to the exact provider and Task. The Host reads
+the environment value only for an authorized fresh call to
+`https://api.openai.com/v1/chat/completions`. A missing or invalid value
+refuses the call before dispatch. Saved reads use the recorded result without
+needing the key. Keep the key out of Program data, project files, diagnostics
+and exports. Explicit installations using `createOpenAIChatProvider` can
+select a file credential and a custom endpoint.
 
 ### The mock model
 
@@ -130,30 +187,44 @@ as a non-null string afterwards.
 
 ## When the model fails
 
-A row's outcome is `failed:` followed by one of:
+The standard Node OpenAI Chat Completions profile sends at most one request per
+item. A complete HTTP error reply, including 429, yields
+`failed:provider_error` with a `NULL` value. A model refusal yields
+`failed:refusal`. The SDK and Host do not retry either result.
 
-| Reason | Meaning | Retried? |
-| --- | --- | --- |
-| `rate_limit` | The provider throttled the call | yes, within limits |
-| `timeout` | No answer in time | yes, within limits |
-| `provider_error` | The provider returned an error | yes, within limits |
-| `refusal` | The model declined to answer | no |
-| `schema_invalid` | The answer did not match the output type | no |
-| `safety_rejected` | A safety filter blocked the request or the answer | no |
-| `truncated` | The answer was cut off by the token limit | no |
+The transport has separate limits for connecting, receiving headers and idle
+time between body chunks. Its whole-call deadline also applies while body
+chunks are arriving. If the deadline expires after a call may have reached the
+provider and no complete reply was observed, the Run needs reconciliation.
+Reading the same Run or its Saved Result never resends that request.
 
-Only the transient reasons are retried, a bounded number of times, with the
-same request each time. An answer that does not fit the output type is never
-coerced into a partly typed value: it is `schema_invalid`, and the row's
-`value` is `NULL`.
+A complete reply can report input and output token counts. Zero is a reported
+count. An absent count stays unknown. Usage and the receipt describe the
+original observation, including when the reply cannot produce a typed answer.
+
+A definitive row failure has `failed:` followed by a reason. Which reasons a
+provider can report depends on its execution profile.
+
+| Reason | Meaning |
+| --- | --- |
+| `rate_limit` | The provider profile classified the reply as throttling |
+| `timeout` | The provider profile established a definitive timeout outcome |
+| `provider_error` | The provider returned an error |
+| `refusal` | The model declined to answer |
+| `schema_invalid` | The answer did not match the output type |
+| `safety_rejected` | A safety filter blocked the request or the answer |
+| `truncated` | The answer was cut off by the token limit |
+
+An answer that does not fit the output type produces `schema_invalid` and a
+`NULL` value. Retry behavior is fixed by the selected execution profile.
 
 By default every row comes back, failed ones included, so the Program decides
 what to do with them — keep only `ok`, route failures to a review table, or
 count them. Whether a failure fails the whole step is the Program's choice,
 not the task's: the task defines instructions, types, model and retries, and
 the `INFER` step says how to treat a failed row. To refuse a partial result,
-add `ON FAILURE FAIL`: when any row is still unsuccessful after the bounded
-retries, the step's result is not published as a success, no later step or
+add `ON FAILURE FAIL`: when any row ends unsuccessfully, the step's result is
+not published as a success, no later step or
 Effect sees it, and the calls already made stay recorded as evidence with
 their cost:
 

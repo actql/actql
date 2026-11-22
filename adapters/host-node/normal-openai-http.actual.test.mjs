@@ -2,19 +2,44 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {writeFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
 // Actual source-checkout Common/Host/Resource/SQLite/Store and SDK/Undici.
 // The server is a deterministic HTTP provider, not a real OpenAI acceptance.
 async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport = 'response', cancelEntered = false,
-  tls = false} = {}) {
+  tls = false, alias = false, approvedAlias, historicalSaved = false, invalidBinding = null} = {}) {
   const responseLost = transport === 'response-lost';
   const unknown = responseLost || cancelEntered;
-  const count = httpStatus === 200 && !unknown ? 2 : 1;
+  const count = httpStatus === 200 && !unknown && !alias && !approvedAlias ? 2 : 1;
+  const aliasedSelection = alias || approvedAlias ? "modelSelector:'fixture-selector'," : '';
+  const rawDenied = approvedAlias === 'raw-denied';
+  const leaseExpired = approvedAlias === 'lease-expired';
+  // Canonical normalized Task original for the authored first fixture Task
+  // under the shared alias. The Journal independently checks this binding.
+  const taskCid = 'sha256:35c61f54ca9853031befb1adb0e5230c14d616d6ba776bdab78a1bd9432177a1';
+  const permissions = (entry_id, outcome, operations, connection = {all: true}) =>
+    ({entry_id, outcome, principal: {all: true}, connection, resource: {all: true},
+      operation: operations === undefined ? {all: true} : {any_of: operations}, exclusions: []});
+  const accountWire = JSON.stringify({version: 'actql-execution-account-config/0.1', account_id: 'http-fixture',
+    entries: approvedAlias ? [
+      permissions('fixture-delegate', 'delegate', ['infer']),
+      permissions('fixture-only', 'allow', ['read', 'write']),
+      {...permissions('fixture-raw', rawDenied ? 'deny' : 'allow', ['model_raw_capture'], {any_of: ['models/http']}),
+        principal: {any_of: [userInfo().username]}, resource: {any_of: [taskCid]}},
+    ] : [permissions('fixture-only', 'allow')]});
+  const projectTimeouts = "{connectMs:1000,headersMs:1000,bodyMs:1000,callMs:1000}";
+  const measureCredentialReads = `
+    process.env=new Proxy(process.env,{get(target,key){
+      if(key==='OPENAI_API_KEY'){credentialReads++;return 'synthetic-only';}
+      return Reflect.get(target,key);
+    }});
+  `;
+  const blockConnections = `Socket.prototype.connect=function(){
+    connects++;throw Error('UnexpectedAliasConnection');};`;
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-normal-openai-http-',
-    label: 'Actual normal Model Host HTTP boundary', preserve: unknown});
+    label: 'Actual normal Model Host HTTP boundary', preserve: unknown || rawDenied || leaseExpired});
   const tasks = {
     'model-task:first': {task: 'model-task:first', instructions: 'Return the exact boolean.',
       input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}},
@@ -25,7 +50,8 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await writeFile(join(scratch.path, 'model-tasks.json'), JSON.stringify({version: 'actql-model-tasks/0.1',
     tasks: {'model-task:first': './first.json', 'model-task:second': './second.json'},
-    providers: {'models/http': {type: 'openai'}}, default_provider: 'models/http'}));
+    providers: {'models/http': {type: 'openai', ...(approvedAlias ? {api_key_env: 'OPENAI_API_KEY'} : {})}},
+    default_provider: 'models/http'}));
   for (const [name, task] of Object.entries(tasks)) {
     await writeFile(join(scratch.path, name.endsWith('first') ? 'first.json' : 'second.json'), JSON.stringify(task));
   }
@@ -33,22 +59,34 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
   if (tls) execFileSync('openssl', ['req','-x509','-nodes','-newkey','rsa:2048',
     '-keyout','provider.key','-out','provider.crt','-days','1','-subj','/CN=localhost',
     '-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd:scratch.path,stdio:'ignore'});
+  if (approvedAlias === 'matching') {
+    execFileSync('openssl', ['req','-x509','-nodes','-newkey','rsa:2048',
+      '-keyout','project.key','-out','project.crt','-days','1','-subj','/CN=api.openai.com',
+      '-addext','subjectAltName=DNS:api.openai.com'], {cwd:scratch.path,stdio:'ignore'});
+  }
   const host = new URL('./embedded-local.mjs', import.meta.url).href;
   const factory = new URL('../../packages/provider-ai-sdk/index.mjs', import.meta.url).href;
   const fdObserver = new URL('../../scripts/fixtures/external-rest/conformance.mjs', import.meta.url).href;
   const script = `
     import assert from 'node:assert/strict';
     import {createServer} from 'node:http';
+    import {Socket} from 'node:net';
     import {createServer as createTlsServer} from 'node:https';
     import {getCACertificates,setDefaultCACertificates} from 'node:tls';
     import {generateKeyPairSync} from 'node:crypto';
+    import {DatabaseSync} from 'node:sqlite';
     import {writeFile,readFile,access} from 'node:fs/promises';
     import {resolve} from 'node:path';
     import {observeOwnScopedStateFds} from ${JSON.stringify(fdObserver)};
     import {userInfo} from 'node:os';
     import {inspect} from 'node:util';
     import {connectEmbeddedLocal} from ${JSON.stringify(host)};
-    import {createOpenAIChatProvider} from ${JSON.stringify(factory)};
+    import {createOpenAIChatProvider,createProjectOpenAIChatProvider} from ${JSON.stringify(factory)};
+    const approvedAlias=${JSON.stringify(approvedAlias ?? null)};
+    let credentialReads=0,connects=0;
+    // The Project fixture counts the exact key lookup and refuses any
+    // unexpected outgoing connection before the socket opens.
+    if(approvedAlias) {${measureCredentialReads}${blockConnections}}
     const received=[], events=[];
     let requestEntered, responseClosed;
     const entered=new Promise(resolve=>{requestEntered=resolve;});
@@ -93,7 +131,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     const server=${tls ? 'createTlsServer(tlsOptions,handleRequest)' : 'createServer(handleRequest)'};
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
     const keys=generateKeyPairSync('ed25519');
-    if (${coldSaved || unknown}) {
+    if (${coldSaved || unknown || Boolean(approvedAlias)}) {
       await writeFile('operator-private.fixture',keys.privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600});
       await writeFile('operator-public.fixture',keys.publicKey.export({type:'spki',format:'pem'}));
       await writeFile('endpoint.fixture',String(server.address().port));
@@ -101,17 +139,43 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     const authorization={hostKey:{keyId:'http-host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
       reviewers:[{keyId:'http-reviewer',reviewerId:'http-reviewer',principalId:userInfo().username,
         publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
-      accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',account_id:'http-fixture',
-        entries:[{entry_id:'fixture-only',outcome:'allow',principal:{all:true},connection:{all:true},resource:{all:true},
-          operation:{all:true},exclusions:[]}]}),
+      accountConfiguration:${JSON.stringify(accountWire)},
       observe:(name,detail)=>events.push({name,detail})};
-    const configureModelProvider=createOpenAIChatProvider({providerId:'models/http',modelId:'fixture-chat',
-      apiKeyFile:'api-key.fixture',baseURL:'${tls ? 'https' : 'http'}://127.0.0.1:'+server.address().port+'/v1',
+    const providerOptions={modelId:'fixture-chat',${aliasedSelection}
       generation:{temperature:0,topP:1,maxOutputTokens:100},
       budget:{maxCalls:2n,maxRows:2,maxTokens:1000n,maxCostUnits:100000n,maxDurationMs:1000n},
-      observeEgress:()=>({classification:'public',region:'global',providerRetention:true,trainingUse:false})});
+      observeEgress:()=>({classification:'public',region:'global',providerRetention:true,trainingUse:false})};
+    const configureModelProvider=approvedAlias ? createProjectOpenAIChatProvider({...providerOptions,
+      transportTimeouts:${projectTimeouts}}) : createOpenAIChatProvider({...providerOptions,providerId:'models/http',
+      apiKeyFile:'api-key.fixture',baseURL:'${tls ? 'https' : 'http'}://127.0.0.1:'+server.address().port+'/v1'});
     const registerModelProviders=async(moon,context)=>{
-      try{return await configureModelProvider(moon,context);}
+      try{
+        const legacySeed=approvedAlias==='unbound' || ${historicalSaved};
+        const invalidBinding=${JSON.stringify(invalidBinding)};
+        assert(!legacySeed || invalidBinding===null);
+        if(legacySeed || invalidBinding!==null) {
+          const originalContext=context;
+          const rewriteBinding=project=>originalContext.prepareBindingOriginals(()=>{
+            const [revision,contractWire,configurationWire]=project();
+            const contract=JSON.parse(contractWire),configuration=JSON.parse(configurationWire);
+            if(invalidBinding==='different-model') configuration.model_id='different-physical-model';
+            else {
+              contract.required=['endpoint','selector','model_defaults'];
+              delete configuration.model_id;delete configuration.adapter_kind;delete configuration.api_mode;
+            }
+            return [revision,JSON.stringify(contract),JSON.stringify(configuration)];
+          });
+          context={...originalContext,prepareBindingOriginals:rewriteBinding};
+          // Test-only old writer, in the seed subprocess only. The old writer
+          // hashed the selector-only configuration and had no route check.
+          // The negative and every reopen use the actual current check.
+          if(legacySeed) context.prepareTasks=async(...args)=>{
+            const prepared=await originalContext.prepareTasks(...args);
+            return {...prepared,verifyChatConfiguration() {}};
+          };
+        }
+        return await configureModelProvider(moon,context);
+      }
       catch(cause){console.error('Original Model configuration failure',inspect(cause,{depth:8}));throw cause;}
     };
     const program=(task,field,value,type)=>({version:'actql/0.1',id:'normal-'+field,
@@ -121,10 +185,35 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         {infer:{contract:task,key:'id',input:{[field]:{field}}},as:'inferred'}],
         results:{answer:{from:'inferred',fields:['id','outcome','value']}}}],
       results:{answer:{from:{stage:'main',result:'answer'}}}});
+    const open=()=>connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
+      registerModelProviders,authorization}});
+    if(${invalidBinding !== null}) {
+      try {
+        await assert.rejects(open, failure=>{
+          for(let cause=failure;cause;cause=cause.cause) {
+            if(cause.code==='InstalledModelResolvedConfigurationMismatch') return true;
+          }
+          return false;
+        });
+        const path='.state/checkpoints/journal/checkpoint-journal.sqlite3';
+        const exists=await access(path).then(()=>true,error=>{
+          assert.equal(error.code,'ENOENT');return false;
+        });
+        if(exists) {
+          const journal=new DatabaseSync(path,{readOnly:true});
+          try { assert.equal(journal.prepare('SELECT COUNT(*) AS n FROM resume_model_attempts').get().n,0); }
+          finally { journal.close(); }
+        }
+        assert.equal(received.length,0);
+        assert.equal(observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0,true);
+        console.log(JSON.stringify({calls:0,tasks:0,firstCloseReturned:false,aliveScopedFD0:true}));
+      } finally {
+        server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
+      }
+    } else {
     let client,primary;
     try{
-      client=await connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
-        registerModelProviders,authorization}});
+      client=await open();
       const cases=[
         [0,['model-task:first','text','first','string'],{id:'original-text',outcome:'ok',value:{answer:true}}],
         [1,['model-task:second','quantity',7,'number'],{id:'original-quantity',outcome:'ok',value:{label:'exact-label'}}]];
@@ -134,6 +223,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         cases.length=1;cases[0][2]={id:'original-text',outcome:'failed:provider_error',value:null};
       }
       if (${unknown}) cases.length=1;
+      cases.length=${count};
       for(const [index,args,expected]of cases){
         const submissionRef=client.newSubmission({nonce:'http-'+index});
         await writeFile('submission-'+index+'.json',JSON.stringify(submissionRef));
@@ -154,6 +244,15 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
           await responseStopped;
         }
         const status=await waiting;
+        if(approvedAlias) {
+          assert.equal(status.status,'waiting_checkpoint',inspect({status,events},{depth:8}));
+          const {items}=await client.checkpoints({checkpointId:status.checkpoint.id});
+          assert.equal(items.length,1);
+          assert.equal(items[0].checkpointCid,status.checkpoint.checkpoint_cid);
+          assert.equal(items[0].subject.runDefinitionCid,run.ref.runDefinitionCid);
+          await writeFile('checkpoint.json',JSON.stringify(items[0]));
+          break;
+        }
         assert.equal(status.status,${JSON.stringify(unknown ? 'needs_reconciliation' : 'succeeded')},
           inspect({status,events},{depth:8}));
         if (${cancelEntered}) assert.equal(status.control.cancellation_requested,true);
@@ -161,8 +260,9 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         const lookup=await client.lookupSubmission(submissionRef);
         assert.equal(lookup.kind,'ready');assert.deepEqual(lookup.admission.ref,run.ref);
       }
-      assert.equal(received.length,cases.length);
-      if (${httpStatus === 200 && !unknown}) assert.notDeepEqual(received[0].response_format.json_schema.schema,
+      assert.equal(received.length,approvedAlias ? 0 : cases.length);
+      assert.equal(credentialReads,0);assert.equal(connects,0);
+      if (${count === 2}) assert.notDeepEqual(received[0].response_format.json_schema.schema,
         received[1].response_format.json_schema.schema);
     }catch(cause){primary=cause;console.error(inspect({cause,events,received},{depth:10}));}
     finally{
@@ -176,14 +276,197 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
     console.log(JSON.stringify({calls:received.length,tasks:${count},
       firstCloseReturned:true,aliveScopedFD0:true}));
+    }
   `;
   const child = spawnSync(process.execPath, ['--input-type=module', '-e', script],
     {cwd: scratch.path, encoding: 'utf8', timeout: 180000, maxBuffer: 4 * 1024 * 1024});
   assert.ifError(child.error);
   assert.equal(child.status, 0, child.stderr + '\n' + child.stdout);
   assert.deepEqual(JSON.parse(child.stdout.trim().split('\n').at(-1)),
-    {calls: count, tasks: count,
-      firstCloseReturned: true, aliveScopedFD0: true});
+    {calls: approvedAlias || invalidBinding !== null ? 0 : count, tasks: invalidBinding === null ? count : 0,
+      firstCloseReturned: invalidBinding === null, aliveScopedFD0: true});
+  if (approvedAlias) {
+    const reopen = `
+      import assert from 'node:assert/strict';
+      import {sign} from 'node:crypto';
+      import {readFile,access} from 'node:fs/promises';
+      import files from 'node:fs/promises';
+      import {syncBuiltinESMExports} from 'node:module';
+      import {Socket} from 'node:net';
+      import {createServer} from 'node:https';
+      import tls from 'node:tls';
+      import {userInfo} from 'node:os';
+      import {resolve} from 'node:path';
+      import {DatabaseSync} from 'node:sqlite';
+      import {setTimeout as pause} from 'node:timers/promises';
+      import {connectEmbeddedLocal} from ${JSON.stringify(host)};
+      import {createProjectOpenAIChatProvider} from ${JSON.stringify(factory)};
+      import {observeOwnScopedStateFds} from ${JSON.stringify(fdObserver)};
+      let credentialReads=0,connects=0;
+      ${measureCredentialReads}
+      const matching=${approvedAlias === 'matching'},rawDenied=${rawDenied},leaseExpired=${leaseExpired};
+      let server,requests=0;
+      const connectTls=tls.connect;
+      if(matching) {
+        const cert=await readFile('project.crt','utf8'),host='api.openai.com';
+        tls.setDefaultCACertificates([...tls.getCACertificates('default'),cert]);
+        server=createServer({cert,key:await readFile('project.key')},async(req,res)=>{
+          requests++;
+          assert.equal(req.headers.host,host);
+          assert.equal(req.socket.servername,host);
+          assert.equal(req.url,'/v1/chat/completions');
+          assert.equal(req.headers.authorization,'Bearer synthetic-only');
+          let wire='';for await(const chunk of req)wire+=chunk;
+          const payload=JSON.parse(wire);
+          assert.equal(payload.model,'fixture-chat');
+          assert.deepEqual(JSON.parse(payload.messages[1].content),{text:'first'});
+          res.setHeader('content-type','application/json');
+          res.end(JSON.stringify({id:'original-alias',object:'chat.completion',created:1,model:'fixture-chat',
+            choices:[{index:0,message:{role:'assistant',content:'{"answer":true}'},finish_reason:'stop'}],
+            usage:{prompt_tokens:2,completion_tokens:3,total_tokens:5}}));
+        });
+        await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+        // Preserve the original TLS authority, checks and SNI. Only this
+        // fixture socket is routed to the controlled local server.
+        tls.connect=(options,...args)=>{
+          assert.equal(++connects,1);
+          assert.equal(options.host,host);assert.equal(options.servername,host);
+          assert.equal(Number(options.port),443);assert.equal(options.socket,undefined);
+          assert.notEqual(options.rejectUnauthorized,false);
+          return connectTls.call(tls,{...options,host:'127.0.0.1',port:server.address().port},...args);
+        };
+      } else {${blockConnections}}
+      const read=async name=>JSON.parse(await readFile(name,'utf8'));
+      const key=await readFile('operator-private.fixture','utf8'),events=[];
+      const journalPath='.state/checkpoints/journal/checkpoint-journal.sqlite3';
+      const realRename=files.rename,realNow=Date.now;
+      let elapsed, observedClaim, dispatchFailure;
+      const failedDispatch=new Promise(resolve=>{dispatchFailure=resolve;});
+      const authorization={hostKey:{keyId:'http-host',privateKey:key},
+        reviewers:[{keyId:'http-reviewer',reviewerId:'http-reviewer',principalId:userInfo().username,
+          publicKey:await readFile('operator-public.fixture','utf8')}],
+        accountConfiguration:${JSON.stringify(accountWire)},
+        observe:(name,detail)=>{
+          events.push({name,detail});
+          if(name==='dispatch_failed') dispatchFailure(detail);
+        }};
+      const registerModelProviders=createProjectOpenAIChatProvider({
+        modelId:${JSON.stringify(approvedAlias === 'changed' ? 'replacement-chat' : 'fixture-chat')},${aliasedSelection}
+        generation:{temperature:0,topP:1,maxOutputTokens:100},transportTimeouts:${projectTimeouts},
+        budget:{maxCalls:2n,maxRows:2,maxTokens:1000n,maxCostUnits:100000n,maxDurationMs:1000n},
+        observeEgress:()=>({classification:'public',region:'global',providerRetention:true,trainingUse:false})});
+      let client,failed=false,cleanupCode;
+      try {
+        client=await connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
+          registerModelProviders,authorization}});
+        const ref=await read('run-0.json'),checkpoint=await read('checkpoint.json');
+        const run=await client.attach(ref);
+        assert.deepEqual(run.ref,ref);
+        if(leaseExpired) {
+          const runId=checkpoint.subject.runId;
+          const ledger=resolve('.state/checkpoints/attempts','model-'+runId+'.json');
+          // Advance only this process's Journal clock across the original
+          // expiry after the real parked Store ledger has been renamed.
+          Date.now=()=>elapsed??realNow();
+          files.rename=async(from,to)=>{
+            await realRename(from,to);
+            if(to!==ledger || elapsed!==undefined) return;
+            const database=new DatabaseSync(journalPath,{readOnly:true});
+            try {
+              observedClaim=database.prepare('SELECT generation, lease_expires_ms FROM resume_intents WHERE run_id = ?').get(runId);
+              assert.ok(observedClaim.lease_expires_ms>realNow());
+              elapsed=observedClaim.lease_expires_ms;
+            } finally {database.close();}
+          };
+          syncBuiltinESMExports();
+        }
+        const result=await client.resolveCheckpoints([{checkpoint,decision:'approved'}],
+          {signer:{keyId:'http-reviewer',reviewerId:'http-reviewer',sign:bytes=>sign(null,bytes,key)}});
+        assert.deepEqual(result.results.map(value=>value.status),['committed']);
+        const signed=JSON.parse(result.signed[0].resolutionWire);
+        assert.equal(signed.checkpoint_id,checkpoint.checkpointId);
+        assert.equal(signed.checkpoint_cid,checkpoint.checkpointCid);
+        assert.equal(signed.run_definition_cid,ref.runDefinitionCid);
+        assert.equal(signed.run_id,checkpoint.subject.runId);
+        if(matching) {
+          const state=await run.wait({until:'terminal',signal:AbortSignal.timeout(10000)})
+            .catch(cause=>{console.error(JSON.stringify({events,credentialReads,connects,requests}));throw cause;});
+          assert.equal(state.status,'succeeded',JSON.stringify(events));
+          assert.deepEqual(await run.result('answer').all(),[
+            {id:'original-text',outcome:'ok',value:{answer:true}}]);
+        } else if(leaseExpired) {
+          const detail=await Promise.race([failedDispatch,pause(10000,undefined,{ref:false})]);
+          assert.ok(observedClaim,JSON.stringify(events));
+          assert.equal(detail?.primaryCode,'ResumeClaimStale',JSON.stringify(events));
+        } else if(rawDenied) {
+          const failure=()=>events.find(event=>event.name==='dispatch_failed');
+          const deadline=Date.now()+10000;
+          while(!failure() && Date.now()<deadline) await pause(20);
+          const detail=failure()?.detail;
+          assert.equal(detail?.primaryCode,'MoonBitHostFailure',JSON.stringify(events));
+          // ClientModelRawCaptureIssue.Authorization(DispatchBindingIssue.Denied).
+          assert.deepEqual([detail.issueTag,detail.nestedIssueTag],[5,1]);
+          assert.match(detail.primaryDiagnostic.message,/installed-model-continuation\.mjs/);
+        } else {
+          const failure=()=>events.find(event=>event.name==='model_resume_failed');
+          const deadline=Date.now()+10000;
+          while(!failure() && Date.now()<deadline) await pause(20);
+          assert.equal(failure()?.detail.code,'ModelProviderBindingChanged',JSON.stringify(events));
+          assert.equal((await run.status()).status,'failed');
+        }
+        const expected=matching ? 1 : 0;
+        assert.equal(credentialReads,rawDenied || leaseExpired ? 1 : expected);
+        assert.equal(connects,expected);assert.equal(requests,expected);
+      } catch(cause) {failed=true;throw cause;}
+      finally {
+        try {await client?.close();}
+        catch(cause) {
+          if(leaseExpired && !failed && cause.code==='ClientCleanupPending') cleanupCode=cause.code;
+          else {
+            if(!failed) throw cause;
+            console.error(cause);
+          }
+        }
+        finally {
+          if(leaseExpired) {
+            files.rename=realRename;
+            syncBuiltinESMExports();
+          }
+          if(server) {
+            tls.connect=connectTls;
+            server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
+          }
+        }
+      }
+      const database=new DatabaseSync(journalPath,{readOnly:true});
+      try {
+        const original=database.prepare("SELECT json_extract(originals_json,'$.expectedBoundary.resource') AS task FROM resume_model_scopes").get();
+        assert.equal(original.task,${JSON.stringify(taskCid)});
+        assert.deepEqual(database.prepare('SELECT state FROM resume_model_slots').all().map(row=>row.state),
+          [matching ? 'SavedSuccess' : 'Unsent']);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM resume_model_attempts').get().count,
+          matching ? 1 : 0);
+        if(leaseExpired) {
+          assert.deepEqual(database.prepare('SELECT generation, lease_expires_ms FROM resume_intents').get(),observedClaim);
+          assert.equal(database.prepare('SELECT current_cut_link_json FROM resume_model_scopes').get().current_cut_link_json,null);
+        }
+      } finally {database.close();}
+      if(leaseExpired) {
+        assert.equal(cleanupCode,'ClientCleanupPending');
+        await access('.state/publication/owner/owner.json');
+        Date.now=realNow;
+      } else {
+        const close=observeOwnScopedStateFds([resolve('.state')]);
+        assert.equal(close.aliveAfterClose,true);
+        assert.equal(close.scopedStateFd0,true);
+        await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
+      }
+    `;
+    const resumed=spawnSync(process.execPath,['--input-type=module','-e',reopen],
+      {cwd:scratch.path,encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
+    assert.ifError(resumed.error);
+    assert.equal(resumed.status,0,resumed.stderr+'\n'+resumed.stdout);
+  }
   if (coldSaved || unknown) {
     // Distinct process on THIS new case's original state/ref, never a prior
     // failed state. No new submission, approval, recovery or provider call.
@@ -216,7 +499,9 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',account_id:'http-fixture',
           entries:[{entry_id:'fixture-only',outcome:'allow',principal:{all:true},connection:{all:true},resource:{all:true},
             operation:{all:true},exclusions:[]}]})};
-      const registerModelProviders=createOpenAIChatProvider({providerId:'models/http',modelId:'fixture-chat',
+      const registerModelProviders=createOpenAIChatProvider({providerId:'models/http',
+        modelId:${JSON.stringify(alias ? 'different-model-behind-same-alias' : 'fixture-chat')},
+        ${aliasedSelection}
         apiKeyFile:'api-key.fixture',baseURL:'${tls ? 'https' : 'http'}://127.0.0.1:'+port+'/v1',
         generation:{temperature:0,topP:1,maxOutputTokens:100},
         budget:{maxCalls:2n,maxRows:2,maxTokens:1000n,maxCostUnits:100000n,maxDurationMs:1000n},
@@ -286,3 +571,29 @@ test('normal OpenAI actual entered cancellation preserves Unknown and its origin
 
 test('normal OpenAI actual TLS and original Saved first keep the same endpoint without resend',
   () => normalHttpFixture({coldSaved:true,tls:true}));
+
+test('a resolved Chat alias sends its bound model once and Saved ignores subsequent alias resolution',
+  () => normalHttpFixture({coldSaved: true, tls: true, alias: true}));
+
+for (const approvedAlias of ['changed', 'unbound']) {
+  test(`an approved ${approvedAlias} Project alias refuses the original slot before credential or transport`,
+    () => normalHttpFixture({approvedAlias}));
+}
+
+test('an approved matching Project alias resumes the original slot and sends exactly once',
+  () => normalHttpFixture({approvedAlias: 'matching'}));
+
+test('an old selector-only Saved result reopens under the current binding without a new send',
+  () => normalHttpFixture({coldSaved: true, tls: true, alias: true, historicalSaved: true}));
+
+test('an approved matching Project alias cannot dispatch under an independent Raw capture denial',
+  () => normalHttpFixture({approvedAlias: 'raw-denied'}));
+
+test('an approved original Model claim that expires during the parked Store write cannot enter',
+  () => normalHttpFixture({approvedAlias: 'lease-expired'}));
+
+test('normal OpenAI rejects a different original model before Entry or HTTP',
+  () => normalHttpFixture({invalidBinding:'different-model'}));
+
+test('normal OpenAI rejects a new selector-only binding before Entry or HTTP',
+  () => normalHttpFixture({invalidBinding:'missing-route'}));

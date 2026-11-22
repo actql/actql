@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors_builtin_node/client_hubspot_initialization_bridge.mbt",
-      "sha256": "8c438cdc95d5885e613eb219f884fe952459447c13416de425a774f9c31653a8",
+      "sha256": "56cdacee5410f8186ef3545b43d7468d491adf2681d2a8a1197c80fe84eacb24",
       "exports": [],
       "operations": [
         {
@@ -15,8 +15,20 @@
           "declaration": "client_program_hubspot_mapping_construction_capacity ( fields : Int , sources : Int , input_units : Int64 , max_properties : Int , max_fields : Int , max_name_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "client_program_hubspot_metadata_identity_capacity",
+          "declaration": "client_program_hubspot_metadata_identity_capacity ( objects : Int , encoded_body_units : Int64 , string_units : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
           "name": "client_program_hubspot_object_construction_capacity",
           "declaration": "client_program_hubspot_object_construction_capacity ( body_bytes : Int , encoded_units : Int , object_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_properties : Int , max_name_units : Int , max_columns : Int , max_name_bytes : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_read_sequence_bounds",
+          "declaration": "client_program_hubspot_read_sequence_bounds ( requests : Int , response_bytes : Int , origin_units : Int , portal_units : Int , object_units : Int , field_units : Int64 , ) - > Result [ ( Int , Int ) , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_hubspot_read_target_capacity",
+          "declaration": "client_program_hubspot_read_target_capacity ( targets : Int , fields : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_hubspot_source_reader_capacity",
@@ -40,7 +52,9 @@
             "<module>",
             "client_program_hubspot_account_construction_capacity",
             "client_program_hubspot_mapping_construction_capacity",
-            "client_program_hubspot_object_construction_capacity"
+            "client_program_hubspot_object_construction_capacity",
+            "client_program_hubspot_metadata_identity_capacity",
+            "client_program_hubspot_read_target_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -102,6 +116,14 @@
               {
                 "path": "src/client_row_source_host/initialization-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_hubspot_source_reader_js_wbtest.mbt",
+                "anchor": "HubSpot shared Source constructor retains exact digest and target quantities"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-installation-materials.fixture.mjs",
+                "anchor": "HubSpot standard Source consumes the same shared materials before opening its original Site"
               }
             ]
           }
@@ -110,7 +132,8 @@
           "operations": [
             "client_program_hubspot_source_reader_capacity",
             "client_program_hubspot_source_reader_observed_capacity",
-            "hubspot_reader_common_capacity"
+            "hubspot_reader_common_capacity",
+            "client_program_hubspot_read_sequence_bounds"
           ],
           "exports": [],
           "attributes": {
@@ -172,6 +195,14 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_hubspot_source_reader_js_wbtest.mbt",
+                "anchor": "HubSpot shared Source constructor preserves independent response and target bounds"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-installation-materials.fixture.mjs",
+                "anchor": "HubSpot standard Source consumes the same shared materials before opening its original Site"
               }
             ]
           }
@@ -180,7 +211,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_hubspot_initialization_bridge.mbt",
-      "sha256": "9711d62a1959e1d703232b1246e05b24d55b272936b0d93fe7c50237c9d53313",
+      "sha256": "49a72f9aba0aadef6ffdbe9e3c5fede4500aeb9105e257df9ca0a1faba268ad9",
       "exports": [],
       "operations": [
         {
@@ -192,8 +223,20 @@
           "declaration": "client_program_hubspot_mapping_construction_capacity ( fields : Int , sources : Int , input_units : Int64 , max_properties : Int , max_fields : Int , max_name_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "client_program_hubspot_metadata_identity_capacity",
+          "declaration": "client_program_hubspot_metadata_identity_capacity ( objects : Int , encoded_body_units : Int64 , string_units : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
+        },
+        {
           "name": "client_program_hubspot_object_construction_capacity",
           "declaration": "client_program_hubspot_object_construction_capacity ( body_bytes : Int , encoded_units : Int , object_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_properties : Int , max_name_units : Int , max_columns : Int , max_name_bytes : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_read_sequence_bounds",
+          "declaration": "client_program_hubspot_read_sequence_bounds ( requests : Int , response_bytes : Int , origin_units : Int , portal_units : Int , object_units : Int , field_units : Int64 , ) - > Result [ ( Int , Int ) , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_hubspot_read_target_capacity",
+          "declaration": "client_program_hubspot_read_target_capacity ( targets : Int , fields : Int64 , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_hubspot_source_reader_capacity",
@@ -217,7 +260,9 @@
             "<module>",
             "client_program_hubspot_account_construction_capacity",
             "client_program_hubspot_mapping_construction_capacity",
-            "client_program_hubspot_object_construction_capacity"
+            "client_program_hubspot_object_construction_capacity",
+            "client_program_hubspot_metadata_identity_capacity",
+            "client_program_hubspot_read_target_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -279,6 +324,14 @@
               {
                 "path": "src/client_row_source_host/initialization-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_hubspot_source_reader_js_wbtest.mbt",
+                "anchor": "HubSpot shared Source constructor retains exact digest and target quantities"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-installation-materials.fixture.mjs",
+                "anchor": "HubSpot standard Source consumes the same shared materials before opening its original Site"
               }
             ]
           }
@@ -287,7 +340,8 @@
           "operations": [
             "client_program_hubspot_source_reader_capacity",
             "client_program_hubspot_source_reader_observed_capacity",
-            "hubspot_reader_common_capacity"
+            "hubspot_reader_common_capacity",
+            "client_program_hubspot_read_sequence_bounds"
           ],
           "exports": [],
           "attributes": {
@@ -349,6 +403,14 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_hubspot_source_reader_js_wbtest.mbt",
+                "anchor": "HubSpot shared Source constructor preserves independent response and target bounds"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-installation-materials.fixture.mjs",
+                "anchor": "HubSpot standard Source consumes the same shared materials before opening its original Site"
               }
             ]
           }

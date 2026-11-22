@@ -150,6 +150,7 @@ test "Request query lowerer keeps original quote through short grows and typed l
       @source_publication.prepared_published_request_copy_geometry(
         publication, environment,
       ).unwrap(),
+      publication,
     ).unwrap()
     let base = @resources.preparation_capacity_working_extents(
       parent.capacity,
@@ -546,12 +547,14 @@ test "Request literal copies grow the original quote before repeated alias lower
       None,
       catalog,
       geometry,
+      publication,
     ).unwrap()
     let no_request = request_query_lowering_data_bytes(
       syntax,
       None,
       catalog,
       (0, 0L),
+      publication,
     ).unwrap()
     let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
     let copied = (geometry.0.to_int64() + geometry.1) * tokens
@@ -836,6 +839,22 @@ test "original scalar implementation refusal uses only its same Source-independe
 }
 
 ///|
+test "original ROLLUP prefix construction is additive and checked before multiplication" {
+  // 8 headers, 24 references, 8 words and 64 UTF16 units cost 512 bytes.
+  assert_eq(request_rollup_construction_bytes(23L, 7L, 0L), Some(23L))
+  assert_eq(request_rollup_construction_bytes(23L, 7L, 2L), Some(7191L))
+  assert_eq(request_rollup_construction_bytes(23L, 7L, -1L), None)
+  assert_eq(
+    request_rollup_construction_bytes(23L, 7L, 9223372036854775807L),
+    None,
+  )
+  assert_eq(
+    request_rollup_construction_bytes(9223372036854775807L, 7L, 1L),
+    None,
+  )
+}
+
+///|
 test "original integer context has an independent incremental representation bound" {
   // Existing tariff: H = 16 bytes; R/W = 8 bytes and a UTF16 code unit = 2 bytes.
   assert_eq(request_integer_context_data_bytes(1L), Some(1472L))
@@ -873,7 +892,13 @@ test "original integer context is funded before lowerer entry and short grow ret
     let copy = @source_publication.prepared_published_request_copy_geometry(
       publication, environment,
     ).unwrap()
-    let bytes = request_query_lowering_data_bytes(selected, None, catalog, copy).unwrap()
+    let bytes = request_query_lowering_data_bytes(
+      selected,
+      None,
+      catalog,
+      copy,
+      publication,
+    ).unwrap()
     let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
     assert_true(bytes >= tokens * 1472L)
     let base = @resources.preparation_capacity_working_extents(

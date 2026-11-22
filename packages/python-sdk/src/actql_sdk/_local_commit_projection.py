@@ -391,7 +391,8 @@ class OriginalCommitProjection:
 
     def _consume_sdk_delivery_lookup(self, request: _Input, original_run: int,
                                      consume: Callable[[bytes], object]) -> None:
-        output = self._output()
+        # Common's delivery lookup encoder caps its response at 8192 bytes.
+        output = self._output(maximum=8192)
         self._core.produce_publication_sdk_delivery_lookup(
             output, request, original_run, self._configuration)
         raw = self._core.read_publication_commit_material(output)

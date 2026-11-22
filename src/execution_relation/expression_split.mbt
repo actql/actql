@@ -178,6 +178,134 @@ fn split_part_boundary(
 }
 
 ///|
+/// Match one code unit at an original scalar boundary. Restarting a failed
+/// candidate or advancing past a full delimiter is owned by the caller.
+fn literal_delimiter_step(
+  input : String,
+  delimiter : String,
+  position : Int,
+  matched : Int,
+) -> Int? {
+  if !delimiter.is_empty() &&
+    delimiter.length() <= input.length() - position &&
+    input[position + matched] == delimiter[matched] {
+    Some(matched + 1)
+  } else {
+    None
+  }
+}
+
+///|
+fn select_split_part(
+  state : TextFunctionState,
+  cursor : SplitPartCursor,
+  start : Int,
+  end : Int,
+) -> Unit {
+  state.trim_start = start
+  state.trim_end = end
+  state.position = start
+  cursor.phase = CopyPart
+}
+
+///|
+/// Preflight the complete input, then select a borrowed contiguous interval.
+/// Backward indices count forward with the same nonoverlap rule before a
+/// second scan. Reversing the search would choose different overlapping hits.
+fn advance_split_part(
+  state : TextFunctionState,
+  cursor : SplitPartCursor,
+) -> Result[Unit, EvalIssue] {
+  let expression = state.expression
+  let end = state.input.length()
+  if cursor.phase is VerifyInput {
+    if state.position == end {
+      if state.search.is_empty() {
+        select_split_part(
+          state,
+          cursor,
+          0,
+          if cursor.index == 1L || cursor.index == -1L {
+            end
+          } else {
+            0
+          },
+        )
+      } else {
+        cursor.phase = if cursor.index < 0L { CountParts } else { SelectPart }
+        state.position = 0
+      }
+      return Ok(())
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, width, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if state.count.to_int64() >= cursor.max_points ||
+      width.to_int64() > cursor.max_bytes - cursor.input_bytes {
+      return Err({ kind: TextBounds(@text_bounds.InputCeiling), expression, })
+    }
+    state.count += 1
+    cursor.input_bytes += width.to_int64()
+    state.position = next
+    return Ok(())
+  }
+  if state.position == end {
+    if cursor.phase is CountParts {
+      cursor.index = cursor.parts + cursor.index + 1L
+      if cursor.index > 0L {
+        cursor.phase = SelectPart
+        state.position = 0
+        return Ok(())
+      }
+    }
+    select_split_part(
+      state,
+      cursor,
+      if cursor.index == 1L {
+        cursor.part_start
+      } else {
+        end
+      },
+      end,
+    )
+    return Ok(())
+  }
+  if literal_delimiter_step(
+      state.input,
+      state.search,
+      state.position,
+      state.matched,
+    )
+    is Some(matched) {
+    state.matched = matched
+    if matched == state.search.length() {
+      if cursor.phase is CountParts {
+        cursor.parts += 1L
+      } else if cursor.index == 1L {
+        select_split_part(state, cursor, cursor.part_start, state.position)
+        return Ok(())
+      } else {
+        cursor.index -= 1L
+      }
+      state.position += matched
+      state.matched = 0
+      if cursor.phase is SelectPart {
+        cursor.part_start = state.position
+      }
+    }
+    return Ok(())
+  }
+  guard text_function_scalar(state.input, state.position)
+    is Some((_, next, _, _)) else {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  state.position = next
+  state.matched = 0
+  Ok(())
+}
+
+///|
 /// One delimiter code-unit comparison, scalar sizing/emission, or existing
 /// admission step per charged poll. Repeated prefixes never hide an uncharged
 /// whole-string search. Delimiters match literally and never overlap.
@@ -264,25 +392,27 @@ fn advance_split_function(
       Err(issue) => return Err(issue)
     }
   }
-  if !state.delimiter.is_empty() &&
-    state.delimiter.length() <= state.input.length() - state.position {
-    if state.input[state.position + state.matched] ==
-      state.delimiter[state.matched] {
-      state.matched += 1
-      if state.matched == state.delimiter.length() {
-        match
-          split_part_boundary(
-            state,
-            state.position,
-            state.position + state.matched,
-            false,
-          ) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
-        }
+  if literal_delimiter_step(
+      state.input,
+      state.delimiter,
+      state.position,
+      state.matched,
+    )
+    is Some(matched) {
+    state.matched = matched
+    if matched == state.delimiter.length() {
+      match
+        split_part_boundary(
+          state,
+          state.position,
+          state.position + matched,
+          false,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-      return Ok(None)
     }
+    return Ok(None)
   }
   state.matched = 0
   guard text_function_scalar(state.input, state.position)

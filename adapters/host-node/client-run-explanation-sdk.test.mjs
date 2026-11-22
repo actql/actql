@@ -6,6 +6,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validClientBody} from '../../packages/client-wire/index.mjs';
 import {runExplanation, unprojectedRunExplanation} from '../../scripts/fixtures/explanation-facts-vectors.mjs';
+import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
 const ref = runExplanation.run_ref;
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'volatile', scopeRef: 'structural-explanation', capabilities: [], limits: {
@@ -13,7 +14,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
 
-test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {
+test('Execution.explain reads frozen original structural DATA without dispatch', async t => {
   let reads = 0, starts = 0;
   const port = createNodeInProcessClientHost({authenticate: () => 'caller',
     authorizeConnection: () => true, negotiate: () => profile, maxRowBytes: 1024,
@@ -22,7 +23,8 @@ test('Execution.explain reads frozen original structural DATA without Client ali
     submit() {starts++; throw Error('No execution');}});
   const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
   t.after(() => client.close());
-  assert.equal(client.explain, undefined);
+  assert.equal(typeof client.explain, 'function', 'static Client API remains distinct');
+  assert.equal(client.explainContext, undefined);
   const run = await client.attach(ref), view = await run.explain();
   assert.deepEqual(view, runExplanation);
   assert.equal(Object.isFrozen(view.explanation.facts.steps[0].meaning), true);
@@ -82,4 +84,40 @@ test('explain signal belongs to this read and never issues Run cancel', async t 
   t.after(() => client.close());
   await assert.rejects((await client.attach(ref)).explain({signal: controller.signal}));
   assert.deepEqual(operations, ['connect', 'attach', 'run-explanation']);
+});
+
+
+test('Execution.explainContext reads one original projection and independently checks its bindings', async t => {
+  const operations = [];
+  const original = effectfulStaticExplanationFixture();
+  const inner = {...original, plan: original.plan.computation.plan_view};
+  const response = {version: 'actql-run-explanation-context-view/0.1', run_ref: ref,
+    explanation: {state: 'projected', view: inner}};
+  let supplied = response;
+  const port = createNodeInProcessClientHost({authenticate: () => 'caller',
+    authorizeConnection: () => true, negotiate: () => profile, maxRowBytes: 1024,
+    attach: value => ({ref: value.ref, durability: 'volatile', revision: 0}),
+    runExplanationContext(input, consume) {
+      operations.push('context'); assert.deepEqual(input.ref, ref);
+      return consume(structuredClone(supplied));
+    },
+    runExplanation(input, consume) {
+      operations.push('legacy'); return consume(structuredClone(runExplanation));
+    },
+    submit() {assert.fail('read cannot submit');}});
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
+  t.after(() => client.close());
+  const run = await client.attach(ref);
+  const answer = await run.explainContext();
+  assert.deepEqual(answer, response);
+  assert(Object.isFrozen(answer.explanation.view.context.binding));
+  assert.deepEqual(await run.explain(), runExplanation);
+  assert.deepEqual(operations, ['context', 'legacy']);
+  supplied = structuredClone(response);
+  supplied.explanation.view.context.binding.logical_map_cid = 'sha256:' + '0'.repeat(64);
+  await assert.rejects(run.explainContext(), {code: 'InvalidClientHostRunExplanationView'});
+  supplied = {...response, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  assert.deepEqual(await run.explainContext(), supplied);
+  assert.equal(validClientBody('run-explanation-context', {connection, ref,
+    maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64, reconstruct: true}), false);
 });

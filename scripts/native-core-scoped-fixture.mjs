@@ -139,17 +139,21 @@ export function nativeRelationTargetIOLineageFixture(namespace, index) {
   const suffixes = ['chain', 'inplace', 'replaced'];
   assert(Number.isInteger(index) && index >= 0 && index < suffixes.length,
     'An exact original Native target lineage case index is required');
-  return nativeRelationTargetFiles(namespace, suffixes[index], index === 2);
+  return nativeRelationTargetFiles(namespace, suffixes[index],
+    ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"other":[{"id":"middle","value":3}],"keep":"untouched"}\n',
+    index === 2);
 }
 
-function nativeRelationTargetFiles(namespace, suffix, foreignCopy = false) {
+function nativeRelationTargetFiles(namespace, suffix,
+  text = ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n',
+  foreignCopy = false) {
   const root = join(realpathSync(namespace), 'target-io');
   mkdirSync(root, {mode: 0o700});
-  const input = Buffer.from(' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\n');
+  const input = Buffer.from(text);
   for (const [name, content] of [
     ['target-' + suffix + '.json', input],
     ['target-backing-' + suffix, 384 * 1024 ** 2],
-    ...(foreignCopy ? [['foreign-copy.json', Buffer.from(input.toString('utf8').replace('"value":1', '"value":9'))]] : []),
+    ...(foreignCopy ? [['foreign-copy.json', Buffer.from(text.replace('"value":1', '"value":9'))]] : []),
   ]) {
     const fd = openSync(join(root, name), 'wx', 0o600);
     try {
@@ -164,10 +168,10 @@ function nativeRelationTargetFiles(namespace, suffix, foreignCopy = false) {
   return {ACTQL_TEST_NATIVE_TARGET_IO_ROOT: root};
 }
 
-// Index zero exports only the current Source's signing reference. The three
+// Index zero exports only the current Source's signing reference. The four
 // actual file/Journal cases each acquire their own original physical inputs.
 export function nativeClientFileResponseFixture(namespace, index) {
-  assert(Number.isInteger(index) && index >= 0 && index < 4,
+  assert(Number.isInteger(index) && index >= 0 && index < 5,
     'An exact original Native file response case index is required');
   if (index === 0) return {};
   const root = join(realpathSync(namespace), 'file-receipt');

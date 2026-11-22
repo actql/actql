@@ -92,9 +92,27 @@ priv enum Continuation {
     Int,
     @lower.Expression
   )
+  SimpleCaseOperand(
+    @lower.Expression,
+    Array[(@lower.Expression, @lower.Expression)],
+    @lower.Expression
+  )
+  SimpleCaseMatch(SimpleCaseState)
   BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
   TemporalArguments(TemporalArgumentsState)
+  GenerateArrayArguments(GenerateArrayArguments)
+  ArrayConcatArguments(ArrayConcatArguments)
+}
+
+///|
+priv struct SimpleCaseState {
+  expression : @lower.Expression
+  clauses : Array[(@lower.Expression, @lower.Expression)]
+  otherwise : @lower.Expression
+  selector : Value
+  selector_root : ExpressionRootLease?
+  mut index : Int
 }
 
 ///|
@@ -105,7 +123,12 @@ priv enum Evaluation {
   Score(VectorScoreState)
   Concat(VectorConcatState)
   FinishArray(ArrayExpressionState)
-  MeasureArray(ArrayExpressionState, Value, LogicalMeasureCursor)
+  MeasureArray(
+    @lower.Expression,
+    ExpressionRootLease,
+    Value,
+    LogicalMeasureCursor
+  )
   ArrayText(ArrayExpressionState, RawTextAdmission)
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
@@ -118,9 +141,21 @@ priv enum Evaluation {
     ExpressionRootLease?
   )
   CompareBinary(BinaryComparisonState)
+  CompareSimpleCase(SimpleCaseState, BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
+  RegexMatching(RegexMatchFrame)
+  RegexExtracting(TextFunctionState, RegexMatchFrame, Int, Int64)
+  RegexCaptureText(TextFunctionState, RegexCaptureText)
+  RegexReplacing(RegexReplaceFrame)
+  ArrayTextJoin(TextFunctionState, ArrayTextJoin)
+  FormatText(TextFunctionState, FormatStrings)
+  SqlJsonText(TextFunctionState, SqlJsonCursor)
+  JsonValueText(TextFunctionState, JsonValueQuery)
+  Fingerprint(FarmFingerprint)
   SplitFunction(SplitFunctionState)
+  GenerateArray(GenerateArrayState)
+  ArrayConcat(ArrayConcatState)
   PropertyName(PropertyNameState)
   FieldName(FieldNameState)
   ObjectName(ObjectNameState)
@@ -414,7 +449,23 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.selection_root = None
   frame.selection_pending = false
   match frame.state {
-    TextFunction(state) => state.builder = None
+    TextFunction(state)
+    | ArrayTextJoin(state, _)
+    | FormatText(state, _)
+    | SqlJsonText(state, _)
+    | JsonValueText(state, _)
+    | RegexCaptureText(state, _) => state.builder = None
+    RegexMatching(state) | RegexExtracting(_, state, _, _) =>
+      if state.search is Some(search) {
+        search.cancel()
+      }
+    RegexReplacing(state) => {
+      if state.search.search is Some(search) {
+        search.cancel()
+      }
+      state.selected = None
+      state.output.builder = None
+    }
     SplitFunction(state) => {
       state.text_builder = None
       if state.admission is Some(admission) {
@@ -423,7 +474,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
       state.admission = None
     }
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
-    MeasureArray(_, _, cursor) | MeasureObject(_, _, cursor) =>
+    MeasureArray(_, _, _, cursor) | MeasureObject(_, _, cursor) =>
       clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
     ArrayText(_, cursor) | ObjectText(_, cursor) =>
@@ -530,6 +581,7 @@ fn advance_expression_frame_impl(
     // Splitting those scans must not add a charge for each resume or refund
     // work. The next semantic Return still pays its usual transition.
     if !(frame.state is CompareBinary(_) ||
+      frame.state is CompareSimpleCase(_, _) ||
       frame.state is CompareMembership(_, _) ||
       frame.state is CompareBetween(_, _, _) ||
       frame.state is PropertyName(_) ||
@@ -560,7 +612,12 @@ fn advance_expression_frame_impl(
         }
         let body = @lower.expression_body(expr)
         let leaf = match body {
-          Field(_, _) | Literal(_) | TypedNull | CurrentTimestamp => true
+          Field(_, _)
+          | Literal(_)
+          | DateLiteral(_)
+          | TypedNull
+          | CurrentTimestamp
+          | CurrentDate => true
           Unary(_, _)
           | Array(_)
           | EmptyArray
@@ -574,7 +631,8 @@ fn advance_expression_frame_impl(
           | VectorConcat(_)
           | Many(_, _)
           | Conditional(_, _, _)
-          | Case(_, _) => false
+          | Case(_, _)
+          | SimpleCase(_, _, _) => false
         }
         if !leaf && frame.stack.length() >= budget.max_frames {
           return Err({ kind: ControlLimit, expression: expr, })
@@ -618,17 +676,28 @@ fn advance_expression_frame_impl(
             }
             frame.state = Return(value)
           }
-          Literal(value) => frame.state = Return(capture(value.value))
-          CurrentTimestamp => {
+          Literal(value) | DateLiteral(value) =>
+            frame.state = Return(capture(value.value))
+          CurrentTimestamp | CurrentDate => {
             guard frame.query_time is Some(original) else {
               return Err({
                 kind: QueryEvaluationTimeUnavailable,
                 expression: expr,
               })
             }
-            frame.state = Return(
-              capture(@publication.query_evaluation_time_value(original).value),
-            )
+            let original = @publication.query_evaluation_time_value(original)
+            if body is CurrentDate {
+              guard original.value is @admitted.Timestamp(text) else {
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              match date_calendar_result(expr, text[:10].to_owned()) {
+                Ok(date) => frame.state = Return(date)
+                Err(issue) =>
+                  return Err({ kind: Scalar(issue), expression: expr, })
+              }
+            } else {
+              frame.state = Return(capture(original.value))
+            }
           }
           TypedNull => frame.state = Return(Null)
           Property(child, name, index) => {
@@ -770,6 +839,10 @@ fn advance_expression_frame_impl(
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
             if op == @lower.DateDifference ||
+              op == @lower.MakeDate ||
+              op == @lower.TimestampDifference ||
+              op == @lower.DateBoundaryDifference ||
+              op == @lower.DateIntervalAddition ||
               op == @lower.DateAddition ||
               op == @lower.TimestampAddition ||
               op == @lower.TimestampSubtraction {
@@ -779,10 +852,7 @@ fn advance_expression_frame_impl(
               frame.stack.push(
                 TemporalArguments({
                   expression: expr,
-                  addition: op != @lower.DateDifference,
-                  interval: op == @lower.TimestampAddition ||
-                  op == @lower.TimestampSubtraction,
-                  subtract: op == @lower.TimestampSubtraction,
+                  operation: op,
                   children,
                   values: [],
                   roots: [],
@@ -808,7 +878,51 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
-            if op == @lower.Split ||
+            if op == @lower.ArrayConcat {
+              // One retained frozen operand and its root per child.
+              if children.length() > (workspace.limit - workspace.live) / 2 ||
+                !reserve_slots(workspace, children.length() * 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                ArrayConcatArguments({
+                  expression: expr,
+                  children,
+                  operands: [],
+                  roots: [],
+                  count: 0L,
+                  bytes: 2L,
+                  has_null: false,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
+            if op == @lower.GenerateArray {
+              if (children.length() != 2 && children.length() != 3) ||
+                !reserve_slots(workspace, children.length() * 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                GenerateArrayArguments({
+                  expression: expr,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
+            if op == @lower.ArrayToString ||
+              op == @lower.FormatStrings ||
+              op == @lower.ToJsonString ||
+              op == @lower.JsonValue ||
+              op == @lower.RegexExtract ||
+              op == @lower.RegexReplace ||
+              op == @lower.Split ||
+              op == @lower.SplitPart ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
               op == @lower.Translate ||
@@ -818,11 +932,21 @@ fn advance_expression_frame_impl(
               op == @lower.RightString ||
               op == @lower.LPad ||
               op == @lower.RPad {
-              let valid = if op == @lower.Split {
+              let valid = if op == @lower.FormatStrings {
+                // The shared completion releases the child entries together
+                // with the fixed cursor slots. Check that sum before any
+                // multiplication of the variable arity.
+                children.length() <= (2147483647 - FORMAT_STRINGS_SLOTS - 3) / 3
+              } else if op == @lower.Split ||
+                op == @lower.ToJsonString ||
+                op == @lower.JsonValue {
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Instr {
                 children.length() >= 2 && children.length() <= 4
-              } else if op == @lower.Replace || op == @lower.Translate {
+              } else if op == @lower.Replace ||
+                op == @lower.Translate ||
+                op == @lower.SplitPart ||
+                op == @lower.RegexReplace {
                 children.length() == 3
               } else if op == @lower.LeftString ||
                 op == @lower.RightString ||
@@ -836,8 +960,22 @@ fn advance_expression_frame_impl(
               }
               frame.stack.push(
                 TextArguments({
-                  kind: if op == @lower.Split {
+                  kind: if op == @lower.ArrayToString {
+                    TextArrayJoin
+                  } else if op == @lower.FormatStrings {
+                    TextFormatStrings
+                  } else if op == @lower.ToJsonString {
+                    TextSqlJson
+                  } else if op == @lower.JsonValue {
+                    TextJsonValue
+                  } else if op == @lower.RegexExtract {
+                    TextRegexExtract
+                  } else if op == @lower.RegexReplace {
+                    TextRegexReplace
+                  } else if op == @lower.Split {
                     TextSplit
+                  } else if op == @lower.SplitPart {
+                    TextSplitPart
                   } else if op == @lower.Repeat {
                     TextRepeat
                   } else if op == @lower.Translate {
@@ -875,9 +1013,21 @@ fn advance_expression_frame_impl(
               | Greatest
               | Least
               | DateDifference
+              | MakeDate
+              | TimestampDifference
+              | DateBoundaryDifference
+              | DateIntervalAddition
               | DateAddition
               | TimestampAddition
-              | TimestampSubtraction => Null
+              | TimestampSubtraction
+              | ArrayConcat
+              | GenerateArray
+              | ArrayToString
+              | FormatStrings
+              | ToJsonString
+              | JsonValue
+              | RegexExtract
+              | RegexReplace => Null
               Concat
               | ConcatStrict
               | Replace
@@ -885,6 +1035,7 @@ fn advance_expression_frame_impl(
               | Translate
               | Instr
               | Split
+              | SplitPart
               | Substring
               | LeftString
               | RightString
@@ -893,6 +1044,10 @@ fn advance_expression_frame_impl(
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
+          }
+          SimpleCase(operand, clauses, otherwise) => {
+            frame.stack.push(SimpleCaseOperand(expr, clauses, otherwise))
+            frame.state = Enter(operand)
           }
           Case(clauses, otherwise) =>
             if clauses.get(0) is Some((condition, _)) {
@@ -1094,38 +1249,66 @@ fn advance_expression_frame_impl(
                   Ok(_) => ()
                 }
               }
-              guard args.values[2] is Text(unit) else {
-                return Err({
-                  kind: Scalar(InvalidOperand),
-                  expression: args.expression,
-                })
+              let unit = match args.values[2] {
+                Text(unit) => unit
+                _ if args.operation is MakeDate => ""
+                _ =>
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: args.expression,
+                  })
               }
-              if args.addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
+              let addition = args.operation
+                is (DateAddition
+                | DateIntervalAddition
+                | TimestampAddition
+                | TimestampSubtraction)
+              if addition && !reserve_slots(workspace, DATE_ADDITION_SLOTS) {
                 return Err({
                   kind: WorkspaceLimit,
                   expression: args.expression,
                 })
               }
-              if args.addition && !spend_control(budget, 64) {
+              if addition && !spend_control(budget, 64) {
                 return Err({ kind: ControlLimit, expression: args.expression, })
               }
-              let computed = if args.interval {
-                temporal_interval(
-                  args.expression,
-                  unit,
-                  args.values[0],
-                  args.values[1],
-                  args.subtract,
-                )
-              } else if args.addition {
-                temporal_addition(
-                  args.expression,
-                  unit,
-                  args.values[0],
-                  args.values[1],
-                )
-              } else {
-                temporal_difference(unit, args.values[0], args.values[1])
+              let computed = match args.operation {
+                TimestampAddition | TimestampSubtraction =>
+                  temporal_interval(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                    args.operation is TimestampSubtraction,
+                  )
+                DateAddition =>
+                  temporal_addition(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                  )
+                DateBoundaryDifference =>
+                  date_boundary_difference(unit, args.values[0], args.values[1])
+                DateIntervalAddition =>
+                  date_interval_addition(
+                    args.expression,
+                    unit,
+                    args.values[0],
+                    args.values[1],
+                  )
+                DateDifference =>
+                  temporal_difference(unit, args.values[0], args.values[1])
+                MakeDate =>
+                  make_date(
+                    args.expression,
+                    args.values[0],
+                    args.values[1],
+                    args.values[2],
+                  )
+                TimestampDifference =>
+                  timestamp_difference(unit, args.values[0], args.values[1])
+                _ => Err(InvalidOperand)
               }
               let result = match computed {
                 Ok(result) => result
@@ -1135,7 +1318,7 @@ fn advance_expression_frame_impl(
                     expression: args.expression,
                   })
               }
-              if args.addition {
+              if addition {
                 release_slots(workspace, DATE_ADDITION_SLOTS)
               }
               for root in args.roots {
@@ -1213,7 +1396,116 @@ fn advance_expression_frame_impl(
                 Ok(state) => state
                 Err(issue) => return Err(issue)
               }
-              frame.state = TextFunction(state)
+              if state.kind == TextRegexExtract {
+                match start_regex_extract(frame, state, args.values) {
+                  Ok(_) => ()
+                  Err(issue) => return Err(issue)
+                }
+              } else if state.kind == TextRegexReplace {
+                match start_regex_replace(frame, state, args.values) {
+                  Ok(_) => ()
+                  Err(issue) => return Err(issue)
+                }
+              } else if state.kind == TextArrayJoin && !state.null_result {
+                guard args.values[0] is Captured(@admitted.Array(items)) &&
+                  args.values[1] is Text(delimiter) else {
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                }
+                frame.state = ArrayTextJoin(state, {
+                  items,
+                  delimiter,
+                  null_text: match args.values.get(2) {
+                    Some(Text(text)) => Some(text)
+                    _ => None
+                  },
+                  index: 0,
+                  part: None,
+                  separator: false,
+                  seen: false,
+                })
+              } else if state.kind == TextJsonValue && !state.null_result {
+                let path = match args.values.get(1) {
+                  Some(Text(path)) => path
+                  _ => "$"
+                }
+                guard json_value_query(args.values[0], path) is Some(query) else {
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                }
+                frame.state = JsonValueText(state, query)
+              } else if state.kind == TextSqlJson && !state.null_result {
+                frame.state = SqlJsonText(state, {
+                  original: args.values[0],
+                  pretty: args.values.get(1) is Some(Boolean(true)),
+                  parents: [],
+                  phase: JsonValue(args.values[0]),
+                  highwater: 0,
+                  token_slots: 0,
+                })
+              } else if state.kind == TextFormatStrings &&
+                args.values[0] is Text(_) {
+                frame.state = FormatText(state, {
+                  values: args.values,
+                  template_position: 0,
+                  argument: 1,
+                  phase: FormatLiteral,
+                  left: false,
+                  width: 0,
+                  precision: -1,
+                  argument_position: 0,
+                  argument_end: 0,
+                  scalar_count: 0,
+                  padding: 0,
+                })
+              } else {
+                frame.state = TextFunction(state)
+              }
+            }
+          }
+          ArrayConcatArguments(args) => {
+            frame.active = args.expression
+            match push_array_concat_operand(frame, args, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+          GenerateArrayArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(GenerateArrayArguments(args))
+              frame.state = Enter(next)
+            } else {
+              match start_generate_array(frame, args) {
+                Err(issue) => return Err(issue)
+                Ok(Some(state)) => frame.state = GenerateArray(state)
+                Ok(None) => {
+                  for root in args.roots {
+                    if release(root) is Some(issue) {
+                      return Err({
+                        kind: LogicalValue(issue),
+                        expression: args.expression,
+                      })
+                    }
+                  }
+                  release_slots(workspace, args.children.length() * 3 + 1)
+                  frame.state = Return(Null)
+                }
+              }
             }
           }
           Property(expr, name, index) => {
@@ -1406,6 +1698,13 @@ fn advance_expression_frame_impl(
               frame.state = TextFunction(state)
               continue
             }
+            if op == @lower.FarmFingerprint && value is Text(text) {
+              match start_farm_fingerprint(expr, text, workspace) {
+                Ok(state) => frame.state = Fingerprint(state)
+                Err(issue) => return Err(issue)
+              }
+              continue
+            }
             match unary(op, value) {
               Ok(v) => {
                 if release(frame.current_root) is Some(e) {
@@ -1524,7 +1823,43 @@ fn advance_expression_frame_impl(
               }
               continue
             }
+            if op == @lower.RegexMatch {
+              if charge_value(left, left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if charge_value(value, frame.current_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              guard value is Text(_) && (left is Text(_) || left is Null) else {
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              release_slots(workspace, 1)
+              let right_root = frame.current_root
+              frame.current_root = None
+              if left is Text(text) {
+                match
+                  start_regex_match(
+                    expr, text, left_root, right_root, workspace,
+                  ) {
+                  Ok(state) => frame.state = RegexMatching(state)
+                  Err(issue) => return Err(issue)
+                }
+                if !drain {
+                  return Ok(None)
+                }
+              } else {
+                if release(left_root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+                if release(right_root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+                frame.state = Return(Null)
+              }
+              continue
+            }
             if op == @lower.ParseTimestamp ||
+              op == @lower.TryPatternedTimestamp ||
               op == @lower.FormatTimestamp ||
               op == @lower.Utf8Truncate ||
               op == @lower.Contains ||
@@ -1547,6 +1882,8 @@ fn advance_expression_frame_impl(
                   [left_root, frame.current_root],
                   if op == @lower.ParseTimestamp {
                     TextParseTimestamp
+                  } else if op == @lower.TryPatternedTimestamp {
+                    TextTryPatternedTimestamp
                   } else if op == @lower.FormatTimestamp {
                     TextFormatTimestamp
                   } else if op == @lower.Utf8Truncate {
@@ -1795,6 +2132,15 @@ fn advance_expression_frame_impl(
               | Translate
               | Instr
               | Split
+              | SplitPart
+              | GenerateArray
+              | ArrayConcat
+              | ArrayToString
+              | FormatStrings
+              | ToJsonString
+              | JsonValue
+              | RegexExtract
+              | RegexReplace
               | Substring
               | LeftString
               | RightString
@@ -1802,6 +2148,10 @@ fn advance_expression_frame_impl(
               | RPad
               | Between
               | DateDifference
+              | MakeDate
+              | TimestampDifference
+              | DateBoundaryDifference
+              | DateIntervalAddition
               | DateAddition
               | TimestampAddition
               | TimestampSubtraction =>
@@ -1896,6 +2246,49 @@ fn advance_expression_frame_impl(
                 frame.current_root = None
               }
               frame.state = Return(combined)
+            }
+          }
+          SimpleCaseOperand(expr, clauses, otherwise) => {
+            frame.stack.push(
+              SimpleCaseMatch({
+                expression: expr,
+                clauses,
+                otherwise,
+                selector: value,
+                selector_root: frame.current_root,
+                index: 0,
+              }),
+            )
+            frame.current_root = None
+            frame.state = Enter(clauses[0].0)
+          }
+          SimpleCaseMatch(state) => {
+            let expr = state.expression
+            if charge_value(state.selector, state.selector_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            // The original selector root stays live across every reached WHEN.
+            // The cursor uses the same two reserved slots as binary equality.
+            if !reserve_slots(workspace, 1) {
+              return Err({ kind: WorkspaceLimit, expression: expr, })
+            }
+            frame.state = CompareSimpleCase(state, {
+              expression: expr,
+              op: @lower.Equal,
+              left: state.selector,
+              right: value,
+              left_root: state.selector_root,
+              right_root: frame.current_root,
+              charge: { offset: 0, next: 0, remaining: 0, },
+              phase: 0,
+              offset: 0,
+            })
+            frame.current_root = None
+            if !drain {
+              return Ok(None)
             }
           }
           Case(expr, clauses, index, otherwise) => {
@@ -2007,9 +2400,16 @@ fn advance_expression_frame_impl(
           }
         }
       }
-      TextFunction(state) => {
+      ArrayConcat(state) => {
+        frame.active = state.args.expression
+        match advance_array_concat(frame, state) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      GenerateArray(state) => {
         frame.active = state.expression
-        match advance_text_function(state, workspace) {
+        match advance_generate_array(frame, state) {
           Err(issue) => return Err(issue)
           Ok(None) => ()
           Ok(Some(value)) => {
@@ -2021,11 +2421,134 @@ fn advance_expression_frame_impl(
                 })
               }
             }
-            release_slots(workspace, state.reserved + state.allocated)
-            frame.current_root = state.output_root
-            frame.result_prepaid = state.output_root is Some(_)
+            release_slots(workspace, state.roots.length() * 3 + 3 + state.count)
+            frame.current_root = state.root
+            frame.result_prepaid = state.root is Some(_)
             frame.state = Return(value)
           }
+        }
+      }
+      RegexMatching(state) => {
+        frame.active = state.expression
+        match advance_regex_search(state) {
+          Err(issue) => return Err(issue)
+          Ok(RegexSearching) => ()
+          Ok(RegexComplete(found)) => {
+            if release(state.left_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: state.expression,
+              })
+            }
+            if release(state.right_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: state.expression,
+              })
+            }
+            state.search = None
+            release_slots(workspace, REGEX_MATCH_SLOTS + state.workspace.slots)
+            frame.state = Return(Boolean(found is Some(_)))
+          }
+        }
+      }
+      RegexExtracting(state, search, capture, max_bytes) => {
+        frame.active = state.expression
+        match advance_regex_extract(frame, state, search, capture, max_bytes) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      RegexCaptureText(state, selected) => {
+        frame.active = state.expression
+        match advance_regex_capture(frame, state, selected) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      RegexReplacing(state) => {
+        frame.active = state.output.expression
+        match advance_regex_replace(frame, state) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      TextFunction(state) => {
+        frame.active = state.expression
+        match advance_text_function(state, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      ArrayTextJoin(state, join) => {
+        frame.active = state.expression
+        match advance_array_text_join(state, join, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      Fingerprint(state) => {
+        frame.active = state.expression
+        match advance_farm_fingerprint(state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            if release(frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: frame.active,
+              })
+            }
+            frame.current_root = None
+            release_slots(workspace, FARM_FINGERPRINT_SLOTS)
+            frame.state = Return(value)
+          }
+        }
+      }
+      JsonValueText(state, query) => {
+        frame.active = state.expression
+        match advance_json_value_query(state, query, workspace, scope) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      SqlJsonText(state, json) => {
+        frame.active = state.expression
+        match advance_sql_json(json, state, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      FormatText(state, format) => {
+        frame.active = state.expression
+        match advance_format_strings(state, format, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match return_measured_text(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
         }
       }
       Membership(state) => {
@@ -2195,29 +2718,24 @@ fn advance_expression_frame_impl(
           Err(issue) => return Err(issue)
         }
       }
-      MeasureArray(state, value, cursor) => {
-        frame.active = state.expression
+      MeasureArray(expression, root, value, cursor) => {
+        frame.active = expression
         match
           advance_reserved_logical_measure(
             cursor,
             workspace,
             frame.measurement_slots,
           ) {
-          Err(Workspace) =>
-            return Err({ kind: WorkspaceLimit, expression: state.expression, })
+          Err(Workspace) => return Err({ kind: WorkspaceLimit, expression, })
           Err(Logical(issue)) =>
-            return Err({
-              kind: LogicalValue(issue),
-              expression: state.expression,
-            })
+            return Err({ kind: LogicalValue(issue), expression, })
           Ok((measured, reserved)) => {
             frame.measurement_slots = reserved
             if measured is Some(measured) {
-              guard state.root is Some(root) &&
-                root.root.bytes == measured.wire_bytes.to_int64() else {
+              guard root.root.bytes == measured.wire_bytes.to_int64() else {
                 return Err({
                   kind: LogicalValue(InvalidRootLifetime),
-                  expression: state.expression,
+                  expression,
                 })
               }
               root.root.measurement = Some(measured)
@@ -2386,6 +2904,40 @@ fn advance_expression_frame_impl(
         }
         release_slots(workspace, 2)
         frame.state = Return(result)
+      }
+      CompareSimpleCase(state, comparison) => {
+        let expr = state.expression
+        frame.active = expr
+        let selected = match advance_binary_comparison(comparison, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => {
+            if !drain {
+              return Ok(None)
+            }
+            continue
+          }
+          Ok(Some(Boolean(true))) => Some(state.clauses[state.index].1)
+          Ok(Some(Boolean(false) | Null)) => None
+          Ok(Some(_)) =>
+            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+        }
+        if release(comparison.right_root) is Some(issue) {
+          return Err({ kind: LogicalValue(issue), expression: expr, })
+        }
+        release_slots(workspace, 1)
+        if selected is None &&
+          state.clauses.get(state.index + 1) is Some((condition, _)) {
+          state.index += 1
+          frame.stack.push(SimpleCaseMatch(state))
+          frame.state = Enter(condition)
+        } else {
+          if release(state.selector_root) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
+          }
+          release_slots(workspace, state.clauses.length())
+          frame.stack.push(Forward(expr))
+          frame.state = Enter(selected.unwrap_or(state.otherwise))
+        }
       }
       CompareMembership(membership, comparison) => {
         frame.active = membership.expression

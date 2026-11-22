@@ -3,10 +3,61 @@
 // it cannot supply a claim, current decision, credential or replacement Run.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {recordUpdateFixtureSeed} from './cases.mjs';
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const text = value => typeof value === 'string' && value.length > 0;
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const closed = (value, keys) => object(value) && Object.keys(value).length === keys.length &&
+  keys.every(key => Object.hasOwn(value, key));
+
+export function admitAuthoredRecordApprovalCase(value) {
+  const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
+  const rows = value => Array.isArray(value) && value.every(object);
+  assert(object(value));
+  const fixture = Object.hasOwn(value, 'fixture');
+  assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
+  const {effect, read, review} = value;
+  assert(object(effect));
+  const additional = Object.hasOwn(effect, 'additionalResults');
+  assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
+  assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
+  assert(closed(review, ['target', 'identity', 'before', 'changes']));
+  assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
+  assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
+  assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
+  assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  if (fixture) {
+    assert(object(value.fixture));
+    const {seed, expected, schema} = value.fixture;
+    const scheduled = Object.hasOwn(value.fixture, 'faults');
+    const pinnedSchema = Object.hasOwn(value.fixture, 'schema');
+    assert(closed(value.fixture, ['seed', 'expected', ...(scheduled ? ['faults'] : []), ...(pinnedSchema ? ['schema'] : [])]));
+    if (pinnedSchema) {
+      assert(closed(schema, ['sourceRef', 'sourceViewContractCid', 'carrierSchemaContractCid']));
+      assert(text(schema.sourceRef) && schema.sourceRef.startsWith('connector://') &&
+        [schema.sourceViewContractCid, schema.carrierSchemaContractCid].every(value => typeof value === 'string' && cid.test(value)));
+    }
+    assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
+    recordUpdateFixtureSeed(seed);
+    assert(closed(expected, ['before', 'after']));
+    for (const state of [expected.before, expected.after]) {
+      assert(closed(state, ['target', 'control']));
+      assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
+        text(row.id) && typeof row.name === 'string'));
+    }
+    if (scheduled) {
+      const {faults} = value.fixture;
+      assert(Array.isArray(faults) && faults.length <= 1);
+      for (const fault of faults) {
+        assert(closed(fault, ['kind', 'expected']) && fault.kind === 'apply-then-lose-reply');
+        assert(recordApprovalReplyLossExpectation(fault.expected) !== undefined);
+      }
+    }
+  }
+  return retainCase(value);
+}
 
 // Trusted fixture expectation, never a Program option or a permission decision.
 // Each selected provider capability supplies its own two independent outcomes.
@@ -57,7 +108,8 @@ function binding(value) {
   const {document: effect, ...effectInput} = value.effect;
   const {document: read, ...readInput} = value.read;
   return {caseName: value.name, effectSha256: sha256(effect), readSha256: sha256(read),
-    effect: effectInput, read: readInput, review: value.review};
+    effect: effectInput, read: readInput, review: value.review,
+    ...(value.fixture === undefined ? {} : {fixture: value.fixture})};
 }
 
 function checkReview(review, summary, ref, expected) {
@@ -118,10 +170,13 @@ async function saveRunObservation(save, name, run, state) {
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
 export async function runRecordUpdateApprovalPhase({phase, client,
-  definition, createDefinition, load, save, approve, observeClose, replyLossExpectation}) {
+  definition, createDefinition, load, save, approve, reject, observeClose, replyLossExpectation,
+  decision = 'approved'}) {
   let failed = false, primary;
   try {
-    assert(['capture', 'approve', 'recover'].includes(phase));
+    assert(['approved', 'rejected'].includes(decision));
+    const rejecting = decision === 'rejected';
+    assert(['capture', rejecting ? 'reject' : 'approve', 'recover'].includes(phase));
     // A connected consumer can still reject its authored case. Keep that
     // synchronous construction inside the same failure/close lifetime.
     if (createDefinition !== undefined) {
@@ -130,7 +185,9 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       definition = createDefinition();
     }
     const loss = recordApprovalReplyLossExpectation(replyLossExpectation);
+    assert(!rejecting || loss === undefined, 'A rejected case cannot enter the apply-then-lose-reply fixture');
     const value = retainCase(definition), originalBinding = {...binding(value),
+      ...(rejecting ? {decision} : {}),
       ...(loss === undefined ? {} : {replyLossExpectation: loss})};
     if (phase === 'capture') {
       const program = value.effect;
@@ -157,25 +214,38 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       assert.deepEqual(captured.binding, originalBinding, 'Reopen the same Program, parameters and independent oracle');
       const run = await client.attach(captured.ref);
       assert.deepEqual(run.ref, captured.ref);
-      if (phase === 'approve') {
+      if (phase === 'approve' || phase === 'reject') {
         const state = await run.status();
-        await saveRunObservation(save, 'approve-status', run, state);
+        await saveRunObservation(save, phase + '-status', run, state);
         assert.equal(state.run_id, captured.runId);
         assert.equal(state.status, 'waiting_checkpoint');
         assert.equal(state.checkpoint.id, captured.checkpointId);
+        if (rejecting) assert.equal(state.checkpoint.checkpoint_cid, captured.summary.checkpointCid);
         const review = await client.reviewCheckpoint(captured.summary);
         assert.equal(Buffer.from(review.bytes).toString('base64'), captured.reviewBase64);
         checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')),
           captured.summary, run.ref, value.review);
-        assert.equal(typeof approve, 'function', 'Approval must be explicitly configured');
-        const answer = await approve(client, captured);
+        const resolveCheckpoint = rejecting ? reject : approve;
+        assert.equal(typeof resolveCheckpoint, 'function', 'The selected resolution must be explicitly configured');
+        const answer = await resolveCheckpoint(client, captured);
         if (loss !== undefined) await save('approval-answer', {ref: run.ref,
           statuses: answer.results.map(item => item.status)});
         assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+        if (rejecting) {
+          assert.equal(answer.signed.length, 1);
+          const resolution = JSON.parse(answer.signed[0].resolutionWire);
+          assert.equal(resolution.decision, decision);
+          assert.equal(resolution.checkpoint_id, captured.checkpointId);
+          assert.equal(resolution.checkpoint_cid, captured.summary.checkpointCid);
+          assert.equal(resolution.run_id, captured.runId);
+          assert.equal(resolution.run_definition_cid, captured.ref.runDefinitionCid);
+        }
         const terminal = await run.wait();
-        await saveRunObservation(save, 'approve-wait', run, terminal);
+        await saveRunObservation(save, phase + '-wait', run, terminal);
         assert.equal(terminal.run_id, captured.runId);
-        assert.equal(terminal.status, loss?.approveStatus ?? 'succeeded');
+        assert.equal(terminal.status, rejecting ? 'cancelled' : loss?.approveStatus ?? 'succeeded');
+        if (rejecting) await save('rejected', {binding: originalBinding,
+          ref: run.ref, runId: captured.runId, status: terminal.status});
         if (loss !== undefined) await save('reply-loss', {binding: originalBinding,
           ref: run.ref, runId: captured.runId, status: terminal.status});
         if (terminal.status === 'succeeded') {
@@ -188,6 +258,14 @@ export async function runRecordUpdateApprovalPhase({phase, client,
           // independently checks the provider target and complete control row.
           if (loss === undefined) await readOriginal(client, value, 'after', save);
         }
+      } else if (rejecting) {
+        const rejected = await load('rejected');
+        assert.deepEqual(rejected, {binding: originalBinding, ref: run.ref,
+          runId: captured.runId, status: 'cancelled'});
+        const state = await run.status();
+        await saveRunObservation(save, 'reject-lookup', run, state);
+        assert.equal(state.run_id, captured.runId);
+        assert.equal(state.status, 'cancelled');
       } else if (loss !== undefined) {
         const observed = await load('reply-loss');
         assert.deepEqual(observed.binding, originalBinding);

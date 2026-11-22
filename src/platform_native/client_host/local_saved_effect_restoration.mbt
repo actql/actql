@@ -5,15 +5,24 @@ priv struct NativeLocalSavedEffectRestoration {
   packet : NativeClientRetainedEffectMaterials
   mut capacity : @execution.ExecutionCapacity
   fields : @decode.ObjectView
+  mut capture_reference_key : Bytes?
+  mut capture_wire : String?
   schema_cursors : Array[@decode.Cursor]
-  mut attempted : Bool
-  mut completed : Bool
+  mut phase : NativeLocalSavedEffectRestorationPhase
   mut candidate : Result[
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ]?
   mut materials : @host.ClientEffectRunMaterials?
   mut material_issue : @host.ClientEffectRunMaterialsIssue?
+}
+
+///|
+priv enum NativeLocalSavedEffectRestorationPhase {
+  Prepared
+  CaptureReady
+  ConstructorAttempted
+  Completed
 }
 
 ///|
@@ -26,7 +35,7 @@ priv struct NativeLocalSavedEffectRestoration {
 // computation material uses the complete conservative compiler recovery recipe.
 let native_saved_restoration_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 136L,
-    reference_slots: 536L,
+    reference_slots: 538L,
     scalar_words: 268L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -93,9 +102,10 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     packet,
     capacity,
     fields,
+    capture_reference_key: None,
+    capture_wire: None,
     schema_cursors: [],
-    attempted: false,
-    completed: false,
+    phase: Prepared,
     candidate: None,
     materials: None,
     material_issue: None,
@@ -187,7 +197,353 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
       restoration.capacity = combined
     }
   }
+  if @decode.lookup(fields, "captured_run_cid") is Some(_) {
+    match self.prepare_saved_capture_reference_key(fields, packet, now) {
+      Ok(key) => restoration.capture_reference_key = Some(key)
+      Err(issue) => return Err(issue)
+    }
+  }
   Ok(restoration.capacity)
+}
+
+///|
+// The fixed probe owns the Store and original-Journal callback frames, one
+// holding/revision/extent and the scalar Capture preflight. Store location
+// encoding and original key derivation use their existing codec recipes.
+fn saved_effect_capture_probe_construction() -> (Int64, Int64, Int64)? {
+  let controls = @source.json_source_preflight_control_extent()
+  let fixed = @execution.preparation_representation_cost({
+    record_headers: controls.record_headers + 33L,
+    reference_slots: controls.reference_slots + 97L,
+    scalar_words: controls.scalar_words + 40L,
+    owned_utf16_units: 71L,
+    owned_wire_bytes: 32L,
+  }).unwrap()
+  let (key_bytes, key_nodes, key_depth) = native_mock_model_evidence_key_codec_limits
+  guard journal_row_construction_working(key_bytes, key_nodes, key_depth)
+    is Some((key_retained, key_peak, key_raw)) &&
+    journal_row_construction_working(4096, 8, 2)
+    is Some((binding_retained, binding_peak, binding_raw)) else {
+    return None
+  }
+  Some(
+    (
+      fixed + key_retained + binding_retained,
+      fixed + key_peak + binding_peak,
+      Int64::max(fixed, Int64::max(key_raw, binding_raw)),
+    ),
+  )
+}
+
+///|
+fn prepare_saved_effect_capture_probe(
+  original : NativeLocalJournalOriginalResources,
+  previous : Int64,
+) -> Result[Int64, NativeLocalAdoptionIssue] {
+  guard original.active_phase is Some(@arena.HostRead) && !original.interrupted else {
+    return Err(OriginalResourceScopePending)
+  }
+  guard saved_effect_capture_probe_construction() is Some((r, e, raw)) &&
+    @execution.checked_preparation_add_product(previous, r, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(previous, e, 1L)
+    is Some(execution) else {
+    return Err(ConfigurationLimit)
+  }
+  original.host
+  .prepare_domain_original_read_construction(
+    original.read,
+    retained,
+    execution,
+    raw,
+  )
+  .map(_ => retained)
+  .map_err(issue => OriginalResources(@arena.Read(issue)))
+}
+
+///|
+fn NativeLocalSavedEffectReview::prepare_saved_capture_reference_key(
+  self : NativeLocalSavedEffectReview,
+  fields : @decode.ObjectView,
+  packet : NativeClientRetainedEffectMaterials,
+  now : Double,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  let request = self.selected.request
+  guard self._retained_store_location is Some(location) &&
+    self._retained_original is Some(original) &&
+    self.retained_persisted is Some(persisted) &&
+    @host.client_request_identity_relation(packet.request, request) ==
+    @host.SameRequest &&
+    original.run_definition_cid ==
+    @publication.publication_contract_identity(packet.definition) &&
+    original.checkpoint_cid == persisted.artifact.checkpoint_cid &&
+    persisted.artifact.checkpoint.subject
+    is @checkpoint.RunUnit(run_definition_cid~, ..) &&
+    run_definition_cid == original.run_definition_cid &&
+    epoch_text(fields, "request_scope_cid") ==
+    Some(@host.client_request_scope_cid(request)) &&
+    epoch_text(fields, "authority_scope_cid") ==
+    Some(@host.client_request_authority_scope_cid(request)) &&
+    epoch_text(fields, "request_id") ==
+    Some(@host.client_request_caller_id(request)) &&
+    epoch_text(fields, "run_definition_wire") ==
+    Some(@publication.publication_contract_json(packet.definition)) else {
+    return Err(Journal(CustodyLost))
+  }
+  guard self.capture.original_resources is Some(resources) else {
+    return Err(OriginalResourceScopePending)
+  }
+  match
+    prepare_saved_effect_capture_probe(
+      resources,
+      self._retained_constructor_bytes,
+    ) {
+    Ok(retained) => self._retained_constructor_bytes = retained
+    Err(issue) => return Err(issue)
+  }
+  self.capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    match self.require_saved_capture_current(host, material, operations, now) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let (authority, device, inode) = location
+    let binding = match
+      installed_publication_binding(self.namespace_id, authority, device, inode) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+    native_local_private_evidence_key(
+      host,
+      binding,
+      operations.reads,
+      "actql-native-local-effect-review-key/0.1",
+    )
+  })
+}
+
+///|
+fn NativeLocalSavedEffectReview::saved_capture_store_current(
+  self : NativeLocalSavedEffectReview,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard !self.retired && self._retained_store_location is Some(location) else {
+    return Err(Journal(CustodyLost))
+  }
+  match self.store.custody_location() {
+    Ok(actual) if actual == location => ()
+    Ok(_) => return Err(Journal(CustodyLost))
+    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+  }
+  match self.store.retained_data_current() {
+    Ok(_) => self.capture.check_original_read_lifetime()
+    Err(issue) => Err(Journal(PublicationObservation(issue)))
+  }
+}
+
+///|
+fn NativeLocalSavedEffectReview::require_saved_capture_current(
+  self : NativeLocalSavedEffectReview,
+  host : NativeLocalHostConnection,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+  operations : NativeClientJournalOperationAccess,
+  now : Double,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match self.saved_capture_store_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard self._retained_original is Some(original) else {
+    return Err(Journal(CustodyLost))
+  }
+  let capture = self.capture
+  let request = self.selected.request
+  match
+    host.lookup_submitted_checkpoint_metadata_with_operations(
+      capture.crypto,
+      self.principal,
+      self.connection,
+      self.selected.reference,
+      request,
+      now,
+      operations=Some(operations),
+      capture=Some(capture),
+    ) {
+    Ok(Some(actual)) if actual.checkpoint_cid == original.checkpoint_cid &&
+      actual.run_definition_cid == original.run_definition_cid &&
+      actual.revision == original.revision &&
+      !actual.cancellation_requested => ()
+    Err(Journal(issue)) => return Err(Journal(issue))
+    _ => return Err(Journal(CustodyLost))
+  }
+  guard !self.retired &&
+    capture.operation_scope(host, material, self.principal, self.connection)
+    is Ok(scope) &&
+    scope == @host.client_request_authority_scope_cid(request) &&
+    capture.operation_account(host, material, {
+      principal: self.principal,
+      connection: self.connection,
+      resource: "run",
+      operation: "read",
+    })
+    is Ok(@authorization.Allow(_)) else {
+    return Err(Journal(AuthorizationDenied))
+  }
+  self.saved_capture_store_current()
+}
+
+///|
+/// Complete the reference on the same entered Read after the first Journal
+/// flight returns. The independent Store must return before that exact Journal
+/// can reenter to check the original checkpoint. Inline records skip this path.
+pub fn NativeLocalSavedEffectReview::finish_approval_capture_in_original_read(
+  self : NativeLocalSavedEffectReview,
+  journal : NativeLocalStoreOperation,
+  now : Double,
+  wire_limits : @checkpoint.WireLimits,
+) -> Result[@execution.ExecutionCapacity, NativeLocalStoreOperationIssue] {
+  guard !self.retired &&
+    self._retained_restoration is Some(restoration) &&
+    restoration.phase is Prepared else {
+    return Err(StoreOperationCapture(OriginalResourceScopePending))
+  }
+  guard epoch_text(restoration.fields, "captured_run_cid") is Some(cid) else {
+    return Ok(restoration.capacity)
+  }
+  let capture = self.capture
+  guard restoration.capture_reference_key is Some(key) &&
+    restoration.capture_wire is None &&
+    physical_equal(journal.receiver.capture, capture) &&
+    journal.receiver.domain is StoreRunObservationDomain &&
+    capture.original_resources is Some(resources) &&
+    resources.store_operation is None &&
+    journal.bridge is Some(bridge) &&
+    capture.opening is JournalAcquired(host) &&
+    host.database.matches_original_store_operation(bridge) &&
+    !self.store.matches_original_operation(bridge) else {
+    return Err(StoreOperationForeignOriginal)
+  }
+  // Consume the original key/attempt before either physical Store callback.
+  // Refusal never reopens the Capture or substitutes an inline original.
+  restoration.capture_reference_key = None
+  let read = self.read_saved_effect_capture(
+    restoration.packet.definition,
+    cid,
+    key,
+  )
+  let captured = match read {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationCapture(issue))
+  }
+  // Keep the funded wire with the original Read across every fallible handoff.
+  // The constructor cannot consume it until the original return and quote succeed.
+  restoration.capture_wire = Some(captured)
+  match journal.begin_captured_journal_read() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let current = capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => self.require_saved_capture_current(host, material, operations, now))
+  let returned = journal.finish_captured_journal_read()
+  match (current, returned) {
+    (Err(issue), _) => return Err(StoreOperationCapture(issue))
+    (Ok(_), Err(issue)) => return Err(issue)
+    (Ok(_), Ok(_)) => ()
+  }
+  guard !self.retired && restoration.phase is Prepared else {
+    return Err(StoreOperationCapture(OriginalResourceScopePending))
+  }
+  let geometry = match saved_effect_capture_geometry(captured, wire_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(StoreOperationCapture(issue))
+  }
+  guard @local.installed_effect_contract_response_construction_capacity(
+      geometry.input_bytes,
+      geometry.node_upper,
+      geometry.depth_upper,
+    )
+    is Some(construction) &&
+    @execution.add_execution_capacity(restoration.capacity, construction)
+    is Some(combined) else {
+    return Err(StoreOperationCapture(ConfigurationLimit))
+  }
+  restoration.capacity = combined
+  restoration.phase = CaptureReady
+  Ok(combined)
+}
+
+///|
+fn NativeLocalSavedEffectReview::read_saved_effect_capture(
+  self : NativeLocalSavedEffectReview,
+  definition : @publication.PublicationContract,
+  cid : String,
+  key : Bytes,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  match self.saved_capture_store_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let (extent, layout) = match
+    self.store.effect_capture_restore_construction(definition, cid) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+  }
+  match
+    self.capture.prepare_private_store_layouts_construction(
+      1,
+      _ => Some(layout),
+      additional_retained=self._retained_constructor_bytes,
+    ) {
+    Ok(retained) => self._retained_constructor_bytes = retained
+    Err(Original(issue)) => return Err(issue)
+    Err(_) => return Err(Encoding)
+  }
+  match self.saved_capture_store_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  extent
+  .read_original_wire(self.capture.crypto, key)
+  .map_err(issue => Journal(PublicationObservation(issue)))
+}
+
+///|
+// The authenticated raw wire remains funded by the Read. Its scalar scan
+// supplies the entered constructor's quote without building a second tree.
+fn saved_effect_capture_geometry(
+  wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[@source.JsonSourceGeometry, NativeLocalAdoptionIssue] {
+  let preflight = match
+    @source.start_json_source_preflight(
+      wire,
+      {
+        max_input_bytes: limits.max_wire_bytes,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+      },
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Journal(CustodyLost))
+  }
+  defer @source.cancel_json_source_preflight(preflight)
+  while true {
+    match @source.advance_json_source_preflight(preflight, 4096) {
+      Ok(@source.JsonSourceContinue(..)) => continue
+      Ok(@source.JsonSourceReady(value, ..)) => return Ok(value)
+      _ => return Err(Journal(CustodyLost))
+    }
+  }
+  Err(Journal(CustodyLost))
 }
 
 ///|
@@ -274,8 +630,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
-    !restoration.attempted &&
-    !restoration.completed &&
+    (restoration.phase is Prepared || restoration.phase is CaptureReady) &&
     self.capture.original_resources is Some(resources) &&
     self.capture.read_callback_active &&
     self.capture.read_facts_valid &&
@@ -285,15 +640,26 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
     self.retained_persisted is Some(persisted) else {
     return Err(OriginalResourceScopePending)
   }
-  restoration.attempted = true
+  let capture_ready = restoration.phase is CaptureReady
+  restoration.phase = ConstructorAttempted
   let result = (fn() -> Result[
     NativeLocalSavedEffectApprovalOriginal,
     NativeLocalAdoptionIssue,
   ] {
-    guard native_saved_material_input_raw(
-        Int::max(wire.length(), restoration.packet.materials_wire.length()),
-      )
-      is Some(raw) else {
+    let fields = restoration.fields
+    if @decode.lookup(fields, "captured_run_cid") is Some(_) &&
+      (!capture_ready || restoration.capture_wire is None) {
+      return Err(Journal(CustodyLost))
+    }
+    let input_units = Int::max(
+      wire.length(),
+      restoration.packet.materials_wire.length(),
+    )
+    let input_units = match restoration.capture_wire {
+      None => input_units
+      Some(captured) => Int::max(input_units, captured.length())
+    }
+    guard native_saved_material_input_raw(input_units) is Some(raw) else {
       return Err(ConfigurationLimit)
     }
     match
@@ -313,7 +679,6 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
       ) else {
       return Err(OriginalResourceScopePending)
     }
-    let fields = restoration.fields
     let publication_present = @decode.lookup(fields, "result_derivation_wires")
       is Some(_)
     if publication_required && !publication_present {
@@ -357,6 +722,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
       effect_limits,
       publication_present,
       schema_cursors=restoration.schema_cursors,
+      capture_wire=restoration.capture_wire,
     )
   })()
   restoration.candidate = Some(result)
@@ -386,8 +752,7 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
   defer native_timing_end(32)
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
-    restoration.attempted &&
-    !restoration.completed &&
+    restoration.phase is ConstructorAttempted &&
     restoration.candidate is Some(candidate) &&
     self.capture.opening is JournalAcquired(host) &&
     self.capture.read_callback_active &&
@@ -399,7 +764,7 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
     self.store.retained_data_current() is Ok(_) else {
     return Err(OriginalResourceScopePending)
   }
-  restoration.completed = true
+  restoration.phase = Completed
   match
     host.require_original_effect_material_current(
       self.capture.crypto,

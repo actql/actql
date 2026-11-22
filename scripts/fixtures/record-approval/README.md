@@ -58,6 +58,58 @@ The three launchers share `record-approval/command.mjs`. `check` does not load a
 operator module or signing key, inspect the remote account, admit the Program,
 or prove that the installation/state/receipt prefix is fresh.
 
+To supply your own case, replace `selection` with `"casePath": "case.json"`.
+The path is resolved relative to the configuration file. Write a UTF-8 JSON
+file of at most 1 MiB with these fields.
+
+| Field | Value |
+| --- | --- |
+| `name` | The authored case name. |
+| `effect` | `document`, `format`, `resultName`, `parameterDeclarations`, `parameters`, and `expectedRows`. Optionally supply `additionalResults` keyed by Result name. |
+| `read` | The same document, format, Result name, and parameter fields, with independent `beforeRows` and `afterRows`. |
+| `review` | The exact expected `target`, `identity`, `before`, and `changes` from the one-row UPDATE Review. |
+
+Use `aql`, `sql`, `json`, or `yaml` for `format`. Provide `document` as text or
+replace it with `documentPath`, the name of a regular UTF-8 file alongside the
+case. The total input and the resulting case each fit within 1 MiB. Keep
+connection, operator and signing settings in the separate
+configuration. All three phases read the authored case. The original receipt
+binds both documents, their parameters and the oracle before approval or Saved
+recovery. Keep the case available for each phase.
+
+The installed HTTP fixture may also use a `fixture` object in the case file.
+Provide a `seed` with `recordId`, `previousName`, `controlId`, and `controlName`.
+Independently specify `expected.before` and `expected.after`, each containing
+`target` and `control` records with `id` and `name` fields. Pass `casePath` and
+the existing provider's installation factory as `createInstallation` when
+calling `runInstalledRecordApprovalFixture`. The runner binds the seed and
+expectations to the same Run receipt and checks them against the provider
+observations. The standalone phase commands use the independently supplied
+connection and check the Program and Review oracles.
+
+Include `fixture.schema` with `sourceRef`, `sourceViewContractCid`, and
+`carrierSchemaContractCid` to pin the selected provider schema. The installed
+fixture compares all three with the checked Source View before starting the
+Run. Phase commands require the matching installed fixture for a pinned case.
+
+An installed HTTP case may set `fixture.faults` to an empty array or one
+`{"kind":"apply-then-lose-reply","expected":{"approveStatus":"needs_reconciliation","lookupStatus":"needs_reconciliation"}}`
+entry. The existing provider adapter selects the exact write route. The case
+supplies the outcomes to check, and the ordinary fixture observes the original
+approval and lookup replies. Use a single fault selection. Standalone phase
+commands refuse a scheduled fault without the matching installed fixture.
+
+Set `ACTQL_RECORD_APPROVAL_MOCK_CASE` to the absolute path of a case file to
+run it with the existing `--mock-hubspot-approval` or `--mock-kintone-approval`
+packed fixture. The Mock uses the same authored Program, parameters, seed,
+Review, and expected states. It constructs the existing Mock catalog for the
+selected connector. The installed HTTP adapter checks the provider schema and
+applies the HTTP fault schedule in its own run.
+
+The standard HubSpot and kintone packed fixtures use their respective
+`case.json` for both HTTP and Mock. Each references that adapter's existing
+`update.aql` and `read.aql` files.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.
@@ -163,6 +215,21 @@ Run on the producer's actual supported platform; a Linux native asset does not
 qualify Darwin. This source connection alone is not hosted CI or real-account
 acceptance. The existing three-path release/closed-installation entry is retained.
 
+
+## Rejecting the original checkpoint
+
+Append `--reject` to the installed `--approval` or `--kintone-approval`
+selection to run the same Program and provider fixture in a fresh project.
+The three processes capture, reject, and then look up the original cancelled
+Run. The parent checks the entire target and control and counts every selected
+write request across the three phases. Both rows remain unchanged and the
+write count remains zero.
+
+For the separate consumer commands, set `"decision": "rejected"` in the fresh
+configuration before capture and use `reject` as the second phase. The signed
+rejection must identify the original checkpoint and Run. The final `recover`
+phase reads the original cancelled status without reading an Effect Result or
+submitting another resolution.
 
 ## Applied update with a lost reply
 

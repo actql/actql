@@ -176,3 +176,49 @@ test "Native saved review closed codec accepts same one-use observed cursor" {
   )
   assert_true(saved_effect_admit_preflight(preflight, limits) is Err(_))
 }
+
+///|
+test "Native saved review admits exactly one version-bound original Capture" {
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 4096,
+    max_nodes: 64,
+    max_depth: 4,
+  }
+  let cid = "sha256:" + "a".repeat(64)
+  let legacy = saved_effect_review_codec_fixture()
+  let inline = "\"captured_run_wire\":\"capture original\","
+  let reference = "\"captured_run_cid\":\"" + cid + "\","
+  let reference_version = legacy.replace_all(
+    old="actql-native-local-effect-review/0.1",
+    new="actql-native-local-effect-review-reference/0.1",
+  )
+  let current = reference_version.replace_all(old=inline, new=reference)
+  let old_fields = saved_effect_review_fields(legacy, limits).unwrap()
+  assert_eq(
+    epoch_text(old_fields, "captured_run_wire"),
+    Some("capture original"),
+  )
+  assert_true(@decode.lookup(old_fields, "captured_run_cid") is None)
+  let new_fields = saved_effect_review_fields(current, limits).unwrap()
+  assert_eq(epoch_text(new_fields, "captured_run_cid"), Some(cid))
+  assert_true(@decode.lookup(new_fields, "captured_run_wire") is None)
+  assert_eq(epoch_text(new_fields, "review_wire"), Some("preview original"))
+  for
+    wire in [
+      legacy.replace_all(old=inline, new=reference),
+      legacy.replace_all(old=inline, new=inline + reference),
+      legacy.replace_all(old=inline, new=""),
+      reference_version,
+      current.replace_all(old=reference, new=""),
+      current.replace_all(
+        old=reference,
+        new=reference + "\"captured_run_wire\":null,",
+      ),
+      current.replace_all(old=reference, new="\"captured_run_cid\":null,"),
+      current.replace_all(old=cid, new="sha256:" + "G".repeat(64)),
+      current.replace_all(old=cid, new="sha256:" + "a".repeat(63)),
+      current.replace_all(old=reference, new=reference + reference),
+    ] {
+    assert_true(saved_effect_review_fields(wire, limits) is Err(CustodyLost))
+  }
+}

@@ -27,6 +27,9 @@ pub(all) enum ExpressionKind {
   ContextualIntegerCompanion(Int, NamePart?)
   StringLiteral(String)
   JsonLiteral(String)
+  DateLiteral(String)
+  DatePart(String)
+  TimestampLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
@@ -39,6 +42,7 @@ pub(all) enum ExpressionKind {
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
+  SimpleCase(Int, Array[(Int, Int)], Int)
   Cast(Int, CastType)
   Interval(Int, String)
 } derive(Eq, Debug)
@@ -111,6 +115,8 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
     Predicate(op, args) => Predicate(op, args.copy())
     SearchedCase(branches, otherwise) =>
       SearchedCase(branches.copy(), otherwise)
+    SimpleCase(operand, branches, otherwise) =>
+      SimpleCase(operand, branches.copy(), otherwise)
     kind => kind
   }
   Some({ ..node, kind, })
@@ -180,7 +186,10 @@ fn expression_subtree(
         for (_, child) in fields {
           pending.push(child)
         }
-      SearchedCase(branches, otherwise) => {
+      SearchedCase(branches, otherwise) | SimpleCase(_, branches, otherwise) => {
+        if expression.nodes[next].kind is SimpleCase(operand, _, _) {
+          pending.push(operand)
+        }
         pending.push(otherwise)
         for branch in branches {
           pending.push(branch.0)
@@ -231,6 +240,12 @@ fn expression_subtree(
             branches.map(branch => (remap[branch.0], remap[branch.1])),
             remap[otherwise],
           )
+        SimpleCase(operand, branches, otherwise) =>
+          SimpleCase(
+            remap[operand],
+            branches.map(branch => (remap[branch.0], remap[branch.1])),
+            remap[otherwise],
+          )
         Reference(path) => Reference(path.copy())
         ContextualIntegerReference(path, name) =>
           ContextualIntegerReference(path.copy(), name)
@@ -270,11 +285,26 @@ priv enum ExpressionFrame {
   InItem(Int, Bool, Array[Int], Int, Int)
   InUnnest(Int, Bool, Int, Int)
   IsDistinct(Int, Bool, Int, Int)
-  CaseCondition(Array[(Int, Int)], Int, Int)
-  CaseValue(Array[(Int, Int)], Int, Int, Int)
-  CaseElse(Array[(Int, Int)], Int)
+  CaseOperand(Int, Int)
+  CaseCondition(Int, Array[(Int, Int)], Int, Int)
+  CaseValue(Int, Array[(Int, Int)], Int, Int, Int)
+  CaseElse(Int, Array[(Int, Int)], Int)
   CastTarget(Int)
+  ExtractValue(Array[NamePart], Int, Int)
   IntervalUnit(Int)
+}
+
+///|
+fn case_expression(
+  operand : Int,
+  branches : Array[(Int, Int)],
+  otherwise : Int,
+) -> ExpressionKind {
+  if operand < 0 {
+    SearchedCase(branches, otherwise)
+  } else {
+    SimpleCase(operand, branches, otherwise)
+  }
 }
 
 ///|
@@ -309,6 +339,62 @@ fn upper_ascii(value : String) -> String {
     )
   }
   out.to_string()
+}
+
+///|
+fn fixed_interval_unit(name : String) -> String? {
+  match upper_ascii(name) {
+    "NANOSECOND" => Some("ns")
+    "MICROSECOND" => Some("us")
+    "MILLISECOND" => Some("ms")
+    "SECOND" => Some("s")
+    "MINUTE" => Some("m")
+    "HOUR" => Some("h")
+    "DAY" => Some("d")
+    _ => None
+  }
+}
+
+///|
+fn timestamp_unit_call(path : Array[NamePart], arguments : Int) -> String? {
+  guard path is [{ value: name, .. }] else { return None }
+  if arguments == 1 &&
+    name.length() == 15 &&
+    upper_ascii(name) == "TIMESTAMP_TRUNC" {
+    Some("TIMESTAMP_TRUNC")
+  } else if arguments == 2 &&
+    name.length() == 14 &&
+    upper_ascii(name) == "TIMESTAMP_DIFF" {
+    Some("TIMESTAMP_DIFF")
+  } else {
+    None
+  }
+}
+
+///|
+fn date_part_operand(
+  path : Array[NamePart],
+  arguments : Int,
+  token : Token,
+) -> String? {
+  guard path is [{ value: name, .. }] && token.value is Word(part) else {
+    return None
+  }
+  if arguments == 2 &&
+    name.length() == 9 &&
+    part.length() == 3 &&
+    upper_ascii(name) == "DATE_DIFF" &&
+    upper_ascii(part) == "DAY" {
+    Some("d")
+  } else if arguments == 1 &&
+    name.length() == 10 &&
+    part.length() == 5 &&
+    upper_ascii(name) == "DATE_TRUNC" &&
+    upper_ascii(part) == "MONTH" {
+    Some("month")
+  } else {
+    None
+  }
 }
 
 ///|
@@ -369,8 +455,11 @@ fn ExpressionParser::add(
       for (_, child) in fields {
         child_depth = child_depth.max(self.depths[child])
       }
-    SearchedCase(branches, otherwise) => {
+    SearchedCase(branches, otherwise) | SimpleCase(_, branches, otherwise) => {
       child_depth = self.depths[otherwise]
+      if kind is SimpleCase(operand, _, _) {
+        child_depth = child_depth.max(self.depths[operand])
+      }
       for (condition, value) in branches {
         child_depth = child_depth
           .max(self.depths[condition])
@@ -385,8 +474,18 @@ fn ExpressionParser::add(
   let index = self.nodes.length()
   // This fixed three-character predicate is part of the already bounded Call
   // constructor, not another source/token/AST discovery traversal.
-  if kind is Call(path, _) && integer_context_call_name(path) {
+  if kind is Call(path, arguments) &&
+    integer_context_call_name(path, arguments.length()) {
     self.source.integer_context_required = true
+  }
+  self.source.namespace_seed_fields = self.source.namespace_seed_fields.max(
+    index + 1,
+  )
+  if kind is Reference(_) {
+    self.source.namespace_references = namespace_count_add(
+      self.source.namespace_references,
+      1,
+    )
   }
   self.nodes.push({ kind, start, end, })
   self.depths.push(child_depth + 1)
@@ -556,6 +655,35 @@ fn ExpressionParser::string_chunks(
 }
 
 ///|
+// SQL allows one- or two-digit civil month and day. The Common Date checker
+// owns calendar validation for the canonical spelling emitted here.
+fn canonical_sql_date(text : String) -> String? {
+  let end = text.length()
+  guard end >= 8 && end <= 10 && text[4] == '-' else { return None }
+  let month_end = if text[6] == '-' { 6 } else { 7 }
+  let day_length = end - month_end - 1
+  guard text[month_end] == '-' && day_length >= 1 && day_length <= 2 else {
+    return None
+  }
+  for index in 0..<end {
+    if index != 4 &&
+      index != month_end &&
+      (text[index] < '0' || text[index] > '9') {
+      return None
+    }
+  }
+  if end == 10 {
+    return Some(text)
+  }
+  let year = text[:5].to_owned()
+  let month = text[5:month_end].to_owned()
+  let day = text[month_end + 1:].to_owned()
+  let padded_month = if month.length() == 1 { "0" + month } else { month }
+  let padded_day = if day_length == 1 { "0" + day } else { day }
+  Some(year + padded_month + "-" + padded_day)
+}
+
+///|
 // Explicit Pratt continuations bound heap work without recursive native calls.
 fn ExpressionParser::expression(
   self : ExpressionParser,
@@ -610,6 +738,19 @@ fn ExpressionParser::expression(
             self.peek().value is Text(_) => {
             let (value, end) = self.string_chunks(self.advance())
             result = self.add(JsonLiteral(value), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "DATE" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            guard canonical_sql_date(value) is Some(date) else {
+              raise ExpressionAbort("Expected DATE literal YYYY-MM-DD", t.start)
+            }
+            result = self.add(DateLiteral(date), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "TIMESTAMP" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            result = self.add(TimestampLiteral(value), t.start, end)
           }
           value if value == Symbol(91) || keyword(t, "ARRAY") => {
             let mut target : ArrayElementType? = None
@@ -721,8 +862,12 @@ fn ExpressionParser::expression(
             frames.push(Enter(1, depth + 1))
           }
           Word(name) if upper_ascii(name) == "CASE" => {
-            self.require_keyword("WHEN")
-            frames.push(CaseCondition([], t.start, depth))
+            if keyword(self.peek(), "WHEN") {
+              self.require_keyword("WHEN")
+              frames.push(CaseCondition(-1, [], t.start, depth))
+            } else {
+              frames.push(CaseOperand(t.start, depth))
+            }
             frames.push(Enter(1, depth + 1))
           }
           Word(name) if upper_ascii(name) == "NOT" => {
@@ -756,13 +901,50 @@ fn ExpressionParser::expression(
             let path = self.path(t)
             if self.peek().value == Symbol(40) {
               ignore(self.advance())
-              if self.peek().value == Symbol(41) {
+              if path is [{ value: name, .. }] &&
+                name.length() == 7 &&
+                upper_ascii(name) == "EXTRACT" {
+                self.spend()
+                let word = self.advance()
+                guard word.value is Word(name) && name.length() <= 11 else {
+                  raise ExpressionAbort(
+                    "Expected EXTRACT date part",
+                    word.start,
+                  )
+                }
+                let part = match upper_ascii(name) {
+                  "YEAR" => "year"
+                  "QUARTER" => "quarter"
+                  "MONTH" => "month"
+                  "DAY" => "day"
+                  "DAYOFWEEK" => "dayofweek"
+                  "DAYOFYEAR" => "dayofyear"
+                  "HOUR" => "hour"
+                  "MINUTE" => "minute"
+                  "SECOND" => "second"
+                  "MILLISECOND" => "millisecond"
+                  "MICROSECOND" => "microsecond"
+                  _ =>
+                    raise ExpressionAbort(
+                      "Unsupported EXTRACT date part",
+                      word.start,
+                    )
+                }
+                self.require_keyword("FROM")
+                let part = self.add(StringLiteral(part), word.start, word.end)
+                frames.push(ExtractValue(path, part, t.start))
+                frames.push(Enter(1, depth + 1))
+              } else if self.peek().value == Symbol(41) {
                 let close = self.advance()
                 result = self.add(Call(path, []), t.start, close.end)
               } else {
                 frames.push(Argument(path, [], t.start, depth))
                 frames.push(Enter(1, depth + 1))
               }
+            } else if path is [{ value: name, quoted: false, }] &&
+              name.length() == 12 &&
+              upper_ascii(name) == "CURRENT_DATE" {
+              result = self.add(Call(path, []), t.start, t.end)
             } else {
               result = self.add(
                 Reference(path),
@@ -1005,26 +1187,45 @@ fn ExpressionParser::expression(
         )
         frames.push(Tail(result, minimum, depth))
       }
-      CaseCondition(branches, start, depth) => {
-        self.require_keyword("THEN")
-        frames.push(CaseValue(branches, result, start, depth))
+      CaseOperand(start, depth) => {
+        self.require_keyword("WHEN")
+        frames.push(CaseCondition(result, [], start, depth))
         frames.push(Enter(1, depth + 1))
       }
-      CaseValue(branches, condition, start, depth) => {
+      CaseCondition(operand, branches, start, depth) => {
+        self.require_keyword("THEN")
+        frames.push(CaseValue(operand, branches, result, start, depth))
+        frames.push(Enter(1, depth + 1))
+      }
+      CaseValue(operand, branches, condition, start, depth) => {
         branches.push((condition, result))
         let next = self.advance()
         if keyword(next, "WHEN") {
-          frames.push(CaseCondition(branches, start, depth))
+          frames.push(CaseCondition(operand, branches, start, depth))
           frames.push(Enter(1, depth + 1))
         } else if keyword(next, "ELSE") {
-          frames.push(CaseElse(branches, start))
+          frames.push(CaseElse(operand, branches, start))
           frames.push(Enter(1, depth + 1))
         } else if keyword(next, "END") {
           let otherwise = self.add(Null, next.start, next.end)
-          result = self.add(SearchedCase(branches, otherwise), start, next.end)
+          result = self.add(
+            case_expression(operand, branches, otherwise),
+            start,
+            next.end,
+          )
         } else {
           raise ExpressionAbort("Expected WHEN, ELSE or END", next.start)
         }
+      }
+      ExtractValue(path, part, start) => {
+        let close = self.advance()
+        if close.value != Symbol(41) {
+          raise ExpressionAbort(
+            "Expected EXTRACT closing parenthesis",
+            close.start,
+          )
+        }
+        result = self.add(Call(path, [result, part]), start, close.end)
       }
       CastTarget(start) => {
         self.require_keyword("AS")
@@ -1078,38 +1279,73 @@ fn ExpressionParser::expression(
         }
         result = self.add(Cast(result, target), start, close.end)
       }
-      CaseElse(branches, start) => {
+      CaseElse(operand, branches, start) => {
         let next = self.peek()
         self.require_keyword("END")
-        result = self.add(SearchedCase(branches, result), start, next.end)
+        result = self.add(
+          case_expression(operand, branches, result),
+          start,
+          next.end,
+        )
       }
       IntervalUnit(start) => {
         let token = self.advance()
-        let unit = match token.value {
-          Word(name) =>
-            match upper_ascii(name) {
-              "NANOSECOND" => "ns"
-              "MICROSECOND" => "us"
-              "MILLISECOND" => "ms"
-              "SECOND" => "s"
-              "MINUTE" => "m"
-              "HOUR" => "h"
-              "DAY" => "d"
-              _ =>
-                raise ExpressionAbort(
-                  "Unsupported fixed interval unit",
-                  token.start,
-                )
-            }
-          _ =>
-            raise ExpressionAbort("Expected fixed interval unit", token.start)
+        guard token.value is Word(name) else {
+          raise ExpressionAbort("Expected fixed interval unit", token.start)
+        }
+        guard fixed_interval_unit(name) is Some(unit) else {
+          raise ExpressionAbort("Unsupported fixed interval unit", token.start)
         }
         result = self.add(Interval(result, unit), start, token.end)
       }
       Argument(path, args, start, depth) => {
         args.push(result)
         let token = self.advance()
-        if token.value == Symbol(44) {
+        if token.value == Symbol(44) &&
+          timestamp_unit_call(path, args.length()) is Some(function_name) {
+          // The unit is a syntax operand, with the span of the original word.
+          if depth >= self.limits.max_depth {
+            raise ExpressionAbort("Expression depth limit", self.peek().start)
+          }
+          self.spend()
+          let part = self.advance()
+          guard part.value is Word(name) else {
+            raise ExpressionAbort(
+              "Expected " + function_name + " unit",
+              part.start,
+            )
+          }
+          guard name.length() <= 11 &&
+            fixed_interval_unit(name) is Some(unit) &&
+            unit != "ns" else {
+            raise ExpressionAbort(
+              "Invalid " + function_name + " unit",
+              part.start,
+            )
+          }
+          let close = self.advance()
+          if close.value != Symbol(41) {
+            raise ExpressionAbort(
+              "Expected " + function_name + " closing parenthesis",
+              close.start,
+            )
+          }
+          args.push(self.add(StringLiteral(unit), part.start, part.end))
+          result = self.add(Call(path, args), start, close.end)
+        } else if token.value == Symbol(44) &&
+          date_part_operand(path, args.length(), self.peek()) is Some(unit) {
+          if depth >= self.limits.max_depth {
+            raise ExpressionAbort("Expression depth limit", self.peek().start)
+          }
+          self.spend()
+          let part = self.advance()
+          let close = self.advance()
+          if close.value != Symbol(41) {
+            raise ExpressionAbort("Expected closing parenthesis", close.start)
+          }
+          args.push(self.add(DatePart(unit), part.start, part.end))
+          result = self.add(Call(path, args), start, close.end)
+        } else if token.value == Symbol(44) {
           frames.push(Argument(path, args, start, depth))
           frames.push(Enter(1, depth + 1))
         } else if token.value == Symbol(41) {

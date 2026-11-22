@@ -112,7 +112,20 @@ reserializing them.
 
 ### Scaffold, build and install
 
-From a checkout with the authoring toolkit, scaffold and project the package:
+Install a matching Local Node distribution that ships `actql-connector`.
+Scaffold in a new child directory so the definition can resolve that package
+from its parent project:
+
+```sh
+npm install --prefix /absolute/acme-work --save-exact "@actql/local-node@${ACTQL_HOST_VERSION:?select a matching distribution}"
+/absolute/acme-work/node_modules/.bin/actql-connector init /absolute/acme-work/author acme
+# Edit /absolute/acme-work/author/connector.json.
+/absolute/acme-work/node_modules/.bin/actql-connector build /absolute/acme-work/author/connector.json /absolute/acme-work/package
+/absolute/acme-work/node_modules/.bin/actql-connector test /absolute/acme-work/author/connector.json /absolute/acme-work/package
+npm pack /absolute/acme-work/package --pack-destination /absolute/artifacts
+```
+
+From a framework checkout, the existing developer tool is also available:
 
 ```sh
 node scripts/connector.mjs init /absolute/acme-author acme
@@ -126,6 +139,8 @@ npm pack /absolute/acme-package --pack-destination /absolute/artifacts
 
 `init` needs no runtime library. `build` and `test` require the author's
 explicitly installed `@actql/local-node/connector-authoring` public entry.
+The generated connector pins the exact version of the package that supplies
+that entry. Freshness checks also compare this peer version.
 Its bounded, nonsecret JSON validation executes the package's same shipped
 pure Common codec; it creates no Host, session, Source, secret resolver or
 I/O authority. Missing exports or an older Common refuse with
@@ -177,14 +192,37 @@ output root and one selected fixture mode. No old installation or state is a
 default. Set `ACTQL_REST_CONFORMANCE_INPUT` to that descriptor; its kind is
 `actql-standard-rest-normal/0.1`, with `sourceSha`, `sourceTree`, `manifestPath`,
 `manifestSha256`, `outputRoot`, `accountConfigurationPath` and `mode`. The
-positive modes are `empty`, `one` and `paged`; fixture DATA for an error is not
-evidence that an ordinary failure case ran. The provider fixture's literal
-rows and request expectations are
-independent of the product's output. A controlled HTTPS responder is ordinary
+reference modes are `empty`, `one`, `paged` and `notion-users`. Use
+`mode: "author"` with `casePath` (absolute) and `caseSha256` to select your
+own case. The [Harbor example](../../scripts/fixtures/external-rest/harbor/)
+provides a definition, a case and a scoped operator Account.
+
+Run the same case from the installed toolkit with
+`actql-connector conformance /absolute/normal-input.json --timeout-seconds 180`.
+Use a fresh output path under an existing writable directory. The installed
+tool compares its own files against the selected Local Node archive before
+creating the conformance fixture and again after Saved. It uses the same Node,
+npm, tar and controlled HTTPS fixture as checkout conformance.
+
+The case supplies a registration, connection, resource and independent field
+schema, one structured Program returning `rows`, and its bound parameters
+(or `null`). The public submission checks the bound Program before provider work.
+The fixture serves the named `seed.pages` in the exact ordered GET exchanges
+listed in `protocol.exchanges`. Supply `expected.rows`, full before and after
+page records, and unchanged control records independently. A failed submission,
+codec, Result or oracle terminates the case with its original failure.
+
+Use a case-relative `connector.path` and exact `connector.sha256` for either
+`kind: "definition"` or `kind: "packed"`. A definition selects the regular
+`init`, `build` and freshness `test` path with only its HTTPS origin bound to
+the fresh loopback fixture. Pin an optional relative transform with
+`connector.transformSha256`. A packed connector is installed from its exact
+archive bytes. Set `protocol.port` to the already declared
+`https://127.0.0.1:<port>` origin's port for that case. A controlled HTTPS responder is ordinary
 SDK/Host transport evidence; it does not establish support for an external
 service's undocumented behaviour.
 
-Run that installed reference case with the author command:
+Run the selected installed case with the author command:
 
 ```sh
 node scripts/connector.mjs conformance /absolute/normal-input.json --timeout-seconds 180

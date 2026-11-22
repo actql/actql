@@ -616,6 +616,27 @@ fn local_check_reason_presentation(
           "A supplied value has the wrong type.", "Supply a value of the declared type.",
         ),
       )
+    "text_time_input_ceiling" =>
+      Some(
+        (
+          "The derived input extent can exceed the checking context’s text-time ceiling.",
+          "Use a smaller input or a value whose extent can be established in the selected checking context.",
+        ),
+      )
+    "text_time_output_ceiling" =>
+      Some(
+        (
+          "The derived text output can exceed the checking context’s text-time ceiling.",
+          "Use inputs or a pattern form with a smaller proven output extent.",
+        ),
+      )
+    "text_time_replacement_ceiling" =>
+      Some(
+        (
+          "The derived replacement count can exceed the checking context’s text-time ceiling.",
+          "Provide an input with a smaller proven extent. Check the complete bound input again.",
+        ),
+      )
     "unresolved_protected" =>
       Some(
         (

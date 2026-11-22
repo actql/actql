@@ -3,7 +3,7 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-25.1",
+  "revision": "2026-11-21.1",
   "reasonSchemaCid": "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511"
 });
 const entries = freeze({
@@ -1420,6 +1420,81 @@ const entries = freeze({
       {
         "file": "adapters/host-node/client-check.test.mjs",
         "scenario": "nested supplied type facts follow the submitted contract and path"
+      }
+    ]
+  },
+  "text_time_input_ceiling": {
+    "code": "text_time_input_ceiling",
+    "condition": "The original common checker could not discharge the input ceiling under the admitted text-time policy.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the original bound failure is disclosed. Values, numeric ceilings and private Source origins are excluded.",
+    "locations": [],
+    "default_severity": "warning",
+    "family": "limit",
+    "presentation": {
+      "default": {
+        "key": "reason.text_time_input_ceiling",
+        "english": [
+          "The derived input extent can exceed the checking context’s text-time ceiling.",
+          "Use a smaller input or a value whose extent can be established in the selected checking context."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "src/client_local_preparation/client_check_timestamp_pattern_wbtest.mbt",
+        "scenario": "Text-time Check reports the original input, output and replacement ceiling"
+      }
+    ]
+  },
+  "text_time_output_ceiling": {
+    "code": "text_time_output_ceiling",
+    "condition": "The original common checker could not discharge the output ceiling under the admitted text-time policy.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the original bound failure is disclosed. Values, numeric ceilings and private Source origins are excluded.",
+    "locations": [],
+    "default_severity": "warning",
+    "family": "limit",
+    "presentation": {
+      "default": {
+        "key": "reason.text_time_output_ceiling",
+        "english": [
+          "The derived text output can exceed the checking context’s text-time ceiling.",
+          "Use inputs or a pattern form with a smaller proven output extent."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "src/client_local_preparation/client_check_timestamp_pattern_wbtest.mbt",
+        "scenario": "Text-time Check reports the original input, output and replacement ceiling"
+      }
+    ]
+  },
+  "text_time_replacement_ceiling": {
+    "code": "text_time_replacement_ceiling",
+    "condition": "The original common checker could not discharge the replacement ceiling under the admitted text-time policy.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the original bound failure is disclosed. Values, numeric ceilings and private Source origins are excluded.",
+    "locations": [],
+    "default_severity": "warning",
+    "family": "limit",
+    "presentation": {
+      "default": {
+        "key": "reason.text_time_replacement_ceiling",
+        "english": [
+          "The derived replacement count can exceed the checking context’s text-time ceiling.",
+          "Provide an input with a smaller proven extent. Check the complete bound input again."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "src/client_local_preparation/client_check_timestamp_pattern_wbtest.mbt",
+        "scenario": "Text-time Check reports the original input, output and replacement ceiling"
       }
     ]
   },

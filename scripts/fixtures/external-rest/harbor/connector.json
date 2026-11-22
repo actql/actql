@@ -1,0 +1,25 @@
+{
+  "version": "actql-rest-connector/0.1",
+  "id": "harbor",
+  "origin": "https://api.harbor.example.invalid",
+  "auth": {"kind": "bearer"},
+  "sources": {
+    "berths": {
+      "fields": [
+        {"name": "slip_code", "type": "string", "nullable": false},
+        {"name": "depth", "type": "number", "nullable": false}
+      ],
+      "read": {"method": "GET", "path": "/v2/berths"},
+      "pagination": {"kind": "none", "items": ["berths"]},
+      "limits": {
+        "maxPageRows": 3,
+        "maxPageBytes": 256,
+        "maxPages": 1,
+        "maxRows": 3,
+        "maxNodes": 64,
+        "maxDepth": 6,
+        "maxCursorBytes": 32
+      }
+    }
+  }
+}

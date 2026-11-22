@@ -77,8 +77,13 @@ fn check_backend_capabilities(
       remaining -= 1 + copied
       let body = @lower.expression_body(expression)
       let edges = match body {
-        Field(_, _) | Literal(_) | TypedNull | EmptyArray | CurrentTimestamp =>
-          0
+        Field(_, _)
+        | Literal(_)
+        | DateLiteral(_)
+        | TypedNull
+        | EmptyArray
+        | CurrentTimestamp
+        | CurrentDate => 0
         Unary(_, _) | Cast(_) | Property(_, _, _) => 1
         Object(fields) => fields.length()
         Binary(_, _, _) | Subscript(_, _) | ArrayOffset(_, _, _) => 2
@@ -86,11 +91,12 @@ fn check_backend_capabilities(
         Array(children) | VectorConcat(children) => children.length()
         Conditional(_, _, _) => 3
         Many(_, children) => children.length()
-        Case(clauses, _) => {
-          if remaining == 0 || clauses.length() > (remaining - 1) / 2 {
+        Case(clauses, _) | SimpleCase(_, clauses, _) => {
+          let extra = if body is SimpleCase(_, _, _) { 2 } else { 1 }
+          if remaining < extra || clauses.length() > (remaining - extra) / 2 {
             return Err({ kind: PreparationLimit, root, expression, })
           }
-          clauses.length() * 2 + 1
+          clauses.length() * 2 + extra
         }
       }
       if edges > remaining {
@@ -98,8 +104,13 @@ fn check_backend_capabilities(
       }
       remaining -= edges
       match body {
-        Field(_, _) | Literal(_) | TypedNull | EmptyArray | CurrentTimestamp =>
-          ()
+        Field(_, _)
+        | Literal(_)
+        | DateLiteral(_)
+        | TypedNull
+        | EmptyArray
+        | CurrentTimestamp
+        | CurrentDate => ()
         Unary(_, child) => pending.push(child)
         Property(child, _, _) => pending.push(child)
         Subscript(value, index) | ArrayOffset(value, index, _) => {
@@ -172,10 +183,15 @@ fn check_backend_capabilities(
             | Contains
             | Like
             | DateTruncate
+            | TimestampTruncate
+            | DateBoundaryTruncate
+            | ExtractTimestamp
             | DecimalDivide(_)
             | Utf8Truncate
             | ParseTimestamp
-            | FormatTimestamp => ()
+            | TryPatternedTimestamp
+            | FormatTimestamp
+            | RegexMatch => ()
           }
           pending.push(right)
           pending.push(left)
@@ -197,12 +213,15 @@ fn check_backend_capabilities(
           pending.push(yes)
           pending.push(condition)
         }
-        Case(clauses, otherwise) => {
+        Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
           pending.push(otherwise)
           for j = clauses.length() - 1; j >= 0; j = j - 1 {
             let (condition, result) = clauses[j]
             pending.push(result)
             pending.push(condition)
+          }
+          if body is SimpleCase(operand, _, _) {
+            pending.push(operand)
           }
         }
       }

@@ -2,7 +2,7 @@ import {runtimePair} from './compiler-binding.generated.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
-  retireSdkDecodedResult, sdkOriginalIoObservationAvailable} from './intercepted-request.mjs';
+  retireSdkDecodedResult, sdkOriginalIoObservationAvailable, bindSdkTransportCredential} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
 // All records, SDK/request/response buffers and Promise overlaps must be funded
@@ -38,9 +38,9 @@ export function createSdkNativeDecisionPreflight(options, original, provider, pr
 
 function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan, selectSaved, responseMode) {
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}, preparePlan, selectSaved, responseMode) {
   const deferredRaw = rawCaptureBinder !== undefined;
-  if (typeof fetch !== 'function' ||
+  if (typeof fetch !== 'function' || needsCredential && !deferredRaw ||
       (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
         persistRaw !== undefined || cleanupRaw !== undefined ||
         preparation !== undefined || preparationProgress === undefined
@@ -236,7 +236,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     // The same original operation retains this private binder before its
     // Common preflight cursor is issued. Only its installed continuation
     // supplies the actual Store port after nominal raw registration.
-    const bound = rawCaptureBinder((registration, persistence) => {
+    const bindRaw = (registration, persistence) => {
       if (retired || rawBound || registration === undefined ||
           typeof persistence !== 'function' || typeof persistence.cleanup !== 'function') {
         throw new TypeError('OriginalSdkRawBindingUnavailable');
@@ -244,7 +244,13 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       persistRaw = persistence;
       cleanupRaw = persistence.cleanup;
       rawBound = true;
-    });
+    };
+    const bound = needsCredential ? rawCaptureBinder(bindRaw, () => {
+      if (retired || plan === undefined || preparation === undefined) {
+        throw new TypeError('OpenAIProjectCredentialPreparationUnavailable');
+      }
+      bindSdkTransportCredential(preparation);
+    }) : rawCaptureBinder(bindRaw);
     if (bound !== undefined) throw new TypeError('OriginalSdkRawBinderUnavailable');
     rawCaptureBinder = undefined;
   }

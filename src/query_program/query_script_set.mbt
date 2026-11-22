@@ -55,6 +55,16 @@ fn lower_script_set_relation(
     )
   }
   let sql_inner_fields = if sql_inner_count > 0 {
+    if script_result_columns(sources, left.name)
+      .map(columns => columns.any(column => column.name is None))
+      .unwrap_or(false) ||
+      sql_rights.any(input => {
+        script_result_columns(sources, input.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false)
+      }) {
+      raise Abort(UnsupportedProjection)
+    }
     Some(
       set_inner_fields(
         left.visible_fields,
@@ -66,6 +76,7 @@ fn lower_script_set_relation(
     None
   }
   let mut fields = left.visible_fields
+  let mut combined_columns = script_result_columns(sources, left.name)
   let mut current = left.name
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
@@ -98,6 +109,17 @@ fn lower_script_set_relation(
     } else {
       set_output_fields(fields, part, query, right_fields=right.visible_fields)
     }
+    if part.by_name &&
+      (
+        script_result_columns(sources, left.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false) ||
+        script_result_columns(sources, right.name)
+        .map(columns => columns.any(column => column.name is None))
+        .unwrap_or(false)
+      ) {
+      raise Abort(UnsupportedProjection)
+    }
     let (left_matched, left_alignment_needed) = set_alignment_fields(
       output_fields,
       fields,
@@ -125,6 +147,14 @@ fn lower_script_set_relation(
       right.visible_fields,
       part.by_name,
       allow_subset=part.inner_by_name,
+    )
+    combined_columns = merge_set_result_columns(
+      combined_columns,
+      script_result_columns(sources, right.name),
+      fields,
+      left_matched,
+      matched,
+      limits.max_expression_work,
     )
     let mut right_name = right.name
     let folded = alignment_needed &&
@@ -196,6 +226,7 @@ fn lower_script_set_relation(
     fields,
     steps,
     output + "_",
+    column_profiles=combined_columns,
   )
   let rebound = !set_operand_retains_result(query) &&
     rebind_script_set_terminal_output(
@@ -212,6 +243,9 @@ fn lower_script_set_relation(
         ("as", construction.text(output)),
       ]),
     )
+  }
+  if combined_columns is Some(columns) {
+    put_script_result_columns(sources, output, columns)
   }
   {
     relation: [],

@@ -1,5 +1,6 @@
 import {installModelProviders, prepareInstalledModelProviderDefaults} from './installed-model.mjs';
 import {prepareInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {installedSourceConfigurationReader, reserveInstalledSourceRuntimeIdentity} from './installed-host-services.mjs';
 import {fileURLToPath} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -88,6 +89,44 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
+    projectOpenAIProvider() {
+      return track(async () => {
+        check();
+        const construction = reader();
+        return construction.prepareModelTaskInput(Object.freeze({
+          // The selection borrows the original registry strings. No key,
+          // credential source or new Provider authority belongs to this view.
+          capacity: () => capacity(1n, 0n, 0n, 8n),
+          project() {
+            if (project === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
+            const original = installedProjectOriginalsForRuntime(project, moon);
+            const registry = original.modelRegistry;
+            if (registry === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
+            const providerId = moon.clientProjectModelRegistryDefaultProvider(registry);
+            const count = moon.clientProjectModelRegistryProviderCount(registry);
+            if (typeof providerId !== 'string' || providerId.length === 0 || providerId.length > 256 ||
+                !Number.isSafeInteger(taskLimits?.maxMembers) || !Number.isSafeInteger(count) ||
+                count < 1 || count > taskLimits.maxMembers) {
+              fail('InstalledProjectOpenAIProviderUnavailable');
+            }
+            for (let index = 0; index < count; index++) {
+              if (moon.clientProjectModelRegistryProviderName(registry, index) !== providerId) continue;
+              if (moon.clientProjectModelRegistryProviderType(registry, index) !== 'openai' ||
+                  moon.clientProjectModelRegistryProviderKeyEnvironment(registry, index) !== 'OPENAI_API_KEY') {
+                fail('InstalledProjectOpenAIProviderUnavailable');
+              }
+              check();
+              if (installedProjectOriginalsForRuntime(project, moon) !== original) {
+                fail('ForeignInstalledProjectOriginal');
+              }
+              return Object.freeze({providerId});
+            }
+            fail('InstalledProjectOpenAIProviderUnavailable');
+          },
+          retained: () => capacity(1n),
+        }));
+      });
+    },
     prepareConfiguration(project) {
       return track(async () => {
         check();
@@ -265,6 +304,28 @@ export async function installConfiguredModelProviders({moon, register, project,
         }
         preparing = false;
         return Object.freeze({tasks: Object.freeze(tasks),
+          verifyChatConfiguration(name, selector, modelId, endpoint) {
+            return track(async () => {
+              const original = taskFor(name);
+              if (typeof moon.clientProgramInstalledChatConfigurationMatches !== 'function') {
+                fail('InstalledModelBindingRuntimeUnavailable');
+              }
+              // Read the same funded configuration and binding already used
+              // to normalize this Task. Return no retained parser workspace.
+              const binding = original.defaults.binding;
+              construction.prepareModelTaskInput(Object.freeze({
+                capacity: () => capacity(4n, 0n, 0n, 8n * 4096n,
+                  8n * 65536n, 6n * 65536n),
+                project() {
+                  if (moon.clientProgramInstalledChatConfigurationMatches(binding.value,
+                    binding.originals.configuration.wire, original.providerId,
+                    selector, modelId, endpoint) !== true) fail('InstalledModelResolvedConfigurationMismatch');
+                  return Object.freeze({});
+                },
+                retained: () => capacity(4n),
+              }));
+            });
+          },
           responseProfileFor(name, originalTemplate) {
             return track(async () => {
               const original = taskFor(name);

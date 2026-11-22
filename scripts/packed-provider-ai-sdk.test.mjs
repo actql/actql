@@ -68,6 +68,7 @@ async function fixture(t) {
       return {stdout: '', pid: 70000};
     }
     const phase = args[1], caseId = basename(dirname(options.cwd)); phases.push(phase);
+    assert(!Object.hasOwn(options.env, 'OPENAI_API_KEY'), 'Fixture must not inherit the operator credential');
     const modules = await lstat(join(options.cwd, 'node_modules'));
     assert(modules.isDirectory() && !modules.isSymbolicLink());
     const profilePath = join(options.cwd, 'case-profile.fixture.json');
@@ -77,14 +78,18 @@ async function fixture(t) {
       profile = JSON.parse(await readFile(profilePath, 'utf8'));
     } else {
       await assert.rejects(access(join(options.cwd, '.state')), {code: 'ENOENT'}); await mkdir(join(options.cwd, '.state'));
-      profile = {usage: phase.startsWith('usage-') ? phase.slice(6) : null,
+      profile = {usage: phase === 'project-key' ? 'reported' : phase.startsWith('usage-') ? phase.slice(6) : null,
         timeout: phase.startsWith('timeout-') ? phase.slice(8) : null};
       await writeFile(profilePath, JSON.stringify(profile), {flag: 'wx'});
     }
     const pid = 70001 + phaseCalls.length;
     phaseCalls.push({case: caseId, phase, profile, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
     return {pid, stdout: JSON.stringify({phase,
-      firstCloseReturned: true, aliveScopedFD0: true, calls: phase === 'cold' ? 0 : phase === 'warm' ? 2 : 1,
+      firstCloseReturned: true, aliveScopedFD0: true,
+      ...(profile.usage === 'reported' ? {maxCalls: 1} : {}),
+      calls: ['cold', 'missing-key'].includes(phase) ? 0 : phase === 'warm' ? 2 : 1,
+      ...(phase === 'missing-key' ? {credentialRefused: true} : {}),
+      ...(caseId === 'project-key' ? {projectCredential: true, projectTlsConnects: phase === 'cold' ? 0 : 1} : {}),
       ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
         ? {egressChecks: 0, ...(profile.timeout === null ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
         : {tasks: 1, requests: 1, ...(profile.usage === null ? {} : {usageMode: profile.usage, usageCaptures: 1})}),
@@ -117,6 +122,10 @@ test('optional usage consumers retain separate fresh installations and warm shar
   const usage = f.phaseCalls.filter(row => row.phase.startsWith('usage-'));
   assert.equal(warm.cwd, cold.cwd); assert.notEqual(warm.pid, cold.pid);
   assert.equal(warm.modulesInode, cold.modulesInode);
+  const [oneCall, savedOneCall] = f.phaseCalls.filter(row => row.case === 'usage-reported');
+  assert.equal(oneCall.cwd, savedOneCall.cwd);
+  assert.equal(oneCall.modulesInode, savedOneCall.modulesInode);
+  assert.notEqual(oneCall.pid, savedOneCall.pid);
   for (const value of usage) {
     assert.notEqual(value.cwd, warm.cwd); assert.notEqual(value.modulesInode, warm.modulesInode);
     const mode = value.phase.slice(6), actual = result.phases.find(row => row.case === value.case && row.phase === value.phase).actual;
@@ -135,7 +144,9 @@ test('optional usage consumers retain separate fresh installations and warm shar
 test('optional timeout originals retain independent installations and same-profile cold Unknown without resend', async t => {
   const f = await fixture(t), result = await withFixtureGitHubSource(f.source.sha,
     () => runPackedProviderAI(join(f.root, 'timeouts'), f));
-  const required = [['warm', ['warm', 'cold']], ['usage-reported', ['usage-reported']],
+  const required = [['warm', ['warm', 'cold']], ['missing-key', ['missing-key']], ['project-key', ['project-key', 'cold']],
+    ['rate-limit', ['rate-limit', 'cold']],
+    ['usage-reported', ['usage-reported', 'cold']],
     ['usage-zero', ['usage-zero']], ['usage-absent', ['usage-absent']],
     ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']],
     ['timeout-call', ['timeout-call', 'cold']]];
@@ -245,7 +256,7 @@ test('optional timeout completion rechecks every independent installed package i
   const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'], changed = new Set(), consumers = new Set();
   await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
     const result = await f.command(cmd, args, options);
-    if (args[1] === 'cold' || args[1]?.startsWith('usage-')) {
+    if (args[1] === 'cold' || ['missing-key', 'usage-zero', 'usage-absent'].includes(args[1])) {
       const index = f.preparations.findIndex(prepared => prepared.cwd === options.cwd);
       assert(index >= 0); assert(!consumers.has(options.cwd)); consumers.add(options.cwd);
       const name = packages[index % packages.length]; changed.add(name);
@@ -325,6 +336,24 @@ test('optional usage completion refuses mismatched evidence and retained close o
   }
 });
 
+test('Project acceptance requires the original environment credential path and no TLS on reopen', () => {
+  const original = {phase: 'project-key', firstCloseReturned: true, aliveScopedFD0: true, projectCredential: true,
+    calls: 1, projectTlsConnects: 1, maxCalls: 1, tasks: 1, requests: 1, usageMode: 'reported', usageCaptures: 1};
+  const saved = {phase: 'cold', firstCloseReturned: true, aliveScopedFD0: true, projectCredential: true,
+    calls: 0, projectTlsConnects: 0, maxCalls: 1, egressChecks: 0, originalSavedFirst: true};
+  checkPackedProviderObservation({caseId: 'project-key', phase: 'project-key', pid: 1, observation: original});
+  checkPackedProviderObservation({caseId: 'project-key', phase: 'cold', pid: 2, originalPid: 1, observation: saved});
+  for (const [observation, pid, originalPid] of [
+    [{...original, projectCredential: false}, 1, undefined],
+    [{...original, projectTlsConnects: 0}, 1, undefined],
+    [{...saved, projectTlsConnects: 1}, 2, 1],
+  ]) {
+    assert.throws(() => checkPackedProviderObservation({
+      caseId: 'project-key', phase: observation.phase, pid, originalPid, observation,
+    }));
+  }
+});
+
 test('optional diagnostic selection retains nested inventories and bounded usage evidence without keys or state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-provider-diagnostic-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -334,11 +363,14 @@ test('optional diagnostic selection retains nested inventories and bounded usage
   const patterns = upload.with.path.split('\n').filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
   const expected = ['summary.json'];
   const privateFiles = [];
-  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body', 'timeout-call']) {
+  for (const name of ['warm', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
+    'timeout-headers', 'timeout-body', 'timeout-call']) {
     expected.push(`cases/${name}/packages/ordinary-operation-packages.json`,
       `cases/${name}/packages/optional-provider-packages.json`, `raw/${name}/install-node.stdout`);
-    if (name.startsWith('usage-')) for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
-    for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider.key', '.state/private.db'])
+    if (name.startsWith('usage-') || name === 'project-key') {
+      for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
+    }
+    for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider-credential.fixture', 'provider.key', '.state/private.db'])
       privateFiles.push(`cases/${name}/consumer/${file}`);
   }
   for (const path of [...expected, ...privateFiles]) {await mkdir(join(root, path, '..'), {recursive: true}); await writeFile(join(root, path), 'fixture');}

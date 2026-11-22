@@ -39,6 +39,7 @@ fn request_query_lowering_data_bytes(
   declarations : String?,
   catalog : @checked.PreparedSourceCatalog,
   request_copy : (Int, Int64),
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> Int64? {
   let usage = @checked.source_catalog_usage(catalog)
   // Each emitted external input has an authored relation occurrence with at
@@ -46,11 +47,10 @@ fn request_query_lowering_data_bytes(
   // its external input. The complete original token count therefore bounds
   // initial alias imports across joins, set arms and nested query bodies.
   // Prefix, member and demand-copy overlap is accounted separately below.
-  let occurrences = match query.query {
-    Some(Ok(parsed)) =>
-      @query_syntax.token_count(@query_syntax.query_source(parsed))
-    _ => return None
-  }
+  guard query.query is Some(Ok(parsed)) else { return None }
+  let occurrences = @query_syntax.token_count(
+    @query_syntax.query_source(parsed),
+  )
   let copy_bytes = request_query_literal_copy_bytes(request_copy, occurrences)
   guard copy_bytes is Some(copy_bytes) &&
     request_integer_context_data_bytes(
@@ -79,7 +79,83 @@ fn request_query_lowering_data_bytes(
     is Some(base) else {
     return None
   }
-  @execution.checked_preparation_add_product(base, integer_context, 1L)
+  guard @execution.checked_preparation_add_product(base, integer_context, 1L)
+    is Some(base) &&
+    request_query_namespace_scope_fields_bytes(occurrences.to_int64())
+    is Some(scope_fields) else {
+    return None
+  }
+  guard request_query_namespace_data_bytes(
+      parsed,
+      publication,
+      catalog,
+      query.document.length().to_int64() +
+      declarations.map(value => value.length().to_int64()).unwrap_or(0L),
+    )
+    is Some(namespace_bytes) &&
+    @execution.checked_preparation_add_product(base, scope_fields, 1L)
+    is Some(base) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(base, namespace_bytes, 1L)
+    is Some(base) else {
+    return None
+  }
+  request_rollup_construction_bytes(
+    base,
+    units,
+    @query_syntax.rollup_item_count(parsed).to_int64(),
+  )
+}
+
+///|
+// One added optional-reference slot at each of the eighteen existing Scope
+// constructor sites and two ScriptSources sites, at most once per original
+// token occurrence. None is not an erased field or spare baseline capacity.
+// The conditional arrays/records require their separate namespace inventory.
+fn request_query_namespace_scope_fields_bytes(tokens : Int64) -> Int64? {
+  guard @execution.checked_preparation_add_product(0L, tokens, 20L)
+    is Some(references) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: references,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// The original Group and its checked inputs remain in the base envelope. Each
+// authored item adds one Group and Append, reusing the original expression
+// Nodes but repeating their references, canonical bodies and annotation
+// occurrences. One document+catalog lane per extra prefix covers this
+// multiplicity. The fixed part covers the two step bodies, temporary vectors,
+// generated aliases and each omitted-key aggregate's fixed nodes and names.
+fn request_rollup_construction_bytes(
+  base : Int64,
+  units : Int64,
+  prefixes : Int64,
+) -> Int64? {
+  if prefixes == 0L {
+    return Some(base)
+  }
+  guard prefixes > 0L && units > 0L && units <= 9223372036854775807L / 64L else {
+    return None
+  }
+  guard @execution.preparation_representation_cost({
+      record_headers: 8L * units,
+      reference_slots: 24L * units,
+      scalar_words: 8L * units,
+      owned_utf16_units: 64L * units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(prefix) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(base, prefix, prefixes)
 }
 
 ///|
@@ -179,7 +255,7 @@ pub fn[I] lower_request_published_query(
       Some(0L)
     }
     guard request_query_lowering_data_bytes(
-        query, declarations, catalog, request_copy,
+        query, declarations, catalog, request_copy, publication,
       )
       is Some(data) &&
       control is Some(control) &&

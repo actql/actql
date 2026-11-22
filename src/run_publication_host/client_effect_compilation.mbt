@@ -617,6 +617,32 @@ pub fn client_effect_allowed_run_admission(
 }
 
 ///|
+/// Borrow the compiler output already selected for this Effect Run. The
+/// Request caller supplies its original Definition from first admission.
+/// This check issues neither a new compilation nor a Run/current grant.
+pub fn client_effect_explanation_compilation_for_run(
+  prepared : PreparedClientEffectComputation,
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+) -> ClientEffectCompilation? {
+  guard physical_equal(allowed.compilation.owner, prepared) &&
+    @publication.run_definition_has_empty_initial_input_artifact_set(definition) else {
+    return None
+  }
+  match
+    @publication.check_run_publication_program_binding(
+      allowed.admission,
+      definition,
+      prepared_client_effect_computation_definition_cid(prepared),
+      prepared_client_effect_computation_semantics_cid(prepared),
+      prepared_client_effect_computation_environment_cid(prepared),
+    ) {
+    Ok(_) => Some(allowed.compilation)
+    Err(_) => None
+  }
+}
+
+///|
 /// The Model component consumes the original Effect Run's admission. The
 /// original checked Effect owner stays retained in this compilation variant;
 /// no separate Effect-free Run, authorization or public Program is issued.

@@ -11,7 +11,7 @@ import {
 }
 
 // Values
-pub fn check(@expression_syntax.Expression, Environment, Limits) -> Result[TypedExpression, Issue]
+pub fn check(@expression_syntax.Expression, Environment, Limits, root_null_context? : @value_contract.Contract?) -> Result[TypedExpression, Issue]
 
 pub fn check_argument(@expression_syntax.Expression, Environment, ArgumentDomain, Limits) -> Result[TypedExpression, Issue]
 
@@ -94,6 +94,8 @@ pub(all) enum DemandTestKind {
   IsTrue
   NotTrue
   IsNull
+  CaseMatch
+  CaseNoMatch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct DemandUsage {

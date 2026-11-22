@@ -6,7 +6,7 @@ import {readFile} from 'node:fs/promises';
 import {types} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 
 import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
@@ -110,13 +110,10 @@ async function readInputs(profile, readers) {
       Reflect.ownKeys(metadata.objects).length !== metadata.objects.length + 1 ||
       metadata.objects.length !== installed.resources.length) fail('InvalidInstalledHubSpotMetadata');
   metadataBodyBytes(metadata.accountBody, installed.limits.maxResponseBytes);
-  // Observe the closed original's identity extent during this SAME validation,
-  // not by serializing, parsing or walking the metadata again. The graph has
-  // one root/array punctuation prefix and eight punctuation tokens/object.
-  // Base64 is exact ASCII; six units bound escaping of each other observed
-  // String unit. Fixed JSON vocabulary is independent of policy ceilings.
-  let identityNodes = 15n;
-  let identityUnits = 256n + BigInt(metadata.accountBody.length) + 6n * BigInt(
+  // Observe the admitted original's body and String extents during its one
+  // validation walk. Common owns the canonicalization and digest inventory.
+  let bodyUnits = BigInt(metadata.accountBody.length);
+  let stringUnits = BigInt(
     metadata.version.length + metadata.connectorId.length + metadata.portalId.length + metadata.apiOrigin.length);
   const objects = new Map();
   for (let index = 0; index < metadata.objects.length; index++) {
@@ -129,9 +126,8 @@ async function readInputs(profile, readers) {
       fail('InvalidInstalledHubSpotMetadata');
     }
     metadataBodyBytes(object.propertiesBody, installed.limits.maxResponseBytes);
-    identityNodes += 8n;
-    identityUnits += 128n + BigInt(object.propertiesBody.length) +
-      6n * BigInt(object.resource.length + object.objectType.length);
+    bodyUnits += BigInt(object.propertiesBody.length);
+    stringUnits += BigInt(object.resource.length + object.objectType.length);
     // Keep the same validated JSON originals, including the real reader's
     // objectType. Do not retain a digest of a still-mutable metadata graph.
     objects.set(object.resource, Object.freeze(object));
@@ -139,7 +135,7 @@ async function readInputs(profile, readers) {
   Object.freeze(metadata.objects);
   Object.freeze(metadata);
   return {installed, site, metadata, objects,
-    identityExtent: Object.freeze({nodes: identityNodes, units: identityUnits})};
+    identityExtent: Object.freeze({objects: metadata.objects.length, bodyUnits, stringUnits})};
 }
 
 export async function installedHubSpotSourceIdentityParts(profile, providerProfile, readJson, _entry, {configurationReader} = {}) {
@@ -238,13 +234,9 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     fail('HubSpotSourceConstructionUnavailable');
   }
   const prepareTargets = construction.prepareReadTarget;
-  const targetCapacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceConstructionCapacity');
-  if (!targetCapacity || !Object.hasOwn(targetCapacity, 'value') || typeof targetCapacity.value !== 'function') {
-    fail('HubSpotSourceConstructionUnavailable');
-  }
   const capacityMethods = Object.freeze(Object.fromEntries([
-    'clientProgramInstalledProfileConstructionCapacities', 'clientProgramComposeInstalledSourceConstructionCapacity',
-    'clientProgramSerializationCapacityBytes', 'clientProgramRowSourceProviderCapacity',
+    'clientProgramHubSpotMetadataIdentityCapacity', 'clientProgramHubSpotReadTargetCapacity',
+    'clientProgramHubSpotReadSequenceBounds',
   ].map(name => {
     const method = Object.getOwnPropertyDescriptor(moon, name);
     if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') fail('HubSpotSourceConstructionUnavailable');
@@ -252,19 +244,10 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   })));
   const {installed, siteProfile, catalogs, declared, metadataCid} =
     await prepareHubSpotMaterials(profile, {moon, providerMoon: provider, construction}, ({views, ...materials}) => {
-      const {nodes, units} = materials.identityExtent;
+      const {objects, bodyUnits, stringUnits} = materials.identityExtent;
       const identity = construction.prepareNativeInput(Object.freeze({
-        capacity() {
-          const zero = checked(Reflect.apply(targetCapacity.value, moon, [0n, 0n, 0n, 0n, 0n, 0n]));
-          const [profile] = checked(capacityMethods.clientProgramInstalledProfileConstructionCapacities(nodes, units));
-          const peak = checked(capacityMethods.clientProgramComposeInstalledSourceConstructionCapacity(zero, [profile]));
-          const output = checked(Reflect.apply(targetCapacity.value, moon,
-            [2n, 71n, 0n, 2n, 71n, 3n * units + 128n]));
-          const outputBytes = capacityMethods.clientProgramSerializationCapacityBytes(output);
-          const identityBytes = capacityMethods.clientProgramSerializationCapacityBytes(peak);
-          return capacityMethods.clientProgramRowSourceProviderCapacity(runtimeField(outputBytes, 0),
-            runtimeField(outputBytes, 1) + runtimeField(identityBytes, 1));
-        },
+        capacity: () => checked(capacityMethods.clientProgramHubSpotMetadataIdentityCapacity(
+          objects, bodyUnits, stringUnits)),
         project: () => Object.freeze({metadataCid: cid(materials.metadata)}),
       }));
       const {declared} = construction.prepareDeclaration(views);
@@ -273,19 +256,18 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   const {limits} = installed;
   const readers = construction.configurationReader;
   const connection = `hubspot:${installed.connectorId}`;
-  // Same existing constructor and Core quantity as the REST DATA entrance.
-  // Only target records/ordered field references are new; original strings
-  // and the validated metadata remain borrowed, not copied or re-parsed.
-  let slots = 1n;
-  for (const {resource} of installed.resources) {
+  let targetFields = 0n, objectUnits = 0;
+  for (const {resource, objectType} of installed.resources) {
     const view = declared.views.find(value => value.resource === resource);
     if (view === undefined) fail('ForeignHubSpotReadPreparation');
-    slots += 10n + BigInt(view.fields.length);
+    targetFields += BigInt(view.fields.length);
+    objectUnits = Math.max(objectUnits, objectType.length);
   }
   // The pre-declaration native constructor already retained the digest and
   // removed its identity workspace. Retain only the new target/field records.
   const targets = Reflect.apply(prepareTargets, construction, [Object.freeze({
-    capacity: () => checked(Reflect.apply(targetCapacity.value, moon, [slots, 0n, 0n, slots, 0n, 0n])),
+    capacity: () => checked(capacityMethods.clientProgramHubSpotReadTargetCapacity(
+      installed.resources.length, targetFields)),
     project: () => Object.freeze(installed.resources.map(({resource, objectType}) => Object.freeze({
       version: 'actql-installed-hubspot-target/0.1', apiOrigin: siteProfile.apiOrigin,
       portalId: installed.portalId, resource, objectType, metadataCid,
@@ -305,13 +287,21 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   };
   if (siteProfile.caPath !== undefined && typeof readers.readOriginalBytes !== 'function') fail('HubSpotSourceConstructionUnavailable');
   const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
-  const totalBytes = BigInt(limits.maxRequests) * BigInt(limits.maxResponseBytes);
-  const targetUnits = 1024 + 6 * (siteProfile.apiOrigin.length + installed.portalId.length +
-    Math.max(...installed.resources.map(value => value.objectType.length)) +
-    Math.max(...declared.views.map(view => view.fields.reduce((n, field) => n + field.length, 0))));
-  if (totalBytes > 2147483647n || !positive(targetUnits)) fail('HubSpotManagedAggregateUnavailable');
+  let fieldUnits = 0n;
+  for (const view of declared.views) {
+    let units = 0n;
+    for (const field of view.fields) units += BigInt(field.length);
+    if (units > fieldUnits) fieldUnits = units;
+  }
+  const bounds = capacityMethods.clientProgramHubSpotReadSequenceBounds(limits.maxRequests,
+    limits.maxResponseBytes, siteProfile.apiOrigin.length, installed.portalId.length, objectUnits, fieldUnits);
+  if (runtimeIsError(bounds)) fail('HubSpotManagedAggregateUnavailable');
+  const geometry = checked(bounds);
+  const totalBytes = runtimeField(geometry, 0), targetUnits = runtimeField(geometry, 1);
+  if (!Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > 2147483647 ||
+      !positive(targetUnits)) fail('HubSpotManagedAggregateUnavailable');
   const readerLimits = Object.freeze({maxResponseBytes: limits.maxResponseBytes,
-    maxTotalResponseBytes: Number(totalBytes), maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
+    maxTotalResponseBytes: totalBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
     maxRows: limits.perPage, maxTotalRows: limits.maxRows, maxPages: limits.maxRequests, pageSize: limits.perPage,
     maxCursorBytes: limits.maxCursorUnits, maxIdentityBytes: limits.maxResponseBytes, maxTargetBytes: targetUnits,
     maxValueNodes: limits.maxValueNodes, maxValueTextBytes: limits.maxValueTextBytes,

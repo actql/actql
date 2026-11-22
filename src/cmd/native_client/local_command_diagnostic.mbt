@@ -23,6 +23,8 @@ priv enum LocalCommandDiagnosticKind {
   PreparationFailedRequestPreparation
   PreparationFailedNormalizationPreparation
   PreparationFailedNormalization
+  PreparationFailedAuthoringPreparation
+  PreparationFailedAuthoring
   ReadOnlyEffect
   RunObservationFailed
   JournalMaintenanceFailed
@@ -162,6 +164,8 @@ fn[T] local_stop_submitted_preparation(
     RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
     RequestNormalization(_) => PreparationFailed
+    RequestAuthoring(Preparation(_)) => PreparationFailedAuthoringPreparation
+    RequestAuthoring(Authoring(_)) => PreparationFailedAuthoring
   }
   // The existing caller propagates this rejection; it never retries another
   // checker. Preserve its old private carrier and cleanup routing unchanged.
@@ -282,6 +286,14 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
       (
         "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestNormalization:Normalization]",
       )
+    PreparationFailedAuthoringPreparation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestAuthoring:Preparation]",
+      )
+    PreparationFailedAuthoring =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestAuthoring:Authoring]",
+      )
     ReadOnlyEffect =>
       ("ACTQL_E_READ_ONLY_EFFECT", "The read-only request contains an Effect.")
     RuntimeSequenceSteps =>
@@ -322,7 +334,61 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
 ///|
 // Fixed preparation messages contain no supplied values or authored text.
 // Other original command messages are bounded and quoted for terminal safety.
-fn local_command_failure_text(message : String, json : Bool) -> String {
+fn local_command_failure_text(
+  message : String,
+  json : Bool,
+  primary? : LocalCommandPreparationIssue? = None,
+) -> String {
+  // Borrow the already retained first failure before command cleanup. Only
+  // these two closed legacy fronts disclose constructor labels; no payload,
+  // callback, acquisition or replacement error is evaluated here.
+  let message = if message == "LocalCheckpointOriginalUnavailable" ||
+    message == "LocalCheckpointResolutionUnavailable" {
+    match primary {
+      None => message
+      Some(original) => {
+        let cause = match original {
+          CommandAdoption(issue) =>
+            "Adoption:" + local_publisher_adoption_issue_code(issue, 0)
+          CommandSavedResolution(SavedResolutionSigning(issue)) => {
+            let cause = match issue {
+              OriginalSigningUnavailable => "Unavailable"
+              OriginalSigningOriginal(issue) =>
+                "Original:" + local_publisher_adoption_issue_code(issue, 0)
+              OriginalSigningJournal(issue) =>
+                "Journal:" + local_publisher_journal_issue_code(issue, 0)
+              OriginalSigningProof(ProofOriginal(issue)) =>
+                "ProofJournal:" + local_publisher_journal_issue_code(issue, 0)
+              OriginalSigningProof(_) => "Proof"
+              OriginalSigningCredential(_) => "Credential"
+              OriginalSigningPhysical(_) => "Physical"
+            }
+            "SavedResolutionSigning:" + cause
+          }
+          CommandSavedResolution(SavedResolutionOriginal(issue)) =>
+            "SavedResolutionOriginal:" +
+            local_publisher_adoption_issue_code(issue, 0)
+          CommandBusinessEffectAcceptance(Materials(issue)) => {
+            let cause = match issue {
+              Input(_) => "Input"
+              Program(_) => "Program"
+              Compilation(_) => "Compilation"
+              Binding(_) => "Binding"
+              RunMismatch => "RunMismatch"
+              Request(_) => "Request"
+              Normalization(_) => "Normalization"
+              TargetSelection(_) => "TargetSelection"
+            }
+            "EffectAcceptanceMaterials:" + cause
+          }
+          other => command_preparation_cleanup_cause(other)
+        }
+        message + ":" + cause
+      }
+    }
+  } else {
+    message
+  }
   // Legacy failures can carry complete cancellation/Unknown or saved-Run
   // recovery metadata. Only the original typed preparation rejection selects
   // the new format; never parse, quote or truncate the legacy carrier.
