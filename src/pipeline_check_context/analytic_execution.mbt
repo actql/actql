@@ -81,6 +81,7 @@ fn analytic_execution_check(
         // Per-frame collection bounds require separate selection. A scalar
         // result contract is not a substitute for array/string resource caps.
         ArrayAgg | StringAgg => return Ok(None)
+        AnyValue => return Err(ForeignOccurrence(site.step))
         Count
         | CountIf
         | Sum

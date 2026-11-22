@@ -18,7 +18,12 @@ test('HubSpot typed Effect recipe declares all nineteen distinct original physic
   assert.equal(targets.length, 12);
   assert.deepEqual(targets.filter(o => o.slot === 'target').map(o => [o.resource, o.perRow]),
     [[undefined, true], [undefined, true], [undefined, true]]);
-  assert.equal(recipe.credentialOperations.at(-1).phase, 'write');
+  const write = recipe.credentialOperations.at(-1);
+  assert.equal(write.phase, 'write');
+  const targetBytes = '/crm/v3/objects//batch/update'.length + 9 * f.options.objectTypeUnits;
+  assert.equal(write.maxTargetBytes, targetBytes);
+  assert.deepEqual(recipe.rowOperations[write.operationIndex].extent.capacity.target.counts,
+    [0n, 0n, 0n, 0n, 8n * BigInt(targetBytes), BigInt(targetBytes)]);
   assert.equal(f.quotes.find(q => q.kind === 0).input.length, 23);
   assert(f.compositions.some(call => call.host === -1)); assert(f.compositions.some(call => call.control === 0));
   const extent = recipe.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: '{"requests":[]}'}], 0);

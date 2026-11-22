@@ -6,21 +6,21 @@ test "INSTR authored optional defaults and STRPOS control retain exact fragment 
   for
     (source, expected, bytes) in [
       (
-        "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:699de7996fbc6b9241037fe7d74de6796cedd0b37cef0c30bf30c1e5e4c93563",
+        "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:b7337c899434b424feabd04f5a955abeaa90fe75b9b3cf03e6d6992cac79b0a6",
         3024,
       ),
       (
         "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1}]}",
-        "sha256:32b4850cc18b5370d6a40650c698f2803ec9338e9bfe0ca73513f015f9660e4f",
+        "sha256:a238a03e22ce2b9dc4894c19d5160f78b508c819c2cd2e949ec08de57dd9099c",
         3133,
       ),
       (
         "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1},{\"literal\":1}]}",
-        "sha256:06df75827f3bda5fa7c166809108defcab3f92a1770c84743418fc73e36fe562",
+        "sha256:428bc68c8a8b63334f0138526c289cb71a4a544489a3ab45269bd944f3aef8a2",
         3242,
       ),
       (
-        "{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:e063781b7d87bd24fbc36e574f0df34fe6843aa568d6be6f41939163cf86d780",
+        "{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:d75f9cfd3b679e1af97b3148de0fe0d6585e57c10801ba10862e573ded01cf7b",
         3030,
       ),
     ] {

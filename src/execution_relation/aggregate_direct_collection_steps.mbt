@@ -104,6 +104,13 @@ fn[T : IndexedRows] advance_aggregate_direct_collection_impl(
         Boolean(false) | Null => ()
         _ => return Err(InvalidRows)
       }
+    @relation.AnyValue =>
+      if state.values.is_empty() && !(value is Null) {
+        if !reserve_slots(state.workspace, 1) {
+          return Err(RowLimit)
+        }
+        state.values.push(value)
+      }
     @relation.Sum
     | @relation.Avg
     | @relation.Min

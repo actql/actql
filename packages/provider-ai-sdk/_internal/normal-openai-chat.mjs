@@ -185,10 +185,14 @@ function configureOpenAIChatProvider(options, projectMode) {
     const apiKey = projectMode ? unboundOpenAICredential
       : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
     const sdk = Object.freeze({package_name: '@ai-sdk/openai', version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
+    // The same original selector could formerly name different Chat models.
+    // Record the resolved route even when the selector equals the model ID so
+    // a current fixed route cannot match a historical selector-only binding.
     const bindings = await context.prepareBindingOriginals(() => [
       JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid}),
-      JSON.stringify({provider_id: config.providerId, required: ['endpoint', 'selector', 'model_defaults'],
+      JSON.stringify({provider_id: config.providerId,
+        required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode'],
         physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
@@ -197,7 +201,7 @@ function configureOpenAIChatProvider(options, projectMode) {
         model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
         model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
-        selector: config.modelSelector,
+        selector: config.modelSelector, model_id: config.modelId, adapter_kind: 'ai-sdk', api_mode: 'chat_completions',
         ...(projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
           models: [{model: config.modelSelector, data_handling: handling,
@@ -208,6 +212,8 @@ function configureOpenAIChatProvider(options, projectMode) {
     const selected = await context.prepareTasks([{providerId: config.providerId, bindingOriginals: bindings}]);
     const owned = selected.tasks.filter(task => task.providerId === config.providerId);
     if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
+    await selected.verifyChatConfiguration(owned[0].name, config.modelSelector,
+      config.modelId, config.baseURL + '/chat/completions');
     const raw = await context.prepareRawPolicies(policies);
     const profiles = new Map();
     for (const task of owned) {

@@ -54,13 +54,16 @@ fn Parser::call(
   token : Token,
 ) -> Node raise ExpressionError {
   let (minimum, maximum) = match name {
-    "current_timestamp" => (0, 0)
+    "current_timestamp" | "current_date" => (0, 0)
     "byte_length"
     | "octet_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"
     | "len"
+    | "array_length"
+    | "unix_seconds"
     | "sqrt"
     | "cbrt"
     | "sin"
@@ -122,20 +125,28 @@ fn Parser::call(
     | "date_add"
     | "timestamp_add"
     | "timestamp_sub"
+    | "date_interval_add"
+    | "date_boundary_diff"
+    | "date_boundary_trunc"
     | "date_diff"
     | "to_decimal"
     | "try_decimal"
     | "split_part"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
     "instr" => (2, 4)
-    "split" => (1, 2)
-    "substring" | "lpad" | "rpad" => (2, 3)
+    "split" | "to_json_string" | "json_value" => (1, 2)
+    "substring" | "lpad" | "rpad" | "array_to_string" => (2, 3)
     "quantize" => (2, 4)
     "decimal_divide" => (3, 5)
     "regex_match" => (2, 3)
     "regex_extract" | "regex_replace" => (3, 4)
-    "concat" | "concat_strict" | "coalesce" | "greatest" | "least" =>
-      (1, self.tokens.length())
+    "concat"
+    | "concat_strict"
+    | "array_concat"
+    | "format_strings"
+    | "coalesce"
+    | "greatest"
+    | "least" => (1, self.tokens.length())
     "vector_concat" => (2, self.tokens.length())
     _ => raise UnknownFunction(token.start, token.end)
   }

@@ -15,6 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 
@@ -756,9 +757,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       recovery.model = model;
       const moon = state.context.runtime, graphs = plural ? graph : [graph];
       const publication = model.publicationCapacity;
-      const assertOriginalIdentity = () => {
+      const assertOriginalIdentity = (retiring = false) => {
         if (closed || receipts.get(producer.receipt) !== producer || !producers.has(producer) ||
-            producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+            producer.finished && !retiring || producer.preparation !== state || state.recovery !== recovery ||
             recovery.restored !== restored || recovery.model !== model || state.prepared !== prepared ||
             model.selection !== selected || model.graph !== graph || model.compiled !== compiled ||
             model.runDefinition !== definition || model.control !== control || model.budget !== budget ||
@@ -774,11 +775,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       };
       const assertRetainedOriginal = () => {
         // Cancellation revokes new work, not the same retained Read/Scope's
-        // retirement duty. Keep installation and exact ownership fences while
-        // ingress closes; actual child cleanup still decides completion.
-        assertOriginalIdentity();
+        // retirement duty. A failed finish ends new work before all children
+        // retire. Its still-registered producer retains this exact same child.
+        assertOriginalIdentity(true);
         callbacks.retainedValidator(originals);
-        assertOriginalIdentity();
+        assertOriginalIdentity(true);
       };
       try {
         // The legacy nine-field suffix describes read-side allowances, not
@@ -822,10 +823,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           };
           const currentMember = () => {assertOriginal(); assertMemberIdentity();};
           const publicationCapacity = () => {currentMember(); return Reflect.apply(publication, model, []);};
+          // Startup retains the same physical adapter grant as a fresh
+          // installed read. The native allowance stays in the Model Scope for
+          // its original attempts, evidence and output.
+          const startup = physical === undefined ? memberBudget : inferOriginalReadStartupCapacity(physical);
           const fields = {selection, control, compiled, runDefinition: definition, scope,
             publicationCapacity, assertRuntimeCurrent: currentMember,
             readRetainedBytes: memberBudget.readRetainedBytes, readExecutionBytes: memberBudget.readExecutionBytes,
-            modelRetainedBytes: memberBudget.modelRetainedBytes, modelExecutionBytes: memberBudget.modelExecutionBytes,
+            modelRetainedBytes: startup.modelRetainedBytes, modelExecutionBytes: startup.modelExecutionBytes,
             ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation, metadataInstallation: physical})};
           const prepareRead = () => {
             currentMember();

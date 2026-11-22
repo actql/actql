@@ -3392,7 +3392,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "694e88121932914661d434ed98c35bb761b783c092c140f040bc6cac2d4f8fa5",
+      "sha256": "d65fd1a033133d21bdf55fbcef1755ad85b47f96f3e510edf4030fc2575c2cb9",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider"
@@ -3680,6 +3680,10 @@
               {
                 "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
                 "anchor": "SDK expected wires remain per row"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "anchor": "an explicit selector binds the resolved Chat model"
               }
             ]
           }

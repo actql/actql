@@ -62,12 +62,12 @@ relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
                  { "|>", cte_pipe_item } ;
 sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
-cte_pipe      = "FROM", carrier_source, { join }, { "|>", cte_pipe_item } ;
+cte_pipe      = "FROM", carrier_source, { from_join }, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
-select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
+select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { from_join } ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ], [ qualify_clause ], [ window_clause ] ;
-pipe_query    = "FROM", carrier_source, { join }, { "|>", pipe_item } ;
+pipe_query    = "FROM", carrier_source, { from_join }, { "|>", pipe_item } ;
 carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
    expectation; MATCH does not require the marker. An authored row alias
@@ -102,6 +102,7 @@ file_list_selector = ( "paths" | "glob" ), "=>", expression ;
 source_alias  = [ "AS" ], identifier ;
 unnest_source = "UNNEST", "(", expression, ")", source_alias,
                 [ "WITH", "OFFSET", [ source_alias ] ] ;
+from_join     = join | ",", ( table_source, [ join_bound ] | unnest_source ) ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
                 | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
@@ -113,7 +114,9 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | [ "INNER" ], "JOIN", unnest_source, [ "ON", expression ] ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | rollup | expression, { ",", expression } ) ;
+rollup        = "ROLLUP", "(", grouping_item, { ",", grouping_item }, ")" ;
+grouping_item = expression | "(", expression, ",", expression, { ",", expression }, ")" ;
 pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
 pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
 pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
@@ -285,7 +288,9 @@ pipe_set_part = set_matching, "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
-expression    = ? closed query expression grammar in query-text.md ? ;
+expression    = ? closed query expression grammar in query-text.md, including date_literal and timestamp_literal ? ;
+date_literal  = "DATE", ? STRING literal chunks decoding to YYYY-[M]M-[D]D ? ;
+timestamp_literal = "TIMESTAMP", ? STRING literal chunks decoding to a civil date with optional time and fixed UTC offset ? ;
 array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
                     "[", [ expression, { ",", expression } ], "]" ;
 array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "NUMBER" | "FLOAT64" | "DOUBLE"

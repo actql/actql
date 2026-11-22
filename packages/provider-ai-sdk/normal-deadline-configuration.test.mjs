@@ -84,17 +84,64 @@ test('missing or invalid Common transfer projection refuses before I/O', async (
   }
 });
 
+test('an explicit selector binds the resolved Chat model even when defaults and profile are unchanged', async () => {
+  const cid = 'sha256:' + 'a'.repeat(64);
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity() { return [100n, 300n]; }};
+  async function originals(modelId, modelSelector) {
+    let wires;
+    const f = {...context([]), runtimeIdentity: () => cid, artifactIdentity: () => cid,
+      readText: () => 'synthetic-only',
+      prepareBindingOriginals(project) { wires = project().map(wire => JSON.parse(wire)); throw stop; }};
+    await assert.rejects(createOpenAIChatProvider({...options(), modelId, modelSelector})(moon, f),
+      error => error === stop);
+    assert.equal(JSON.stringify(wires).includes('synthetic-only'), false);
+    return wires;
+  }
+  const first = await originals('first-model', 'shared-alias');
+  const next = await originals('next-model', 'shared-alias');
+  assert.deepEqual(next.slice(0, 2), first.slice(0, 2));
+  assert.deepEqual(first[1].required, ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode']);
+  assert.deepEqual(first[2], {...next[2], model_id: 'first-model'});
+  assert.equal(next[2].selector, 'shared-alias');
+  assert.equal(next[2].model_id, 'next-model');
+  assert.equal(next[2].adapter_kind, 'ai-sdk');
+  assert.equal(next[2].api_mode, 'chat_completions');
+  const direct = await originals('shared-alias', undefined);
+  assert.deepEqual(direct[1], first[1]);
+  assert.deepEqual(direct[2], {...first[2], model_id: 'shared-alias'});
+  const {model_id, adapter_kind, api_mode, ...historical} = first[2];
+  assert.deepEqual([model_id, adapter_kind, api_mode], ['first-model', 'ai-sdk', 'chat_completions']);
+  // Both choices had the same historical configuration even though their
+  // SDK requests used different models.
+  assert.deepEqual(historical, Object.fromEntries(Object.entries(direct[2])
+    .filter(([key]) => !['model_id', 'adapter_kind', 'api_mode'].includes(key))));
+  assert.notDeepEqual(historical, direct[2]);
+});
+
 // Actual ordinary factory and registration assembler; explicit Common/context
 // ports only. This checks forwarding, not Core admission or physical adequacy.
 test('normal binding profile and original Read recipe consume the same separate SDK R E demand',async()=>{
   const cid='sha256:'+'a'.repeat(64),profile=Object.freeze({});
   let contract,taskProfile,quoteCalls=0;
+  const phases=[];
   const bindingOriginals=Object.freeze(Object.fromEntries(['configuration','configurationContract','installationRevision']
     .map(name=>[name,Object.freeze({wire:'{}',cid})])));
   const task={providerId:'fixture',name:'task',taskCid:cid,promptCid:cid,outputSchemaCid:cid,
-    modelSelector:'fixture',promptPayloadWire:'{}'};
+    modelSelector:'fixture-alias',promptPayloadWire:'{}'};
   const selected={tasks:[task],
-    async responseProfileFor(name,project){assert.equal(name,'task');taskProfile=JSON.parse(project());return {profile};},
+    async verifyChatConfiguration(...original) {
+      assert.deepEqual(original,['task','fixture-alias','fixture-model',
+        'https://api.openai.com/v1/chat/completions']);
+      await Promise.resolve();
+      phases.push('configuration');
+    },
+    async responseProfileFor(name,project) {
+      assert.deepEqual(phases,['configuration','raw']);
+      assert.equal(name,'task');
+      taskProfile=JSON.parse(project());
+      phases.push('profile');
+      return {profile};
+    },
     async executionOriginalsFor(name, policy){
       assert.equal(name,'task');
       assert.equal(policy.maxAttempts, 1n);
@@ -105,7 +152,12 @@ test('normal binding profile and original Read recipe consume the same separate 
   const f={...context([]),runtimeIdentity:async()=>cid,artifactIdentity:async()=>cid,
     readText:async()=> 'fixture-only-never-sent',
     prepareBindingOriginals:async project=>{contract=JSON.parse(project()[1]);return bindingOriginals;},
-    prepareTasks:async()=>selected,prepareRawPolicies:async()=>Object.freeze({})};
+    prepareTasks:async()=>selected,
+    async prepareRawPolicies() {
+      assert.deepEqual(phases,['configuration']);
+      phases.push('raw');
+      return Object.freeze({});
+    }};
   const hooks=['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
     'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection',
     'clientProgramInstallAsyncModelProvider','clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
@@ -116,7 +168,9 @@ test('normal binding profile and original Read recipe consume the same separate 
   moon.clientProgramInstalledNodeModelSdkV4RequestCapacity=(...bounds)=>{
     assert.deepEqual(bounds,[1,32768,4096,32]);quoteCalls++;return [123n,789n];};
   moon.clientProgramModelResponseProfileTransportMatches=actual=>{assert.equal(actual,profile);return true;};
-  const entries=await createOpenAIChatProvider(options())(moon,f);
+  const entries=await createOpenAIChatProvider({...options(),
+    modelSelector:'fixture-alias',modelId:'fixture-model'})(moon,f);
+  assert.deepEqual(phases,['configuration','raw','profile']);
   assert.equal(quoteCalls,1);assert.equal(entries.length,1);
   const recipe=entries[0].taskInstallations[0].entry.originalReadRecipe;
   assert.equal(recipe.modelRetainedBytes,8388608n+123n);

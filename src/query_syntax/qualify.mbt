@@ -52,7 +52,8 @@ fn QueryParser::window_expression(
     let window_head = match parser.peek().value {
       Word(name) | QuotedName(name) =>
         [
-          "ROW_NUMBER", "RANK", "DENSE_RANK", "LAG", "LEAD", "FIRST_VALUE", "LAST_VALUE",
+          "ROW_NUMBER", "RANK", "DENSE_RANK", "PERCENT_RANK", "NTILE", "LAG", "LEAD",
+          "FIRST_VALUE", "LAST_VALUE",
         ].contains(
           ascii_upper(
             if parser.peek().value is QuotedName(_) {

@@ -17,8 +17,11 @@ pub(all) enum RegexPatternIssue {
   InvalidArgument(Int, String)
   PatternCeiling(Int)
   UnknownCapture(Int)
+  MultipleCaptures(Int)
   Pattern(Int, @regex.Issue)
   Replacement(Int, @replacement.Issue)
+  SqlReplacement(Int, @replacement.Issue)
+  SqlReplacementCapture(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -251,7 +254,17 @@ pub fn check_regex_patterns(
       text += bytes
       ast_bytes += out
       ast_nodes += nodes
-      let (operation, option_parameter) = if op == "regex_extract" {
+      let (operation, option_parameter) = if op == "regex_extract" &&
+        @decode.lookup(body, "capture") is None {
+        // The closed SQL form selects the whole match or its sole group.
+        // Use the original parsed pattern, including invocation Parameters.
+        regex_spend(b, 1)
+        let capture = @regex.capture_count(pattern)
+        if capture > 1 {
+          raise RegexStop(MultipleCaptures(i))
+        }
+        (RegexOperation::Extract(capture), None)
+      } else if op == "regex_extract" {
         let (value, parameter) = regex_argument(site, body, "capture", i, b)
         let n = match value {
           Number(n) => n
@@ -274,20 +287,47 @@ pub fn check_regex_patterns(
           Err(_) => raise RegexStop(BudgetExceeded)
         }
         regex_spend(b, bytes)
+        let syntax = match @decode.lookup(body, "dialect") {
+          None => @replacement.Actql
+          Some(data) => {
+            regex_spend(b, 1)
+            guard @decode.text(data) is Ok("googlesql") else {
+              raise RegexStop(InvalidArgument(i, "dialect"))
+            }
+            @replacement.GoogleSql
+          }
+        }
         let replacement = match
-          @replacement.parse(source, {
-            max_input_bytes: bytes,
-            max_parts: b.work,
-            max_ast_bytes: limits.max_ast_bytes - ast_bytes,
-            max_ast_nodes: Int::min(limits.max_ast_nodes - ast_nodes, b.work),
-          }) {
+          @replacement.parse(
+            source,
+            {
+              max_input_bytes: bytes,
+              max_parts: b.work,
+              max_ast_bytes: limits.max_ast_bytes - ast_bytes,
+              max_ast_nodes: Int::min(limits.max_ast_nodes - ast_nodes, b.work),
+            },
+            syntax~,
+          ) {
           Ok(v) => v
           Err(@replacement.BudgetExceeded) => raise RegexStop(BudgetExceeded)
-          Err(e) => raise RegexStop(Replacement(i, e))
+          Err(e) =>
+            raise RegexStop(
+              if syntax == @replacement.GoogleSql {
+                SqlReplacement(i, e)
+              } else {
+                Replacement(i, e)
+              },
+            )
         }
         if @replacement.stats(replacement).max_capture_index >
           @regex.capture_count(pattern) {
-          raise RegexStop(UnknownCapture(i))
+          raise RegexStop(
+            if syntax == @replacement.GoogleSql {
+              SqlReplacementCapture(i)
+            } else {
+              UnknownCapture(i)
+            },
+          )
         }
         let (_, out, nodes) = @replacement.usage(replacement)
         regex_spend(b, nodes)

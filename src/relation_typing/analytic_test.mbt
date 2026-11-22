@@ -192,9 +192,13 @@ test "analytic frames share all aggregate signatures without aggregate-local ord
       field(output_row(v), "v").nullable,
       !["count", "count_if", "array_agg"].contains(name),
     )
-    assert_true(
-      check_row(Analytic, cursor(analytic_body(call)), input(), None, limits())
-      is Err({ kind: InvalidFrame, .. }),
+    let default = checked(Analytic, analytic_body(call))
+    let analytic = @relation_typing.analytic(default).unwrap()
+    assert_true(@relation_typing.analytic_frame(analytic) is None)
+    assert_eq(@relation_typing.analytic_order(analytic).length(), 1)
+    assert_eq(
+      field(output_row(default), "v").nullable,
+      field(output_row(v), "v").nullable,
     )
   }
   for name in ["first_value", "last_value"] {

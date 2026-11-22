@@ -21,6 +21,10 @@ test "selected SQL and Pipe parse retain one original source document" {
     (text, sql_only) in [
       ("-- original\nSELECT 'é' AS label, 1 AS id", true),
       ("((SELECT 1 AS id))", true),
+      (
+        "-- direct value table\nFrOm /* same original */ UNNEST(['|>']) AS item",
+        true,
+      ),
       ("FROM rows |> SELECT id", false),
     ] {
     let documents : Array[@origin.Document] = []
@@ -67,6 +71,9 @@ test "rejected query routes do not validate an unrelated body" {
     (text, sql_only) in [
       ("PROGRAM '\\q'", false),
       ("FROM rows |> SELECT '\\q'", true),
+      ("FROM GRAPH '\\q'", true),
+      ("FROM `UNNEST` '\\q'", true),
+      ("FROM UNNEST([1]) AS item |> SELECT '\\q'", true),
       ("TIME_SERIES '\\q'", true),
       ("((FROM rows |> SELECT id))", true),
     ] {
@@ -95,6 +102,19 @@ test "rejected query routes do not validate an unrelated body" {
     )
     is Err({ issue: Lexical(_), .. }),
   )
+}
+
+///|
+test "SQL head probe distinguishes bare UNNEST from a Pipe" {
+  let limits = selected_query_limits().lexical
+  assert_true(
+    starts_sql("FROM /* clause */ unnest(['|>']) AS item", limits).unwrap(),
+  )
+  assert_false(
+    starts_sql("FROM UNNEST([1]) AS item |> SELECT '\\q'", limits).unwrap(),
+  )
+  assert_false(starts_sql("FROM rows |> SELECT '\\q'", limits).unwrap())
+  assert_false(starts_sql("FROM GRAPH '\\q'", limits).unwrap())
 }
 
 ///|

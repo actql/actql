@@ -493,6 +493,7 @@ fn reobserve_saved_result_read(
       scan,
       read,
       census_ticket=if same_reader_census { current.physical } else { 0 },
+      census_current=physical_journal_current_operation,
     )
   }
   match
@@ -525,6 +526,7 @@ fn rebind_saved_result_originals(
   scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   census_ticket? : Int = 0,
+  census_current? : (Int) -> Int64 = _ => -41L,
 ) -> Result[Unit, Int] {
   if schema != 0 && schema != 1 {
     return Err(-41)
@@ -543,7 +545,7 @@ fn rebind_saved_result_originals(
   // The caller has already completed the full census in this exact export.
   // Only the original physical Owner can prove uninterrupted readership.
   let same = if census_ticket > 0 {
-    match physical_journal_current_operation(-census_ticket) {
+    match census_current(-census_ticket) {
       0L => false
       1L => true
       _ => return Err(-41)

@@ -63,6 +63,11 @@ export const qualifySuccesses = [
     + 'FROM records WHERE id > 0 QUALIFY amount > 25 AND n > 0 ORDER BY n', {
     expected: [{id: 3, n: 3}, {id: 3, n: 4}],
   }),
+  {name: 'qualify-lag-default', format: 'aql-text',
+    text: 'SELECT id FROM records QUALIFY `LAG`(id, 1, 2) OVER (ORDER BY id) IS NOT NULL',
+    sourceRows, sourceReadSessionCount: 1,
+    results: {main: {rows: [{id: 0}, {id: 1}, {id: 2}, {id: 3}, {id: 3}],
+      columns: [column('id')], unordered: true}}},
   success('null-predicate', 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n '
     + 'FROM records WHERE id > 0 QUALIFY CAST(NULL AS BOOL) AND n > 0 ORDER BY n', {expected: []}),
   success('distinct-order-limit', 'SELECT DISTINCT amount FROM records WHERE id > 0 '
@@ -264,8 +269,9 @@ export const qualifyRefusals = [
   {name: 'qualify-invalid-ranking-arguments', format: 'aql-text',
     text: 'SELECT id FROM records QUALIFY `ROW_NUMBER`(id) OVER (ORDER BY id) = 1',
     expectedCode: 'ClientProgramInvalidInput'},
-  {name: 'qualify-unsupported-lag-default', format: 'aql-text',
-    text: 'SELECT id FROM records QUALIFY `LAG`(id, 1, 2) OVER (ORDER BY id) IS NOT NULL',
+  {name: 'qualify-unsupported-cume-dist', format: 'aql-text',
+    text: 'SELECT id, CUME_DIST() OVER (ORDER BY id) AS p, ROW_NUMBER() OVER (ORDER BY id) AS n '
+      + 'FROM records QUALIFY n > 0',
     expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'qualify-grouped-discarded-input', format: 'sql',
     text: groupedHead + 'QUALIFY records.amount > 0', expectedCode: 'ClientProgramInvalidInput'},

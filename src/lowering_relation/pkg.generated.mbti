@@ -17,6 +17,8 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/regex_pattern",
+  "actql/actql/regex_replacement",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
@@ -39,6 +41,8 @@ import {
 pub fn analytic_call_at(PreparedAnalytic, Int) -> PreparedAnalyticCall?
 
 pub fn analytic_call_count(PreparedAnalytic) -> Int
+
+pub fn analytic_call_default(PreparedAnalyticCall) -> Expression?
 
 pub fn analytic_call_function(PreparedAnalyticCall) -> PreparedAnalyticFunction
 
@@ -1046,6 +1050,12 @@ pub fn text_bound_output(ExpressionTextBound) -> @text_time_bounds.Output
 
 pub fn text_bound_policy(ExpressionTextBound) -> @check_environment.TextTime
 
+pub fn text_bound_regex_extract(ExpressionTextBound) -> (@regex_pattern.Pattern, String?, Int)?
+
+pub fn text_bound_regex_pattern(ExpressionTextBound) -> (@regex_pattern.Pattern, String?)?
+
+pub fn text_bound_regex_replace(ExpressionTextBound) -> (@regex_pattern.Pattern, String?, @regex_replacement.Replacement)?
+
 pub fn text_bound_timestamp_pattern(ExpressionTextBound) -> @timestamp_pattern.Pattern?
 
 pub fn time_series_end(PreparedTimeSeries) -> String
@@ -1220,10 +1230,15 @@ pub(all) enum BinaryOperator {
   Contains
   Like
   DateTruncate
+  TimestampTruncate
+  DateBoundaryTruncate
+  ExtractTimestamp
   DecimalDivide(String)
   Utf8Truncate
   ParseTimestamp
+  TryPatternedTimestamp
   FormatTimestamp
+  RegexMatch
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {
@@ -1335,6 +1350,7 @@ type Expression
 pub enum ExpressionBody {
   Field(String, @relation_typing.ReferenceTarget)
   Literal(@value_admission.CheckedValue)
+  DateLiteral(@value_admission.CheckedValue)
   TypedNull
   Array(Array[Expression])
   EmptyArray
@@ -1352,6 +1368,7 @@ pub enum ExpressionBody {
   Case(Array[(Expression, Expression)], Expression)
   SimpleCase(Expression, Array[(Expression, Expression)], Expression)
   CurrentTimestamp
+  CurrentDate
 }
 
 pub struct ExpressionIssue {
@@ -1616,6 +1633,15 @@ pub(all) enum ManyOperator {
   Translate
   Instr
   Split
+  SplitPart
+  GenerateArray
+  ArrayConcat
+  ArrayToString
+  FormatStrings
+  ToJsonString
+  JsonValue
+  RegexExtract
+  RegexReplace
   Substring
   LeftString
   RightString
@@ -1626,6 +1652,10 @@ pub(all) enum ManyOperator {
   DateAddition
   TimestampAddition
   TimestampSubtraction
+  TimestampDifference
+  DateBoundaryDifference
+  DateIntervalAddition
+  MakeDate
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
@@ -1738,6 +1768,8 @@ pub enum PreparedAnalyticFunction {
   PreparedRowNumber
   PreparedRank
   PreparedDenseRank
+  PreparedPercentRank
+  PreparedNtile(Int64)
   PreparedLag(Expression, Int64)
   PreparedLead(Expression, Int64)
   PreparedFirstValue(Expression)
@@ -2075,7 +2107,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ArrayLength
+  UnixSeconds
   ByteLength
+  FarmFingerprint
   Unicode
   Chr
   Reverse

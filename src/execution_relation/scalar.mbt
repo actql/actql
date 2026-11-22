@@ -77,12 +77,42 @@ pub fn unary(
     | TryDecimal
     | TryTimestamp
     | Quantize(_) => Err(InvalidOperand)
+    FarmFingerprint =>
+      if value is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     Length =>
       match value {
         Null => Ok(Null)
         Text(text) =>
           match @scalar.unicode_scalar_count(text) {
             Some(count) => Ok(Number(count.to_double()))
+            None => Err(InvalidOperand)
+          }
+        _ => Err(InvalidOperand)
+      }
+    ArrayLength =>
+      match value {
+        Null => Ok(Null)
+        Captured(@admitted.Array(items)) =>
+          Ok(
+            capture(
+              @admitted.signed64_value(
+                @admitted.element_count(items).to_int64(),
+              ),
+            ),
+          )
+        _ => Err(InvalidOperand)
+      }
+    UnixSeconds =>
+      match value {
+        Null => Ok(Null)
+        Captured(@admitted.Timestamp(text)) =>
+          match @admitted.timestamp_instant(text) {
+            Some(instant) =>
+              Ok(capture(@admitted.signed64_value(instant.seconds)))
             None => Err(InvalidOperand)
           }
         _ => Err(InvalidOperand)
@@ -399,9 +429,17 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
-    DecimalDivide(_) | Utf8Truncate | ParseTimestamp | FormatTimestamp | Like =>
-      Err(InvalidOperand)
-    DateTruncate =>
+    DecimalDivide(_)
+    | Utf8Truncate
+    | ParseTimestamp
+    | TryPatternedTimestamp
+    | FormatTimestamp
+    | RegexMatch
+    | Like => Err(InvalidOperand)
+    DateTruncate
+    | TimestampTruncate
+    | DateBoundaryTruncate
+    | ExtractTimestamp =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -547,10 +585,15 @@ pub fn binary(
         | Contains
         | Like
         | DateTruncate
+        | TimestampTruncate
+        | DateBoundaryTruncate
+        | ExtractTimestamp
         | DecimalDivide(_)
         | Utf8Truncate
         | ParseTimestamp
-        | FormatTimestamp => Err(InvalidOperand)
+        | TryPatternedTimestamp
+        | FormatTimestamp
+        | RegexMatch => Err(InvalidOperand)
       }
       // Only this already-evaluated arithmetic operation is safe. Child,
       // operand-domain, control, cancellation and custody failures keep their
@@ -639,10 +682,15 @@ fn binary_comparison_result(
     | Contains
     | Like
     | DateTruncate
+    | TimestampTruncate
+    | DateBoundaryTruncate
+    | ExtractTimestamp
     | DecimalDivide(_)
     | Utf8Truncate
     | ParseTimestamp
-    | FormatTimestamp => Err(InvalidOperand)
+    | TryPatternedTimestamp
+    | FormatTimestamp
+    | RegexMatch => Err(InvalidOperand)
   }
 }
 
@@ -686,6 +734,15 @@ pub fn boolean_pair(
     | Translate
     | Instr
     | Split
+    | SplitPart
+    | GenerateArray
+    | ArrayConcat
+    | ArrayToString
+    | FormatStrings
+    | ToJsonString
+    | JsonValue
+    | RegexExtract
+    | RegexReplace
     | Substring
     | LeftString
     | RightString
@@ -693,6 +750,10 @@ pub fn boolean_pair(
     | RPad
     | Between
     | DateDifference
+    | MakeDate
+    | TimestampDifference
+    | DateBoundaryDifference
+    | DateIntervalAddition
     | DateAddition
     | TimestampAddition
     | TimestampSubtraction

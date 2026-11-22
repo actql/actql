@@ -7,6 +7,7 @@ fn expression(
   parameters : @parameter.Declarations?,
   argument_domain? : @typing.ArgumentDomain? = None,
   presence_schema? : @schema.Schema? = None,
+  root_null_context? : @contract.Contract? = None,
 ) -> Binding raise Stop {
   let admitted = match
     @syntax.admit(source, {
@@ -84,7 +85,7 @@ fn expression(
   let result = match argument_domain {
     Some(domain) =>
       @typing.check_argument(admitted, environment, domain, limits)
-    None => @typing.check(admitted, environment, limits)
+    None => @typing.check(admitted, environment, limits, root_null_context~)
   }
   let typed = match result {
     Ok(value) => value
