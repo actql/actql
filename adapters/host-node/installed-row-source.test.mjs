@@ -86,6 +86,22 @@ test('ordinary row binding is issued by the original preparation owner and reche
     {code: 'InstalledSourcePreparationMismatch'});
   await assert.rejects(adapter.openCapture({...preparation, preparedSource: prepared, ledger: {}}),
     error => error.cause?.code === 'InstalledSourcePreparationMismatch');
+  const target = Object.freeze({resource: 'records', fields: Object.freeze(['id']), path: 'e\u0301/%2F'});
+  const fixed = await createInstalledRowSource({...options, physicalTarget: Object.freeze([target])});
+  let fixedPrepared;
+  try {
+    fixedPrepared = await fixed.prepare(preparation);
+    assert.deepEqual(fixedPrepared.physicalBinding, target);
+    assert.equal(Object.isFrozen(fixedPrepared.physicalBinding), true);
+    assert.equal(Object.isFrozen(fixedPrepared.physicalBinding.fields), true);
+    assert.deepEqual(fixed.ordinaryRecoveryBinding(fixedPrepared, original), expectedBinding);
+    assert.throws(() => fixed.ordinaryRecoveryBinding({...fixedPrepared}),
+      {code: 'InstalledSourcePreparationMismatch'});
+  } finally {
+    await fixed.close();
+  }
+  assert.throws(() => fixed.ordinaryRecoveryBinding(fixedPrepared),
+    {code: 'InstalledSourcePreparationMismatch'});
   assert.equal(reads, 0); assert.equal(grants, 0);
 });
 

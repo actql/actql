@@ -46,6 +46,7 @@ import {rejectInstalledRowSource as fail} from './installed-row-source-mapping.m
 import {valueCid} from './installed-row-source-environment.mjs';
 import {installRowSourceAuthorization} from './installed-row-source-authorization.mjs';
 import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
+import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -54,50 +55,6 @@ const text = value => typeof value === 'string' && value.length > 0;
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
-// Private standard installation DATA, not a callback-currentness promise.
-// Callback targets keep their original full revalidation below, even when a
-// callback happens to return a frozen object. No public or restored wire can
-// replace an original prepared target through this constructor input.
-function prepareImmutablePhysicalTargets(value) {
-  if (typeof value === 'function') return undefined;
-  const mismatch = () => fail('InstalledSourcePreparationMismatch');
-  const arrayValues = input => {
-    if (!Array.isArray(input) || nodeTypes.isProxy(input) || !Object.isFrozen(input) ||
-        Object.getPrototypeOf(input) !== Array.prototype) mismatch();
-    const length = Object.getOwnPropertyDescriptor(input, 'length').value;
-    if (Reflect.ownKeys(input).length !== length + 1) mismatch();
-    for (let index = 0; index < length; index++) {
-      const property = Object.getOwnPropertyDescriptor(input, index);
-      if (!property || !Object.hasOwn(property, 'value')) mismatch();
-    }
-    return input;
-  };
-  const resources = new Set();
-  const inventory = arrayValues(value);
-  for (const input of inventory) {
-    if (input === null || typeof input !== 'object' || nodeTypes.isProxy(input) ||
-        !Object.isFrozen(input) || Object.getPrototypeOf(input) !== Object.prototype) mismatch();
-    for (const key of Reflect.ownKeys(input)) {
-      const property = Object.getOwnPropertyDescriptor(input, key);
-      if (typeof key !== 'string' || !Object.hasOwn(property, 'value') ||
-          !property.enumerable || key !== 'fields' && typeof property.value !== 'string') mismatch();
-    }
-    if (!text(input.resource) || resources.has(input.resource) || !Object.hasOwn(input, 'fields')) mismatch();
-    const fields = arrayValues(input.fields);
-    if (fields.some(field => !text(field)) || new Set(fields).size !== fields.length) mismatch();
-    resources.add(input.resource);
-  }
-  if (inventory.length === 0) mismatch();
-  resources.clear();
-  // The existing Source constructor already retains these exact immutable
-  // outputs. Do not allocate another inventory, target Map or field arrays.
-  return Object.freeze({inventory, prepare(resource, fields) {
-    const target = inventory.find(target => target.resource === resource);
-    if (target === undefined || !Array.isArray(fields) || new Set(fields).size !== fields.length ||
-        fields.some(field => !target.fields.includes(field))) mismatch();
-    return Object.freeze({...target, fields: Object.freeze([...fields])});
-  }});
-}
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 // Load the selected installed issuer into the same credential custody. A

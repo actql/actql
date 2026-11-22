@@ -2028,6 +2028,8 @@ target/
 /adapters/host-node/typed-response-json-codec.d.mts
 /adapters/host-node/typed-response-json-codec.test.mjs
 /adapters/host-node/typed-response-json-codec.test.d.mts
+/adapters/host-node/installed-row-source-targets.mjs
+/adapters/host-node/installed-row-source-targets.d.mts
 /scripts/build-connector-authoring.mjs
 /scripts/build-connector-authoring.d.mts
 /scripts/record-approval-ci-input.mjs

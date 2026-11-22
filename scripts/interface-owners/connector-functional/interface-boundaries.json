@@ -13688,7 +13688,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "9911848d6e1c5fcb687ae89b201e8c30ee56dcb951177855ef401f7d66d31d21",
+      "sha256": "ead53f0d7609720bacb17fc5d8a768de5113a4e1a2c0e7593c9713a3908dfb8f",
       "operations": [
         {
           "name": "createInstalledRowSource",
@@ -14903,35 +14903,6 @@
           "async": false
         },
         {
-          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
-          "parameters": [
-            "resource",
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/account/account",
           "parameters": [
             "name"
@@ -15169,6 +15140,7 @@
         "./installed-row-source-authorization.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
+        "./installed-row-source-targets.mjs",
         "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
@@ -15291,10 +15263,6 @@
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
             "openRowSourceCredentialSite/synchronous/synchronous",
-            "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
-            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
-            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "text/text",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
@@ -18657,6 +18625,145 @@
         }
       ],
       "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
+    },
+    {
+      "module": "adapters/host-node/installed-row-source-targets.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "prepareImmutablePhysicalTargets"
+      ],
+      "operations": [
+        {
+          "name": "prepareImmutablePhysicalTargets",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installed-row-source-mapping.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "85c590347dcb9be94a96b11daa56c61ad8f75f5223b6b055bde503713206ffe9",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareImmutablePhysicalTargets",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
+          ],
+          "exports": [
+            "prepareImmutablePhysicalTargets"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "export function prepareImmutablePhysicalTargets("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "type PhysicalTarget = Readonly<{"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "The existing Source constructor already retains these exact immutable"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "return Object.freeze({inventory, prepare("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "Callback targets keep their original full revalidation below"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "fail('InstalledSourcePreparationMismatch')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "if (typeof value === 'function') return undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "Do not allocate another inventory, target Map or field arrays."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-targets.mts",
+                "anchor": "No public or restored wire can"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('immutable target constructor refuses mutable/accessor/proxy and malformed DATA without invoking accessors'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "test('immutable target selection borrows the same Source inventory without a second retained snapshot'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "test('ordinary row binding is issued by the original preparation owner and rechecks its target'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/installed-row-source-authorization.mjs",
