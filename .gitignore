@@ -2158,3 +2158,5 @@ target/
 /adapters/host-node/installed-project-configuration.actual.test.d.mts
 /adapters/host-node/installed-project-connections.actual.test.mjs
 /adapters/host-node/installed-project-connections.actual.test.d.mts
+/adapters/connectors/local/host/local-project-file-preparation.mjs
+/adapters/connectors/local/host/local-project-file-preparation.d.mts

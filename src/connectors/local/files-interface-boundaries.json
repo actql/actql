@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9eb9eaa0ffb93cda324076773e9b4cc6dfbb73028c2c6734ef5234df5d357074",
+      "sha256": "974e58bd26481f316da3912072e37f246c1b7cbb0d5edfe1c3df2c9e5917c3dd",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -816,82 +816,17 @@
           "async": false
         },
         {
-          "name": "ownLimits/ownLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownLimits/ownLimits#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownLimits/ownLimits#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownLimits/value/value",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles",
-          "parameters": [
-            "moon",
-            "project",
-            "assertCurrent",
-            "limits",
-            "openFile"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/init:retire/init:retire",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/ports/ports",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+          "name": "positive/positive",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value",
+            "maximum"
           ],
           "async": false
         }
@@ -904,14 +839,12 @@
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-check-environment.mjs",
         "../../../host-node/installed-host-cleanup.mts",
-        "../../../host-node/installed-project-configuration.mjs",
-        "../../../host-node/installed-project-connections.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../site/root-filesystem.mjs",
         "./local-file-store-declaration.mjs",
+        "./local-project-file-preparation.mjs",
         "node:crypto",
-        "node:fs/promises",
-        "node:path"
+        "node:fs/promises"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -962,19 +895,10 @@
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
-            "ownLimits/ownLimits",
-            "ownLimits/ownLimits#2",
-            "ownLimits/ownLimits#3",
-            "ownLimits/value/value",
-            "prepareInstalledProjectLocalFiles",
-            "prepareInstalledProjectLocalFiles/call/call",
-            "prepareInstalledProjectLocalFiles/current/current",
-            "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
-            "prepareInstalledProjectLocalFiles/init:retire/init:retire",
-            "prepareInstalledProjectLocalFiles/ports/ports",
-            "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
             "canonical/canonical",
-            "cid/cid"
+            "cid/cid",
+            "positive/positive",
+            "text/text"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",
@@ -1036,7 +960,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "originalEntryWire"
               },
               {
@@ -1228,7 +1152,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "restoreDeclaration"
               },
               {
@@ -1377,7 +1301,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "originalEntryWire"
               },
               {
@@ -1529,7 +1453,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "restoreDeclaration"
               },
               {
@@ -1897,7 +1821,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "originalEntryWire"
               },
               {
@@ -2089,7 +2013,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
                 "anchor": "restoreDeclaration"
               },
               {
@@ -2161,6 +2085,201 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/local/host/local-project-file-preparation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "5ce495c31d38b0b9f0fa5e012a0914bc38c46d146b02f8ffe6dd427522bb24fa",
+      "exports": [
+        "bindLocalProjectFilePreparation"
+      ],
+      "operations": [
+        {
+          "name": "bindLocalProjectFilePreparation",
+          "parameters": [
+            "refuse",
+            "canonical",
+            "cid",
+            "positive",
+            "isText"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/ownLimits/ownLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/ownLimits/ownLimits#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/ownLimits/ownLimits#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/ownLimits/value/value",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "moon",
+            "project",
+            "assertCurrent",
+            "limits",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:retire/init:retire",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-node/installed-project-configuration.mjs",
+        "../../../host-node/installed-project-connections.mjs",
+        "./local-file-store-declaration.mjs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "connector-semantics",
+      "owner": "Existing Local Project connection and declaration preparation under the original Project and Host currentness owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bindLocalProjectFilePreparation",
+            "bindLocalProjectFilePreparation/ownLimits/ownLimits",
+            "bindLocalProjectFilePreparation/ownLimits/ownLimits#2",
+            "bindLocalProjectFilePreparation/ownLimits/ownLimits#3",
+            "bindLocalProjectFilePreparation/ownLimits/value/value",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/call/call",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/current/current",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:retire/init:retire",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/ports/ports",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles"
+          ],
+          "exports": [
+            "bindLocalProjectFilePreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "Same original Project/connection declaration, before Root acquisition."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "return async function prepareInstalledProjectLocalFiles"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "runtime!==moon||receiver!==view"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "Managed-reference retirement only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "installedProjectOriginalsForRuntime(project,moon)!==projectOriginal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "ForeignLocalFilesPreparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "if(retired)fail('LocalFilesPreparationRetired')"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "LocalFilesLimitsUnavailable"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
+                "anchor": "configured table formats retain their original declaration for their Owner."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test('actual Common Local preparation preserves original Project bytes"
               }
             ]
           }

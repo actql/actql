@@ -1,17 +1,15 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {dirname, resolve} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
-import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
-import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {createInstalledRowSource,rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot,physicalReadChild} from '../site/root-filesystem.mjs';
-import {localFileStoreDeclaration,restoreDeclaration} from './local-file-store-declaration.mjs';
+import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
+import {bindLocalProjectFilePreparation} from './local-project-file-preparation.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -20,8 +18,6 @@ const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).d
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const text = (value, maximum) => typeof value === 'string' && value.length > 0 &&
   value.isWellFormed() && !value.includes('\0') && Buffer.byteLength(value) <= maximum;
-const limitNames = ['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes',
-  'maxPages','maxPageBytes','maxPageRows','maxAttempts','maxDurationMs','maxListingBytes'];
 // Selected service ceilings only. The Host must still admit the same actual
 // Source/Compute parent and retain physical children before covered work.
 // These do not select a numerical release profile or authorize file access.
@@ -29,81 +25,7 @@ export const LOCAL_FILES_DEFAULT_LIMITS=Object.freeze({maxEntries:10000,maxDepth
   maxPathBytes:4096,maxFiles:1000,maxFileBytes:16777216,maxReadBytes:67108864,
   maxPages:64,maxPageBytes:1048576,maxPageRows:256,maxAttempts:64,
   maxDurationMs:30000,maxListingBytes:16777216});
-function ownLimits(input) {
-  const fields = input !== null && typeof input === 'object' ? Object.getOwnPropertyDescriptors(input) : {};
-  if (Reflect.ownKeys(fields).length !== limitNames.length ||
-      limitNames.some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('LocalFilesLimitsUnavailable');
-  const value = Object.freeze(Object.fromEntries(limitNames.map(name => [name, fields[name].value])));
-  if (limitNames.filter(name => name !== 'maxFileBytes').some(name => !positive(value[name])) ||
-      !Number.isSafeInteger(value.maxFileBytes) || value.maxFileBytes < 0 ||
-      value.maxEntries > 100000 || value.maxDepth > 128 || value.maxPathBytes > 4096 ||
-      value.maxFiles > value.maxEntries || value.maxReadBytes < value.maxFileBytes ||
-      value.maxAttempts < value.maxPages || value.maxPageRows > value.maxFiles) fail('LocalFilesLimitsUnavailable');
-  return value;
-}
-// Same original Project/connection declaration, before Root acquisition.
-// Only this existing Connector's files/contents views are prepared here;
-// configured table formats retain their original declaration for their Owner.
-export async function prepareInstalledProjectLocalFiles(moon, project,
-  {assertCurrent, limits, openFile} = {}) {
-  if (project === undefined) return undefined;
-  if (typeof assertCurrent !== 'function') fail('InvalidLocalFilesPreparation');
-  const projectOriginal = installedProjectOriginalsForRuntime(project,moon);
-  const ports = Object.freeze(Object.fromEntries(['clientProjectConnectionsCount',
-    'clientProjectConnectionsName','clientProjectConnectionsConnector','clientProjectConnectionsEntryOriginalJson',
-    'clientProgramRowSourceRestoreRelationDeclaration','clientProgramRowSourceDeclarationJson'].map(name=>{
-    const method=moon?.[name];if(typeof method!=='function')fail('LocalFilesRuntimeUnavailable');return[name,method];
-  })));
-  let retired = false, connections, original, bundle, view;
-  const call = (name,...args) => Reflect.apply(ports[name],moon,args);
-  const current = () => {
-    if(retired)fail('LocalFilesPreparationRetired');
-    assertCurrent();
-    if(installedProjectOriginalsForRuntime(project,moon)!==projectOriginal) fail('ForeignLocalFilesPreparation');
-  };
-  current();
-  connections=await loadInstalledProjectConnections(moon,project,
-    {assertCurrent:current,...(openFile===undefined?{}:{openFile})});
-  original=connections.originalsForRuntime(moon);
-  current();
-  const selected=original.connections;
-  if(selected===undefined)return undefined;
-  const count=call('clientProjectConnectionsCount',selected);
-  if(!Number.isSafeInteger(count)||count<0||count>128)fail('LocalFilesConnectionCountUnavailable');
-  const sources=[];
-  let selectedLimits;
-  for(let index=0;index<count;index++){
-    if(call('clientProjectConnectionsConnector',selected,index)!=='local')continue;
-    selectedLimits??=ownLimits(limits);
-    const connection=call('clientProjectConnectionsName',selected,index);
-    const wire=call('clientProjectConnectionsEntryOriginalJson',selected,index);
-    if(!text(connection,128)||typeof wire!=='string')fail('InvalidLocalFilesConnection');
-    const entry=JSON.parse(wire);
-    if(entry?.connector!=='local'||!text(entry.root,4096))fail('InvalidLocalFilesConnection');
-    if(entry.version!==undefined&&entry.version!=='content')fail('LocalFilesVersionUnavailable');
-    const rootPath=resolve(dirname(original.path),entry.root);
-    if(!text(rootPath,4096))fail('InvalidLocalFilesConnection');
-    const versionMode=entry.version==='content'?'content':'metadata';
-    const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid);
-    sources.push(Object.freeze({connection,connectorId:connection,registration:'local',revision:'local/0.1',
-      originalEntryWire:wire,rootPath,versionMode,limits:selectedLimits,
-      queryAliases:Object.freeze([{name:connection,resource:'files'},
-        {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'}]
-        .map(value=>Object.freeze(value))),...declared}));
-    current();
-  }
-  if(sources.length===0)return undefined;
-  bundle=Object.freeze({project:projectOriginal,connections:original,sources:Object.freeze(sources)});
-  const same = (runtime,receiver) => {if(runtime!==moon||receiver!==view)fail('ForeignLocalFilesPreparation');};
-  view=Object.freeze({originalsForRuntime(runtime){same(runtime,this);current();
-    if(connections.originalsForRuntime(moon)!==original)fail('ForeignLocalFilesPreparation');return bundle;},
-    retire(runtime){same(runtime,this);if(retired)return;retired=true;
-      // Managed-reference retirement only; Root/Run/reader cleanup stays with
-      // its actual physical and Resource owners before this parent retires.
-      bundle=connections=original=undefined;
-    }});
-  return view;
-}
+export const prepareInstalledProjectLocalFiles=bindLocalProjectFilePreparation({fail,canonical,cid,positive,text});
 
 const acknowledged = value => value !== null && typeof value === 'object' &&
   Object.getOwnPropertyDescriptor(value,'pending')?.value === false;
