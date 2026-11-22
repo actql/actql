@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a0863040e253d89060b5bc32f54ed7a1656db2ff7bc37483f296b43a3612d95",
+      "sha256": "eef49dacbf20f72f5209a1e0b592d160db2f4006558e0d837a3d4eff7ccb1eae",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118614,6 +118614,7 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/installed-effect-inventory.mjs",

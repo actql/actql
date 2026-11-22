@@ -3,6 +3,7 @@
 // approval, replacement Run or permission derived from a profile is supplied.
 import {createHash} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts, assertAuthorizationAccountCurrent}
   from '../host-common/authorization-gate.mjs';
@@ -285,8 +286,6 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
     0n, 0n, 0n, value.nodes, value.text, value.wire));
   const decode = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(
     capacity(zero), targetLimits.maxFileBytes, targetLimits.maxNodes, targetLimits.maxDepth));
-  const physical = insertion === undefined ? decode : checked(
-    moon.clientProgramComposeInstalledSourceConstructionCapacity(decode, [insertion]));
   // The guarded request child drops the parser and document when the original
   // file read closes. Keep the complete simultaneous peak, while the row's
   // immutable request uses the separate retained request envelope.
@@ -298,10 +297,22 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
   // Projection owns checked values, admitted wrappers and row/cell indexes;
   // the file decoder is separate. Replacement Bytes coexist with original
   // file backing. Write additionally copies replacement Bytes into its Buffer.
-  const construction = Object.freeze({retained: zero,
-    // CREATE's encoder already funds its returned replacement Bytes. The
-    // transport still copies those Bytes once to give the writer a Buffer.
-    workspace: Object.freeze({...workspace, wire: insertion === undefined ? 2n * bytes : bytes})});
+  let construction;
+  if (insertion === undefined) {
+    construction = Object.freeze({retained: zero,
+      workspace: Object.freeze({...workspace, wire: 2n * bytes})});
+  } else {
+    const executionBytes = original => runtimeField(moon.clientProgramSerializationCapacityBytes(original), 1);
+    // The locked child drops its original document, row decoder and complete
+    // replacement before returning. Retain only the child/response controls
+    // and bounded JSON observation; keep both full native peaks in live E.
+    // The insertion already funds its replacement Bytes, and the writer
+    // still needs a separate copy of those Bytes in its Buffer.
+    construction = Object.freeze({
+      retained: Object.freeze({nodes: 40n, text: 512n, wire: BigInt(targetLimits.maxResponseBytes)}),
+      workspace: Object.freeze({...workspace, wire: bytes + executionBytes(decode) + executionBytes(insertion)}),
+    });
+  }
   const inputLimits = installedRowEffectConstructionLimits({maxRows: targetLimits.maxRows});
   let footprintCapacity;
   if (bundle.writables.length > 1 || insertion !== undefined) {
@@ -310,7 +321,8 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
     footprintCapacity = capacity(geometry.workspace);
   }
   return prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits,
-    construction, physicalConstruction: physical, requestConstruction, targetReadOperation,
+    construction, ...(insertion === undefined ? {physicalConstruction: decode} : {}),
+    requestConstruction, targetReadOperation,
     ...(footprintCapacity === undefined ? {} : {footprintCapacity}),
     limits: Object.freeze({maxRequestBytes: targetLimits.maxFileBytes,
       maxRecoveryBytes: targetLimits.maxFileBytes, maxResponseBytes: targetLimits.maxResponseBytes,

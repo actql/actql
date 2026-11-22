@@ -21,6 +21,7 @@ import {createMockFileRowCodec, mockFileRowFootprint, mockFileEffectPlanRecipe}
 import {createMockFileTarget} from './mock-file-target.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
@@ -304,6 +305,29 @@ test('Mock actual CREATE codec inserts beside untouched rows through the locked 
     const {physical} = account;
     const contract = checked(moon.clientProgramRelationPrepareInsertContract(physical.declaration,
       physical.resource, physical.primaryIdentity, 1048576, 16384, 32, 100));
+    const scratch = checked(moon.clientProgramRelationInsertWorkspaceCapacity(contract,
+      physical.itemsPath.length, 1, 1048576));
+    const receiptBound = 65536n;
+    const insertionBytes = runtimeField(moon.clientProgramSerializationCapacityBytes(scratch), 1);
+    const zero = checked(moon.clientProgramInstalledSourceConstructionCapacity(0n, 0n, 0n, 0n, 0n, 0n));
+    const decoder = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(zero, 1048576, 16384, 32));
+    const decodingBytes = runtimeField(moon.clientProgramSerializationCapacityBytes(decoder), 1);
+    const quoteOriginals = [];
+    const observedRuntime = Object.create(moon, {clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest: {
+      value(...args) {
+        const physicalCapacity = args[12];
+        quoteOriginals.push(physicalCapacity);
+        return Reflect.apply(moon.clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest, moon, args);
+      },
+    }});
+    mockFileEffectPlanRecipe(observedRuntime, bundle, account.write.permission, undefined, scratch);
+    assert(quoteOriginals.length > 0);
+    for (const capacity of quoteOriginals) {
+      const dimensions = moon.clientProgramSerializationCapacityBytes(capacity);
+      const retained = runtimeField(dimensions, 0), execution = runtimeField(dimensions, 1);
+      assert(retained >= receiptBound && retained < decodingBytes);
+      assert(execution - retained >= decodingBytes + insertionBytes + 1048576n);
+    }
     const digest = character => 'sha256:' + character.repeat(64);
     const content = 'sha256:9f9eea815fedc32b706f3a87007cb26f3b61d5f16117949904ae53a88c508f9f';
     const key = checked(moon.clientProgramEffectFileCreateStorageKey(digest('b'), digest('a'), digest('a'), content, 0));
