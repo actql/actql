@@ -118,9 +118,14 @@ test "shared cancellation codec preserves exact Native bytes and independent ide
 }
 
 ///|
-test "shared cancellation codec refuses changed original CID revision and extra field" {
+test "shared cancellation codec refuses a false intent CID and noncanonical original bytes" {
   for
     body in [
+      cancellation_journal_fixture.replace(
+        old="sha256:a60cc3b23787ba7444084bbf8a28d77f0fae37b5371d3be214886813b7829028",
+        new="sha256:a60cc3b23787ba7444084bbf8a28d77f0fae37b5371d3be214886813b7829029",
+      ),
+      " " + cancellation_journal_fixture,
       cancellation_journal_fixture.replace(
         old="\"observed_revision\":\"20\"",
         new="\"observed_revision\":\"19\"",

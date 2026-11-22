@@ -91643,7 +91643,8 @@
             "cancellation_journal_text",
             "client_cancellation_journal_index",
             "client_cancellation_journal_row_body",
-            "decode_client_cancellation_journal_row"
+            "decode_client_cancellation_journal_row",
+            "encode_client_cancellation_journal_row"
           ],
           "exports": [],
           "attributes": {
@@ -91741,12 +91742,16 @@
               {
                 "path": "src/run_publication_host/client_cancellation_journal_operation_wbtest.mbt",
                 "anchor": "test \"shared cancellation append preserves original Run and exact independent three rows\""
+              },
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_wbtest.mbt",
+                "anchor": "test \"shared cancellation codec refuses a false intent CID and noncanonical original bytes\""
               }
             ]
           }
         }
       ],
-      "sha256": "0afcb3ac2bc09143373c883f3aed87317c50cd8f28ca5d4a4d45e83df58bb723",
+      "sha256": "36b0dc367ce3562de7e21cda25b7da94ab02d8a9fd4623eb577e868d46134e5f",
       "exports": [],
       "operations": [
         {
@@ -91768,6 +91773,10 @@
         {
           "name": "decode_client_cancellation_journal_row",
           "declaration": "decode_client_cancellation_journal_row ( row : ClientJournalPhysicalRow , ) - > Result [ ClientCancellationJournalEncoding , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "encode_client_cancellation_journal_row",
+          "declaration": "encode_client_cancellation_journal_row ( value : ClientCancellationJournalEncoding , intent_cid : String , ) - > Bytes ?"
         }
       ]
     },

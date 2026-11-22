@@ -61,6 +61,19 @@ pub fn client_cancellation_journal_index(
 pub fn client_cancellation_journal_row_body(
   value : ClientCancellationJournalEncoding,
 ) -> Bytes? {
+  encode_client_cancellation_journal_row(
+    value,
+    client_cancellation_intent_cid(value.identity),
+  )
+}
+
+///|
+// The codec supplies its own calculated CID. Decoding can use that same CID
+// for canonical byte comparison after verifying the claimed field.
+fn encode_client_cancellation_journal_row(
+  value : ClientCancellationJournalEncoding,
+  intent_cid : String,
+) -> Bytes? {
   try {
     let writer = @encode.writer(131072, 32, 4)
     @encode.begin_object(writer)
@@ -78,7 +91,7 @@ pub fn client_cancellation_journal_row_body(
     @encode.key(writer, "expected_revision")
     @encode.string_value(writer, value.expected_revision.to_string())
     @encode.key(writer, "intent_cid")
-    @encode.string_value(writer, client_cancellation_intent_cid(value.identity))
+    @encode.string_value(writer, intent_cid)
     @encode.key(writer, "namespace_id")
     @encode.string_value(writer, value.namespace_id)
     @encode.key(writer, "observed_revision")
@@ -159,8 +172,8 @@ pub fn decode_client_cancellation_journal_row(
     Some("already_terminal") => AlreadyTerminal
     _ => return Err(CustodyLost)
   }
-  if cancellation_journal_text(object, "intent_cid") !=
-    Some(client_cancellation_intent_cid(identity)) ||
+  let intent_cid = client_cancellation_intent_cid(identity)
+  if cancellation_journal_text(object, "intent_cid") != Some(intent_cid) ||
     observed != expected + (if action == AcceptCancellation { 1L } else { 0L }) {
     return Err(CustodyLost)
   }
@@ -174,7 +187,8 @@ pub fn decode_client_cancellation_journal_row(
     action,
     observed_revision: observed,
   }
-  guard client_cancellation_journal_row_body(value) == Some(row.body) else {
+  guard encode_client_cancellation_journal_row(value, intent_cid) ==
+    Some(row.body) else {
     return Err(CustodyLost)
   }
   Ok(value)
