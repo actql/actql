@@ -46831,7 +46831,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.test.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.test.mts",
                 "anchor": "test('exact single claim reopens physical outcome custody without a send',"
               },
               {
@@ -46975,7 +46975,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.test.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.test.mts",
                 "anchor": "test('exact single claim reopens physical outcome custody without a send',"
               },
               {

@@ -3,11 +3,15 @@ import test from 'node:test';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {isEffectPreparationRefusal, refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
-function fixture(options = {}) {
+type Run = Parameters<typeof prepareInstalledEffectControlConstruction>[0];
+type FixtureRun = Omit<Run, 'readPlan' | 'request'> & {readPlan(): void; request: Run['request']};
+type Failure = AggregateError & {code?: unknown; primaryFailure?: unknown; cleanupPending?: unknown};
+
+function fixture(options: Readonly<{completeFailure?: unknown}> = {}) {
   const {completeFailure} = options;
-  const parent = {}, prepared = {}, request = {}, plan = {}, events = [];
+  const parent = {}, prepared = {}, request = {}, plan = {}, events: string[] = [];
   let active = false;
-  const runtime = {
+  const runtime: Run['runtime'] = {
     clientProgramInstalledEffectOperationControlConstructionBegin(...args) {
       assert.deepEqual(args, [parent, prepared, request, plan]);
       assert.equal(active, false);
@@ -22,9 +26,10 @@ function fixture(options = {}) {
       return {$tag: 1};
     },
   };
-  const run = {runtime, value: parent, prepared, request, operationPlan: plan,
+  const run: FixtureRun = {runtime, value: parent, prepared, request, operationPlan: plan,
     readPlan() {}, closed: false};
-  const control = prepareInstalledEffectControlConstruction(run);
+  // These refusal paths never invoke the Preview reader.
+  const control = prepareInstalledEffectControlConstruction(run as FixtureRun & Run);
   run.controlConstruction = control;
   run.retireControlConstruction = control.retire;
   return {run, control, events, active: () => active};
@@ -61,16 +66,16 @@ for (const kind of ['transport', 'lookalike', 'resource']) {
 test('semantic refusal cannot complete a frame after its original current record changes', () => {
   const f = fixture();
   const original = refusedEffectPreparation(new Error('ObservedTargetRefusal'));
-  let pending;
+  let pending: unknown;
   assert.throws(() => f.control(undefined, () => {f.run.request = {}; throw original;}, []), error => {
     pending = error;
     assert(error instanceof AggregateError);
     assert.equal(error.cause, original);
-    assert.equal(error.primaryFailure, original);
-    assert.equal(error.code, 'InstalledEffectControlConstructionPending');
+    assert.equal((error as Failure).primaryFailure, original);
+    assert.equal((error as Failure).code, 'InstalledEffectControlConstructionPending');
     assert.equal(error.errors[0], original);
     assert.equal(error.errors[1].code, 'ForeignInstalledEffectManagedRun');
-    assert.equal(error.cleanupPending, true);
+    assert.equal((error as Failure).cleanupPending, true);
     assert.equal(isEffectPreparationRefusal(error), false);
     return true;
   });
@@ -84,17 +89,17 @@ for (const completionFailure of [new Error('OriginalCompletionUnknown'), undefin
 test(`semantic refusal retains both original and completion failure, including undefined=${completionFailure === undefined}`, () => {
   const f = fixture({completeFailure: completionFailure});
   const original = refusedEffectPreparation(new Error('ObservedTargetRefusal'));
-  let pending;
+  let pending: unknown;
   assert.throws(() => f.control(undefined, () => {throw original;}, []), error => {
     pending = error;
     assert(error instanceof AggregateError);
     assert.equal(error.cause, original);
-    assert.equal(error.primaryFailure, original);
-    assert.equal(error.code, 'InstalledEffectControlConstructionPending');
+    assert.equal((error as Failure).primaryFailure, original);
+    assert.equal((error as Failure).code, 'InstalledEffectControlConstructionPending');
     assert.equal(error.errors.length, 2);
     assert.equal(error.errors[0], original);
     assert.equal(error.errors[1], completionFailure);
-    assert.equal(error.cleanupPending, true);
+    assert.equal((error as Failure).cleanupPending, true);
     assert.equal(isEffectPreparationRefusal(error), false);
     return true;
   });
@@ -108,7 +113,7 @@ test(`semantic refusal retains both original and completion failure, including u
 test('a marked then getter failure after the callback returned cannot impersonate its semantic result', () => {
   const f = fixture();
   const original = refusedEffectPreparation(new Error('ObservedTargetRefusal'));
-  const invalid = {get then() {throw original;}};
+  const invalid = {get then(): never {throw original;}};
   assert.throws(() => f.control(undefined, () => invalid, []), error => error === original);
   assert.deepEqual(f.events, ['begin']);
   assert.equal(f.active(), true);

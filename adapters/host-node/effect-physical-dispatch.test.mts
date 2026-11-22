@@ -3,8 +3,7 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: the Common runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {
@@ -15,11 +14,36 @@ import {readAuthorizedEffectResponse,
   readAuthorizedEffectOutcomes,
   recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const authorityScopeCid = cid('a');
-const control = runtimeCore(moon).effectApplicationControl;
+import type {TestContext} from 'node:test';
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
 
-async function fixture(t) {
+type Ledger = ReturnType<typeof openEffectLedger>;
+type StoredResponse = NonNullable<ReturnType<Ledger['response']>>;
+type StoredOutcome = NonNullable<ReturnType<Ledger['readClaimedOutcome']>>;
+type BatchResponse = NonNullable<ReturnType<Ledger['readClaimedBatchResponse']>>;
+type SingleClaim = ReturnType<Ledger['claimDispatch']>;
+type BatchClaim = ReturnType<Ledger['claimDispatchBatch']>;
+type SingleSend = Readonly<{
+  response: NonNullable<ReturnType<Ledger['recordResponse']>['response']>;
+  ownership: Pick<Extract<SingleClaim, {claimed: true}>, 'claimed' | 'dispatching'>;
+}>;
+type BatchSend = Readonly<{ownership: Pick<Extract<BatchClaim, {claimed: true}>, 'claimed' | 'dispatching'>}>;
+type RefusedSingle = Extract<SingleClaim, {claimed: false}>;
+type RefusedBatch = Extract<BatchClaim, {claimed: false}>;
+type EvidenceBinding = Parameters<Parameters<typeof readAuthorizedEffectResponse>[0]['authorizeEvidenceRead']>[0];
+// These fixture callbacks are only passed to paths where a send must never occur.
+type UnexpectedSend = () => Promise<never>;
+
+const moon: Parameters<typeof openEffectLedger>[0]['moon'] = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const authorityScopeCid = cid('a');
+const control = (runtimeCore(moon) as {effectApplicationControl: ReturnType<typeof effectApplicationControl>})
+  .effectApplicationControl;
+
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-physical-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const open = () => openEffectLedger({moon, root, authorityScopeCid,
@@ -37,7 +61,7 @@ async function fixture(t) {
     intentFingerprintCid: cid('e'), canonicalRequestCid}};
 }
 
-async function collectionFixture(t) {
+async function collectionFixture(t: TestContext) {
   const {root, open} = await fixture(t);
   const scope = control.logicalRequestScope(authorityScopeCid,
     'request-1', 32);
@@ -71,7 +95,7 @@ test('exact single claim reopens physical outcome custody without a send',
     });
     assert.equal(first.readClaimedOutcome(claim), undefined);
     const retained = {
-      claim, responsePhysicalSha256: sent.response.responsePhysicalSha256,
+      claim, responsePhysicalSha256: (sent as SingleSend).response.responsePhysicalSha256,
       outcomeCid: cid('5'),
       outcomeJson: '{"result":{"record_id":"a001"},"state":"applied"}',
     };
@@ -80,28 +104,28 @@ test('exact single claim reopens physical outcome custody without a send',
     }), {code: 'EffectPhysicalResponseNotOwned'});
     assert.equal(first.recordClaimedOutcome(retained).created, true);
     assert.equal(first.recordClaimedOutcome(retained).created, false);
-    const applied = control.issueNextLedgerEntry(sent.ownership.dispatching,
+    const applied = control.issueNextLedgerEntry((sent as SingleSend).ownership.dispatching,
       'applied', cid('5'), 4096, 64, 4);
     first.append(control.ledgerEntryWire(applied));
     first.close();
     const reopened = open();
     t.after(() => reopened.close());
     const outcome = reopened.readClaimedOutcome(claim);
-    assert.equal(outcome.outcomeCid, cid('5'));
-    assert.equal(reopened.readClaimedResponse(claim).dispatchEntryCid,
-      control.ledgerEntryCid(sent.ownership.dispatching));
-    assert.equal(outcome.responsePhysicalSha256,
-      sent.response.responsePhysicalSha256);
-    const authorized = await readAuthorizedEffectOutcomes({
+    assert.equal(outcome!.outcomeCid, cid('5'));
+    assert.equal(reopened.readClaimedResponse(claim)!.dispatchEntryCid,
+      control.ledgerEntryCid((sent as SingleSend).ownership.dispatching));
+    assert.equal(outcome!.responsePhysicalSha256,
+      (sent as SingleSend).response.responsePhysicalSha256);
+    const authorized = await readAuthorizedEffectOutcomes<StoredResponse, StoredOutcome>({
       ledger: reopened, claims: claim, commonMoon: moon,
       expectedRequestCid: claim.canonicalRequestCid,
       authorizeEvidenceRead: () => true,
     });
-    assert.equal(authorized.outcomes.outcomeCid, cid('5'));
+    assert.equal((authorized.outcomes as StoredOutcome).outcomeCid, cid('5'));
     const mutableClaim = {...claim};
-    let releaseRead;
-    const readGate = new Promise(resolve => { releaseRead = resolve; });
-    const pendingRead = readAuthorizedEffectOutcomes({
+    let releaseRead!: () => void;
+    const readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes<StoredResponse, StoredOutcome>({
       ledger: reopened, claims: mutableClaim, commonMoon: moon,
       expectedRequestCid: claim.canonicalRequestCid,
       authorizeEvidenceRead: async () => {
@@ -111,8 +135,8 @@ test('exact single claim reopens physical outcome custody without a send',
     });
     mutableClaim.canonicalRequestCid = cid('9');
     releaseRead();
-    assert.equal((await pendingRead).outcomes.outcomeCid, cid('5'));
-    await assert.rejects(readAuthorizedEffectOutcomes({
+    assert.equal(((await pendingRead).outcomes as StoredOutcome).outcomeCid, cid('5'));
+    await assert.rejects(readAuthorizedEffectOutcomes<StoredResponse, StoredOutcome>({
       ledger: reopened, claims: claim, commonMoon: moon,
       expectedRequestCid: claim.canonicalRequestCid,
       authorizeEvidenceRead: () => false,
@@ -122,7 +146,7 @@ test('exact single claim reopens physical outcome custody without a send',
     }), {code: 'EffectDispatchBindingMismatch'});
     const retry = await captureClaimedEffectResponse({
       ledger: reopened, claim, requestCid: claim.canonicalRequestCid,
-      execute: async () => { sends += 1; },
+      execute: (async () => { sends += 1; }) as UnexpectedSend,
     });
     assert.equal(retry.claimed, false);
     assert.equal(sends, 1);
@@ -146,13 +170,13 @@ test('exact Collections claim reopens distinct row outcome custody',
     const stored = first.readClaimedBatchResponse(claims);
     assert.throws(() => first.recordClaimedOutcome({
       claims: [...claims].reverse(), rowIndex: 0,
-      responsePhysicalSha256: stored.responsePhysicalSha256,
+      responsePhysicalSha256: stored!.responsePhysicalSha256,
       outcomeCid: cid('5'), outcomeJson: '{"state":"applied"}',
     }), {code: 'EffectCollectionResponseBindingMismatch'});
     for (let index = 0; index < claims.length; index++) {
       assert.equal(first.recordClaimedOutcome({
         claims, rowIndex: index,
-        responsePhysicalSha256: stored.responsePhysicalSha256,
+        responsePhysicalSha256: stored!.responsePhysicalSha256,
         outcomeCid: cid(index === 0 ? '5' : '6'),
         outcomeJson: index === 0
           ? '{"result":{"record_id":"a001"},"state":"applied"}'
@@ -161,7 +185,7 @@ test('exact Collections claim reopens distinct row outcome custody',
     }
     for (let index = 0; index < claims.length; index++) {
       const terminal = control.issueNextLedgerEntry(
-        sent.ownership.dispatching[index],
+        (sent as BatchSend).ownership.dispatching[index],
         index === 0 ? 'applied' : 'failed',
         cid(index === 0 ? '5' : '6'), 4096, 64, 4);
       first.append(control.ledgerEntryWire(terminal));
@@ -169,21 +193,21 @@ test('exact Collections claim reopens distinct row outcome custody',
     first.close();
     const reopened = open();
     t.after(() => reopened.close());
-    assert.deepEqual(reopened.readClaimedBatchOutcomes(claims)
-      .map(outcome => outcome.outcomeCid), [cid('5'), cid('6')]);
-    assert.equal(reopened.readClaimedBatchResponse(claims).dispatchEntryCid,
-      control.ledgerEntryCid(sent.ownership.dispatching[0]));
-    const authorized = await readAuthorizedEffectOutcomes({
+    assert.deepEqual(reopened.readClaimedBatchOutcomes(claims)!
+      .map(outcome => outcome!.outcomeCid), [cid('5'), cid('6')]);
+    assert.equal(reopened.readClaimedBatchResponse(claims)!.dispatchEntryCid,
+      control.ledgerEntryCid((sent as BatchSend).ownership.dispatching[0]));
+    const authorized = await readAuthorizedEffectOutcomes<StoredResponse, StoredOutcome>({
       ledger: reopened, claims, batch: true, commonMoon: moon,
       expectedRequestCid: claims[0].canonicalRequestCid,
       authorizeEvidenceRead: () => true,
     });
-    assert.deepEqual(authorized.outcomes.map(outcome => outcome.outcomeCid),
+    assert.deepEqual((authorized.outcomes as readonly StoredOutcome[]).map(outcome => outcome.outcomeCid),
       [cid('5'), cid('6')]);
     const mutableClaims = [...claims];
-    let releaseRead;
-    const readGate = new Promise(resolve => { releaseRead = resolve; });
-    const pendingRead = readAuthorizedEffectOutcomes({
+    let releaseRead!: () => void;
+    const readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes<StoredResponse, StoredOutcome>({
       ledger: reopened, claims: mutableClaims, batch: true, commonMoon: moon,
       expectedRequestCid: claims[0].canonicalRequestCid,
       authorizeEvidenceRead: async () => {
@@ -193,13 +217,13 @@ test('exact Collections claim reopens distinct row outcome custody',
     });
     mutableClaims.reverse();
     releaseRead();
-    assert.deepEqual((await pendingRead).outcomes.map(outcome =>
+    assert.deepEqual(((await pendingRead).outcomes as readonly StoredOutcome[]).map(outcome =>
       outcome.outcomeCid), [cid('5'), cid('6')]);
     assert.throws(() => reopened.readClaimedBatchOutcomes(
       [...claims].reverse()), {code: 'EffectCollectionResponseBindingMismatch'});
     const retry = await captureClaimedEffectCollectionResponse({
       ledger: reopened, claims, requestCid: claims[0].canonicalRequestCid,
-      execute: async () => { sends += 1; },
+      execute: (async () => { sends += 1; }) as UnexpectedSend,
     });
     assert.equal(retry.claimed, false);
     assert.equal(sends, 1);
@@ -220,7 +244,7 @@ test('single raw response is durable before provider projection', async t => {
     projectStored: (...args) => {
       assert.equal(args.length, 1);
       const [stored] = args;
-      assert.deepEqual(stored.responseBytes, body);
+      assert.deepEqual(stored!.responseBytes, body);
       throw new Error('projection failed');
     },
   }), /projection failed/u);
@@ -228,8 +252,8 @@ test('single raw response is durable before provider projection', async t => {
   const restarted = open();
   t.after(() => restarted.close());
   const stored = restarted.readClaimedResponse(claim);
-  assert.equal(stored.statusCode, 201);
-  assert.deepEqual(stored.responseBytes, body);
+  assert.equal(stored!.statusCode, 201);
+  assert.deepEqual(stored!.responseBytes, body);
   const retry = await captureClaimedEffectResponse({
     ledger: restarted, claim, requestCid: cid('f'), execute,
   });
@@ -249,23 +273,23 @@ test('shared evidence read binds authorization before stored response access',
         useCid: cid('4'), statusCode: 201, body,
       }}),
     });
-    const observed = await readAuthorizedEffectResponse({
+    const observed = await readAuthorizedEffectResponse<StoredResponse>({
       ledger, claims: claim, commonMoon: moon,
       expectedRequestCid: cid('f'), providerBinding: {orgId: 'org-a'},
-      authorizeEvidenceRead: binding => {
+      authorizeEvidenceRead: (binding: EvidenceBinding) => {
         assert.equal(binding.logicalRequestScopeCid, ledger.scopeCid);
         assert.equal(binding.canonicalRequestCid, cid('f'));
         assert.equal(binding.orgId, 'org-a');
         return true;
       },
     });
-    assert.deepEqual(observed.stored.responseBytes, body);
-    await assert.rejects(readAuthorizedEffectResponse({
+    assert.deepEqual(observed.stored!.responseBytes, body);
+    await assert.rejects(readAuthorizedEffectResponse<StoredResponse>({
       ledger, claims: claim, commonMoon: moon,
       expectedRequestCid: cid('f'),
       authorizeEvidenceRead: () => false,
     }), {code: 'EffectEvidenceAccessDenied'});
-    await assert.rejects(readAuthorizedEffectResponse({
+    await assert.rejects(readAuthorizedEffectResponse<StoredResponse>({
       ledger, claims: claim, commonMoon: moon,
       expectedRequestCid: cid('1'),
       authorizeEvidenceRead: () => true,
@@ -288,7 +312,7 @@ test('collection raw response is durable before provider projection',
       projectStored: (...args) => {
         assert.equal(args.length, 1);
         const [stored] = args;
-        assert.deepEqual(stored.responseBytes, body);
+        assert.deepEqual(stored!.responseBytes, body);
         throw new Error('projection failed');
       },
     }), /projection failed/u);
@@ -296,8 +320,8 @@ test('collection raw response is durable before provider projection',
     const restarted = open();
     t.after(() => restarted.close());
     const stored = restarted.readClaimedBatchResponse(claims);
-    assert.equal(stored.statusCode, 200);
-    assert.deepEqual(stored.responseBytes, body);
+    assert.equal(stored!.statusCode, 200);
+    assert.deepEqual(stored!.responseBytes, body);
     const retry = await captureClaimedEffectCollectionResponse({
       ledger: restarted, claims, requestCid: cid('f'), execute,
     });
@@ -342,7 +366,7 @@ test('one collection response covers every row without duplicate send',
     assert.equal(calls, 1);
     for (const dispatching of sent.ownership.dispatching) {
       assert.deepEqual(restarted.response(
-        control.ledgerEntryCid(dispatching)).responseBytes, body);
+        control.ledgerEntryCid(dispatching))!.responseBytes, body);
     }
   });
 
@@ -366,11 +390,11 @@ test('a lost collection response leaves all rows possible-dispatch',
       ledger: restarted, claims, requestCid: cid('f'), execute,
     });
     assert.equal(retry.claimed, false);
-    assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.deepEqual((retry.ownership as RefusedBatch).actions, [3, 3]);
     assert.equal(calls, 1);
     for (const claim of claims) {
       assert.equal(restarted.current(
-        control.logicalItemLocatorCid(claim.locator)).revision, 2);
+        control.logicalItemLocatorCid(claim.locator))!.revision, 2);
     }
   });
 
@@ -381,9 +405,9 @@ test('foreign collection request identity fails before any row claim',
     t.after(() => ledger.close());
     let calls = 0;
     await assert.rejects(captureClaimedEffectCollectionResponse({
-      ledger, claims, requestCid: cid('9'), execute: async () => {
+      ledger, claims, requestCid: cid('9'), execute: (async () => {
         calls += 1;
-      },
+      }) as UnexpectedSend,
     }), {code: 'InvalidEffectPhysicalDispatch'});
     assert.equal(calls, 0);
     for (const claim of claims) {
@@ -398,10 +422,10 @@ test('collection custody keeps original row binding across caller edits',
     const original = claims.map(claim => ({...claim}));
     const ledger = open();
     t.after(() => ledger.close());
-    let entered;
-    let release;
-    const started = new Promise(resolve => { entered = resolve; });
-    const gate = new Promise(resolve => { release = resolve; });
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
     let sends = 0;
     const body = Buffer.from('[{"success":true},{"success":false}]');
     const execute = async () => {
@@ -422,7 +446,7 @@ test('collection custody keeps original row binding across caller edits',
     assert.equal(sent.claimed, true);
     assert.equal(sends, 1);
     const stored = ledger.response(control.ledgerEntryCid(
-      sent.ownership.dispatching[0]));
+      sent.ownership.dispatching[0])) as BatchResponse;
     assert.deepEqual(stored.batchMembers.map(member =>
       member.logicalItemLocatorCid), original.map(claim =>
       control.logicalItemLocatorCid(claim.locator)));
@@ -433,7 +457,7 @@ test('collection custody keeps original row binding across caller edits',
       ledger: restarted, claims: original, requestCid: cid('f'), execute,
     });
     assert.equal(retry.claimed, false);
-    assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.deepEqual((retry.ownership as RefusedBatch).actions, [3, 3]);
     assert.equal(sends, 1);
   });
 
@@ -460,9 +484,9 @@ test('one durable claim captures the physical response without resending',
     ]);
     assert.equal(sent.claimed, true);
     assert.equal(joined.claimed, false);
-    assert.equal(joined.ownership.action, 3);
+    assert.equal((joined.ownership as RefusedSingle).action, 3);
     assert.equal(calls, 1);
-    assert.deepEqual(sent.response.responseBytes,
+    assert.deepEqual(sent.response!.responseBytes,
       Buffer.from('{"success":true}'));
     first.close();
     concurrent.close();
@@ -471,8 +495,8 @@ test('one durable claim captures the physical response without resending',
     const retry = await captureClaimedEffectResponse({ledger: restarted,
       claim, requestCid: claim.canonicalRequestCid, execute});
     assert.equal(retry.claimed, false);
-    assert.equal(retry.ownership.action, 3);
-    assert.deepEqual(retry.ownership.response.responseBytes,
+    assert.equal((retry.ownership as RefusedSingle).action, 3);
+    assert.deepEqual((retry.ownership as RefusedSingle).response!.responseBytes,
       Buffer.from('{"success":true}'));
     assert.equal(calls, 1);
   });
@@ -496,8 +520,8 @@ test('a lost physical response remains possible dispatch after restart',
     const retry = await captureClaimedEffectResponse({ledger: restarted,
       claim, requestCid: claim.canonicalRequestCid, execute});
     assert.equal(retry.claimed, false);
-    assert.equal(retry.ownership.action, 3);
-    assert.equal(retry.ownership.response, undefined);
+    assert.equal((retry.ownership as RefusedSingle).action, 3);
+    assert.equal((retry.ownership as RefusedSingle).response, undefined);
     assert.equal(calls, 1);
   });
 
@@ -508,7 +532,7 @@ test('foreign request identity is rejected before a durable claim',
     t.after(() => ledger.close());
     let calls = 0;
     await assert.rejects(captureClaimedEffectResponse({ledger, claim,
-      requestCid: cid('9'), execute: async () => { calls += 1; }}),
+      requestCid: cid('9'), execute: (async () => { calls += 1; }) as UnexpectedSend}),
     {code: 'InvalidEffectPhysicalDispatch'});
     assert.equal(calls, 0);
     assert.equal(ledger.current(control.logicalItemLocatorCid(claim.locator)),
@@ -521,10 +545,10 @@ test('single custody keeps original binding across caller edits',
     const original = {...claim};
     const ledger = open();
     t.after(() => ledger.close());
-    let entered;
-    let release;
-    const started = new Promise(resolve => { entered = resolve; });
-    const gate = new Promise(resolve => { release = resolve; });
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
     let sends = 0;
     const execute = async () => {
       sends += 1;
@@ -544,7 +568,7 @@ test('single custody keeps original binding across caller edits',
     const sent = await pending;
     assert.equal(sent.claimed, true);
     assert.equal(sends, 1);
-    assert.deepEqual(sent.response.responseBytes,
+    assert.deepEqual(sent.response!.responseBytes,
       Buffer.from('{"success":true}'));
     ledger.close();
     const restarted = open();
@@ -553,7 +577,7 @@ test('single custody keeps original binding across caller edits',
       ledger: restarted, claim: original, requestCid: cid('f'), execute,
     });
     assert.equal(retry.claimed, false);
-    assert.equal(retry.ownership.action, 3);
+    assert.equal((retry.ownership as RefusedSingle).action, 3);
     assert.equal(sends, 1);
   });
 
@@ -579,7 +603,7 @@ test('read-only recovery checks the exact durable claim without sending',
     const restarted = open();
     t.after(() => restarted.close());
     const stored = restarted.readClaimedResponse(claim);
-    assert.deepEqual(stored.responseBytes,
+    assert.deepEqual(stored!.responseBytes,
       Buffer.from('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]'));
     assert.equal(sends, 1);
     assert.throws(() => restarted.readClaimedResponse({
@@ -604,16 +628,16 @@ test('common recovery projects only an authorized stored response',
       claims: claim, commonMoon: moon,
       expectedRequestCid: claim.canonicalRequestCid,
       providerBinding: {providerAccount: 'account-a'},
-      authorizeEvidenceRead: binding => {
+      authorizeEvidenceRead: (binding: EvidenceBinding) => {
         assert.equal(binding.providerAccount, 'account-a');
         return true;
       },
-      projectStored: stored => {
+      projectStored: (stored: StoredResponse) => {
         projections += 1;
-        return stored.responseBytes.toString('utf8');
+        return stored!.responseBytes.toString('utf8');
       },
     };
-    assert.deepEqual(await recoverProjectedEffectResponse({
+    assert.deepEqual(await recoverProjectedEffectResponse<StoredResponse, string>({
       ...options, ledger: first,
     }), {recovered: undefined});
     assert.equal(projections, 0);
@@ -628,12 +652,12 @@ test('common recovery projects only an authorized stored response',
     first.close();
     const restarted = open();
     t.after(() => restarted.close());
-    await assert.rejects(recoverProjectedEffectResponse({
+    await assert.rejects(recoverProjectedEffectResponse<StoredResponse, string>({
       ...options, ledger: restarted,
       authorizeEvidenceRead: () => false,
     }), {code: 'EffectEvidenceAccessDenied'});
     assert.equal(projections, 0);
-    assert.deepEqual(await recoverProjectedEffectResponse({
+    assert.deepEqual(await recoverProjectedEffectResponse<StoredResponse, string>({
       ...options, ledger: restarted,
     }), {recovered: '{"success":true}'});
     assert.equal(projections, 1);
