@@ -1128,7 +1128,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -1508,7 +1508,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -2670,21 +2670,6 @@
       ],
       "operations": [
         {
-          "name": "cancelNodeRunContinuation",
-          "parameters": [
-            "currentDispatchIdle",
-            "facts"
-          ],
-          "async": true
-        },
-        {
-          "name": "confirmNodeRunCancellation",
-          "parameters": [
-            "facts"
-          ],
-          "async": true
-        },
-        {
           "name": "installNodeClientDispatchOwner",
           "parameters": [
             "moon",
@@ -3208,39 +3193,6 @@
           "name": "installNodeClientDispatchOwner/track/track/track#5",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "observeNodeRestoredLocalStop",
-          "parameters": [
-            "facts"
-          ],
-          "async": true
-        },
-        {
-          "name": "observeNodeRestoredModelStop",
-          "parameters": [
-            "facts"
-          ],
-          "async": true
-        },
-        {
-          "name": "observeNodeRunCancellation",
-          "parameters": [
-            "facts",
-            "originalFrame"
-          ],
-          "async": true
-        },
-        {
-          "name": "recordNodeRunPhysicalStop",
-          "parameters": [
-            "ref",
-            "journal",
-            "moon",
-            "control",
-            "outcome"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -3249,8 +3201,6 @@
       "contracts": [
         {
           "operations": [
-            "cancelNodeRunContinuation",
-            "confirmNodeRunCancellation",
             "installNodeClientDispatchOwner",
             "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
             "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
@@ -3312,9 +3262,6 @@
             "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
             "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
-            "observeNodeRestoredModelStop",
-            "observeNodeRunCancellation",
-            "recordNodeRunPhysicalStop",
             "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
             "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
             "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
@@ -3353,7 +3300,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "cancelNodeRunContinuation"
               },
               {
@@ -3365,8 +3312,8 @@
                 "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRunStop(facts: StopFacts,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -3447,7 +3394,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -4219,7 +4166,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "cancelNodeRunContinuation"
               },
               {
@@ -4231,8 +4178,8 @@
                 "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRunStop(facts: StopFacts,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -4293,7 +4240,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -4422,17 +4369,15 @@
           }
         },
         {
-          "operations": [
-            "observeNodeRestoredLocalStop"
-          ],
+          "operations": [],
           "exports": [
             "observeNodeRestoredLocalStop"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "export async function observeNodeRestoredLocalStop(facts)"
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts: StopFacts)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -4441,8 +4386,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "export async function observeNodeRestoredLocalStop(facts)"
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts: StopFacts)"
               }
             ],
             "identity": [
@@ -4487,7 +4432,7 @@
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
               }
             ],
@@ -4501,7 +4446,7 @@
                 "anchor": "if (stored === undefined) return false;"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
               },
               {
@@ -4700,6 +4645,7 @@
         "../host-common/runtime-result.mjs",
         "../host-common/task-observation.mjs",
         "./client-dispatch-diagnostic.mjs",
+        "./client-dispatch-stop.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
         "./infer-operation.mjs",
@@ -4712,7 +4658,533 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "44b8a8deaf6c57657a1535d5a002f9ca263748458958b68284cecd90b24d1a8f",
+      "sha256": "c2cda837d014c0e06a64c110cb66ea7d7e652dfa1f8924fd9c0d671b52c7384a",
+      "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-stop.mjs",
+      "exports": [
+        "cancelNodeRunContinuation",
+        "confirmNodeRunCancellation",
+        "observeNodeRestoredLocalStop",
+        "observeNodeRestoredModelStop",
+        "observeNodeRunCancellation",
+        "observeNodeRunStop",
+        "recordNodeRunPhysicalStop"
+      ],
+      "operations": [
+        {
+          "name": "cancelNodeRunContinuation",
+          "parameters": [
+            "currentDispatchIdle",
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "confirmNodeRunCancellation",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeNodeRestoredLocalStop",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeNodeRestoredModelStop",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeNodeRunCancellation",
+          "parameters": [
+            "facts",
+            "originalFrame"
+          ],
+          "async": true
+        },
+        {
+          "name": "observeNodeRunStop",
+          "parameters": [
+            "facts",
+            "failureObserved"
+          ],
+          "async": true
+        },
+        {
+          "name": "recordNodeRunPhysicalStop",
+          "parameters": [
+            "ref",
+            "journal",
+            "moon",
+            "control",
+            "outcome"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "cancelNodeRunContinuation",
+            "confirmNodeRunCancellation",
+            "observeNodeRestoredModelStop",
+            "observeNodeRunCancellation",
+            "recordNodeRunPhysicalStop",
+            "<module>",
+            "observeNodeRunStop"
+          ],
+          "exports": [
+            "cancelNodeRunContinuation",
+            "confirmNodeRunCancellation",
+            "observeNodeRunCancellation",
+            "observeNodeRestoredModelStop",
+            "recordNodeRunPhysicalStop",
+            "observeNodeRunStop"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "does not decide whether to retry"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host through this opaque Run and rechecks the original Ledger after sequence"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "cancelNodeRunContinuation"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_original_materials.mbt",
+                "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRunStop(facts: StopFacts,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Neither this identity nor its digest is execution"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "Equal CIDs do not establish ownership"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "capacities.some(value => value.managedRun !== managedRun)"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "prepare_installed_managed_run_ledger("
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "check_installed_managed_run(value, prepared, request)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Source observation and Result publication policies"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "recoverable cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "clientProgramInstalledManagedRunPrepareLedger("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.pendingSetup = setup;"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "physical owner calls this after confirmed stop"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "// Retain before the reservation/fault boundary: cancellation can"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the original Run retires only after dispatch/DAG cleanup, before its installation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "localOutputLimits"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "acquisition_ledger=Some(ledger),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "selection. It cannot use the legacy scalar constructor on refusal."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "or Content storage, Model, Effect and external I/O keep their separate actual"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
+                "anchor": "ordinary Source managed Run foreign reference refuses without consuming the original claim"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('tracked observation settlement cannot retire unresolved physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('a demanded expression failure retains its original typed dispatch cause'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('stop state-only comparison accepts actual observation frames without promoting copies or foreign controls'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication selects checked Result policy and retains original Source policy evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('dispatch retains an unreturned original Source preparation after physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch forwards the same request into its original timed-plan validator'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch cannot substitute a copied request for the timed-plan original'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "observeNodeRestoredLocalStop"
+          ],
+          "exports": [
+            "observeNodeRestoredLocalStop"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts: StopFacts)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "export async function observeNodeRestoredLocalStop(facts: StopFacts)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
+      "sha256": "b81b608472d9afda59e0554fca884b5e31607fe754b9f704627d385c77a1d35f",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -31166,7 +31638,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -32287,7 +32759,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -32509,7 +32981,7 @@
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
               }
             ],
@@ -32523,7 +32995,7 @@
                 "anchor": "if (stored === undefined) return false;"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
               },
               {
@@ -32841,7 +33313,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {
@@ -33237,7 +33709,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "physical owner calls this after confirmed stop"
               },
               {

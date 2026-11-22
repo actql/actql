@@ -11727,7 +11727,7 @@
                 "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
               }
             ],
@@ -11741,7 +11741,7 @@
                 "anchor": "if (stored === undefined) return false;"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-stop.mts",
                 "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
               },
               {
