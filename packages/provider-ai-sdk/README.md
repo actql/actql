@@ -31,6 +31,12 @@ observer. The trusted registration supplies the SDK and adapter identities,
 resolved model, endpoint and credential reference. The Host reads the
 credential only at authorized dispatch.
 
+On the first SDK-enabled Host initialization in a process, include every SDK
+and adapter module that later Hosts in that process will need. That first
+initialization seals the module inventory. Later Hosts can reuse those same
+modules. Selecting an unheld module fails before Provider registration.
+Each Host authorizes its own Provider registrations and credential use.
+
 The pinned Anthropic Messages adapter selects `claude-sonnet-4-6` with
 `structuredOutputMode: 'outputFormat'`. Its serial text profile sends
 temperature, requires neutral `topP: 1`, and refuses a seed. Put only the
