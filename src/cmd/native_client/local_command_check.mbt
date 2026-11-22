@@ -237,13 +237,7 @@ fn local_command_preparation_operation_selected(
     business_selected
   ) ||
   local_checkpoint_action_selected(matches, operation) ||
-  (
-    operation == "status" &&
-    matches.subcommand is Some(("status", child)) &&
-    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
-    optional(child, "ref-file") is None &&
-    optional(child, "submission-ref-file") is None
-  ) ||
+  (operation == "status" && local_command_status_selected(matches)) ||
   (
     operation == "result" &&
     matches.subcommand is Some(("result", child)) &&
@@ -598,7 +592,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
-  if operation == "status" ||
+  if (operation == "status" && !local_status_uses_reference_files(child)) ||
     operation == "cancel" ||
     operation == "approve" ||
     operation == "reject" ||

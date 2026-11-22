@@ -47,6 +47,12 @@ test "Native status retains authenticated reference grammar and typed Unknown" {
     optional(child, "submission-ref-file"),
     Some("original-submission.json"),
   )
+  assert_true(local_command_preparation_selected(parsed))
+  assert_true(
+    local_command_preparation_operation_selected(parsed, "status", false),
+  )
+  ignore(child.values.remove("submission-ref-file"))
+  assert_false(local_command_preparation_selected(parsed))
   assert_eq(
     local_saved_state_issue(
       @local_host.NativeClientSavedRunStateIssue::Unavailable,
