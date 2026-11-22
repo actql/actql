@@ -206,11 +206,11 @@ fn native_model_compilation_storage(
   }
   let arrays = @execution.preparation_array_representation(
     if count == 1 {
-      4L
+      6L
     } else {
-      3L
+      5L
     },
-    3L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
+    5L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
     true,
   ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
   @execution.compose_preparation_representation([
@@ -219,10 +219,12 @@ fn native_model_compilation_storage(
     {
       // Compilation holder, member-selection tuple, Run Scope holder,
       // quantity record and their optional carriers. The grouped adoption
-      // also passes the original Scope array in an optional argument.
-      record_headers: 9L,
-      reference_slots: 18L,
-      scalar_words: 3L,
+      // also passes the original Scope array in an optional argument. Each
+      // provider owns open/retain/cleanup and two step callbacks, their tuple
+      // and optional carriers, a retained Read slot and one OutputUse.
+      record_headers: 11L + 11L * count.to_int64(),
+      reference_slots: 24L + 24L * count.to_int64(),
+      scalar_words: 3L + 6L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },

@@ -320,6 +320,8 @@ pub fn NativeClientMockModelWork::open(
   input_body_read? : @host.ClientModelReadPreparation? = None,
   inputs? : Array[@compute_local.ManagedProviderInput] = [],
   prior_input_work? : Int64 = 0L,
+  compiled_prefix? : Bool = false,
+  compiled_suffix? : @execution.GeneratedSequence? = None,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.open_attempted ||
@@ -341,7 +343,13 @@ pub fn NativeClientMockModelWork::open(
     // Real producer ports consume exactly the checked pre-Model prefix. Keep
     // the full original for the later suffix; this view preserves its owner
     // and step coordinates and neither recompiles nor copies kernel contexts.
-    let input_sequence = if inputs.is_empty() {
+    let input_sequence = if compiled_prefix {
+      guard sources is None &&
+        @execution.generated_sequence_step_count(sequence) == model_step else {
+        return Err(ForeignOriginal)
+      }
+      sequence
+    } else if inputs.is_empty() {
       sequence
     } else {
       guard @execution.select_generated_sequence_prefix(
@@ -380,23 +388,27 @@ pub fn NativeClientMockModelWork::open(
       return Err(ForeignOriginal)
     }
     if last > model_step {
-      // A view of the SAME already compiled Plan sequence, inside this entered
-      // original read window. No Program, kernels, clock or Model is reissued.
-      // Bind before the first advance: raw INFER output cannot stand in for
-      // its checked WHERE/SELECT/Result tail or the Effect dependency port.
-      guard @execution.select_generated_sequence_range(
+      // Ordinary deferred providers borrow the funded suffix lowered by
+      // Request preparation. The existing Effect route still uses its whole
+      // selected sequence. The Core checks exact owner and step coordinates.
+      let suffix = if compiled_prefix {
+        compiled_suffix
+      } else {
+        @execution.select_generated_sequence_range(
           sequence,
           model_step + 1,
           last,
         )
-        is Some(suffix) else {
-        return Err(ForeignOriginal)
       }
+      guard suffix is Some(suffix) else { return Err(ForeignOriginal) }
       mock_model_require(
         @infer.bind_compute_suffix(active, suffix).map_err(issue => {
           NativeClientMockModelIssue::Model(issue)
         }),
       )
+    }
+    if compiled_suffix is Some(_) && (!compiled_prefix || last == model_step) {
+      return Err(ForeignOriginal)
     }
     mock_model_require(
       @infer.require_model_call_entry(active).map_err(issue => {
@@ -814,12 +826,15 @@ fn[T] NativeClientMockModelWork::with_observed_step(
     return Err(NotOpened)
   }
   self.advancing = true
-  defer {
-    self.advancing = false
-    self.account = None
-    self.observation_time = None
-  }
+  defer self.release_observed_step()
   step(active)
+}
+
+///|
+fn NativeClientMockModelWork::release_observed_step(self : Self) -> Unit {
+  self.advancing = false
+  self.account = None
+  self.observation_time = None
 }
 
 ///|
@@ -829,21 +844,62 @@ pub fn NativeClientMockModelWork::advance(
   self : Self,
 ) -> Result[@infer.Poll, NativeClientMockModelIssue] {
   self.with_observed_step(active => {
-    try {
-      let result = mock_model_require(
-        @infer.advance(active, 31).map_err(issue => {
-          NativeClientMockModelIssue::Model(issue)
-        }),
-      )
-      if self.prepared is None &&
-        @infer.prepared_call_set(active) is Some(prepared) {
-        mock_model_require(self.bind_prepared(active, prepared))
-      }
-      Ok(result)
-    } catch {
-      NativeMockModelStop(issue) => Err(issue)
-    }
+    @infer.advance(active, 31)
+    .map_err(issue => NativeClientMockModelIssue::Model(issue))
+    .bind(result => self.bind_observed_call_set(active).map(_ => result))
   })
+}
+
+///|
+// The Local driver owns Core's advance. These two ports borrow the same
+// Work's Account snapshot only for that one original, synchronous step.
+pub fn NativeClientMockModelWork::enter_managed_model_step(
+  self : Self,
+  active : @infer.Execution,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.account is Some(_) &&
+    self.observation_time is Some(_) &&
+    self.settlement is None &&
+    self.active is Some(original) &&
+    physical_equal(original, active) else {
+    return Err(ForeignOriginal)
+  }
+  self.advancing = true
+  Ok(())
+}
+
+///|
+pub fn NativeClientMockModelWork::leave_managed_model_step(
+  self : Self,
+  active : @infer.Execution,
+  advanced : Bool,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.advancing &&
+    self.active is Some(original) &&
+    physical_equal(original, active) else {
+    return Err(ForeignOriginal)
+  }
+  defer self.release_observed_step()
+  if advanced {
+    self.bind_observed_call_set(active)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn NativeClientMockModelWork::bind_observed_call_set(
+  self : Self,
+  active : @infer.Execution,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if self.prepared is None && @infer.prepared_call_set(active) is Some(prepared) {
+    self.bind_prepared(active, prepared)
+  } else {
+    Ok(())
+  }
 }
 
 ///|

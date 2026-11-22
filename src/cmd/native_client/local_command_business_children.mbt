@@ -298,6 +298,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
         state.model_use = None
       }
     }
+    if business.model_run is Some(model) {
+      for index, completion in model.completions {
+        if completion is Some(held) {
+          @infer.release_output(held) |> ignore
+          model.completions[index] = None
+        }
+      }
+    }
     for work in business.model_work {
       match work.close() {
         Err(issue) => return Err(CommandBusinessModel(issue))

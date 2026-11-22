@@ -58,7 +58,33 @@ test "Local component keeps composed INFER work deltas and output custody" {
     issues.val = Some(issue)
     @connector.ComputeUnsupported
   }
-  let child = local_component(active, project).unwrap()
+  let observed = Ref(false)
+  let entered = Ref(0)
+  let returned = Ref(0)
+  let child = local_component(
+    active,
+    project,
+    original_step=Some(
+      (
+        original => {
+          if !physical_equal(original, active) || observed.val {
+            return Err(@connector.ComputeUnsupported)
+          }
+          entered.val += 1
+          observed.val = true
+          Ok(())
+        },
+        (original, advanced) => {
+          if !physical_equal(original, active) || !observed.val || !advanced {
+            return Err(@connector.ComputeUnsupported)
+          }
+          returned.val += 1
+          observed.val = false
+          Ok(())
+        },
+      ),
+    ),
+  ).unwrap()
   assert_eq(active.entry_work, 0L)
   assert_true(local_component(active, project) is Err(InvalidAdvance))
   assert_true(advance_root(active, 1) is Err(InvalidAdvance))
@@ -91,6 +117,9 @@ test "Local component keeps composed INFER work deltas and output custody" {
   assert_true(charged > 1L)
   assert_eq(calls.val, 2)
   assert_true(issues.val is None)
+  assert_true(entered.val > 1)
+  assert_eq(entered.val, returned.val)
+  assert_false(observed.val)
   assert_eq(@relation.completed_row_count(result), 2)
   assert_eq(@relation.completed_column_count(result), 2)
   assert_eq(@relation.completed_column_name(result, 0), Some("id"))
@@ -164,6 +193,40 @@ test "Local component cancellation before its first poll adds no work or Model c
   assert_true(@local.cleanup_managed_provider(child).unwrap())
   assert_eq(active.work, before)
   assert_eq(calls.val, 0)
+}
+
+///|
+test "Local component original step refuses before Core progress and does not gate cancellation" {
+  let calls = Ref(0)
+  let active = fixture_start(fixture_prepared(), () => calls.val += 1)
+  let attempted = Ref(0)
+  let child = local_component(
+    active,
+    _ => @connector.ComputeUnsupported,
+    original_step=Some(
+      (
+        _ => {
+          attempted.val += 1
+          Err(@connector.ComputeUnsupported)
+        },
+        (_, _) => abort("an unentered original observation must not return"),
+      ),
+    ),
+  ).unwrap()
+  let work = active.work
+  assert_true(
+    @local.advance_managed_provider(child, 1)
+    is Err(@connector.ComputeUnsupported),
+  )
+  assert_eq(active.work, work)
+  assert_eq(attempted.val, 1)
+  assert_true(@local.cancel_managed_provider(child))
+  assert_true(
+    @local.advance_managed_provider(child, 1) is Ok(@local.Stopped(..)),
+  )
+  assert_eq(attempted.val, 1)
+  assert_eq(calls.val, 0)
+  assert_true(@local.cleanup_managed_provider(child).unwrap())
 }
 
 ///|

@@ -239,71 +239,12 @@ fn LocalCommandBusinessPreparation::drive_original_model(
       self.original.require_model_step(work.persist_entry_in_original_read())
     }
     match poll {
-      @infer.Settling(_, ..) => {
-        self.original.with_business_request(self.capture, () => {
-          self.original.require_model_step(
-            work.prepare_settlement_export(
-              @model.model_call_settlement_export_limits(
-                native_mock_effect_record_bytes(installation),
-                model_max_work,
-              ),
-            ),
-          )
-        })
-        let mut exported = false
-        while !exported {
-          exported = self.original.with_business_request(self.capture, () => {
-            match work.advance_settlement_export() {
-              Ok(value) => value
-              Err(issue) => {
-                self.original.retain_primary(CommandBusinessModel(issue))
-                stop("LocalOriginalModelSettlementExportUnavailable")
-              }
-            }
-          })
-        }
-        self.original.require_model_step(
-          work.persist_settlement_evidence_in_original_read(store),
+      @infer.Settling(_, ..) =>
+        self.settle_original_model_step(
+          work, store, installation, model_max_work,
         )
-        self.original.require_model_step(
-          work.commit_settlement_in_original_read(),
-        )
-        self.original.with_business_request(self.capture, () => {
-          self.original.require_model_step(work.acknowledge_saved_settlement())
-        })
-      }
       @infer.Complete(_, ..) => complete = true
-      @infer.AwaitIo(..) =>
-        match work.entered_model_http_call(self.original.runtime) {
-          Ok(None) => ()
-          Err(issue) => {
-            self.original.retain_primary(CommandBusinessModel(issue))
-            stop("LocalOriginalModelTransportUnavailable")
-          }
-          Ok(Some(call)) =>
-            match work.drive_http_in_original_read(call) {
-              Ok(false) => ()
-              Ok(true) => {
-                let raw = match
-                  work.prepare_http_raw_in_original_read(call, store) {
-                  Ok(value) => value
-                  Err(issue) => {
-                    self.original.retain_primary(CommandBusinessModel(issue))
-                    stop("LocalOriginalModelRawUnavailable")
-                  }
-                }
-                // The Call already retains the original child, including when
-                // its Store scope failed to return. This step never reacquires it.
-                self.original.require_model_step(
-                  work.save_http_raw_in_original_read(call, raw),
-                )
-              }
-              Err(issue) => {
-                self.original.retain_primary(CommandBusinessModel(issue))
-                stop("LocalOriginalModelTransportUnavailable")
-              }
-            }
-        }
+      @infer.AwaitIo(..) => self.drive_original_model_io(work, store)
       @infer.Continue(..) | @infer.Waiting(..) => ()
       @infer.Failed(issue, ..) => {
         self.original.retain_primary(
@@ -314,6 +255,84 @@ fn LocalCommandBusinessPreparation::drive_original_model(
       @infer.Stopped(..) => stop("LocalOriginalModelExecutionStopped")
     }
   }
+}
+
+///|
+// One durable settlement shared by the standalone Model loop and its
+// configured Local task boundary. The existing Store and Journal ACKs
+// must both precede the next Core step.
+fn LocalCommandBusinessPreparation::settle_original_model_step(
+  self : Self,
+  work : @local_host.NativeClientMockModelWork,
+  store : @local_store.Store,
+  installation : LocalRunInstallation,
+  model_max_work : Int,
+) -> Unit raise ClientStop {
+  self.original.with_business_request(self.capture, () => {
+    self.original.require_model_step(
+      work.prepare_settlement_export(
+        @model.model_call_settlement_export_limits(
+          native_mock_effect_record_bytes(installation),
+          model_max_work,
+        ),
+      ),
+    )
+  })
+  let mut exported = false
+  while !exported {
+    exported = self.original.with_business_request(self.capture, () => {
+      match work.advance_settlement_export() {
+        Ok(value) => value
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessModel(issue))
+          stop("LocalOriginalModelSettlementExportUnavailable")
+        }
+      }
+    })
+  }
+  self.original.require_model_step(
+    work.persist_settlement_evidence_in_original_read(store),
+  )
+  self.original.require_model_step(work.commit_settlement_in_original_read())
+  self.original.with_business_request(self.capture, () => {
+    self.original.require_model_step(work.acknowledge_saved_settlement())
+  })
+}
+
+///|
+fn LocalCommandBusinessPreparation::drive_original_model_io(
+  self : Self,
+  work : @local_host.NativeClientMockModelWork,
+  store : @local_store.Store,
+) -> Unit raise ClientStop {
+  let entered = match work.entered_model_http_call(self.original.runtime) {
+    Ok(value) => value
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+  }
+  guard entered is Some(call) else { return }
+  match work.drive_http_in_original_read(call) {
+    Ok(false) => return
+    Ok(true) => ()
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+  }
+  let raw = match work.prepare_http_raw_in_original_read(call, store) {
+    Ok(value) => value
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelRawUnavailable")
+    }
+  }
+  // The Call already retains this child even after a failed Store scope
+  // return. Neither this step nor later cleanup reacquires it.
+  self.original.require_model_step(
+    work.save_http_raw_in_original_read(call, raw),
+  )
 }
 
 ///|

@@ -6,6 +6,8 @@ priv struct LocalCommandModelRun {
   definition : @publication.PublicationContract
   graphs : Array[@run_host.ClientInferPlanGraph]
   scopes : Array[@run_host.ClientModelReadScope]
+  reads : Array[@run_host.ClientModelReadPreparation?]
+  completions : Array[@infer.OutputUse?]
 }
 
 ///|
@@ -13,6 +15,30 @@ fn LocalCommandModelRun::finish_scopes(
   self : Self,
 ) -> Result[Bool, @run_host.ClientModelReadPreparationIssue] {
   for index, scope in self.scopes {
+    if self.reads[index] is Some(read) {
+      match
+        @run_host.stop_client_model_read_checked(
+          scope,
+          read,
+          self.compiled,
+          self.definition,
+          self.graphs[index],
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      match
+        @run_host.settle_client_model_read_checked(
+          read,
+          self.compiled,
+          self.definition,
+          self.graphs[index],
+          true,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => self.reads[index] = None
+      }
+    }
     match
       @run_host.finish_client_model_read_scope(
         scope,
@@ -61,6 +87,7 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
     stop("LocalBusinessOriginalUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
+    let count = model.graphs.length()
     let selected = match
       @local_values.prepare_request_model_source_free_module(
         parent,
@@ -71,8 +98,30 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
         model.compilation,
         self.installed_contracts,
         true,
-        0,
+        if count == 1 {
+          1
+        } else {
+          0
+        },
         native_request_provider_factory,
+        component_factory=if count == 1 {
+          Some((_, prefix, suffix) => {
+            self.original.configured_native_model_provider(
+              business, model, 0, prefix, suffix,
+            )
+          })
+        } else {
+          None
+        },
+        components_factory=if count > 1 {
+          Some((index, _, prefix, suffix) => {
+            self.original.configured_native_model_provider(
+              business, model, index, prefix, suffix,
+            )
+          })
+        } else {
+          None
+        },
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -80,7 +129,6 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
         stop("LocalOriginalModelModuleUnavailable")
       }
     }
-    let count = model.graphs.length()
     let plan = if count == 1 {
       let limits = model.bounds[0]
       self.original.require_model_plan(
@@ -135,6 +183,8 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
       definition,
       graphs: model.graphs,
       scopes,
+      reads: Array::make(count, None),
+      completions: Array::make(count, None),
     })
     match
       @local_values.complete_request_model_preparation(parent, input, plan) {
