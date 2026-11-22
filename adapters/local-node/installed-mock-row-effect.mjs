@@ -644,7 +644,10 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
           response.request_cid !== requestCid || response.target !== record.target || response.action !== action) {
         return {kind: 'unknown'};
       }
-      return {kind: 'typed-success-response', outcome: {state: 'applied', action, result: {id: record.target}}};
+      // The private physical receipt distinguishes DELETE, while the admitted
+      // applied outcome's optional action describes only create/update.
+      return {kind: 'typed-success-response', outcome: {state: 'applied',
+        ...(action === 'updated' ? {action} : {}), result: {id: record.target}}};
     },
   });
   const site = Object.freeze({issueReadGrant: options => issue('read', options),
