@@ -34,7 +34,7 @@ export async function readAuthoredCase(path) {
 }
 
 export async function runRecordApprovalCommand({argv, programDirectory, connect,
-  runPhase, createDefinition, retainProgramInputs = false, fixtureReplyLossExpectation,
+  runPhase, createDefinition, retainProgramInputs = false, fixtureReplyLossExpectation, fixtureSourceSchema,
   log = value => console.log(JSON.stringify(value))}) {
   if (typeof retainProgramInputs !== 'boolean') throw new TypeError('InvalidRecordApprovalFixtureMode');
   const [phase, configurationPath, receiptPrefix] = argv;
@@ -72,6 +72,10 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     const scheduled = definition.fixture?.faults?.[0];
     if (scheduled !== undefined && !isDeepStrictEqual(scheduled.expected, fixtureReplyLossExpectation)) {
       throw new TypeError('RecordApprovalFaultRequiresMatchingInstalledFixture');
+    }
+    const schema = definition.fixture?.schema;
+    if (schema !== undefined && !isDeepStrictEqual(schema, fixtureSourceSchema)) {
+      throw new TypeError('RecordApprovalSchemaRequiresMatchingInstalledFixture');
     }
   } else if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
     try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}

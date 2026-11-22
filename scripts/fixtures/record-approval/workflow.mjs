@@ -29,10 +29,16 @@ export function admitAuthoredRecordApprovalCase(value) {
   assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
   assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
   if (fixture) {
-    const {seed, expected} = value.fixture ?? {};
     assert(object(value.fixture));
+    const {seed, expected, schema} = value.fixture;
     const scheduled = Object.hasOwn(value.fixture, 'faults');
-    assert(closed(value.fixture, ['seed', 'expected', ...(scheduled ? ['faults'] : [])]));
+    const pinnedSchema = Object.hasOwn(value.fixture, 'schema');
+    assert(closed(value.fixture, ['seed', 'expected', ...(scheduled ? ['faults'] : []), ...(pinnedSchema ? ['schema'] : [])]));
+    if (pinnedSchema) {
+      assert(closed(schema, ['sourceRef', 'sourceViewContractCid', 'carrierSchemaContractCid']));
+      assert(text(schema.sourceRef) && schema.sourceRef.startsWith('connector://') &&
+        [schema.sourceViewContractCid, schema.carrierSchemaContractCid].every(value => typeof value === 'string' && cid.test(value)));
+    }
     assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
     recordUpdateFixtureSeed(seed);
     assert(closed(expected, ['before', 'after']));

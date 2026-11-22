@@ -8,7 +8,8 @@ import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
 import {openRecordApprovalExchange, installedRecordReplyLossExpectation,
-  assertRecordApprovalTarget, runInstalledRecordApprovalFixture} from './fixtures/record-approval/installed.fixture.mjs';
+  assertRecordApprovalSourceSchema, assertRecordApprovalTarget,
+  runInstalledRecordApprovalFixture} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
@@ -205,7 +206,9 @@ test('shared command reopens the same externally authored Program, parameters an
   value.read.afterRows[0].Subject = 'Selected alternate value';
   value.review.changes.Subject = 'Selected alternate value';
   const control = {id: 'alternate-control', name: 'Retain this control'};
-  value.fixture = {seed: {recordId: selection.recordId, previousName: selection.previousName,
+  const schema = {sourceRef: 'connector://kintone/inquiries#records',
+    sourceViewContractCid: cid('a'), carrierSchemaContractCid: cid('b')};
+  value.fixture = {schema, seed: {recordId: selection.recordId, previousName: selection.previousName,
     controlId: control.id, controlName: control.name}, expected: {
     before: {target: {id: selection.recordId, name: selection.previousName}, control},
     after: {target: {id: selection.recordId, name: value.effect.parameters.next_name}, control: {...control}},
@@ -215,6 +218,10 @@ test('shared command reopens the same externally authored Program, parameters an
   await writeFile(path, original);
   f.options.programDirectory = pathToFileURL(join(f.root, 'absent') + '/');
   f.options.createDefinition = () => assert.fail('Authored input must not construct a default case');
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
+  f.options.fixtureSourceSchema = {...schema, carrierSchemaContractCid: cid('c')};
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalSchemaRequiresMatchingInstalledFixture'});
+  f.options.fixtureSourceSchema = schema;
   await runRecordApprovalCommand(f.options);
   assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
   assert.deepEqual(f.events, []);
@@ -254,6 +261,19 @@ test('shared command reopens the same externally authored Program, parameters an
   const recovered = sdk.events.slice(cursor);
   assert.deepEqual(recovered, ['attach', 'effect:result', 'effect:rows', 'effect:status', 'close']);
   assert.equal(sdk.events.filter(event => event === 'approve').length, 1);
+});
+
+test('authored schema pins compare each original provider schema reference independently', () => {
+  const view = {source_ref: 'connector://hubspot/companies#records', source_view_contract_cid: cid('a'),
+    carrier_schema_contract_cid: cid('b'), read_mode: 'snapshot'};
+  const expected = {sourceRef: 'connector://hubspot/companies#records', sourceViewContractCid: cid('a'),
+    carrierSchemaContractCid: cid('b')};
+  assert.deepEqual(assertRecordApprovalSourceSchema(view, expected), expected);
+  for (const altered of [{sourceRef: 'connector://hubspot/contacts#records'}, {sourceViewContractCid: cid('c')},
+    {carrierSchemaContractCid: cid('d')}]) {
+    assert.throws(() => assertRecordApprovalSourceSchema(view, {...expected, ...altered}),
+      /Independent provider Source View and schema/u);
+  }
 });
 
 test('authored provider seed differs from the independent expected control before any request', async t => {

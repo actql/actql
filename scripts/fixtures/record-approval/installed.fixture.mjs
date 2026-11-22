@@ -43,6 +43,13 @@ function assertRecordApprovalControl(snapshot, expected) {
   assert.deepEqual({id, name}, expected.control, 'Independent provider control state');
 }
 
+export function assertRecordApprovalSourceSchema(view, expected) {
+  const observed = {sourceRef: view.source_ref, sourceViewContractCid: view.source_view_contract_cid,
+    carrierSchemaContractCid: view.carrier_schema_contract_cid};
+  assert.deepEqual(observed, expected, 'Independent provider Source View and schema');
+  return observed;
+}
+
 export async function runInstalledRecordApprovalFixture(t, input) {
   const authored = input.casePath === undefined ? undefined : await readAuthoredCase(input.casePath);
   const authoredFixture = authored?.fixture;
@@ -77,6 +84,7 @@ export async function runInstalledRecordApprovalFixture(t, input) {
   t.diagnostic(`Retained ${connectorId} approval original root: ${root}`);
   const phases = [], cleanup = [], parentState = {};
   let tls, declared, services, parentPending = false, parentClosed = false, failed = false, primary;
+  let fixtureSourceSchema;
   let closeParent = async () => {};
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
   const load = path => import(new URL(path, local));
@@ -145,6 +153,7 @@ export async function runInstalledRecordApprovalFixture(t, input) {
     assert.equal(declared.realizationKey, 'row-source-acquired');
     assert.equal(tls.seen().length, 0);
     assert.equal(resolutions, 0);
+    if (authoredFixture?.schema !== undefined) fixtureSourceSchema = assertRecordApprovalSourceSchema(view, authoredFixture.schema);
     await declared.close(); declared = undefined;
     await closeParent();
     await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{name: alias,
@@ -173,7 +182,9 @@ export async function runInstalledRecordApprovalFixture(t, input) {
     for (const key of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE',
       'ACTQL_RECORD_APPROVAL_DECISION']) delete env[key];
     delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
+    delete env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA;
     if (loss !== undefined) env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION = JSON.stringify(loss);
+    if (fixtureSourceSchema !== undefined) env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA = JSON.stringify(fixtureSourceSchema);
     for (const phase of ['capture', rejecting ? 'reject' : 'approve', 'recover']) {
       const before = provider.snapshot(), startedAt = new Date().toISOString();
       const args = [fileURLToPath(new URL('./installed-child.mjs', import.meta.url)),

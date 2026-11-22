@@ -85,6 +85,11 @@ expectations to the same Run receipt and checks them against the provider
 observations. The standalone phase commands use the independently supplied
 connection and check the Program and Review oracles.
 
+Include `fixture.schema` with `sourceRef`, `sourceViewContractCid`, and
+`carrierSchemaContractCid` to pin the selected provider schema. The installed
+fixture compares all three with the checked Source View before starting the
+Run. Phase commands require the matching installed fixture for a pinned case.
+
 An installed HTTP case may set `fixture.faults` to an empty array or one
 `{"kind":"apply-then-lose-reply","expected":{"approveStatus":"needs_reconciliation","lookupStatus":"needs_reconciliation"}}`
 entry. The existing provider adapter selects the exact write route. The case
