@@ -829,7 +829,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       const member = members[index], installation = member?.originalReadInstallation;
       if (installation === undefined || member.selection !== selected[index] ||
           member.graph !== model.graph[index] || member.selection.originalReadInstallation !== installation ||
-          member.selection.currentProvider() !== true) {
+          member.selection.quantityCapacity?.limits === undefined || member.selection.currentProvider() !== true) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
       member.selection.assertNewTrustedRuntime?.();
@@ -838,7 +838,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
           member.selection.currentProvider() !== true) {
         throw clientOperationError('ForeignInstalledModelPreparation');
       }
-      return installation;
+      return member;
     });
     run.modelPlan = Reflect.apply(model.control[planName], model.control, planArguments);
     current();

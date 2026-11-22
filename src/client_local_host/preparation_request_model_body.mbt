@@ -645,13 +645,10 @@ fn[I, T] prepare_request_model_read_scopes_owned(
   // Resource's one-shot preparation entrance; no reset or late configuration
   // is permitted. A retry may only observe an already identical configuration.
   let quantities_ready : Result[Unit, ClientInstalledManagedRunIssue] = match
-    quantity_limits {
-    None => Ok(())
-    Some(installed) => {
-      let selected = match request_model_plan_quantity_limits(plan, installed) {
-        None => return Err(InsufficientCapacity)
-        Some(value) => value
-      }
+    request_model_plan_quantity_limits(plan, quantity_limits) {
+    Err(issue) => Err(issue)
+    Ok(None) => Ok(())
+    Ok(Some(selected)) =>
       if @resources.quantity_configuration_matches(owner.ledger, Some(selected)) {
         Ok(())
       } else {
@@ -659,7 +656,6 @@ fn[I, T] prepare_request_model_read_scopes_owned(
           Ledger(issue)
         })
       }
-    }
   }
   // Resource currentness may run the original caller's interruption fence.
   // Preserve that retirement and its primary; never restore a closed parent

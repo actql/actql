@@ -31152,7 +31152,7 @@
             "occurrences",
             "graphs",
             "selected",
-            "installationAt"
+            "memberAt"
           ],
           "async": false
         },
@@ -35214,7 +35214,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0da1ef5130c48c2ecd89d4bc389159b155e8beb37b26503abe0136b5206dc05c"
+      "sha256": "3c0e549c8db65249999222720284602037a6e985895d52ed76269e1e49995e83"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -69164,7 +69164,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "8ca5d82648a328e7f9a2ef776a6e55a4b37c550a603af6a54a0f1987a64381a5"
+      "sha256": "1b3e2552e933f76ac14ac20680555462bd9251d0e87137939a3fd47c8c46161a"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

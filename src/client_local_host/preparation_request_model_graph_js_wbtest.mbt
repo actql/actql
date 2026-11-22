@@ -3004,6 +3004,10 @@ test "two Model Request adopts one module and all original scopes with one aggre
     40,
     40,
     bootstrap=Some((31L, 37L)),
+    node_quantities=Some([
+      { tokens: 64L, cost_units: 20L, duration_ms: 1500L, },
+      { tokens: 200L, cost_units: 30L, duration_ms: 250L, },
+    ]),
   ).unwrap()
   assert_eq(module_entries, [0, 1])
   // This authored graph has three configured tasks and two input edges. Its
@@ -3054,7 +3058,34 @@ test "two Model Request adopts one module and all original scopes with one aggre
     prepare_request_model_read_scope(parent, input, plan)
     is Err(ForeignOriginal),
   )
-  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  assert_true(
+    prepare_request_models_read_scopes(
+      parent,
+      input,
+      plan,
+      quantity_limits=Some({
+        tokens: 900L,
+        cost_units: 900L,
+        duration_ms: 900L,
+      }),
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(@resources.quantity_configuration_matches(ledger, None))
+  let scopes = prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    require_planned_quantities=true,
+  ).unwrap()
+  // The authored contract clips each Provider to 128 tokens, zero cost and
+  // 1000 ms before summation. Clipping after summation would give other caps.
+  assert_true(
+    @resources.quantity_configuration_matches(
+      ledger,
+      Some({ tokens: 192L, cost_units: 0L, duration_ms: 1250L, }),
+    ),
+  )
   assert_eq(scopes.length(), 2)
   complete_request_model_preparation(parent, input, plan).unwrap()
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())

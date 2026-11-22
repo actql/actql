@@ -4319,7 +4319,7 @@ function publicationControl(moon) {
         token(definition), occurrences, graphs, selected]));
     },
     prepareCheckedClientRequestNodeModelsSourceFreePlan(parent, input, original, request, compiled, definition,
-      occurrences, graphs, selected, installationAt) {
+      occurrences, graphs, selected, memberAt) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
@@ -4330,12 +4330,14 @@ function publicationControl(moon) {
         token(definition), occurrences, graphs, selected, (index, check) => {
           // Common checks the original at this index after reserving the Plan
           // projection. The Host borrows the selected installation in place.
-          const installation = installationAt(index);
+          const member = memberAt(index), installation = member.originalReadInstallation;
+          const quantities = member.selection.quantityCapacity.limits;
           const node = installation.nodeInstallation, census = installation.bootstrap;
           return check(node.layout, node.installation, node.runtimeArtifactCid, node.layoutArtifactCid,
             node.probability, installation.modelRetainedBytes, installation.modelExecutionBytes,
             census.maxReservations, census.maxHoldings, census.maxDelegations,
-            census.bootstrapRetainedBytes, census.bootstrapExecutionBytes);
+            census.bootstrapRetainedBytes, census.bootstrapExecutionBytes,
+            quantities.tokens, quantities.costUnits, quantities.durationMs);
         }]));
     },
     prepareCheckedClientRequestModelsCapturePlan(parent, input, original, request, compiled, definition,

@@ -365,6 +365,8 @@ test('actual grouped Node Model Plan borrows the corresponding physical original
     bootstrap: Object.freeze({maxReservations: 7, maxHoldings: 8, maxDelegations: 9,
       bootstrapRetainedBytes: 23n, bootstrapExecutionBytes: 31n}),
   }));
+  const quantities = [{tokens: 19n, costUnits: 2n, durationMs: 131n},
+    {tokens: 23n, costUnits: 3n, durationMs: 159n}];
   const calls = [], ok = value => ({$tag: 1, _0: value});
   let rejectSecond;
   const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture',
@@ -382,7 +384,8 @@ test('actual grouped Node Model Plan borrows the corresponding physical original
         const {nodeInstallation: node} = original;
         const result = project(index, (...fields) => {
           assert.deepEqual(fields, [node.layout, node.installation, node.runtimeArtifactCid, node.layoutArtifactCid,
-            node.probability, original.modelRetainedBytes, 456n, 7, 8, 9, 23n, 31n]);
+            node.probability, original.modelRetainedBytes, 456n, 7, 8, 9, 23n, 31n,
+            quantities[index].tokens, quantities[index].costUnits, quantities[index].durationMs]);
           calls.push('check' + index);
           return index === 1 && rejectSecond !== undefined ? {$tag: 0, _0: rejectSecond} : ok({});
         });
@@ -400,7 +403,8 @@ test('actual grouped Node Model Plan borrows the corresponding physical original
   const invoke = (c = compiled, d = definition) => control.prepareCheckedClientRequestNodeModelsSourceFreePlan(
     parent, input, module, request, c, d, occurrences, graphs, bounds, index => {
       calls.push('borrow' + index);
-      return installations[index];
+      return {originalReadInstallation: installations[index],
+        selection: {quantityCapacity: {limits: quantities[index]}}};
     });
   assert.equal(invoke(), plan);
   assert.throws(() => invoke({...compiled}), /Foreign Client compiled Infer preparation/);

@@ -15468,7 +15468,7 @@
             "occurrences",
             "graphs",
             "selected",
-            "installationAt"
+            "memberAt"
           ],
           "async": false
         },
@@ -19530,7 +19530,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0da1ef5130c48c2ecd89d4bc389159b155e8beb37b26503abe0136b5206dc05c"
+      "sha256": "3c0e549c8db65249999222720284602037a6e985895d52ed76269e1e49995e83"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -49096,7 +49096,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "4b534fc590a633ac5967747360ed7c96054ef6475abfe3b7792e69288762faef"
+      "sha256": "f29cd37e1d919f6f8455cab5c4eb479657e33dcc3e207a57f957691b36157caa"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -61558,7 +61558,7 @@
       "operations": [
         {
           "name": "check_client_node_group_model_demand",
-          "declaration": "check_client_node_group_model_demand ( graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained : Int64 , model_execution : Int64 , reservations : Int , holdings : Int , delegations : Int , bootstrap_retained : Int64 , bootstrap_execution : Int64 , ) - > Result [ ClientNodeGroupModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "check_client_node_group_model_demand ( graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained : Int64 , model_execution : Int64 , reservations : Int , holdings : Int , delegations : Int , bootstrap_retained : Int64 , bootstrap_execution : Int64 , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ ClientNodeGroupModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_content_model_managed_plan_prepare",
@@ -61670,14 +61670,14 @@
         },
         {
           "name": "client_request_models_plan_projection",
-          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ( Int64 , Int64 ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , project ? : ProjectClientNodeGroupModelDemand ?"
+          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ( Int64 , Int64 ) ? , Array [ @ resources . QuantityAmounts ] ? , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , project ? : ProjectClientNodeGroupModelDemand ?"
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "8fc1af51a32911d5819ce9e86f6a6e81b85643671e5ce6b308d2317be1acc2cf"
+      "sha256": "83aa5be81e37514177390026965a9d9a7d7518ca3be0e42d17dfb5a659deb482"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
@@ -65552,7 +65552,8 @@
             "client_program_adopt_request_effect_models_preparation",
             "client_program_installed_effect_models_demand_prepare",
             "client_program_prepare_request_effect_models_read_scopes",
-            "client_program_prepare_request_effect_models_read_scopes_with_quantities"
+            "client_program_prepare_request_effect_models_read_scopes_with_quantities",
+            "client_program_prepare_request_models_read_scopes_with_planned_quantities"
           ],
           "exports": [],
           "attributes": {
@@ -68653,6 +68654,10 @@
           "declaration": "client_program_prepare_request_models_read_scopes ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_models_read_scopes_with_planned_quantities",
+          "declaration": "client_program_prepare_request_models_read_scopes_with_planned_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_models_read_scopes_with_quantities",
           "declaration": "client_program_prepare_request_models_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -68957,7 +68962,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "3f9627229b5f97ebdc18b829a22e3ed2a0cde95323caadd8325e7e5dc10ab1d0"
+      "sha256": "d728e42bb9a466ce9f63b1b210d84527475b895bbef7dda908881cf4c63cd443"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -96818,7 +96823,7 @@
         },
         {
           "name": "[I]prepare_request_models_plan_owned",
-          "declaration": "[ I ] prepare_request_models_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap : ( Int64 , Int64 ) ? , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] prepare_request_models_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap : ( Int64 , Int64 ) ? , node_quantities : Array [ @ resources . QuantityAmounts ] ? , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]prepare_request_models_read_scopes",
@@ -96837,12 +96842,24 @@
           "declaration": "bind_request_multiple_model_read_scopes ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ publication_host . ClientModelReadPreparationIssue , ]"
         },
         {
+          "name": "node_quantities_length_matches",
+          "declaration": "node_quantities_length_matches ( quantities : Array [ @ resources . QuantityAmounts ] ? , count : Int , ) - > Bool"
+        },
+        {
           "name": "request_model_group_quantity_limits",
           "declaration": "request_model_group_quantity_limits ( first_graph : @ publication_host . ClientInferPlanGraph , models : Array [ ClientInstalledModelReadPartition ] ? , installed : @ resources . QuantityAmounts , graphs ? : Array [ @ publication_host . ClientInferPlanGraph ] ?"
         },
         {
+          "name": "request_model_plan_has_node_quantities",
+          "declaration": "request_model_plan_has_node_quantities ( plan : ClientInstalledManagedModelPlan , ) - > Bool"
+        },
+        {
           "name": "request_model_plan_quantity_limits",
-          "declaration": "request_model_plan_quantity_limits ( plan : ClientInstalledManagedModelPlan , installed : @ resources . QuantityAmounts , ) - > @ resources . QuantityAmounts ?"
+          "declaration": "request_model_plan_quantity_limits ( plan : ClientInstalledManagedModelPlan , installed : @ resources . QuantityAmounts ? , ) - > Result [ @ resources . QuantityAmounts ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "request_planned_node_quantities",
+          "declaration": "request_planned_node_quantities ( models : Array [ ClientInstalledModelReadPartition ] , ) - > @ resources . QuantityAmounts ?"
         }
       ],
       "contracts": [
@@ -96856,7 +96873,10 @@
             "[I]reserve_request_models_plan_projection",
             "bind_request_multiple_model_read_scopes",
             "request_model_plan_quantity_limits",
-            "request_model_group_quantity_limits"
+            "request_model_group_quantity_limits",
+            "node_quantities_length_matches",
+            "request_model_plan_has_node_quantities",
+            "request_planned_node_quantities"
           ],
           "exports": [],
           "attributes": {
@@ -97228,7 +97248,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "d0dffd6976ef15d7167ac575b056c822d2e95d60f034bfe7de02cd5d69161700"
+      "sha256": "5597da971a73fd7db50eb9628acc579779be0627ded5335422579dde8dc5bee5"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",
