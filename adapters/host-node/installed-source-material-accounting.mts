@@ -1,11 +1,14 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
-import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
-import type {bindInstalledEnvironmentConstruction as bindEnvironmentConstruction} from './installed-funded-environment.mjs';
+import {sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry} from './installed-source-construction-geometry.mjs';
+import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs';
+import type {bindInstalledEnvironmentConstruction as bindEnvironmentConstruction,
+  assertInstalledEnvironmentPublicationOriginal as assertEnvironmentOriginal,
+  releaseRetiredInstalledEnvironmentComposition as releaseEnvironmentComposition} from './installed-funded-environment.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8,
   installedConfigurationByteLimit, installedConfigurationChunkBytes, readOriginalConfigurationText,
-  readOriginalConfigurationBytes} from './source-profile-json.mjs';
+  readOriginalConfigurationBytes, installedRuntimeBundleCid} from './source-profile-json.mjs';
 import type {ConfigurationReader} from './source-alias-construction.mjs';
 
 type Amounts = {nodes: bigint; text: bigint; wire: bigint};
@@ -44,14 +47,26 @@ type InstalledConfigurationReader = ConfigurationReader & Readonly<{
   readOriginalText(path: unknown): Promise<string>;
   readOriginalBytes(path: unknown): Promise<Buffer>;
 }>;
+type RetirableScope = {
+  source?: unknown;
+  closed?: boolean;
+  prepared?: unknown;
+  installation?: unknown;
+  baseEnvironmentWire?: unknown;
+  commandDeclarationWire?: string;
+  finishedSuccessfully?: boolean;
+  reader?: unknown;
+  readerDemand?: unknown;
+  acquisitionContracts?: unknown;
+};
 type Material = Amounts & {
   configurationReader?: InstalledConfigurationReader;
   retainEnvironmentNativeOriginal?: ReturnType<typeof bindEnvironmentConstruction>;
-  methods: Readonly<Record<MaterialMethod, unknown>>;
+  methods: Readonly<Record<MaterialMethod, unknown>> | undefined;
   busy: boolean;
   unit: unknown;
   constructors: number;
-  contexts: unknown[];
+  contexts: RetirableScope[];
   environment: unknown;
   sourceOriginal: unknown;
   environmentWire: string | undefined;
@@ -106,22 +121,26 @@ type Runtime = Readonly<Partial<Record<`clientProgram${MaterialMethod}`, unknown
 }>;
 type Owner = {
   readonly moon: Runtime;
-  readonly initialPreparation?: unknown;
+  initialPreparation?: unknown;
   readonly restoreDeclaration?: unknown;
   readonly restoreAuthoredDeclaration?: unknown;
   readonly declarationJson?: unknown;
   material?: Material;
 };
 type ModelOwner = Owner & Readonly<{current(): void}>;
+type EnvironmentAssertionArgs = Parameters<typeof assertEnvironmentOriginal>;
 type MaterialPorts = Readonly<{
   fail(code: string): never;
   sourceNativeThen: typeof Promise.prototype.then;
   installations: Pick<WeakMap<object, ModelOwner>, 'get'>;
   bindInstalledEnvironmentConstruction: typeof bindEnvironmentConstruction;
+  assertInstalledEnvironmentPublicationOriginal: typeof assertEnvironmentOriginal;
+  releaseRetiredInstalledEnvironmentComposition: typeof releaseEnvironmentComposition;
 }>;
 
 export function createInstalledSourceMaterialAccounting(
-  {fail: reject, sourceNativeThen, installations, bindInstalledEnvironmentConstruction}: MaterialPorts) {
+  {fail: reject, sourceNativeThen, installations, bindInstalledEnvironmentConstruction,
+    assertInstalledEnvironmentPublicationOriginal, releaseRetiredInstalledEnvironmentComposition}: MaterialPorts) {
   const fail: (code: string) => never = reject;
 
   // Native initialization uses the SAME initial Resource reservation. These are
@@ -253,7 +272,7 @@ export function createInstalledSourceMaterialAccounting(
   function sourceCapacityQuote(original: Owner, material: Material, values: CapacityAmounts, pendingProvider?: unknown) {
     let base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
     if (material.providers.length === 0 && pendingProvider === undefined) return base;
-    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
+    if (typeof material.methods!.ComposeInstalledSourceConstructionCapacity !== 'function') {
       fail('InstalledSourceInitializationRuntimeUnavailable');
     }
     // A pure pending quote has not entered its native constructor. Fold its
@@ -408,7 +427,7 @@ export function createInstalledSourceMaterialAccounting(
     let retained;
     material.busy = true;
     try {
-      retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity as CoreMethod,
+      retained = checked(Reflect.apply(material.methods!.InstalledSourceRetainedConstructionCapacity as CoreMethod,
         original.moon, [quantity]));
       check();
       if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained)) {
@@ -444,7 +463,7 @@ export function createInstalledSourceMaterialAccounting(
     validate();
     let {capacity: capacityFor, project}: Partial<ReturnType<typeof sourceProjectionMethods>> =
       sourceProjectionMethods(projection!);
-    if (typeof material.methods.InstalledSourceRetainedConstructionCapacity !== 'function') {
+    if (typeof material.methods!.InstalledSourceRetainedConstructionCapacity !== 'function') {
       fail('InstalledSourceInitializationRuntimeUnavailable');
     }
     attempts.add(projection!);
@@ -824,8 +843,188 @@ export function createInstalledSourceMaterialAccounting(
     return reader;
   }
 
-  return {sourceMaterial, sourceCall, sourceIo, sourceQuote, releaseFinishedSourceWorkspaces, reserveSource, reconcileSource,
+  async function withInstalledSourceLoading<Value>(services: object | undefined, construct: () => Value) {
+    if (services === undefined) return construct();
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = sourceMaterial(original);
+    if (material === undefined) return construct();
+    // Keep the SAME awaited initializer pending through module selection,
+    // runtime identity, provider construction and the final identity reread.
+    // Nested reads retain their actual FD cleanup; no wrapper is priced here.
+    material.ioPending++;
+    try {return await construct();}
+    catch (cause) {retainSourceFailure(material, cause); throw cause;}
+    finally {material.ioPending--;}
+  }
+
+  // Nominal admission for the common installed Environment composer. Reused
+  // metadata still belongs to this exact live Source material and runtime.
+  function installedSourceEnvironmentConstructionReader(services: object, moon: unknown) {
+    const original = installations.get(services);
+    if (original === undefined || original.moon !== moon) fail('ForeignInstalledHostServices');
+    original.current();
+    const material = sourceMaterial(original);
+    if (material === undefined || material.phase !== 'working' || material.busy) {
+      fail('ForeignInstalledSourceInitialization');
+    }
+    return installedSourceConfigurationReader(services);
+  }
+
+  function reserveInstalledSourceEnvironment(services: object,
+    ...wires: [base: string, source?: string, effect?: string, ...additional: (string | undefined)[]]) {
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = original.material;
+    if (material === undefined) return;
+    const selected = installedCheckEnvironmentInputs(wires[0], wires[1], wires[2]);
+    const geometry = sourceEnvironmentCompositionGeometry(wires.map((wire, index) => {
+      const value = index < selected.length ? selected[index] : wire;
+      if (value !== undefined && typeof value !== 'string') fail('InvalidInstalledSourceEnvironment');
+      return value;
+    }));
+    // Reserve before the original parser/composer, separating its synchronous
+    // scratch from admitted output while all earlier Source material stays live.
+    reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire,
+      undefined, geometry.retained);
+  }
+
+  function reserveInstalledSourceRuntimeIdentity(services: object) {
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = sourceMaterial(original)!;
+    if (material === undefined) return;
+    // Runtime identity streams immutable software through this existing single
+    // chunk, not a full runtime Buffer. Selected code remains Host baseline.
+    return async function readOriginalRuntimeIdentity(path: unknown) {
+      if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
+      material.ioPending++;
+      const workspace = {nodes: 0n, text: 0n, wire: 0n};
+      material.workspaces.add(workspace);
+      try {
+        reserveSource(original, material, 0n, 0n, BigInt(installedConfigurationChunkBytes), workspace);
+        const value = await installedRuntimeBundleCid(path, {io: sourceIo(original, material)});
+        material.workspaces.delete(workspace);
+        // A runtime-only initialization has no retained body yet. Keep its
+        // admitted debit until construction/retirement instead of reconciling a
+        // zero body; a live sibling still requires its complete workspace.
+        if (material.nodes + material.text + material.wire !== 0n || material.workspaces.size !== 0) {
+          reconcileSource(original, material);
+        }
+        return value;
+      }
+      catch (cause) {retainSourceFailure(material, cause, workspace);throw cause;}
+      finally {material.ioPending--;}
+    };
+  }
+
+  function completeInstalledSourceInitialization(services: object, sourceOriginal: unknown, environment: unknown,
+    environmentWire: unknown, environmentOriginal?: EnvironmentAssertionArgs[2]) {
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = original.material;
+    if (material === undefined) return;
+    if (sourceOriginal !== material.input) fail('ForeignInstalledSourceMaterial');
+    releaseFinishedSourceWorkspaces(material);
+    if (material.ioPending !== 0 || material.constructors !== 0 || material.workspaces.size !== 0 || environment === undefined ||
+        typeof environmentWire !== 'string') fail('InstalledSourceInitializationPending');
+    // The original final checker already constructed this body. Fund its actual
+    // retained tree/text before adopting the SAME body; completion adds no parse,
+    // canonicalization or second construction workspace.
+    let retained;
+    if (environmentOriginal === undefined) retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+    else {
+      assertInstalledEnvironmentPublicationOriginal(services, original.moon as EnvironmentAssertionArgs[1],
+        environmentOriginal, environment, environmentWire);
+      // Every native/Core constructor output is still retained by this SAME
+      // Source material. Completion adds only the original body association;
+      // it does not parse/copy/refund any of those already-charged originals.
+      retained = {nodes: 5n, text: 0n, wire: 0n};
+    }
+    reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
+    material.inputs.push(environmentWire);
+    material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
+    sourceCall(original, material, 'CompleteInstalledSourceMaterial', [material.capacity, material.input,
+      sourceOriginal, environment, sourceQuote(original, material)]);
+    material.sourceOriginal = sourceOriginal; material.environment = environment;
+    material.environmentWire = environmentWire; material.phase = 'ready';
+  }
+
+  function borrowInstalledSourceInitialization(services: object, sourceOriginal: unknown, environment: unknown) {
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = original.material;
+    if (material === undefined) return undefined;
+    if (material.phase !== 'ready' || material.sourceOriginal !== sourceOriginal || material.environment !== environment) {
+      fail('ForeignInstalledSourceMaterial');
+    }
+    let holder = sourceCall(original, material, 'BorrowInstalledSourceMaterial', [material.capacity]);
+    let returned: boolean | undefined, returnObserved = false;
+    const view = Object.freeze({environment() {
+      if (this !== view || returnObserved) fail('ForeignInstalledSourceMaterial');
+      return sourceCall(original, material, 'BorrowedInstalledSourceEnvironment', [holder, sourceOriginal]);
+    }, release() {
+      if (this !== view) fail('ForeignInstalledSourceMaterial');
+      if (!returnObserved) {
+        returned = sourceCall(original, material, 'ReturnInstalledSourceMaterial', [holder]);
+        returnObserved = true;
+        holder = sourceOriginal = undefined;
+      }
+      return returned!;
+    }});
+    return view;
+  }
+
+  function isInstalledSourceInitializationRetired(services: object) {
+    const original = installations.get(services);
+    return original !== undefined && original.material?.phase === 'retired';
+  }
+
+  function retireInstalledSourceInitialization(services: object) {
+    const original = installations.get(services);
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = original.material;
+    if (material === undefined || material.phase === 'retired') return true;
+    if (material.phase === 'opening' || material.busy) return false;
+    if (material.ioPending !== 0 || material.constructors !== 0) return false;
+    if (material.contexts.some(scope => scope.source !== undefined && scope.closed !== true)) return false;
+    for (const child of material.cleanup) {
+      if (typeof child.method !== 'function') return false;
+      const value = Reflect.apply(child.method, child.handle, []);
+      if (Object.getOwnPropertyDescriptor(value ?? {}, 'pending')?.value !== false) return false;
+    }
+    releaseFinishedSourceWorkspaces(material);
+    if (material.workspaces.size !== 0) return false;
+    material.phase = 'retiring';
+    if (material.capacity === undefined && material.unit === undefined) return false;
+    const completed = sourceCall(original, material, material.capacity === undefined
+      ? 'AbortUncontinuedSourceMaterial' : 'RetireInstalledSourceMaterial',
+    [material.capacity ?? material.unit, material.input]);
+    if (completed === true) {
+      for (const scope of material.contexts) {
+        scope.prepared = scope.source = scope.installation = scope.baseEnvironmentWire = undefined;
+        scope.commandDeclarationWire = undefined;scope.finishedSuccessfully = false;
+        scope.reader = scope.readerDemand = undefined;
+        scope.acquisitionContracts = undefined;
+      }
+      material.inputs.length = material.providers.length = material.contexts.length = material.cleanup.length = 0;
+      material.workspaces.clear();
+      material.io = material.configurationReader = material.sourceOriginal = material.environment = material.environmentWire = undefined;
+      material.retainEnvironmentNativeOriginal = undefined;
+      material.modelRetained = material.modelFailure = material.modelProviderIndex = undefined;
+      material.input = material.unit = material.capacity = material.methods = undefined;
+      original.initialPreparation = undefined;
+      material.phase = 'retired';
+      releaseRetiredInstalledEnvironmentComposition(services);
+    }
+    return completed;
+  }
+
+  return {sourceMaterial, sourceCall, reserveSource, reconcileSource,
     retainSourceFailure, requireSynchronousSourceConstruction, sourceProjectionMethods, freezeSourceProjection,
     retainCompletedSourceNativeConstruction, prepareSourceNativeInput, reserveSourceJsonConstruction,
-    retainCompletedSourceJson, prepareModelTaskInput, installedSourceConfigurationReader};
+    retainCompletedSourceJson, prepareModelTaskInput, installedSourceConfigurationReader, withInstalledSourceLoading,
+    installedSourceEnvironmentConstructionReader, reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
+    completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
+    isInstalledSourceInitializationRetired, retireInstalledSourceInitialization};
 }

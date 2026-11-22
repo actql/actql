@@ -64574,7 +64574,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "const selected = installedCheckEnvironmentInputs("
               },
               {
@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "aaa4b53a9ca2b5be8cb5cb5afa23941d03e7fa90c46f77b6a18efab47d1ee265",
+      "sha256": "736fd832c7712265e8723186985fb6d3ad235a521a5a731a34fcbe9f3f84925b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134430,25 +134430,6 @@
           "async": false
         },
         {
-          "name": "borrowInstalledSourceInitialization",
-          "parameters": [
-            "services",
-            "sourceOriginal",
-            "environment"
-          ],
-          "async": false
-        },
-        {
-          "name": "borrowInstalledSourceInitialization/view/init:environment/init:environment",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "borrowInstalledSourceInitialization/view/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "captureInstalledSourceServices",
           "parameters": [
             "receiver",
@@ -134476,17 +134457,6 @@
           "parameters": [
             "context",
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "completeInstalledSourceInitialization",
-          "parameters": [
-            "services",
-            "sourceOriginal",
-            "environment",
-            "environmentWire",
-            "environmentOriginal"
           ],
           "async": false
         },
@@ -135081,21 +135051,6 @@
           "async": false
         },
         {
-          "name": "installedSourceEnvironmentConstructionReader",
-          "parameters": [
-            "services",
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "isInstalledSourceInitializationRetired",
-          "parameters": [
-            "services"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledSourceAcquisitionContracts",
           "parameters": [
             "context",
@@ -135108,36 +135063,6 @@
           "name": "readInstalledSourceAcquisitionContract",
           "parameters": [
             "context",
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "reserveInstalledSourceEnvironment",
-          "parameters": [
-            "services",
-            "wires"
-          ],
-          "async": false
-        },
-        {
-          "name": "reserveInstalledSourceEnvironment/geometry/geometry",
-          "parameters": [
-            "wire",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "reserveInstalledSourceRuntimeIdentity",
-          "parameters": [
-            "services"
-          ],
-          "async": false
-        },
-        {
-          "name": "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
-          "parameters": [
             "path"
           ],
           "async": true
@@ -135170,28 +135095,6 @@
             "environment"
           ],
           "async": false
-        },
-        {
-          "name": "retireInstalledSourceInitialization",
-          "parameters": [
-            "services"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
-          "parameters": [
-            "scope"
-          ],
-          "async": false
-        },
-        {
-          "name": "withInstalledSourceLoading",
-          "parameters": [
-            "services",
-            "construct"
-          ],
-          "async": true
         }
       ],
       "imports": [
@@ -135200,7 +135103,6 @@
         "./account-construction.mjs",
         "./installed-authored-command.mjs",
         "./installed-check-environment-construction.mjs",
-        "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
@@ -135434,9 +135336,7 @@
           }
         },
         {
-          "operations": [
-            "reserveInstalledSourceEnvironment/geometry/geometry"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -135842,11 +135742,7 @@
             "bindInstalledSourceConstruction/current/current",
             "bindInstalledSourceConstruction/domain/domain/domain",
             "bindInstalledSourceConstruction/prepare/prepare/prepare",
-            "borrowInstalledSourceInitialization",
-            "borrowInstalledSourceInitialization/view/init:environment/init:environment",
-            "borrowInstalledSourceInitialization/view/init:release/init:release",
             "closeInstalledSourceConstruction",
-            "completeInstalledSourceInitialization",
             "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
@@ -135885,14 +135781,8 @@
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
             "finishInstalledSourceInitialization",
             "prepareInstalledSourceAcquisitionContracts",
-            "reserveInstalledSourceEnvironment",
-            "reserveInstalledSourceRuntimeIdentity",
-            "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
             "retainBoundInstalledSourceFailure",
             "retainInstalledSourceConstruction",
-            "retireInstalledSourceInitialization",
-            "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
-            "withInstalledSourceLoading",
             "fail/fail"
           ],
           "exports": [
@@ -136418,10 +136308,7 @@
           }
         },
         {
-          "operations": [
-            "installedSourceEnvironmentConstructionReader",
-            "isInstalledSourceInitializationRetired"
-          ],
+          "operations": [],
           "exports": [
             "installedSourceEnvironmentConstructionReader",
             "isInstalledSourceInitializationRetired"
@@ -136884,7 +136771,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-material-accounting.mjs",
-      "sha256": "59af11b37f11515ffc9cc678ab774881f06009b0b8c8248e45fe44b27d2398de",
+      "sha256": "49a4ae5c37fe60191da4ed95290d20e1a196461e9d8d3d8e7b5602cea86f0cd6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -136898,7 +136785,39 @@
             "reject",
             "sourceNativeThen",
             "installations",
-            "bindInstalledEnvironmentConstruction"
+            "bindInstalledEnvironmentConstruction",
+            "assertInstalledEnvironmentPublicationOriginal",
+            "releaseRetiredInstalledEnvironmentComposition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "sourceOriginal",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization/view/init:environment/init:environment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization/view/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/completeInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "sourceOriginal",
+            "environment",
+            "environmentWire",
+            "environmentOriginal"
           ],
           "async": false
         },
@@ -137078,6 +136997,21 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceEnvironmentConstructionReader",
+          "parameters": [
+            "services",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/isInstalledSourceInitializationRetired",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceMaterialAccounting/prepareModelTaskInput",
           "parameters": [
             "original",
@@ -137124,13 +137058,6 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceMaterialAccounting/releaseFinishedSourceWorkspaces",
-          "parameters": [
-            "material"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction",
           "parameters": [
             "material",
@@ -137151,6 +137078,36 @@
             "cause"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reserveInstalledSourceEnvironment",
+          "parameters": [
+            "services",
+            "wires"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reserveInstalledSourceEnvironment/geometry/geometry",
+          "parameters": [
+            "wire",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reserveInstalledSourceRuntimeIdentity",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
+          "parameters": [
+            "path"
+          ],
+          "async": true
         },
         {
           "name": "createInstalledSourceMaterialAccounting/reserveSource",
@@ -137215,20 +137172,26 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceMaterialAccounting/retireInstalledSourceInitialization",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/retireInstalledSourceInitialization/retireInstalledSourceInitialization",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceMaterialAccounting/sourceCall",
           "parameters": [
             "original",
             "material",
             "name",
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceMaterialAccounting/sourceIo",
-          "parameters": [
-            "original",
-            "material"
           ],
           "async": false
         },
@@ -137283,20 +137246,18 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceMaterialAccounting/sourceQuote",
+          "name": "createInstalledSourceMaterialAccounting/withInstalledSourceLoading",
           "parameters": [
-            "original",
-            "material",
-            "nodes",
-            "text",
-            "wire"
+            "services",
+            "construct"
           ],
-          "async": false
+          "async": true
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./installed-check-environment.mjs",
         "./installed-source-construction-geometry.mjs",
         "./source-profile-json.mjs",
         "node:util"
@@ -137308,6 +137269,10 @@
           "operations": [
             "<module>",
             "createInstalledSourceMaterialAccounting",
+            "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization",
+            "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization/view/init:environment/init:environment",
+            "createInstalledSourceMaterialAccounting/borrowInstalledSourceInitialization/view/init:release/init:release",
+            "createInstalledSourceMaterialAccounting/completeInstalledSourceInitialization",
             "createInstalledSourceMaterialAccounting/freezeSourceProjection",
             "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader",
             "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader",
@@ -137334,23 +137299,29 @@
             "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
             "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
             "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
+            "createInstalledSourceMaterialAccounting/installedSourceEnvironmentConstructionReader",
+            "createInstalledSourceMaterialAccounting/isInstalledSourceInitializationRetired",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput/add/add",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput/prepareModelTaskInput",
             "createInstalledSourceMaterialAccounting/prepareSourceNativeInput",
             "createInstalledSourceMaterialAccounting/reconcileSource",
-            "createInstalledSourceMaterialAccounting/releaseFinishedSourceWorkspaces",
             "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction",
             "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined",
             "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined#2",
+            "createInstalledSourceMaterialAccounting/reserveInstalledSourceEnvironment",
+            "createInstalledSourceMaterialAccounting/reserveInstalledSourceEnvironment/geometry/geometry",
+            "createInstalledSourceMaterialAccounting/reserveInstalledSourceRuntimeIdentity",
+            "createInstalledSourceMaterialAccounting/reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
             "createInstalledSourceMaterialAccounting/reserveSource",
             "createInstalledSourceMaterialAccounting/reserveSourceJsonConstruction",
             "createInstalledSourceMaterialAccounting/retainCompletedSourceJson",
             "createInstalledSourceMaterialAccounting/retainCompletedSourceJson/retainCompletedSourceJson",
             "createInstalledSourceMaterialAccounting/retainCompletedSourceNativeConstruction",
             "createInstalledSourceMaterialAccounting/retainSourceFailure",
+            "createInstalledSourceMaterialAccounting/retireInstalledSourceInitialization",
+            "createInstalledSourceMaterialAccounting/retireInstalledSourceInitialization/retireInstalledSourceInitialization",
             "createInstalledSourceMaterialAccounting/sourceCall",
-            "createInstalledSourceMaterialAccounting/sourceIo",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:begin/init:begin",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:charge/init:charge",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:finish/init:finish",
@@ -137358,7 +137329,7 @@
             "createInstalledSourceMaterialAccounting/sourceMaterial",
             "createInstalledSourceMaterialAccounting/sourceProjectionMethods",
             "createInstalledSourceMaterialAccounting/sourceProjectionMethods/sourceProjectionMethods",
-            "createInstalledSourceMaterialAccounting/sourceQuote"
+            "createInstalledSourceMaterialAccounting/withInstalledSourceLoading"
           ],
           "exports": [
             "createInstalledSourceMaterialAccounting"
@@ -137410,6 +137381,14 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "function installedSourceConfigurationReader"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function completeInstalledSourceInitialization"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function borrowInstalledSourceInitialization"
               }
             ],
             "identity": [
@@ -137419,7 +137398,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen, installations, bindInstalledEnvironmentConstruction})"
+                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen, installations, bindInstalledEnvironmentConstruction,"
               }
             ],
             "ownership": [
@@ -137434,6 +137413,10 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "original.material = material;"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function retireInstalledSourceInitialization"
               }
             ],
             "synchronization": [
@@ -137503,6 +137486,10 @@
               {
                 "path": "adapters/host-node/installed-profile-construction.actual.test.mjs",
                 "anchor": "same profile reader preserves native parse failure before pending original close"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "only the same Source retirement ACK releases retained composition state"
               }
             ]
           }
