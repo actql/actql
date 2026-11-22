@@ -113,7 +113,7 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-export function verifyNativeHttpPreparation(path,selected,item) {
+export function verifyNativeHttpPreparation(path,selected,item,{requireModelResolver = false} = {}) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
   for(const key of ['source','target'])assert.equal(body[key],selected[key]);
   const minimum=selected.target==='darwin-arm64'?'11.0':null;
@@ -123,7 +123,8 @@ export function verifyNativeHttpPreparation(path,selected,item) {
   assert.equal(body.tls.path,join(directory,'owned-tls/build.json'));
   assert.equal(body.component.path,join(directory,'component/build.json'));
   const tls=json(body.tls.path,body.tls),component=json(body.component.path,body.component);
-  const recipe=json(fileURLToPath(new URL('./native-http-component-source.json',import.meta.url)));
+  const recipePath = fileURLToPath(new URL('./native-http-component-source.json', import.meta.url));
+  const recipe = json(recipePath);
   for(const receipt of [tls,component]) {
     assert.equal(receipt.source,selected.source);assert.equal(receipt.target,selected.target);
     assert.equal(receipt.minimumMacOS,minimum);assert.equal(receipt.loaded,0);
@@ -139,13 +140,31 @@ export function verifyNativeHttpPreparation(path,selected,item) {
   assert.equal(component.library.path,join(directory,'component/bundle',
     selected.target==='darwin-arm64'?'libcurl.4.dylib':'libcurl.so.4'));
   verifyOriginal(component.library);
+  if (requireModelResolver) {
+    const resolver = component.modelResolver;
+    assert(resolver && resolver.backend === 'c-ares' && resolver.addressLookup === 'c-ares',
+      'The existing HTTP preparation did not select the Model resolver');
+    assert.equal(component.recipe_sha256, checksum(readFileSync(recipePath)));
+    const resolverRecipe = readFileSync(new URL('./native-model-http-resolver-source.json', import.meta.url));
+    assert.equal(resolver.recipe_sha256, checksum(resolverRecipe));
+    const pinned = JSON.parse(resolverRecipe);
+    assert.equal(resolver.version, pinned.version);
+    assert.deepEqual(resolver.allocatorPatch, pinned.allocatorPatch);
+    assert.equal(resolver.source.bytes, pinned.archive.bytes);
+    assert.equal(resolver.source.sha256, pinned.archive.sha256);
+    assert(component.inputs.some(item => item.path === resolver.source.path &&
+      item.bytes === resolver.source.bytes && item.sha256 === resolver.source.sha256));
+    assert.equal(resolver.staticLibrary.path, join(directory, 'component/resolver-input/lib/libcares.a'));
+    assert.equal(resolver.notice.path, join(directory, 'component/bundle/CARES-LICENSE.md'));
+    for (const original of [resolver.source, resolver.staticLibrary, resolver.notice]) verifyOriginal(original);
+  }
   return body.component.path;
 }
-export function preparedNativeHttpReceipt(root,selected) {
+export function preparedNativeHttpReceipt(root,selected,options) {
   const {root:canonical,record}=index(root,selected);
   assert(record.http,'Complete original HTTP preparation is required for Resident');
   const path=join(canonical,'http/preparation.json');assert.equal(record.http.path,path);
-  return verifyNativeHttpPreparation(path,selected,record.http);
+  return verifyNativeHttpPreparation(path,selected,record.http,options);
 }
 export function preparedNativeCommand(root,entry,selected) {
   const {root:canonical,record}=index(root,selected);

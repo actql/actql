@@ -20,6 +20,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 RECIPE = ROOT / 'scripts/native-http-component-source.json'
+MODEL_RESOLVER_RECIPE = ROOT / 'scripts/native-model-http-resolver-source.json'
 spec = importlib.util.spec_from_file_location(
     'native_original_inputs', ROOT / 'scripts/produce-native-remote-scoped-runtime.py')
 if spec is None or spec.loader is None:
@@ -35,6 +36,8 @@ CURL_EXPORTS = frozenset(('curl_global_init', 'curl_global_init_mem', 'curl_glob
     'curl_version', 'curl_version_info', 'curl_easy_init', 'curl_easy_setopt',
     'curl_easy_perform', 'curl_easy_getinfo', 'curl_easy_cleanup',
     'curl_easy_strerror', 'curl_slist_append', 'curl_slist_free_all'))
+MODEL_MULTI_EXPORTS = frozenset('curl_multi_' + name for name in (
+    'init', 'add_handle', 'perform', 'poll', 'info_read', 'remove_handle', 'cleanup'))
 
 
 def require(condition: bool, message: str) -> None:
@@ -51,6 +54,31 @@ def original(path: Path) -> dict:
             (after.st_dev, after.st_ino, after.st_mode, after.st_size,
              after.st_mtime_ns, after.st_ctime_ns), 'Input changed while read')
     return {**value, 'dev': str(after.st_dev), 'ino': str(after.st_ino), 'mode': str(after.st_mode)}
+
+
+def bind_model_resolver_allocator(source: Path, patch: dict) -> None:
+    # curl_global_init_mem selects these exact allocator functions before
+    # Curl_async_global_init. c-ares must never bypass them on scoped Reads.
+    path = source / patch['path']
+    before = path.read_bytes()
+    require(hashlib.sha256(before).hexdigest() == patch['beforeSha256'],
+            'Original curl resolver source differs')
+    old = b'  if(ares_library_init(ARES_LIB_INIT_ALL)) {'
+    new = (b'  if(ares_library_init_mem(ARES_LIB_INIT_ALL, Curl_cmalloc, Curl_cfree,\n'
+           b'                           Curl_crealloc)) {')
+    require(before.count(old) == 1, 'Original c-ares allocator boundary differs')
+    after = before.replace(old, new)
+    require(hashlib.sha256(after).hexdigest() == patch['afterSha256'],
+            'Bound curl resolver source differs')
+    path.write_bytes(after)
+
+
+def require_private_model_resolver(exports: str, imports: str) -> None:
+    # Dynamic symbols would let an ambient shared c-ares image override the
+    # static resolver or its allocator globals. Disallow both directions.
+    symbol = re.compile(r'(?:^|\s)_*ares(?:x)?_[a-zA-Z0-9_]+(?=@|\s|$)', re.M)
+    require(symbol.search(exports) is None and symbol.search(imports) is None,
+            'Model resolver symbols must remain private to the selected HTTP image')
 
 
 def inspect_linux_component(library: Path, dynamic: str, exports: str) -> list[str]:
@@ -78,7 +106,8 @@ def inspect_linux_component(library: Path, dynamic: str, exports: str) -> list[s
 def build(source: str, archive: Path, signature: Path, keyring: Path,
           openssl: Path, clang: Path, sdk: Path | None, make: Path, gpgv: Path,
           destination: Path, seconds: int, owned_openssl_receipt: Path | None = None,
-          target: str = 'darwin-arm64', minimum_macos: str | None = None) -> dict:
+          target: str = 'darwin-arm64', minimum_macos: str | None = None, *,
+          model_resolver_archive: Path | None = None) -> dict:
     actual = ('darwin-arm64' if sys.platform == 'darwin' and platform.machine() == 'arm64'
               else 'linux-x64' if sys.platform == 'linux' and platform.machine() == 'x86_64' else None)
     require(actual == target, 'Selected HTTP component target differs')
@@ -110,6 +139,15 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
                 Path(__file__).resolve(), ROOT / 'scripts/produce-native-remote-scoped-runtime.py',
                 ROOT / 'scripts/produce-native-http-tls.py',
                 clang, make, gpgv, Path(sys.executable).resolve(), nm]
+    if model_resolver_archive is not None:
+        require(owned_openssl_receipt is not None,
+                'Model HTTP requires the original owned TLS receipt')
+        resolver = json.loads(MODEL_RESOLVER_RECIPE.read_bytes())
+        resolver_recipe = original(MODEL_RESOLVER_RECIPE)
+        resolver_original = original(model_resolver_archive)
+        require({key: resolver_original[key] for key in ('bytes', 'sha256')} ==
+                resolver['archive'], 'Selected Model resolver source differs')
+        selected.extend([MODEL_RESOLVER_RECIPE, model_resolver_archive])
     if sdk is not None:
         selected.extend([sdk / 'SDKSettings.json', Path('/usr/bin/otool'),
                          Path('/usr/bin/codesign'), Path('/usr/bin/install_name_tool')])
@@ -168,6 +206,36 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
         require(result.returncode == 0, 'HTTP component command failed: ' + name)
         return result.stdout
 
+    model_resolver = None
+    model_configure = []
+    if model_resolver_archive is not None:
+        resolver_top = 'c-ares-' + resolver['version']
+        resolver_build = destination / 'resolver-build'
+        resolver_build.mkdir()
+        with tarfile.open(model_resolver_archive, 'r:gz') as tar:
+            members = tar.getmembers()
+            require(sum(item.size for item in members) <= 16 * 1024 * 1024 and
+                    all(item.name == resolver_top or item.name.startswith(resolver_top + '/')
+                        for item in members), 'Unexpected Model resolver archive layout')
+            tar.extractall(resolver_build, filter='data')
+        resolver_source = resolver_build / resolver_top
+        resolver_prefix = destination / 'resolver-input'
+        run('configure-model-resolver', ['/bin/sh', str(resolver_source / 'configure'),
+            '--prefix=' + str(resolver_prefix), '--disable-shared', '--enable-static',
+            '--disable-tests', '--disable-cares-threads'], resolver_source)
+        run('build-model-resolver', [str(make), '-j1'], resolver_source)
+        run('stage-model-resolver', [str(make), 'install'], resolver_source)
+        resolver_library = resolver_prefix / 'lib/libcares.a'
+        require(resolver_library.is_file() and not resolver_library.is_symlink(),
+                'Static Model resolver original is unavailable')
+        model_resolver = {'source': resolver_original, 'version': resolver['version'],
+                          'recipe_sha256': resolver_recipe['sha256'],
+                          'backend': 'c-ares', 'addressLookup': 'c-ares',
+                          'allocatorPatch': resolver['allocatorPatch'],
+                          'staticLibrary': original(resolver_library)}
+        model_configure = ['--enable-ares=' + str(resolver_prefix),
+                           '--disable-threaded-resolver', '--disable-httpsrr']
+
     keyhome = destination / 'public-key-verifier'
     keyhome.mkdir(mode=0o700)
     verified = run('verify-signed-source', [str(gpgv), '--homedir', str(keyhome),
@@ -196,13 +264,22 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
                     'Unexpected selected source archive layout')
             tar.extractall(stage, filter='data')
         source_root = stage / top
+        if model_resolver is not None:
+            bind_model_resolver_allocator(source_root, model_resolver['allocatorPatch'])
         build_root = destination / 'build'
         build_root.mkdir()
         configuration = run('configure', ['/bin/sh', str(source_root / 'configure'),
             '--prefix=/actql-native-http-component', '--with-openssl=' + str(prefix),
-            *recipe['configure']], build_root)
+            *recipe['configure'], *model_configure], build_root)
         require('unrecognized options' not in configuration and 'unrecognized options' not in
                 (destination / 'configure.stderr').read_text(), 'Unknown component configure option')
+        if model_resolver is not None:
+            config = (build_root / 'lib/curl_config.h').read_text()
+            require(re.search(r'^#define USE_RESOLV_ARES 1$', config, re.M) is not None and
+                    re.search(r'^#define HAVE_GETADDRINFO 1$', config, re.M) is not None and
+                    re.search(r'^#define USE_(?:RESOLV_THREADED|HTTPSRR)\b', config, re.M) is None and
+                    re.search(r'^\s*resolver:\s+c-ares\s*$', configuration, re.M) is not None,
+                    'HTTP configure did not select c-ares address lookups exclusively')
         build_command = [str(make), '-C', 'lib', '-j1', 'V=1']
         if owned_openssl_receipt is not None:
             physical_adapter = destination / 'component-tls-lifetime.o'
@@ -232,6 +309,20 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
                 owned_openssl_receipt, run)
         shutil.copy2(source_root / 'COPYING', bundle / 'CURL-COPYING')
         shutil.copy2(openssl / 'LICENSE.txt', bundle / 'OPENSSL-LICENSE.txt')
+        if model_resolver is not None:
+            exports = (destination / 'observed-exports.stdout').read_text()
+            imports = (destination / 'observed-imports.stdout').read_text()
+            require_private_model_resolver(exports, imports)
+            names = {line.split()[-1].split('@', 1)[0] for line in
+                     exports.splitlines() if line.strip()}
+            prefix_name = '_' if sdk is not None else ''
+            require({prefix_name + name for name in MODEL_MULTI_EXPORTS} <= names,
+                    'Original Model HTTP multi operations are missing')
+            require(original(resolver_library) == model_resolver['staticLibrary'],
+                    'Original Model resolver changed during HTTP production')
+            notice = bundle / 'CARES-LICENSE.md'
+            shutil.copy2(resolver_source / 'LICENSE.md', notice)
+            model_resolver['notice'] = original(notice)
     finally:
         returned = []
         for path, target_path in reversed(loans):
@@ -250,6 +341,8 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
                'minimumMacOS': minimum_macos, 'systemDependencies': observed_dependencies,
                'scope': 'File-backed dependency only. No Native Host/Read funding, transport/thread stop or runtime acceptance.'}
     receipt['ownedOpenSSLReceipt'] = original(owned_openssl_receipt) if owned_openssl_receipt else None
+    if model_resolver is not None:
+        receipt['modelResolver'] = model_resolver
     (destination / 'build.json').write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt
 
@@ -299,7 +392,9 @@ if __name__ == '__main__':
     parser.add_argument('--minimum-macos', choices=('11.0', '26.0'))
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--owned-openssl-receipt', type=Path)
+    parser.add_argument('--model-resolver-archive', type=Path)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.archive, args.signature, args.keyring,
         args.openssl, args.clang, args.sdk, args.make, args.gpgv, args.destination, args.seconds,
-        args.owned_openssl_receipt, args.target, args.minimum_macos)))
+        args.owned_openssl_receipt, args.target, args.minimum_macos,
+        model_resolver_archive=args.model_resolver_archive)))

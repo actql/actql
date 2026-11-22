@@ -88,6 +88,12 @@ test('Resident preparation retains the exact same-source owned TLS and HTTP orig
   f.publishHttp();
   assert.equal(preparedNativeHttpReceipt(f.root,f.selected),f.componentPath);
 });
+test('Model HTTP cannot select a historical Resident preparation without the Model resolver', t => {
+  const f = httpPreparation(t);
+  assert.equal(preparedNativeHttpReceipt(f.root, f.selected), f.componentPath);
+  assert.throws(() => preparedNativeHttpReceipt(f.root, f.selected, {requireModelResolver: true}),
+    /did not select the Model resolver/u);
+});
 test('Resident prepared originals refuse unsafe numbers or noncanonical decimal identities',t=>{
   for(const identity of [2**60,'01','+1','1e3','-1','18446744073709551616']) {
     const f=httpPreparation(t);f.component.library.ino=identity;f.publishHttp();
