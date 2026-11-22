@@ -2430,6 +2430,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const cursorSourceCapacity = moon.clientProgramInstalledJsonCursorSourceReaderCapacity;
   const cursorSourceRequestCapacity = moon.clientProgramInstalledJsonCursorSourceReaderCapacityWithRequest;
+  const identityCursorSourceRequestCapacity = moon.clientProgramInstalledJsonIdentityCursorSourceReaderCapacityWithRequest;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
   const current = () => {
@@ -2493,11 +2494,15 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const preservingResponse = Object.hasOwn(fields, 'preservingRequestConstruction');
       // Trusted Source construction selects its actual representation. Program
       // DATA and Account policy do not choose a cheaper quote or another mode.
-      const cursorProgress = Object.hasOwn(fields, 'cursorProgress');
-      if (cursorProgress && (!Object.hasOwn(fields.cursorProgress, 'value') ||
-          fields.cursorProgress.value !== true ||
-          preservingResponse || Object.hasOwn(fields, 'readSequenceConstruction'))) {
-        fail('InvalidInstalledSourceReaderSelection');
+      let cursorProgress;
+      if (Object.hasOwn(fields, 'cursorProgress')) {
+        if (!Object.hasOwn(fields.cursorProgress, 'value') ||
+            (fields.cursorProgress.value !== true && fields.cursorProgress.value !== 'codec-identities') ||
+            preservingResponse || Object.hasOwn(fields, 'readSequenceConstruction') ||
+            (fields.cursorProgress.value === 'codec-identities' && !Object.hasOwn(fields, 'requestConstruction'))) {
+          fail('InvalidInstalledSourceReaderSelection');
+        }
+        cursorProgress = fields.cursorProgress.value;
       }
       let requestConstruction;
       if (Object.hasOwn(fields, 'requestConstruction') || preservingResponse) {
@@ -2562,7 +2567,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
-      const selectedRequestCapacity = cursorProgress ? cursorSourceRequestCapacity
+      const selectedRequestCapacity = cursorProgress === 'codec-identities' ? identityCursorSourceRequestCapacity
+        : cursorProgress ? cursorSourceRequestCapacity
         : preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
       const selectedPageCapacity = cursorProgress ? cursorSourceCapacity : sourceCapacity;
       if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&

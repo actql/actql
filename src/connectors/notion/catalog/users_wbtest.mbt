@@ -183,6 +183,42 @@ test "Notion duplicate identities and page bounds cannot become truncated succes
 }
 
 ///|
+test "Notion identity progress compares exact typed IDs before retaining a complete page" {
+  let first = project(
+    (
+      #|{"object":"list","type":"user","user":{},"has_more":true,"next_cursor":"next","results":[{"object":"user","id":"a"}]}
+    ),
+  ).unwrap()
+  let duplicate = project(
+    (
+      #|{"object":"list","type":"user","user":{},"has_more":false,"next_cursor":null,"results":[{"object":"user","id":"b"},{"object":"user","id":"a"}]}
+    ),
+  ).unwrap()
+  let last = project(
+    (
+      #|{"object":"list","type":"user","user":{},"has_more":false,"next_cursor":null,"results":[{"object":"user","id":"b"},{"object":"user","id":"c"}]}
+    ),
+  ).unwrap()
+  let progress = prepare_notion_user_list_identity_progress(3).unwrap()
+  track_notion_user_list_page_identities(progress, first).unwrap()
+  assert_eq(
+    track_notion_user_list_page_identities(progress, duplicate),
+    Err(DuplicateUser),
+  )
+  track_notion_user_list_page_identities(progress, last).unwrap()
+  assert_eq(
+    track_notion_user_list_page_identities(progress, first),
+    Err(BudgetExceeded),
+  )
+  let short = prepare_notion_user_list_identity_progress(2).unwrap()
+  track_notion_user_list_page_identities(short, first).unwrap()
+  assert_eq(
+    track_notion_user_list_page_identities(short, last),
+    Err(BudgetExceeded),
+  )
+}
+
+///|
 test "Notion exact cell text node identity and response byte boundaries retain full refusal" {
   let body =
     #|{"object":"list","type":"user","user":{},"results":[{"object":"user","id":"u","name":"N","type":"person","person":{"email":"a"}}],"has_more":false,"next_cursor":null}
@@ -279,6 +315,27 @@ test "Notion cursor metadata uses exact bounded writer output" {
   assert_eq(
     notion_user_list_metadata_wire(page, bytes, 1, 8),
     Err(BudgetExceeded),
+  )
+  assert_eq(
+    notion_user_list_checked_metadata(page, bytes, 3, 1).unwrap(),
+    (0, Some("é")),
+  )
+  for bound in [(bytes - 1, 3, 1), (bytes, 2, 1)] {
+    let (max_bytes, max_nodes, max_depth) = bound
+    assert_true(
+      notion_user_list_metadata_wire(page, max_bytes, max_nodes, max_depth)
+      is Err(BudgetExceeded),
+    )
+    assert_true(
+      notion_user_list_checked_metadata(page, max_bytes, max_nodes, max_depth)
+      is Err(BudgetExceeded),
+    )
+  }
+  assert_true(
+    notion_user_list_metadata_wire(page, bytes, 3, 0) is Err(InvalidLimits),
+  )
+  assert_true(
+    notion_user_list_checked_metadata(page, bytes, 3, 0) is Err(InvalidLimits),
   )
 }
 

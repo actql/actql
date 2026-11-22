@@ -31,6 +31,14 @@ pub struct NotionUserListPage {
 }
 
 ///|
+/// Cross-page identity DATA of one provider reader. Its selected reader
+/// capacity accounts for the map and original bounded ID strings.
+pub struct NotionUserListIdentityProgress {
+  priv max_rows : Int
+  priv seen : Map[String, Bool]
+}
+
+///|
 pub fn notion_user_list_column_names() -> Array[String] {
   ["id", "name", "type", "email"]
 }
@@ -235,17 +243,94 @@ pub fn project_notion_user_list(
 
 ///|
 pub fn notion_user_list_ids(page : NotionUserListPage) -> Array[String] {
-  page.rows.map(row => {
-    match row[0].value {
-      @admitted.Text(id) => id
-      _ => abort("checked Notion user identity invariant")
+  page.rows.map(notion_user_id)
+}
+
+///|
+fn notion_user_id(row : Array[@admitted.CheckedValue]) -> String {
+  match row[0].value {
+    @admitted.Text(id) => id
+    _ => abort("checked Notion user identity invariant")
+  }
+}
+
+///|
+pub fn prepare_notion_user_list_identity_progress(
+  max_rows : Int,
+) -> Result[NotionUserListIdentityProgress, NotionUserListIssue] {
+  if max_rows < 1 {
+    return Err(InvalidLimits)
+  }
+  Ok({ max_rows, seen: Default::default(), })
+}
+
+///|
+/// The page decoder already checked uniqueness inside this page. Compare its
+/// exact typed IDs to the retained prefix before growing the original map.
+pub fn track_notion_user_list_page_identities(
+  progress : NotionUserListIdentityProgress,
+  page : NotionUserListPage,
+) -> Result[Unit, NotionUserListIssue] {
+  if page.rows.length() > progress.max_rows - progress.seen.length() {
+    return Err(BudgetExceeded)
+  }
+  for row in page.rows {
+    if progress.seen.contains(notion_user_id(row)) {
+      return Err(DuplicateUser)
     }
-  })
+  }
+  for row in page.rows {
+    progress.seen[notion_user_id(row)] = true
+  }
+  Ok(())
 }
 
 ///|
 pub fn notion_user_list_row_count(page : NotionUserListPage) -> Int {
   page.rows.length()
+}
+
+///|
+fn write_notion_user_list_metadata(
+  page : NotionUserListPage,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_ordered_object(writer)
+  @encode.ordered_key(writer, "nextCursor")
+  match page.next_cursor {
+    Some(cursor) => @encode.string_value(writer, cursor)
+    None => @encode.null_value(writer)
+  }
+  @encode.ordered_key(writer, "rowCount")
+  @encode.number_value(writer, notion_user_list_row_count(page).to_double())
+  @encode.end_object(writer)
+}
+
+///|
+/// Keep the existing byte, node and depth admission while returning the
+/// original scalar facts. The measuring writer retains no metadata JSON.
+pub fn notion_user_list_checked_metadata(
+  page : NotionUserListPage,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, String?), NotionUserListIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.measuring_writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    write_notion_user_list_metadata(page, writer)
+    ignore(@encode.finish_measurement(writer))
+    Ok((notion_user_list_row_count(page), page.next_cursor))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
 }
 
 ///|
@@ -262,15 +347,7 @@ pub fn notion_user_list_metadata_wire(
     _ => return Err(BudgetExceeded)
   }
   try {
-    @encode.begin_ordered_object(writer)
-    @encode.ordered_key(writer, "nextCursor")
-    match page.next_cursor {
-      Some(cursor) => @encode.string_value(writer, cursor)
-      None => @encode.null_value(writer)
-    }
-    @encode.ordered_key(writer, "rowCount")
-    @encode.number_value(writer, page.rows.length().to_double())
-    @encode.end_object(writer)
+    write_notion_user_list_metadata(page, writer)
     Ok(@encode.finish(writer))
   } catch {
     _ => {

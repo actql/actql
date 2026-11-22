@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "9f0d4d10dd83c4d2757b1f2bc5e092a95a000f4cb5c6abcf9f634f0897ba96a1",
+      "sha256": "83178dadc15b2c7ad40ffe2de5dd42e508a41b885e76f48435b5ba8d0e1d761d",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -187,6 +187,10 @@
             ],
             "verification": [
               {
+                "path": "src/connectors/notion/catalog/users_wbtest.mbt",
+                "anchor": "Notion cursor metadata uses exact bounded writer output"
+              },
+              {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
               },
@@ -209,6 +213,10 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion cross-page IDs stay checked when selected output omits identity"
               }
             ]
           }
@@ -1440,7 +1448,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "3a7f40888478d3b9dad40e80b2c34bf50a19bc5e22aac4e11c92017768511221",
+      "sha256": "2a12b3e2fe0b0839345ba398cd27d58ee9e1abcc81613b2754d84475c8cd8fc1",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1723,6 +1731,10 @@
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
               }
             ]
           }

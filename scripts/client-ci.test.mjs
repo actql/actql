@@ -266,6 +266,7 @@ for (const status of [0, 73]) test(`REST compiled-boundary runner preserves ${st
     'REST actual checked GET capacity preserves original reference Options',
     'REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
     'REST actual Common cursor capacity uses the original domain representation',
+    'REST actual Common codec identity capacity retains the same request',
   ]);
   assert.equal(options.expectedTests, selected.length);
   assert(options.timeout > 0 && options.timeout <= 120000);
