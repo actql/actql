@@ -18,6 +18,8 @@ pub enum PreparedAnalyticFunction {
   PreparedRowNumber
   PreparedRank
   PreparedDenseRank
+  PreparedPercentRank
+  PreparedNtile(Int64)
   PreparedLag(Expression, Int64)
   PreparedLead(Expression, Int64)
   PreparedFirstValue(Expression)
@@ -32,6 +34,7 @@ struct PreparedAnalyticCall {
   result : @contract.Contract
   argument_source : AnalyticSource?
   filter_source : AnalyticSource?
+  fallback : (Expression, AnalyticSource)?
 }
 
 ///|
@@ -186,13 +189,12 @@ pub fn prepare_analytic(
       return Err(AnalyticPreparationLimit)
     }
   }
+  let explicit_frame = @relation.analytic_frame(analytic) is Some(_)
   let mut requires_position = false
   for i in 0..<call_count {
     let call = @relation.analytic_call_at(analytic, i).unwrap()
-    match call.function {
-      @relation.Rank | @relation.DenseRank => ()
-      _ => requires_position = true
-    }
+    requires_position = requires_position ||
+      @relation.analytic_function_needs_position(call.function, explicit_frame)
   }
   let position_completion : Array[@schema.FieldName] = []
   let mut retained_position_order = false
@@ -265,7 +267,13 @@ pub fn prepare_analytic(
       @relation.RowNumber => PreparedRowNumber
       @relation.Rank => PreparedRank
       @relation.DenseRank => PreparedDenseRank
-      @relation.Lag(argument~, offset~) => {
+      @relation.PercentRank => PreparedPercentRank
+      @relation.Ntile(buckets) =>
+        match resolve_count(buckets, 1L) {
+          Ok(value) => PreparedNtile(value)
+          Err(issue) => return Err(issue)
+        }
+      @relation.Lag(argument~, offset~, ..) => {
         let expression = match lower(argument) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -276,7 +284,7 @@ pub fn prepare_analytic(
         }
         PreparedLag(expression, offset)
       }
-      @relation.Lead(argument~, offset~) => {
+      @relation.Lead(argument~, offset~, ..) => {
         let expression = match lower(argument) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -367,7 +375,25 @@ pub fn prepare_analytic(
           },
           aggregate.filter,
         )
-      PreparedRowNumber | PreparedRank | PreparedDenseRank => (None, None)
+      PreparedRowNumber
+      | PreparedRank
+      | PreparedDenseRank
+      | PreparedPercentRank
+      | PreparedNtile(_) => (None, None)
+    }
+    let fallback = match call.function {
+      @relation.Lag(fallback=Some(index), ..)
+      | @relation.Lead(fallback=Some(index), ..) => {
+        if entries >= max_entries {
+          return Err(AnalyticPreparationLimit)
+        }
+        entries += 1
+        match lower(index) {
+          Ok(expression) => Some(expression)
+          Err(issue) => return Err(issue)
+        }
+      }
+      _ => None
     }
     let prepare_source = fn(
       expression : Expression?,
@@ -389,12 +415,22 @@ pub fn prepare_analytic(
       Ok(source) => source
       Err(issue) => return Err(issue)
     }
+    let fallback = match fallback {
+      None => None
+      Some(expression) =>
+        match prepare_source(Some(expression)) {
+          Ok(Some(source)) => Some((expression, source))
+          Ok(None) => return Err(InvalidAnalyticCall(i))
+          Err(issue) => return Err(issue)
+        }
+    }
     calls.push({
       name: call.name,
       function,
       result: call.result,
       argument_source,
       filter_source,
+      fallback,
     })
   }
   Ok(
@@ -522,6 +558,11 @@ pub fn analytic_call_function(
   value : PreparedAnalyticCall,
 ) -> PreparedAnalyticFunction {
   value.function
+}
+
+///|
+pub fn analytic_call_default(call : PreparedAnalyticCall) -> Expression? {
+  call.fallback.map(pair => pair.0)
 }
 
 ///|
@@ -663,7 +704,21 @@ fn emit_analytic_params(
         @encode.key(out, "fn")
         @encode.string_value(out, "dense_rank")
       }
+      PreparedPercentRank => {
+        @encode.key(out, "fn")
+        @encode.string_value(out, "percent_rank")
+      }
+      PreparedNtile(buckets) => {
+        @encode.key(out, "buckets")
+        @encode.number_value(out, buckets.to_double())
+        @encode.key(out, "fn")
+        @encode.string_value(out, "ntile")
+      }
       PreparedLag(_, offset) | PreparedLead(_, offset) => {
+        if call.fallback is Some((_, source)) {
+          @encode.key(out, "default")
+          emit_analytic_source(source, out)
+        }
         guard call.argument_source is Some(source) else {
           raise @encode.InvalidStructure
         }

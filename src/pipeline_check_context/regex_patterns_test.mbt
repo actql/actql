@@ -323,3 +323,37 @@ test "regex source and AST budgets accumulate and late failures expose no prefix
     is Err(Pattern(5, @regex.InvalidSyntax(1))),
   )
 }
+
+///|
+test "regex omitted capture uses the original bound pattern before any input demand" {
+  let steps =
+    #|[{"derive":{"x":{"regex_extract":{"value":{"literal":null},"pattern":{"$param":"p"}}}}}]
+  let parameters =
+    #|{"p":{"type":"string","default":"wrong("}}
+  for (bound_value, index) in [("a", 0), ("(a)", 1), ("(a)(b)", 2)] {
+    let supplied =
+      #|{"p":"PATTERN"}
+    let context = regex_fixture(
+      "",
+      steps=Some(steps),
+      parameters~,
+      supplied=Some(cursor(supplied.replace(old="PATTERN", new=bound_value))),
+    )
+    let checked = check_regex_patterns(context, regex_limits())
+    if index == 2 {
+      assert_true(checked is Err(MultipleCaptures(_)))
+    } else {
+      let resolution = regex_pattern_at(checked.unwrap(), 0).unwrap()
+      assert_true(
+        regex_pattern_operation(resolution) is Extract(capture) &&
+        capture == index,
+      )
+      let bound = regex_pattern_parameter(resolution).unwrap()
+      assert_true(bound.origin is @parameter.Supplied)
+      assert_true(
+        bound.value.value is @value.Text(original) && original == bound_value,
+      )
+      assert_true(regex_option_parameter(resolution) is None)
+    }
+  }
+}

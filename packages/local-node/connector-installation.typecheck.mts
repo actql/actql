@@ -9,7 +9,7 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
-  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, InstalledRowEffectOptions,
+  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, RowEffectUpdateWrite, RowEffectUpdateConstructionProvider, InstalledRowEffectOptions,
   RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from '@actql/local-node';
@@ -158,6 +158,51 @@ declare const originalCreateDriver: RowEffectDriver<CreateRequest, unknown, 'cre
 const conflictingCreate = createInstalledRowEffect({...standardHostOptions, write: standardWrite, driver: originalCreateDriver});
 // @ts-expect-error Standard CREATE [mode-missing]: An implementation cannot be absent.
 const missingCreate = createInstalledRowEffect<CreateRequest>({...standardHostOptions});
+type DeclaredUpdateRequest = Readonly<{body: string}>;
+declare const compiledUpdateProvider: RowEffectUpdateConstructionProvider;
+const updateTransport = Object.freeze({maxRequestBytes: 128, maxResponseBytes: 128, maxTargetBytes: 80});
+declare const standardUpdateHost: Omit<InstalledRowEffectOptions<DeclaredUpdateRequest, unknown, 'update'>, 'driver' | 'write'>;
+const standardUpdateWrite: RowEffectUpdateWrite<DeclaredUpdateRequest> = {
+  kind: 'update', operation: 'records.update', transport: updateTransport,
+  targetRead: {operation: 'records.read', transport: updateTransport},
+  prepareRequest: ({value}) => ({request: {body: JSON.stringify(value)}, requestCid: 'original'}),
+  requestFacts: request => ({value: {name: request.body}, target: 'record'}),
+  requestCid: () => 'original',
+  prepareUpdateWrite(member, request, _current, origin, registration, signal) {
+    void [member, origin, registration];
+    signal?.throwIfAborted();
+    return {method: 'PUT', path: '/records', body: request.body};
+  },
+  async observeTargets({readTarget, entries}) {
+    const headRequest = {method: 'HEAD', path: '/records'} as const;
+    // @ts-expect-error The declared target slot supports GET and POST only.
+    void readTarget(0, headRequest, response => ({identity: 'record',
+      versionCid: response.useCid, before: {name: 'original'}}), () => {});
+    const rows = [];
+    for (const [index] of entries.entries()) {
+      rows.push(await readTarget(index, {method: 'GET', path: '/records'},
+        response => ({identity: 'record', versionCid: response.useCid, before: {name: 'original'}}), () => {}));
+    }
+    return rows;
+  },
+  project: () => ({kind: 'unclassified-response'}),
+  footprint: () => ({providerNamespace: 'records', resourceKind: 'record', boundaryCid: 'original'}),
+  recoveryEntry: ({entries}) => ({kind: 'record_update', observationCid: 'original', wire: JSON.stringify(entries)}),
+  recoverRequests: () => ({requests: []}),
+};
+const standardUpdate = createInstalledRowEffect<DeclaredUpdateRequest, unknown, 'update'>({...standardUpdateHost,
+  write: Object.freeze(standardUpdateWrite), providerMoon: compiledUpdateProvider});
+// @ts-expect-error Standard UPDATE requires the compiled implementation profile.
+const unpreparedUpdate = createInstalledRowEffect<DeclaredUpdateRequest, unknown, 'update'>({...standardUpdateHost, write: standardUpdateWrite});
+const asyncUpdate: RowEffectUpdateWrite<DeclaredUpdateRequest> = {...standardUpdateWrite,
+  // @ts-expect-error Standard UPDATE encodes synchronous request DATA.
+  prepareUpdateWrite: async (...args) => standardUpdateWrite.prepareUpdateWrite(...args),
+};
+const externalUpdateSend: RowEffectUpdateWrite<DeclaredUpdateRequest> = {...standardUpdateWrite,
+  // @ts-expect-error Standard UPDATE cannot take over physical sending.
+  send: () => undefined,
+};
+void [standardUpdate, unpreparedUpdate, asyncUpdate, externalUpdateSend];
 const asynchronousWrite: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
   // @ts-expect-error Standard CREATE [async-request]: Request mapping is synchronous DATA work.
   request: async input => standardWrite.request(input),

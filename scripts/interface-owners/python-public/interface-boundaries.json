@@ -5013,7 +5013,6 @@
         "CheckpointCandidateError",
         "ClientError",
         "Signer",
-        "base64",
         "bytes_cid",
         "canonical_bytes",
         "capture_signer",
@@ -5028,7 +5027,6 @@
         "._checkpoint_answer_codec",
         "._errors",
         "._values",
-        "base64",
         "collections.abc",
         "dataclasses",
         "inspect",
@@ -5083,7 +5081,7 @@
           ]
         }
       ],
-      "sha256": "23d6988858ab7104da2d3787e22f74af5efb113d967368f20542095e6e345f91",
+      "sha256": "7a0fa090bde07d3cc065b2e0021ad5b3f3c9154b5a223d3c50625be698441fff",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
@@ -5103,7 +5101,6 @@
             "CheckpointCandidateError",
             "ClientError",
             "Signer",
-            "base64",
             "bytes_cid",
             "canonical_bytes",
             "capture_signer",
@@ -10076,6 +10073,7 @@
         "._errors",
         "._values",
         "._wire_codec",
+        "base64",
         "collections",
         "json",
         "math",
@@ -10156,6 +10154,13 @@
           "parameters": [
             "fields",
             "context"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_encode_signer_signature",
+          "parameters": [
+            "value"
           ]
         },
         {
@@ -10313,7 +10318,7 @@
           ]
         }
       ],
-      "sha256": "69c07782bac441af81de4ad34b00612b02438041f9ddaa4f4e30420c9091d627",
+      "sha256": "64d8c9807fb5c772801a262ca612d649b0913a7c3638dfd9569cb3c511192ca2",
       "responsibilityFacet": "primary",
       "role": "public-wire-codec",
       "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
@@ -10332,6 +10337,7 @@
             "_capture/visit",
             "_cid",
             "_document",
+            "_encode_signer_signature",
             "_limits_of",
             "_present",
             "_quoted_bytes",

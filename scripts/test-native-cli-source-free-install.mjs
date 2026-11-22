@@ -19,6 +19,10 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
+import {assertPublicQueryRows, dateLiteralOriginal, timestampLiteralOriginal,
+  generateArrayOriginalCases, farmFingerprintOriginal, toJsonStringOriginal, jsonValueOriginals,
+  regexpContainsOriginal, arrayLengthOriginal, unixSecondsOriginal,
+  commaJoinOriginal} from './fixtures/public-query-input.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -95,8 +99,8 @@ export async function observeNativeSourceFreeCommand({args, cwd, cli, environmen
   return record;
 }
 
-// Independent expectations for the ordinary, unmodified init profile. These
-// cover Aggregate and Window semantics, unlike the separate large VALUES row-delivery case.
+// Independent scalar, aggregate and window expectations under the ordinary
+// init profile.
 export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'sum', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total FROM x', rows: [{total: 3}]},
   {name: 'average', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT AVG(n) AS total FROM x', rows: [{total: 1.5}]},
@@ -111,6 +115,19 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'window-sum', sql: 'WITH x AS (SELECT 2 AS id, 5 AS n UNION ALL SELECT 1 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: 3}, {id: 2, total: 8}]},
   {name: 'window-row-number', sql: 'WITH x AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS ordinal FROM x ORDER BY id', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
   {name: 'window-typed-null', sql: 'WITH x AS (SELECT 3 AS id, 5 AS n UNION ALL SELECT 1 AS id, CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
+  {name: dateLiteralOriginal.name, sql: dateLiteralOriginal.text, rows: dateLiteralOriginal.expected},
+  {name: timestampLiteralOriginal.name, sql: timestampLiteralOriginal.text, rows: timestampLiteralOriginal.expected},
+  ...generateArrayOriginalCases.map(({name, text, results}) => ({name, sql: text,
+    rows: results.main.rows, unordered: results.main.unordered})),
+  {name: farmFingerprintOriginal.name, sql: farmFingerprintOriginal.text,
+    rows: farmFingerprintOriginal.expected},
+  {name: toJsonStringOriginal.name, sql: toJsonStringOriginal.text,
+    rows: toJsonStringOriginal.expected},
+  ...jsonValueOriginals.map(({name, text, expected}) => ({name, sql: text, rows: expected})),
+  {name: regexpContainsOriginal.name, sql: regexpContainsOriginal.text,
+    rows: regexpContainsOriginal.expected},
+  ...[arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal]
+    .map(({name, text, expected}) => ({name, sql: text, rows: expected})),
 ]);
 
 export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {
@@ -118,6 +135,7 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   const cases = join(project, 'numeric-cases');
   await mkdir(cases, {mode: 0o700});
   const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const assertRows = (actual, entry) => assertPublicQueryRows(actual, entry.rows, entry.unordered);
   const observations = [];
   const retained = [];
   const currentProject = join(cases, 'ordinary');
@@ -141,7 +159,7 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
     assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
     assert(!retained.some(value => value.runId === state.run_id), 'Fresh submissions must have distinct original Runs');
-    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    assertRows(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry);
     // Every cli invocation is a separate process. Removing original inputs
     // makes a new prepare or reexecution unable to replace the saved Result.
     await unlink(join(currentProject, file));
@@ -149,7 +167,7 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
       await unlink(join(currentProject, 'numeric-declarations.json'));
       await unlink(join(currentProject, 'numeric-parameters.json'));
     }
-    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    assertRows(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry);
     retained.push({runId: state.run_id, entry});
     observations.push({name: entry.name, checkRunnable: 'yes', rows: entry.rows, coldSavedWithoutProgram: true});
   }
@@ -164,7 +182,7 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   // Later successful submissions and rejected checks must not evict the oldest
   // originals. These are Saved reads, never another run/sql or hidden Host.
   for (const {runId, entry} of retained) {
-    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    assertRows(rows((await cli(['result', runId, '--format', 'jsonl'], currentProject)).stdout), entry);
     observations.find(value => value.name === entry.name).savedAfterLaterSubmissions = true;
   }
   return observations;

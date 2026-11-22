@@ -13,10 +13,16 @@ pub fn bounded_analytic_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
   }
   for index in 0..<@lower.analytic_call_count(analytic) {
     let call = @lower.analytic_call_at(analytic, index).unwrap()
+    if @lower.analytic_call_default(call) is Some(fallback) &&
+      !@lower.expression_result_borrows_payload(fallback) {
+      return false
+    }
     match @lower.analytic_call_function(call) {
       @lower.PreparedRowNumber
       | @lower.PreparedRank
-      | @lower.PreparedDenseRank => ()
+      | @lower.PreparedDenseRank
+      | @lower.PreparedPercentRank
+      | @lower.PreparedNtile(_) => ()
       @lower.PreparedLag(expression, _)
       | @lower.PreparedLead(expression, _)
       | @lower.PreparedFirstValue(expression)
@@ -47,15 +53,17 @@ pub fn bounded_analytic_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 ///|
 // Every frame result is retained in evaluated[call][row] before output-row
 // admission. Price that complete staged Text independently of a tiny output
-// policy; no early row-admission or scratch-release credit is assumed. The
-// original output holding and each current frame's builder remain separate.
+// policy. AggregateString spends one unit per output UTF-8 byte on the same
+// nonrefilling control budget across all calls and rows, before construction.
+// The original output holding and each current frame's builder remain separate.
 pub fn bounded_analytic_staged_text_capacity(
   kernel : @lower.PreparedKernel,
   limits : SequenceExecutionLimits,
 ) -> Int64? {
   guard bounded_analytic_borrows_input(kernel) &&
     @lower.kernel_analytic(kernel) is Some(analytic) &&
-    limits.rows.max_rows >= 0 else {
+    limits.rows.max_rows >= 0 &&
+    limits.max_work >= 0 else {
     return None
   }
   let rows = limits.rows.max_rows.to_int64()
@@ -78,6 +86,10 @@ pub fn bounded_analytic_staged_text_capacity(
   }
   execution_capacity_inventory_bytes([
     { unit: ValueNodeSlots, count: nodes, copies: 1, },
-    { unit: DecodedTextBytes, count: bytes, copies: 1, },
+    {
+      unit: DecodedTextBytes,
+      count: Int64::min(bytes, limits.max_work.to_int64()),
+      copies: 1,
+    },
   ])
 }

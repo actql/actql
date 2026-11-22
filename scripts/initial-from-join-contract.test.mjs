@@ -29,8 +29,9 @@ test('only the two existing initial FROM productions gain their existing JOIN re
   for(const production of ['cte_pipe      =','pipe_query    =']) {
     const admitted=before.split(String.fromCharCode(10)).find(line=>line.startsWith(production));
     assert.ok(admitted.includes('carrier_source, { join }'));
-    assert.ok(current.split(String.fromCharCode(10)).includes(admitted));
+    assert.ok(current.split(String.fromCharCode(10)).includes(admitted.replace('{ join }','{ from_join }')));
   }
+  assert.equal(current.split('from_join     = join | ",", ( table_source, [ join_bound ] | unnest_source ) ;\n').length,2);
 });
 test('independent initial JOIN oracle retains NULL duplicate rows and public field order',()=>{
   const rows=vector.left_rows.flatMap(left=>vector.right_rows.filter(right=>left.id===right.id).map(right=>({id:left.id,amount:left.amount,tag:right.tag})));

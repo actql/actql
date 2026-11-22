@@ -138,3 +138,37 @@ test "nonempty cancellation retains the full existing nested Run validation fron
     Err(-42),
   )
 }
+
+///|
+test "Saved rebind observes the fresh cancellation witness on every invocation" {
+  let rows = cancellation_saved_rows()
+  let snapshot = targeted_original(rows)
+  let retained : StoredSavedResultRead = {
+    snapshot,
+    result_name: "answer",
+    fences: [],
+    source: None,
+    finite: None,
+    owner: None,
+    view: None,
+    schema_phase: -3,
+    advances_remaining: 1,
+  }
+  let scan = (table, cursor) => targeted_row_scan(rows, table, cursor)
+  let witness_reads = Ref(0)
+  let rebind = witness_available => {
+    rebind_saved_result_originals(retained, 1, scan, (table, key) => {
+      if table == "client_cancel_originals" {
+        witness_reads.val += 1
+        if !witness_available {
+          return Err(-71)
+        }
+      }
+      targeted_row_read(rows, table, key)
+    })
+  }
+  assert_eq(rebind(true), Ok(()))
+  assert_eq(rebind(false), Err(-71))
+  assert_eq(witness_reads.val, 2)
+  assert_true(physical_equal(retained.snapshot, snapshot))
+}

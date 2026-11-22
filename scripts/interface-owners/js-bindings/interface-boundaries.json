@@ -60863,9 +60863,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -66889,7 +66891,9 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
+          "parameters": [
+            "cut"
+          ],
           "async": false
         },
         {
@@ -66924,6 +66928,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
@@ -66949,6 +66960,13 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
           "parameters": [],
           "async": false
         },
@@ -69085,7 +69103,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dfe2261e264d53368bbe538eb0a4beb92e147a65f888898f3dbe3d55d141f2b0"
+      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -77986,7 +78004,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "63b2bcbacf9976c2a7d7891ed5f253eb5c783194174037cb9e6e0bd02cad59a9",
+      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -79849,7 +79867,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0c245d4b9a1c0d7aa9a6bd2b1722dab402941ab0ea3696412e15b1acaf75e220",
+      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -83758,7 +83776,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "36ee7b6fd2d4600428fa0a2fbbc4c4f6bf44ca06975fc177f2bb8075baeb1dac",
+      "sha256": "02a17135229e6ab80e6908261ffeccbe964b96334a1ba623f9156006d93074df",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84698,7 +84716,8 @@
             "input",
             "rowIndex",
             "slot",
-            "project"
+            "project",
+            "prepareOperations"
           ],
           "async": false
         },
@@ -84734,6 +84753,13 @@
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
+          "parameters": [
+            "readTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observeRows#2",
           "parameters": [
             "row",
             "index"
@@ -87430,6 +87456,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",

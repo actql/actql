@@ -79,6 +79,7 @@ pub(all) struct SortTerm {
 pub(all) enum GroupingScope {
   SqlSelect
   SqlSelectAll
+  SqlRollup(Array[Int])
   PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
@@ -332,6 +333,9 @@ pub fn is_source_free_scalar_projection(query : Query) -> Bool {
       | ContextualIntegerCompanion(_, _)
       | StringLiteral(_)
       | JsonLiteral(_)
+      | DateLiteral(_)
+      | DatePart(_)
+      | TimestampLiteral(_)
       | ParameterReference(_)
       | Property(_, _)
       | ArrayOffset(_, _, _)
@@ -498,6 +502,14 @@ fn sql_head(first : Token) -> Bool {
 }
 
 ///|
+fn sql_unnest_route(source : Tokens) -> Bool {
+  source.tokens.length() >= 3 &&
+  keyword(source.tokens[0], "FROM") &&
+  keyword(source.tokens[1], "UNNEST") &&
+  source.tokens[source.tokens.length() - 1].value == End
+}
+
+///|
 /// SQL is selected explicitly. A Pipe source must retain the AQL-text
 /// spelling, even though both lower through the same query representation.
 pub fn starts_sql(
@@ -505,12 +517,12 @@ pub fn starts_sql(
   limits : LexicalLimits,
   source_path? : String = "<query>",
 ) -> Result[Bool, Diagnostic] {
-  match scan_tokens(text, limits, source_path, true) {
+  match scan_tokens(text, limits, source_path, true, query_route=Some(true)) {
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
       if first.value != Symbol(40) {
-        return Ok(sql_head(first))
+        return Ok(sql_head(first) || sql_unnest_route(tokens))
       }
       // Inspect admitted tokens, not source substrings: parentheses and
       // comments do not change whether the head is SQL or FROM-headed Pipe.
@@ -670,6 +682,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           match scope {
             SqlSelect => SqlSelect
             SqlSelectAll => SqlSelectAll
+            SqlRollup(ends) => SqlRollup(ends.copy())
             PipeAggregate(names, embedded) =>
               PipeAggregate(names.copy(), embedded.copy())
           },
@@ -1460,7 +1473,11 @@ fn QueryParser::join_part(
   self : QueryParser,
 ) -> (JoinPart, Array[QueryBinding]) raise QueryAbort {
   self.node()
-  let kind = if self.has("INNER") {
+  let comma = self.peek().value == Symbol(44)
+  let kind = if comma {
+    ignore(self.advance())
+    "cross"
+  } else if self.has("INNER") {
     self.keyword("INNER")
     "inner"
   } else if self.has("LEFT") {
@@ -1487,7 +1504,9 @@ fn QueryParser::join_part(
   } else {
     "inner"
   }
-  self.keyword("JOIN")
+  if !comma {
+    self.keyword("JOIN")
+  }
   let (relation, source_alias, bindings, _, file_listing) = self.query_source()
   if kind == "cross" {
     return (
@@ -1980,7 +1999,8 @@ fn QueryParser::over(
 fn query_aggregate_function_name(name : String) -> Bool {
   [
     "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG", "VAR_POP",
-    "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+    "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "LOGICAL_AND",
+    "LOGICAL_OR", "ANY_VALUE",
   ].contains(upper_ascii(name))
 }
 
@@ -2159,6 +2179,76 @@ fn QueryParser::group_keys(
     ignore(self.advance())
   }
   keys
+}
+
+///|
+// A comma at the first pair of parentheses distinguishes a grouping item
+// set from a parenthesized scalar. All tokens visited here spend parser work.
+fn QueryParser::rollup_item_set(self : QueryParser) -> Bool raise QueryAbort {
+  if self.peek().value != Symbol(40) {
+    return false
+  }
+  let mut depth = 1
+  for index in (self.index + 1)..<self.source.tokens.length() {
+    self.spend(1)
+    match self.source.tokens[index].value {
+      Symbol(40) | Symbol(91) => depth += 1
+      Symbol(41) | Symbol(93) => {
+        depth -= 1
+        if depth == 0 {
+          return false
+        }
+      }
+      Symbol(44) if depth == 1 => return true
+      End => return false
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+fn QueryParser::rollup_keys(
+  self : QueryParser,
+) -> (Array[Expression], Array[Int]) raise QueryAbort {
+  self.keyword("GROUP")
+  self.keyword("BY")
+  self.keyword("ROLLUP")
+  self.symbol(40)
+  let keys : Array[Expression] = []
+  let ends : Array[Int] = []
+  while true {
+    let item_set = self.rollup_item_set()
+    if item_set {
+      self.symbol(40)
+    }
+    while true {
+      self.node()
+      keys.push(self.expression())
+      if !item_set || self.peek().value != Symbol(44) {
+        break
+      }
+      self.symbol(44)
+    }
+    if item_set {
+      self.symbol(41)
+    }
+    ends.push(keys.length())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    self.symbol(44)
+  }
+  self.symbol(41)
+  self.source.rollup_items += ends.length()
+  (keys, ends)
+}
+
+///|
+/// Count authored grouping items across the original parsed source, including
+/// nested queries. A parenthesized item set contributes one prefix boundary.
+pub fn rollup_item_count(query : Query) -> Int {
+  query.source.rollup_items
 }
 
 ///|
@@ -2505,7 +2595,24 @@ fn QueryParser::initial_from(
   let mut bindings = initial_ctes
   let mut file_listing = initial_file_listing
   let joins : Array[JoinPart] = []
-  while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
+  let mut comma_join_seen = false
+  while (!relation.is_empty() || !operations.is_empty()) &&
+        (self.starts_join() || self.peek().value == Symbol(44)) {
+    if self.peek().value == Symbol(44) {
+      comma_join_seen = true
+      if token_at(self.source, self.index + 1)
+        .map(token => keyword(token, "UNNEST"))
+        .unwrap_or(false) {
+        ignore(self.advance())
+        operations.push(self.unnest_source())
+        continue
+      }
+    } else if comma_join_seen && (self.has("RIGHT") || self.has("FULL")) {
+      raise QueryAbort(
+        "RIGHT or FULL JOIN cannot follow a comma join in the same FROM clause",
+        self.peek().start,
+      )
+    }
     if self.starts_correlated_unnest() {
       self.correlated_unnest(operations)
       continue
@@ -2627,6 +2734,14 @@ fn QueryParser::sql_term(
       self.keyword("BY")
       self.keyword("ALL")
       operations.push(Group([], group_projections, SqlSelectAll))
+    } else if self.source.tokens
+      .get(self.index + 2)
+      .map(token => keyword(token, "ROLLUP"))
+      .unwrap_or(false) &&
+      self.source.tokens.get(self.index + 3).map(token => token.value) ==
+      Some(Symbol(40)) {
+      let (keys, ends) = self.rollup_keys()
+      operations.push(Group(keys, group_projections, SqlRollup(ends)))
     } else {
       operations.push(Group(self.group_keys(), group_projections, SqlSelect))
     }
@@ -3012,8 +3127,8 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       })[0]
     for operation in term.operations {
       match operation {
-        Group(keys, projections, scope) if scope == SqlSelect ||
-          scope == SqlSelectAll => {
+        Group(keys, projections, scope) if scope
+          is (SqlSelect | SqlSelectAll | SqlRollup(_)) => {
           operations.push(Group(keys, projections + hidden, scope))
           grouped = true
         }

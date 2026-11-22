@@ -172,18 +172,18 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
       siteBindingCid = installedKintoneSiteBinding({contextCid: authorization.context.contextCid, runtimeBundleCid, metadataCid, site: siteProfile});
       generationCid = cid({version: 'actql-installed-kintone-effect-generation/0.1', siteBindingCid,
         environmentCid: prepared.environment.evidenceCid, mappingRef: mapped.mappingRef, mappingCid: mapped.mappingCid});
-      const driver = kintoneUpdateDriver({moon, site, authorization, connection, origin: siteProfile.apiOrigin,
+      const write = kintoneUpdateDriver({moon, site, authorization, connection, origin: siteProfile.apiOrigin,
         appId: source.appId, connectorId: source.connectorId, resource: source.resource, formResource: source.formResource,
         fields: beforeFields, mapping: mapped.mapping, declaration: original, siteBindingCid, generationCid,
         guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxMembers, maxRecoveryBytes});
       const recipe = captureKintoneEffectPlanRecipeBuilder({moon})({mapping: mapped.mapping, fields: beforeFields, formResource: source.formResource,
         bindingUnits: textUnits, credentialSite: installedRowCredentialOperationSite(site.credential), limits: policy,
-        inputLimits: ownerLimits, maxRecoveryBytes});
-      return Object.freeze({driver, managedPlanRecipes: Object.freeze({update: recipe})});
+        inputLimits: ownerLimits, maxRecoveryBytes, maxTargetBytes: prefix.length + 'records.json'.length});
+      return Object.freeze({write, managedPlanRecipes: Object.freeze({update: recipe})});
     },
   }));
   const rowEffect = await construction.createRowEffect({connection, runtimeBundleCid, bindingCid: siteBindingCid,
-    continuationBinding: generationCid, ledgerRoot, driver: built.driver, managedPlanRecipes: built.managedPlanRecipes, limits: ownerLimits});
+    continuationBinding: generationCid, ledgerRoot, write: built.write, managedPlanRecipes: built.managedPlanRecipes, limits: ownerLimits});
   const targetReadInventory = ({moon: runMoon, prepared: runPrepared, compilation, unit: suppliedUnit,
     updateTargetSelections, assertUpdateSelectionCurrent}) => {
     if (runMoon !== moon) fail('ForeignKintoneEffectRuntime');

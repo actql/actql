@@ -37,6 +37,7 @@ fn select_group_execution_rule(
       ArrayAgg | StringAgg => Ok(None)
       Count
       | CountIf
+      | AnyValue
       | Sum
       | Avg
       | Min

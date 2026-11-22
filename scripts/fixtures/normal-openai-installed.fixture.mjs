@@ -8,13 +8,13 @@ import {access, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {isAbsolute, relative, resolve} from 'node:path';
-import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import tls, {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
 import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.mjs';
 
 const phase = process.argv[2];
-assert(['warm', 'cold', 'missing-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
+assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
@@ -42,15 +42,20 @@ const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const selection = fresh ? {
-  usage: phase.startsWith('usage-') ? phase.slice(6) : null,
+  usage: phase === 'project-key' ? 'reported' : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
   rateLimit: phase === 'rate-limit',
+  project: phase === 'project-key',
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert.deepEqual(Object.keys(selection).sort(), ['rateLimit', 'timeout', 'usage']);
+assert.deepEqual(Object.keys(selection).sort(), ['project', 'rateLimit', 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
+const project = selection.project === true;
+if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true});
+const officialHost = 'api.openai.com';
+const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
 const maxCalls = usageMode === 'reported' ? 1n : 2n;
 const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
 const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
@@ -63,7 +68,7 @@ const transportTimeouts = {
 if (fresh) {
   await assert.rejects(access('.state'), {code: 'ENOENT'});
   const put = (path, value, mode = 0o600) => writeFile(path, value, {flag: 'wx', mode});
-  if (!missingKey) await put('provider-credential.fixture', 'not-an-external-secret');
+  if (!missingKey && !project) await put('provider-credential.fixture', fixtureCredential);
   await put('case-profile.fixture.json', JSON.stringify(selection));
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await put('model-tasks.json', JSON.stringify({version: 'actql-model-tasks/0.1',
@@ -80,12 +85,17 @@ if (fresh) {
   await put('operator-public.fixture', keys.publicKey.export({type: 'spki', format: 'pem'}));
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'provider.key', '-out', 'provider.crt', '-days', '1', '-subj', '/CN=localhost',
-    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {stdio: 'ignore'});
+    '-addext', project ? 'subjectAltName=DNS:' + officialHost : 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+  {stdio: 'ignore'});
 } else await access('.state');
+if (project) {
+  assert.equal(process.env.OPENAI_API_KEY, undefined, 'Do not inherit an operator credential');
+  await assert.rejects(access('provider-credential.fixture'), {code: 'ENOENT'});
+}
 
 const certificate = await readFile('provider.crt', 'utf8');
 setDefaultCACertificates([...getCACertificates('default'), certificate]);
-let calls = 0, egressChecks = 0;
+let calls = 0, egressChecks = 0, projectTlsConnects = 0, unexpectedProjectConnection = false;
 let pulse, continuousWrites = 0, responseClosedBeforeFirstClose = false, finishContinuousResponse;
 const continuousResponseClosed = fresh && timeoutMode === 'call'
   ? new Promise(resolve => {finishContinuousResponse = resolve;}) : undefined;
@@ -96,7 +106,12 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   diagnostic.request(request);
   assert.equal(fresh, true, 'A Saved read must never contact the provider');
   assert.equal(request.url, '/v1/chat/completions');
-  assert.equal(request.headers.authorization, 'Bearer not-an-external-secret');
+  assert(request.headers.authorization === 'Bearer ' + fixtureCredential, 'Unexpected synthetic credential');
+  if (project) {
+    assert.equal(request.headers.host, officialHost);
+    assert.equal(request.socket.servername, officialHost);
+    assert.equal(request.socket.remoteAddress, '127.0.0.1');
+  }
   let wire = '';
   for await (const chunk of request) {wire += chunk; assert(wire.length <= 32768);}
   const body = JSON.parse(wire);
@@ -151,7 +166,7 @@ const providerOptions = {modelId: 'fixture-chat',
     egressChecks++;
     return {classification: 'public', region: 'global', providerRetention: true, trainingUse: false};
   }};
-const registerModelProviders = missingKey ? createProjectOpenAIChatProvider(providerOptions)
+const registerModelProviders = missingKey || project ? createProjectOpenAIChatProvider(providerOptions)
   : createOpenAIChatProvider({...providerOptions, providerId: 'models/http',
     apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
 const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'installed-' + field,
@@ -212,7 +227,7 @@ const inferEvidence = usageMode === undefined ? undefined : {
         assert.match(cid, /^sha256:[0-9a-f]{64}$/);
       }
       assert(value.raw_response_artifact_cid === null || /^sha256:[0-9a-f]{64}$/.test(value.raw_response_artifact_cid));
-      assert.equal(wire.includes('not-an-external-secret'), false);
+      assert.equal(wire.includes(fixtureCredential), false);
       await writeFile('usage-original.json', wire, {flag: 'wx', mode: 0o600});
       return {status: 'complete'};
     },
@@ -230,11 +245,27 @@ const inferEvidence = usageMode === undefined ? undefined : {
 let client, primary, failed = false;
 const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
+const connectTls = tls.connect;
 try {
+  if (project) {
+    // Redirect only the socket in this fixture process. Keep its original
+    // HTTPS host, SNI, certificate checks, request and installed transport.
+    tls.connect = (options, ...args) => {
+      if (!fresh || projectTlsConnects !== 0 || options?.host !== officialHost ||
+          options.servername !== officialHost || Number(options.port) !== 443 ||
+          options.socket !== undefined || options.rejectUnauthorized === false) {
+        unexpectedProjectConnection = true;
+        throw new Error('Unexpected project TLS connection');
+      }
+      projectTlsConnects++;
+      return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
+    };
+  }
   client = await open({stateDir: '.state', installation: {
     registerModelProviders, authorization, observation: work.connection,
     ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
   if (fresh) {
+    if (project) process.env.OPENAI_API_KEY = fixtureCredential;
     const cases = [
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
@@ -318,6 +349,10 @@ finally {
       if (!failed) {failed = true;primary = cause;}
     }
   }
+  if (project) {
+    delete process.env.OPENAI_API_KEY;
+    tls.connect = connectTls;
+  }
   clearInterval(pulse);
   try {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
   catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
@@ -328,9 +363,14 @@ finally {
   if (missingKey && !failed) assert.equal(recorded.value.work.modelCallStarts, 0);
 }
 if (failed) throw primary;
+if (project) {
+  assert.equal(unexpectedProjectConnection, false);
+  assert.equal(projectTlsConnects, fresh ? 1 : 0);
+}
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
+  ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
   ...(phase === 'cold' ? {egressChecks,
     ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}

@@ -84,6 +84,40 @@ test('missing or invalid Common transfer projection refuses before I/O', async (
   }
 });
 
+test('an explicit selector binds the resolved Chat model even when defaults and profile are unchanged', async () => {
+  const cid = 'sha256:' + 'a'.repeat(64);
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity() { return [100n, 300n]; }};
+  async function originals(modelId, modelSelector) {
+    let wires;
+    const f = {...context([]), runtimeIdentity: () => cid, artifactIdentity: () => cid,
+      readText: () => 'synthetic-only',
+      prepareBindingOriginals(project) { wires = project().map(wire => JSON.parse(wire)); throw stop; }};
+    await assert.rejects(createOpenAIChatProvider({...options(), modelId, modelSelector})(moon, f),
+      error => error === stop);
+    assert.equal(JSON.stringify(wires).includes('synthetic-only'), false);
+    return wires;
+  }
+  const first = await originals('first-model', 'shared-alias');
+  const next = await originals('next-model', 'shared-alias');
+  assert.deepEqual(next.slice(0, 2), first.slice(0, 2));
+  assert.deepEqual(first[1].required, ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode']);
+  assert.deepEqual(first[2], {...next[2], model_id: 'first-model'});
+  assert.equal(next[2].selector, 'shared-alias');
+  assert.equal(next[2].model_id, 'next-model');
+  assert.equal(next[2].adapter_kind, 'ai-sdk');
+  assert.equal(next[2].api_mode, 'chat_completions');
+  const direct = await originals('shared-alias', undefined);
+  assert.deepEqual(direct[1], first[1]);
+  assert.deepEqual(direct[2], {...first[2], model_id: 'shared-alias'});
+  const {model_id, adapter_kind, api_mode, ...historical} = first[2];
+  assert.deepEqual([model_id, adapter_kind, api_mode], ['first-model', 'ai-sdk', 'chat_completions']);
+  // Both choices had the same historical configuration even though their
+  // SDK requests used different models.
+  assert.deepEqual(historical, Object.fromEntries(Object.entries(direct[2])
+    .filter(([key]) => !['model_id', 'adapter_kind', 'api_mode'].includes(key))));
+  assert.notDeepEqual(historical, direct[2]);
+});
+
 // Actual ordinary factory and registration assembler; explicit Common/context
 // ports only. This checks forwarding, not Core admission or physical adequacy.
 test('normal binding profile and original Read recipe consume the same separate SDK R E demand',async()=>{

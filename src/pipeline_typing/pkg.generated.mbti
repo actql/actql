@@ -620,6 +620,7 @@ pub(all) enum ExpressionConsumer {
   AggregateArgument(String)
   AnalyticFilter(String)
   AnalyticArgument(String)
+  AnalyticDefault(String)
   SequencePredicate(Int)
   GraphMatchPredicate
   GraphSubgraphEdgePredicate
