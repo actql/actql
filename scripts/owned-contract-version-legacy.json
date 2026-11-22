@@ -21,10 +21,10 @@
       "reason": "Reviewed October 13 M3 read-only consumer of the already adopted M0a Task0.2 independent fixture. Original Task/prompt bytes and CIDs are unchanged; this exact one context grants no new version, writer or public capability."
     },
     {
-      "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+      "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
       "token": "actql-duckdb-managed-column-frames/0.2",
       "contextSha256": "69e574d86bf16898c2a7b46d3c12128c40201941727bfa7582e1fd7b21c8100a",
-      "line": 9,
+      "line": 10,
       "count": 1,
       "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
     },

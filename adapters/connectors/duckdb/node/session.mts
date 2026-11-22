@@ -5,7 +5,7 @@ import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import type {DuckDBConnection, DuckDBAppender, DuckDBPreparedStatement} from '@duckdb/node-api';
 import { bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes, physicalType } from './physical-values.mjs';
-import type {PhysicalParameter, PhysicalScalar, PhysicalType} from './physical-values.mjs';
+import type {PhysicalField as Field, PhysicalParameter, PhysicalScalar, PhysicalType} from './physical-values.mjs';
 import {createPhysicalAppender} from './physical-appender.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
@@ -52,7 +52,6 @@ type TransportFailure = DuckDBTransportError & {
 type Deadline = {expired: true; failed?: never; error?: never; value?: never};
 type Completion<Value> = {value: Value; expired?: never; failed?: never; error?: never} |
   {failed: true; error: unknown; expired?: never; value?: never};
-type Field = Readonly<{name: string; type: PhysicalType}>;
 type Frame = Readonly<{fields: readonly Field[]; rowCount: number; columns: readonly (readonly PhysicalScalar[])[]}>;
 type Consume = (chunk: Frame) => unknown;
 type ReceiveMetadata = (fields: readonly Field[]) => unknown;

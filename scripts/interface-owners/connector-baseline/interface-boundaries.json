@@ -1273,55 +1273,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "not an ActQL logical content identity"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "encodeManagedColumnFrame"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "managedColumnCodecContractCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "active.delete(input)"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "await closed"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "UnsupportedManagedColumnFrame"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "managedColumnTransferEstimate"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-column-codec.mts",
                 "anchor": "codecContract"
               }
             ],
@@ -1406,49 +1406,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "settleFailedManagedDuckDB"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "nativeCleanup"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "cleanupState"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "managedStrategyFailureAction"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "ownedHostFailure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "managedOutputCancel"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "managedStrategyCleanupRefresh"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-failure.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-failure.mts",
                 "anchor": "requiredProgressMethods"
               }
             ],
@@ -1483,19 +1483,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mts",
                 "anchor": "not ActQL logical content"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mts",
                 "anchor": "managedParquetCodecContractCid"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mts",
                 "anchor": "actql-duckdb-managed-parquet/0.1"
               }
             ],
@@ -1516,7 +1516,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-parquet-codec.mts",
                 "anchor": "codecContract"
               }
             ],

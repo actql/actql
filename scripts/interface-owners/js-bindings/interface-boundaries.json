@@ -4975,7 +4975,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -4985,7 +4985,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -4995,7 +4995,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5005,7 +5005,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5015,7 +5015,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5025,7 +5025,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5035,7 +5035,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5045,7 +5045,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5055,7 +5055,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5065,7 +5065,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "checked"
               },
               {
@@ -5087,7 +5087,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5097,7 +5097,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5107,7 +5107,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5117,7 +5117,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5127,7 +5127,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5137,7 +5137,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5147,7 +5147,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5157,7 +5157,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5167,7 +5167,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -5177,7 +5177,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {

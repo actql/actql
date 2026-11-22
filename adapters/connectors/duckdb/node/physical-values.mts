@@ -17,6 +17,7 @@ type TimestampUnit = 'micros' | 'seconds' | 'millis' | 'nanos';
 export type PhysicalBinder = Pick<DuckDBPreparedStatement, IntegerMethod | TimestampMethod |
   'bindNull' | 'bindBoolean' | 'bindVarchar' | 'bindFloat' | 'bindDouble' | 'bindDate' | 'bindDecimal'>;
 export type PhysicalType = Readonly<{id: string; precision?: number; scale?: number}>;
+export type PhysicalField = Readonly<{name: string; type: PhysicalType}>;
 export type PhysicalParameter = Readonly<{type: PhysicalType; value: unknown}>;
 export type PhysicalScalar = string | boolean | null;
 

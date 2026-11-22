@@ -1831,37 +1831,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "Only fixed product runtime returns"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
-                "anchor": "checked(result)"
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
+                "anchor": "checked(result: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "never provider data"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "{ cause:"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "runtimeIsOk"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/runtime-result.mjs",
+                "path": "adapters/connectors/duckdb/node/runtime-result.mts",
                 "anchor": "InvalidHostRuntimeResult"
               }
             ],

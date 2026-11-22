@@ -1,5 +1,54 @@
 import {ownedHostFailure} from './failure-envelope.mjs';
 
+type ProgressRecord =
+  'managedStrategyFailureRecordOutputCancelAttempted' |
+  'managedStrategyFailureRecordOutputOwnersCloseAttempted' |
+  'managedStrategyFailureRecordOutputReclaimAttempted' |
+  'managedStrategyFailureRecordExecutionCloseAttempted' |
+  'managedStrategyFailureRecordExecutionCleanupConfirmed';
+
+type FailureRuntime = Readonly<Record<ProgressRecord, (progress: unknown) => unknown> & {
+  managedOutputCancel(output: unknown): unknown;
+  managedStrategyClose(run: unknown): unknown;
+  managedStrategyRefreshRetention(run: unknown): unknown;
+  managedStrategyCleanupRefresh(run: unknown): unknown;
+  managedStrategySettle(run: unknown, confirmed: boolean): unknown;
+  managedStrategyFailureBegin(noOutput: boolean, noStore: boolean, noRun: boolean,
+    nativeStopped: boolean, executionSettled: boolean, executionClosed: boolean,
+    outputClosed: boolean): unknown;
+  managedStrategyFailureRecordObservations(progress: unknown, nativeStopped: boolean,
+    executionSettled: boolean, outputClosed: boolean): unknown;
+  managedStrategyFailureAction(progress: unknown): unknown;
+  managedStrategyFailureRetryBegin(): unknown;
+  managedStrategyFailureRecordNativeRetryAttempted(retry: unknown): unknown;
+  managedStrategyFailureRecordOutputRetryAttempted(retry: unknown): unknown;
+  managedStrategyFailureRetryAction(retry: unknown, nativePending: boolean,
+    outputPending: boolean): unknown;
+}>;
+
+type FailureState = {
+  output?: unknown;
+  run?: unknown;
+  body?: {close(): unknown};
+  store?: {
+    close(): unknown;
+    cleanup(): unknown;
+    status(): {cleanupPending?: boolean} | null | undefined;
+  };
+  lifecycle: {outputDisposed?: boolean; executionSettled?: boolean};
+};
+
+type ClosedOutputState = FailureState &
+  Required<Pick<FailureState, 'output' | 'run' | 'body' | 'store'>>;
+type Checked = (result: unknown) => unknown;
+type ManagedFailure = Omit<ReturnType<typeof ownedHostFailure>, 'cleanupPending'> & {
+  cleanupPending?: boolean;
+};
+type NativeCleanup = {
+  status(): {pending?: unknown; errors?: unknown} | null | undefined;
+  retry(): unknown;
+};
+
 const CANCEL_OUTPUT = 0;
 const CLOSE_OUTPUT_OWNERS = 1;
 const RECLAIM_OUTPUT = 2;
@@ -14,20 +63,20 @@ const RETRY_NATIVE_CLEANUP = 0;
 const RETRY_OUTPUT_CLEANUP = 1;
 const RESUME_FAILURE_PROGRESS = 2;
 
-const member = (value, name) => {
+const member = (value: unknown, name: PropertyKey) => {
   try {
     return value !== null &&
       (typeof value === 'object' || typeof value === 'function')
-      ? value[name] : undefined;
+      ? (value as Record<PropertyKey, unknown>)[name] : undefined;
   } catch { return undefined; }
 };
 
-const cleanupState = (handle, required = false) => {
+const cleanupState = (handle: unknown, required = false) => {
   if (!handle || typeof member(handle, 'status') !== 'function') {
     return Object.freeze({pending: required, errors: Object.freeze([])});
   }
   try {
-    const state = handle.status();
+    const state = (handle as NativeCleanup).status();
     return state && typeof state.pending === 'boolean'
       ? Object.freeze({
         pending: state.pending,
@@ -43,8 +92,10 @@ const cleanupState = (handle, required = false) => {
 // A successful Compute can still have readers holding its revoked output.
 // Reuse the installed attempt's recovery progression for pending/error cleanup;
 // completion is not permission to forget its Store or reservation.
-export async function closeManagedDuckDBOutput(moon, checked, state) {
-  let failure;
+export async function closeManagedDuckDBOutput(
+  moon: FailureRuntime, checked: Checked, state: ClosedOutputState,
+) {
+  let failure: unknown;
   try {
     moon.managedOutputCancel(state.output);
     state.body.close();
@@ -55,7 +106,7 @@ export async function closeManagedDuckDBOutput(moon, checked, state) {
       moon.managedStrategyClose(state.run);
       moon.managedStrategyRefreshRetention(state.run);
     }
-    if (state.store.status().cleanupPending === false &&
+    if (state.store.status()!.cleanupPending === false &&
         checked(moon.managedStrategyCleanupRefresh(state.run)) === true) {
       return;
     }
@@ -70,9 +121,9 @@ export async function closeManagedDuckDBOutput(moon, checked, state) {
 // only Node resources and observations: native cleanup, Store cleanup, and the
 // bridge calls that apply the selected common task operation.
 export async function settleFailedManagedDuckDB(
-  moon, checked, state, reason,
+  moon: FailureRuntime, checked: Checked, state: FailureState, reason: unknown,
 ) {
-  const requiredProgressMethods = [
+  const requiredProgressMethods: readonly (keyof FailureRuntime)[] = [
     'managedStrategyFailureBegin',
     'managedStrategyFailureRecordOutputCancelAttempted',
     'managedStrategyFailureRecordOutputOwnersCloseAttempted',
@@ -92,13 +143,13 @@ export async function settleFailedManagedDuckDB(
       !state.lifecycle || typeof state.lifecycle !== 'object') {
     throw new Error('MissingManagedDuckDBFailureProgress');
   }
-  const failure = ownedHostFailure(reason, 'ManagedStrategyFailed');
+  const failure = ownedHostFailure(reason, 'ManagedStrategyFailed') as ManagedFailure;
   const upstreamRequired = failure.cleanupPending === true;
   const nativeCleanup = upstreamRequired
     ? member(failure, 'cleanupHandle') : undefined;
   const diagnostics = [...failure.cleanupErrors];
 
-  const record = error => { diagnostics.push(error); };
+  const record = (error: unknown) => { diagnostics.push(error); };
   const nativeState = () => cleanupState(nativeCleanup, upstreamRequired);
   const outputState = () => {
     if (!state.store) {
@@ -128,7 +179,7 @@ export async function settleFailedManagedDuckDB(
   if (progress === undefined || progress === null) {
     throw new Error('InvalidManagedDuckDBFailureProgress');
   }
-  const recordProgress = method => {
+  const recordProgress = (method: ProgressRecord) => {
     if (moon[method](progress) !== true) {
       throw new Error('InvalidManagedDuckDBFailureProgress');
     }
@@ -192,7 +243,7 @@ export async function settleFailedManagedDuckDB(
   };
 
   const drive = async () => {
-    const attempted = new Set();
+    const attempted = new Set<unknown>();
     for (let step = 0; step < 16; step++) {
       let action;
       try { action = nextAction(); }
@@ -249,7 +300,7 @@ export async function settleFailedManagedDuckDB(
     const native = nativeState();
     const outputCleanup = outputState();
     let pending = true;
-    const statusErrors = [];
+    const statusErrors: unknown[] = [];
     try { pending = nextAction() !== FAILURE_FINISHED; }
     catch (error) { statusErrors.push(error); }
     return Object.freeze({
@@ -286,7 +337,7 @@ export async function settleFailedManagedDuckDB(
             break;
           }
           if (typeof member(nativeCleanup, 'retry') === 'function') {
-            try { await nativeCleanup.retry(); }
+            try { await (nativeCleanup as NativeCleanup).retry(); }
             catch (error) { record(error); }
           }
           continue;
