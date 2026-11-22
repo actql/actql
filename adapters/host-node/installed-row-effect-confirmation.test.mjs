@@ -103,6 +103,13 @@ function fixture(options = {}) {
   const logical = driver.prepareRequest({member, value});
   const originalRequest = driver.finalizeRequest({request: logical.request, requestTag: tag}).request;
   const plan = recipe(), responseConfirmation = capture(driver, plan);
+  function projectOwnedResponse(selectedMember, facts, construct) {
+    assert.strictEqual(selectedMember, member);
+    assert.strictEqual(facts.member, member);
+    assert.strictEqual(facts.request, originalRequest);
+    assert.equal(plan.projectConstruction, undefined);
+    return construct(driver, driver.project, [facts]);
+  }
   const site = {issueReadGrant(facts) {
     assert.strictEqual(this, site); assert.strictEqual(facts.decision, decision);
     assert.equal(facts.operation, 'github:graphql:read'); assert.equal(facts.resource, 'issue_comments');
@@ -137,7 +144,8 @@ function fixture(options = {}) {
       return facts.invoke({authorization: grant, credential, callResource});
     },
   });
-  return {route, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource, writeAuthorization,
+  return {route, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource,
+    projectOwnedResponse, writeAuthorization,
     grantCount: () => grantCount, revoke: () => {current = false;},
     confirm: projected => route.confirmResponse({memberIndex: 0, rowIndex: 0, projected, current: {}, signal: undefined})};
 }
@@ -258,7 +266,8 @@ function cold(h, {outcome, commitError, callSignal} = {}) {
     }};
   const ports = {route: h.route, ledger, fail, dispatchIndexes: [[0]], entries: [[entry]],
     members: [member], currents: [{}], ownerOf: () => h.owner, applyPreview: preview, moon: {}, signal: undefined,
-    previewRows: [[{}]], controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
+    previewRows: [[{}]], projectOwnedResponse: h.projectOwnedResponse,
+    controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return ownedClaim;},
     async recoverProjectedEffectResponse(options) {
       assert.strictEqual(options.claims, ownedClaim); assert.equal(options.expectedRequestCid, entry.requestCid);
@@ -328,8 +337,19 @@ test('actual fresh dispatch stores the original mutation response before indepen
     runInvocationCid: 'original invocation', applyPreview: preview, previewRows: [[{}]], ledger,
     requireApproval(_member, original) {assert.strictEqual(original, decision);},
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return claim;},
-    recipeOf: source.variable('recipeOf', {ownerOf: () => h.owner,
-      controlRecipes: new Map([[h.owner.managedPlanRecipe, h.owner.managedPlanRecipe]])}),
+    recipeOf(original) {
+      assert.strictEqual(original, member);
+      assert.equal(h.owner.managedTargetPlanRecipes, undefined);
+      assert.equal(h.owner.managedPlanRecipes, undefined);
+      return h.owner.managedPlanRecipe;
+    },
+    installedEffectWriteOperation(driver, original, updateWriteSlot) {
+      assert.strictEqual(driver, h.driver);
+      assert.strictEqual(original, member);
+      assert.equal(updateWriteSlot, undefined);
+      return driver.writeOperation(original);
+    },
+    projectOwnedResponse: h.projectOwnedResponse,
     captureClaimedEffectResponse, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
     async physicalOperations(facts) {
       assert.equal(facts.phase, 'write'); assert.equal(facts.purpose, 'effect');
