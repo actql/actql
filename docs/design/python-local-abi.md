@@ -3667,6 +3667,13 @@ same reader still supports reusing that census. An unsupported supplier or an
 effect requires a fresh census; original current, row and binding checks still
 run. Saved routing uses this only for the paired selector.
 
+The first-delivery and terminal Saved proposals can reuse their initial census
+inside the original write-free inspection, before the Store consumes any
+projected write. The Store ends eligibility before applying the first write and
+refuses writes while the closed invocation is live. Precommit and readback keep
+their original validation, with the same reader's copy and query counters in
+force through precommit.
+
 Every Host import passes through one classifier. Only the audited immutable
 input and same-reader Journal transports, plus the exact standard Wasmtime
 Store/Caller/Memory observation, remain inside the closed computation. The exact

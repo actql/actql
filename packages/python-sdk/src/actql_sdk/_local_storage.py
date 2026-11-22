@@ -964,8 +964,8 @@ class LocalByteStore:
         failure: BaseException | None = None
         observing_current: Callable[[], object] | None = None
         observing_invocation = False
-        # A projected terminal read has a closed observation phase only before
-        # the Store consumes its proposal. The one reader retains the same
+        # A projected Saved delivery read has a closed observation phase only
+        # before the Store consumes its proposal. The one reader retains the
         # cumulative read and copy counters through the writes and precommit.
         closed_phase = (_readonly is True or _prewrite is True
                         or _projected_prewrite is not None) and not successors
@@ -1735,7 +1735,7 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_commit: Callable[[], object], _terminal_prewrite: bool = False) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
         """Apply Core's original CAS under this same write/current snapshot.
 
         This reuses the existing projected transaction and generation checks.
@@ -1748,7 +1748,7 @@ class LocalByteStore:
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
             reuse_identical=False, fences=fences, inspect=inspect, current=current,
-            _terminal_prewrite=_terminal_prewrite)
+            _sdk_delivery_prewrite=_sdk_delivery_prewrite)
 
     def store_publication_projected_inspected(
             self, count: int,
@@ -1782,7 +1782,7 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...] = (),
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
             current: Callable[[], object] | None = None,
-            _terminal_prewrite: bool = False) -> tuple[int, ...] | None:
+            _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
@@ -1878,9 +1878,9 @@ class LocalByteStore:
                         if consumed:
                             raise ValueError('Original Local projection was already consumed')
                         consumed = True
-                        if (_terminal_prewrite and type(self._connection) is _TrackedSQLiteConnection
+                        if (_sdk_delivery_prewrite and type(self._connection) is _TrackedSQLiteConnection
                                 and self._connection._closed_invocation is not None):
-                            raise LocalStorageError('Terminal writes require the original prewrite invocation to return')
+                            raise LocalStorageError('Delivery writes require the original prewrite invocation to return')
                         for ordinal in range(count):
                             consume_ordinal(ordinal)
                         if before_commit() is not None:
@@ -1895,7 +1895,7 @@ class LocalByteStore:
                 else:
                     self._inspect_namespace_locked(
                         lambda reader: inspect(reader, consume_all), fences, current,
-                        _projected_prewrite=(lambda: not consumed) if _terminal_prewrite else None)
+                        _projected_prewrite=(lambda: not consumed) if _sdk_delivery_prewrite else None)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:

@@ -213,7 +213,8 @@ class _InvocationObservation:
                 or self.suspended or self.effect_seen):
             return False
         name = self.wasm_export[1]
-        if name == 'actql_publication_commit_export_produce_sdk_terminal_storage':
+        if name in ('actql_publication_commit_export_produce_sdk_read_delivery_storage',
+                    'actql_publication_commit_export_produce_sdk_terminal_storage'):
             prewrite = self.reader._projected_prewrite
             return prewrite is not None and prewrite()
         return name in (

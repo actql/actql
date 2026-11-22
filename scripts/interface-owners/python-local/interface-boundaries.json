@@ -28723,7 +28723,7 @@
           ]
         }
       ],
-      "sha256": "0b3a4de662fe1cc01f504586af51d728a418f24e6cff9f154981d3265d08a819",
+      "sha256": "c14940ae22a2fcf9795e3ee6a5c357573809a5bda7639ae8984feb4073e3bf99",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29274,7 +29274,15 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
               }
             ]
           }
@@ -60466,7 +60474,7 @@
           ]
         }
       ],
-      "sha256": "63eefcd51cee732787e7c345c236de74420929d903cbe00b5fa554b8a58e480f",
+      "sha256": "5e2123a104add2e61bf932b6db2740db73e7076863d2601b5620c0c673014785",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60645,7 +60653,15 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_saved_material_compatibility.py",
@@ -65198,7 +65214,7 @@
             "fences",
             "inspect",
             "current",
-            "_terminal_prewrite"
+            "_sdk_delivery_prewrite"
           ]
         },
         {
@@ -65410,7 +65426,7 @@
             "inspect",
             "current",
             "before_commit",
-            "_terminal_prewrite"
+            "_sdk_delivery_prewrite"
           ]
         },
         {
@@ -65713,7 +65729,7 @@
           "parameters": []
         }
       ],
-      "sha256": "4069b111148255d175efba4392aa99051d07736eaf3176a28131677fcba607ba",
+      "sha256": "6b0df1f8a897d4645760f11b509e8cf6e95d78baa73eec84db5057c56f17b201",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66845,7 +66861,15 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
               }
             ]
           }

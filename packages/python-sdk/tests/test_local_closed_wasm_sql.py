@@ -237,7 +237,8 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 ('observe_sdk_terminal', 1, False, 1, 10),
                 ('observe_sdk_terminal', 0, True, 1, 0),
                 ('observe_sdk_terminal', 0, False, 0, 0),
-                ('produce_sdk_terminal_storage', 0, False, 1, 0)):
+                ('produce_sdk_terminal_storage', 0, False, 1, 0),
+                ('produce_sdk_read_delivery_storage', 0, False, 1, 0)):
             with self.subTest(export=export, effect=effect, legacy=legacy, negotiate=negotiate):
                 core, binding, store, _ = self.fixture(census_export=export,
                                                       legacy_census_supplier=legacy)
@@ -276,10 +277,18 @@ class ClosedWasmSqlTests(unittest.TestCase):
         return ((ByteFence(key, 0, b'payload'), reservation),)
 
     def test_saved_terminal_proposal_closes_proof_before_writing(self):
-        export = 'produce_sdk_terminal_storage'
-        for enabled, expected in ((True, [11, 0]), (False, [0, 0])):
-            with self.subTest(enabled=enabled):
-                core, binding, store, _ = self.fixture(census_export=export)
+        self._check_proposal_read('produce_sdk_terminal_storage')
+
+    def test_saved_first_delivery_proof_closes_before_writing(self):
+        self._check_proposal_read('produce_sdk_read_delivery_storage')
+
+    def _check_proposal_read(self, export):
+        for enabled, effect, legacy, expected in (
+                (True, 0, False, [11, 0]), (False, 0, False, [0, 0]),
+                (True, 1, False, [10, 0]), (True, 0, True, [0, 0])):
+            with self.subTest(enabled=enabled, effect=effect, legacy=legacy):
+                core, binding, store, _ = self.fixture(
+                    census_export=export, legacy_census_supplier=legacy)
                 originals = self.terminal_original(store)
                 observed, readers, epochs = [], [], []
                 key = store.namespaced_key('probe', 'inserted')
@@ -287,7 +296,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 def observe():
                     readers.append(binding._observed_reader)
                     epochs.append(store._connection._outer_transaction_epoch)
-                    observed.append(LocalCore._call(core, 'publication_commit_export', export, 0, 1))
+                    observed.append(LocalCore._call(core, 'publication_commit_export', export, effect, 1))
                 def inspect(reader, take):
                     def prepare(_):
                         observe()
@@ -303,7 +312,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
                     self.assertEqual(store.compare_exchange_projected_inspected(
                         1, lambda _, consume: consume(write), originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
-                        _terminal_prewrite=enabled), (0,))
+                        _sdk_delivery_prewrite=enabled), (0,))
                 self.assertIs(readers[0], readers[1])
                 self.assertEqual(epochs[0], epochs[1])
                 self.assertEqual(observed, expected)
@@ -312,7 +321,12 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 self.assertIsNone(store._connection._closed_invocation)
 
     def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback(self):
-        export = 'produce_sdk_terminal_storage'
+        self._reject_write_during_proposal('produce_sdk_terminal_storage')
+
+    def test_saved_first_delivery_cannot_write_during_original_wasm_callback(self):
+        self._reject_write_during_proposal('produce_sdk_read_delivery_storage')
+
+    def _reject_write_during_proposal(self, export):
         consumers = []
         def effect():
             consumers[0]()
@@ -330,7 +344,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 store.compare_exchange_projected_inspected(
                     1, lambda _, consume: consume(ByteWrite(key, None, b'bytes')), originals, fences,
                     inspect=inspect, current=binding._current_observer,
-                    before_commit=lambda: None, _terminal_prewrite=True)
+                    before_commit=lambda: None, _sdk_delivery_prewrite=True)
         self.assertEqual(store._connection.total_changes, changes)
         self.assertIsNone(store.read(key))
         self.assertIsNone(store._connection._closed_invocation)
