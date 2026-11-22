@@ -778,7 +778,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             const saved=await continuationView.retainOriginalResourceCurrentCut(original.park,
               storageBinding,originWire,codec);
             originalResourceReadCurrent(original.park);
-            cp.journal.commitOriginalModelCurrentCut(saved.reference);
+            cp.journal.commitOriginalModelCurrentCut(saved.reference, claim);
             continuationView.beginOriginalResourceInvalidation(saved.reference,original.park);
             continuationView.completeOriginalResourceInvalidation();
             // Unit only: journal ACK/fence consumption never issues InferAllow

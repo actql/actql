@@ -168,7 +168,7 @@ export function createModelResumeTables(database) {
 // The verifier must never synthesize a failure from a sent-unknown attempt.
 // Distinct entered and settled originals are retained; no original is replaced.
 export function createModelResumeState(database, {
-  verifier, transaction, alive, now, iso, fault, admissionLocked, confirmEntryGrant, checkpoint, run,
+  verifier, transaction, alive, now, iso, fault, admissionLocked, confirmEntryGrant, fenced, checkpoint, run,
 }) {
   // These tokens authenticate only this journal's read observation. They do
   // not establish a resource park, durable cut, restoration or send grant.
@@ -1031,14 +1031,14 @@ export function createModelResumeState(database, {
         // This read-only reference cannot retry Unknown or issue a COMMIT ACK.
         return reference;
       },
-      commitOriginalModelCurrentCut(reference) {
+      commitOriginalModelCurrentCut(reference, claim) {
         const operation = cutOperation(reference);
         if (operation.state !== 'prepared') fail('ModelOriginalCurrentCutOperationAlreadyAttempted');
         exactCurrentCutPorts(operation);
         operation.state = 'attempted';
         try {
           const after = transaction.run(() => {
-            requireCurrentCutFacts(operation, operation.before);
+            const facts = requireCurrentCutFacts(operation, operation.before);
             const row = q.scopeByCid.get(operation.identity.scopeCid);
             if (row.current_cut_link_json !== null || row.current_cut_invalidation_json !== null) {
               fail('ModelOriginalCurrentCutUnavailable');
@@ -1049,6 +1049,12 @@ export function createModelResumeState(database, {
             operation.invalidationWire = cutInvalidationWire({operation_id: operation.operationId,
               identity: operation.identity, linked_cut_wire: operation.wire,
               request_binding: null, phase: 'ready'});
+            // Read the same claim in the link transaction, after acquiring
+            // SQLite's writer lock. The lease may elapse during the Store wait.
+            if (claim !== undefined) {
+              if (claim.intentId !== facts.currentIntent?.intent_id) fail('ResumeClaimStale');
+              fenced(claim, now());
+            }
             changed(q.linkCut.run(operation.wire, operation.invalidationWire, operation.identity.scopeCid));
             fault('linkOriginalModelCurrentCut');
             return originalJournalFacts(operation.identity);

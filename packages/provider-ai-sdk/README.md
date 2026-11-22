@@ -130,6 +130,13 @@ IO and SDK/raw retirement remain separate observations. This does not establish
 normal-installed or live acceptance, or close the separate whole-Call deadline
 boundary.
 
+The configured Chat installation binds its resolved model ID, adapter and API
+mode in the original configuration. Changing the model behind a selector changes
+the binding. Pending selector-only originals from before this binding lack
+proof of the wire model. A current installation refuses dispatch from them,
+including when the selector now equals the configured model ID. Existing
+terminal Saved results remain readable through their original Result path.
+
 ## Optional usage-only disclosure (development)
 
 `installation.inferEvidence.kind: 'usage'` is a **new explicit opt-in** to a
