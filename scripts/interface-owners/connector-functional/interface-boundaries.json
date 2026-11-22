@@ -23517,6 +23517,400 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-effect-credential-child.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "exports": [
+        "prepareInstalledEffectCredentialChild"
+      ],
+      "operations": [
+        {
+          "name": "prepareInstalledEffectCredentialChild",
+          "parameters": [
+            "run",
+            "memberIndex",
+            "rowIndex",
+            "operationIndex",
+            "operation",
+            "perRow",
+            "originalSite",
+            "originalAuthorization",
+            "useId",
+            "resource",
+            "purpose",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "assertCurrent",
+            "observeCurrent",
+            "requestsRetired",
+            "originalInvoke",
+            "originalResponseExtent",
+            "originalResponsePreparation",
+            "discardResponseProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/drain/drain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/drain/drain/drain",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/drain/drain/drain/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/observe/observe",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/credential-scope-fields.generated.mjs",
+        "../host-common/http-exchange.mjs",
+        "../host-common/runtime-result.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "./installed-effect-child-construction.mjs",
+        "./installed-effect-recipe.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "ba386f5d71393eb373c58308157fb625b17546161d7e33236aaa42000914a95d",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareInstalledEffectCredentialChild",
+            "prepareInstalledEffectCredentialChild/callResource/callResource",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
+            "prepareInstalledEffectCredentialChild/check/check",
+            "prepareInstalledEffectCredentialChild/drain/drain",
+            "prepareInstalledEffectCredentialChild/drain/drain/drain",
+            "prepareInstalledEffectCredentialChild/drain/drain/drain/settled/settled",
+            "prepareInstalledEffectCredentialChild/init:prepare/init:prepare",
+            "prepareInstalledEffectCredentialChild/observe/observe",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
+            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
+            "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
+            "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled"
+          ],
+          "exports": [
+            "prepareInstalledEffectCredentialChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_staged_input_js_wbtest.mbt",
+                "anchor": "test \"physical response projection returns only its same original workspace without cleanup or history refund\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
+                "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-effect-plan.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -23739,170 +24133,14 @@
           "name": "prepareInstalledEffectControlConstruction/retire/retire",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild",
-          "parameters": [
-            "run",
-            "memberIndex",
-            "rowIndex",
-            "operationIndex",
-            "operation",
-            "perRow",
-            "originalSite",
-            "originalAuthorization",
-            "useId",
-            "resource",
-            "purpose",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxRequestBytes",
-            "maxResponseBytes",
-            "assertCurrent",
-            "observeCurrent",
-            "requestsRetired",
-            "originalInvoke",
-            "originalResponseExtent",
-            "originalResponsePreparation",
-            "discardResponseProjection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/check/check",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/drain/drain",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/drain/drain/drain",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/drain/drain/drain/settled/settled",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/init:prepare/init:prepare",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/observe/observe",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
-          "parameters": [
-            "fn"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
-        "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/effect-preparation-result.mjs",
-        "../host-common/http-exchange.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
-        "../site-node/https-credential-resource.mjs",
         "./installed-effect-child-construction.mjs",
+        "./installed-effect-credential-child.mjs",
         "./installed-effect-managed-plan.mjs",
         "./installed-effect-recipe-construction.mjs",
         "./installed-effect-recipe.mjs",
@@ -23910,32 +24148,11 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "729621f371a1843500994b0a9f8ace7dd96d58687d9d3c8045e31a264cfa6e2b",
+      "sha256": "c909af758c4fc84f145b5dbfd453da128834fec2b0207208336220573b34f414",
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "prepareInstalledEffectCredentialChild",
-            "prepareInstalledEffectCredentialChild/callResource/callResource",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
-            "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
-            "prepareInstalledEffectCredentialChild/check/check",
-            "prepareInstalledEffectCredentialChild/drain/drain",
-            "prepareInstalledEffectCredentialChild/drain/drain/drain",
-            "prepareInstalledEffectCredentialChild/drain/drain/drain/settled/settled",
-            "prepareInstalledEffectCredentialChild/init:prepare/init:prepare",
-            "prepareInstalledEffectCredentialChild/observe/observe",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
-            "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
-            "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
-            "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled"
+            "<module>"
           ],
           "exports": [
             "captureDeclaredUpdateTargetCapacity",
