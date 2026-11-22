@@ -1,7 +1,12 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
-import type {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
+import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
+import type {bindInstalledEnvironmentConstruction as bindEnvironmentConstruction} from './installed-funded-environment.mjs';
+import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8,
+  installedConfigurationByteLimit, installedConfigurationChunkBytes, readOriginalConfigurationText,
+  readOriginalConfigurationBytes} from './source-profile-json.mjs';
+import type {ConfigurationReader} from './source-alias-construction.mjs';
 
 type Amounts = {nodes: bigint; text: bigint; wire: bigint};
 type CapacityAmounts = readonly [retainedNodes: bigint, retainedText: bigint, retainedWire: bigint,
@@ -21,7 +26,27 @@ type SourceIo = Readonly<{
   uncertain(operation: unknown): unknown;
   finish(operation: unknown): unknown;
 }>;
+type SourceValue = ReturnType<ConfigurationReader['prepareNativeInput']>;
+type NativeProjection<Value extends SourceValue> = Readonly<{capacity(): unknown; project(): Value}>;
+type ProfileOriginal<Value = unknown> = Readonly<{
+  value: Value;
+  construct<Result extends SourceValue>(project: () => Result): Result;
+  inspect<Result extends SourceValue>(project: () => Result): Result;
+}>;
+type InstalledConfigurationReader = ConfigurationReader & Readonly<{
+  prepareModelTaskInput(projection: object): object;
+  prepareProfile<Value extends SourceValue>(text: unknown, project: () => Value): ProfileOriginal<Value>;
+  readProfile(path: unknown, options?: object): Promise<ProfileOriginal>;
+  parseJsonText(text: unknown): unknown;
+  readJson(path: unknown, options?: object): Promise<unknown>;
+  readText(path: unknown, options?: object): Promise<string>;
+  readUtf8(path: unknown, options?: object): Promise<string>;
+  readOriginalText(path: unknown): Promise<string>;
+  readOriginalBytes(path: unknown): Promise<Buffer>;
+}>;
 type Material = Amounts & {
+  configurationReader?: InstalledConfigurationReader;
+  retainEnvironmentNativeOriginal?: ReturnType<typeof bindEnvironmentConstruction>;
   methods: Readonly<Record<MaterialMethod, unknown>>;
   busy: boolean;
   unit: unknown;
@@ -91,10 +116,12 @@ type ModelOwner = Owner & Readonly<{current(): void}>;
 type MaterialPorts = Readonly<{
   fail(code: string): never;
   sourceNativeThen: typeof Promise.prototype.then;
+  installations: Pick<WeakMap<object, ModelOwner>, 'get'>;
+  bindInstalledEnvironmentConstruction: typeof bindEnvironmentConstruction;
 }>;
 
 export function createInstalledSourceMaterialAccounting(
-  {fail: reject, sourceNativeThen}: MaterialPorts) {
+  {fail: reject, sourceNativeThen, installations, bindInstalledEnvironmentConstruction}: MaterialPorts) {
   const fail: (code: string) => never = reject;
 
   // Native initialization uses the SAME initial Resource reservation. These are
@@ -559,8 +586,246 @@ export function createInstalledSourceMaterialAccounting(
     }
   }
 
+  // This reader is created only by the real initializer, before the first
+  // configuration open. Its fixed Buffer peak is reserved before allocation;
+  // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
+  function installedSourceConfigurationReader(services: object): InstalledConfigurationReader | undefined {
+    const original = installations.get(services)!;
+    if (original === undefined) fail('ForeignInstalledHostServices');
+    const material = sourceMaterial(original)!;
+    if (material === undefined) return undefined;
+    if (material.configurationReader !== undefined) return material.configurationReader;
+    function read(path: unknown, options: object | undefined, json: true, strictUtf8: false,
+      profile: true): Promise<ProfileOriginal>;
+    function read(path: unknown, options: object | undefined, json: true): Promise<unknown>;
+    function read(path: unknown, options: object | undefined, json: false, strictUtf8?: boolean): Promise<string>;
+    async function read(path: unknown, options: object | undefined, json: boolean, strictUtf8 = false, profile = false) {
+      if (options !== undefined && (nodeTypes.isProxy(options) ||
+          Reflect.ownKeys(options).some(name => name !== 'maxBytes'))) {
+        fail('InvalidInstalledConfigurationReaderOptions');
+      }
+      const bound = options === undefined ? undefined : Object.getOwnPropertyDescriptor(options, 'maxBytes');
+      if (bound !== undefined && !Object.hasOwn(bound, 'value')) fail('InvalidInstalledConfigurationReaderOptions');
+      const maxBytes: number | undefined = bound === undefined || bound.value === undefined
+        ? (json ? installedConfigurationByteLimit : undefined) : bound.value;
+      if (!Number.isSafeInteger(maxBytes) || maxBytes! < 0 ||
+          json && maxBytes! > installedConfigurationByteLimit) fail('InvalidInstalledSourceProfileByteLimit');
+      material.ioPending++;
+      const workspace: Workspace = {nodes: 0n, text: 0n, wire: 0n};
+      material.workspaces.add(workspace);
+      let decoded: bigint | undefined;
+      try {
+        reserveSource(original, material, 0n, 0n,
+          2n * BigInt(maxBytes!) + BigInt(installedConfigurationChunkBytes), workspace);
+        const beforeDecode = (bytes: number) => {
+          decoded = BigInt(bytes);
+          if (json) {
+            // Only buffers and one lossy UTF8 String exist at this phase. Fund
+            // their complete overlap before concat/toString; JSON values do not
+            // exist yet. The same String funds the parser in beforeParse below.
+            reserveSource(original, material, 0n, 3n * decoded,
+              2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+          } else {
+            // This constructor returns one String. Lossy decoding may replace
+            // each invalid byte with three UTF8 bytes; strict decoding cannot.
+            // Original chunks and their concatenation overlap by at most two
+            // received bodies plus the last chunk. Later parse/snapshot/identity
+            // constructors reserve their own geometry before allocation.
+            const text = strictUtf8 ? decoded : 3n * decoded;
+            reserveSource(original, material, 0n, 0n,
+              2n * decoded + BigInt(installedConfigurationChunkBytes), workspace,
+              {nodes: 0n, text, wire: decoded});
+          }
+        };
+        const beforeParse = (text: string) => {
+          // Preserve the existing parsed/checked/identity envelope, using its
+          // actual wire geometry rather than treating every byte as a node.
+          const geometry = sourceJsonWireGeometry(text);
+          reserveSourceJsonConstruction(original, material, workspace, geometry,
+            8n * decoded! + BigInt(installedConfigurationChunkBytes));
+        };
+        const value = await (json ? readSourceProfileJson
+          : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
+          {maxBytes, beforeDecode, ...(json ? {beforeParse} : {}), io: sourceIo(original, material)});
+        // Actual close precedes this successful-return cut. The native tree
+        // uses the already-observed retained geometry, with no second scan.
+        if (json) {
+          const completed = retainCompletedSourceJson(original, material, workspace, value);
+          if (!profile) return completed;
+          const {parse, ...construction} = profileConstruction(workspace.json!.projection);
+          return Object.freeze({value: completed, ...construction});
+        }
+        material.inputs.push(value);
+        material.text += BigInt(Buffer.byteLength(value as string, 'utf8'));
+        material.wire += decoded!;
+        material.workspaces.delete(workspace);
+        reconcileSource(original, material);
+        return value;
+      } catch (cause) {retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace); throw cause;}
+      finally {material.ioPending--;}
+    }
+    function readOriginal(path: unknown, binary: true): Promise<Buffer>;
+    function readOriginal(path: unknown, binary: false): Promise<string>;
+    async function readOriginal(path: unknown, binary: boolean) {
+      material.ioPending++;
+      const workspace: Workspace = {nodes: 0n, text: 0n, wire: 0n};
+      material.workspaces.add(workspace);
+      let decoded: bigint | undefined;
+      try {
+        const value = await (binary ? readOriginalConfigurationBytes : readOriginalConfigurationText)(path, {
+          io: sourceIo(original, material),
+          beforeRead(bytes: number) {
+            reserveSource(original, material, 0n, 0n,
+              2n * BigInt(bytes) + BigInt(installedConfigurationChunkBytes), workspace);
+          },
+          beforeDecode(bytes: number) {
+            decoded = BigInt(bytes);
+            reserveSource(original, material, 0n, 12n * decoded,
+              8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+          },
+        });
+        material.inputs.push(value); material.text += 12n * decoded!;
+        // Keep the existing key/CA parser and native byte overlap after
+        // transferring the same original text or bytes to the Site.
+        material.wire += 8n * decoded!;
+        material.workspaces.delete(workspace);
+        reconcileSource(original, material);
+        return value;
+      } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
+      finally {material.ioPending--;}
+    }
+    const metadataProjections = new WeakSet();
+    const modelProjections = new WeakSet();
+    const validateMetadataInput = () => {
+      if (sourceMaterial(original) !== material || material.phase !== 'working') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+    };
+    const retainMetadataInput = () => {};
+    const profileConstruction = (facts: Pick<JsonGeometry, 'nodes' | 'units'>) => {
+      const [parsed, projected] = sourceCall(original, material, 'InstalledProfileConstructionCapacities',
+        [facts.nodes, facts.units]);
+      const invoke = <Value extends SourceValue,>(capacity: unknown, project: () => Value): Value => prepareSourceNativeInput(original, material,
+        Object.freeze({capacity: () => capacity, project}), metadataProjections,
+        validateMetadataInput, retainMetadataInput) as Value;
+      // Same original quantity/input, never a cached current/Account decision.
+      // Each fixed native call reserves on the existing parent before running.
+      return {parse: <Value extends SourceValue,>(project: () => Value) => invoke(parsed, project),
+        construct: <Value extends SourceValue,>(project: () => Value) => invoke(projected, project),
+        inspect<Value extends SourceValue>(project: () => Value) {
+          validateMetadataInput();
+          return invoke(sourceCall(original, material,
+            'InstalledSourceInspectionConstructionCapacity', [parsed]), project);
+        }};
+    };
+    const reader: InstalledConfigurationReader = Object.freeze({
+      prepareModelTaskInput(projection: object) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return prepareModelTaskInput(original, material, projection, modelProjections, validateMetadataInput);
+      },
+      prepareNativeInput<Value extends SourceValue>(projection: NativeProjection<Value>): Value {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return prepareSourceNativeInput(original, material, projection, metadataProjections,
+          validateMetadataInput, retainMetadataInput) as Value;
+      },
+      prepareProfile<Value extends SourceValue>(text: unknown, project: () => Value) {
+        if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
+          fail('ForeignInstalledConfigurationText');
+        }
+        const {parse, ...construction} = profileConstruction(sourceJsonWireGeometry(text, true));
+        return Object.freeze({value: parse(project), ...construction});
+      },
+      readProfile(path: unknown, options?: object) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        // Preserve native JSON parse BEFORE its SAME actual FD close, including
+        // malformed-input versus pending-close failure order. The completed
+        // original also carries its wire facts into later checked constructors.
+        return read(path, options, true, false, true);
+      },
+      parseJsonText(text: unknown) {
+        if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
+          fail('ForeignInstalledConfigurationText');
+        }
+        if (material.busy) fail('InstalledSourceInitializationReentry');
+        // The existing bounded text read owns the input. Reserve the parsed,
+        // checked and identity views before JSON.parse, without another read.
+        const geometry = sourceJsonWireGeometry(text);
+        const workspace: Workspace = {nodes: 0n, text: 0n, wire: 0n};
+        material.workspaces.add(workspace);
+        try {
+          reserveSourceJsonConstruction(original, material, workspace, geometry, 0n);
+          let value;
+          material.busy = true;
+          try {value = JSON.parse(text);}
+          finally {material.busy = false;}
+          return retainCompletedSourceJson(original, material, workspace, value);
+        } catch (cause) {
+          retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace);
+          throw cause;
+        }
+      },
+      readJson(path: unknown, options?: object) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return read(path, options, true);
+      },
+      readText(path: unknown, options?: object) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return read(path, options, false);
+      },
+      readUtf8(path: unknown, options?: object) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return read(path, options, false, true);
+      },
+      async readOriginalText(path: unknown) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return readOriginal(path, false);
+      },
+      async readOriginalBytes(path: unknown) {
+        if (this !== reader) fail('ForeignInstalledConfigurationReader');
+        return readOriginal(path, true);
+      },
+    });
+    material.configurationReader = reader;
+    // The Common composer alone receives this capability. Provider readers have
+    // no release method and cannot turn arbitrary returned values into refunds.
+    material.retainEnvironmentNativeOriginal = bindInstalledEnvironmentConstruction(services, reader, () => {
+      original.current();
+      if (material.phase !== 'working' || material.busy || material.ioPending !== 0) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const providerStart = material.providers.length, inputStart = material.inputs.length;
+      let finished = false;
+      return () => {
+        if (finished) fail('InstalledEnvironmentConstructionAlreadyFinished');
+        finished = true;
+        const providerEnd = material.providers.length, inputEnd = material.inputs.length;
+        let released = false;
+        return (): undefined => {
+          if (released) return;
+          original.current();
+          if (material.configurationReader !== reader || material.phase !== 'working' ||
+              material.busy || material.ioPending !== 0) fail('ForeignInstalledSourceInitialization');
+          const empty = sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+            [0n, 0n, 0n, 0n, 0n, 0n]);
+          let providers: unknown[] | undefined = material.providers.slice(providerStart, providerEnd),
+            inputs: unknown[] | undefined = material.inputs.slice(inputStart, inputEnd);
+          for (let index = providerStart; index < providerEnd; index++) material.providers[index] = empty;
+          for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = undefined;
+          try {reconcileSource(original, material);}
+          catch (cause) {
+            for (let index = providerStart; index < providerEnd; index++) material.providers[index] = providers[index - providerStart];
+            for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = inputs[index - inputStart];
+            throw cause;
+          }
+          released = true; providers = inputs = undefined;
+        };
+      };
+    });
+    return reader;
+  }
+
   return {sourceMaterial, sourceCall, sourceIo, sourceQuote, releaseFinishedSourceWorkspaces, reserveSource, reconcileSource,
     retainSourceFailure, requireSynchronousSourceConstruction, sourceProjectionMethods, freezeSourceProjection,
     retainCompletedSourceNativeConstruction, prepareSourceNativeInput, reserveSourceJsonConstruction,
-    retainCompletedSourceJson, prepareModelTaskInput};
+    retainCompletedSourceJson, prepareModelTaskInput, installedSourceConfigurationReader};
 }

@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "4fcf63dc868a123fa5e9260251a1ad04217245f3f02bc4a407fb611c02b37c44",
+      "sha256": "aaa4b53a9ca2b5be8cb5cb5afa23941d03e7fa90c46f77b6a18efab47d1ee265",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -135081,174 +135081,6 @@
           "async": false
         },
         {
-          "name": "installedSourceConfigurationReader",
-          "parameters": [
-            "services"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
-          "parameters": [
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
-          "parameters": [
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
-          "parameters": [
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/read/beforeParse/beforeParse",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/read/read",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
-          "parameters": [
-            "text",
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
-          "parameters": [
-            "path",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
-          "parameters": [
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
-          "parameters": [
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
-          "parameters": [
-            "path",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readText/init:readText",
-          "parameters": [
-            "path",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/reader/init:readUtf8/init:readUtf8",
-          "parameters": [
-            "path",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installedSourceEnvironmentConstructionReader",
           "parameters": [
             "services",
@@ -135410,12 +135242,6 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
-            "installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
-            "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
-            "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
-            "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
-            "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
-            "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
             "readInstalledSourceAcquisitionContract",
             "retainInstalledHostServiceInstallation"
           ],
@@ -136058,20 +135884,6 @@
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
             "finishInstalledSourceInitialization",
-            "installedSourceConfigurationReader",
-            "installedSourceConfigurationReader/installedSourceConfigurationReader",
-            "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
-            "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
-            "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
-            "installedSourceConfigurationReader/read/beforeParse/beforeParse",
-            "installedSourceConfigurationReader/read/read",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
-            "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
-            "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
-            "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
-            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
-            "installedSourceConfigurationReader/reader/init:readText/init:readText",
             "prepareInstalledSourceAcquisitionContracts",
             "reserveInstalledSourceEnvironment",
             "reserveInstalledSourceRuntimeIdentity",
@@ -136528,10 +136340,6 @@
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
             "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
             "createInstalledSourceContext/retainNativeInput/retainNativeInput",
-            "installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
-            "installedSourceConfigurationReader/reader/init:readUtf8/init:readUtf8",
-            "installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
-            "installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
@@ -136921,14 +136729,14 @@
                 "anchor": "### Funded Account construction on the same original"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function installedSourceConfigurationReader(services) {"
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function installedSourceConfigurationReader(services: object)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function installedSourceConfigurationReader(services) {"
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function installedSourceConfigurationReader(services: object)"
               }
             ],
             "identity": [
@@ -136994,9 +136802,7 @@
           }
         },
         {
-          "operations": [
-            "installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -137011,8 +136817,8 @@
                 "anchor": "- Populated inputs and outputs:"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function installedSourceConfigurationReader(services) {"
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function installedSourceConfigurationReader(services: object)"
               }
             ],
             "identity": [
@@ -137078,7 +136884,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-material-accounting.mjs",
-      "sha256": "d84d78478aa9a2fb1d06e8c922dfd525573c97f14cae78f16ecfc50d956e0745",
+      "sha256": "59af11b37f11515ffc9cc678ab774881f06009b0b8c8248e45fe44b27d2398de",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -137090,7 +136896,9 @@
           "name": "createInstalledSourceMaterialAccounting",
           "parameters": [
             "reject",
-            "sourceNativeThen"
+            "sourceNativeThen",
+            "installations",
+            "bindInstalledEnvironmentConstruction"
           ],
           "async": false
         },
@@ -137099,6 +136907,174 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/beforeParse/beforeParse",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/read",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
+          "parameters": [
+            "text",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readJson/init:readJson",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readText/init:readText",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readUtf8/init:readUtf8",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -137321,6 +137297,8 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "./source-profile-json.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -137331,6 +137309,31 @@
             "<module>",
             "createInstalledSourceMaterialAccounting",
             "createInstalledSourceMaterialAccounting/freezeSourceProjection",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/beforeParse/beforeParse",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/read/read",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readJson/init:readJson",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readText/init:readText",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/reader/init:readUtf8/init:readUtf8",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
+            "createInstalledSourceMaterialAccounting/installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput/add/add",
             "createInstalledSourceMaterialAccounting/prepareModelTaskInput/prepareModelTaskInput",
@@ -137403,6 +137406,10 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "function prepareModelTaskInput"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function installedSourceConfigurationReader"
               }
             ],
             "identity": [
@@ -137412,7 +137419,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen})"
+                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen, installations, bindInstalledEnvironmentConstruction})"
               }
             ],
             "ownership": [
@@ -137492,6 +137499,10 @@
               {
                 "path": "adapters/host-node/installed-model-task-construction.test.mts",
                 "anchor": "same initialization prefix retains actual outputs across 129 current metadata constructors"
+              },
+              {
+                "path": "adapters/host-node/installed-profile-construction.actual.test.mjs",
+                "anchor": "same profile reader preserves native parse failure before pending original close"
               }
             ]
           }
