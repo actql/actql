@@ -3,9 +3,20 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
+type Runtime = Readonly<{
+  clientProgramInstalledEffectResultWorkPrepare(owner: unknown, prepared: unknown, request: unknown,
+    plan: unknown, source: unknown): unknown;
+  clientProgramInstalledEffectResultAdvance(owner: unknown, prepared: unknown, request: unknown,
+    plan: unknown, source: unknown, transformation: unknown, quantum: number): unknown;
+}>;
+type ManagedRun = {
+  runtime: Runtime; value: unknown; prepared: unknown; request: unknown; operationPlan: unknown;
+  readPlan: (...args: never[]) => unknown; closed?: boolean; selecting?: boolean; failure?: unknown;
+};
 
-export function prepareInstalledEffectResultProgress(run, source) {
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+
+export function prepareInstalledEffectResultProgress(run: ManagedRun, source: unknown) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const prepare = runtime?.clientProgramInstalledEffectResultWorkPrepare;
   const advance = runtime?.clientProgramInstalledEffectResultAdvance;
@@ -30,8 +41,9 @@ export function prepareInstalledEffectResultProgress(run, source) {
       runtime.clientProgramInstalledEffectResultAdvance !== advance) {
     fail('ForeignInstalledEffectManagedRun');
   }
-  let busy = false, failed = false, primary;
-  return function advanceResult(transformation, quantum) {
+  let busy = false, failed = false;
+  let primary: unknown;
+  return function advanceResult(transformation: unknown, quantum: number) {
     if (failed) throw primary;
     if (busy || run.selecting) fail('InstalledEffectResultWorkPending');
     if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 256) {
@@ -55,7 +67,7 @@ export function prepareInstalledEffectResultProgress(run, source) {
       if (progress === null || typeof progress !== 'object') {
         fail('InvalidInstalledEffectResultProgress');
       }
-      const ready = runtimeField(progress, 0), work = runtimeField(progress, 1);
+      const ready = runtimeField(progress, 0), work = runtimeField(progress, 1) as number;
       if (typeof ready !== 'boolean' || !Number.isSafeInteger(work) ||
           work < 0 || work > quantum) fail('InvalidInstalledEffectResultProgress');
       if (Object.hasOwn(run, 'failure')) throw run.failure;

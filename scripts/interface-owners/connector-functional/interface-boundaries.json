@@ -19611,7 +19611,7 @@
     },
     {
       "module": "adapters/host-node/table-write-binding.mjs",
-      "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
+      "sha256": "9e1180e46a6e95f654c3d789fe831aaecf96a6649044236b1ce904d4af55e629",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing projection and equality recheck of checked SQL/Table intent, selected action, original identity/generation and capability binding",
@@ -19654,37 +19654,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "Project admitted facts"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "checkedTableWriteBinding"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "expected?.table_uuid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "verifyTableWriteBinding"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "clientProgramEffectTableWriteBinding"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "InstalledTableWriteBindingChanged"
               }
             ],
@@ -19693,7 +19693,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/table-write-binding.mjs",
+                "path": "adapters/host-node/table-write-binding.mts",
                 "anchor": "maxWork"
               }
             ],
@@ -19705,7 +19705,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-write-binding.test.mjs",
+                "path": "adapters/host-node/table-write-binding.test.mts",
                 "anchor": "test("
               }
             ]

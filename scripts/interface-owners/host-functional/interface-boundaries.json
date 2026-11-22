@@ -145167,7 +145167,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect preparation and original publication-work Owner",
-      "sha256": "87248be7f273db7116d70f3449a1a27d2bfe0df54ffd778379044a78a32a5a9f",
+      "sha256": "472e16e2ffd70a51b567d24b69b5559c52ad4f6bfddf63d061121edbce50ac3a",
       "exports": [
         "prepareInstalledEffectResultProgress"
       ],
@@ -145230,7 +145230,7 @@
                 "anchor": "pub fn prepare_installed_effect_result_publication_work("
               },
               {
-                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "path": "adapters/host-node/effect-result-work.test.mts",
                 "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
               }
             ],
@@ -145246,11 +145246,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-result-work.mjs",
+                "path": "adapters/host-node/effect-result-work.mts",
                 "anchor": "export function prepareInstalledEffectResultProgress("
               },
               {
-                "path": "adapters/host-node/effect-result-work.mjs",
+                "path": "adapters/host-node/effect-result-work.mts",
                 "anchor": "InstalledEffectResultWorkPending"
               }
             ],
@@ -145260,7 +145260,7 @@
                 "anchor": "pub fn advance_installed_effect_result_publication("
               },
               {
-                "path": "adapters/host-node/effect-result-work.mjs",
+                "path": "adapters/host-node/effect-result-work.mts",
                 "anchor": "if (failed) throw primary;"
               }
             ],
@@ -145292,7 +145292,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "path": "adapters/host-node/effect-result-work.test.mts",
                 "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
               },
               {

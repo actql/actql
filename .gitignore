@@ -2086,3 +2086,11 @@ target/
 /scripts/health-monitor-adapters.d.mts
 /scripts/test-packed-readme-workflows.mjs
 /scripts/test-packed-readme-workflows.d.mts
+/adapters/host-node/table-write-binding.mjs
+/adapters/host-node/table-write-binding.d.mts
+/adapters/host-node/table-write-binding.test.mjs
+/adapters/host-node/table-write-binding.test.d.mts
+/adapters/host-node/effect-result-work.mjs
+/adapters/host-node/effect-result-work.d.mts
+/adapters/host-node/effect-result-work.test.mjs
+/adapters/host-node/effect-result-work.test.d.mts

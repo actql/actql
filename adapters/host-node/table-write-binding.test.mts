@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {verifyTableWriteBinding} from './table-write-binding.mjs';
 
-const cid = value => `sha256:${value.repeat(64)}`;
+const cid = (value: string) => `sha256:${value.repeat(64)}`;
 const create = Object.freeze({action: 'create', expectedTable: null,
   capabilityCid: cid('a'), installationBindingCid: cid('b')});
-const binding = target => ({_0: 'create_or_replace', _1: target.action,
+const binding = (target: Parameters<typeof verifyTableWriteBinding>[0]) => ({_0: 'create_or_replace', _1: target.action,
   _2: target.expectedTable?.table_uuid, _3: target.expectedTable?.generation_cid,
   _4: target.capabilityCid, _5: target.installationBindingCid});
 
