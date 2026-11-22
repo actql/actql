@@ -48,6 +48,8 @@ type InstalledConfigurationReader = ConfigurationReader & Readonly<{
   readOriginalBytes(path: unknown): Promise<Buffer>;
 }>;
 type RetirableScope = {
+  role?: 'source' | 'effect';
+  connectorId?: string;
   source?: unknown;
   closed?: boolean;
   prepared?: unknown;

@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9afd57382e978ffb08a8a83218696f4b412595ea0b0ccce032ed085ab052f3f6",
+      "sha256": "a0a56be835ba46773319bc7a694b77034c6a1b886d1a1f234c711224f36bec04",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134567,108 +134567,9 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
-          "parameters": [
-            "viewsWire",
-            "specification",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-          "parameters": [
-            "viewsWire",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
           "parameters": [
             "sourceContext"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration",
-          "parameters": [
-            "views",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [
-            "viewsWire",
-            "projection",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
-          "parameters": [
-            "other"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
-          "parameters": [
-            "declaration",
-            "declaredWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
-          "parameters": [
-            "initialViews",
-            "derivation",
-            "projection",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
-          "parameters": [
-            "declaration",
-            "wire"
           ],
           "async": false
         },
@@ -134926,7 +134827,6 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./account-construction.mjs",
-        "./installed-authored-command.mjs",
         "./installed-check-environment-construction.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
@@ -135560,20 +135460,6 @@
             "bindInstalledSourceConstruction/current/current",
             "bindInstalledSourceConstruction/domain/domain/domain",
             "bindInstalledSourceConstruction/prepare/prepare/prepare",
-            "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
-            "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration",
-            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
-            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
-            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
-            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
-            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
-            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
-            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
             "createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
             "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
             "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
@@ -135645,8 +135531,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "prepareAuthoredCommands(viewsWire, specification, expectedCatalogCid)"
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "prepareAuthoredCommands(this: object, viewsWire: unknown, specification: unknown, expectedCatalogCid?: unknown)"
               }
             ],
             "identity": [
@@ -136576,7 +136462,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "61fcd1bc5fc76201b58b925f4164a6d53867c879695ffb762671a23839d3e31f",
+      "sha256": "9ba32230b285adb8d989521e3e2a76a121aac7134068974d16678bf9b593d490",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -136607,6 +136493,105 @@
           "name": "createInstalledSourceContextConstruction/captureDeclarationViews",
           "parameters": [
             "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
+          "parameters": [
+            "viewsWire",
+            "specification",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+          "parameters": [
+            "viewsWire",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration",
+          "parameters": [
+            "views",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "viewsWire",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
+          "parameters": [
+            "other"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+          "parameters": [
+            "declaration",
+            "declaredWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+          "parameters": [
+            "initialViews",
+            "derivation",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
+          "parameters": [
+            "declaration",
+            "wire"
           ],
           "async": false
         },
@@ -136712,6 +136697,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./installed-authored-command.mjs",
         "./installed-check-environment-construction.mjs",
         "./installed-source-construction-geometry.mjs",
         "node:util"
@@ -136724,6 +136710,20 @@
             "<module>",
             "createInstalledSourceContextConstruction",
             "createInstalledSourceContextConstruction/captureDeclarationViews",
+            "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
+            "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "createInstalledSourceContextConstruction/declarations/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+            "createInstalledSourceContextConstruction/declarations/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
             "createInstalledSourceContextConstruction/prepareInitialNativeConstruction",
             "createInstalledSourceContextConstruction/prepareOriginalDeclaration",
             "createInstalledSourceContextConstruction/prepareProviderConstruction",
@@ -136764,6 +136764,10 @@
               {
                 "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "function captureDeclarationViews"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "prepareDeclaredCommands(this: object,"
               }
             ],
             "identity": [
@@ -136774,6 +136778,10 @@
               {
                 "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "scope.prepared !== expectedPrepared"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "other.commandDeclarationWire === outputWire"
               }
             ],
             "ownership": [
@@ -136800,6 +136808,10 @@
               {
                 "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "fail('InvalidInstalledSourceNativeMappings')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "fail('InstalledSourceCommandCatalogMismatch')"
               }
             ],
             "cancellation": {
@@ -136829,6 +136841,10 @@
               {
                 "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
                 "anchor": "Local table129 target inventory uses the same real initial constructor before any Python read"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "SAME parent Command Effect retains the original live Source Environment without constructing or charging it twice"
               }
             ]
           }
@@ -143216,7 +143232,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "authoredCommandProjection(original.moon, specification)"
               }
             ],
