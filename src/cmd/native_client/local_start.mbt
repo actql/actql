@@ -392,6 +392,13 @@ fn local_submission_start(
       // partial work as a completed Run, checkpoint, write or retry permit.
       stop("LocalEffectAuthoritySupplierUnavailable")
     }
+    // The compilation owns the same provider/graph inputs, but the Model
+    // Plan/Store continuation must be installed before this command may
+    // accept a Run with Model work.
+    if business is Some(original) &&
+      original.configured_model_compilation(prepared) is Some(_) {
+      stop("LocalModelHttpRunPlanUnavailable")
+    }
     let source_free = @run_host.prepared_client_acquisition_count(prepared) == 0
     if source_free &&
       !@local_host.native_client_local_values_profile_supported(prepared) {

@@ -26,6 +26,7 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   requirements : @local_values.ClientLocalRequirements?
+  model_compilation : LocalCommandModelCompilation?
   normalization : @run_host.ClientLocalNormalization?
   authoring : @run_host.ClientAuthoringContextPreparation?
   mut file_source : LocalCommandFileSources?
@@ -139,6 +140,20 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let (preparation, normalization, authoring) = self.prepare_business_request(
     capture, intent, environment,
   )
+  let model_compilation = match
+    (
+      settings.model_http_installation,
+      @local_host.native_client_submitted_preparation(preparation),
+    ) {
+    (Some(installation), Computation(prepared)) =>
+      self.prepare_model_compilation(
+        capture,
+        prepared,
+        installation,
+        runtime.installed_contracts,
+      )
+    _ => None
+  }
   let (requirements, file_source) = match
     @local_host.native_client_submitted_preparation(preparation) {
     Computation(prepared) => {
@@ -155,7 +170,10 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // source-free Programs. Their actual file route is selected later on
       // the same Request, once its original occurrences are backed.
       let graph = @run_host.prepared_client_graph(prepared)
-      if @checked.source_execution_count(@strategy.graph_program(graph)) > 0 {
+      if model_compilation is Some(_) {
+        (None, None)
+      } else if @checked.source_execution_count(@strategy.graph_program(graph)) >
+        0 {
         let selected = self
           .select_business_file_source(prepared)
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
@@ -208,6 +226,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     intent,
     preparation,
     requirements,
+    model_compilation,
     normalization,
     authoring,
     file_source,
