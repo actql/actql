@@ -34723,7 +34723,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "9b33dc5d08a39ae788d41a54a998d55a78e55ec96f1015ad025139cda2bd408b",
+      "sha256": "40995fa90a2fc383367be9bf16850ea962ccc7eb7d8956500bf388c7b76453a5",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -35316,25 +35316,10 @@
           "async": false
         },
         {
-          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/original/original",
           "parameters": [
             "task"
           ],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -35484,10 +35469,7 @@
             "installConfiguredModelProviders/policyInventory/policyInventory",
             "installConfiguredModelProviders/policyInventory/policyInventory#2",
             "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability",
-            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/init:project/init:project",
             "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/original/original",
-            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability",
-            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability#2",
             "installConfiguredModelProviders/providers/providers",
             "installConfiguredModelProviders/providers/providers#2",
             "installConfiguredModelProviders/track/track/track",
@@ -35582,7 +35564,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1188,
+    "operations": 1185,
     "exports": 109,
     "explicitContractGroups": 106
   }

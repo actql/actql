@@ -1,11 +1,6 @@
 import {openSync, fstatSync, readSync, closeSync} from 'node:fs';
 import {resolve, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createRequire} from 'node:module';
-import {getHeapStatistics} from 'node:v8';
-import {types as nodeTypes} from 'node:util';
-import {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
-  from './initial-control-phase-envelope.cjs';
 import packageCustody from './initial-control-package-custody.cjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory}
   from './installed-host-policy.mjs';
@@ -17,80 +12,6 @@ const scopes = new WeakMap();
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const names = ['host', 'installation', 'generation', 'supplier', 'moduleLifetime'];
-const require = createRequire(import.meta.url);
-const sdkPackage = '@actql/provider-ai-sdk';
-let sdkImages, sdkImageFailure, sdkImageStarting = false;
-
-function prepareModelSdkInstallation(input) {
-  const source = input.installation?.modelSdkRegistrations;
-  if (source === undefined) return undefined;
-  if (!Array.isArray(source) || nodeTypes.isProxy(source) || source.length === 0 || source.length > 64) {
-    fail('InvalidInstalledModelSdkInstallation');
-  }
-  const data = (value, keys) => {
-    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
-        Object.getPrototypeOf(value) !== Object.prototype || !Object.isFrozen(value) ||
-        Reflect.ownKeys(value).length !== keys.length ||
-        keys.some(key => {
-          const field = Object.getOwnPropertyDescriptor(value, key);
-          return !field?.enumerable || !Object.hasOwn(field, 'value');
-        })) fail('InvalidInstalledModelSdkInstallation');
-  };
-  const registrations = new Map();
-  for (let index = 0; index < source.length; index++) {
-    const field = Object.getOwnPropertyDescriptor(source, index);
-    if (field === undefined || !Object.hasOwn(field, 'value')) fail('InvalidInstalledModelSdkInstallation');
-    const original = field.value;
-    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
-    data(original.adapter, ['path', 'cid']);
-    data(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
-    data(original.lock, ['path', 'cid']);
-    data(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
-    const id = original.route.providerId;
-    if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
-      fail('InvalidInstalledModelSdkInstallation');
-    }
-    registrations.set(id, original);
-  }
-  if (sdkImageFailure !== undefined) throw sdkImageFailure.cause;
-  if (sdkImageStarting) fail('InitialControlSdkImageStarting');
-  const initialize = sdkImages === undefined;
-  try {
-    if (initialize) {
-      sdkImageStarting = true;
-      // Adopt the existing installed-image envelope before borrowing any bytes
-      // or compiling the selected module. The original package owns this
-      // cache for the process lifetime, including after Host close.
-      const envelope = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
-      const {imageInventory} = require('./initial-control-package-original.cjs');
-      if (imageInventory?.optionalSdkCoverage !== 'prepared') fail('InitialControlSdkImageUnavailable');
-      const runtime = Object.freeze({node: process.versions.node, v8: process.versions.v8,
-        openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
-        eager: false, libraries: Object.freeze({...process.versions})});
-      inspectOrdinaryInitialControlPhaseEnvelope(imageInventory, envelope, runtime);
-      sdkImages = packageCustody.captureOrdinaryInitialControlPackageCustody(
-        imageInventory, packageRoot, process.argv[1]);
-    }
-    const read = (packageName, selected, kind) =>
-      packageCustody.readVerifiedSdkImage(sdkImages, packageName, selected.path, selected.cid, kind);
-    for (const original of registrations.values()) {
-      read(sdkPackage, original.lock, 'lock');
-      const sdk = read(original.sdk.packageName, original.sdk, 'module');
-      if (sdk.version !== original.sdk.version) fail('InvalidInstalledModelSdkInstallation');
-      read(sdkPackage, original.adapter, 'module');
-    }
-    // This closes first selections. Subsequent Hosts may borrow these same
-    // namespaces, and a newly requested module fails before registration.
-    if (initialize) sdkImages.initializeHostNamespace();
-    sdkImages.assertCurrent();
-    return Object.freeze({verifiedSdkInstallations: registrations, sdkImageCustody: sdkImages});
-  } catch (cause) {
-    if (initialize) sdkImageFailure = Object.freeze({cause});
-    throw cause;
-  } finally {
-    if (initialize) sdkImageStarting = false;
-  }
-}
 
 function copyOwnValues(value) {
   // Retain copied own configuration, not a live caller prototype. In
@@ -185,7 +106,7 @@ export function beginOrdinaryHostControl(originals, input) {
   }
   const held = Object.freeze(Object.fromEntries(names.map(name => [name, originals[name]])));
   const packet = snapshot(input);
-  const state = {originals: held, input: packet, modelSdk: prepareModelSdkInstallation(packet),
+  const state = {originals: held, input: packet, modelSdk: packageCustody.ordinaryModelSdkInstallation(packet.installation?.modelSdkRegistrations),
     children: new Map(), assets: new Map(),
     assetCodeUnits: 0, closing: false, closed: false, flight: undefined, fileCloseUnknown: false};
   const scope = Object.freeze({

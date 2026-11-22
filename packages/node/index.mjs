@@ -29,7 +29,7 @@ function captureOptions(original, captured = new Map()) {
 
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.
-async function localProvider() {
+async function localProvider(modelSdkRegistrations) {
   let resolved;
   try {
     resolved = import.meta.resolve('@actql/local-node');
@@ -45,6 +45,12 @@ async function localProvider() {
   // it supplies no ActQL admission, checking result, or execution authority.
   const cache = await import('@actql/local-node/_internal/compile-cache');
   cache.enableNodeCompileCache();
+  if (modelSdkRegistrations !== undefined) {
+    // The selected image owner must deliver Host and SDK sources before
+    // Local's ordinary static import can populate Node's JSON/module cache.
+    const {default: startup} = await import('@actql/local-node/_internal/initial-control-public-dispatch');
+    startup.prepareOrdinaryModelSdkInstallation(modelSdkRegistrations);
+  }
   const provider = await import(resolved);
   if (typeof provider.connect !== 'function') {
     throw new ClientError('InvalidLocalProvider');
@@ -104,7 +110,7 @@ export async function connect(options, stringOptions) {
       if (error instanceof ClientError) throw error;
       throw new ClientError('InvalidInstalledHostCapacityPolicy');
     }
-    return (await localProvider()).connect(options);
+    return (await localProvider(options.installation?.modelSdkRegistrations)).connect(options);
   }
   return connectHost(options);
 }

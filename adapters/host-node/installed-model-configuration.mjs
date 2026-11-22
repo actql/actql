@@ -609,33 +609,45 @@ export async function installConfiguredModelProviders({moon, register, project,
             typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function') {
           fail(invalidSdkInstallation);
         }
-        return reader().prepareModelTaskInput(Object.freeze({
-          capacity: () => capacity(24n, 0n, 0n, 12n * 4096n, 12n * 65536n, 8n * 65536n),
-          project() {
-            assertCurrent(); assertNewHostRuntime?.();
-            const {route} = registration, {binding} = original.defaults;
-            const revision = JSON.parse(binding.originals.installationRevision.wire);
-            const configuration = JSON.parse(binding.originals.configuration.wire);
-            if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
-                revision.builder_artifact_cid !== registration.adapterArtifactCid ||
-                revision.lock_artifact_cid !== registration.lockArtifactCid ||
-                !isDeepStrictEqual(configuration.provider_options, registration.providerOptions)) {
-              fail(invalidSdkInstallation);
-            }
-            const opaque = checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
-              provider, binding.value, binding.originals.configuration.wire,
-              route.selector, route.modelId, route.apiMode, route.endpoint, raw.profile));
-            return Object.freeze({opaque, installation: raw.installation});
-          },
-          retained: () => capacity(24n),
-        }));
+        assertCurrent(); assertNewHostRuntime?.();
+        const {route} = registration, {binding} = original.defaults;
+        const revision = JSON.parse(binding.originals.installationRevision.wire);
+        const configuration = JSON.parse(binding.originals.configuration.wire);
+        const {installation} = raw;
+        const sdk = installation.sdk;
+        if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
+            revision.builder_artifact_cid !== registration.adapterArtifactCid ||
+            revision.lock_artifact_cid !== registration.lockArtifactCid ||
+            !isDeepStrictEqual(configuration.provider_options, registration.providerOptions) ||
+            installation.build_artifact_cid !== registration.adapterArtifactCid ||
+            installation.endpoint !== route.endpoint || sdk?.package_name !== registration.sdkPackage ||
+            sdk.version !== registration.sdkVersion || sdk.interface !== 'v4' ||
+            sdk.lock_artifact_cid !== registration.lockArtifactCid) {
+          fail(invalidSdkInstallation);
+        }
+        const opaque = checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
+          provider, binding.value, binding.originals.configuration.wire,
+          route.selector, route.modelId, route.apiMode, route.endpoint, raw.profile));
+        return Object.freeze({opaque, installation});
       };
     const install = () => installModelProviders(moon, () => entries, assertHostRuntime,
       assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability);
+    let registeredTaskNodes = 0n;
+    if (preparedSdkRegistrations !== undefined) {
+      for (const task of taskOriginals) {
+        if (preparedSdkRegistrations.has(task.providerId)) registeredTaskNodes += 24n;
+      }
+    }
     const providerNodes = candidates === undefined ? 0n : 64n +
-      64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length);
+      64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length) + registeredTaskNodes;
+    // Install all provider views in the same original constructor. Each
+    // capability remains retained, while one Task at a time borrows canonical
+    // binding material and checks the two DATA bodies and their Common CID.
     const providers = candidates === undefined ? install() : reader().prepareModelTaskInput(Object.freeze({
-      capacity: () => capacity(providerNodes, 0n, 0n, providerNodes),
+      capacity: () => registeredTaskNodes === 0n
+        ? capacity(providerNodes, 0n, 0n, providerNodes)
+        : capacity(providerNodes, 0n, 0n, providerNodes + 12n * BigInt(bodyLimits.maxNodes),
+          12n * BigInt(bodyLimits.maxBytes), 8n * BigInt(bodyLimits.maxBytes)),
       project: install, retained: () => capacity(providerNodes),
     }));
     const projectTasks = candidates?.bindInstalledProviders(providers);

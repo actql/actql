@@ -2454,8 +2454,9 @@
     },
     {
       "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "bfc268cb88703ab4415088065b61a66b416ab5e58c9fed61bd39591e91d68d0d",
+      "sha256": "03f1d42e59f3ccaae42cd948667384e04030b537dfee6c7f88d40cab8420bdab",
       "exports": [
+        "commonjs:prepareOrdinaryModelSdkInstallation",
         "commonjs:selectedInitialControlHostPreparation"
       ],
       "operations": [
@@ -2474,9 +2475,17 @@
             "raw"
           ],
           "async": false
+        },
+        {
+          "name": "init:prepareOrdinaryModelSdkInstallation/init:prepareOrdinaryModelSdkInstallation",
+          "parameters": [
+            "source"
+          ],
+          "async": false
         }
       ],
       "imports": [
+        "./adapters/host-node/initial-control-package-custody.cjs",
         "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
         "node:module",
         "node:path",
@@ -2492,11 +2501,13 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "<anonymous>",
-            "forwardOrdinary"
+            "<module>",
+            "forwardOrdinary",
+            "init:prepareOrdinaryModelSdkInstallation/init:prepareOrdinaryModelSdkInstallation"
           ],
           "exports": [
+            "commonjs:prepareOrdinaryModelSdkInstallation",
             "commonjs:selectedInitialControlHostPreparation"
           ],
           "attributes": {
@@ -3350,7 +3361,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3680d9985709d3045264972b71e1716ca3cf4e6e933697600ce5a8906496f0c2",
+      "sha256": "e6e0a7c306526617c6ea6d11c318473dc564e9405f8d93c946bccd9298f81603",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -3383,6 +3394,7 @@
       ],
       "imports": [
         "@actql/local-node/_internal/compile-cache",
+        "@actql/local-node/_internal/initial-control-public-dispatch",
         "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"

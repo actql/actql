@@ -78,12 +78,18 @@ if (registered) {
   })]);
 }
 if (phase === 'registered-too-late') {
-  // Deliberately use the actual public module before the Host can adopt its
-  // captured image. This must refuse in actual open(), before any callback.
-  await import(providerModule);
+  // The first ordinary Host makes the actual selection and closes the loader.
+  // A distinct genuine file in the verified SDK graph is too late afterward.
+  const initial = await open({stateDir: '.initial-state', installation: {modelSdkRegistrations}});
+  await initial.close();
+  const original = modelSdkRegistrations[0];
+  const sdkEntry = createRequire(new URL(providerModule)).resolve('@ai-sdk/openai/internal');
+  const sdk = Object.freeze({...original.sdk, path: 'dist/internal/index.js',
+    cid: 'sha256:' + createHash('sha256').update(await readFile(sdkEntry)).digest('hex')});
+  const late = Object.freeze([Object.freeze({...original, sdk})]);
   let registrations = 0;
-  await assert.rejects(open({stateDir: '.state', installation: {modelSdkRegistrations,
-    registerModelProviders() {registrations++; return [];}}}), {code: 'InitialControlPackageImageChanged'});
+  await assert.rejects(open({stateDir: '.state', installation: {modelSdkRegistrations: late,
+    registerModelProviders() {registrations++; return [];}}}), {code: 'InitialControlSdkImageUnavailable'});
   assert.equal(registrations, 0);
   await assert.rejects(access('.state'), {code: 'ENOENT'});
   process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
@@ -150,6 +156,7 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   for await (const chunk of request) {wire += chunk; assert(wire.length <= 32768);}
   const body = JSON.parse(wire);
   assert.equal(body.model, 'fixture-chat'); assert.notEqual(body.stream, true);
+  if (registered) assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
   schemas.push(body.response_format.json_schema.schema);
   const input = JSON.parse(body.messages[1].content);
   assert.deepEqual(input, calls === 1 ? {text: 'first'} : {quantity: 7});

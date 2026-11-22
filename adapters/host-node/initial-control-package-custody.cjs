@@ -10,6 +10,10 @@ const {dirname, join, isAbsolute} = require('node:path');
 const {existsSync, realpathSync} = require('node:fs');
 const {captureInitialControlImageSource} = require('./initial-control-image-source.cjs');
 const {installInitialControlImageLoader, installOrdinaryInitialControlImageLoader} = require('./initial-control-image-loader.cjs');
+const {getHeapStatistics} = require('node:v8');
+const {types: nodeTypes} = require('node:util');
+const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
+  = require('./initial-control-phase-envelope.cjs');
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const apply = Reflect.apply, array = Array.isArray, integer = Number.isSafeInteger;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
@@ -304,5 +308,93 @@ function readVerifiedSdkImage(custody, packageName, path, cid, kind) {
   return read(packageName, path, cid, kind);
 }
 
-module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody, readVerifiedSdkImage};
+const sdkPackage = '@actql/provider-ai-sdk';
+const ordinarySdkPreparations = new WeakMap();
+let ordinarySdkImages, sdkImageFailure, sdkImageStarting = false;
+
+function prepareOrdinaryModelSdkInstallation(source) {
+  if (source === undefined) return undefined;
+  if (!Array.isArray(source) || nodeTypes.isProxy(source) || !Object.isFrozen(source) || source.length === 0 || source.length > 64) {
+    fail('InvalidInstalledModelSdkInstallation');
+  }
+  const data = (value, keys) => {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype || !Object.isFrozen(value) ||
+        Reflect.ownKeys(value).length !== keys.length ||
+        keys.some(key => {
+          const field = Object.getOwnPropertyDescriptor(value, key);
+          return !field?.enumerable || !Object.hasOwn(field, 'value');
+        })) fail('InvalidInstalledModelSdkInstallation');
+  };
+  const previous = ordinarySdkPreparations.get(source);
+  if (previous !== undefined) {
+    previous.sdkImageCustody.assertCurrent();
+    return;
+  }
+  const registrations = new Map();
+  for (let index = 0; index < source.length; index++) {
+    const field = Object.getOwnPropertyDescriptor(source, index);
+    if (field === undefined || !Object.hasOwn(field, 'value')) fail('InvalidInstalledModelSdkInstallation');
+    const original = field.value;
+    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
+    data(original.adapter, ['path', 'cid']);
+    data(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
+    data(original.lock, ['path', 'cid']);
+    data(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
+    const id = original.route.providerId;
+    if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
+      fail('InvalidInstalledModelSdkInstallation');
+    }
+    registrations.set(id, original);
+  }
+  if (sdkImageFailure !== undefined) throw sdkImageFailure.cause;
+  if (sdkImageStarting) fail('InitialControlSdkImageStarting');
+  const initialize = ordinarySdkImages === undefined;
+  try {
+    if (initialize) {
+      sdkImageStarting = true;
+      // Adopt the existing installed-image envelope before borrowing any bytes
+      // or compiling the selected module. The original package owns this
+      // cache for the process lifetime, including after Host close.
+      const envelope = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
+      const {imageInventory} = require('./initial-control-package-original.cjs');
+      if (imageInventory?.optionalSdkCoverage !== 'prepared') fail('InitialControlSdkImageUnavailable');
+      const runtime = Object.freeze({node: process.versions.node, v8: process.versions.v8,
+        openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
+        eager: false, libraries: Object.freeze({...process.versions})});
+      inspectOrdinaryInitialControlPhaseEnvelope(imageInventory, envelope, runtime);
+      ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(
+        imageInventory, join(__dirname, '../..'), process.argv[1]);
+    }
+    const read = (packageName, selected, kind) =>
+      readVerifiedSdkImage(ordinarySdkImages, packageName, selected.path, selected.cid, kind);
+    for (const original of registrations.values()) {
+      read(sdkPackage, original.lock, 'lock');
+      const sdk = read(original.sdk.packageName, original.sdk, 'module');
+      if (sdk.version !== original.sdk.version) fail('InvalidInstalledModelSdkInstallation');
+      read(sdkPackage, original.adapter, 'module');
+    }
+    // This closes first selections. Subsequent Hosts may borrow these same
+    // namespaces, and a newly requested module fails before registration.
+    if (initialize) ordinarySdkImages.initializeHostNamespace();
+    ordinarySdkImages.assertCurrent();
+    ordinarySdkPreparations.set(source, freeze({verifiedSdkInstallations: registrations, sdkImageCustody: ordinarySdkImages}));
+  } catch (cause) {
+    if (initialize) sdkImageFailure = Object.freeze({cause});
+    throw cause;
+  } finally {
+    if (initialize) sdkImageStarting = false;
+  }
+}
+
+function ordinaryModelSdkInstallation(source) {
+  if (source === undefined) return undefined;
+  const selected = ordinarySdkPreparations.get(source);
+  if (selected === undefined) fail('InitialControlSdkImageUnavailable');
+  selected.sdkImageCustody.assertCurrent();
+  return selected;
+}
+
+module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody,
+  readVerifiedSdkImage, prepareOrdinaryModelSdkInstallation, ordinaryModelSdkInstallation};
 freeze(module.exports);
