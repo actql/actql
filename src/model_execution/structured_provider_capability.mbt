@@ -145,6 +145,7 @@ pub fn structured_model_async_request_plan(
   profile : @environment.ModelResponseProfile,
   installation : @environment.ModelResponseProfileInstallation,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
+  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?,
   evidence? : ModelPhysicalRequestEvidence,
   attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
@@ -158,14 +159,14 @@ pub fn structured_model_async_request_plan(
     installation.endpoint != actual.endpoint {
     return Err(InvalidProvider)
   }
-  model_async_physical_request_plan(
+  prepare_structured_model_physical_plan(
     request,
     wire_bytes,
     quantities,
     profile,
     installation,
-    start,
-    evidence?,
-    attachments~,
+    AsynchronousSavedStructured(current, start, read_decoded),
+    evidence,
+    attachments,
   )
 }

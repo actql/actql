@@ -1382,11 +1382,12 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec69b1e403ec2c7baf797e8fbd77f5fa82987318db183450cd569a59f3b145e1",
+      "sha256": "7150482b23b7b71b23d4491594f713795e888c7d92e854ec9316738a2206f76a",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
+        "confirmSavedSdkTransportResponse",
         "deliverSdkResponse",
         "interceptSdkRequest",
         "pollSdkDecode",
@@ -1400,6 +1401,7 @@
         "sdkTransportRawObservation",
         "sdkTransportResponse",
         "startSdkTransport",
+        "takeSavedSdkDecodedResult",
         "takeSdkDecodedResult"
       ],
       "operations": [
@@ -1466,6 +1468,15 @@
         {
           "name": "cleanupSdkPreparation/cleanupSdkPreparation#5",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "confirmSavedSdkTransportResponse",
+          "parameters": [
+            "handle",
+            "originalRaw",
+            "saved"
+          ],
           "async": false
         },
         {
@@ -1672,6 +1683,15 @@
           "async": false
         },
         {
+          "name": "takeSavedSdkDecodedResult",
+          "parameters": [
+            "handle",
+            "receipt",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "takeSdkDecodedResult",
           "parameters": [
             "handle"
@@ -1725,7 +1745,9 @@
             "startSdkTransport/startSdkTransport#3",
             "startSdkTransport/startSdkTransport#4",
             "takeSdkDecodedResult",
-            "bindSdkTransportCredential"
+            "bindSdkTransportCredential",
+            "confirmSavedSdkTransportResponse",
+            "takeSavedSdkDecodedResult"
           ],
           "exports": [
             "cancelSdkPreparation",
@@ -1744,7 +1766,9 @@
             "sdkTransportResponse",
             "startSdkTransport",
             "takeSdkDecodedResult",
-            "bindSdkTransportCredential"
+            "bindSdkTransportCredential",
+            "confirmSavedSdkTransportResponse",
+            "takeSavedSdkDecodedResult"
           ],
           "attributes": {
             "responsibility": [
@@ -1849,6 +1873,10 @@
               {
                 "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
                 "anchor": "no success claim"
+              },
+              {
+                "path": "adapters/host-node/infer-sdk-raw-store.test.mjs",
+                "anchor": "selected SDK decodes the original Store-confirmed fetch response once"
               }
             ]
           }

@@ -12,6 +12,7 @@ fn entry_gate_fixture(
   start_original? : (() -> Execution)? = None,
   slots? : Int = 2,
   current_observations? : Ref[Int]? = None,
+  provider_original? : (@publication.RunEvidenceValue, String, String, String),
 ) -> (
   Execution,
   @model.ModelPreparedCallSet,
@@ -67,21 +68,31 @@ fn entry_gate_fixture(
   let artifact = @model.prepared_model_input_artifact(prepared).unwrap()
   let (_, task_cid, _) = @model.prepared_model_identities(prepared).unwrap()
   let root = "sha256:" + "a".repeat(64)
-  let provider = @publication.seal_run_evidence_value(
-    "model_provider_binding",
-    fixture_canonical(
-      Json::object({
-        "version": Json::string("actql-model-provider-binding/0.1"),
-        "provider_id": Json::string("models/fixture"),
-        "installation_revision_cid": Json::string(root),
-        "configuration_contract_cid": Json::string(root),
-        "configuration_cid": Json::string(root),
-      }),
-    ),
-    16384,
-    1024,
-    20,
-  ).unwrap()
+  let (provider, revision, configuration_contract, configuration) = match
+    provider_original {
+    Some(original) => original
+    None =>
+      (
+        @publication.seal_run_evidence_value(
+          "model_provider_binding",
+          fixture_canonical(
+            Json::object({
+              "version": Json::string("actql-model-provider-binding/0.1"),
+              "provider_id": Json::string("models/fixture"),
+              "installation_revision_cid": Json::string(root),
+              "configuration_contract_cid": Json::string(root),
+              "configuration_cid": Json::string(root),
+            }),
+          ),
+          16384,
+          1024,
+          20,
+        ).unwrap(),
+        root,
+        root,
+        root,
+      )
+  }
   let plan = active.plan.unwrap()
   let boundary : @publication.ModelInvocationBoundary = {
     unit_id: @publication_host.client_infer_call_scope_unit_id(
@@ -101,9 +112,9 @@ fn entry_gate_fixture(
     connection: "models/fixture",
     resource: task_cid,
     context_cid: root,
-    installation_revision_cid: root,
-    configuration_contract_cid: root,
-    provider_configuration_cid: root,
+    installation_revision_cid: revision,
+    configuration_contract_cid: configuration_contract,
+    provider_configuration_cid: configuration,
   }
   let scope = @publication.seal_run_evidence_value(
     "model_invocation_scope",

@@ -142,6 +142,12 @@ fn advance_encoded_model_response(
         (Some(PhysicalEncodedResponse(original)), None) if physical_equal(
             original, physical,
           ) => physical.observation
+        (Some(PhysicalSavedStructuredResponse(saved)), None) if physical_equal(
+            saved.encoded,
+            physical,
+          ) &&
+          model_saved_structured_response_original(saved, call) =>
+          physical.observation
         (Some(PhysicalChatResponse(original)), Some(raw)) if physical_equal(
             original, raw,
           ) => {
