@@ -143,6 +143,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue] {
   if !self.available.val || !physical_equal(captured, self.run) {
     return Err(MissingOutput)
@@ -170,6 +171,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       bridge_max_name_bytes,
       limits,
       before_row~,
+      reserve_row_copy~,
     ) {
     Ok(value) => value
     Err(MissingOutput) => return Err(MissingOutput)
@@ -256,6 +258,103 @@ fn LocalValuesExecution::publication_original_for_task(
 }
 
 ///|
+// One preflight cursor, three copied limit records and the pending Value
+// bounds at a time, plus split quote and bridge peak counters. The row is
+// borrowed from the original producer transport.
+let publication_bridge_row_quote_controls : Int64 = {
+  let source = @source.json_source_preflight_control_extent()
+  @execution.preparation_representation_cost({
+    record_headers: source.record_headers + 9L,
+    reference_slots: source.reference_slots + 12L,
+    scalar_words: source.scalar_words + 29L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
+// Measure the complete emitted row, including its object wrapper and nested
+// values. The same Source cursor stops before grammar and retires before the
+// decoder. Keep the byte-derived bound if the original wire cannot be measured.
+fn reserve_publication_bridge_row_copy(
+  limits : @local.LocalImportLimits,
+  schema : @schema.Schema,
+  row : String,
+  bytes : Int64,
+  prefix_rows : Int64,
+  prefix : @execution.ValueUsage,
+  previous_retained : Int64,
+  previous_decoder : Int64,
+  reserve : (Int64, Int64) -> Bool,
+) -> (Int64, Int64, Int64, Int64)? {
+  guard bytes >= 0L && bytes <= limits.row.max_bytes.to_int64() else {
+    return None
+  }
+  let (quote, row_nodes) = match
+    installed_effect_dependency_wire_geometry(
+      row,
+      limits.row.max_bytes,
+      limits.row.max_nodes,
+      limits.row.max_depth,
+      _ => true,
+    ) {
+    Some(geometry) if geometry.input_bytes.to_int64() == bytes &&
+      geometry.node_upper > 0 => {
+      // Even a sparse row uses the original schema's field slots.
+      let nodes = Int::max(geometry.node_upper, limits.wire.max_columns)
+      (
+        {
+          ..limits,
+          wire: {
+            ..limits.wire,
+            max_nodes: Int::min(limits.wire.max_nodes, nodes),
+          },
+          row: {
+            ..limits.row,
+            max_nodes: Int::min(limits.row.max_nodes, nodes),
+          },
+        },
+        geometry.node_upper.to_int64(),
+      )
+    }
+    _ => (limits, bytes)
+  }
+  // The complete wire bounds the row and every present Value. Presence
+  // admission also retains an entry for every omitted slot and charges its
+  // name even though neither appears in the wire. The original schema bounds
+  // both, independently of the transient decoder and the admitted prefix.
+  let (presence_nodes, presence_text) = if @schema.all_fields_required(schema) {
+    (0L, 0L)
+  } else {
+    (
+      @schema.field_count(schema).to_int64(),
+      @schema.field_reference_name_bytes(schema).to_int64(),
+    )
+  }
+  guard @local.local_import_next_copy_extent(
+      quote,
+      prefix_rows,
+      prefix.nodes.to_int64(),
+      prefix.text_bytes.to_int64(),
+      bytes,
+      pending_value_nodes=Some(row_nodes + presence_nodes),
+      pending_value_text=Some(bytes + presence_text),
+    )
+    is Some((_, nodes, text, retained, decoder)) else {
+    return None
+  }
+  // The copied prefix stays with this bridge. Only this append needs the
+  // decoder workspace, and the previous append has already returned.
+  let retained_peak = Int64::max(previous_retained, retained)
+  let decoder_peak = Int64::max(previous_decoder, decoder)
+  if (retained_peak > previous_retained || decoder_peak > previous_decoder) &&
+    !reserve(retained_peak - previous_retained, decoder) {
+    return None
+  }
+  Some((retained_peak, decoder_peak, nodes, text))
+}
+
+///|
 // Conversion keeps the selected operations and SAME managed completion
 // together across material/row callbacks. No second task lookup can replace
 // that generation. An optional Host funding boundary precedes row decoding.
@@ -268,6 +367,7 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   bridge_max_name_bytes : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
   LocalValuesPublicationBridgeIssue,
@@ -277,6 +377,39 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   }
   guard (operations.material)() is Some(material) else {
     return Err(MissingOutput)
+  }
+  let copy_funding = match reserve_row_copy {
+    None => None
+    Some(reserve) => {
+      // The ingress policy comes from the original row decoder. The final
+      // Result can have a narrower wire than the complete producer row.
+      let imports : @local.LocalImportLimits = {
+        max_rows: limits.max_rows,
+        values: limits.values,
+        wire: {
+          ..limits.payload_wire,
+          max_bytes: row_limits.max_bytes,
+          max_nodes: row_limits.max_nodes,
+          max_depth: row_limits.max_depth,
+          max_columns: @execution.managed_publication_bridge_fixed_entries(
+            completed,
+          ),
+        },
+        row: row_limits,
+        max_batch_bytes: row_limits.max_bytes,
+      }
+      guard @local.local_materializing_import_start_capacity(imports)
+        is Some(start) &&
+        @execution.checked_preparation_add_product(
+          start, publication_bridge_row_quote_controls, 1L,
+        )
+        is Some(start) &&
+        reserve(start, 0L) &&
+        self.available.val else {
+        return Err(MissingOutput)
+      }
+      Some((imports, reserve))
+    }
   }
   let bridge = match
     @execution.prepare_managed_publication_bridge(
@@ -290,6 +423,8 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
+  let mut copied_prefix = 0L
+  let mut decoder_peak = 0L
   for index in 0..<(operations.output_rows)() {
     let row = match (operations.output_row)(index) {
       Ok(value) => value
@@ -301,6 +436,39 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
     if before_row is Some(prepare) && !prepare(row) {
       @execution.close_managed_publication_bridge(bridge)
       return Err(MissingOutput)
+    }
+    let funded = match copy_funding {
+      None => None
+      Some((imports, reserve)) => {
+        let bytes = match
+          @scalar.admit_utf8_length64(row, row_limits.max_bytes.to_int64()) {
+          Ok(value) => value
+          Err(_) => {
+            @execution.close_managed_publication_bridge(bridge)
+            return Err(Bridge(Wire(InputLimit)))
+          }
+        }
+        guard @execution.managed_publication_bridge_import_usage(bridge)
+          is Some(usage) &&
+          reserve_publication_bridge_row_copy(
+            imports,
+            @execution.managed_publication_bridge_import_schema(bridge),
+            row,
+            bytes,
+            index.to_int64(),
+            usage,
+            copied_prefix,
+            decoder_peak,
+            reserve,
+          )
+          is Some((retained, decoder, nodes, text)) else {
+          @execution.close_managed_publication_bridge(bridge)
+          return Err(MissingOutput)
+        }
+        copied_prefix = retained
+        decoder_peak = decoder
+        Some((nodes, text))
+      }
     }
     // The Host's storage callback can reenter retirement. Keep this cheap
     // execution fence in addition to the bridge's original material checks.
@@ -315,6 +483,16 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
         @execution.close_managed_publication_bridge(bridge)
         return Err(Bridge(issue))
       }
+    }
+    if funded is Some((nodes, text)) &&
+      !(@execution.managed_publication_bridge_import_usage(bridge)
+      is Some(usage) &&
+      usage.nodes >= 0 &&
+      usage.nodes.to_int64() <= nodes &&
+      usage.text_bytes >= 0 &&
+      usage.text_bytes.to_int64() <= text) {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(MissingOutput)
     }
   }
   let output = match @execution.finish_managed_publication_bridge(bridge) {

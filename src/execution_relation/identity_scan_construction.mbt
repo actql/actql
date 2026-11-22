@@ -27,6 +27,17 @@ fn identity_scan_capacity(
 pub fn completed_relation_export_retained_capacity(
   receipt : CompletedRelationExportReceipt,
 ) -> ExecutionCapacity? {
+  completed_relation_export_retained_units(
+    receipt,
+    include_reference_index=true,
+  ).bind(identity_scan_capacity)
+}
+
+///|
+fn completed_relation_export_retained_units(
+  receipt : CompletedRelationExportReceipt,
+  include_reference_index~ : Bool,
+) -> PreparationRepresentationUnits? {
   if receipt.rows.source is None || receipt.rows.binding {
     return None
   }
@@ -58,26 +69,28 @@ pub fn completed_relation_export_retained_capacity(
     // Keep the existing conservative original-reference index envelope.
     // It is a live child of this receipt, not disposable scan/writer scratch.
     // Its bounded slot census avoids walking Source rows or reissuing refs.
-    let live = references.workspace.live.to_int64()
-    guard @shape.collection_construction_extent({
-        records: 3L + live,
-        record_references: 4L + live,
-        record_words: 6L + live,
-        reference_arrays: live + 1L,
-        reference_items: live,
-        scalar_arrays: 0L,
-        scalar_items: 0L,
-        maps: 0L,
-        map_entries: 0L,
-      })
-      is Some(index) else {
-      return None
+    if include_reference_index {
+      let live = references.workspace.live.to_int64()
+      guard @shape.collection_construction_extent({
+          records: 3L + live,
+          record_references: 4L + live,
+          record_words: 6L + live,
+          reference_arrays: live + 1L,
+          reference_items: live,
+          scalar_arrays: 0L,
+          scalar_items: 0L,
+          maps: 0L,
+          map_entries: 0L,
+        })
+        is Some(index) else {
+        return None
+      }
+      h += index.record_headers
+      r += index.reference_slots
+      w += index.scalar_words
     }
-    h += index.record_headers
-    r += index.reference_slots
-    w += index.scalar_words
   }
-  identity_scan_capacity({
+  Some({
     record_headers: h,
     reference_slots: r,
     scalar_words: w,
@@ -86,6 +99,86 @@ pub fn completed_relation_export_retained_capacity(
     receipt.schema.cid.length().to_int64() +
     receipt.schema.wire.length().to_int64(),
     owned_wire_bytes: 0L,
+  })
+}
+
+///|
+/// Survivors of the same finished Named Result preparation and its receipt.
+/// The caller has separately backed the sorted row indexes and reference
+/// collector. Names and schema are shared by the stream and the receipt;
+/// their actual backing is counted in the receipt once. No callback is run.
+pub fn completed_result_export_retained_metadata_capacity(
+  preparation : CompletedResultRelationExportPreparation,
+  receipt : CompletedRelationExportReceipt,
+) -> ExecutionCapacity? {
+  guard preparation.closed &&
+    !preparation.advancing &&
+    preparation.rows.closed &&
+    preparation.metadata is None &&
+    preparation.rows.mapping_input is None &&
+    preparation.rows.comparison.tree is NoRowComparison &&
+    preparation.stream is Some(stream) &&
+    stream.source is None &&
+    !stream.reading &&
+    stream.pending_row is None &&
+    stream.references is None &&
+    stream.budget.retention is None &&
+    stream.budget.row_scratch_start is None &&
+    stream.schema is Some(schema) &&
+    receipt.rows.source is Some(source) &&
+    physical_equal(preparation.rows.source, source) &&
+    physical_equal(stream.export_identity, receipt.rows.export_identity) &&
+    physical_equal(stream.rows.names, receipt.fields) &&
+    physical_equal(schema, receipt.schema) &&
+    completed_relation_export_retained_units(
+      receipt,
+      include_reference_index=false,
+    )
+    is Some(received) else {
+    return None
+  }
+  let columns = stream.rows.columns.map(columns => columns.capacity().to_int64())
+  let cells = stream.order.columns.length().to_int64()
+  let order_slots = stream.order.columns.capacity().to_int64()
+  // Empty arrays: five on the completed Result-view preparation, six
+  // replacements for the moved measurement arrays, and two closed writers'
+  // frame arrays. Order has reference slots; the projected columns have
+  // scalar backing. The receipt already owns both shared name arrays.
+  guard @shape.reference_array_retained_extent(14L, order_slots) is Some(refs) &&
+    @shape.reference_array_retained_extent(
+      if columns is Some(_) {
+        1L
+      } else {
+        0L
+      },
+      0L,
+    )
+    is Some(scalars) else {
+    return None
+  }
+  // Fixed retained controls: preparation, Result view, stream, projected
+  // rows, order, value budget, mapping Ref, comparison and charge cursors,
+  // original Options and two closed Writer records. Successful hash finish
+  // clears each sink and frame backing; no hash or output buffer survives.
+  identity_scan_capacity({
+    record_headers: received.record_headers +
+    24L +
+    refs.record_headers +
+    scalars.record_headers +
+    cells,
+    reference_slots: received.reference_slots +
+    72L +
+    refs.reference_slots +
+    scalars.reference_slots +
+    cells,
+    scalar_words: received.scalar_words +
+    80L +
+    refs.scalar_words +
+    scalars.scalar_words +
+    columns.unwrap_or(0L) +
+    cells,
+    owned_utf16_units: received.owned_utf16_units,
+    owned_wire_bytes: received.owned_wire_bytes,
   })
 }
 
@@ -106,6 +199,14 @@ pub fn completed_relation_identity_scan_start_construction_capacity(
   let width = producer_input
     .map(read => @schema.field_count(read.schema).to_int64())
     .unwrap_or(IndexedRows::column_count(table).to_int64())
+  completed_export_metadata_start_capacity(width, retain_body)
+}
+
+///|
+fn completed_export_metadata_start_capacity(
+  width : Int64,
+  retain_body : Bool,
+) -> ExecutionCapacity? {
   guard @shape.collection_construction_extent({
       records: 28L,
       record_references: 63L,
@@ -453,4 +554,77 @@ pub fn completed_relation_identity_scan_body_next_construction_capacity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
+}
+
+///|
+/// Live checked Result metadata while its stream is reading. The sorted row
+/// indexes and reference collector remain on their existing reservations.
+/// The two active writers and per-row frames are quoted separately.
+pub fn completed_result_export_open_metadata_capacity(
+  preparation : CompletedResultRelationExportPreparation,
+  stream : CompletedOutputExport,
+) -> ExecutionCapacity? {
+  guard preparation.closed &&
+    !preparation.advancing &&
+    preparation.rows.closed &&
+    preparation.metadata is None &&
+    preparation.rows.mapping_input is None &&
+    preparation.rows.comparison.tree is NoRowComparison &&
+    preparation.stream.map(original => physical_equal(original, stream)) ==
+    Some(true) &&
+    stream.source is Some(source) &&
+    !stream.reading &&
+    stream.pending_row is None &&
+    stream.budget.retention is None &&
+    stream.budget.row_scratch_start is None &&
+    physical_equal(preparation.rows.source, source) &&
+    stream.schema is Some(schema) else {
+    return None
+  }
+  let order = stream.order.columns
+  let scalars = stream.column_rows.capacity().to_int64() +
+    stream.column_bytes.capacity().to_int64() +
+    stream.column_nodes.capacity().to_int64() +
+    stream.column_max_value_bytes.capacity().to_int64() +
+    stream.column_null_rows.capacity().to_int64() +
+    stream.column_admitted_depths.capacity().to_int64()
+  let columns = stream.rows.columns.map(columns => columns.capacity().to_int64())
+  // Five empty view Arrays, one order Array and two separate name Arrays.
+  guard @shape.reference_array_retained_extent(
+      8L,
+      order.capacity().to_int64() +
+      stream.rows.names.capacity().to_int64() +
+      schema.field_names.capacity().to_int64(),
+    )
+    is Some(refs) &&
+    @shape.reference_array_retained_extent(
+      6L + (if columns is Some(_) { 1L } else { 0L }),
+      0L,
+    )
+    is Some(scalar_arrays) else {
+    return None
+  }
+  let entries = order.length().to_int64()
+  // Preparation, finished view and stream controls, schema identity and its
+  // Strings, value budget, original Options and comparison/charge records.
+  // Order tuples borrow the original field Text.
+  preparation_representation_cost({
+    record_headers: 26L +
+    refs.record_headers +
+    scalar_arrays.record_headers +
+    entries,
+    reference_slots: 74L +
+    refs.reference_slots +
+    scalar_arrays.reference_slots +
+    entries,
+    scalar_words: 85L +
+    refs.scalar_words +
+    scalar_arrays.scalar_words +
+    entries +
+    scalars +
+    columns.unwrap_or(0L),
+    owned_utf16_units: schema.cid.length().to_int64() +
+    schema.wire.length().to_int64(),
+    owned_wire_bytes: 0L,
+  }).bind(bytes => execution_capacity(0L, bytes))
 }

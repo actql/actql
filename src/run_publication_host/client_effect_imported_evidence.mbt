@@ -139,6 +139,52 @@ pub fn client_effect_imported_relation_bodies(
 }
 
 ///|
+/// Measure the already issued evidence while its original construction
+/// owner holds the codec peak and funds one depth-bounded extent walk.
+/// Include only the new holder, its arrays, invocation, scope and Relations.
+/// Each observation element and the checked owner/inputs are original borrows.
+pub fn client_effect_imported_evidence_retained_bytes(
+  value : ClientEffectImportedEvidence,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int64? {
+  guard @shape.reference_array_retained_extent(
+      2L,
+      value.observations.capacity().to_int64() +
+      value.relations.capacity().to_int64(),
+    )
+    is Some(arrays) &&
+    @execution.preparation_representation_cost({
+      // Evidence (6 refs), invocation (4 refs and the Unit coordinate),
+      // and the invocation's two owned Strings. The Unit CID is borrowed.
+      record_headers: 4L + arrays.record_headers,
+      reference_slots: 10L + arrays.reference_slots,
+      scalar_words: 1L + arrays.scalar_words,
+      owned_utf16_units: value.invocation.cid.length().to_int64() +
+      value.invocation.wire.length().to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    local_effect_contract_retained_bytes(value.scope, max_nodes, max_depth)
+    is Some(scope) &&
+    @execution.checked_preparation_add_product(controls, scope, 1L)
+    is Some(base) else {
+    return None
+  }
+  let mut retained = base
+  for relation in value.relations {
+    guard local_effect_contract_retained_bytes(relation, max_nodes, max_depth)
+      is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return None
+    }
+    retained = total
+  }
+  Some(retained)
+}
+
+///|
 pub fn issue_imported_client_effect_local_result_artifact(
   owner : PreparedClientEffectComputation,
   inputs : @strategy.CapturedEffectInputs,

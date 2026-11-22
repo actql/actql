@@ -905,6 +905,81 @@ test "selected constructor input grows through one original preflight without an
 }
 
 ///|
+test "returned constructor phase reuses its resolved absolute execution peak" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let previous = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 72L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  begin_installed_effect_operation_input(child, previous).unwrap()
+  let current = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(30L, 50L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  let prior_peak = 72L + 2L * 5L
+  assert_eq(child.execution_limit, prior_peak)
+  assert_true(
+    grow_installed_effect_operation_input(child, current)
+    is Err(InsufficientCapacity),
+  )
+  let limits = @resources.ledger_limits(ledger)
+  let usage = @resources.ledger_usage(ledger)
+  let available_r = limits.retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes
+  let available_e = limits.execution_bytes - usage.reserved_execution_bytes
+  let one_short = @resources.reserve_capacity(
+    ledger,
+    available_r - 9L,
+    available_e,
+  ).unwrap()
+  let short = @resources.ledger_usage(ledger)
+  assert_true(
+    grow_installed_effect_operation_input(
+      child,
+      current,
+      reuse_execution_peak=true,
+    )
+    is Err(Ledger(@resources.RetentionLimit)),
+  )
+  assert_eq(child.execution_limit, prior_peak)
+  assert_eq(@resources.ledger_usage(ledger), short)
+  @resources.settle_capacity(ledger, one_short).unwrap()
+  let exact = @resources.reserve_capacity(
+    ledger,
+    available_r - 10L,
+    available_e,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  grow_installed_effect_operation_input(
+    child,
+    current,
+    reuse_execution_peak=true,
+  ).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(child.execution_limit, prior_peak)
+  assert_eq(
+    after.reserved_retention_bytes - before.reserved_retention_bytes,
+    10L,
+  )
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  @resources.settle_capacity(ledger, exact).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
 test "nested constructor growth preserves full-budget refusal without spending or losing prior backing" {
   let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
   let child = retain_installed_effect_operation_construction(

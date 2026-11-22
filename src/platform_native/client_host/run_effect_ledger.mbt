@@ -109,6 +109,10 @@ fn NativeClientRunJournal::save_effect_ledger(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  let before = match self.read_run_before_save(original, reads) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.invalidate_operation_record()
   match
     compare_exchange_client_journal_value(
@@ -122,7 +126,7 @@ fn NativeClientRunJournal::save_effect_ledger(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  self.save_with_operations(next, operations~)
+  self.save_observed_run(next, before, operations)
 }
 
 ///|

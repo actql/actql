@@ -116,7 +116,7 @@ pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, I
 
 pub fn advance_completed_result_key_validation(CompletedResultKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, CompletedResultKeyIssue], @bounded_execution.Issue]
 
-pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
+pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int, before_metadata? : ((ExecutionCapacity) -> Bool)?) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export_progress(CompletedResultRelationExportPreparation, Int) -> (Bool, Int, CompletedExportIssue?)
 
@@ -338,7 +338,7 @@ pub fn cancel_completed_output_export_preparation(CompletedOutputExportPreparati
 
 pub fn cancel_completed_output_import(CompletedOutputImport) -> Bool
 
-pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) -> Unit
+pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt, discard_reference_inventory? : Bool) -> Unit
 
 pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Bool
 
@@ -526,6 +526,8 @@ pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputS
 
 pub fn completed_export_preparation_workspace_slots(Int) -> Int?
 
+pub fn completed_export_reference_capacity(@relation_schema.Schema, Int, Int, ValueLimits, (Int) -> Bool) -> ExecutionCapacity?
+
 pub fn completed_fixed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, FixedRelationRead)]) -> CompletedOutput?
 
 pub fn completed_has_cell_access(CompletedOutput) -> Bool
@@ -634,6 +636,8 @@ pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> I
 
 pub fn completed_relation_identity_scan_workspace_slots(CompletedOutput, ValueLimits, RowWireLimits, RowWireLimits) -> Int?
 
+pub fn completed_result_export_open_metadata_capacity(CompletedResultRelationExportPreparation, CompletedOutputExport) -> ExecutionCapacity?
+
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
@@ -643,6 +647,8 @@ pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelati
 pub fn completed_result_export_preparation_retains_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_export_preparation_source(CompletedResultRelationExportPreparation) -> CompletedOutput?
+
+pub fn completed_result_export_retained_metadata_capacity(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> ExecutionCapacity?
 
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
@@ -760,7 +766,7 @@ pub fn finish_completed_output_export_preparation(CompletedOutputExportPreparati
 
 pub fn finish_completed_output_import(CompletedOutputImport) -> Result[CompletedOutput, CompletedImportIssue]
 
-pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
+pub fn finish_completed_relation_export(CompletedOutputExport, before_finish? : ((ExecutionCapacity) -> Bool)?) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
 
 pub fn finish_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Result[CompletedRelationExportReceipt, CompletedExportIssue]
 
@@ -1064,7 +1070,13 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_publication_bridge_fixed_entries(ManagedCompletedOutput[T]) -> Int
+
 pub fn[T] managed_publication_bridge_import_geometry(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, Int) -> ManagedPublicationBridgeLimits?
+
+pub fn[T] managed_publication_bridge_import_schema(ManagedPublicationBridge[T]) -> @relation_schema.Schema
+
+pub fn[T] managed_publication_bridge_import_usage(ManagedPublicationBridge[T]) -> ValueUsage?
 
 pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
 
@@ -1120,7 +1132,7 @@ pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn next_completed_output_export(CompletedOutputExport, batch? : Bool) -> Result[String?, CompletedExportIssue]
 
-pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
+pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int, before_decode? : ((Int, Int, Int) -> Bool)?, before_emit? : ((ExecutionCapacity) -> Bool)?, before_measure? : ((ExecutionCapacity) -> Bool)?) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
 
 pub fn next_completed_output_export_original_row(CompletedOutputExport, Int, Int, Int) -> Result[(String, CompletedOutputExportOriginalRow)?, CompletedExportIssue]
 

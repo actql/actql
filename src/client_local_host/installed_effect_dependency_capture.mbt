@@ -4,7 +4,7 @@
 // complete capture. Only optional plan wires still construct a parsed value.
 // Quantities are taken from this exact plan/Preview/inventory inside the same
 // scoped Work segment; they select no policy and issue no authority.
-fn installed_effect_capture_constructor_capacity(
+pub fn installed_effect_capture_constructor_capacity(
   plan : @publication.CapturedRunConstructionPlan,
   dependencies : Int,
   sources : Int,

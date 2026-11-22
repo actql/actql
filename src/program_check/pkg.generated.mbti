@@ -127,6 +127,8 @@ pub fn checked_local_catalog_selection_remaining(CheckedLocalCatalogSelection) -
 
 pub fn checked_local_dependency_bodies(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody)], LocalDependencyBodyIssue]
 
+pub fn checked_local_dependency_bodies_with_wire_usage(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody, Int, Int, Int)], LocalDependencyBodyIssue]
+
 pub fn checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
 pub fn checked_local_dependency_body_cid(CheckedLocalDependencyBody) -> String

@@ -80,6 +80,7 @@ fn cancellation_custody(
       match
         read_run_record(
           { body: row.body, revision: row.revision, },
+          companion_read=Some((database, reads)),
           before_construction=run_decode_construction(database, reads),
           before_metadata_construction=run_metadata_construction(
             database, reads,

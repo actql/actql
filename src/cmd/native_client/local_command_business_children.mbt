@@ -176,6 +176,20 @@ fn LocalCommandPreparationOriginal::open_business_store(
 }
 
 ///|
+// The command has one close after the physical children return. Each retained
+// row and cell took a paid advancement of this lookup; each planned request
+// and known key also took work before insertion. The original work therefore
+// bounds these finite reclamation loops, which stop when their arrays empty.
+// Active borrows and settlement refusal still return from the original owner.
+fn finish_native_keyed_lookup_cleanup(
+  lookup : @run_host.ClientKeyedLookupInput,
+) -> Result[Bool, @run_host.ClientKeyedRequestIssue] {
+  let work = @run_host.client_keyed_lookup_input_work(lookup)
+  let quantum = Int64::max(1L, Int64::min(work, 2147483647L)).to_int()
+  @run_host.cleanup_client_keyed_lookup_input(lookup, quantum)
+}
+
+///|
 // Run only after the original borrowed command callback has returned. Compute
 // cleanup uses its actual execution frame; Store cleanup uses its own original
 // Read/SQL route. Their acknowledgements never substitute for each other.
@@ -357,7 +371,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
         }
       }
       if state.lookup is Some(lookup) {
-        match @run_host.cleanup_client_keyed_lookup_input(lookup, 31) {
+        match finish_native_keyed_lookup_cleanup(lookup) {
           Err(_) => return Err(CommandBusinessChildren)
           Ok(false) => return Err(CommandBusinessChildren)
           Ok(true) => state.lookup = None

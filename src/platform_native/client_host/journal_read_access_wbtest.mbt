@@ -22,6 +22,10 @@ fn journal_test_read_access(
       calls.push("read:" + table_name + ":" + key)
       database.read(table_name, key)
     },
+    observe_scan_body_extent: (table_name, cursor) => {
+      calls.push("scan-extent:" + table_name + ":" + cursor)
+      database.observe_scan_body_extent(table_name, cursor)
+    },
     scan: (table_name, cursor) => {
       calls.push("scan:" + table_name + ":" + cursor)
       database.scan_after(table_name, cursor)

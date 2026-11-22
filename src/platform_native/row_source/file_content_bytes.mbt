@@ -92,11 +92,18 @@ pub fn native_relation_file_content_construction_inventory(
   provider : NativeRelationFilePreparedProvider,
   max_content_bytes : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  file_content_construction_inventory(provider, max_content_bytes, None)
+  guard file_content_projection_workspace(provider, max_content_bytes, None)
+    is Some(workspace) &&
+    file_provider_projection_inventory(provider) is Some(projected) else {
+    return None
+  }
+  @execution.compose_preparation_representation([projected, workspace])
 }
 
 ///|
-fn file_content_construction_inventory(
+// Additional Content work that can coexist with one provider projection:
+// encoding, version checks and the returned content bytes.
+fn file_content_projection_workspace(
   provider : NativeRelationFilePreparedProvider,
   max_content_bytes : Int,
   response_bytes : Int?,
@@ -112,9 +119,7 @@ fn file_content_construction_inventory(
     is Some(limits) else {
     return None
   }
-  guard file_provider_projection_inventory(provider, response_bytes~)
-    is Some(projected) &&
-    @encode.text_writer_construction_inventory(
+  guard @encode.text_writer_construction_inventory(
       limits.max_bytes,
       limits.max_nodes,
       limits.max_depth,
@@ -133,17 +138,13 @@ fn file_content_construction_inventory(
   // H5/R3/W5; returned UTF8 Bytes + tuple + Result H3/R3/W1; prelude, two
   // projection Results, refusal/stop and two cleanup Results H8/R8/W6.
   // Charge success and refusal peaks together, with no GC/phase credit.
-  @execution.compose_preparation_representation([
-    projected,
-    {
-      record_headers: text.record_headers + 2L * hash.record_headers + 22L,
-      reference_slots: text.reference_slots + 2L * hash.reference_slots + 19L,
-      scalar_words: text.scalar_words + 2L * hash.scalar_words + 14L,
-      owned_utf16_units: text.owned_utf16_units +
-      2L * hash.owned_utf16_units +
-      142L,
-      owned_wire_bytes: 2L * hash.owned_wire_bytes +
-      max_content_bytes.to_int64(),
-    },
-  ])
+  Some({
+    record_headers: text.record_headers + 2L * hash.record_headers + 22L,
+    reference_slots: text.reference_slots + 2L * hash.reference_slots + 19L,
+    scalar_words: text.scalar_words + 2L * hash.scalar_words + 14L,
+    owned_utf16_units: text.owned_utf16_units +
+    2L * hash.owned_utf16_units +
+    142L,
+    owned_wire_bytes: 2L * hash.owned_wire_bytes + max_content_bytes.to_int64(),
+  })
 }

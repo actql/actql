@@ -591,6 +591,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         let record = match
           read_run_record(
             { body: row.body, revision: row.revision, },
+            companion_read=Some((self.database, reads)),
             before_construction=run_decode_construction(self.database, reads),
             before_metadata_construction=run_metadata_construction(
               self.database,

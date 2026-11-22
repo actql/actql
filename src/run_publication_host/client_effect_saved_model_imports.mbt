@@ -66,6 +66,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   max_depth : Int,
   imports : ClientEffectImportedEvidence,
   original_sources : Array[ClientEffectAcquiredEvidence],
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   ClientEffectModelAcquiredEvidence,
   ClientEffectAcquiredEvidenceIssue,
@@ -179,6 +180,18 @@ pub fn issue_restored_model_client_effect_imported_evidence(
     observations.push(observed.cid)
   }
   observations.sort_by(@canonical_value.compare_utf16)
+  let funded = match before_body {
+    None => None
+    Some(fund) =>
+      Some((kind, geometry) => {
+        fund(kind, geometry) &&
+        saved_model_imported_scope_matches(compiled, scope, saved) &&
+        @strategy.captured_effect_inputs_match_computation(
+          imports.inputs,
+          owner.graph,
+        )
+      })
+  }
   let invocation = match
     issue_client_effect_local_invocation_body(
       owner,
@@ -191,6 +204,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
       max_bytes,
       max_nodes,
       max_depth,
+      before_body=funded,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
@@ -201,6 +215,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
       max_bytes,
       max_nodes,
       max_depth,
+      before_body=funded,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
