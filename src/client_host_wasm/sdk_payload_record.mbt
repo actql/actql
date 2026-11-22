@@ -164,7 +164,8 @@ pub fn bind_publication_sdk_payload_record(
 ///|
 /// Routing coordinates only, rechecked under the original Run/current Owner.
 /// The physical Host must bind the exact original record and current six facts
-/// before byte access. field=0 selects Result, field=1 its durable binding.
+/// before byte access. Field 0 selects Result and 1 its durable binding.
+/// Field 2 selects both from the same original Saved read.
 pub fn publication_sdk_payload_ordinal(
   nonce : Int64,
   first_handle : Int,
@@ -177,7 +178,9 @@ pub fn publication_sdk_payload_ordinal(
     first.projection is Some(SDKReadDeliveryStorage(_, run)) else {
     return -2
   }
-  if field != 0 && field != 1 {
+  if field != 0 &&
+    field != 1 &&
+    (field != 2 || saved_result_export_parent(value, first.publication) is None) {
     return -3
   }
   if first.pending {
@@ -224,9 +227,15 @@ pub fn publication_sdk_payload_ordinal(
     Err(code) => return code
     Ok(_) => ()
   }
-  if field == 0 {
-    result
-  } else {
-    binding
+  match field {
+    0 => result
+    1 => binding
+    // Both coordinates are independently bounded by this read profile.
+    _ =>
+      if result >= 0 && result < 8 && binding >= 0 && binding < 8 {
+        result * 8 + binding
+      } else {
+        -32
+      }
   }
 }

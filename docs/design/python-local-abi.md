@@ -4063,8 +4063,13 @@ inventory. No descriptor opens inside this fixed preparation, and neither a
 write nor a read grant is combined with it.
 
 The original frame still performs its complete File/current/Account and fact
-checks around all three Core calls. Failure, changed originals or the final
-physical fence returns no selected fact; the same original input/output loans
+checks. Saved routing uses one call to the existing ordinal export with private
+field 2. Core selects both coordinates together under the original Saved
+reader's before and after checks and returns `8 * result + binding`. Both
+coordinates are within the existing range from 0 through 7. This selector
+requires a matching Host and module. Live routing and callers that select a
+single coordinate still use fields 0 and 1. Failure, changed originals or the
+final physical fence returns no selected fact; the same original input/output loans
 remain available for cleanup. No currentness or Allow result is cached. The
 standalone codec and ordinal methods retain their original independent frames
 for callers that deliberately select them separately. Payload binding and

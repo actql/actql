@@ -35,7 +35,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             helper.addCleanup = self.addCleanup
             _, store, core, _, _, _, _, _, codes, _, binding = helper.fixture()
             core._retired = False
-            state = dict(snapshot=0, full=0, bind=0, port=0, cleanup=True,
+            state = dict(snapshot=0, full=0, bind=0, port=0, ordinal=0, cleanup=True,
                          current=0, on_full=lambda: None, on_port=lambda: None,
                          on_bind=lambda: None)
             calls = []
@@ -45,13 +45,16 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                     return 200 + args[1]
                 if ((family == 'publication_commit_export' and name in (
                         'validate_payload_binding', 'validate_reader_facts',
-                        'bind_sdk_payload_record', 'prepare_sdk_payload_input',
+                        'bind_sdk_payload_record', 'prepare_sdk_payload_input', 'sdk_payload_ordinal',
                         'produce_sdk_payload_chunk', 'observe_sdk_terminal'))
                         or (family == 'payload_record' and name == 'validate_snapshot')):
                     frame = core._journal_callbacks(binding._current.ticket).reader
                     self.assertIs(frame.owner, store)
                     self.assertTrue(store._connection.in_transaction)
                     calls.append(name)
+                    if name == 'sdk_payload_ordinal':
+                        self.assertEqual(args, (first.handle, 31, 2))
+                        return state['ordinal']
                     if name in ('validate_reader_facts', 'validate_snapshot'):
                         state['on_full']()
                         return state['snapshot'] if name == 'validate_snapshot' else state['full']
@@ -107,6 +110,29 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                     self.assertTrue(core.close_input(value))
                 self.assertTrue(fact.close())
                 self.assertTrue(root.close_original(reader))
+
+    def test_saved_routing_selects_both_ordinals_in_one_original_reader(self):
+        with self.fixture() as (holder, _, fact, store, core, request, first, clock,
+                                _, state, calls, _, _, _):
+            changes = store._connection.total_changes
+            self.assertIs(holder.selected_original_payload(request, clock), fact)
+            self.assertEqual(calls.count('sdk_payload_ordinal'), 1)
+            self.assertFalse(store._connection.in_transaction)
+
+            state['ordinal'] = 1
+            with self.assertRaisesRegex(ValueError, 'selected reader inventory'):
+                holder.selected_original_payload(request, clock)
+            self.assertEqual(calls.count('sdk_payload_ordinal'), 2)
+
+            state['ordinal'] = -35
+            with self.assertRaises(LocalCoreError) as refused:
+                holder.selected_original_payload(request, clock)
+            self.assertEqual(refused.exception.code, -35)
+            self.assertEqual(calls.count('sdk_payload_ordinal'), 3)
+            self.assertEqual(store._connection.total_changes, changes)
+            self.assertFalse(store._connection.in_transaction)
+            self.assertFalse(holder._payload_facts)
+            self.assertIs(core._loans[first.ticket], first)
 
     def test_public_two_validator_order_and_failed_second_call_keep_same_input(self):
         with self.fixture() as (holder, observation, fact, _, core, request, _, clock,

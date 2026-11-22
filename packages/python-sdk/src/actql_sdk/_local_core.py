@@ -3392,23 +3392,24 @@ class LocalCore:
 
     def publication_sdk_payload_ordinal(self, first: _Output,
                                         current_configuration: int, *,
-                                        field: Literal['result', 'binding']) -> int:
-        """Read a Core routing coordinate, never a read grant or Store ACK."""
+                                        field: Literal['result', 'binding', 'saved_pair']) -> int:
+        """Read routing DATA from Core, without granting access or acknowledging a Store."""
         with self._lock:
             self._owned_output(first, 'publication_commit_export')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if (type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31
-                    or type(field) is not str or field not in ('result', 'binding')):
+                    or type(field) is not str or field not in ('result', 'binding', 'saved_pair')):
                 raise ValueError('Invalid original SDK routing selector')
+            selector = ('result', 'binding', 'saved_pair').index(field)
             ordinal = self._call('publication_commit_export', 'sdk_payload_ordinal',
-                first.handle, current_configuration, 0 if field == 'result' else 1)
+                first.handle, current_configuration, selector)
             if type(ordinal) is not int:
                 raise RuntimeError('Invalid Local Core payload ordinal')
             if ordinal < 0:
                 raise LocalCoreError('sdk_payload_ordinal', ordinal)
-            if ordinal >= 8:
+            if ordinal >= (64 if field == 'saved_pair' else 8):
                 raise RuntimeError('Invalid Local Core payload ordinal')
             self._owned_output(first, 'publication_commit_export')
             if self._closing:

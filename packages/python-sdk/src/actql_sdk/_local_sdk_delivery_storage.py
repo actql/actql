@@ -290,8 +290,13 @@ class OriginalSDKDeliveryStore:
         self._core._owned_output(first, 'publication_commit_export')
 
     def _selected_original_payload(self, first: _Output, configuration: int) -> OriginalReaderFacts:
-        result = self._core.publication_sdk_payload_ordinal(first, configuration, field='result')
-        binding = self._core.publication_sdk_payload_ordinal(first, configuration, field='binding')
+        if self._observation._projection._saved:
+            pair = self._core.publication_sdk_payload_ordinal(first, configuration, field='saved_pair')
+            result = pair // 8
+            binding = pair % 8
+        else:
+            result = self._core.publication_sdk_payload_ordinal(first, configuration, field='result')
+            binding = self._core.publication_sdk_payload_ordinal(first, configuration, field='binding')
         matches = [fact for fact in self._observation._facts
                    if fact._result == result and fact._binding_index == binding]
         if len(matches) != 1:
