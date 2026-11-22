@@ -461,6 +461,8 @@ fn command_preparation_cleanup_cause(
         Library(Unavailable) => "ModelHttpLibraryUnavailable"
         Library(Runtime(_)) => "ModelHttpLibraryRuntime"
         Library(Load(_)) => "ModelHttpLibraryLoad"
+        Execution(_) => "ModelHttpExecutionContract"
+        Dependencies(_) => "ModelHttpDependencies"
         Dispatch(_) => "Dispatch"
         RawPolicy(_) => "RawPolicy"
         Raw(_) => "Raw"

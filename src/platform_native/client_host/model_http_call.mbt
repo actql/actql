@@ -3,6 +3,8 @@ pub(all) enum NativeClientModelHttpIssue {
   ForeignOriginal
   Original(NativeLocalAdoptionIssue)
   Library(NativeLocalModelHttpIssue)
+  Execution(@host.ClientInferPlanGraphIssue)
+  Dependencies(@environment.ModelDependencyIssue)
   Dispatch(@model.ModelExecutionIssue)
   RawPolicy(@host.ClientModelRawCaptureIssue)
   Raw(@model.ModelRawCaptureSaveIssue)
@@ -63,6 +65,21 @@ pub(all) struct NativeModelHttpConfigurationFiles {
 }
 
 ///|
+struct NativeModelHttpExecution {
+  configuration : NativeModelHttpConfiguration
+  contract : @environment.ModelExecutionContract
+  dependencies : @environment.SingleAttemptModelDependencies
+}
+
+///|
+/// The exact Common contract to use for this occurrence's Request Graph.
+pub fn NativeModelHttpExecution::execution_contract(
+  self : Self,
+) -> @environment.ModelExecutionContract {
+  self.contract
+}
+
+///|
 // Checked configuration DATA borrowed by Task normalization and installation.
 // It retains the one existing adoption and the exact canonical Provider.
 struct NativeModelHttpConfiguration {
@@ -75,6 +92,7 @@ struct NativeModelHttpConfiguration {
   provider_wire : String
   route : @model.ResolvedStructuredModel
   response : @environment.ModelResponseProfile
+  execution_file : String?
 }
 
 ///|
@@ -202,6 +220,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
   provider_id : String,
   response_profile_cid : String,
   limits : @environment.ModelTaskLimits,
+  execution_file? : String? = None,
 ) -> Result[NativeModelHttpConfiguration, NativeClientModelHttpIssue] {
   self
   .with_current_adoption_material_in_original_read((host, _, operations) => {
@@ -211,7 +230,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       is Some(file) else {
       return Err(CustodyLost)
     }
-    guard native_model_http_configuration_parse(file.body, 8192, 16, 4)
+    guard native_model_http_configuration_parse(file.body.length(), 8192, 16, 4)
       is Some(setting_working) else {
       return Err(ConfigurationLimit)
     }
@@ -248,6 +267,17 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       selected.credential_file != host.session.source_name else {
       return Err(CustodyLost)
     }
+    if execution_file is Some(name) &&
+      (
+        name == file.name ||
+        name == provider_file.name ||
+        name == revision_file.name ||
+        name == contract_file.name ||
+        name == response_file.name ||
+        !settings.any(candidate => candidate.name == name)
+      ) {
+      return Err(CustodyLost)
+    }
     let bodies = limits.bodies
     let p = provider_file.body.length()
     let r = revision_file.body.length()
@@ -256,7 +286,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       return Err(ConfigurationLimit)
     }
     guard native_model_http_configuration_parse(
-        provider_file.body,
+        provider_file.body.length(),
         bodies.max_bytes,
         bodies.max_nodes,
         bodies.max_depth,
@@ -408,6 +438,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       provider_wire: wire,
       route,
       response,
+      execution_file,
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
@@ -458,6 +489,136 @@ pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_rea
 }
 
 ///|
+// The protected bundle only transports the exact Common bodies. It has no
+// independent Model, permission or content-identity semantics.
+fn native_model_http_execution_wires(
+  bytes : Bytes,
+  limits : @environment.Limits,
+) -> (String, String, String, String, String)? {
+  guard @source.parse_json_bytes_preserving(bytes, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    })
+    is Ok(node) &&
+    @decode.admit(node, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    })
+    is Ok(value) &&
+    @decode.closed_object(value, [
+      "contract_cid", "contract", "prompt", "retry_policy", "backoff",
+    ])
+    is Ok(fields) &&
+    @decode.lookup(fields, "contract_cid") is Some(cid) &&
+    @decode.text(cid) is Ok(cid) &&
+    @decode.lookup(fields, "contract") is Some(contract) &&
+    @decode.text(contract) is Ok(contract) &&
+    @decode.lookup(fields, "prompt") is Some(prompt) &&
+    @decode.text(prompt) is Ok(prompt) &&
+    @decode.lookup(fields, "retry_policy") is Some(retry) &&
+    @decode.text(retry) is Ok(retry) &&
+    @decode.lookup(fields, "backoff") is Some(backoff) &&
+    @decode.text(backoff) is Ok(backoff) else {
+    return None
+  }
+  Some((cid, contract, prompt, retry, backoff))
+}
+
+///|
+/// Bind nonsecret material from this same adoption to the checked occurrence.
+/// The existing Common readers own Task identity and dependency verification.
+pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
+  self : NativeLocalJournalCapture,
+  configuration : NativeModelHttpConfiguration,
+  occurrence : @host.ClientInferOccurrence,
+  limits : @environment.ModelTaskLimits,
+) -> Result[NativeModelHttpExecution, NativeClientModelHttpIssue] {
+  guard physical_equal(configuration.capture, self) &&
+    configuration.execution_file is Some(name) else {
+    return Err(ForeignOriginal)
+  }
+  self
+  .with_current_adoption_material_in_original_read((host, _, operations) => {
+    if !physical_equal(host.session.settings, configuration.settings) {
+      return Err(CustodyLost)
+    }
+    guard configuration.settings.files
+      .iter()
+      .find_first(file => file.name == name)
+      is Some(materials) else {
+      return Err(CustodyLost)
+    }
+    let bodies = limits.bodies
+    guard native_model_http_configuration_parse(
+        materials.body.length(),
+        bodies.max_bytes,
+        bodies.max_nodes,
+        bodies.max_depth,
+      )
+      is Some(bundle_peak) else {
+      return Err(ConfigurationLimit)
+    }
+    if fund_native_model_http_configuration(
+        operations,
+        {
+          record_headers: 0L,
+          reference_slots: 0L,
+          scalar_words: 0L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        bundle_peak,
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
+    guard native_model_http_execution_wires(materials.body, bodies)
+      is Some((cid, execution, prompt, retry, backoff)) else {
+      return Err(CustodyLost)
+    }
+    guard native_model_http_execution_construction(
+        [execution, prompt, retry, backoff],
+        materials.body.length(),
+        bodies,
+      )
+      is Some((retained, working)) else {
+      return Err(ConfigurationLimit)
+    }
+    if fund_native_model_http_configuration(operations, retained, working)
+      is Err(issue) {
+      return Err(issue)
+    }
+    Ok(
+      @host.read_client_infer_occurrence_model_execution(
+        occurrence,
+        @utf8.encode(execution),
+        cid,
+        bodies,
+        limits.max_work,
+      )
+      .map_err(issue => NativeClientModelHttpIssue::Execution(issue))
+      .bind(contract => {
+        @environment.read_single_attempt_model_dependencies(
+          contract,
+          Some(@utf8.encode(prompt)),
+          Some(@utf8.encode(retry)),
+          Some(@utf8.encode(backoff)),
+          bodies,
+          limits.max_work,
+        )
+        .map_err(issue => NativeClientModelHttpIssue::Dependencies(issue))
+        .map(dependencies => { configuration, contract, dependencies, })
+      }),
+    )
+  })
+  .map_err(issue => NativeClientModelHttpIssue::Original(issue))
+  .bind(value => value)
+}
+
+///|
 /// Join the exact admitted configuration and checked execution to the
 /// command's Runtime. Load the selected library only after successful Model
 /// admission and restore its original private file projection without opening
@@ -465,12 +626,12 @@ pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_rea
 pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
-  configuration : NativeModelHttpConfiguration,
-  execution : @environment.ModelExecutionContract,
-  dependencies : @environment.SingleAttemptModelDependencies,
+  prepared : NativeModelHttpExecution,
   profile : @environment.ModelResponseProfileInstallation,
   diagnostic_ceiling : Int,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
+  let configuration = prepared.configuration
+  let execution = prepared.contract
   if !physical_equal(configuration.capture, self) || diagnostic_ceiling <= 0 {
     return Err(ForeignOriginal)
   }
@@ -520,7 +681,7 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
         capability,
         resolved,
         execution,
-        dependencies,
+        prepared.dependencies,
         profile,
         (_, prompt) => {
           @environment.model_openai_chat_instructions(prompt) is Some(_)

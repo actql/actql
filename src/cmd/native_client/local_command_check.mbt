@@ -935,6 +935,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
                 selected.provider_id,
                 selected.response_profile_cid,
                 local_project_mock_task_limits(),
+                execution_file=selected.execution_file,
               ) {
               Ok(value) => value
               Err(Original(issue)) => stop(local_host_issue(issue))
