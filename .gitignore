@@ -2194,3 +2194,13 @@ target/
 /adapters/local-node/declared-project-catalog.actual.test.d.mts
 /adapters/host-node/fixtures/installed-loader-parent.fixture.mjs
 /adapters/host-node/fixtures/installed-loader-parent.fixture.d.mts
+/adapters/host-node/infer-raw-selection.mjs
+/adapters/host-node/infer-raw-selection.d.mts
+/adapters/host-node/model-checkpoint-metadata.mjs
+/adapters/host-node/model-checkpoint-metadata.d.mts
+/adapters/host-node/infer-physical-observation.mjs
+/adapters/host-node/infer-physical-observation.d.mts
+/adapters/host-node/model-checkpoint-metadata.test.mjs
+/adapters/host-node/model-checkpoint-metadata.test.d.mts
+/adapters/host-node/infer-physical-observation.test.mjs
+/adapters/host-node/infer-physical-observation.test.d.mts

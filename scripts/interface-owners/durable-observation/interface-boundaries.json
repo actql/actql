@@ -3027,7 +3027,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -3185,7 +3185,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -3433,7 +3433,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -3615,7 +3615,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               }
             ]
@@ -3687,7 +3687,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               }
             ]
@@ -3701,7 +3701,7 @@
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "60d1d5ccb5a7b6e8d62b8519d12e4c31a28ef9e45c4067452b9d520373efc926",
+      "sha256": "28571253c347b79575ef32cfccd9f947f5cd128e5b0bd9765697842893588916",
       "exports": [
         "createInferPhysicalObservation"
       ],
@@ -3737,19 +3737,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "Project Common entry facts only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "createInferPhysicalObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "reference"
               }
             ],
@@ -3761,37 +3761,37 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "facts.event === 'started'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "observation.noteLoss()"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'cancelled'"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "let physical"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'returned', 'failed', 'cancelled'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "foreign attempt"
               }
             ]
@@ -3805,19 +3805,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "Project Common entry facts only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "createInferPhysicalObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "reference"
               }
             ],
@@ -3829,37 +3829,37 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "facts.event === 'started'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "observation.noteLoss()"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'cancelled'"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "let physical"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-physical-observation.mjs",
+                "path": "adapters/host-node/infer-physical-observation.mts",
                 "anchor": "'returned', 'failed', 'cancelled'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "foreign attempt"
               }
             ]
@@ -4193,7 +4193,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -4362,7 +4362,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -4524,7 +4524,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -4678,7 +4678,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -4835,7 +4835,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
@@ -5141,7 +5141,7 @@
                 "anchor": "wrong original bytes"
               },
               {
-                "path": "adapters/host-node/infer-physical-observation.test.mjs",
+                "path": "adapters/host-node/infer-physical-observation.test.mts",
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {

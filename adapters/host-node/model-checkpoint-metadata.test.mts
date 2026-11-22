@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const view = {kind: 'model_invocation', prepareAttemptId: null,
   phase: 'preflight', checkpointCid: cid('1'), runId: 'original-run',
   runDefinitionCid: cid('2'), reviewProjectionCid: cid('3'),
@@ -12,7 +12,7 @@ const identity = {checkpointCid: cid('1'), runId: 'original-run',
   scopeCid: cid('4'), preparedInvocationCid: cid('5')};
 // This is a projection test. Real original admission is tested at the journal
 // and common runtime boundary, rather than being imitated by this fake port.
-const journal = answer => ({modelCheckpointSummary(checkpointCid) {
+const journal = (answer: unknown) => ({modelCheckpointSummary(checkpointCid: string) {
   assert.equal(checkpointCid, cid('1'));
   return answer;
 }});

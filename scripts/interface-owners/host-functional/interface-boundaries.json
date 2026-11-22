@@ -58116,7 +58116,7 @@
     {
       "module": "adapters/host-node/infer-raw-selection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "34a268539a28327f7ab21d8ec01bc721650da7254caf30393722071653e43fa0",
+      "sha256": "8ec1420321b57dc34e15496b9b3994ad5f2e688f48a5175ad96b27f0a2d974bd",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -58150,8 +58150,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -58164,8 +58164,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -58178,7 +58178,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Opaque originals stay with their existing Common owners; only the physical"
               },
               {
@@ -58192,7 +58192,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Opaque originals stay with their existing Common owners; only the physical"
               },
               {
@@ -58206,7 +58206,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// installation declaration is snapshotted before continuation's first await."
               },
               {
@@ -58220,7 +58220,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "throw new TypeError('InvalidInferRawCaptureSelection');"
               },
               {
@@ -58234,8 +58234,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -58248,8 +58248,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -58262,7 +58262,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Installation-owned selection, not Run input or a new policy/authority issuer."
               },
               {
@@ -58294,8 +58294,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -58308,8 +58308,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -58322,7 +58322,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Opaque originals stay with their existing Common owners; only the physical"
               },
               {
@@ -58336,7 +58336,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Opaque originals stay with their existing Common owners; only the physical"
               },
               {
@@ -58350,7 +58350,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// installation declaration is snapshotted before continuation's first await."
               },
               {
@@ -58364,7 +58364,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "throw new TypeError('InvalidInferRawCaptureSelection');"
               },
               {
@@ -58378,8 +58378,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -58392,8 +58392,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
-                "anchor": "export function snapshotModelRawCaptureSelection(value) {"
+                "path": "adapters/host-node/infer-raw-selection.mts",
+                "anchor": "export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -58406,7 +58406,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-raw-selection.mjs",
+                "path": "adapters/host-node/infer-raw-selection.mts",
                 "anchor": "// Installation-owned selection, not Run input or a new policy/authority issuer."
               },
               {
@@ -88929,7 +88929,7 @@
     {
       "module": "adapters/host-node/model-checkpoint-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "06a06050bf0f5a6a445a703f2f5b19f028ae522438375108d0116c6f6a00dac2",
+      "sha256": "8a24c21ad7fec88659c413ebaa92064bdfcf3eb62926da0d656343b5fc74494e",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -88964,8 +88964,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -88978,8 +88978,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -88992,7 +88992,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "// Public metadata is a projection of the journal's checked retained originals."
               },
               {
@@ -89006,7 +89006,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "// Public metadata is a projection of the journal's checked retained originals."
               },
               {
@@ -89020,8 +89020,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -89034,7 +89034,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidModelCheckpointMetadata'),"
               },
               {
@@ -89048,8 +89048,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -89062,8 +89062,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -89076,8 +89076,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -89090,7 +89090,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.test.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.test.mts",
                 "anchor": "test('Model summary exposes the original prepared identity, not the scope alias', () => {"
               },
               {
@@ -89108,8 +89108,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -89122,8 +89122,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -89136,7 +89136,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "// Public metadata is a projection of the journal's checked retained originals."
               },
               {
@@ -89150,7 +89150,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "// Public metadata is a projection of the journal's checked retained originals."
               },
               {
@@ -89164,8 +89164,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -89178,7 +89178,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
                 "anchor": "throw Object.assign(new TypeError('InvalidModelCheckpointMetadata'),"
               },
               {
@@ -89192,8 +89192,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -89206,8 +89206,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -89220,8 +89220,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.mjs",
-                "anchor": "export function modelCheckpointMetadata(journal, view) {"
+                "path": "adapters/host-node/model-checkpoint-metadata.mts",
+                "anchor": "export function modelCheckpointMetadata(journal: CheckpointJournal, view: CheckpointView) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -89234,7 +89234,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/model-checkpoint-metadata.test.mjs",
+                "path": "adapters/host-node/model-checkpoint-metadata.test.mts",
                 "anchor": "test('Model summary exposes the original prepared identity, not the scope alias', () => {"
               },
               {

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 
 function fixture() {
-  const emitted = [];
+  type Emit = Parameters<typeof createInferPhysicalObservation>[0]["observation"]["emit"];
+  const emitted: Parameters<Emit>[] = [];
   let losses = 0;
   const receipt = {attemptCid: 'attempt-original', runDefinitionCid: 'run-original',
     taskIndex: 2, ordinal: 0, attemptIndex: 1};

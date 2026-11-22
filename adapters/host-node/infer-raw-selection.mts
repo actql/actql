@@ -3,17 +3,21 @@
 // installation declaration is snapshotted before continuation's first await.
 const fields = ['profile', 'installation', 'probability', 'retention', 'metadata',
   'clock', 'data', 'selectedAt', 'availableUntil', 'deleteBy',
-  'extensionCeilingAt', 'metadataDeleteBy', 'selectionAvailable'];
+  'extensionCeilingAt', 'metadataDeleteBy', 'selectionAvailable'] as const;
 
-function record(value) {
+type Selection = Readonly<Record<(typeof fields)[number], unknown> & {
+  selectionAvailable(): unknown;
+}>;
+
+function record(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
       Object.values(Object.getOwnPropertyDescriptors(value)).some(d => !('value' in d))) {
     throw new TypeError('InvalidInferRawCaptureSelection');
   }
-  return value;
+  return value as Record<string, unknown>;
 }
 
-export function snapshotModelRawCaptureSelection(value) {
+export function snapshotModelRawCaptureSelection(value: Record<string, unknown> | undefined) {
   if (value === undefined) return undefined;
   record(value);
   if (Object.keys(value).sort().join(',') !== [...fields].sort().join(',') ||
@@ -25,6 +29,6 @@ export function snapshotModelRawCaptureSelection(value) {
   // Preserve that absence; it is not an invented SDK or support capability.
   const sdk = installation.sdk === undefined || installation.sdk === null
     ? installation.sdk : Object.freeze({...record(installation.sdk)});
-  return Object.freeze({...value,
+  return Object.freeze({...value as Selection,
     installation: Object.freeze({...installation, sdk})});
 }

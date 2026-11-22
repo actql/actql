@@ -1,8 +1,26 @@
 // Project Common entry facts only. Diagnostic delivery times are not the
 // physical invocation clock, and no event proves network delivery or success.
-export function createInferPhysicalObservation({observation, reference, receiptAt}) {
-  let physical;
-  return facts => {
+type Reference = Readonly<{namespaceId: string; authorityScopeCid: string}>;
+type Receipt = Readonly<{
+  attemptCid: string; runDefinitionCid: string; taskIndex: number; ordinal: number; attemptIndex: number;
+}>;
+type Facts = Readonly<{event: string; slot: number; attemptCid: string; outcome?: string}>;
+type TransportObservation = Readonly<{
+  ref: Reference & Readonly<{runDefinitionCid: string}>;
+  task: number; slot: number; attempt: number; attemptCid: string; outcome: string | undefined;
+}>;
+type ObservationOptions = Readonly<{
+  observation: Readonly<{
+    noteLoss(): void;
+    emit(owner: 'infer', event: 'transport_completed', data: TransportObservation): void;
+  }>;
+  reference: Reference;
+  receiptAt(slot: number): Receipt | undefined;
+}>;
+
+export function createInferPhysicalObservation({observation, reference, receiptAt}: ObservationOptions) {
+  let physical: Pick<Facts, 'slot' | 'attemptCid'> | undefined;
+  return (facts: Facts) => {
     try {
       if (facts.event === 'before_invoke') return;
       if (facts.event === 'started') {
