@@ -237,6 +237,38 @@ priv struct LocalProjectMockWriteInstallation {
 }
 
 ///|
+fn LocalProjectMockWriteInstallation::matches_file_operation(
+  self : Self,
+  operation : String,
+) -> Bool {
+  match operation {
+    "update" => !self.write.writable_fields.is_empty()
+    "delete" => self.write.writable_fields.is_empty()
+    _ => false
+  }
+}
+
+///|
+fn LocalProjectMockWriteInstallation::file_target_read_capacity(
+  self : Self,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  response_bytes? : Int? = None,
+) -> @execution.ExecutionCapacity? {
+  if self.write.writable_fields.is_empty() {
+    @row_file.native_relation_file_delete_target_read_io_capacity(
+      provider,
+      response_bytes~,
+    )
+  } else {
+    @row_file.native_relation_file_target_read_io_capacity(
+      provider,
+      self.write.writable_fields.length(),
+      response_bytes~,
+    )
+  }
+}
+
+///|
 // Pure metadata projection of the selected implementation. These inputs issue
 // no Runtime, Read, Account or grant. The actual caller obtains them only from
 // its SAME runtime manifest and adopted Read before using this projection.

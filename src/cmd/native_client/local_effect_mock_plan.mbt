@@ -202,10 +202,10 @@ fn native_mock_effect_operations(
       id,
       policy.effects.max_work,
     ).unwrap_or_else(() => stop("LocalOriginalEffectImplementationUnavailable"))
-    guard descriptor.2 == "update" &&
-      installations
+    guard installations
       .iter()
       .find_first(value => {
+        value.matches_file_operation(descriptor.2) &&
         value.target == descriptor.3 &&
         value.write.mapping.mapping_ref == descriptor.4 &&
         value.write.mapping.mapping_cid == descriptor.5
@@ -219,10 +219,15 @@ fn native_mock_effect_operations(
       is Some(binding) else {
       stop("LocalOriginalEffectImplementationUnavailable")
     }
-    let physical = @row_file.native_relation_file_target_io_capacity(
-      binding.provider,
-      installation.write.writable_fields.length(),
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let deleting = descriptor.2 == "delete"
+    let physical = (if deleting {
+      @row_file.native_relation_file_delete_target_io_capacity(binding.provider)
+    } else {
+      @row_file.native_relation_file_target_io_capacity(
+        binding.provider,
+        installation.write.writable_fields.length(),
+      )
+    }).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     // The operation consumes this original completed-row writer, this
     // installation's private review record, and Native Journal codecs. The
     // static Program compiler's 10MiB artifact ceiling is not their input.
@@ -273,15 +278,12 @@ fn native_mock_effect_operations(
     let recovery = @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.recovery", original_capture,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let read_initial = @row_file.native_relation_file_target_read_io_capacity(
-      binding.provider,
-      installation.write.writable_fields.length(),
-      response_bytes=Some(0),
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let read_maximum = @row_file.native_relation_file_target_read_io_capacity(
-      binding.provider,
-      installation.write.writable_fields.length(),
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let read_initial = installation
+      .file_target_read_capacity(binding.provider, response_bytes=Some(0))
+      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let read_maximum = installation
+      .file_target_read_capacity(binding.provider)
+      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let read_maximum = native_mock_effect_capacity_envelope(
       physical, read_maximum,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
@@ -293,6 +295,7 @@ fn native_mock_effect_operations(
       "",
       "",
       "",
+      deleting~,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let request_maximum = native_mock_effect_capacity_envelope(
       quantities[2],
