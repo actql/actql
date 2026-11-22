@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAIChatProvider} from './_internal/normal-openai-chat.mjs';
+import {createOpenAIChatProvider, createRegisteredSdkProvider} from './_internal/normal-openai-chat.mjs';
 
 const options = () => ({providerId: 'fixture', modelId: 'fixture', apiKeyFile: 'unread',
   observeEgress() {}, generation: {temperature: 0, topP: 1, maxOutputTokens: 4},
@@ -16,6 +16,27 @@ function context(captured) {
     runtimeIdentity() {throw stop;}, artifactIdentity: forbidden, readText: forbidden,
     prepareBindingOriginals: forbidden, prepareTasks: forbidden, prepareRawPolicies: forbidden};
 }
+
+test('registered configuration cannot take route or credential values from caller options', async () => {
+  const {providerId, generation, budget, observeEgress} = options();
+  const config = {providerId, generation, budget, observeEgress,
+    transportTimeouts: settings, dataHandlingContractWire: '{}'};
+  let selections = 0;
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity: () => [100n, 300n],
+    clientProgramInstalledNodeModelDeadlineCapacity: () => [456n, 456n]};
+  const original = {...context([]), async prepareRegisteredSdk(id) {
+    assert.equal(id, providerId); selections++; return undefined;
+  }};
+  for (const override of [{modelId: 'foreign'}, {baseURL: 'https://foreign.invalid'}, {apiKeyFile: 'unread'}]) {
+    await assert.rejects(createRegisteredSdkProvider({...config, ...override})(moon, original),
+      {code: 'InvalidOpenAIProviderConfiguration'});
+  }
+  assert.equal(selections, 0);
+  await assert.rejects(createRegisteredSdkProvider(config)(moon, {...original,
+    runtimeIdentity: () => 'runtime', artifactIdentity: () => 'layout'}),
+  {code: 'RegisteredSdkCredentialMismatch'});
+  assert.equal(selections, 1);
+});
 
 test('normal deadline adds only the actual Common R/E quote and preserves unselected profile', async () => {
   for (const enabled of [false, true]) {

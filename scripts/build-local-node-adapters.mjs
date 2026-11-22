@@ -6,7 +6,8 @@ import {build} from 'esbuild';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
-import {assembleNodeDirectoryNative, buildNodeDirectoryNative} from './build-node-directory-native.mjs';
+import {assembleNodeDirectoryNative, buildNodeDirectoryNative, observeOrdinaryCompatibilityEngine}
+  from './build-node-directory-native.mjs';
 import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
   from './initial-control-package-images.mjs';
 
@@ -213,7 +214,9 @@ const nativeOutputs = external !== undefined ? new Map()
     expectedSha256: nativeInputsSha256});
 if (outputs.has(initialControlPackageOriginal)) {
   outputs.set(initialControlPackageOriginal,
-    renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs}));
+    renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs,
+      compatibilityEngine: external === undefined && nativeInputs === undefined && nativeOutputs.size > 0
+        ? observeOrdinaryCompatibilityEngine() : undefined}));
 }
 for (const {path} of sourcePaths) {
   const output = join(destination, path), bytes = outputs.get(path);

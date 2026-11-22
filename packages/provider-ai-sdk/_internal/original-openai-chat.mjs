@@ -1,7 +1,8 @@
 import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
-import {prepareOpenAIChatRequest} from './openai-chat.mjs';
+import {prepareOpenAIChatRequest, readReportedUsage} from './openai-chat.mjs';
 import {isDeepStrictEqual} from 'node:util';
-import {createSdkModelPreflight} from './model-port.mjs';
+import {createSdkModelPreflight, createSdkStructuredModelPreflight,
+  originalSdkCallOptions, sdkProjectionBounds} from './model-port.mjs';
 
 // Isolate this callback context from the original seven-material handoff.
 // The original Read keeps this same expected wire until SDK/Read retirement.
@@ -17,35 +18,17 @@ function originalExpectedBodyVerifier(expectedWire) {
 // Reading Task values does not authorize I/O or establish that installation.
 export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
   modelId, baseURL, apiKey, prompt, responseFormat, maxRequestBytes,
-  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
+  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest, structuredAdmission}) {
   const generation = moon.clientProgramModelRequestGeneration(request);
   if (generation === undefined || typeof modelSelector !== 'string' ||
       runtimeField(generation, 0) !== modelSelector) {
     throw new TypeError('OpenAIOriginalGenerationUnavailable');
   }
-  const exactInteger = (value, minimum) => typeof value === 'bigint' &&
-    value >= minimum && value <= BigInt(Number.MAX_SAFE_INTEGER);
-  // The pinned MoonBit JS Int64 ABI may expose negative values as their
-  // unsigned 64-bit backing. Interpret that typed backing as signed before
-  // the SDK Number check, without wrapping an out-of-domain carrier.
-  const rawSeed = runtimeField(generation, 4);
-  const seed = typeof rawSeed === 'bigint' &&
-      rawSeed >= -9_223_372_036_854_775_808n && rawSeed <= 18_446_744_073_709_551_615n
-    ? BigInt.asIntN(64, rawSeed) : rawSeed;
-  if (!Number.isFinite(runtimeField(generation, 1)) || !Number.isFinite(runtimeField(generation, 2)) ||
-      !exactInteger(runtimeField(generation, 3), 1n) ||
-      seed !== undefined && !exactInteger(seed, -BigInt(Number.MAX_SAFE_INTEGER))) {
-    // The selected SDK accepts Number, not arbitrary Int64. Do not round an
-    // authored seed/token count or redefine the common Task's integer domain.
-    throw new TypeError('OpenAIOriginalGenerationUnsupported');
-  }
-  const temperature = runtimeField(generation, 1), topP = runtimeField(generation, 2);
-  const maxOutputTokens = Number(runtimeField(generation, 3));
   return prepareOpenAIChatRequest({modelId, baseURL, apiKey,
-    options: {prompt, responseFormat, temperature,
-      topP, maxOutputTokens,
-      ...(seed === undefined ? {} : {seed: Number(seed)})},
+    options: originalSdkCallOptions(generation, prompt, responseFormat, 'OpenAIOriginalGenerationUnsupported'),
     maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify,
+    ...(structuredAdmission === undefined ? {} : {registered: {moon,
+      admission: structuredAdmission, selector: modelSelector}}),
     ...(verifyRequest === undefined ? {} : {verifyRequest})});
 }
 
@@ -91,17 +74,8 @@ function prepareProjectedOriginal({moon,request,taskCid,promptCid,
 export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   request,taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
   modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,
-  notify,rawCaptureBinder,...port}) {
-  const fields=['maxBytes','maxDepth','maxFrames','maxNodes','maxWork'];
-  if (projectionLimits===null || typeof projectionLimits!=='object' ||
-      Array.isArray(projectionLimits) ||
-      Object.keys(projectionLimits).sort().join(',')!==fields.join(',') ||
-      fields.some(name=>!Number.isSafeInteger(projectionLimits[name]) ||
-        projectionLimits[name]<(name==='maxWork'?0:1) ||
-        projectionLimits[name]>2_147_483_647)) {
-    throw new TypeError('InvalidOpenAIProjectionLimits');
-  }
-  const bounds=Object.freeze({...projectionLimits});
+  notify,rawCaptureBinder,structuredAdmission,...port}) {
+  const bounds=sdkProjectionBounds(projectionLimits,'InvalidOpenAIProjectionLimits');
   if (typeof moon.clientProgramStartOpenAIChatProjection !== 'function' ||
       typeof moon.clientProgramAdvanceOpenAIChatProjection !== 'function' ||
       typeof moon.clientProgramRetireOpenAIChatProjection !== 'function' ||
@@ -133,7 +107,7 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       cursor=undefined;
       const preparation=prepareProjectedOriginal({moon,request,taskCid,promptCid,
         outputSchemaCid,modelSelector,modelId,baseURL,apiKey,maxRequestBytes,
-        maxHeaderBytes,maxHeaders,signal,notify},sdkValue);
+        maxHeaderBytes,maxHeaders,signal,notify,structuredAdmission},sdkValue);
       return {kind:'ready',preparation};
     },
     cleanup() {
@@ -145,6 +119,8 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       return true;
     },
   };
-  return createSdkModelPreflight({...port,moon,request,notify,preparationProgress:progress,
-    ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})});
+  const options = {...port,moon,request,notify,preparationProgress:progress,
+    ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})};
+  return structuredAdmission === undefined ? createSdkModelPreflight(options)
+    : createSdkStructuredModelPreflight(options, structuredAdmission, readReportedUsage);
 }

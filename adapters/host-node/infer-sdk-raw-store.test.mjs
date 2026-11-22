@@ -2,16 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
+import {setImmediate as turn} from 'node:timers/promises';
 import {open, readdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {prepareOpenAIChatRequest} from
   '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
 import {createSdkModelPreflight} from
   '../../packages/provider-ai-sdk/_internal/model-port.mjs';
+import {cleanupSdkPreparation, confirmSavedSdkTransportResponse, pollSdkDecode,
+  pollSdkPreparation, pollSdkTransport, prepareSdkTransport, sdkTransportRawObservation,
+  startSdkTransport, takeSavedSdkDecodedResult, takeSdkDecodedResult}
+  from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
 import {createAdmittedOpenAIChatPreflight} from
   '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
-import {createModelRawTransportPersistence, createModelRawTransportPersistenceFactory}
+import {createModelRawCaptureStorePort, createModelRawTransportPersistence,
+  createModelRawTransportPersistenceFactory}
   from './infer-raw-capture.mjs';
 import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -407,4 +413,93 @@ test('deferred original-operation Store refusal keeps Unknown and the same holdi
   assert.equal(f.retained[0].holding.status().abandoned,true);
   assert.equal(f.retained[0].holding.status().preparedPending,false);
   assert.equal(f.serverState.requests,1);
+});
+
+
+test('selected SDK decodes the original Store-confirmed fetch response once', async t => {
+  const bytes = Buffer.from(wire);
+  const f = await rawCaptureStoreFixture(t, {bytes});
+  const notification = createInferIoNotification();
+  const io = claimInferIoNotification(notification);
+  t.after(() => io.close());
+  let requests = 0;
+  const server = createServer((request, response) => {
+    requests++;
+    assert.equal(request.url, '/v1/chat/completions');
+    request.resume();
+    request.once('end', () => {
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(bytes);
+    });
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  });
+
+  const preparation = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
+    baseURL: 'http://127.0.0.1:' + server.address().port + '/v1',
+    apiKey: 'fixture-only-not-a-service-secret', maxRequestBytes: 4096,
+    maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify,
+    options: {prompt: [{role: 'user', content: [{type: 'text', text: input}]}],
+      maxOutputTokens: 16, responseFormat: {type: 'json'}}});
+  t.after(async () => {
+    for (let step = 0; step < 40; step++) {
+      if (cleanupSdkPreparation(preparation)) return;
+      await turn();
+    }
+    assert.fail('Same SDK/reader cleanup did not retire');
+  });
+  const wait = (read, kind) => until(read, actual => actual.kind === kind, io);
+  await wait(() => pollSdkPreparation(preparation), 'ready');
+  prepareSdkTransport(preparation, {responseMode: 'saved-sdk', responseLimits,
+    fetch, observeAt: () => observedAt});
+  startSdkTransport(preparation);
+  await wait(() => pollSdkTransport(preparation), 'response');
+  const original = sdkTransportRawObservation(preparation);
+  assert.deepEqual(Buffer.from(original.body), bytes);
+  assert.equal(pollSdkDecode(preparation).kind, 'pending');
+  assert.equal(f.state.acknowledgements, 0);
+
+  // Real encrypted Store bytes/durability. This test doubles the Common
+  // receipt issuer; the Common caller tests cover nominal original ownership.
+  const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, original.body);
+  const saved = await port.persist();
+  assert.equal(f.state.acknowledgements, 1);
+  const substituted = Buffer.from(saved.bytes);
+  substituted[0] = 0x20;
+  assert.throws(() => confirmSavedSdkTransportResponse(preparation, {...original}, saved),
+    {code: 'SdkSavedResponseBindingRefused'});
+  assert.throws(() => confirmSavedSdkTransportResponse(preparation, original,
+    {receipt: saved.receipt, bytes: substituted}), {code: 'SdkSavedResponseBindingRefused'});
+  // An identity check alone would accept a copy of already mutated backing.
+  const firstByte = original.body[0];
+  try {
+    original.body[0] = substituted[0];
+    assert.throws(() => confirmSavedSdkTransportResponse(preparation, original,
+      {receipt: saved.receipt, bytes: substituted}), {code: 'SdkSavedResponseBindingRefused'});
+  } finally {
+    original.body[0] = firstByte;
+  }
+  assert.equal(pollSdkDecode(preparation).kind, 'pending');
+
+  confirmSavedSdkTransportResponse(preparation, original, saved);
+  await wait(() => pollSdkDecode(preparation), 'ready');
+  assert.throws(() => takeSdkDecodedResult(preparation), {code: 'SdkDecodedResultUnavailable'});
+  assert.throws(() => takeSavedSdkDecodedResult(preparation, {...saved.receipt}, saved.bytes),
+    {code: 'SdkSavedResponseBindingRefused'});
+  assert.throws(() => takeSavedSdkDecodedResult(preparation, saved.receipt, Buffer.from(saved.bytes)),
+    {code: 'SdkSavedResponseBindingRefused'});
+  const decoded = takeSavedSdkDecodedResult(preparation, saved.receipt, saved.bytes);
+  assert.equal(decoded.content.find(part => part.type === 'text')?.text, '{"risk":"low"}');
+  assert.equal(decoded.usage.inputTokens.total, 3);
+  assert.equal(decoded.usage.outputTokens.total, 2);
+  assert.throws(() => takeSavedSdkDecodedResult(preparation, saved.receipt, saved.bytes),
+    {code: 'SdkDecodedResultUnavailable'});
+  assert.throws(() => confirmSavedSdkTransportResponse(preparation, original, saved),
+    {code: 'SdkSavedResponseBindingRefused'});
+  assert.equal(requests, 1);
+  assert.equal(port.holding.status().committed, true);
 });

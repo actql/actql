@@ -153,6 +153,15 @@ fn model_reported_response_owned(
       }
       original
     }
+    Some(PhysicalSavedStructuredResponse(saved)) => {
+      guard call.decoded_response is Some(original) &&
+        model_saved_structured_response_original(saved, call) &&
+        saved.result is Ok(encoded) &&
+        physical_equal(encoded.observation, original.observation) else {
+        return false
+      }
+      original
+    }
     Some(PhysicalChatResponse(raw)) => {
       guard call.decoded_response is Some(original) &&
         model_chat_response_original(raw, call) &&

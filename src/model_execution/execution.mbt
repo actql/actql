@@ -779,7 +779,8 @@ fn advance_model(
   // from the retained invocation. Entered responsibility already exists if
   // the installed foreign invocation loses its response or throws.
   if state.physical_plans.get(state.progress.slot) is Some(plan) &&
-    plan.invocation is Asynchronous(start) {
+    plan.invocation
+    is (Asynchronous(start) | AsynchronousSavedStructured(_, start, _)) {
     guard send_gate is Some(gate) else {
       retire_model_entering(state)
       return @bounded.Failed(CallEntryRefused, 1, 1)
