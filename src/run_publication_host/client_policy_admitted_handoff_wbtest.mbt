@@ -34,6 +34,11 @@ test "policy receiver gets complete original admitted bodies with exact preconst
   ).unwrap()
   let admitted : Array[@publication.CapturedEffectDependencyBody] = []
   let dimensions : Array[(Int, Int, Int)] = []
+  let emissions : Array[(Int, Int, Int)] = []
+  let prepare_emit = (bytes, nodes, depth) => {
+    emissions.push((bytes, nodes, depth))
+    true
+  }
   let received : Array[
     (@publication.CapturedEffectDependencyBody, Int, (Int, Int, Int)),
   ] = []
@@ -45,6 +50,8 @@ test "policy receiver gets complete original admitted bodies with exact preconst
     64,
     1000,
     retain_catalog=true,
+    before_emit=Some(prepare_emit),
+    before_catalog_emit=Some(prepare_emit),
     before_body=Some((bytes, nodes, depth) => {
       dimensions.push((bytes, nodes, depth))
       true
@@ -61,6 +68,8 @@ test "policy receiver gets complete original admitted bodies with exact preconst
     }),
   ).unwrap()
   assert_true(raw.is_empty())
+  assert_eq(emissions, dimensions)
+  assert_eq(dimensions.length(), admitted.length())
   for (body, bytes, last) in received {
     let wire = @publication.captured_effect_dependency_body_json(body)
     assert_eq(last.0, bytes)
@@ -111,6 +120,33 @@ test "policy constructor or parser refusal cannot transfer an admitted body" {
       }),
     )
     assert_true(result is Err(@checked.BudgetExceeded))
+    assert_eq(received.val, 0)
+  }
+  for lost_after in [1, 2] {
+    let phases = Ref(0)
+    let received = Ref(0)
+    let prepare = (_, _, _) => {
+      phases.val += 1
+      true
+    }
+    let result = checked_client_source_policy_bodies(
+      program,
+      policy,
+      65536,
+      8192,
+      64,
+      1000,
+      retain_catalog=true,
+      before_emit=Some(prepare),
+      before_body=Some(prepare),
+      current=Some(() => phases.val < lost_after),
+      admitted_body=Some((_, _) => {
+        received.val += 1
+        Ok(())
+      }),
+    )
+    assert_true(result is Err(@checked.ForeignBody))
+    assert_eq(phases.val, lost_after)
     assert_eq(received.val, 0)
   }
   let refused = checked_client_source_policy_bodies(

@@ -476,19 +476,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             None
           }
           let before_emit = if measured {
-            Some((bytes, nodes, depth) => {
-              // The writer returns a wire for the immediately following
-              // admission. Its output is already included in that body's
-              // capacity. Hold the emission peak here only as workspace.
-              let capacity = native_mock_effect_plan_wire_capacity(
-                bytes, nodes, depth,
-              ).bind(quote => {
-                @execution.execution_capacity(
-                  0L,
-                  @execution.execution_capacity_execution_bytes(quote),
-                )
-              })
-              construction.prepare_body(self.original, capacity)
+            Some((bytes, nodes, depth, digest) => {
+              construction.prepare_body(
+                self.original,
+                native_mock_effect_lookup_emit_workspace(
+                  bytes, nodes, depth, digest,
+                ),
+              )
             })
           } else {
             None

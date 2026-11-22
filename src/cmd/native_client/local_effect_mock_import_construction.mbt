@@ -365,6 +365,40 @@ fn LocalNativeMockEffectImportConstruction::prepare_canonical(
 }
 
 ///|
+// The temporary wire is funded while it passes to admission. Only Policy
+// compares a whole-wire SHA digest here. That branch runs after the writer
+// unwinds, beside the returned String and the exact UTF8 buffer used by SHA.
+fn native_mock_effect_lookup_emit_workspace(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  digest : Bool,
+) -> @execution.ExecutionCapacity? {
+  guard native_mock_effect_plan_wire_capacity(bytes, nodes, depth) is Some(wire) else {
+    return None
+  }
+  let writer = @execution.execution_capacity_execution_bytes(wire)
+  if !digest {
+    return @execution.execution_capacity(0L, writer)
+  }
+  guard @encode.hash_writer_construction_inventory(0, 0) is Some(hash) &&
+    @execution.preparation_representation_cost({
+      record_headers: hash.record_headers + 3L,
+      reference_slots: hash.reference_slots + 3L,
+      scalar_words: hash.scalar_words + 2L,
+      owned_utf16_units: hash.owned_utf16_units + 71L,
+      owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+    })
+    is Some(scratch) else {
+    return None
+  }
+  let retained_wire = @execution.execution_capacity_retained_bytes(wire)
+  @execution.checked_preparation_add_product(retained_wire, scratch, 1L).bind(hash_peak => {
+    @execution.execution_capacity(0L, Int64::max(writer, hash_peak))
+  })
+}
+
+///|
 // Snapshot emission returns only its row text. The stepper, writer and
 // discarded field vector cannot escape. Keep the entire former constructor
 // peak before entry, and carry only the returned wire into later dependency

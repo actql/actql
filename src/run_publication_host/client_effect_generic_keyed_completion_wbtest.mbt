@@ -664,7 +664,7 @@ fn run_original_source_completion(
         quotes.push((b, n))
         true
       }),
-      before_emit=Some((b, n, _) => {
+      before_emit=Some((b, n, _, _) => {
         emissions.push((b, n))
         true
       }),
@@ -674,6 +674,10 @@ fn run_original_source_completion(
     assert_eq(
       collected.map(@publication.captured_effect_dependency_body_cid),
       bodies.map(@publication.captured_effect_dependency_body_cid),
+    )
+    assert_eq(
+      collected.map(@publication.captured_effect_dependency_body_json),
+      bodies.map(@publication.captured_effect_dependency_body_json),
     )
     let before_refusal = @resources.ledger_usage(ledger)
     let attempted_emissions = Ref(0)
@@ -697,7 +701,7 @@ fn run_original_source_completion(
           }
           true
         }),
-        before_emit=Some((_, _, _) => {
+        before_emit=Some((_, _, _, _) => {
           attempted_emissions.val += 1
           false
         }),
