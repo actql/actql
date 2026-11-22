@@ -39,6 +39,8 @@ pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.Mod
 
 pub fn admitted_structured_model_provider_for(AdmittedStructuredModelProvider, StructuredModelCapability, @run_publication.RunEvidenceValue, ResolvedStructuredModel, @check_environment.ModelExecutionContract) -> ModelProvider?
 
+pub fn admitted_structured_model_route_matches(AdmittedStructuredModelProvider, ResolvedStructuredModel) -> Bool
+
 pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]
 
 pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]

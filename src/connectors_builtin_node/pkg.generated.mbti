@@ -364,6 +364,8 @@ pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClient
 
 pub fn client_program_admitted_model_provider(@model_execution.AdmittedModelProvider, @check_environment.ModelExecutionContract) -> @model_execution.ModelProvider?
 
+pub fn client_program_admitted_structured_sdk_route_matches(@model_execution.AdmittedStructuredModelProvider, String, String, String, String) -> Bool
+
 pub fn client_program_adopt_reconciled_infer_response(@model_execution.ModelResponseReconciliation, @model_execution.ModelResponse) -> Result[Unit, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_adopt_request_capture_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]

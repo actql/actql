@@ -168,6 +168,24 @@ pub fn admitted_structured_model_provider_for(
 }
 
 ///|
+/// Check the installer-selected route before initializing the SDK factory.
+/// This is not the original Entry, credential or transport gate.
+pub fn admitted_structured_model_route_matches(
+  value : AdmittedStructuredModelProvider,
+  actual : ResolvedStructuredModel,
+) -> Bool {
+  let current = value.capability
+  admitted_structured_model_provider_for(
+    value,
+    current,
+    current.binding,
+    actual,
+    value.original.execution,
+  )
+  is Some(_)
+}
+
+///|
 /// Consume the admitted route and actual response profile before the existing
 /// physical builder can supply a Plan for an Entry. The builder still owns
 /// Task binding, exact codec/SDK installation checking and resource bounds.

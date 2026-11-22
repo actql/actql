@@ -200,6 +200,24 @@ pub fn client_program_bind_admitted_structured_model_provider(
 }
 
 ///|
+#export_name("clientProgramAdmittedStructuredSdkRouteMatches")
+pub fn client_program_admitted_structured_sdk_route_matches(
+  admitted : @model.AdmittedStructuredModelProvider,
+  selector : String,
+  model_id : String,
+  api_mode : String,
+  endpoint : String,
+) -> Bool {
+  @model.admitted_structured_model_route_matches(admitted, {
+    selector,
+    model_id,
+    adapter_kind: "ai-sdk",
+    api_mode,
+    endpoint,
+  })
+}
+
+///|
 // The selected decoder transfers its original answer and optional reported
 // usage from the same SDK read. Core meters and checks the observed quantities.
 #export_name("clientProgramModelStructuredRequestPlan")

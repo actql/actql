@@ -1419,7 +1419,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce7bf645f84e22260b50d233a1df0bece028b1946bd1143d6a4a4883085fc6c6",
+      "sha256": "6ffbbf29ed4c9bf55f7bcc82491e68049518755ae66ab7249f20fc95b6574c2a",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1506,7 +1506,8 @@
             "maxHeaders",
             "signal",
             "notify",
-            "verifyRequest"
+            "verifyRequest",
+            "structuredAdmission"
           ],
           "async": false
         },

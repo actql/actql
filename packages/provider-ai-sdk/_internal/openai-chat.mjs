@@ -1,6 +1,6 @@
 import * as openai from '@ai-sdk/openai';
 import * as providerUtils from '@ai-sdk/provider-utils';
-import {interceptSdkRequest} from './intercepted-request.mjs';
+import {generateSdkLanguageModel, interceptSdkRequest, prepareRegisteredSdkLanguageModel} from './intercepted-request.mjs';
 
 const createOpenAI=openai.createOpenAI;
 // The actual builder's module originals, never caller DATA, a source hash or
@@ -13,7 +13,7 @@ export const openAIChatStaticOriginals=Object.freeze({openai,providerUtils,creat
 // The Host obtains current secrets through its existing authorized mechanism;
 // do not accept endpoint or credentials from a Program or public Run value.
 export function prepareOpenAIChatRequest({modelId, baseURL, apiKey, options,
-  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
+  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify, verifyRequest, registered}) {
   if (typeof modelId !== 'string' || modelId.length === 0 ||
       typeof baseURL !== 'string' || baseURL.endsWith('/') ||
       typeof apiKey !== 'string' || apiKey.length === 0 ||
@@ -23,8 +23,15 @@ export function prepareOpenAIChatRequest({modelId, baseURL, apiKey, options,
   }
   // Common admission supplies bounded, mapped text-only options and the exact
   // supported schema. Preparation does not replace that checker with JS.
-  return interceptSdkRequest({endpoint: `${baseURL}/chat/completions`,
-    maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify, verifyRequest,
-    runSdk: (fetch, abortSignal) => createOpenAI({baseURL, apiKey, fetch})
-      .chat(modelId).doGenerate({...options, abortSignal})});
+  const endpoint = baseURL + '/chat/completions';
+  if (registered !== undefined) {
+    return prepareRegisteredSdkLanguageModel({moon:registered.moon,
+      admission:registered.admission,selector:registered.selector,modelId,
+      apiMode:'chat_completions',sdkProvider:'openai.chat',endpoint,
+      createLanguageModel: fetch => createOpenAI({baseURL,apiKey,fetch}).chat(modelId),
+      options,verifyRequest,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify});
+  }
+  return interceptSdkRequest({endpoint,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,
+    notify,verifyRequest,runSdk: (fetch,abortSignal) => generateSdkLanguageModel(
+      createOpenAI({baseURL,apiKey,fetch}).chat(modelId),modelId,options,abortSignal)});
 }

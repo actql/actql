@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
 import {readFileSync} from 'node:fs';
+import {isDeepStrictEqual} from 'node:util';
+import {createOpenAI} from '@ai-sdk/openai';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
-import {interceptSdkRequest, pollSdkPreparation, sdkPreparedRequest,
+import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
   deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
 
@@ -79,6 +81,80 @@ test('the same suspended real SDK invocation decodes one supplied response witho
   assert.deepEqual(value.response.body, JSON.parse(responseWire));
   assert.throws(() => takeSdkDecodedResult(handle),
     {code: 'SdkDecodedResultUnavailable'});
+});
+
+const responsesBase = 'https://fixture.invalid/v1';
+const responsesEndpoint = responsesBase + '/responses';
+const responsesModel = 'fixture-model';
+const responsesAdmission = Object.freeze({});
+const responsesRequest = {model: responsesModel, max_output_tokens: 16,
+  input: [{role: 'user', content: [{type: 'input_text', text}]}],
+  text: {format: {type: 'json_schema', name: 'assessment', schema, strict: true}}};
+
+function registeredResponses(overrides = {}) {
+  return prepareRegisteredSdkLanguageModel({admission: responsesAdmission,
+    selector: 'fixture-alias', modelId: responsesModel, apiMode: 'responses',
+    endpoint: responsesEndpoint, sdkProvider: 'openai.responses',
+    moon: {clientProgramAdmittedStructuredSdkRouteMatches(...route) {
+      return isDeepStrictEqual(route, [responsesAdmission, 'fixture-alias',
+        responsesModel, 'responses', responsesEndpoint]);
+    }},
+    createLanguageModel: fetch => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).responses(responsesModel),
+    options: {prompt: [{role: 'user', content: [{type: 'text', text}]}],
+      maxOutputTokens: 16, responseFormat: {type: 'json', schema, name: 'assessment'}},
+    verifyRequest: wire => isDeepStrictEqual(JSON.parse(wire), responsesRequest),
+    maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16, notify() {},
+    ...overrides});
+}
+
+test('a selected registered V4 factory serializes and decodes Responses through the guarded port', async t => {
+  const handle = registeredResponses();
+  t.after(() => release(handle));
+  await eventually(() => pollSdkPreparation(handle), 'ready');
+  assert.equal(sdkPreparedRequest(handle).url, responsesEndpoint);
+  assert.deepEqual(JSON.parse(sdkPreparedRequest(handle).body), responsesRequest);
+  const raw = {id: 'fixture-response', model: responsesModel, status: 'completed', output: [{
+    id: 'fixture-message', type: 'message', role: 'assistant', content: [{
+      type: 'output_text', text: '{"assessment":"ok"}', annotations: [],
+    }],
+  }], usage: {input_tokens: 3, output_tokens: 4, total_tokens: 7}};
+  deliverSdkResponse(handle, new Response(JSON.stringify(raw), {headers: {
+    'content-type': 'application/json',
+  }}));
+  await eventually(() => pollSdkDecode(handle), 'ready');
+  assert.deepEqual(takeSdkDecodedResult(handle).content, [
+    {type: 'text', text: '{"assessment":"ok"}',
+      providerMetadata: {openai: {itemId: 'fixture-message'}}},
+  ]);
+});
+
+test('a foreign registered route or missing request verifier refuses before the factory', () => {
+  const createLanguageModel = () => assert.fail('No SDK factory for a foreign route');
+  for (const changed of [{modelId: 'other-model'}, {apiMode: 'chat_completions'},
+    {endpoint: 'https://fixture.invalid/other'}, {verifyRequest: undefined}]) {
+    assert.throws(() => registeredResponses({...changed, createLanguageModel}),
+      {code: 'RegisteredSdkRouteUnavailable'});
+  }
+});
+
+test('a different V4 SDK model, SDK transport mode or rendered body cannot prepare a send', async () => {
+  for (const [changed, issue] of [
+    [{createLanguageModel: fetch => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).responses('other-model')}, 'SdkPreparationRejected'],
+    [{createLanguageModel: fetch => createOpenAI({baseURL: responsesBase,
+      apiKey: 'fixture-only', fetch}).chat(responsesModel)}, 'SdkPreparationRejected'],
+    [{verifyRequest: wire => isDeepStrictEqual(JSON.parse(wire),
+      {...responsesRequest, max_output_tokens: 8})}, 'SdkOriginalRequestMismatch'],
+  ]) {
+    const handle = registeredResponses(changed);
+    try {
+      assert.equal((await eventually(() => pollSdkPreparation(handle), 'rejected')).issue, issue);
+      assert.equal(sdkPreparedRequest(handle), undefined);
+    } finally {
+      await release(handle);
+    }
+  }
 });
 
 test('abort before preparation starts invokes no SDK and releases the same handle', () => {

@@ -17,7 +17,7 @@ function originalExpectedBodyVerifier(expectedWire) {
 // Reading Task values does not authorize I/O or establish that installation.
 export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
   modelId, baseURL, apiKey, prompt, responseFormat, maxRequestBytes,
-  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
+  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest, structuredAdmission}) {
   const generation = moon.clientProgramModelRequestGeneration(request);
   if (generation === undefined || typeof modelSelector !== 'string' ||
       runtimeField(generation, 0) !== modelSelector) {
@@ -46,6 +46,8 @@ export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
       topP, maxOutputTokens,
       ...(seed === undefined ? {} : {seed: Number(seed)})},
     maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify,
+    ...(structuredAdmission === undefined ? {} : {registered: {moon,
+      admission: structuredAdmission, selector: modelSelector}}),
     ...(verifyRequest === undefined ? {} : {verifyRequest})});
 }
 
@@ -146,7 +148,7 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       cursor=undefined;
       const preparation=prepareProjectedOriginal({moon,request,taskCid,promptCid,
         outputSchemaCid,modelSelector,modelId,baseURL,apiKey,maxRequestBytes,
-        maxHeaderBytes,maxHeaders,signal,notify},sdkValue);
+        maxHeaderBytes,maxHeaders,signal,notify,structuredAdmission},sdkValue);
       return {kind:'ready',preparation};
     },
     cleanup() {

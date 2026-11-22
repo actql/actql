@@ -1382,17 +1382,19 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4edf9b7fa195aa1113eeca8c2b45b8a74062059f1ee8e5aaddb69e2182fcb2cd",
+      "sha256": "e520a551c62dd471c913076dd81a1ca1d4505612460c4bda287885b0c775f6f3",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
         "confirmSavedSdkTransportResponse",
         "deliverSdkResponse",
+        "generateSdkLanguageModel",
         "interceptSdkRequest",
         "pollSdkDecode",
         "pollSdkPreparation",
         "pollSdkTransport",
+        "prepareRegisteredSdkLanguageModel",
         "prepareSdkTransport",
         "progressSdkOriginalIoCleanup",
         "retireSdkDecodedResult",
@@ -1484,6 +1486,16 @@
           "parameters": [
             "handle",
             "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "generateSdkLanguageModel",
+          "parameters": [
+            "model",
+            "modelId",
+            "options",
+            "abortSignal"
           ],
           "async": false
         },
@@ -1583,6 +1595,35 @@
           "name": "pollSdkTransport",
           "parameters": [
             "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRegisteredSdkLanguageModel",
+          "parameters": [
+            "moon",
+            "admission",
+            "selector",
+            "modelId",
+            "apiMode",
+            "sdkProvider",
+            "endpoint",
+            "createLanguageModel",
+            "options",
+            "verifyRequest",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "signal",
+            "notify"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk",
+          "parameters": [
+            "fetch",
+            "abortSignal"
           ],
           "async": false
         },
@@ -1747,7 +1788,10 @@
             "takeSdkDecodedResult",
             "bindSdkTransportCredential",
             "confirmSavedSdkTransportResponse",
-            "takeSavedSdkDecodedResult"
+            "takeSavedSdkDecodedResult",
+            "generateSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk"
           ],
           "exports": [
             "cancelSdkPreparation",
@@ -1768,7 +1812,9 @@
             "takeSdkDecodedResult",
             "bindSdkTransportCredential",
             "confirmSavedSdkTransportResponse",
-            "takeSavedSdkDecodedResult"
+            "takeSavedSdkDecodedResult",
+            "generateSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel"
           ],
           "attributes": {
             "responsibility": [
@@ -1877,6 +1923,10 @@
               {
                 "path": "adapters/host-node/infer-sdk-raw-store.test.mjs",
                 "anchor": "selected SDK decodes the original Store-confirmed fetch response once"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "a selected registered V4 factory serializes and decodes Responses through the guarded port"
               }
             ]
           }
@@ -1886,7 +1936,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ca0b2982273c3d56a387692982b41edea2f93189370e99e567734297ffc9a74",
+      "sha256": "3b1334ceebeba63501bdfac2138106e03f3a6e814492d7d16d978d0591a684f7",
       "exports": [
         "openAIChatStaticOriginals",
         "prepareOpenAIChatRequest"
@@ -1904,12 +1954,20 @@
             "maxHeaders",
             "signal",
             "notify",
-            "verifyRequest"
+            "verifyRequest",
+            "registered"
           ],
           "async": false
         },
         {
           "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
+          "parameters": [
+            "fetch"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
           "parameters": [
             "fetch",
             "abortSignal"
@@ -1924,7 +1982,8 @@
           "operations": [
             "<module>",
             "prepareOpenAIChatRequest",
-            "prepareOpenAIChatRequest/prepareOpenAIChatRequest"
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2"
           ],
           "exports": [
             "openAIChatStaticOriginals",

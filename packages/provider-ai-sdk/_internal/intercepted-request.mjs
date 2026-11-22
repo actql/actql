@@ -20,6 +20,42 @@ const record = handle => {
   return value;
 };
 
+// Borrow the selected V4 model and forward its one generation Promise.
+export function generateSdkLanguageModel(model, modelId, options, abortSignal) {
+  if (model?.specificationVersion !== 'v4' || model.modelId !== modelId ||
+      typeof model.doGenerate !== 'function' ||
+      options.tools !== undefined || options.toolChoice !== undefined) {
+    throw issue('InvalidSdkLanguageModel');
+  }
+  return model.doGenerate({...options, abortSignal});
+}
+
+// Private installer selection. The supplied factory belongs to a verified
+// Host adapter and receives only the intercepted fetch. SDK code is trusted;
+// a fetch override alone is not an isolation boundary for arbitrary modules.
+export function prepareRegisteredSdkLanguageModel({moon, admission, selector, modelId,
+  apiMode, sdkProvider, endpoint, createLanguageModel, options, verifyRequest,
+  maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify}) {
+  if (admission === undefined ||
+      typeof moon?.clientProgramAdmittedStructuredSdkRouteMatches !== 'function' ||
+      typeof selector !== 'string' || typeof modelId !== 'string' ||
+      typeof apiMode !== 'string' || typeof endpoint !== 'string' ||
+      typeof sdkProvider !== 'string' || sdkProvider.length === 0 ||
+      typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function' ||
+      options === null || typeof options !== 'object' ||
+      options.tools !== undefined || options.toolChoice !== undefined ||
+      moon.clientProgramAdmittedStructuredSdkRouteMatches(admission,
+        selector, modelId, apiMode, endpoint) !== true) {
+    throw issue('RegisteredSdkRouteUnavailable');
+  }
+  return interceptSdkRequest({endpoint,verifyRequest,maxRequestBytes,maxHeaderBytes,maxHeaders,
+    signal,notify,runSdk(fetch,abortSignal) {
+      const model = createLanguageModel(fetch);
+      if (model?.provider !== sdkProvider) throw issue('ForeignSdkLanguageModel');
+      return generateSdkLanguageModel(model,modelId,options,abortSignal);
+    }});
+}
+
 // runSdk belongs to a verified private builder, not an arbitrary public model.
 // Before invocation, the installed caller must fund the complete SDK input,
 // body/header copies, Promise/record and eventual decoder/response holdings.
