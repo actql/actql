@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {setImmediate as turn} from 'node:timers/promises';
 import {createInferIoNotification, claimInferIoNotification} from './infer-io-notification.mjs';
-// @ts-expect-error TS7016: the original Infer driver is still authored in JavaScript.
 import {openNodeInferOperation} from './infer-operation.mjs';
 
 test('physical notification coalesces before registration without carrying an ACK', async () => {
@@ -92,7 +91,8 @@ function fixture({notification = createInferIoNotification(), signal, onPoll,
     clientProgramInferExecutionStopped: () => stopped,
     clientProgramCleanupInferExecution() { cleanups++; return {$tag: 1, _0: cleanup()}; },
   };
-  const open = (): Operation => openNodeInferOperation({moon, preparedProgram: {}, step: 0,
+  const open = (): Operation => openNodeInferOperation({
+    moon: moon as unknown as Parameters<typeof openNodeInferOperation>[0]['moon'], preparedProgram: {}, step: 0,
     graph: {}, registry: '', values: '', fragment: '', ordered: '', provider: {}, signal,
     ioNotification: omitNotification ? undefined : notification,
     observeProgress() { progress++; }});

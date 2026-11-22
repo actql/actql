@@ -4140,7 +4140,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startSourceFreeSingleUnit"
               }
             ],

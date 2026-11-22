@@ -4,7 +4,6 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016 until the authored Infer operation owner is migrated.
 import {fundInferCaptureInventory, fundedInferCaptureInventoryCount, fundedInferStoppedAttemptCount} from './infer-operation.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';

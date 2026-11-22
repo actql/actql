@@ -2252,3 +2252,5 @@ target/
 /adapters/host-node/infer-evidence-copy-geometry.d.mts
 /adapters/host-node/infer-evaluation-evidence.mjs
 /adapters/host-node/infer-evaluation-evidence.d.mts
+/adapters/host-node/infer-operation.mjs
+/adapters/host-node/infer-operation.d.mts

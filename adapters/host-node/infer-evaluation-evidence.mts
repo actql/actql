@@ -4,7 +4,6 @@ import {runtimeField, runtimeIsOkRequired} from '../host-common/compiler-binding
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016 until the authored Infer operation and its nominal receipts migrate.
 import {inferCopyFundingOriginal, inferEvidenceCopyFunded} from './infer-operation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 

@@ -25127,7 +25127,7 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               }
             ],
@@ -72562,7 +72562,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d245e4916f5cd32e373243da148c68dc6a1199d08c95946df717d9450085ce52",
+      "sha256": "1d60e6a987bb2e7b6ad56bde25720f5942eaa5be0664694952d818eb51191c3a",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -73263,7 +73263,7 @@
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5239210c6650f473319de69f77eea827f1bed694a865147c8231f72fb7238064",
+      "sha256": "91936575ccaa285725baa14465aac655e054a2ef420377060946d4dedc09e876",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -74592,7 +74592,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74610,7 +74610,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74628,7 +74628,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74646,7 +74646,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74664,7 +74664,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74682,7 +74682,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74700,7 +74700,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74718,7 +74718,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74736,7 +74736,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74754,7 +74754,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecInt"
               },
               {
@@ -74780,7 +74780,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74790,7 +74790,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74800,7 +74800,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74810,7 +74810,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74820,7 +74820,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74830,7 +74830,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74840,7 +74840,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74850,7 +74850,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74860,7 +74860,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74870,7 +74870,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "codecLimits"
               },
               {
@@ -74890,7 +74890,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74900,7 +74900,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74910,7 +74910,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74920,7 +74920,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74930,7 +74930,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74940,7 +74940,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74950,7 +74950,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74960,7 +74960,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74970,7 +74970,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -74980,7 +74980,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "metadataUnavailable"
               },
               {
@@ -75014,7 +75014,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75040,7 +75040,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75070,7 +75070,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75100,7 +75100,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75134,7 +75134,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75160,7 +75160,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75184,13 +75184,13 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "throw new TypeError('InvalidInferOriginalSuffixBinding');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75216,7 +75216,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75246,7 +75246,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75272,7 +75272,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeComposedInferProvider"
               },
               {
@@ -75465,7 +75465,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75495,7 +75495,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75523,13 +75523,13 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75571,7 +75571,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75609,7 +75609,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75643,7 +75643,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75689,7 +75689,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75727,7 +75727,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75773,7 +75773,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75803,7 +75803,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "openNodeInferOperation"
               },
               {
@@ -75901,7 +75901,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75911,7 +75911,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75921,7 +75921,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75931,7 +75931,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75941,7 +75941,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75951,7 +75951,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75961,7 +75961,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75971,7 +75971,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75981,7 +75981,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -75991,7 +75991,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "prepareWithOriginalRawSetter"
               },
               {
@@ -76015,7 +76015,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76025,7 +76025,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76035,7 +76035,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76045,7 +76045,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76055,7 +76055,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76065,7 +76065,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76075,7 +76075,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76085,7 +76085,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76095,7 +76095,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76105,7 +76105,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferMetadataAcquisition"
               },
               {
@@ -76129,7 +76129,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76139,7 +76139,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76149,7 +76149,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76159,7 +76159,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76169,7 +76169,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76179,7 +76179,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76189,7 +76189,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76199,7 +76199,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76209,7 +76209,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76219,7 +76219,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferResourceCodecAcquisition"
               },
               {
@@ -76243,7 +76243,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76253,7 +76253,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76263,7 +76263,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76273,7 +76273,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76283,7 +76283,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76293,7 +76293,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76303,7 +76303,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76313,7 +76313,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76323,7 +76323,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76333,7 +76333,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectOriginalInferStoreBootstrapAcquisition"
               },
               {
@@ -76359,7 +76359,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76373,7 +76373,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76387,7 +76387,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76401,7 +76401,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76415,7 +76415,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76429,7 +76429,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76443,7 +76443,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76457,7 +76457,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76471,7 +76471,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76485,7 +76485,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startCompleteInferObservation"
               },
               {
@@ -76773,11 +76773,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function inferOriginalReadCleanupComplete(read: unknown) {"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function startCompleteInferObservation("
               },
               {
@@ -76787,11 +76787,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function inferOriginalReadCleanupComplete(read: unknown) {"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (operations.some(operation => originalOperations.has(operation))) {"
               },
               {
@@ -76801,12 +76801,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "cleanedOriginalReads.add(originalRead);"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "let originalPublicationCapacity;"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "let originalPublicationCapacity: unknown;"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -76815,11 +76815,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active));"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active)) as boolean;"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (originalPublicationCapacity !== undefined) return false;"
               },
               {
@@ -76829,11 +76829,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (!moon.clientProgramInferExecutionStopped(active)) return false;"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (funding.length !== 1) throw new TypeError('InferOriginalPublicationCapacityUnavailable');"
               },
               {
@@ -76843,7 +76843,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "function cleanup() {"
               },
               {
@@ -76875,7 +76875,7 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,"
               },
               {
@@ -76907,7 +76907,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76917,7 +76917,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76927,7 +76927,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76941,7 +76941,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76955,7 +76955,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76965,7 +76965,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76979,7 +76979,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -76993,7 +76993,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -77007,7 +77007,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -77017,7 +77017,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -77139,7 +77139,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77153,7 +77153,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77167,7 +77167,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77189,7 +77189,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77203,7 +77203,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77221,7 +77221,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77239,7 +77239,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77253,7 +77253,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -77283,7 +77283,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -78590,7 +78590,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3a09cace6692aea802f1ea5efbfb77bf8d0067e20dc575544178f5d6ad5f5440"
+      "sha256": "a3c717f85dd0045f1508a1306143b66a04ece1d1311ed57bb38fc4f1ede36a5f"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

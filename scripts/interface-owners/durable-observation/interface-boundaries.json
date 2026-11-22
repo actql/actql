@@ -2632,7 +2632,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d245e4916f5cd32e373243da148c68dc6a1199d08c95946df717d9450085ce52",
+      "sha256": "1d60e6a987bb2e7b6ad56bde25720f5942eaa5be0664694952d818eb51191c3a",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [

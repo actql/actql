@@ -8547,7 +8547,7 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               }
             ],
@@ -21460,7 +21460,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "5239210c6650f473319de69f77eea827f1bed694a865147c8231f72fb7238064",
+      "sha256": "91936575ccaa285725baa14465aac655e054a2ef420377060946d4dedc09e876",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -22250,8 +22250,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function selectOriginalInferMetadataAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {"
               },
               {
                 "path": "docs/design/infer-async-response-custody.md",
@@ -22288,8 +22288,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function selectOriginalInferMetadataAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {"
               },
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
@@ -22320,7 +22320,7 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               },
               {
@@ -22330,7 +22330,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -22380,7 +22380,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -22430,7 +22430,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
               },
               {
@@ -22500,7 +22500,7 @@
                 "anchor": "pub fn start_original_restored_composed("
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "throw new TypeError('InvalidInferOriginalSuffixBinding');"
               },
               {
@@ -22564,7 +22564,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,"
               },
               {
@@ -22618,7 +22618,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';"
               },
               {
@@ -22916,11 +22916,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function inferOriginalReadCleanupComplete(read: unknown) {"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function startCompleteInferObservation("
               },
               {
@@ -22930,11 +22930,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function inferOriginalReadCleanupComplete(read: unknown) {"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (operations.some(operation => originalOperations.has(operation))) {"
               },
               {
@@ -22944,12 +22944,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "cleanedOriginalReads.add(originalRead);"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "let originalPublicationCapacity;"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "let originalPublicationCapacity: unknown;"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -22958,11 +22958,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active));"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active)) as boolean;"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (originalPublicationCapacity !== undefined) return false;"
               },
               {
@@ -22972,11 +22972,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (!moon.clientProgramInferExecutionStopped(active)) return false;"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "if (funding.length !== 1) throw new TypeError('InferOriginalPublicationCapacityUnavailable');"
               },
               {
@@ -22986,7 +22986,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "function cleanup() {"
               },
               {
@@ -23018,7 +23018,7 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,"
               },
               {
@@ -23050,8 +23050,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function selectOriginalInferMetadataAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {"
               },
               {
                 "path": "docs/design/infer-async-response-custody.md",
@@ -23064,8 +23064,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "export function selectOriginalInferMetadataAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {"
               },
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
@@ -23078,7 +23078,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -23096,7 +23096,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "// Physical stepping and custody for the existing MoonBit inference owner."
               },
               {
@@ -23114,7 +23114,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
               },
               {
@@ -23152,7 +23152,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,"
               },
               {
@@ -23170,7 +23170,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';"
               },
               {
@@ -23302,7 +23302,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23316,7 +23316,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23330,7 +23330,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23352,7 +23352,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23366,7 +23366,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23384,7 +23384,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23402,7 +23402,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23416,7 +23416,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -23446,7 +23446,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "export function fundInferCaptureInventory("
               },
               {
@@ -24753,7 +24753,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3a09cace6692aea802f1ea5efbfb77bf8d0067e20dc575544178f5d6ad5f5440"
+      "sha256": "a3c717f85dd0045f1508a1306143b66a04ece1d1311ed57bb38fc4f1ede36a5f"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -101847,8 +101847,8 @@
                 "anchor": "if (receipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel!(receipt);"
               },
               {
-                "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "growOriginalPublicationCapacity(retained, execution)"
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "growOriginalPublicationCapacity(retained: bigint, execution: bigint)"
               }
             ],
             "synchronization": [

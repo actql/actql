@@ -15,36 +15,370 @@ import {inferEvidenceCopyConstruction} from './infer-evidence-copy-geometry.mjs'
 
 export {withNodeInferResult};
 
-const activeOperations = new WeakMap();
-const originalOperations = new WeakSet();
-const materializationReceipts = new WeakMap();
-const originalCopyFunders = new WeakMap();
-const cleanedOriginalReads = new WeakSet();
+// The generated Common Node ABI supplies the scalar signatures. Owner,
+// result and tuple values are passed through the existing opaque bindings.
+type Runtime = Readonly<{
+  clientProgramStartCompleteInferObservationIssuance(executions: unknown, ledger: unknown, maxSlots: number,
+    maxWireBytes: number, maxWork: number): unknown;
+  clientProgramAcquisitionCount(prepared: unknown): number;
+  clientProgramTaskCount(prepared: unknown): number;
+  clientProgramBindInferPhysicalPreflightCurrent(active: unknown, prepare: (value: unknown) => unknown,
+    current: () => boolean): unknown;
+  clientProgramClaimInferOriginalPreparation(read: unknown, compiled: unknown, definition: unknown,
+    graph: unknown, retainedBytes: bigint, executionBytes: bigint): unknown;
+  clientProgramAdvanceInferRoot(active: unknown, quantum: number): unknown;
+  clientProgramStartOriginalInferExecution(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, provider: unknown, compiled: unknown, definition: unknown,
+    consumer: unknown, readRetainedBytes: bigint, readExecutionBytes: bigint, modelRetainedBytes: bigint,
+    modelExecutionBytes: bigint, fragment: string, ordered: string): unknown;
+  clientProgramStartRestoredComposedInferInput(occurrence: unknown, graph: unknown, prefix: unknown,
+    provider: unknown, binding: string, descriptor: string, rows: unknown, custody: () => boolean,
+    savedScope: unknown, referenceIssuer: unknown, rootLedger: unknown, suffix: unknown): unknown;
+  clientProgramStartRestoredInferInput(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, provider: unknown, binding: string, descriptor: string,
+    rows: unknown, custody: () => boolean, savedScope: unknown, fragment: string, ordered: string,
+    referenceIssuer: unknown): unknown;
+  clientProgramStartKeyedInferExecution(occurrence: unknown, graph: unknown, prefix: unknown, provider: unknown,
+    sources: unknown, suffix: unknown, ledger: unknown): unknown;
+  clientProgramStartComposedInferExecution(occurrence: unknown, graph: unknown, prefix: unknown, inputs: unknown,
+    provider: unknown, sources: unknown): unknown;
+  clientProgramStartRestoredInferSlotReplay(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, read: unknown, fragment: string, ordered: string): unknown;
+  clientProgramStartAcquiredInferSlotReplay(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, read: unknown, input: unknown, fragment: string, ordered: string): unknown;
+  clientProgramStartScopedInferExecution(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, provider: unknown, fragment: string, ordered: string): unknown;
+  clientProgramStartAcquiredInferExecution(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, provider: unknown, input: unknown, fragment: string,
+    ordered: string): unknown;
+  clientProgramStartRestoredInferReplay(prepared: unknown, step: number, graph: unknown,
+    sequenceContracts: unknown, values: string, capture: unknown, fragment: string, ordered: string): unknown;
+  clientProgramCancelInferExecution(active: unknown): boolean;
+  clientProgramInferPhysicalObservationFacts(value: unknown): unknown;
+  clientProgramBindInferModelObservation(active: unknown, prepared: unknown, observe: (value: unknown) => void): boolean;
+  clientProgramInferExecutionStopped(active: unknown): boolean;
+  clientProgramCleanupInferExecution(active: unknown): unknown;
+  clientProgramAdvanceInferExecution(active: unknown, quantum: number): unknown;
+  clientProgramInferExecutionPollKind(value: unknown): string;
+  clientProgramInferPreparedCallSet(active: unknown): unknown;
+  clientProgramInferCallSettlement(active: unknown): unknown;
+  clientProgramInferExecutionOutput(value: unknown): unknown;
+  clientProgramInferExecutionPollIssue(value: unknown): unknown;
+  clientProgramInferCleanupProgress(active: unknown): number;
+  clientProgramInferQuantityUsage(active: unknown): unknown;
+  clientProgramInferStoppedAttemptCount(active: unknown): number | undefined;
+  clientProgramInferStoppedAttemptSlot(active: unknown, index: number): number | undefined;
+  clientProgramInferHasUnknownCalls(active: unknown): boolean;
+  clientProgramAcquireInferOutput(active: unknown): unknown;
+  clientProgramAcquireInferCapture(active: unknown): unknown;
+  clientProgramAcquireInferOutcomes(active: unknown): unknown;
+  clientProgramInferInvocationEvidence(active: unknown, slot: number): unknown;
+  clientProgramInferPreparedRequest(value: unknown, slot: number): unknown;
+  clientProgramInferPreparedCallAt(value: unknown, slot: number): unknown;
+  strategyRunEvidenceJson(value: unknown): string;
+  clientProgramInferEvaluationRequest(active: unknown, slot: number): unknown;
+  clientProgramModelRequestInputFrame(request: unknown): string | undefined;
+  clientProgramInferPreparedPhysicalRequest(value: unknown, slot: number): unknown;
+  clientProgramBindInferOriginalPreparation(active: unknown, read: unknown, retainedBytes: bigint,
+    executionBytes: bigint): unknown;
+  clientProgramParkInferOriginalModelResources(active: unknown, scope: unknown): unknown;
+  clientProgramParkInferOriginalModelResourcesForStateWrite(active: unknown, scope: unknown): unknown;
+  clientProgramPrepareInferOriginalCurrentStateWriter(active: unknown, scope: unknown, park: unknown,
+    maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+  clientProgramAdvanceInferOriginalCurrentStateWriter(active: unknown, scope: unknown, park: unknown,
+    value: unknown, quantum: number): unknown;
+  clientProgramInferNodeReadStatePoll(poll: unknown): unknown;
+  clientProgramFinishInferOriginalCurrentStateWriter(active: unknown, scope: unknown, park: unknown,
+    value: unknown): unknown;
+  clientProgramCancelInferOriginalCurrentStateWriter(value: unknown): void;
+  clientProgramStartInferOriginalCurrentStateDecode(active: unknown, scope: unknown, park: unknown, wire: string,
+    parseLimits: unknown, treeLimits: unknown, maxWork: number): unknown;
+  clientProgramInferOriginalCurrentStateDecodePoll(poll: unknown): unknown;
+  clientProgramAdvanceInferOriginalCurrentStateDecode(active: unknown, scope: unknown, park: unknown,
+    value: unknown, quantum: number): unknown;
+  clientProgramCancelInferOriginalCurrentStateDecode(value: unknown): void;
+  clientProgramRetireInferOriginalCurrentStateDocument(value: unknown): void;
+  clientProgramStartInferOriginalCurrentStateComparison(active: unknown, scope: unknown, park: unknown,
+    document: unknown, maxWork: number): unknown;
+  clientProgramInferOriginalCurrentStateComparisonPoll(poll: unknown): unknown;
+  clientProgramAdvanceInferOriginalCurrentStateComparison(active: unknown, scope: unknown, park: unknown,
+    value: unknown, quantum: number): unknown;
+  clientProgramCancelInferOriginalCurrentStateComparison(value: unknown): void;
+  clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch(active: unknown, scope: unknown, park: unknown,
+    value: unknown, quantum: number): unknown;
+  clientProgramInferOriginalCurrentStateMatchPoll(poll: unknown): unknown;
+  clientProgramInferOriginalCurrentStateMatchCurrent(active: unknown, scope: unknown, park: unknown,
+    value: unknown): unknown;
+  clientProgramRetireInferOriginalCurrentStateMatch(value: unknown): void;
+  clientProgramInferOriginalModelResourceParkCurrent(active: unknown, scope: unknown, park: unknown): unknown;
+  clientProgramInferOriginalParkedReadCapacityAvailable(active: unknown, scope: unknown, park: unknown,
+    retainedBytes: bigint, executionBytes: bigint): boolean;
+  clientProgramInferOriginalUnparkedReadCapacityAvailable(active: unknown, scope: unknown, retainedBytes: bigint,
+    executionBytes: bigint): boolean;
+  clientProgramBeginInferOriginalModelInvalidation(active: unknown, scope: unknown, park: unknown): unknown;
+  clientProgramInferOriginalModelInvalidationCurrent(active: unknown, scope: unknown, park: unknown,
+    request: unknown): unknown;
+  clientProgramCompleteInferOriginalJournalInvalidation(active: unknown, scope: unknown, port: unknown,
+    receipt: unknown, reference: unknown, park: unknown, request: unknown): unknown;
+  clientProgramExportInferPreparedInput(active: unknown, prepared: unknown, binding: string): unknown;
+  clientProgramInferPreparedInputExportDescriptor(value: unknown): string;
+  clientProgramInferPreparedInputExportRows(value: unknown): unknown;
+  clientProgramInferPreparedInputExportMatches(active: unknown, prepared: unknown, exported: unknown): boolean;
+  clientProgramInferPreparedCallCount(value: unknown): number | undefined;
+  clientProgramInferPreparedInput(value: unknown): unknown;
+  clientProgramInferPreparedInputArtifact(value: unknown): unknown;
+  clientProgramInferPreparedIdentities(value: unknown): unknown;
+  clientProgramInferCallScopeSnapshot(active: unknown): unknown;
+  clientProgramInferCallScopeUnitId(active: unknown): string | undefined;
+  clientProgramInferCallEntryOriginals(value: unknown): unknown;
+  clientProgramInferCallEntryCurrent(value: unknown, prepared: unknown): boolean;
+  clientProgramCheckInferEgressCurrent(admission: unknown): unknown;
+  clientProgramRestoreInferPreparedCall(prepared: unknown, slot: number, record: unknown, proof: unknown,
+    bundle: unknown, attachmentAdmission: unknown): unknown;
+  clientProgramRestoreInferPreparedUnknown(prepared: unknown, slot: number, attempt: unknown, authority: unknown): unknown;
+  clientProgramPrepareInferResponseReconciliation(prepared: unknown, slot: number, attempt: unknown,
+    authority: unknown): unknown;
+  clientProgramAdoptReconciledInferResponse(token: unknown, response: unknown): unknown;
+  clientProgramInferCallSettlementSlot(value: unknown): number | undefined;
+  clientProgramAcknowledgeInferCallSettlement(value: unknown): boolean;
+  clientProgramInferAttemptEvidence(active: unknown, slot: number): unknown;
+  clientProgramAdvanceInferStoppedRawUsage(active: unknown, slot: number, quantum: number): unknown;
+  clientProgramIssueInferAttachmentAdmission(active: unknown, slot: number): unknown;
+  clientProgramIssueInferSlotCapture(active: unknown, slot: number): unknown;
+  clientProgramReserveOriginalInferPublicationCapacity(active: unknown, retainedBytes: bigint,
+    executionBytes: bigint): unknown;
+  clientProgramOriginalInferPublicationRetainedBytes(capacity: unknown): bigint;
+  clientProgramOriginalInferPublicationExecutionBytes(capacity: unknown): bigint;
+  clientProgramGrowOriginalInferPublicationCapacity(active: unknown, capacity: unknown, retainedBytes: bigint,
+    executionBytes: bigint): unknown;
+  clientProgramOriginalInferCaptureInventoryCapacity(active: unknown, capacity: unknown): unknown;
+  clientProgramInferFundedStoppedAttemptCount(active: unknown): number;
+  clientProgramPrepareOriginalInferUsage(active: unknown, capacity: unknown, capture: unknown,
+    retainedPrefix: bigint, executionPrefix: bigint): unknown;
+  clientProgramBeginOriginalInferUsagePublication(active: unknown, capacity: unknown, capture: unknown,
+    retainedPrefix: bigint, executionPrefix: bigint, maxBytes: number): unknown;
+  clientProgramReleaseOriginalInferPublicationCapacity(capacity: unknown): unknown;
+  clientProgramStartCompleteOriginalInferObservationIssuance(active: unknown, capacity: unknown, maxSlots: number,
+    maxWireBytes: number, maxWork: number, generations: unknown): unknown;
+  clientProgramStartOriginalInferObservationIssuance(active: unknown, capacity: unknown, maxSlots: number,
+    maxWireBytes: number, maxWork: number, generations: unknown): unknown;
+  clientProgramInferPublicationLedger(retainedBytes: bigint, planningWork: number): unknown;
+  clientProgramStartInferObservationIssuance(active: unknown, ledger: unknown, maxSlots: number,
+    maxWireBytes: number, maxWork: number): unknown;
+  clientProgramRequireInferCallEntry(active: unknown): unknown;
+  clientProgramPrepareOriginalRestoredInferSendMask(active: unknown): unknown;
+  clientProgramRestrictInferSendSlots(active: unknown, eligible: unknown): unknown;
+  clientProgramBindInferQuantityCapacity(active: unknown, tokens: bigint, costUnits: bigint, durationMs: bigint,
+    perAttemptTokens: bigint, perAttemptCostUnits: bigint, perAttemptDurationMs: bigint): unknown;
+  clientProgramBindInferComputeSuffix(active: unknown, sequence: unknown): unknown;
+  clientProgramBindInferPhysicalPreflight(active: unknown, prepare: (value: unknown) => unknown): unknown;
+  clientProgramBindInferEgress(active: unknown, admission: unknown): unknown;
+  clientProgramGeneratedInferLocalProvider(occurrence: unknown, open: (value: unknown) => unknown,
+    observeIssue: (value: unknown) => void, retainCompleted: (value: unknown) => boolean,
+    allowCleanup: (value: unknown) => boolean): unknown;
+  clientProgramComposedInferLocalProvider(occurrence: unknown, open: (value: unknown) => unknown,
+    observeIssue: (value: unknown) => void, retainCompleted: (value: unknown) => boolean,
+    allowCleanup: (value: unknown) => boolean, inputPrefix: unknown): unknown;
+  clientProgramInferCallScopeIssueKind(issue: unknown): string | undefined;
+  clientProgramInferOccurrenceCoordinates(occurrence: unknown): unknown;
+  clientProgramModelRequestInputFrameGeometry(request: unknown, maxBytes: number): unknown;
+  clientProgramEffectModelEvidenceCopyCapacity(bundleBytes: number, bundleNodes: number, bundleDepth: number,
+    input: unknown, otherTextUnits: number, calls: number): unknown;
+}> & Parameters<typeof withNodeInferResult>[0]['moon'];
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Acknowledge = () => boolean;
+type Observe = () => Awaitable<unknown>;
+type ObservationBounds = Readonly<{maxSlots: number; maxWireBytes: number; maxWork: number}>;
+type RunIdentity = Readonly<{identity: string}>;
+type RunPlan = Readonly<{compiled: unknown; runDefinition: RunIdentity}>;
+type EvidenceView = Readonly<{wire: string; identity: string}>;
+type EvidenceBundle = Parameters<typeof inferEvidenceCopyConstruction>[2];
+type EvidenceKind = Parameters<typeof inferEvidenceCopyConstruction>[3];
+type EvidenceCopy = (bundle: EvidenceBundle, kind: EvidenceKind) => object | undefined;
+type OriginalFunding = Readonly<{
+  prepareOriginalCaptureInventory(operation: OriginalFunding): object | undefined;
+  fundedStoppedAttemptCount(): number | undefined;
+  originalMaterializationCurrent(operation: OriginalFunding, count: number): boolean;
+  prepareOriginalEvidenceCopy(operation: OriginalFunding, bundle: EvidenceBundle, kind: EvidenceKind,
+    retained: bigint, execution: bigint): object;
+}>;
+type OriginalLink = Readonly<{operation: WeakRef<OriginalFunding>; funding: WeakRef<OriginalFunding>}>;
+type Materialization = OriginalLink & Readonly<{kind: 'capture' | EvidenceKind; count: number; bundle?: EvidenceBundle}>;
+type OriginalReadControl = Readonly<{
+  stopCheckedClientInferOriginalReadPreparation(compiled: unknown, definition: unknown, graph: unknown,
+    scope: unknown, read: unknown): unknown;
+  settleCheckedClientInferOriginalReadPreparation(compiled: unknown, definition: unknown, graph: unknown,
+    read: unknown, confirmed: boolean): unknown;
+  finishCheckedClientInferOriginalReadScope(compiled: unknown, definition: unknown, graph: unknown,
+    scope: unknown, confirmed: boolean): boolean;
+}>;
+type OriginalReadGroup = {
+  components: readonly OriginalReadMember[];
+  scopes: readonly unknown[]; graph: readonly unknown[]; control: OriginalReadControl;
+  compiled: unknown; runDefinition: unknown; scope: unknown; closed?: boolean; scopeFinished?: boolean;
+};
+type OriginalReadMember = {
+  group: OriginalReadGroup; control: OriginalReadControl; compiled: unknown; runDefinition: unknown;
+  graph: unknown; scope: unknown; read?: unknown; closed?: boolean; scopeFinished?: boolean;
+};
+type OriginalControl = Readonly<{
+  checkClientCompiledRunOwner(compiled: unknown, program: unknown): void;
+  claimCheckedClientInferNodePreparationLayout(compiled: unknown, definition: unknown, graph: unknown,
+    read: unknown, installation: unknown): unknown;
+  claimCheckedClientInferOriginalComposedPreparation(compiled: unknown, definition: unknown, graph: unknown,
+    read: unknown, retained: bigint, execution: bigint): unknown;
+  startCheckedClientOriginalRestoredComposedInferExecution(compiled: unknown, definition: unknown,
+    occurrence: unknown, graph: unknown, prefix: unknown, provider: unknown, snapshot: unknown,
+    available: Acknowledge, scope: unknown, consumer: unknown, readRetained: bigint, readExecution: bigint,
+    modelRetained: bigint, modelExecution: bigint, referenceIssuer: unknown, inputBodyRead: unknown): unknown;
+  startCheckedClientOriginalComposedInferExecution(compiled: unknown, definition: unknown, occurrence: unknown,
+    graph: unknown, prefix: unknown, inputs: unknown, provider: unknown, consumer: unknown,
+    readRetained: bigint, readExecution: bigint, modelRetained: bigint, modelExecution: bigint,
+    sources: unknown, inputBodyRead: unknown): unknown;
+  startCheckedClientInferOriginalPreparation(compiled: unknown, definition: unknown, program: unknown,
+    step: number | undefined, graph: unknown, registry: unknown, values: unknown, provider: unknown,
+    consumer: unknown, readRetained: bigint, readExecution: bigint, modelRetained: bigint,
+    modelExecution: bigint, fragment: unknown, ordered: unknown): unknown;
+  runDefinitionRunId(definition: unknown): string;
+}>;
+type ContentControl = Readonly<{
+  startCheckedClientContentInferObservation(compiled: unknown, owners: readonly unknown[],
+    generations: unknown, ledger: unknown, bounds: ObservationBounds): unknown;
+  startCheckedClientOriginalContentInferObservation(owners: readonly unknown[],
+    generations: readonly unknown[], capacity: unknown, bounds: ObservationBounds): unknown;
+  startCheckedClientRestoredGeneratedInferInputs(compiled: unknown, definition: unknown, generation: unknown,
+    graph: unknown, inputs: unknown, provider: unknown, snapshot: unknown, available: Acknowledge): unknown;
+  startCheckedClientGeneratedInferInputs(compiled: unknown, generation: unknown, graph: unknown,
+    inputs: unknown, provider: unknown): unknown;
+  startCheckedClientOriginalGeneratedInferInputs(compiled: unknown, generation: unknown, graph: unknown,
+    inputs: unknown, provider: unknown, definition: unknown, consumer: unknown, readRetained: bigint,
+    readExecution: bigint, modelRetained: bigint, modelExecution: bigint): unknown;
+  startCheckedClientRestoredGeneratedInferExecution(compiled: unknown, definition: unknown, generation: unknown,
+    program: unknown, graph: unknown, provider: unknown, environment: unknown, snapshot: unknown,
+    available: Acknowledge): unknown;
+  startCheckedClientGeneratedInferExecution(compiled: unknown, generation: unknown, program: unknown,
+    graph: unknown, provider: unknown): unknown;
+  startCheckedClientOriginalGeneratedInferExecution(compiled: unknown, generation: unknown, program: unknown,
+    graph: unknown, provider: unknown, definition: unknown, consumer: unknown, readRetained: bigint,
+    readExecution: bigint, modelRetained: bigint, modelExecution: bigint): unknown;
+}>;
+type OriginalPreparation = RunPlan & Readonly<{
+  control: OriginalControl; read: unknown; scope: unknown; nodeInstallation?: unknown;
+  metadataInstallation?: Parameters<typeof selectedInferOriginalMetadataLimits>[0];
+  readRetainedBytes: bigint; readExecutionBytes: bigint; modelRetainedBytes: bigint; modelExecutionBytes: bigint;
+}>;
+type MetadataLimits = ReturnType<typeof selectedInferOriginalMetadataLimits>;
+type StoreBootstrap = ReturnType<typeof selectedInferOriginalStoreBootstrapLimits>;
+type ResourceCodec = ReturnType<typeof selectedInferOriginalCurrentStateCodec>;
+type MetadataRole = 'store-bootstrap' | 'resource-state-codec';
+type MetadataAcquisition = Readonly<{handle: object; park?: unknown; selection?: MetadataLimits;
+  current(ownerId?: string, requestCid?: string, role?: MetadataRole): StoreBootstrap | ResourceCodec | undefined}>;
+type RawBinder = (registration: unknown, persistence: unknown) => unknown;
+type CredentialPreparation = () => void;
+type RetainRawBinder = (callback: RawBinder, request: unknown, credential?: CredentialPreparation) => void;
+type PhysicalPreflight = (request: unknown, notification?: unknown,
+  retain?: (callback: RawBinder, credential?: CredentialPreparation) => void) => unknown;
+type SettlementCleanup = (settlement: unknown) => Awaitable<unknown>;
+type RestoredInput = Readonly<{
+  savedScope?: unknown; token: Readonly<{available: boolean}>;
+  snapshot: Readonly<{binding: string; descriptorWire: string; rows: unknown;
+    providerInputs?: readonly Readonly<{callWire: string; typedInputWire: string;
+      renderedInput: string; contextManifest: string}>[]}>;
+  sendMask?: unknown; sendSlots?: () => readonly Readonly<{state: string}>[];
+}>;
+type CapturedContent = Readonly<{capturedRecovery?: unknown; capturedBinding?: unknown}>;
+type ComposedInput = CapturedContent & Readonly<{occurrence: unknown; prefix: unknown; inputs?: unknown; sources?: unknown}>;
+type KeyedInput = ComposedInput & Readonly<{ledger: unknown}>;
+type SerializedInput = CapturedContent & Readonly<{control: ContentControl; compiled: unknown; definition: unknown;
+  generation: unknown; inputs?: readonly unknown[]; recovery?: unknown}>;
+type Quantities = Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
+type QuantityCapacity = Readonly<{limits: Quantities; perAttempt: Quantities}>;
+type RunOutput = Readonly<{status?: string; preparedCallSet?: unknown; settlement?: unknown}>;
+type ObservationInputs = ObservationBounds & Readonly<{ledger?: unknown; operations?: readonly ObservationOperation[]}>;
+type ObservationOperation = Readonly<{
+  publicationCapacityPending(): boolean;
+  startObservation(options: ObservationInputs): unknown;
+}>;
+type CompleteObservation = ObservationBounds & Readonly<{
+  moon: Runtime; operations: readonly ObservationOperation[]; ledger?: unknown;
+  content?: Readonly<{control: ContentControl; compiled: unknown; generations: unknown}>;
+}>;
+type WriterLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type DecodeLimits = Readonly<{parse: unknown; tree: unknown; maxWork: number}>;
+type EntryOriginals = Readonly<{entry: unknown; slot: unknown; callWire: unknown;
+  attemptWire: unknown; authorityWire: unknown}>;
+type EnterCall = (entry: EntryOriginals) => unknown;
+type DispatchObservation = Readonly<Record<string, unknown>>;
+type ModelObservation = Readonly<{slot: unknown; attemptCid: unknown; event: unknown; outcome: unknown}>;
+type ObserveModel = (observation: ModelObservation) => void;
+type BindControl = Readonly<{
+  inspectInferInvocationEvidence(moon: Runtime, active: unknown, slot: number): EvidenceView | undefined;
+  bindCheckedClientInferRun(compiled: unknown, active: unknown, definition: RunIdentity): unknown;
+  bindCheckedClientInferDispatch(compiled: unknown, active: unknown, definition: RunIdentity,
+    observation: DispatchObservation): unknown;
+  bindCheckedClientInferModelScope(compiled: unknown, active: unknown, definition: RunIdentity,
+    prepared: unknown, originals: unknown): unknown;
+  bindCheckedClientInferModelDispatch(compiled: unknown, active: unknown, definition: RunIdentity,
+    prepared: unknown, scope: unknown, observation: Readonly<{enterCall(entry: unknown): boolean}>): unknown;
+  bindCheckedClientInferModelEntryPersistence(compiled: unknown, active: unknown, definition: RunIdentity,
+    prepared: unknown, scope: unknown, observation: Readonly<{beginEntry(entry: unknown): unknown}>): unknown;
+  bindCheckedClientInferInvocation(compiled: unknown, active: unknown, definition: RunIdentity,
+    verification: unknown, invocation: unknown, dataPolicyCid: string): unknown;
+  bindInferOriginalResultArtifact(active: unknown, index: number, artifact: unknown, manifest: unknown): void;
+  bindIssuedClientInferInvocation(compiled: unknown, active: unknown, definition: RunIdentity, issued: unknown): unknown;
+}>;
+type CopySource = OriginalFunding & Parameters<typeof inferEvidenceCopyConstruction>[1];
+type CopyFunder = OriginalFunding & Readonly<{growOriginalPublicationCapacity(retained: bigint, execution: bigint): void}>;
+type CopyFundingOptions = Readonly<{moon: Runtime; funding: CopyFunder; operation: CopySource;
+  current: () => void; retainedPrefix?: () => bigint; executionPrefix?: () => bigint; legacy?: boolean}>;
+type ResultOriginal = Parameters<Parameters<typeof withNodeInferResult>[0]['consume']>[0];
+type OperationOptions = Readonly<{
+  moon: Runtime; preparedProgram?: unknown; step?: number; graph: unknown; registry?: unknown; values?: string;
+  fragment?: string; ordered?: string; provider?: unknown; savedCapture?: unknown; savedSlots?: unknown;
+  quantityCapacity?: QuantityCapacity; physicalPreflight?: PhysicalPreflight; egressAdmission?: unknown;
+  computeSuffix?: unknown; acquiredInput?: unknown; composedInput?: ComposedInput; keyedInput?: KeyedInput;
+  signal?: AbortSignal; quantum?: number; observeProgress?: Observe; durableCalls?: boolean;
+  restoredInput?: RestoredInput; retainOperation?: (operation: Operation) => void;
+  ioNotification?: unknown; originalPreparation?: OriginalPreparation; restoredPreparation?: OriginalPreparation;
+  rawCaptureBinder?: RawBinder; serializedInput?: SerializedInput; restoredReferenceIssuer?: unknown;
+  assertRuntimeCurrent?: () => void; bindComputeSuffix?: (active: unknown) => unknown;
+}>;
+
+const activeOperations = new WeakMap<object, unknown>();
+const originalOperations = new WeakSet<object>();
+const materializationReceipts = new WeakMap<object, Materialization>();
+const originalCopyFunders = new WeakMap<object, OriginalLink>();
+const cleanedOriginalReads = new WeakSet<object>();
 const isPromise = utilTypes.isPromise;
 const observePromise = Promise.prototype.then;
 
 // Only a refusal from the same prepared physical credential port can end a
 // resumed Run through the existing stopped-Model failure path.
 class ModelCredentialRefusal extends Error {
-  constructor(code) {
+  declare code: string;
+  constructor(code: string) {
     super(code);
     this.code = code;
   }
 }
-export function isModelCredentialRefusal(error) {
+export function isModelCredentialRefusal(error: unknown) {
   return error instanceof ModelCredentialRefusal;
 }
 
 // A parent may retire this exact descriptor alias after the consumer's actual
 // Core cleanup. This observation issues no ACK and cannot mark another read,
 // release a Scope, or turn a stopped/unknown operation into completed cleanup.
-export function inferOriginalReadCleanupComplete(read) {
-  return cleanedOriginalReads.has(read);
+export function inferOriginalReadCleanupComplete(read: unknown) {
+  return cleanedOriginalReads.has(read as object);
 }
 
 // The same original parent's read retirement for Pure and Effect consumers.
 // A completed consuming execution does not settle its owning reservation.
-export function retireNodeInferOriginalRead({control, compiled, runDefinition, graph, scope, read}) {
+export function retireNodeInferOriginalRead({control, compiled, runDefinition, graph, scope, read}: Readonly<{
+  control: OriginalReadControl; compiled: unknown; runDefinition: unknown;
+  graph: unknown; scope: unknown; read: unknown;
+}>) {
   if (read === undefined) return;
   if (!inferOriginalReadCleanupComplete(read)) {
     control.stopCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, scope, read);
@@ -53,12 +387,12 @@ export function retireNodeInferOriginalRead({control, compiled, runDefinition, g
 }
 // Finish the native closed group only after all actual read children retired.
 // This is a shared caller continuation, not a cleanup ACK or another owner.
-export function finishNodeInferOriginalReadScopes(model) {
+export function finishNodeInferOriginalReadScopes(model: OriginalReadGroup) {
   const members = model?.components, scopes = model?.scopes, graph = model?.graph,
     control = model?.control, compiled = model?.compiled, definition = model?.runDefinition;
   const finish = control?.finishCheckedClientInferOriginalReadScope;
   const current = () => {
-    if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+    if (!Array.isArray(members as unknown) || !Object.isFrozen(members) || members.length < 2 ||
         !Array.isArray(scopes) || !Object.isFrozen(scopes) || scopes.length !== members.length ||
         !Array.isArray(graph) || !Object.isFrozen(graph) || graph.length !== members.length ||
         typeof finish !== 'function' || control.finishCheckedClientInferOriginalReadScope !== finish ||
@@ -90,15 +424,16 @@ export function finishNodeInferOriginalReadScopes(model) {
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
-const originalMetadataSources = new WeakMap();
-const metadataUnavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
+const originalMetadataSources = new WeakMap<object, WeakRef<MetadataAcquisition>>();
+const metadataUnavailable: () => never = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
 
 // Keep an escaped per-preflight setter from retaining the installing operation
 // after this synchronous constructor. Its mutable port is consumed once and
 // cleared even when the original physical factory refuses or throws.
-function prepareWithOriginalRawSetter(prepare, request, notification, retain) {
-  const set = (callback, credential) => {
+function prepareWithOriginalRawSetter(prepare: PhysicalPreflight, request: unknown,
+  notification: unknown, retain: RetainRawBinder | undefined) {
+  const set = (callback: RawBinder, credential?: CredentialPreparation) => {
     if (retain === undefined) throw new TypeError('InferRawCaptureBinderUnavailable');
     retain(callback, request, credential);
     retain = undefined;
@@ -107,8 +442,8 @@ function prepareWithOriginalRawSetter(prepare, request, notification, retain) {
   finally { retain = undefined; }
 }
 
-export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {
-  const original = originalMetadataSources.get(handle)?.deref();
+export function selectOriginalInferMetadataAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {
+  const original = originalMetadataSources.get(handle as object)?.deref();
   if (original === undefined) metadataUnavailable();
   original.current(ownerId, requestCid);
   return original.selection;
@@ -116,64 +451,65 @@ export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestC
 
 // Reuse the SAME nominal handle and current/covers closure, not another issuer
 // or a capacity inferred from physical clamps. Missing separate role refuses.
-export function selectOriginalInferStoreBootstrapAcquisition(handle, ownerId, requestCid) {
-  const original = originalMetadataSources.get(handle)?.deref();
+export function selectOriginalInferStoreBootstrapAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {
+  const original = originalMetadataSources.get(handle as object)?.deref();
   if (original === undefined) metadataUnavailable();
   return original.current(ownerId, requestCid, 'store-bootstrap');
 }
 
 // Same original installation's existing Writer/decoder bound. Metadata wire
 // limits are a different role and cannot price or bound this resource body.
-export function selectOriginalInferResourceCodecAcquisition(handle, ownerId, requestCid) {
-  const original = originalMetadataSources.get(handle)?.deref();
+export function selectOriginalInferResourceCodecAcquisition(handle: unknown, ownerId?: string, requestCid?: string) {
+  const original = originalMetadataSources.get(handle as object)?.deref();
   if (original === undefined) metadataUnavailable();
   return original.current(ownerId, requestCid, 'resource-state-codec');
 }
 
 // Validate the Node-to-Int boundary before entering the existing codec. These
 // bounds are not physical funding or permission to acquire additional data.
-const codecInt = (value, positive = false) => Number.isSafeInteger(value) &&
-  value >= (positive ? 1 : 0) && value <= 2147483647;
-const codecLimits = (value, keys) => value !== null && typeof value === 'object' &&
+const codecInt = (value: unknown, positive = false): value is number => Number.isSafeInteger(value) &&
+  (value as number) >= (positive ? 1 : 0) && (value as number) <= 2147483647;
+const codecLimits = (value: unknown, keys: string) => value !== null && typeof value === 'object' &&
   Object.keys(value).sort().join(',') === keys && Object.values(value).every(item => codecInt(item));
 
 // Only this module's actual original operation can grow/issue these receipts.
 // A count or a caller-created reserve method is neither a numeric original nor
 // evidence that the next constructor has been admitted on its SAME Ledger.
-export function fundInferCaptureInventory(operation, funding = operation) {
-  if (!originalOperations.has(operation) || !originalOperations.has(funding)) return undefined;
-  return funding.prepareOriginalCaptureInventory(operation);
+export function fundInferCaptureInventory(operation: unknown, funding = operation) {
+  if (!originalOperations.has(operation as object) || !originalOperations.has(funding as object)) return undefined;
+  return (funding as OriginalFunding).prepareOriginalCaptureInventory(operation as OriginalFunding);
 }
-export function fundedInferCaptureInventoryCount(receipt, operation) {
-  const original = materializationReceipts.get(receipt);
+export function fundedInferCaptureInventoryCount(receipt: unknown, operation: unknown) {
+  const original = materializationReceipts.get(receipt as object);
   const funding = original?.funding.deref();
   if (original?.kind !== 'capture' || original.operation.deref() !== operation ||
-      funding === undefined || !funding.originalMaterializationCurrent(operation, original.count)) return undefined;
+      funding === undefined || !funding.originalMaterializationCurrent(operation as OriginalFunding, original.count)) return undefined;
   return original.count;
 }
-export function fundedInferStoppedAttemptCount(operation) {
-  if (!originalOperations.has(operation)) return undefined;
-  const count = operation.fundedStoppedAttemptCount();
+export function fundedInferStoppedAttemptCount(operation: unknown) {
+  if (!originalOperations.has(operation as object)) return undefined;
+  const count = (operation as OriginalFunding).fundedStoppedAttemptCount();
   return codecInt(count) ? count : undefined;
 }
-export function fundInferEvidenceCopy(funding, operation, bundle, kind, retained, execution) {
+export function fundInferEvidenceCopy(funding: OriginalFunding, operation: OriginalFunding,
+  bundle: EvidenceBundle, kind: EvidenceKind, retained: bigint, execution: bigint) {
   if (!originalOperations.has(operation) || !originalOperations.has(funding)) return undefined;
   return funding.prepareOriginalEvidenceCopy(operation, bundle, kind, retained, execution);
 }
-export function inferEvidenceCopyFunded(receipt, bundle, kind) {
-  const original = materializationReceipts.get(receipt), operation = original?.operation.deref();
+export function inferEvidenceCopyFunded(receipt: unknown, bundle: unknown, kind: EvidenceKind) {
+  const original = materializationReceipts.get(receipt as object), operation = original?.operation.deref();
   const funding = original?.funding.deref();
   return original !== undefined && original.kind === kind && original.bundle === bundle && operation !== undefined &&
     funding !== undefined && funding.originalMaterializationCurrent(operation, original.count);
 }
-export function originalInferCopyFunding(funding, operation, callback) {
+export function originalInferCopyFunding(funding: OriginalFunding, operation: OriginalFunding, callback: EvidenceCopy) {
   if (!originalOperations.has(operation) || !originalOperations.has(funding)) return callback;
-  const bound = (bundle, kind) => callback(bundle, kind);
+  const bound: EvidenceCopy = (bundle, kind) => callback(bundle, kind);
   originalCopyFunders.set(bound, {operation: new WeakRef(operation), funding: new WeakRef(funding)});
   return bound;
 }
-export function inferCopyFundingOriginal(callback) {
-  const original = originalCopyFunders.get(callback);
+export function inferCopyFundingOriginal(callback: unknown) {
+  const original = originalCopyFunders.get(callback as object);
   const operation = original?.operation.deref(), funding = original?.funding.deref();
   return operation !== undefined && funding !== undefined &&
     originalOperations.has(operation) && originalOperations.has(funding);
@@ -182,7 +518,7 @@ export function inferCopyFundingOriginal(callback) {
 // Publication metadata is issued by the same bounded common owner only after
 // every original Model component has completed. This does not advance calls.
 export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork,
-  content}) {
+  content}: CompleteObservation) {
   const active = operations.map(operation => {
     const value = activeOperations.get(operation);
     if (value === undefined) throw new TypeError('ForeignInferOperation');
@@ -216,7 +552,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
   ioNotification, originalPreparation, restoredPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
-  assertRuntimeCurrent, bindComputeSuffix}) {
+  assertRuntimeCurrent, bindComputeSuffix}: OperationOptions) {
   const restoringOriginal = restoredPreparation !== undefined;
   if (restoringOriginal) {
     if (originalPreparation !== undefined || restoredInput?.savedScope === undefined ||
@@ -232,14 +568,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   const originalComposedRun = composedInput !== undefined &&
     preparedProgram !== undefined && originalPreparation !== undefined;
   if (originalComposedRun) {
-    const control = originalPreparation.control;
+    const control = originalPreparation!.control;
     if (typeof control?.checkClientCompiledRunOwner !== 'function' ||
         serializedInput !== undefined ||
         !restoringOriginal && (!Array.isArray(composedInput.inputs) ||
           composedInput.inputs.length !== 0)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
-    control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
+    control.checkClientCompiledRunOwner(originalPreparation!.compiled, preparedProgram);
     const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
     if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
         (sourceCount !== 0 && sourceCount !== 1) ||
@@ -261,27 +597,28 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     throw new TypeError('InvalidInferOriginalSuffixBinding');
   }
   let rawCaptureBound = false;
-  let preparedRawCaptureBinders;
-  let credentialPreparations, credentialFailure;
+  let preparedRawCaptureBinders: RawBinder[] | undefined;
+  let credentialPreparations: {request: unknown; prepare: CredentialPreparation}[] | undefined,
+    credentialFailure: {cause: unknown} | undefined;
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
-  let originalConsumer;
-  let originalRead;
-  let originalInputBodyRead;
+  let originalConsumer: unknown;
+  let originalRead: unknown;
+  let originalInputBodyRead: unknown;
   let originalScope = originalPreparation?.scope;
   let metadataInstallation = originalPreparation?.metadataInstallation;
   let metadataNodeInstallation = originalPreparation?.nodeInstallation;
   let metadataControl = originalPreparation?.control;
   let metadataDefinition = originalPreparation?.runDefinition;
-  let originalMetadata;
-  let originalStoreBootstrap;
-  let originalPublicationCapacity;
-  let publicationBaseRetained, publicationBaseExecution;
-  let publicationHeldRetained, publicationHeldExecution;
+  let originalMetadata: MetadataAcquisition | undefined;
+  let originalStoreBootstrap: MetadataAcquisition | undefined;
+  let originalPublicationCapacity: unknown;
+  let publicationBaseRetained: bigint | undefined, publicationBaseExecution: bigint | undefined;
+  let publicationHeldRetained: bigint | undefined, publicationHeldExecution: bigint | undefined;
   let publicationMaterializationRetained = 0n;
-  let originalPublicationSelection;
-  let originalPublicationReceiver;
+  let originalPublicationSelection: (() => unknown) | undefined;
+  let originalPublicationReceiver: OriginalPreparation | undefined;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
         (!restoringOriginal && restoredInput !== undefined) || savedCapture !== undefined || savedSlots !== undefined ||
@@ -376,7 +713,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       quantityCapacity === null ||
       typeof quantityCapacity !== 'object' ||
       Object.keys(quantityCapacity).sort().join(',') !== 'limits,perAttempt' ||
-      ['limits', 'perAttempt'].some(scope => {
+      (['limits', 'perAttempt'] as const).some(scope => {
         const value = quantityCapacity[scope];
         return value === null || typeof value !== 'object' ||
           Object.keys(value).sort().join(',') !==
@@ -429,7 +766,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
-  let active;
+  let active: unknown;
   try { active = serializedInput !== undefined
     ? serializedInput.inputs !== undefined
       ? restoredInput !== undefined
@@ -460,13 +797,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
 
     : restoringOriginal
-    ? originalPreparation.control.startCheckedClientOriginalRestoredComposedInferExecution(
-      originalPreparation.compiled, originalPreparation.runDefinition,
-      composedInput.occurrence, graph, composedInput.prefix, provider,
-      restoredInput.snapshot, () => restoredInput.token.available, restoredInput.savedScope,
-      originalConsumer, originalPreparation.readRetainedBytes,
-      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, restoredReferenceIssuer, originalInputBodyRead)
+    ? originalPreparation!.control.startCheckedClientOriginalRestoredComposedInferExecution(
+      originalPreparation!.compiled, originalPreparation!.runDefinition,
+      composedInput!.occurrence, graph, composedInput!.prefix, provider,
+      restoredInput!.snapshot, () => restoredInput!.token.available, restoredInput!.savedScope,
+      originalConsumer, originalPreparation!.readRetainedBytes,
+      originalPreparation!.readExecutionBytes, originalPreparation!.modelRetainedBytes,
+      originalPreparation!.modelExecutionBytes, restoredReferenceIssuer, originalInputBodyRead)
     : originalPreparation !== undefined && composedInput !== undefined
     ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -481,22 +818,22 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
       originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes, fragment, ordered)
     : checked(originalPreparation !== undefined
-    ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step, graph,
-      registry, values, provider, originalPreparation.compiled, originalPreparation.runDefinition,
+    ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step!, graph,
+      registry, values!, provider, originalPreparation.compiled, originalPreparation.runDefinition,
       originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, fragment, ordered)
+      originalPreparation.modelExecutionBytes, fragment!, ordered!)
     : restoredInput !== undefined && (composedInput !== undefined || keyedInput !== undefined)
-    ? moon.clientProgramStartRestoredComposedInferInput((composedInput ?? keyedInput).occurrence, graph,
-      (composedInput ?? keyedInput).prefix, provider, restoredInput.snapshot.binding,
+    ? moon.clientProgramStartRestoredComposedInferInput((composedInput ?? keyedInput)!.occurrence, graph,
+      (composedInput ?? keyedInput)!.prefix, provider, restoredInput.snapshot.binding,
       restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,
       () => restoredInput.token.available, restoredInput.savedScope, restoredReferenceIssuer,
       keyedInput?.ledger, computeSuffix)
     : restoredInput !== undefined
-    ? moon.clientProgramStartRestoredInferInput(preparedProgram, step, graph, registry,
-      values, provider, restoredInput.snapshot.binding, restoredInput.snapshot.descriptorWire,
+    ? moon.clientProgramStartRestoredInferInput(preparedProgram, step!, graph, registry,
+      values!, provider, restoredInput.snapshot.binding, restoredInput.snapshot.descriptorWire,
       restoredInput.snapshot.rows, () => restoredInput.token.available, restoredInput.savedScope,
-      fragment, ordered, restoredReferenceIssuer)
+      fragment!, ordered!, restoredReferenceIssuer)
     : keyedInput !== undefined
     ? moon.clientProgramStartKeyedInferExecution(keyedInput.occurrence, graph,
       keyedInput.prefix, provider, keyedInput.sources, computeSuffix, keyedInput.ledger)
@@ -506,18 +843,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       composedInput.sources)
     : savedSlots !== undefined
     ? acquiredInput === undefined
-      ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
-        graph, registry, values, savedSlots, fragment, ordered)
-      : moon.clientProgramStartAcquiredInferSlotReplay(preparedProgram, step,
-        graph, registry, values, savedSlots, acquiredInput, fragment, ordered)
+      ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step!,
+        graph, registry, values!, savedSlots, fragment!, ordered!)
+      : moon.clientProgramStartAcquiredInferSlotReplay(preparedProgram, step!,
+        graph, registry, values!, savedSlots, acquiredInput, fragment!, ordered!)
     : savedCapture === undefined
       ? acquiredInput === undefined
-        ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
-          graph, registry, values, provider, fragment, ordered)
-        : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
-          graph, registry, values, provider, acquiredInput, fragment, ordered)
-      : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-        graph, registry, values, savedCapture, fragment, ordered)); }
+        ? moon.clientProgramStartScopedInferExecution(preparedProgram, step!,
+          graph, registry, values!, provider, fragment!, ordered!)
+        : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step!,
+          graph, registry, values!, provider, acquiredInput, fragment!, ordered!)
+      : moon.clientProgramStartRestoredInferReplay(preparedProgram, step!,
+        graph, registry, values!, savedCapture, fragment!, ordered!)); }
   catch (error) { io?.close(); io = undefined; throw error; }
   let stopNotified = false;
   const requestStop = () => {
@@ -537,9 +874,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return false;
     }
   };
-  let runtimeObservedCallSet;
-  let runtimeDiagnostic;
-  function observeOriginalRuntime(value) {
+  let runtimeObservedCallSet: unknown;
+  let runtimeDiagnostic: ObserveModel | undefined;
+  function observeOriginalRuntime(value: unknown) {
     runtimeCurrent();
     try {
       if (runtimeDiagnostic !== undefined) {
@@ -550,7 +887,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     } catch { /* Optional diagnostics cannot authorize or block cleanup. */ }
     finally { runtimeCurrent(); }
   }
-  function bindOriginalRuntimeObservation(preparedCallSet) {
+  function bindOriginalRuntimeObservation(preparedCallSet: unknown) {
     if (runtimeObservedCallSet !== undefined) {
       return runtimeObservedCallSet === preparedCallSet;
     }
@@ -560,11 +897,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return installed === true;
   }
   signal?.addEventListener('abort', requestStop, {once: true});
-  let flight;
-  let closeFlight;
+  let flight: Promise<RunOutput | undefined> | undefined;
+  let closeFlight: Promise<void> | undefined;
   let reclaimed = false;
   let closing = false;
-  let cleanupSettlement;
+  let cleanupSettlement: SettlementCleanup | undefined;
 
   function cleanup() {
     if (reclaimed) return true;
@@ -573,7 +910,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (originalPublicationCapacity !== undefined) return false;
     // Cancellation delivery alone never permits releasing the execution.
     if (!moon.clientProgramInferExecutionStopped(active)) return false;
-    reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
+    reclaimed = checked(moon.clientProgramCleanupInferExecution(active)) as boolean;
     if (reclaimed) {
       if (reclaimed === true && originalConsumer !== undefined && originalRead !== null &&
           (typeof originalRead === 'object' || typeof originalRead === 'function')) {
@@ -643,7 +980,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         return Object.freeze({status: 'settling', settlement});
       }
       if (kind === 'complete') {
-        return moon.clientProgramInferExecutionOutput(poll);
+        return moon.clientProgramInferExecutionOutput(poll) as RunOutput | undefined;
       }
       if (kind === 'failed') {
         // Preserve the existing typed cause without a new public classifier.
@@ -726,13 +1063,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  let originalPreparedCallSet;
+  let originalPreparedCallSet: unknown;
   // One setter per original Core preflight, not one per whole execution. Core
   // bounds and owns that finite cursor inventory before issuing its CallSet.
   // The same original preparation envelope must cover this array/reference
   // and setter/callback overlap BEFORE preparation, not at later registration.
   // No provider-global map, slot scheduler or additional physical Call is used.
-  const retainRawCaptureBinder = (callback, request, credential) => {
+  const retainRawCaptureBinder: RetainRawBinder = (callback, request, credential) => {
     if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
         typeof callback !== 'function') {
       throw new TypeError('InferRawCaptureBinderUnavailable');
@@ -754,7 +1091,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     contentRecovery: () => serializedInput?.recovery,
     capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery ?? composedInput?.capturedRecovery,
     capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding ?? composedInput?.capturedBinding,
-    installSettlementCleanup(callback) {
+    installSettlementCleanup(callback: SettlementCleanup) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
         throw new TypeError('InvalidInferSettlementCleanup');
       }
@@ -765,18 +1102,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
     stoppedAttemptCount: () => moon.clientProgramInferStoppedAttemptCount(active),
-    stoppedAttemptSlot: index => moon.clientProgramInferStoppedAttemptSlot(active, index),
+    stoppedAttemptSlot: (index: number) => moon.clientProgramInferStoppedAttemptSlot(active, index),
     hasUnknownCalls: () => moon.clientProgramInferHasUnknownCalls(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
     acquireCapture: () => moon.clientProgramAcquireInferCapture(active),
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
-    invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
+    invocationEvidence: (slot: number) => moon.clientProgramInferInvocationEvidence(active,
       slot),
-    invocationEvidenceView: (control, slot) => {
+    invocationEvidenceView: (control: BindControl, slot: number) => {
       if (reclaimed) return undefined;
       return control.inspectInferInvocationEvidence(moon, active, slot);
     },
-    evaluationInput: slot => {
+    evaluationInput: (slot: number) => {
       if (reclaimed || originalPreparedCallSet === undefined ||
           moon.clientProgramInferInvocationEvidence(active, slot) === undefined) return undefined;
       const request = moon.clientProgramInferPreparedRequest(originalPreparedCallSet, slot);
@@ -784,7 +1121,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (request === undefined || call === undefined) return undefined;
       return Object.freeze({request, callWire: moon.strategyRunEvidenceJson(call)});
     },
-    evaluationRequest: slot => {
+    evaluationRequest: (slot: number) => {
       if (reclaimed) return undefined;
       const physical = moon.clientProgramInferEvaluationRequest(active, slot);
       if (physical !== undefined) return physical;
@@ -802,15 +1139,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (saved === undefined || saved.typedInputWire !== moon.clientProgramModelRequestInputFrame(request)) return undefined;
       return runtimeTriple(request, saved.renderedInput, saved.contextManifest);
     },
-    preparedPhysicalRequest: (prepared, slot) => moon.clientProgramInferPreparedPhysicalRequest(prepared, slot),
+    preparedPhysicalRequest: (prepared: unknown, slot: number) => moon.clientProgramInferPreparedPhysicalRequest(prepared, slot),
     // The ordinary publication control owns compilation and contract tokens.
     // It passes the original owner to MoonBit, never recompiling this Program.
-    bindRun: (control, {compiled, runDefinition}) =>
+    bindRun: (control: BindControl, {compiled, runDefinition}: RunPlan) =>
       control.bindCheckedClientInferRun(compiled, active, runDefinition),
     // The original installing Owner retains read custody. Core verifies the
     // original Run and claims its seal after the actual bounded Identity scan.
     // This private seam does not install a normal physical funding profile.
-    bindOriginalPreparation: (read, retainedBytes, executionBytes) =>
+    bindOriginalPreparation: (read: unknown, retainedBytes: bigint, executionBytes: bigint) =>
       checked(moon.clientProgramBindInferOriginalPreparation(active, read,
         retainedBytes, executionBytes)),
     // Installation-owned original references only. The existing Common owner
@@ -832,7 +1169,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       return checked(moon.clientProgramParkInferOriginalModelResourcesForStateWrite(active, originalScope));
     },
-    prepareOriginalCurrentStateWriter(park, limits) {
+    prepareOriginalCurrentStateWriter(park: unknown, limits: WriterLimits) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramPrepareInferOriginalCurrentStateWriter !== 'function') {
         throw new Error('InferOriginalCurrentWriterUnavailable');
@@ -844,7 +1181,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return checked(moon.clientProgramPrepareInferOriginalCurrentStateWriter(active, originalScope, park,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
-    advanceOriginalCurrentStateWriter(park, writer, quantum) {
+    advanceOriginalCurrentStateWriter(park: unknown, writer: unknown, quantum: number) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramAdvanceInferOriginalCurrentStateWriter !== 'function') {
         throw new Error('InferOriginalCurrentWriterUnavailable');
@@ -856,19 +1193,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         moon.clientProgramAdvanceInferOriginalCurrentStateWriter(active, originalScope, park, writer, quantum));
       return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
     },
-    finishOriginalCurrentStateWriter(park, writer) {
+    finishOriginalCurrentStateWriter(park: unknown, writer: unknown) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramFinishInferOriginalCurrentStateWriter !== 'function') {
         throw new Error('InferOriginalCurrentWriterUnavailable');
       }
       return checked(moon.clientProgramFinishInferOriginalCurrentStateWriter(active, originalScope, park, writer));
     },
-    cancelOriginalCurrentStateWriter(writer) {
+    cancelOriginalCurrentStateWriter(writer: unknown) {
       // Codec retirement remains legal during close; it neither frees the
       // Resource park nor substitutes for the original Model/read cleanup.
       moon.clientProgramCancelInferOriginalCurrentStateWriter(writer);
     },
-    startOriginalCurrentStateDecode(park, wire, limits) {
+    startOriginalCurrentStateDecode(park: unknown, wire: string, limits: DecodeLimits) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramStartInferOriginalCurrentStateDecode !== 'function') {
         throw new Error('InferOriginalCurrentDecodeUnavailable');
@@ -884,29 +1221,29 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return checked(moon.clientProgramStartInferOriginalCurrentStateDecode(active, originalScope,
         park, wire, parse, tree, maxWork));
     },
-    advanceOriginalCurrentStateDecode(park, decoder, quantum) {
+    advanceOriginalCurrentStateDecode(park: unknown, decoder: unknown, quantum: number) {
       if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
       if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentDecodeQuantum');
       const poll = moon.clientProgramInferOriginalCurrentStateDecodePoll(
         moon.clientProgramAdvanceInferOriginalCurrentStateDecode(active, originalScope, park, decoder, quantum));
       return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2), document: runtimeField(poll, 3)});
     },
-    cancelOriginalCurrentStateDecode: decoder => moon.clientProgramCancelInferOriginalCurrentStateDecode(decoder),
-    retireOriginalCurrentStateDocument: document => moon.clientProgramRetireInferOriginalCurrentStateDocument(document),
-    startOriginalCurrentStateComparison(park, document, maxWork) {
+    cancelOriginalCurrentStateDecode: (decoder: unknown) => moon.clientProgramCancelInferOriginalCurrentStateDecode(decoder),
+    retireOriginalCurrentStateDocument: (document: unknown) => moon.clientProgramRetireInferOriginalCurrentStateDocument(document),
+    startOriginalCurrentStateComparison(park: unknown, document: unknown, maxWork: number) {
       if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
       if (!codecInt(maxWork, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonWork');
       return checked(moon.clientProgramStartInferOriginalCurrentStateComparison(active, originalScope, park, document, maxWork));
     },
-    advanceOriginalCurrentStateComparison(park, comparison, quantum) {
+    advanceOriginalCurrentStateComparison(park: unknown, comparison: unknown, quantum: number) {
       if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
       if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonQuantum');
       const poll = moon.clientProgramInferOriginalCurrentStateComparisonPoll(checked(
         moon.clientProgramAdvanceInferOriginalCurrentStateComparison(active, originalScope, park, comparison, quantum)));
       return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
     },
-    cancelOriginalCurrentStateComparison: comparison => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
-    advanceOriginalCurrentStateComparisonWithMatch(park, comparison, quantum) {
+    cancelOriginalCurrentStateComparison: (comparison: unknown) => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
+    advanceOriginalCurrentStateComparisonWithMatch(park: unknown, comparison: unknown, quantum: number) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch !== 'function') {
         throw new Error('InferOriginalCurrentMatchUnavailable');
@@ -917,13 +1254,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           park, comparison, quantum)));
       return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2), matched: runtimeField(poll, 3)});
     },
-    originalCurrentStateMatchCurrent(park, matched) {
+    originalCurrentStateMatchCurrent(park: unknown, matched: unknown) {
       if (reclaimed || originalScope === undefined ||
           typeof moon.clientProgramInferOriginalCurrentStateMatchCurrent !== 'function') return undefined;
       return moon.clientProgramInferOriginalCurrentStateMatchCurrent(active, originalScope, park, matched);
     },
-    retireOriginalCurrentStateMatch: matched => moon.clientProgramRetireInferOriginalCurrentStateMatch(matched),
-    originalResourceParkCurrent(park) {
+    retireOriginalCurrentStateMatch: (matched: unknown) => moon.clientProgramRetireInferOriginalCurrentStateMatch(matched),
+    originalResourceParkCurrent(park: unknown) {
       // A pending close is not a physical stop or invalidation. Preserve the
       // original observation while Core still owns this same parked scope.
       if (reclaimed || originalScope === undefined ||
@@ -933,7 +1270,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return moon.clientProgramInferOriginalModelResourceParkCurrent(
         active, originalScope, park);
     },
-    originalParkedReadCapacityAvailable(park, retainedBytes, executionBytes) {
+    originalParkedReadCapacityAvailable(park: unknown, retainedBytes: bigint, executionBytes: bigint) {
       if (reclaimed || originalScope === undefined ||
           typeof moon.clientProgramInferOriginalParkedReadCapacityAvailable !== 'function') return false;
       if ([retainedBytes, executionBytes].some(value => typeof value !== 'bigint' ||
@@ -950,21 +1287,21 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         originalStoreBootstrap.current(undefined, undefined, 'store-bootstrap');
         return originalStoreBootstrap.handle;
       }
-      const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
-      const current = (ownerId, requestCid, role) => {
+      const selection = selectedInferOriginalMetadataLimits(metadataInstallation!, metadataNodeInstallation);
+      const current = (ownerId?: string, requestCid?: string, role?: MetadataRole) => {
         // This pre-park borrow is deliberately NOT a metadata/body/codec
         // acquisition or a stable cut. Only the same original read reservation
         // may cover the first Store observation while approval is pending.
         if (role !== 'store-bootstrap' || reclaimed || closing || signal?.aborted ||
             originalScope === undefined ||
             typeof moon.clientProgramInferOriginalUnparkedReadCapacityAvailable !== 'function' ||
-            selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation) !== selection ||
+            selectedInferOriginalMetadataLimits(metadataInstallation!, metadataNodeInstallation) !== selection ||
             !moon.clientProgramInferOriginalUnparkedReadCapacityAvailable(active, originalScope,
               selection.retainedBytes, selection.workspaceBytes)) metadataUnavailable();
         if (ownerId !== undefined && (typeof metadataControl?.runDefinitionRunId !== 'function' ||
             ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
-        return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+        return selectedInferOriginalStoreBootstrapLimits(metadataInstallation!, metadataNodeInstallation);
       };
       // Same full envelope before allocating the extra record/handle. Physical
       // clamps themselves neither reserve bytes nor issue permission.
@@ -974,18 +1311,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalMetadataSources.set(handle, new WeakRef(originalStoreBootstrap));
       return handle;
     },
-    originalMetadataAcquisition(park) {
+    originalMetadataAcquisition(park: unknown) {
       if (originalMetadata !== undefined) {
         if (originalMetadata.park !== park) metadataUnavailable();
         originalMetadata.current();
         return originalMetadata.handle;
       }
-      const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
-      const current = (ownerId, requestCid, role) => {
+      const selection = selectedInferOriginalMetadataLimits(metadataInstallation!, metadataNodeInstallation);
+      const current = (ownerId?: string, requestCid?: string, role?: MetadataRole) => {
         if (reclaimed || closing || signal?.aborted || originalScope === undefined ||
             typeof moon.clientProgramInferOriginalModelResourceParkCurrent !== 'function' ||
             typeof moon.clientProgramInferOriginalParkedReadCapacityAvailable !== 'function' ||
-            selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation) !== selection ||
+            selectedInferOriginalMetadataLimits(metadataInstallation!, metadataNodeInstallation) !== selection ||
             moon.clientProgramInferOriginalModelResourceParkCurrent(active, originalScope, park) !== park ||
             !moon.clientProgramInferOriginalParkedReadCapacityAvailable(active, originalScope, park,
               selection.retainedBytes, selection.workspaceBytes)) metadataUnavailable();
@@ -993,10 +1330,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
         if (role === 'store-bootstrap') {
-          return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+          return selectedInferOriginalStoreBootstrapLimits(metadataInstallation!, metadataNodeInstallation);
         }
         if (role === 'resource-state-codec') {
-          return selectedInferOriginalCurrentStateCodec(metadataInstallation, metadataNodeInstallation);
+          return selectedInferOriginalCurrentStateCodec(metadataInstallation!, metadataNodeInstallation);
         }
       };
       // Inspect the same token BEFORE allocating the retained record/handle or
@@ -1011,19 +1348,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // selection supplied to a later continuation. Successful cleanup retires
     // the alias; its presence alone is not a park, grant or send permission.
     originalResourceScope: () => reclaimed ? undefined : originalScope,
-    beginOriginalResourceInvalidation(park) {
+    beginOriginalResourceInvalidation(park: unknown) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramBeginInferOriginalModelInvalidation !== 'function') {
         throw new Error('InferOriginalModelInvalidationUnavailable');
       }
       return checked(moon.clientProgramBeginInferOriginalModelInvalidation(active, originalScope, park));
     },
-    originalResourceInvalidationCurrent(park, request) {
+    originalResourceInvalidationCurrent(park: unknown, request: unknown) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramInferOriginalModelInvalidationCurrent !== 'function') return undefined;
       return moon.clientProgramInferOriginalModelInvalidationCurrent(active, originalScope, park, request);
     },
-    completeOriginalJournalInvalidation(port, receipt, reference, park, request) {
+    completeOriginalJournalInvalidation(port: unknown, receipt: unknown, reference: unknown, park: unknown, request: unknown) {
       if (closing || reclaimed || originalScope === undefined ||
           typeof moon.clientProgramCompleteInferOriginalJournalInvalidation !== 'function') {
         throw new Error('InferOriginalModelInvalidationUnavailable');
@@ -1034,19 +1371,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return checked(moon.clientProgramCompleteInferOriginalJournalInvalidation(
         active, originalScope, port, receipt, reference, park, request));
     },
-    bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
+    bindDispatch: (control: BindControl, {compiled, runDefinition, ...observation}: RunPlan & DispatchObservation) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
     preparedCallSet: () => reclaimed ? undefined : moon.clientProgramInferPreparedCallSet(active),
     pendingSettlement: () => moon.clientProgramInferCallSettlement(active),
-    exportPreparedInput: (preparedCallSet, binding) => {
+    exportPreparedInput: (preparedCallSet: unknown, binding: string) => {
       const exported = checked(moon.clientProgramExportInferPreparedInput(active, preparedCallSet, binding));
       return Object.freeze({owner: exported,
         descriptorWire: moon.clientProgramInferPreparedInputExportDescriptor(exported),
         rows: Object.freeze(moon.clientProgramInferPreparedInputExportRows(exported)),
         current: () => moon.clientProgramInferPreparedInputExportMatches(active, preparedCallSet, exported)});
     },
-    preparedFacts: preparedCallSet => {
+    preparedFacts: (preparedCallSet: unknown) => {
       if (reclaimed) throw new Error('InferPreparedOwnerUnavailable');
       originalPreparedCallSet = preparedCallSet;
       const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
@@ -1057,12 +1394,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // and prepared its Scope snapshot before handing the Model off. Legacy
       // explicit envelopes retain their separately qualified count ceiling.
       const maxFacts = originalInputBodyRead === undefined ? 128 : 2147483647;
-      if (!Number.isSafeInteger(count) || count < 0 || count > maxFacts ||
+      if (!Number.isSafeInteger(count) || count! < 0 || count! > maxFacts ||
           input === undefined || artifact === undefined || ids === undefined) {
         throw new Error('InferPreparedOwnerUnavailable');
       }
       const callScopeSnapshotWire = checked(moon.clientProgramInferCallScopeSnapshot(active));
-      const slotWires = Array.from({length: count}, (_, slot) => {
+      const slotWires = Array.from({length: count!}, (_, slot) => {
         const call = moon.clientProgramInferPreparedCallAt(preparedCallSet, slot);
         if (call === undefined) throw new Error('InferPreparedCallUnavailable');
         return moon.strategyRunEvidenceJson(call);
@@ -1074,10 +1411,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         unitId: moon.clientProgramInferCallScopeUnitId(active),
         callScopeSnapshotWire});
     },
-    bindModelScope: (control, plan, preparedCallSet, originals) =>
+    bindModelScope: (control: BindControl, plan: RunPlan, preparedCallSet: unknown, originals: unknown) =>
       control.bindCheckedClientInferModelScope(plan.compiled, active,
         plan.runDefinition, preparedCallSet, originals),
-    bindModelDispatch: (control, plan, preparedCallSet, scope, observation) =>
+    bindModelDispatch: (control: BindControl, plan: RunPlan, preparedCallSet: unknown, scope: unknown, observation: DispatchObservation & Readonly<{enterCall: EnterCall}>) =>
       control.bindCheckedClientInferModelDispatch(plan.compiled, active,
         plan.runDefinition, preparedCallSet, scope, {...observation,
           enterCall: entry => {
@@ -1087,13 +1424,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
               slot: runtimeField(originals, 0), callWire: runtimeField(originals, 1),
               attemptWire: runtimeField(originals, 2), authorityWire: runtimeField(originals, 3)})) === true;
           }}),
-    entryCurrent: (entry, preparedCallSet) =>
+    entryCurrent: (entry: unknown, preparedCallSet: unknown) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
     // Installation-only wake endpoint of this already claimed operation.
     // It is not an ACK, public capability or permission to begin another call.
     ioNotification,
     hasModelCredentialPreparation: () => credentialPreparations !== undefined || credentialFailure !== undefined,
-    prepareModelCredentials(preparedCallSet, entered, assertCurrent) {
+    prepareModelCredentials(preparedCallSet: unknown, entered: Pick<ReadonlySet<number>, "has">, assertCurrent: () => void) {
       if (credentialFailure !== undefined) throw credentialFailure.cause;
       if (credentialPreparations === undefined) return;
       const preparations = credentialPreparations;
@@ -1103,11 +1440,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             moon.clientProgramInferPreparedCallSet(active) !== preparedCallSet ||
             egressAdmission === undefined) throw new TypeError('InferCredentialPreparationUnavailable');
         const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
-        if (!Number.isSafeInteger(count) || count < preparations.length) {
+        if (!Number.isSafeInteger(count) || count! < preparations.length) {
           throw new TypeError('InferCredentialPreparationUnavailable');
         }
         let next = 0;
-        for (let slot = 0; slot < count; slot++) {
+        for (let slot = 0; slot < count!; slot++) {
           if (entered.has(slot)) continue;
           const original = preparations[next++];
           if (original === undefined ||
@@ -1126,7 +1463,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }
           try { original.prepare(); }
           catch (cause) {
-            const code = cause?.code;
+            const code = (cause as {code?: unknown} | undefined)?.code;
             if (code === 'OpenAIProjectCredentialUnavailable' || code === 'ModelProjectCredentialUnavailable') {
               throw new ModelCredentialRefusal(code);
             }
@@ -1141,7 +1478,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
-    bindModelRawCapture(registration, persistence) {
+    bindModelRawCapture(registration: unknown, persistence: object | undefined) {
       if (closing || reclaimed || rawCaptureBound ||
           rawCaptureBinder === undefined && preparedRawCaptureBinders === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
@@ -1155,7 +1492,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         const callbacks = preparedRawCaptureBinders ?? [rawCaptureBinder];
         bindOriginalModelRawTransportPersistence(persistence, operation, registration, next => {
           for (const callback of callbacks) {
-            if (callback(registration, next()) !== undefined) {
+            if (callback!(registration, next()) !== undefined) {
               throw new TypeError('InvalidInferRawCaptureBinderResult');
             }
           }
@@ -1168,7 +1505,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         preparedRawCaptureBinders = undefined;
       }
     },
-    bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
+    bindModelEntryPersistence: (control: BindControl, plan: RunPlan, preparedCallSet: unknown, scope: unknown, observation: DispatchObservation & Readonly<{beginEntry: EnterCall}>) =>
       control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
         plan.runDefinition, preparedCallSet, scope, {...observation,
           beginEntry: entry => {
@@ -1178,7 +1515,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
               slot: runtimeField(originals, 0), callWire: runtimeField(originals, 1),
               attemptWire: runtimeField(originals, 2), authorityWire: runtimeField(originals, 3)}));
           }}),
-    bindModelObservation: (preparedCallSet, observe) => {
+    bindModelObservation: (preparedCallSet: unknown, observe: ObserveModel) => {
       if (assertRuntimeCurrent !== undefined) {
         // Currentness is installed even when optional OTel is absent. Attach
         // metadata delivery to that SAME once-bound observer, not another one.
@@ -1195,23 +1532,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         } catch { /* Optional observation has no execution authority. */ }
       });
     },
-    restoreCall: (preparedCallSet, slot, record, proof, bundle, attachmentAdmission) => checked(
+    restoreCall: (preparedCallSet: unknown, slot: number, record: unknown, proof: unknown, bundle: unknown, attachmentAdmission: unknown) => checked(
       moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle, attachmentAdmission)),
-    restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
+    restoreUnknown: (preparedCallSet: unknown, slot: number, attempt: unknown, authority: unknown) => checked(
       moon.clientProgramRestoreInferPreparedUnknown(preparedCallSet, slot, attempt, authority)),
-    prepareResponseReconciliation: (preparedCallSet, slot, attempt, authority) => checked(
+    prepareResponseReconciliation: (preparedCallSet: unknown, slot: number, attempt: unknown, authority: unknown) => checked(
       moon.clientProgramPrepareInferResponseReconciliation(preparedCallSet, slot, attempt, authority)),
-    adoptReconciledResponse: (token, response) => checked(
+    adoptReconciledResponse: (token: unknown, response: unknown) => checked(
       moon.clientProgramAdoptReconciledInferResponse(token, response)),
-    settlementSlot: settlement => moon.clientProgramInferCallSettlementSlot(settlement),
-    acknowledgeSettlement: settlement => {
+    settlementSlot: (settlement: unknown) => moon.clientProgramInferCallSettlementSlot(settlement),
+    acknowledgeSettlement: (settlement: unknown) => {
       if (!moon.clientProgramAcknowledgeInferCallSettlement(settlement)) {
         throw new Error('InferSettlementAcknowledgementRejected');
       }
     },
-    attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
+    attemptEvidence: (slot: number) => checked(moon.clientProgramInferAttemptEvidence(
       active, slot)),
-    advanceStoppedAttemptUsage(slot, quantum) {
+    advanceStoppedAttemptUsage(slot: number, quantum: number) {
       if (reclaimed || typeof moon.clientProgramAdvanceInferStoppedRawUsage !== 'function') {
         throw new Error('InstalledInferRawUsageUnavailable');
       }
@@ -1224,18 +1561,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const progress = checked(moon.clientProgramAdvanceInferStoppedRawUsage(active, slot, quantum));
       return Object.freeze({complete:runtimeField(progress, 0),work:runtimeField(progress, 1),issue:runtimeField(progress, 2)});
     },
-    issuedAttachmentAdmission: slot => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
-    issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
+    issuedAttachmentAdmission: (slot: number) => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
+    issuedSlotCapture: (slot: number) => checked(moon.clientProgramIssueInferSlotCapture(
       active, slot)),
-    bindInvocation: (control, {compiled, runDefinition, verification,
-      invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
+    bindInvocation: (control: BindControl, {compiled, runDefinition, verification,
+      invocation, dataPolicyCid}: RunPlan & Readonly<{verification: unknown; invocation: unknown; dataPolicyCid: string}>) => control.bindCheckedClientInferInvocation(
       compiled, active, runDefinition, verification, invocation, dataPolicyCid),
-    reserveOriginalPublicationCapacity() {
+    reserveOriginalPublicationCapacity() : void {
       if (originalConsumer === undefined) return;
       if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
       if (originalPublicationCapacity !== undefined) return;
       const selection = originalPublicationSelection === undefined
-        ? selectedInferOriginalPublicationCapacity(metadataInstallation, metadataNodeInstallation)
+        ? selectedInferOriginalPublicationCapacity(metadataInstallation!, metadataNodeInstallation)
         : Reflect.apply(originalPublicationSelection, originalPublicationReceiver, []);
       const names = selection !== null && typeof selection === 'object' && !Array.isArray(selection)
         ? Reflect.ownKeys(selection) : [];
@@ -1264,36 +1601,36 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Actual next scan/writer construction, in addition to this same original
     // publication's retained controls. Covered phases make no extra Resource
     // callback. This grows neither an installed limit nor another Ledger.
-    growOriginalPublicationCapacity(retained, execution) {
+    growOriginalPublicationCapacity(retained: bigint, execution: bigint) : void {
       if (reclaimed || closing || originalPublicationCapacity === undefined ||
           typeof retained !== 'bigint' || typeof execution !== 'bigint' ||
           retained < 0n || execution < 0n ||
-          retained > 9223372036854775807n - publicationBaseRetained ||
-          execution > 9223372036854775807n - publicationBaseExecution) {
+          retained > 9223372036854775807n - publicationBaseRetained! ||
+          execution > 9223372036854775807n - publicationBaseExecution!) {
         throw new Error('InferOriginalPublicationCapacityUnavailable');
       }
-      const nextRetained = publicationBaseRetained + publicationMaterializationRetained + retained;
-      const nextExecution = publicationBaseExecution + publicationMaterializationRetained + execution;
+      const nextRetained = publicationBaseRetained! + publicationMaterializationRetained + retained;
+      const nextExecution = publicationBaseExecution! + publicationMaterializationRetained + execution;
       if (nextRetained > 9223372036854775807n || nextExecution > 9223372036854775807n) {
         throw new Error('InferOriginalPublicationCapacityUnavailable');
       }
-      if (nextRetained <= publicationHeldRetained && nextExecution <= publicationHeldExecution) return;
+      if (nextRetained <= publicationHeldRetained! && nextExecution <= publicationHeldExecution!) return;
       checked(moon.clientProgramGrowOriginalInferPublicationCapacity(active,
         originalPublicationCapacity, nextRetained, nextExecution));
-      publicationHeldRetained = nextRetained > publicationHeldRetained ? nextRetained : publicationHeldRetained;
-      publicationHeldExecution = nextExecution > publicationHeldExecution ? nextExecution : publicationHeldExecution;
+      publicationHeldRetained = nextRetained > publicationHeldRetained! ? nextRetained : publicationHeldRetained!;
+      publicationHeldExecution = nextExecution > publicationHeldExecution! ? nextExecution : publicationHeldExecution!;
       // Preserve a real grow even if its callback closed this original. No
       // following projection constructor may proceed after that transition.
       if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
     },
-    originalMaterializationCurrent(source, count) {
+    originalMaterializationCurrent(source: OriginalFunding, count: number) : boolean {
       if (closing || reclaimed || originalPublicationCapacity === undefined || !originalOperations.has(source) ||
           typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function') return false;
       const shape = checked(moon.clientProgramOriginalInferCaptureInventoryCapacity(
         activeOperations.get(source), originalPublicationCapacity));
       return runtimeField(shape, 0) === count;
     },
-    prepareOriginalCaptureInventory(source) {
+    prepareOriginalCaptureInventory(source: OriginalFunding) : object | undefined {
       if (!originalOperations.has(source) || typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function') return undefined;
       operation.reserveOriginalPublicationCapacity();
       const shape = checked(moon.clientProgramOriginalInferCaptureInventoryCapacity(
@@ -1310,11 +1647,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         operation: new WeakRef(source), funding: new WeakRef(operation)});
       return receipt;
     },
-    fundedStoppedAttemptCount() {
+    fundedStoppedAttemptCount() : number | undefined {
       if (reclaimed || typeof moon.clientProgramInferFundedStoppedAttemptCount !== 'function') return undefined;
       return moon.clientProgramInferFundedStoppedAttemptCount(active);
     },
-    prepareOriginalEvidenceCopy(source, bundle, kind, retained, execution) {
+    prepareOriginalEvidenceCopy(source: CopySource, bundle: EvidenceBundle, kind: EvidenceKind, retained: bigint, execution: bigint) : object {
       if (!originalOperations.has(source) || !codecInt(bundle?.count, true) ||
           !operation.originalMaterializationCurrent(source, bundle.count)) throw new Error('RequiredEvidenceUnavailable');
       const demand = inferEvidenceCopyConstruction(moon, source, bundle, kind);
@@ -1325,7 +1662,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         operation: new WeakRef(source), funding: new WeakRef(operation)});
       return receipt;
     },
-    prepareOriginalUsage(source, capture, count) {
+    prepareOriginalUsage(source: OriginalFunding, capture: unknown, count: number) : void {
       if (closing || reclaimed || originalPublicationCapacity === undefined ||
           !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
           typeof moon.clientProgramPrepareOriginalInferUsage !== 'function') {
@@ -1334,17 +1671,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       assertRuntimeCurrent?.();
       const prepared = checked(moon.clientProgramPrepareOriginalInferUsage(activeOperations.get(source),
         originalPublicationCapacity, capture,
-        publicationBaseRetained + publicationMaterializationRetained,
-        publicationBaseExecution + publicationMaterializationRetained));
-      const retained = runtimeField(prepared, 0), execution = runtimeField(prepared, 1);
-      publicationHeldRetained = retained > publicationHeldRetained ? retained : publicationHeldRetained;
-      publicationHeldExecution = execution > publicationHeldExecution ? execution : publicationHeldExecution;
+        publicationBaseRetained! + publicationMaterializationRetained,
+        publicationBaseExecution! + publicationMaterializationRetained));
+      const retained = runtimeField(prepared, 0) as bigint, execution = runtimeField(prepared, 1) as bigint;
+      publicationHeldRetained = retained > publicationHeldRetained! ? retained : publicationHeldRetained!;
+      publicationHeldExecution = execution > publicationHeldExecution! ? execution : publicationHeldExecution!;
       if (closing || reclaimed || !operation.originalMaterializationCurrent(source, count)) {
         throw new Error('RequiredEvidenceUnavailable');
       }
       assertRuntimeCurrent?.();
     },
-    beginOriginalUsage(source, capture, count, maxBytes) {
+    beginOriginalUsage(source: OriginalFunding, capture: unknown, count: number, maxBytes: number) : unknown {
       if (closing || reclaimed || originalPublicationCapacity === undefined ||
           !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
           typeof moon.clientProgramBeginOriginalInferUsagePublication !== 'function') {
@@ -1353,8 +1690,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       assertRuntimeCurrent?.();
       const usage = checked(moon.clientProgramBeginOriginalInferUsagePublication(activeOperations.get(source),
         originalPublicationCapacity, capture,
-        publicationBaseRetained + publicationMaterializationRetained,
-        publicationBaseExecution + publicationMaterializationRetained, maxBytes));
+        publicationBaseRetained! + publicationMaterializationRetained,
+        publicationBaseExecution! + publicationMaterializationRetained, maxBytes));
       // The actual same-owner continuation now pins this capacity even when
       // a later Host current callback refuses. Its matching child owns cleanup.
       publicationHeldRetained = moon.clientProgramOriginalInferPublicationRetainedBytes(originalPublicationCapacity);
@@ -1374,7 +1711,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       return released;
     },
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}: ObservationInputs) : unknown => {
       if (originalConsumer !== undefined) {
         if (ledger !== undefined || originalPublicationCapacity === undefined) {
           throw new Error('InferOriginalPublicationCapacityUnavailable');
@@ -1416,19 +1753,20 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       : checked(moon.clientProgramStartInferObservationIssuance(active, ledger,
         maxSlots, maxWireBytes, maxWork));
     },
-    bindOriginalResultArtifact(control, index, artifact, manifest) {
+    bindOriginalResultArtifact(control: BindControl, index: number, artifact: unknown, manifest: unknown) {
       if (closing || reclaimed || !Number.isSafeInteger(index) || index < 0 ||
           typeof control?.bindInferOriginalResultArtifact !== 'function') {
         throw new TypeError('ForeignInferResultArtifact');
       }
       control.bindInferOriginalResultArtifact(active, index, artifact, manifest);
     },
-    bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
+    bindIssuedInvocation: (control: BindControl, {compiled, runDefinition, issued}: RunPlan & Readonly<{issued: unknown}>) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
         issued),
     // Store use is awaited to settlement before releasing the common Result
     // owner. Aborting a writer is not physical stop confirmation.
-    withResult: (binding, result, consume, resultSignal = signal) =>
+    withResult: <Result,>(binding: unknown, result: number, consume: (original: ResultOriginal) => Result,
+      resultSignal = signal) =>
       withNodeInferResult({moon, binding, result, consume,
         signal: resultSignal, quantum}),
   });
@@ -1470,7 +1808,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // The original preparation envelope funds this one callback closure and
       // its overlap with Core's retained callback; no per-poll context is made.
       const prepare = ioNotification === undefined ? physicalPreflight
-        : request => prepareWithOriginalRawSetter(physicalPreflight, request,
+        : (request: unknown) => prepareWithOriginalRawSetter(physicalPreflight, request,
           ioNotification, retainRawCaptureBinder);
       checked(assertRuntimeCurrent === undefined
         ? moon.clientProgramBindInferPhysicalPreflight(active, prepare)
@@ -1496,6 +1834,40 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   return operation;
 }
 
+type Operation = ReturnType<typeof openNodeInferOperation>;
+type ComposedSelected = Readonly<{
+  occurrence?: unknown; graph: unknown; computePrefix?: unknown; computeSuffix?: unknown;
+  provider: unknown; quantityCapacity?: QuantityCapacity; physicalPreflight?: PhysicalPreflight;
+  egressAdmission?: unknown; account?: unknown; observeAccount?: unknown; entryPersistence?: string;
+}>;
+type GeneratedInput = Readonly<{generation(): unknown; recovery?(): unknown}>;
+type ComposedPreparation = Partial<OriginalPreparation> & Readonly<{
+  prepareRead?: (restored?: RestoredInput) => OriginalPreparation;
+  restoreRead?: (restored?: RestoredInput) => OriginalPreparation;
+}>;
+type CapturedInput = Readonly<{recovery?: unknown; binding?: unknown}>;
+type PrepareOriginalResults = (inputs: unknown) => readonly Readonly<{index: number; artifact: unknown; manifest: unknown}>[];
+type PrepareSourceContext = () => Readonly<{sources: unknown; capturedInput?: CapturedInput}>;
+type ComposedContext = Readonly<{
+  selected: ComposedSelected; sources?: unknown; control?: BindControl & ContentControl; plan?: RunPlan;
+  principalId?: string; now?: () => string; signal?: AbortSignal; durableCalls?: boolean;
+  retainOperation?: (operation: Operation) => void; retainCompleted?: (operation: Operation) => boolean | void;
+  restoredInput?: RestoredInput; generatedInput?: GeneratedInput; originalPreparation?: ComposedPreparation;
+  capturedInput?: CapturedInput; assertRuntimeCurrent?: () => void;
+  prepareOriginalResults?: PrepareOriginalResults; prepareSourceContext?: PrepareSourceContext;
+}>;
+type ComposedOptions = ComposedContext & Readonly<{moon: Runtime; deferred?: boolean;
+  deferredGeneratedInput?: boolean; inputPrefix?: unknown; bindComputeSuffix?: (active: unknown) => unknown;
+  prepareInputSegments?: () => unknown}>;
+type ComposedProvider = (occurrence: unknown, open: (input: unknown) => unknown, observeIssue: (issue: unknown) => void,
+  retainCompleted: (active: unknown) => boolean, allowCleanup: (active: unknown) => boolean, inputPrefix?: unknown) => unknown;
+type ComposedComponent = Readonly<{
+  provider: unknown; operation(): Operation | undefined; failure(): unknown; hasFailure(): boolean;
+  startRestored(): Operation; startSourceFreeSingleUnit?(preparedProgram: unknown): Operation;
+  bindOriginal?(context: ComposedContext): ComposedComponent;
+}>;
+type ComponentDiagnostic = Readonly<{code: string; phase: string; kind: string; task: number; unit: number; step: number}>;
+
 // One original Model component is opened by the common Local task driver,
 // after it has bound actual producer reads. Local advances fresh components;
 // the genuine restored entrance can drive its retained input before Host open.
@@ -1504,7 +1876,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
   deferredGeneratedInput = false, capturedInput,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}: ComposedOptions) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
       deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
@@ -1518,7 +1890,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       originalPreparation === undefined || inputPrefix !== undefined || bindComputeSuffix !== undefined)) {
     throw new TypeError('InvalidComposedInferInputPreparation');
   }
-  const selectRead = (preparation, restored) => {
+  const selectRead = (preparation?: ComposedPreparation, restored?: RestoredInput) => {
     if (restored !== undefined && preparation !== undefined) {
       if (typeof preparation?.restoreRead !== 'function' || generatedInput !== undefined || deferredGeneratedInput) {
         throw new TypeError('InvalidComposedInferOriginalPreparation');
@@ -1534,11 +1906,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let prepareRead = selectRead(originalPreparation, restoredInput);
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
-  let operation;
-  let prepareOriginalResults, prepareSourceContext, singleUnitPrepared;
-  let failure;
+  let operation: Operation | undefined;
+  let prepareOriginalResults: PrepareOriginalResults | undefined, prepareSourceContext: PrepareSourceContext | undefined,
+    singleUnitPrepared: unknown;
+  let failure: unknown;
   let failureRecorded = false;
-  const recordFailure = cause => {
+  const recordFailure = (cause: unknown) => {
     if (!failureRecorded) {failure = cause; failureRecorded = true;}
   };
   let bound = !deferred, attempted = false;
@@ -1547,9 +1920,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let computePrefix = inputPrefix;
   let computeSuffix = selected.computeSuffix;
   const generated = generatedInput !== undefined || deferredGeneratedInput;
-  const selectProvider = generated
+  const selectProvider: ComposedProvider = generated
     ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
-  const openOriginal = (inputs, ioNotification) => {
+  const openOriginal = (inputs: unknown, ioNotification?: unknown) => {
       try {
         if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
           if (failureRecorded) throw failure;
@@ -1562,7 +1935,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           // The parent already retains the Scope. Claim its read only after
           // Local has supplied the actual inputs, with no intervening await.
           readAttempted = true;
-          try { preparation = Reflect.apply(prepareRead, originalPreparation,
+          try { preparation = Reflect.apply(prepareRead!, originalPreparation,
             restoredInput === undefined ? [] : [restoredInput]); }
           finally {
             // Retire only these callback aliases, never the original parent's
@@ -1600,9 +1973,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             prefix: computePrefix, inputs, sources,
             capturedRecovery: capturedInput?.recovery, capturedBinding: capturedInput?.binding},
           serializedInput: !generated ? undefined : {
-            control, compiled: plan.compiled, definition: plan.runDefinition,
-            generation: generatedInput.generation(), inputs,
-            recovery: generatedInput.recovery?.()},
+            control: control!, compiled: plan!.compiled, definition: plan!.runDefinition,
+            generation: generatedInput!.generation(), inputs: inputs as readonly unknown[],
+            recovery: generatedInput!.recovery?.()},
           // The Request module's original binder already owns this suffix.
           // An earlier query-selection suffix is not a second issuer for it.
           computeSuffix: !generated && bindComputeSuffix === undefined
@@ -1610,15 +1983,15 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,
-          ...(restoredInput === undefined ? {originalPreparation: preparation}
-            : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
-          retainOperation(value) { operation = value; retainOperation(value); }});
-        operation.bindRun(control, plan);
+          ...(restoredInput === undefined ? {originalPreparation: preparation as OriginalPreparation | undefined}
+            : {restoredPreparation: preparation as OriginalPreparation | undefined}), bindComputeSuffix, assertRuntimeCurrent,
+          retainOperation(value) { operation = value; retainOperation!(value); }});
+        operation.bindRun(control!, plan!);
         for (const original of resultArtifacts ?? []) {
-          operation.bindOriginalResultArtifact(control, original.index, original.artifact, original.manifest);
+          operation.bindOriginalResultArtifact(control!, original.index, original.artifact, original.manifest);
         }
-        if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
-          principalId, at: now(), observeAccount: selected.observeAccount,
+        if (!durableCalls) operation.bindDispatch(control!, {...plan!, account: selected.account,
+          principalId, at: now!(), observeAccount: selected.observeAccount,
           observeAt: now});
         return activeOperations.get(operation);
       } catch (error) {
@@ -1629,12 +2002,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   const provider = selectProvider(
     selected.occurrence, openOriginal, issue => {
       const error = Object.assign(new Error('ComposedInferComponentFailed'),
-        {code: 'MoonBitHostFailure', cause: issue});
+        {code: 'MoonBitHostFailure', cause: issue}) as Error & {code: string; primaryDiagnostic?: ComponentDiagnostic};
       try {
         const kind = moon.clientProgramInferCallScopeIssueKind?.(issue);
         const coordinates = moon.clientProgramInferOccurrenceCoordinates?.(selected.occurrence);
-        const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
-          step = runtimeField(coordinates, 2);
+        const task = runtimeField(coordinates, 0) as number, unit = runtimeField(coordinates, 1) as number,
+          step = runtimeField(coordinates, 2) as number;
         if (typeof kind === 'string' && kind.startsWith('call_scope.') &&
             kind.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(kind) &&
             [task, unit, step].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
@@ -1658,7 +2031,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       activeOperations.get(operation) === active &&
       operation.cleanupPending() === false,
     ...(!generated ? [computePrefix] : []));
-  const component = Object.freeze({provider, operation: () => operation,
+  const component: ComposedComponent = Object.freeze({provider, operation: () => operation,
     failure: () => failure, hasFailure: () => failureRecorded,
     startRestored() {
       if (failureRecorded) throw failure;
@@ -1673,7 +2046,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       if (operation === undefined) throw new Error('RestoredComposedInferOriginalUnavailable');
       return operation;
     },
-    ...(deferred ? {startSourceFreeSingleUnit(preparedProgram) {
+    ...(deferred ? {startSourceFreeSingleUnit(preparedProgram: unknown) {
       if (failureRecorded) throw failure;
       if (!bound || attempted || generated || restoredInput !== undefined ||
           !deferredRead || sources !== undefined || inputPrefix === undefined ||
@@ -1690,9 +2063,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       if (failureRecorded) throw failure;
       if (operation === undefined) throw new TypeError('ComposedInferOriginalSingleUnitUnavailable');
       return operation;
-    }, bindOriginal(context) {
+    }, bindOriginal(context: ComposedContext) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
-      const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
+      const read = <Key extends keyof ComposedContext,>(name: Key): ComposedContext[Key] =>
+        Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
       if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {
         throw new TypeError('InvalidComposedInferOriginalContext');
       }
@@ -1728,7 +2102,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
 // Share the actual geometry quote and original grow for Pure/Effect copies.
 // Required DATA/typed-input policies remain in the existing projection caller.
 export function originalInferEvidenceCopyFunding({moon, funding, operation, current,
-  retainedPrefix = () => 0n, executionPrefix = () => 0n, legacy = true}) {
+  retainedPrefix = () => 0n, executionPrefix = () => 0n, legacy = true}: CopyFundingOptions) {
   if (!legacy && (!originalOperations.has(funding) || !originalOperations.has(operation) ||
       typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function')) return undefined;
   return originalInferCopyFunding(funding, operation, (bundle, kind) => {
