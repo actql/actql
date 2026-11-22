@@ -1655,14 +1655,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['22.22.0', '24.21.0']
+        node: ['22.22.0', '24']
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{ matrix.node == '24' && '24.21.0' || matrix.node }}
       - run: npm ci
       - name: Download the single normal Client artifact
         id: client-inputs
