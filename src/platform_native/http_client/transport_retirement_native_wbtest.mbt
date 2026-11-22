@@ -107,3 +107,76 @@ test "TLS image preserves its other Library and reports only its actual cleanup 
     assert_true(second.version().is_empty())
   }
 }
+
+///|
+test "incremental bearer POST retains the original client until completion or physical cancellation" {
+  let library = load_library_with_custody(
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY").unwrap(),
+    diagnostic_ceiling=Some(256),
+  ).unwrap()
+  let create = () => {
+    library
+    .create_authenticated_client_with_custody(
+      @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA").unwrap(),
+      MutualTls(
+        @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CERT").unwrap(),
+        @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_KEY").unwrap(),
+      ),
+      64L,
+      2000,
+      5000,
+    )
+    .unwrap()
+  }
+  let url = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL").unwrap()
+  let secret = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_SECRET").unwrap()
+  let original = create()
+  let start = (client : Client, path : String) => {
+    client.start_bearer_post(
+      url + path,
+      [{ name: "content-type", value: "application/json", }],
+      b"{\"original\":true}",
+      secret,
+      9223372036854775807L,
+    )
+  }
+  start(original, "/incremental-complete").unwrap()
+  assert_true(start(original, "/incremental-complete") is Err(Closed))
+  assert_true(
+    original.poll_bearer_post(wait_milliseconds=51) is Err(InvalidRequest),
+  )
+  let mut observed = None
+  for _ in 0..<100 {
+    if original.poll_bearer_post(wait_milliseconds=50).unwrap() is Some(value) {
+      observed = Some(value)
+      break
+    }
+  }
+  assert_eq(observed.unwrap().status, 503)
+  assert_eq(observed.unwrap().body, b"{\"unavailable\":true}")
+  assert_true(original.poll_bearer_post() is Err(Closed))
+  original.close_checked().unwrap()
+
+  let interrupted = create()
+  let fixture = @filesystem.open_root(
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT").unwrap(),
+  ).unwrap()
+  start(interrupted, "/incremental-stop").unwrap()
+  for _ in 0..<100 {
+    if fixture.observe_file("incremental-entered") is Ok(_) {
+      break
+    }
+    assert_true(
+      interrupted.poll_bearer_post(wait_milliseconds=50).unwrap() is None,
+    )
+  }
+  assert_true(fixture.observe_file("incremental-entered") is Ok(_))
+  fixture.close().unwrap()
+  assert_true(interrupted.cancel())
+  assert_true(interrupted.close_checked() is Err(Transport(_)))
+  assert_true(interrupted.poll_bearer_post() is Err(Cancelled))
+  interrupted.close_checked().unwrap()
+  assert_true(start(interrupted, "/incremental-stop") is Err(Closed))
+  let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
+  assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
+}

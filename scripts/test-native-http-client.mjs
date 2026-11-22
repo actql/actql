@@ -56,6 +56,8 @@ if (focus !== undefined &&
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
+const incrementalRequests = [];
+const incrementalStop = Promise.withResolvers();
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -369,6 +371,25 @@ verification: try {
       }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end('{"authorized":true}');
+      return;
+    }
+    if (request.url === '/incremental-complete' || request.url === '/incremental-stop') {
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      assert.equal(request.method, 'POST');
+      assert.equal(request.headers.authorization, 'Bearer native-secret');
+      assert.equal(request.headers['content-type'], 'application/json');
+      assert.equal(body, '{"original":true}');
+      incrementalRequests.push(request.url);
+      if (request.url === '/incremental-stop') {
+        response.once('close', incrementalStop.resolve);
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.write('{"pending":');
+        await writeFile(join(root, 'incremental-entered'), '', {flag: 'wx'});
+      } else {
+        response.writeHead(503, {'content-type': 'application/json'});
+        response.end('{"unavailable":true}');
+      }
       return;
     }
     const applicationInputContract = new Map([
@@ -1252,6 +1273,7 @@ verification: try {
   if (focus === 'http-retirement') {
     // This exact file uses only the original HTTPS peer and selected libcurl.
     // No Common, DuckDB, Resident or other package supplier is built or run.
+    await writeFile(join(root, 'credential.secret'), 'native-secret\n', {mode: 0o600, flag: 'wx'});
     const child = spawn(process.execPath, ['--input-type=module', '-e',
       "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
       "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
@@ -1265,11 +1287,22 @@ verification: try {
         ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
         ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
         ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+        ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+        ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT: root,
       },
     });
     const [code, signal] = await once(child, 'exit');
     assert.equal(code, 0,
       `focused HTTP retirement tests failed: ${code ?? signal}`);
+    assert.deepEqual(incrementalRequests, ['/incremental-complete', '/incremental-stop']);
+    let timeout;
+    try {
+      await Promise.race([incrementalStop.promise, new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('Original cancelled HTTPS peer did not close')), 2500);
+      })]);
+    } finally {
+      clearTimeout(timeout);
+    }
     break verification;
   }
   const portableCorePath = prepareNativeResidentPortableCore(fileURLToPath(new URL('../', import.meta.url)), {
@@ -1390,6 +1423,7 @@ verification: try {
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
     ACTQL_TEST_NATIVE_POLICY_CLOCK: join(root, 'placement-policy-clock.sqlite'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+    ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT: root,
     ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
     ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
     ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,

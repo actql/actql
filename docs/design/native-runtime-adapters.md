@@ -359,12 +359,12 @@ accepting the terminal receipt.
 
 ## HTTPS integration
 
-The native HTTPS adapter uses the maintained libcurl easy API through a thin C
+The native HTTPS adapter uses the maintained libcurl API through a thin C
 FFI. It loads an explicitly selected library from the admitted runtime bundle;
 it does not implement TCP, TLS, certificate validation, or HTTP framing.
 MoonBit validates the request shape and bounds, selects the operation, and
-classifies the physical result. The adapter performs only the synchronous
-physical exchange and reports its observed status, response bytes, or error.
+classifies the physical result. The adapter reports its observed status,
+response bytes, or error.
 
 The adapter supports the existing bounded JSON control POST and a bounded
 GET, POST, or PUT exchange over HTTPS with mutual TLS. The generic exchange
@@ -378,12 +378,20 @@ without first materializing it in full. Request bytes remain borrowed for the
 synchronous call and response bytes cross the FFI once after the exchange
 completes.
 
-Cancellation is checked before the request and through libcurl's transfer
-progress callback. The current MoonBit call is synchronous; a caller that must
-cancel an in-flight exchange from another execution context needs the later
-operation-handle integration. A timeout or transport return is not proof that
-an independently executing remote operation stopped. Common dispatch,
-settlement, reconciliation, and cleanup decisions remain in MoonBit.
+Synchronous callers check cancellation before the request and through libcurl's
+transfer progress callback. The incremental bearer POST port uses one fresh
+easy handle and one multi handle on the same Client and native thread. It
+requires the selected library to provide asynchronous DNS and the original
+multi operations. The caller may advance without a readiness wait, or the
+outer physical driver may wait for up to 50 ms per poll. The scoped allocator
+continues to use the original native Read.
+
+The Client retains the request bytes and its native backing until the curl
+handles retire. A cancellation requests stop. The next original poll observes
+retirement before returning the transport result. A timeout or local socket
+close supplies no observation about the remote operation's final outcome.
+The incremental port does not itself connect a CLI Model, issue an Entry, or
+define retry, settlement, reconciliation, or Store ownership.
 
 The integration fixture creates independent test authorities, requires a real
 client certificate, rejects a certificate from the foreign authority, tests a

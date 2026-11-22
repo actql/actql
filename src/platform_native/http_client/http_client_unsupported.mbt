@@ -135,6 +135,27 @@ pub fn Client::get_bearer_file(
 }
 
 ///|
+pub fn Client::start_bearer_post(
+  _self : Client,
+  _url : String,
+  _headers : Array[NativeHttpHeader],
+  _body : Bytes,
+  _secret_path : String,
+  _expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::poll_bearer_post(
+  _self : Client,
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  ignore(wait_milliseconds)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::cancel(_self : Client) -> Bool {
   false
 }

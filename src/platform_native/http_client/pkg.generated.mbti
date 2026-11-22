@@ -20,10 +20,12 @@ pub fn Client::close(Self) -> Bool
 pub fn Client::close_checked(Self) -> Result[Unit, NativeHttpIssue]
 pub fn Client::get_bearer_file(Self, String, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::get_local_preparation(Self, String, @filesystem.PrivateFileProjection, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::poll_bearer_post(Self, wait_milliseconds? : Int) -> Result[NativeHttpResponse?, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
+pub fn Client::start_bearer_post(Self, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[Unit, NativeHttpIssue]
 
 type Library
 pub fn Library::close_checked(Self) -> Result[Unit, NativeHttpIssue]

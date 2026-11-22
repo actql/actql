@@ -207,6 +207,30 @@ extern "C" fn client_request_bearer_file_ffi(
 ) -> Int = "actql_native_http_client_request_bearer_file"
 
 ///|
+#borrow(client, verb, url, headers, body, secret_path)
+extern "C" fn client_start_bearer_post_ffi(
+  client : Client,
+  verb : Bytes,
+  verb_length : Int,
+  url : Bytes,
+  url_length : Int,
+  headers : Bytes,
+  headers_length : Int,
+  body : Bytes,
+  body_length : Int,
+  secret_path : Bytes,
+  secret_path_length : Int,
+  expires_at_milliseconds : Int64,
+) -> Int = "actql_native_http_client_start_bearer_post"
+
+///|
+#borrow(client)
+extern "C" fn client_poll_bearer_post_ffi(
+  client : Client,
+  wait_milliseconds : Int,
+) -> Int = "actql_native_http_client_poll_bearer_post"
+
+///|
 #borrow(client)
 extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_client_status"
 
@@ -671,13 +695,83 @@ pub fn Client::request_bearer_file(
       expires_at_milliseconds,
     ) {
     0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
-    1 => Err(CapacityExceeded)
-    2 => Err(Cancelled)
-    3 => Err(Closed)
-    4 => Err(DeadlineExpired)
-    5 => Err(CredentialUnavailable)
-    6 => Err(InvalidRequest)
-    _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+fn bearer_request_issue(client : Client, status : Int) -> NativeHttpIssue {
+  match status {
+    1 => CapacityExceeded
+    2 => Cancelled
+    3 => Closed
+    4 => DeadlineExpired
+    5 => CredentialUnavailable
+    6 => InvalidRequest
+    7 => UnsupportedTarget
+    _ => Transport(decode_diagnostic(client_error_ffi(client)))
+  }
+}
+
+///|
+/// A dedicated Client admits at most one incremental POST. The original
+/// caller must retain it through every poll and the checked close. This
+/// physical port does not establish Model Entry, Account or egress authority.
+pub fn Client::start_bearer_post(
+  self : Client,
+  url : String,
+  headers : Array[NativeHttpHeader],
+  body : Bytes,
+  secret_path : String,
+  expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    !valid_path(secret_path) ||
+    expires_at_milliseconds < 1L {
+    return Err(InvalidRequest)
+  }
+  guard encode_headers(headers) is Some(encoded_headers) else {
+    return Err(InvalidRequest)
+  }
+  let encoded_url = @utf8.encode(url)
+  let encoded_secret_path = @utf8.encode(secret_path)
+  match
+    client_start_bearer_post_ffi(
+      self,
+      b"POST",
+      4,
+      encoded_url,
+      encoded_url.length(),
+      encoded_headers,
+      encoded_headers.length(),
+      body,
+      body.length(),
+      encoded_secret_path,
+      encoded_secret_path.length(),
+      expires_at_milliseconds,
+    ) {
+    0 => Ok(())
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+/// A zero wait steps the transport without waiting for socket readiness.
+/// Only the outer physical driver may wait here, for at most 50 ms per poll.
+/// A result is projected once, after the same transfer's actual cleanup.
+pub fn Client::poll_bearer_post(
+  self : Client,
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  match client_poll_bearer_post_ffi(self, wait_milliseconds) {
+    0 =>
+      Ok(
+        Some({ status: client_status_ffi(self), body: client_body_ffi(self), }),
+      )
+    8 => Ok(None)
+    status => Err(bearer_request_issue(self, status))
   }
 }
 
