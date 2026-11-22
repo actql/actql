@@ -244,6 +244,29 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
             preview._retained_invocation,
             preview._retained_observation,
           )
+        (None, Some(combined)) if proposals.imports is Some(imported) => {
+          let retention = @run_host.client_effect_local_result_retention(
+            original,
+          )
+          if @run_host.client_effect_imported_matches_direct_source_unit(
+              imported,
+              combined,
+              retention,
+              preview._retained_invocation,
+              preview._retained_observation,
+            ) {
+            @run_host.client_effect_imported_result_evidence_refs(
+              materials,
+              proposals.inputs,
+              imported,
+              preview._retained_invocation,
+              preview._retained_observation,
+              retention,
+            )
+          } else {
+            Err(ForeignOwner)
+          }
+        }
         (None, Some(combined)) =>
           @run_host.client_effect_combined_source_public_result_evidence_refs(
             materials,
