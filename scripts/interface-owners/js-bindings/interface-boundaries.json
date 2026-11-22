@@ -72562,7 +72562,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e44bfd2d08faefc6cb43450e95f9c50e3e1aaa66deba26127a5d2539c2d78678",
+      "sha256": "d245e4916f5cd32e373243da148c68dc6a1199d08c95946df717d9450085ce52",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -72771,7 +72771,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72785,7 +72785,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72799,7 +72799,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72817,7 +72817,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72835,7 +72835,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72849,7 +72849,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72867,7 +72867,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72885,7 +72885,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72903,7 +72903,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72917,7 +72917,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "openNodeInferCaptureCustody"
               },
               {
@@ -72941,7 +72941,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -72951,7 +72951,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -72961,7 +72961,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -72971,7 +72971,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -72981,7 +72981,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -72991,7 +72991,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -73001,7 +73001,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -73011,7 +73011,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -73021,7 +73021,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -73031,7 +73031,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "pending"
               },
               {
@@ -73059,14 +73059,14 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "capture = operation.acquireCapture();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "capture = operation!.acquireCapture();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -73075,8 +73075,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "captureOutput ??= operation.acquireOutput();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "captureOutput ??= operation!.acquireOutput();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -73085,13 +73085,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "if (capture !== undefined) return true;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
               },
               {
@@ -73101,7 +73101,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "const cleanupPublicationOwned = async () => {"
               },
               {
@@ -73115,8 +73115,8 @@
                 "anchor": "###### Ordinary Host composition"
               },
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "publicationOriginal.reserveOriginalPublicationCapacity?.();"
+                "path": "adapters/host-node/infer-capture-custody.mts",
+                "anchor": "publicationOriginal!.reserveOriginalPublicationCapacity?.();"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -73125,7 +73125,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// This immutable original is available only after the existing Store"
               }
             ],
@@ -73145,7 +73145,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73155,7 +73155,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73165,7 +73165,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73175,7 +73175,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73185,7 +73185,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73195,7 +73195,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73205,7 +73205,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73215,7 +73215,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73225,7 +73225,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
@@ -73235,7 +73235,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "path": "adapters/host-node/infer-capture-custody.mts",
                 "anchor": "// Shared private custody for the existing installed Model component. Local"
               },
               {
