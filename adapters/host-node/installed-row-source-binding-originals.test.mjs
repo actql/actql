@@ -32,10 +32,13 @@ assert(setupIndex >= 0);
 const setup = create.body.body.slice(setupIndex, setupIndex + 3).map(slice).join('\n');
 assert.match(setup, /physicalTarget = immutableTargets.prepare/u);
 assert.match(setup, /let physicalTargetGeneration/u);
-const ownerInsertion = slice(one(create, node => node.type === 'CallExpression' &&
+const preparation = await readFile(new URL('./installed-row-source-preparation.mjs', import.meta.url), 'utf8');
+const preparationAst = parse(preparation, {ecmaVersion: 'latest', sourceType: 'module'});
+const ownerRecord = one(preparationAst, node => node.type === 'CallExpression' &&
   node.callee.type === 'MemberExpression' && node.callee.object.name === 'preparations' && node.callee.property.name === 'set' &&
   node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'checkedOwner') &&
-  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'))) + ';';
+  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'));
+const ownerInsertion = preparation.slice(ownerRecord.start, ownerRecord.end) + ';';
 const sourceBody = one(create, node => node.type === 'VariableDeclarator' && node.id?.name === 'sourceBody');
 assert.equal(sourceBody.init.type, 'ObjectExpression');
 const close = sourceBody.init.properties.find(node => node.key?.name === 'close');assert(close);
@@ -50,6 +53,7 @@ const cid=value=>{counts.subjectHashes++;return 'sha256:'+createHash('sha256').u
 ${setup}
 const originalTarget=physicalTarget;
 physicalTarget=(resource,fields)=>{counts.bindingGenerations++;return originalTarget(resource,fields);};
+const currentPhysicalTargetGeneration=()=>physicalTargetGeneration;
 const declaration={},requirement={},acquisition={},preparations=new WeakMap();
 const installationBinding=Object.freeze({connectorId:'original',connectorRegistration:'fixture',
  connectorRevision:'fixture/0.1',bindingCid:'sha256:'+'a'.repeat(64)});

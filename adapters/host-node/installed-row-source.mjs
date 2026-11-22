@@ -5,7 +5,7 @@
 // Source Evidence are the common runtime's and this module's; the connector
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
-import {runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
@@ -14,12 +14,10 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 import {acquisitionFailure, acquisitionOutcome, AcquisitionOpenError} from
   '../host-common/acquisition-outcome.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
 import {rowListingCallbacks} from './installed-row-listing.mjs';
-import {authorizationRuntimeCode} from '../host-common/authorization-gate.mjs';
 import {canonicalJson, contentCid} from
   './local-account-config.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
@@ -33,6 +31,7 @@ import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mj
 import {createInstalledRowSourceCredentialSite} from './installed-row-source-credential-site.mjs';
 import {createInstalledRowSourceReadAuthority} from './installed-row-source-read-authority.mjs';
 import {createInstalledRowSourceKeyedPreparation} from './installed-row-source-keyed-preparation.mjs';
+import {createInstalledRowSourcePreparation} from './installed-row-source-preparation.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -386,9 +385,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
   };
   const installationBinding = Object.freeze({connectorId, connectorRegistration,
     connectorRevision, bindingCid});
+  function currentPhysicalTargetGeneration() { return physicalTargetGeneration; }
   const {ordinaryRecoveryBinding, decideRead, currentRead} = createInstalledRowSourceReadAuthority({
     preparations, installationBinding, immutableTargets,
-    currentPhysicalTargetGeneration: function currentPhysicalTargetGeneration() { return physicalTargetGeneration; },
+    currentPhysicalTargetGeneration,
     moon, declaration, site, physicalTarget, directReadIdentity, valueCid, cid, cidPattern});
   // Preserve an original installation's exact immutable access metadata;
   // this is neither a wire object nor an authorization decision. Defaults
@@ -409,252 +409,11 @@ export async function createInstalledRowSource({moon, declaration, commands,
     keyedPreparations, originalReader, moon, declaration, limits, sourceRefs, cidPattern, valueCid, site, physicalTarget,
     sourceAccess, decideRead, currentRead, connectorRegistration, connectorRevision, bindingCid});
 
-  function describePreparedSource(requirement, occurrence, checkedOwner, wholeInput = false, plannedAcquisition, effectful = false) {
-    const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
-      : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
-    if (!Array.isArray(facts) || facts.length !== 6 ||
-        !facts.every(value => typeof value === 'string')) {
-      fail('InstalledSourceEvidenceFactsUnavailable');
-    }
-    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
-    if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
-    const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
-      : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
-    const sourceInputOption = !wholeInput ? undefined : effectful
-      ? moon.clientProgramEffectWholeSourceInputIdentity(checkedOwner, requirement)
-      : moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement);
-    const sourceInput = wholeInput && runtimeIsBoxedSome(sourceInputOption)
-      ? runtimeField(sourceInputOption, 0) : undefined;
-    if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
-        sourceInput.some(value => typeof value !== 'string' || !cidPattern.test(value)))) {
-      fail('InstalledSourceProgramMismatch');
-    }
-    const prepared = Object.freeze({
-      checkedSource: Object.freeze({
-        ...(wholeInput ? {sourceInput: Object.freeze([...sourceInput])}
-          : {requirementCid: moon.clientProgramQueryRequirementCid(requirement)}),
-        sourceRef, sourceContractCid, carrierSchemaContractCid,
-        sourceDataPolicyCid, dataClassification, sourceViewContractCid,
-        ...(wholeInput ? {} : {
-          inputContractCid: moon.clientProgramQueryRequirementInputContractCid(requirement),
-          outputContractCid: moon.clientProgramQueryRequirementOutputContractCid(requirement)}),
-      }),
-      readTuple: Object.freeze({connection: site.connection, resource,
-        operation: 'read'}),
-      physicalBinding: physicalTarget(resource, fields),
-      occurrence,
-    });
-    return {prepared, resource};
-  }
-
-  // Metadata for consuming already retained Model input. This entry creates
-  // no Source read, acquisition, capture capacity or authorization decision.
-  // The recovery Request backs the constructor before calling this Owner.
-  function prepareRetained({preparedProgram, requestIdentity, occurrence,
-    registry, values, fragment, ordered, sourceAccess: access = sourceAccess}) {
-    if (immutableTargets !== undefined && physicalTargetGeneration === undefined) {
-      fail('InstalledSourceInitializationClosed');
-    }
-    if (preparedProgram === undefined || requestIdentity === undefined ||
-        moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
-        occurrence === undefined || !['stage', 'input', 'task'].every(name =>
-          Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-      preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
-    const {prepared, resource} = describePreparedSource(requirement, Object.freeze({...occurrence}), preparedProgram);
-    preparations.set(prepared, Object.freeze({checkedOwner: preparedProgram, effectful: false,
-      retainedOnly: true, requirement, resource, access, requestIdentity, occurrence: prepared.occurrence,
-      physicalBindingCid: valueCid(prepared.physicalBinding),
-      ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
-        physicalTargetGeneration})}));
-    ordinaryRecoveryBinding(prepared);
-    return prepared;
-  }
-
-  async function prepare({preparedProgram, preparedEffect, registry, values,
-    fragment, ordered, sourceAccess: access = sourceAccess,
-    queryTimePreparation, requestIdentity, managedRun, preparedSource,
-    occurrence = {stage: 0, input: 0, task: 0}}) {
-    if (immutableTargets !== undefined && physicalTargetGeneration === undefined) {
-      fail('InstalledSourceInitializationClosed');
-    }
-    if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
-      fail('InvalidInstalledSourcePreparation');
-    }
-    const effectful = preparedEffect !== undefined;
-    if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
-        occurrence.stage < 0 || occurrence.input < 0 || occurrence.task < 0 ||
-        (directReadIdentity !== undefined && occurrence.input !== directReadIdentity.input)) {
-      fail('InvalidAcquisitionOccurrence');
-    }
-    occurrence = Object.freeze({...occurrence});
-    const checkedOwner = preparedEffect ?? preparedProgram;
-    if (preparedSource !== undefined) {
-      const original = preparations.get(preparedSource);
-      const recheck = () => {
-        if (original === undefined || preparations.get(preparedSource) !== original ||
-            original.checkedOwner !== checkedOwner || original.effectful !== effectful ||
-            original.managedRun === undefined || original.managedRun !== managedRun ||
-            original.requestIdentity !== requestIdentity ||
-            original.occurrence.stage !== occurrence.stage ||
-            original.occurrence.input !== occurrence.input ||
-            original.occurrence.task !== occurrence.task ||
-            !preparingSourceReads.has(original.originalRead)) {
-          fail('InstalledSourcePreparationMismatch');
-        }
-        ordinaryRecoveryBinding(preparedSource);
-        checked(moon.clientProgramInstalledSourceReadCheckCurrent(original.originalRead));
-      };
-      recheck();
-      if (reauthorizingPreparations.has(preparedSource)) fail('InstalledSourcePreparationMismatch');
-      reauthorizingPreparations.add(preparedSource);
-      try {
-        // Approval changes read authority, not the admitted Plan's original
-        // acquisition. Revalidate that same unentered read instead of issuing
-        // another one under an equal requirement.
-        await currentRead(preparedSource, access);
-        recheck();
-        preparations.set(preparedSource, Object.freeze({...original, access}));
-        return preparedSource;
-      } finally {
-        reauthorizingPreparations.delete(preparedSource);
-      }
-    }
-    let planned;
-    let wholeInput = false;
-    if (effectful) {
-      if (managedRun === undefined || originalReader === undefined && prepareSourceRead === undefined ||
-          typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function' ||
-          typeof moon.clientProgramInstalledEffectManagedSourceInputKind !== 'function' ||
-          typeof moon.clientProgramInstalledEffectManagedSourceOccurrence !== 'function') {
-        fail('InstalledEffectPlanUnavailable');
-      }
-      const selected = checked(moon.clientProgramInstalledEffectManagedSourceOccurrence(
-        managedRun, checkedOwner, requestIdentity, occurrence.task));
-      if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
-          runtimeOptionalField(selected, 1) !== occurrence.input ||
-          runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? occurrence.task)) {
-        fail('InstalledSourcePreparationMismatch');
-      }
-      // The admitted parent already owns this acquisition/capacity. Do not
-      // prepare another equal requirement or attach a replacement acquisition.
-      checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, checkedOwner, requestIdentity));
-      const kind = checked(moon.clientProgramInstalledEffectManagedSourceInputKind(
-        managedRun, checkedOwner, requestIdentity, occurrence.task));
-      if (kind !== 'query' && kind !== 'whole-input') fail('InstalledEffectPlanUnavailable');
-      wholeInput = kind === 'whole-input';
-      if (wholeInput && typeof moon.clientProgramInstalledEffectManagedWholeSourceRead !== 'function') {
-        fail('InstalledEffectPlanUnavailable');
-      }
-      planned = wholeInput
-        ? checked(moon.clientProgramInstalledEffectManagedWholeSourceRead(
-          managedRun, checkedOwner, requestIdentity, declaration, occurrence.task))
-        : checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
-    } else if (managedRun !== undefined && (originalReader !== undefined || prepareSourceRead !== undefined)) {
-      if (typeof moon.clientProgramInstalledManagedSourceOccurrence !== 'function') fail('InstalledSourcePlanUnavailable');
-      const selected = checked(moon.clientProgramInstalledManagedSourceOccurrence(
-        managedRun, checkedOwner, requestIdentity, occurrence.task));
-      if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
-          runtimeOptionalField(selected, 1) !== occurrence.input ||
-          runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? occurrence.task)) {
-        fail('InstalledSourcePreparationMismatch');
-      }
-      if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
-        fail('InstalledSourcePlanUnavailable');
-      }
-      // Pure provider and Host reads consume the SAME original Plan acquisition.
-      // Missing retained-plan support cannot fall back to another equal query.
-      if (typeof moon.clientProgramInstalledManagedSourceInputKind !== 'function') {
-        fail('InstalledSourcePlanUnavailable');
-      }
-      const kind = checked(moon.clientProgramInstalledManagedSourceInputKind(managedRun, checkedOwner, requestIdentity));
-      if (kind !== 'query' && kind !== 'whole-input') fail('InstalledSourcePlanUnavailable');
-      wholeInput = kind === 'whole-input';
-      if (wholeInput && typeof moon.clientProgramInstalledManagedWholeSourceReadAt !== 'function') {
-        fail('InstalledSourcePlanUnavailable');
-      }
-      planned = wholeInput
-        ? checked(moon.clientProgramInstalledManagedWholeSourceReadAt(
-          managedRun, checkedOwner, requestIdentity, declaration, occurrence.task))
-        : checked(moon.clientProgramInstalledManagedCaptureSourceRead(
-          managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
-    }
-    const plannedRead = planned === undefined ? undefined : runtimeField(planned, 0);
-    if (plannedRead !== undefined) preparingSourceReads.add(plannedRead);
-    try {
-      const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
-        preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
-        registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
-        : runtimeField(planned, 1);
-      const plannedAcquisition = wholeInput ? runtimeField(planned, 2) : undefined;
-      const {prepared, resource} = describePreparedSource(requirement, occurrence, checkedOwner, wholeInput, plannedAcquisition, effectful);
-      const physicalBindingCid = valueCid(prepared.physicalBinding);
-      const authorizePreparation = async () => {
-        const decision = await decideRead(prepared, access);
-        const refused = decision?.action === 'deny'
-          ? authorizationRuntimeCode(decision) : undefined;
-        if (refused !== undefined) {
-          throw Object.assign(new Error(refused), {code: refused,
-            authorization: decision});
-        }
-      };
-      // Original provider compatibility authorizes before its pure acquisition
-      // preparation. The ordinary path keeps its original opposite order.
-      if (directReadIdentity !== undefined) await authorizePreparation();
-      // The actual installation retains the imported child before returning
-      // this same opaque read. A failure below remains with that original
-      // supplier; no local scalar/fallback Ledger or cleanup ACK is created.
-      const originalRead = planned !== undefined ? plannedRead
-        : prepareSourceRead === undefined ? undefined :
-          prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
-      if (planned !== undefined && prepareSourceRead !== undefined &&
-          prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement,
-            occurrence, managedRun, originalRead, requestIdentity})) !== originalRead) fail('InstalledSourceReadUnavailable');
-      if (originalRead !== undefined) {
-        if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
-        // Bind includes the same current check. No external operation occurs
-        // between a separate check and this original-owner binding.
-        checked(effectful
-          ? moon.clientProgramInstalledSourceReadBindEffectProgram(originalRead, checkedOwner)
-          : moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner));
-      }
-      // An installed provider may select its existing pure typed preparer. It
-      // must return this exact requirement/declaration's original acquisition;
-      // this is neither an I/O callback nor permission to replace a checked Run.
-      const acquisition = planned !== undefined ? runtimeField(planned, 2)
-        : prepareOriginalAcquisition(requirement);
-      if (planned === undefined && originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
-        originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
-      const providerCaptureCapacity = planned !== undefined ? runtimeField(planned, 3)
-        : originalReader === undefined ? undefined :
-          moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
-      if (originalReader !== undefined && providerCaptureCapacity === undefined) {
-        fail('InstalledSourceCapacityUnavailable');
-      }
-      if (directReadIdentity === undefined) await authorizePreparation();
-      if (plannedRead !== undefined && !preparingSourceReads.has(plannedRead)) {
-        fail('InstalledSourceReadUnavailable');
-      }
-      preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-        requirement, resource, access, acquisition, wholeInput,
-        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun, requestIdentity,
-        ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
-          physicalTargetGeneration})}));
-      ordinaryRecoveryBinding(prepared);
-      return prepared;
-    } catch (error) {
-      if (plannedRead !== undefined && preparingSourceReads.has(plannedRead)) {
-        try {
-          checked(moon.clientProgramInstalledSourceReadRetire(plannedRead));
-          preparingSourceReads.delete(plannedRead);
-        } catch { /* SAME Source close retains the original retirement retry. */ }
-      }
-      throw error;
-    }
-  }
+  const {prepare, prepareRetained} = createInstalledRowSourcePreparation({
+    moon, declaration, sourceRefs, site, physicalTarget, cidPattern, immutableTargets, currentPhysicalTargetGeneration,
+    sourceAccess, preparations, preparingSourceReads, reauthorizingPreparations, valueCid,
+    ordinaryRecoveryBinding, directReadIdentity, currentRead, originalReader, prepareSourceRead, decideRead,
+    prepareOriginalAcquisition});
 
   async function open(options) {
     const state = {started: false, closeFailed: false, recovery: undefined};

@@ -100617,9 +100617,220 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-preparation.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowSourcePreparation"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourcePreparation",
+          "parameters": [
+            "moon",
+            "declaration",
+            "sourceRefs",
+            "site",
+            "physicalTarget",
+            "cidPattern",
+            "immutableTargets",
+            "currentPhysicalTargetGeneration",
+            "sourceAccess",
+            "preparations",
+            "preparingSourceReads",
+            "reauthorizingPreparations",
+            "valueCid",
+            "ordinaryRecoveryBinding",
+            "directReadIdentity",
+            "currentRead",
+            "originalReader",
+            "prepareSourceRead",
+            "decideRead",
+            "prepareOriginalAcquisition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourcePreparation/describePreparedSource/describePreparedSource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourcePreparation/describePreparedSource/describePreparedSource#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourcePreparation/prepare",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access",
+            "queryTimePreparation",
+            "requestIdentity",
+            "managedRun",
+            "preparedSource",
+            "occurrence"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourcePreparation/prepareRetained",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "occurrence",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourcePreparation/prepareRetained/prepareRetained",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-source-mapping.mjs",
+        "./original-query-preparation.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "81beb75d7cb219913b9ddb4c043096578a2ea6d06d045cef9a186ed761a06404",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourcePreparation",
+            "createInstalledRowSourcePreparation/describePreparedSource/describePreparedSource",
+            "createInstalledRowSourcePreparation/describePreparedSource/describePreparedSource#2",
+            "createInstalledRowSourcePreparation/prepare",
+            "createInstalledRowSourcePreparation/prepareRetained",
+            "createInstalledRowSourcePreparation/prepareRetained/prepareRetained"
+          ],
+          "exports": [
+            "createInstalledRowSourcePreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "export function createInstalledRowSourcePreparation("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "async function prepare("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "type RetainedPreparationOptions = ContractInputs"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "function describePreparedSource(requirement: unknown"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "original.requestIdentity !== requestIdentity"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "original.managedRun !== managedRun"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "preparingSourceReads.add(plannedRead)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "preparations.set(prepared, Object.freeze({checkedOwner, effectful,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "await currentRead(preparedSource, access);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "reauthorizingPreparations.delete(preparedSource);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "throw error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "checked(moon.clientProgramInstalledSourceReadRetire(plannedRead));"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
+                "anchor": "moon.clientProgramEffectWholeSourceInputIdentity(checkedOwner, requirement)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "Source reauthorization preserves its original read and refuses foreign, concurrent and retired preparations"
+              },
+              {
+                "path": "adapters/host-node/infer-cold-source-authorization.test.mjs",
+                "anchor": "retained row Source metadata uses the same original Request without issuing a physical read"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "803314f812dbd93ca6db855a508bc095708710ecdcc8acf986a8abb1a42c4ce8",
+      "sha256": "f2b424aca9e13af748e62ff3613fe22d4c81fc04df6201b730aa639ec31ac5dc",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100909,20 +101120,6 @@
         {
           "name": "createInstalledRowSource/currentPhysicalTargetGeneration",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -101225,41 +101422,9 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/prepare",
+          "name": "createInstalledRowSource/prepareOriginalAcquisition",
           "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "queryTimePreparation",
-            "requestIdentity",
-            "managedRun",
-            "preparedSource",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepareRetained",
-          "parameters": [
-            "preparedProgram",
-            "requestIdentity",
-            "occurrence",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareRetained/prepareRetained",
-          "parameters": [
-            "name"
+            "requirement"
           ],
           "async": false
         },
@@ -101336,7 +101501,6 @@
       ],
       "imports": [
         "../host-common/acquisition-outcome.mjs",
-        "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
@@ -101349,10 +101513,10 @@
         "./installed-row-source-environment.mjs",
         "./installed-row-source-keyed-preparation.mjs",
         "./installed-row-source-mapping.mjs",
+        "./installed-row-source-preparation.mjs",
         "./installed-row-source-read-authority.mjs",
         "./installed-row-source-targets.mjs",
         "./local-account-config.mjs",
-        "./original-query-preparation.mjs",
         "./typed-response-json-codec.mjs",
         "node:crypto",
         "node:fs/promises",
@@ -101609,8 +101773,6 @@
             "createInstalledRowSource/createInstalledRowSource#7",
             "createInstalledRowSource/createInstalledRowSource#8",
             "createInstalledRowSource/createInstalledRowSource#9",
-            "createInstalledRowSource/describePreparedSource/describePreparedSource",
-            "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
             "createInstalledRowSource/openKeyed",
@@ -101645,14 +101807,12 @@
             "createInstalledRowSource/openKeyedLookup/recovery/recovery",
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
-            "createInstalledRowSource/prepare",
-            "createInstalledRowSource/prepareRetained",
-            "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
             "cid/cid",
-            "createInstalledRowSource/currentPhysicalTargetGeneration"
+            "createInstalledRowSource/currentPhysicalTargetGeneration",
+            "createInstalledRowSource/prepareOriginalAcquisition"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -101725,7 +101885,7 @@
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
               },
               {
@@ -101771,7 +101931,7 @@
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
               },
               {
@@ -101809,7 +101969,7 @@
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
@@ -102465,13 +102625,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "const originalRead = planned !== undefined ? plannedRead"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));"
               },
               {
@@ -102485,7 +102645,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
@@ -102495,7 +102655,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
               },
               {
@@ -102505,13 +102665,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');"
               }
             ],
@@ -102523,7 +102683,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,"
               },
               {
@@ -102533,7 +102693,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-preparation.mts",
                 "anchor": "// supplier; no local scalar/fallback Ledger or cleanup ACK is created."
               },
               {
