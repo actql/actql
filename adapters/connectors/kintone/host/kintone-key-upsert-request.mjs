@@ -54,7 +54,7 @@ export function createKintoneKeyUpsertRequestAdapter({moon, mapping, declaration
     fail('InvalidKintoneKeyUpsertLimits');
   }
   const native = Object.freeze(Object.fromEntries([
-    'KeyUpsertMappingBody', 'PrepareKeyUpsertProposal', 'KeyUpsertProposalLookup',
+    'KeyUpsertMappingMaterial', 'PrepareKeyUpsertProposal', 'KeyUpsertProposalLookup',
     'KeyUpsertProposalValueWire', 'KeyUpsertProposalBefore', 'KeyUpsertBeforeIdentity',
     'KeyUpsertBeforeWire', 'KeyUpsertBeforeVersionCid', 'FinalizeKeyUpsertRequest',
     'KeyUpsertExecutionMatches', 'KeyUpsertPhysicalRequest', 'RestoreKeyUpsertExecution',
@@ -63,10 +63,13 @@ export function createKintoneKeyUpsertRequestAdapter({moon, mapping, declaration
     'LookupLimits', 'LookupApp', 'LookupBody', 'LookupRecheckForm', 'LookupResponse',
     'MutationLimits', 'PageLimits', 'ValueLimits', 'WriteLimits', 'FormLimits',
   ].map(name => [name, capture(moon, name)])));
-  const body = JSON.parse(checked(native.KeyUpsertMappingBody(mapping, declaration)));
-  const {mapping_ref: mappingRef, mapping_contract_cid: mappingCid, primary_identity: key} = body;
+  const originalMapping = checked(native.KeyUpsertMappingMaterial(mapping, declaration));
+  const mappingRef = runtimeField(originalMapping, 1), mappingCid = runtimeField(originalMapping, 2),
+    key = runtimeField(originalMapping, 3);
   if (!text(mappingRef) || !isCid(mappingCid) || !text(key) ||
-      body.target_ref !== 'connector://' + connectorId + '/' + resource) fail('ForeignKintoneKeyUpsertMapping');
+      runtimeField(originalMapping, 4) !== connectorId || runtimeField(originalMapping, 5) !== resource) {
+    fail('ForeignKintoneKeyUpsertMapping');
+  }
   const prefix = guestSpaceId === undefined ? '/k/v1/' : '/k/guest/' + guestSpaceId + '/v1/';
   const binding = Object.freeze({connectorId, origin, appId, resource, siteBindingCid, generationCid,
     mappingRef, mappingCid, key, path: prefix + 'records.json', codec: recoveryVersion});

@@ -97,6 +97,11 @@ pub fn record_key_upsert_mapping(
 }
 
 ///|
+pub fn record_key_upsert_mapping_key(value : RecordKeyUpsertMapping) -> String {
+  value.key
+}
+
+///|
 pub fn record_key_upsert_mapping_matches_declaration(
   value : RecordKeyUpsertMapping,
   original : RecordDeclaration,

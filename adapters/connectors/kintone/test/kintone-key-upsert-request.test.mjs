@@ -164,6 +164,10 @@ for (const [name, row] of [['create', absent], ['update', present]]) {
 
 test('keyed UPSERT refuses unstable Form, incomplete absence and a rehashed opposite saved branch', () => {
   const {adapter, options} = fixture(), proposal = adapter.prepare({value: input, selector: key});
+  assert.throws(() => createKintoneKeyUpsertRequestAdapter({...options, resource: 'foreign'}),
+    {code: 'ForeignKintoneKeyUpsertMapping'});
+  assert.throws(() => createKintoneKeyUpsertRequestAdapter({...options, connectorId: 'foreign'}),
+    {code: 'ForeignKintoneKeyUpsertMapping'});
   const changed = structuredClone(keyedForm);
   changed.properties.CustomerKey.unique = false;
   assert.throws(() => adapter.recheckForm(proposal.request, observation(changed)), {code: 'MoonBitHostFailure'});

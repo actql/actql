@@ -352,17 +352,42 @@ pub fn client_program_kintone_prepare_key_upsert_mapping(
 }
 
 ///|
-#export_name("clientProgramKintoneKeyUpsertMappingBody")
-pub fn client_program_kintone_key_upsert_mapping_body(
+#export_name("clientProgramKintoneKeyUpsertInstallationConstructionCapacity")
+pub fn client_program_kintone_key_upsert_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_installation_construction_capacity(
+    fields, text_units, retained_text_units,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertMappingMaterial")
+pub fn client_program_kintone_key_upsert_mapping_material(
   mapping : @kintone_host.RecordKeyUpsertMapping,
   original : @kintone_host.RecordDeclaration,
-) -> Result[String, @client_row_source_host.RowMappingIssue] {
+) -> Result[
+  (String, String, String, String, String, String),
+  @client_row_source_host.RowMappingIssue,
+] {
   if !@kintone_host.record_key_upsert_mapping_matches_declaration(
       mapping, original,
     ) {
     return Err(InvalidSpecification)
   }
-  Ok(@kintone_host.record_key_upsert_mapping(mapping).body)
+  let selected = @kintone_host.record_key_upsert_mapping(mapping)
+  Ok(
+    (
+      selected.body,
+      selected.mapping_ref,
+      selected.mapping_cid,
+      @kintone_host.record_key_upsert_mapping_key(mapping),
+      @kintone_host.record_declaration(original).connector_id,
+      selected.resource,
+    ),
+  )
 }
 
 ///|

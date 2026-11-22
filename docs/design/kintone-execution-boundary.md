@@ -291,9 +291,13 @@ The standard generated installation table selects the loader; no provider-name
 branch, second initialization Ledger or additional authority owner is needed.
 
 Installation inputs and outputs: the Source and Effect loaders share the same
-bounded original Form/declaration preparation. The Effect adds a Native UPDATE
-Mapping and the existing row Effect driver/recipe. The complete declared schema,
-including read-only fields, remains the target's original before inventory.
+bounded original Form and declaration preparation. An Effect write entry with
+`resource` and `fields` selects the Native UPDATE Mapping. An entry with
+`kind: "upsert"`, `resource`, `key` and `fields` selects the keyed Mapping and
+requires an original unique writable Text key outside the write fields. The
+existing row Effect driver and recipe retain the approved CREATE and UPDATE
+branches. The complete declared schema, including read-only fields, supplies
+the target's before inventory.
 
 Installation identity: Site context, original metadata, runtime bundle,
 Environment and Mapping identities bind each generation and physical target

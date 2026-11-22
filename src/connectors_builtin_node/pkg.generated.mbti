@@ -2830,9 +2830,11 @@ pub fn client_program_kintone_key_upsert_finalization_construction_capacity(@act
 
 pub fn client_program_kintone_key_upsert_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
 
-pub fn client_program_kintone_key_upsert_mapping_body(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
+pub fn client_program_kintone_key_upsert_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_key_upsert_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_mapping_material(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Result[(String, String, String, String, String, String), @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_kintone_key_upsert_observed_request(@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertIssue]
 

@@ -42,20 +42,27 @@ export function checkInstalledKintoneEffectProfile(profile) {
       !text(profile.sourceProfilePath) || !isAbsolute(profile.sourceProfilePath) || !Array.isArray(profile.writes) ||
       nodeTypes.isProxy(profile.writes) || profile.writes.length !== 1) fail('InvalidInstalledKintoneEffectProfile');
   const entry = Object.getOwnPropertyDescriptor(profile.writes, '0'), write = entry?.value;
-  if (!entry || !Object.hasOwn(entry, 'value') || !closed(write, ['resource', 'fields']) || !text(write.resource) ||
+  const keyed = closed(write, ['resource', 'kind', 'key', 'fields']) && write.kind === 'upsert';
+  if (!entry || !Object.hasOwn(entry, 'value') || (!keyed && !closed(write, ['resource', 'fields'])) || !text(write.resource) ||
       !Array.isArray(write.fields) || nodeTypes.isProxy(write.fields) || write.fields.length < 1 || write.fields.length > 998) {
+    fail('InvalidInstalledKintoneEffectProfile');
+  }
+  if (keyed && (!text(write.key) || write.key.length > 512 || write.key === '$id' || write.key === '$revision')) {
     fail('InvalidInstalledKintoneEffectProfile');
   }
   const fields = [];
   for (let index = 0; index < write.fields.length; index++) {
     const field = Object.getOwnPropertyDescriptor(write.fields, String(index));
     if (!field || !Object.hasOwn(field, 'value') || !text(field.value) || field.value.length > 512 ||
-        field.value === '$id' || field.value === '$revision') fail('InvalidInstalledKintoneEffectProfile');
+        field.value === '$id' || field.value === '$revision' || keyed && field.value === write.key) {
+      fail('InvalidInstalledKintoneEffectProfile');
+    }
     fields.push(field.value);
   }
   if (new Set(fields).size !== fields.length) fail('InvalidInstalledKintoneEffectProfile');
   return Object.freeze({version: profile.version, connectorId: profile.connectorId, sourceProfilePath: profile.sourceProfilePath,
-    writes: Object.freeze([Object.freeze({resource: write.resource, fields: Object.freeze(fields)})])});
+    writes: Object.freeze([Object.freeze({resource: write.resource,
+      ...(keyed ? {kind: 'upsert', key: write.key} : {}), fields: Object.freeze(fields)})])});
 }
 
 export async function installedKintoneEffectIdentityParts(profile, read, entry, {configurationReader} = {}) {
@@ -68,14 +75,14 @@ export async function installedKintoneEffectIdentityParts(profile, read, entry, 
   return [original, ...await installedKintoneSourceIdentityParts(identity, providerProfile, read, entry, {configurationReader})];
 }
 
-function membersOf(moon, prepared, unit, mapping) {
+function membersOf(moon, prepared, unit, mapping, kind) {
   if (!text(unit?.programId) || !text(unit.stageId) || !Number.isSafeInteger(unit.stageIndex) || unit.stageIndex < 0 ||
       !Array.isArray(unit.effectIds) || !unit.effectIds.length || unit.effectIds.length > maxMembers ||
       new Set(unit.effectIds).size !== unit.effectIds.length) fail('KintoneEffectUnitUnsupported');
   const members = unit.effectIds.map(effectId => {
     const original = checked(moon.clientProgramEffectMemberDescriptor(prepared, unit.stageIndex, effectId, 10000));
     if (runtimeField(original, 4) !== mapping.mappingRef || runtimeField(original, 5) !== mapping.mappingCid ||
-        runtimeField(original, 2) !== 'update' || runtimeField(original, 6) === undefined) fail('KintoneEffectMappingNotInstalled');
+        runtimeField(original, 2) !== kind || runtimeField(original, 6) === undefined) fail('KintoneEffectMappingNotInstalled');
     return Object.freeze({effectId: runtimeField(original, 1), memberIndex: runtimeField(original, 0),
       targetRef: runtimeField(original, 3), mapping});
   }).sort((a,b) => a.memberIndex - b.memberIndex);
@@ -84,12 +91,12 @@ function membersOf(moon, prepared, unit, mapping) {
 }
 const physicalKeys = ['version', 'site_binding_cid', 'generation_cid', 'program_id', 'stage_id', 'stage_index',
   'effect_id', 'member_index', 'mapping_cid', 'mapping_ref', 'resource', 'effect_kind', 'key', 'fields'];
-function bindingFor(member, unit, siteBindingCid, generationCid) {
+function bindingFor(member, unit, siteBindingCid, generationCid, kind, key) {
   return Object.freeze({version: KINTONE_UPDATE_TARGET_VERSION, site_binding_cid: siteBindingCid,
     generation_cid: generationCid, program_id: unit.programId, stage_id: unit.stageId, stage_index: unit.stageIndex,
     effect_id: member.effectId, member_index: member.memberIndex, mapping_cid: member.mapping.mappingCid,
-    mapping_ref: member.mapping.mappingRef, resource: member.mapping.resource, effect_kind: 'update',
-    key: '$id', fields: member.mapping.beforeFields});
+    mapping_ref: member.mapping.mappingRef, resource: member.mapping.resource, effect_kind: kind,
+    key, fields: member.mapping.beforeFields});
 }
 
 export async function loadInstalledKintoneEffect(profile, {moon, construction, ledgerRoot, runtimeBundleCid,
@@ -98,32 +105,45 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
   if (!text(ledgerRoot) || !isAbsolute(ledgerRoot) || !/^sha256:[0-9a-f]{64}$/u.test(runtimeBundleCid ?? '')) {
     fail('InvalidInstalledKintoneEffectOptions');
   }
+  const write = selected.writes[0], kind = write.kind ?? 'update', keyed = kind === 'upsert';
+  const key = keyed ? write.key : '$id';
   const prepareDriver = method(construction, 'prepareEffectDriverConstruction');
   const prepareInput = method(construction, 'prepareNativeInput'), prepareMappings = method(construction, 'prepareNativeMappings');
-  const native = Object.freeze(Object.fromEntries(['UpdateMappingConstructionCapacity', 'UpdateInstallationConstructionCapacity',
-    'PrepareUpdateMapping', 'UpdateMappingBody', 'UpdateMappingRef', 'UpdateMappingCid'].map(name =>
+  const native = Object.freeze(Object.fromEntries((keyed
+    ? ['KeyUpsertMappingConstructionCapacity', 'KeyUpsertInstallationConstructionCapacity',
+      'PrepareKeyUpsertMapping', 'KeyUpsertMappingMaterial']
+    : ['UpdateMappingConstructionCapacity', 'UpdateInstallationConstructionCapacity',
+      'PrepareUpdateMapping', 'UpdateMappingBody', 'UpdateMappingRef', 'UpdateMappingCid']).map(name =>
     [name, method(moon, 'clientProgramKintone' + name)])));
   const sourceProfile = await construction.configurationReader.readJson(selected.sourceProfilePath);
   if (sourceProfile?.connectorId !== selected.connectorId) fail('KintoneEffectSourceIdentityMismatch');
   const {providerProfile} = splitSourceAliasProfile(sourceProfile);
   const material = await prepareInstalledKintoneMaterials(providerProfile, {moon, construction});
   const {installed: source, siteProfile, metadataCid, original, declared, declarationLimits} = material;
-  const write = selected.writes[0];
   if (write.resource !== source.resource || write.fields.length > source.limits.maxFields) fail('KintoneEffectResourceNotInstalled');
   const view = declared.views.find(view => view.resource === source.resource);
   if (!view || !Array.isArray(view.fields)) fail('KintoneEffectResourceNotInstalled');
   let beforeFields;
-  const inputUnits = BigInt(source.connectorId.length + write.resource.length + write.fields.reduce((n,s) => n + 2 * s.length, 0));
+  const inputUnits = BigInt(source.connectorId.length + write.resource.length +
+    write.fields.reduce((n,s) => n + 2 * s.length + (keyed ? 'reject'.length : 0), 0));
   const mapped = prepareInput(Object.freeze({
-    capacity() {const value = runtimeUnboxedReferenceOption(native.UpdateMappingConstructionCapacity(
-      original, write.fields.length, inputUnits, declarationLimits)); if (!value) fail('KintoneMappingConstructionUnavailable'); return value;},
+    capacity() {
+      const value = runtimeUnboxedReferenceOption(keyed
+        ? native.KeyUpsertMappingConstructionCapacity(original, key, write.fields.length, inputUnits, declarationLimits)
+        : native.UpdateMappingConstructionCapacity(original, write.fields.length, inputUnits, declarationLimits));
+      if (!value) fail('KintoneMappingConstructionUnavailable');
+      return value;
+    },
     project() {
-      const mapping = checked(native.PrepareUpdateMapping(original, write.resource, write.fields.map(name =>
-        ({target: name, field: name, null_behavior: 'reject'})), 'required', declarationLimits));
+      const sources = write.fields.map(name => ({target: name, field: name, null_behavior: 'reject'}));
+      const mapping = checked(keyed ? native.PrepareKeyUpsertMapping(original, write.resource, key, sources, declarationLimits)
+        : native.PrepareUpdateMapping(original, write.resource, sources, 'required', declarationLimits));
       beforeFields = Object.freeze(view.fields.filter(name => name !== '$id').sort());
+      const material = keyed ? checked(native.KeyUpsertMappingMaterial(mapping, original)) : undefined;
       return Object.freeze({resource: write.resource, beforeFields, mapping, targetRef: 'connector://' + source.connectorId + '/' + write.resource,
-        body: checked(native.UpdateMappingBody(mapping)),
-        mappingRef: checked(native.UpdateMappingRef(mapping)), mappingCid: checked(native.UpdateMappingCid(mapping))});
+        body: keyed ? runtimeField(material, 0) : checked(native.UpdateMappingBody(mapping)),
+        mappingRef: keyed ? runtimeField(material, 1) : checked(native.UpdateMappingRef(mapping)),
+        mappingCid: keyed ? runtimeField(material, 2) : checked(native.UpdateMappingCid(mapping))});
     },
   }));
   const prepared = prepareMappings(declared, Object.freeze([mapped]));
@@ -148,7 +168,8 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
         !Number.isSafeInteger(binding.stage_index) || binding.stage_index < 0 || !Number.isSafeInteger(binding.member_index) ||
         binding.member_index < 0 || binding.member_index >= maxMembers) return false;
     const expected = bindingFor({effectId: binding.effect_id, memberIndex: binding.member_index, mapping: mapped},
-      {programId: binding.program_id, stageId: binding.stage_id, stageIndex: binding.stage_index}, siteBindingCid, generationCid);
+      {programId: binding.program_id, stageId: binding.stage_id, stageIndex: binding.stage_index}, siteBindingCid, generationCid,
+      kind, key);
     return physicalKeys.every(name => name === 'fields'
       ? Array.isArray(binding.fields) && !nodeTypes.isProxy(binding.fields) && binding.fields.length === expected.fields.length &&
         expected.fields.every((field, index) => binding.fields[index] === field)
@@ -161,33 +182,35 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
     resolveSecret: resolveSecret ?? (async () => {const token = process.env[siteProfile.tokenEnvironment];
       if (!text(token)) fail('RemoteCredentialSecretUnavailable'); return token;})});
   const textUnits = 4096 + Object.values(siteProfile).reduce((n,s) => n + (typeof s === 'string' ? s.length : 0), 0) +
-    connection.length + beforeFields.reduce((n,s) => n + s.length, 0) + mapped.mappingRef.length + mapped.mappingCid.length;
+    connection.length + beforeFields.reduce((n,s) => n + s.length, 0) + mapped.mappingRef.length + mapped.mappingCid.length +
+    (keyed ? key.length : 0);
   const prefix = siteProfile.guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${siteProfile.guestSpaceId}/v1/`;
   const retainedText = connection.length + 2 * prefix.length + 'records.json'.length + 2 * 71;
   if (![textUnits, retainedText].every(n => Number.isSafeInteger(n) && n > 0 && n <= 2147483647)) fail('KintoneEffectConstructionUnavailable');
+  const installedCapacity = keyed ? native.KeyUpsertInstallationConstructionCapacity : native.UpdateInstallationConstructionCapacity;
   const built = prepareDriver(Object.freeze({
-    capacity() {const value = runtimeUnboxedReferenceOption(native.UpdateInstallationConstructionCapacity(beforeFields.length,
+    capacity() {const value = runtimeUnboxedReferenceOption(installedCapacity(beforeFields.length,
       textUnits, retainedText)); if (!value) fail('KintoneEffectConstructionUnavailable'); return value;},
     project() {
       siteBindingCid = installedKintoneSiteBinding({contextCid: authorization.context.contextCid, runtimeBundleCid, metadataCid, site: siteProfile});
       generationCid = cid({version: 'actql-installed-kintone-effect-generation/0.1', siteBindingCid,
         environmentCid: prepared.environment.evidenceCid, mappingRef: mapped.mappingRef, mappingCid: mapped.mappingCid});
-      const write = kintoneUpdateDriver({moon, site, authorization, connection, origin: siteProfile.apiOrigin,
+      const driver = kintoneUpdateDriver({moon, site, authorization, connection, origin: siteProfile.apiOrigin,
         appId: source.appId, connectorId: source.connectorId, resource: source.resource, formResource: source.formResource,
         fields: beforeFields, mapping: mapped.mapping, declaration: original, siteBindingCid, generationCid,
-        guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxMembers, maxRecoveryBytes});
-      const recipe = captureKintoneEffectPlanRecipeBuilder({moon})({mapping: mapped.mapping, fields: beforeFields, formResource: source.formResource,
+        guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxMembers, maxRecoveryBytes, kind});
+      const recipe = captureKintoneEffectPlanRecipeBuilder({moon, kind})({mapping: mapped.mapping, fields: beforeFields, formResource: source.formResource,
         bindingUnits: textUnits, credentialSite: installedRowCredentialOperationSite(site.credential), limits: policy,
         inputLimits: ownerLimits, maxRecoveryBytes, maxTargetBytes: prefix.length + 'records.json'.length});
-      return Object.freeze({write, managedPlanRecipes: Object.freeze({update: recipe})});
+      return Object.freeze({[keyed ? 'driver' : 'write']: driver, managedPlanRecipes: Object.freeze({[kind]: recipe})});
     },
   }));
   const rowEffect = await construction.createRowEffect({connection, runtimeBundleCid, bindingCid: siteBindingCid,
-    continuationBinding: generationCid, ledgerRoot, write: built.write, managedPlanRecipes: built.managedPlanRecipes, limits: ownerLimits});
+    continuationBinding: generationCid, ledgerRoot, ...built, limits: ownerLimits});
   const targetReadInventory = ({moon: runMoon, prepared: runPrepared, compilation, unit: suppliedUnit,
     updateTargetSelections, assertUpdateSelectionCurrent}) => {
     if (runMoon !== moon) fail('ForeignKintoneEffectRuntime');
-    const unit = suppliedUnit ?? installedRowEffectUnit(moon, compilation), members = membersOf(moon, runPrepared, unit, mapped);
+    const unit = suppliedUnit ?? installedRowEffectUnit(moon, compilation), members = membersOf(moon, runPrepared, unit, mapped, kind);
     const selections = validateInstalledUpdateOwnerSelections(rowEffect, updateTargetSelections, runPrepared);
     if (selections !== undefined) {
       try {
@@ -200,13 +223,13 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
       } catch (cause) {throw refusedEffectPreparation(cause);}
     }
     return Object.freeze(members.map(member => Object.freeze({readTuple: Object.freeze({connection,
-      resource: mapped.resource, operation: 'read'}), physicalBinding: bindingFor(member, unit, siteBindingCid, generationCid)})));
+      resource: mapped.resource, operation: 'read'}), physicalBinding: bindingFor(member, unit, siteBindingCid, generationCid, kind, key)})));
   };
   return retainInstalledRowEffectAdapter(rowEffect, Object.freeze({environmentWire: prepared.environment.wire, generationCid,
     targetReadAuthorization: Object.freeze({accountConfiguration: source.accountConfigurationWire, context: authorization.context}),
     connectorBindings: Object.freeze([Object.freeze({connectorId: source.connectorId, bindingCid: siteBindingCid})]),
     connectorRegistration: 'kintone', connectorRevision: 'kintone/0.1', connection,
-    mappings: Object.freeze([Object.freeze({resource: mapped.resource, kind: 'update', target: mapped.targetRef,
+    mappings: Object.freeze([Object.freeze({resource: mapped.resource, kind, target: mapped.targetRef,
       mappingRef: mapped.mappingRef, mappingCid: mapped.mappingCid})]), effectSelectors: rowEffect.effectSelectors,
     targetReadInventory, prepareManagedPlan: rowEffect.prepareManagedPlan, prepareCaptured: rowEffect.prepareCaptured,
     prepareRecovered: rowEffect.prepareRecovered, close: rowEffect.close}));

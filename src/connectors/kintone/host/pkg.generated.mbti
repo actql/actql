@@ -176,9 +176,13 @@ pub fn record_key_upsert_finalization_construction_capacity(RecordKeyUpsertMappi
 
 pub fn record_key_upsert_form_construction_capacity(RecordKeyUpsertMapping, Int, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
 
+pub fn record_key_upsert_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_key_upsert_mapping(RecordKeyUpsertMapping) -> @client_row_source_host.RowMapping
 
 pub fn record_key_upsert_mapping_construction_capacity(RecordDeclaration, String, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn record_key_upsert_mapping_key(RecordKeyUpsertMapping) -> String
 
 pub fn record_key_upsert_mapping_matches_declaration(RecordKeyUpsertMapping, RecordDeclaration) -> Bool
 

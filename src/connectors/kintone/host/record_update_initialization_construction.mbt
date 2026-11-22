@@ -209,16 +209,43 @@ pub fn record_update_installation_construction_capacity(
   text_units : Int,
   retained_text_units : Int,
 ) -> @execution.ExecutionCapacity? {
+  record_mutation_installation_construction_capacity(
+    fields, text_units, retained_text_units, false,
+  )
+}
+
+///|
+pub fn record_key_upsert_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  record_mutation_installation_construction_capacity(
+    fields, text_units, retained_text_units, true,
+  )
+}
+
+///|
+fn record_mutation_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+  keyed : Bool,
+) -> @execution.ExecutionCapacity? {
   if fields < 1 || text_units < 1 || retained_text_units < 0 {
     return None
   }
   let f = fields.to_int64()
+  let extra = if keyed { 1L } else { 0L }
+  let slots = if keyed { 2L + 13L + 11L } else { 5L + 12L + 13L }
   guard @shape.collection_construction_extent({
-      records: 2L * 192L + 96L,
-      record_references: 14L * 192L + 768L + 8L * f,
-      record_words: 256L + 8L * f,
-      reference_arrays: 64L,
-      reference_items: 1024L + 5L + 12L + 13L + 8L * f,
+      // The keyed adapter captures additional lookup, branch and saved
+      // codec method closures, and keeps its two write slots distinct.
+      records: 2L * 192L + 96L + 24L * extra,
+      record_references: 14L * 192L + 768L + 8L * f + 96L * extra,
+      record_words: 256L + 8L * f + 16L * extra,
+      reference_arrays: 64L + 8L * extra,
+      reference_items: 1024L + slots + 8L * f + 32L * extra,
       scalar_arrays: 16L,
       scalar_items: 512L,
       maps: 8L,
