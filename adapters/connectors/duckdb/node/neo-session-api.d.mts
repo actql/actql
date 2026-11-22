@@ -92,7 +92,10 @@ export interface DuckDBPreparedStatement {
   bindTimestampMilliseconds(parameterIndex: number, value: {readonly millis: bigint}): void;
   bindTimestampNanoseconds(parameterIndex: number, value: {readonly nanos: bigint}): void;
   bindNull(parameterIndex: number): void;
-  runAndReadAll(): Promise<{getRows(): DuckDBValue[][]}>;
+  runAndReadAll(): Promise<{
+    getRows(): DuckDBValue[][];
+    getRowObjects(): Record<string, DuckDBValue>[];
+  }>;
   stream(): Promise<{
     readonly columnCount: number;
     columnName(index: number): string;

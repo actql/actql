@@ -4,11 +4,20 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBInstance, type DuckDBValue } from '@duckdb/node-api';
+
+type GroupCase = Readonly<{
+  id: string;
+  by: string[];
+  rows: Record<string, number | null>[];
+  expected_keys: (number | null)[][];
+  expected_counts: number[];
+}>;
+type GroupQuery = Readonly<{id: string; sql: string}>;
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
-function logicalGroupRows(rows, names) {
+function logicalGroupRows(rows: readonly Record<string, DuckDBValue>[], names: readonly string[]) {
   return rows.map(row => Object.fromEntries(names.map((name, index) => [
     name,
     row[`__actql_output_${index}`],
@@ -16,16 +25,16 @@ function logicalGroupRows(rows, names) {
 }
 
 test('main canonical group vectors agree with Local and real DuckDB ordering', async () => {
-  const corpus = JSON.parse(await readFile(new URL('../../../../../portability/corpus/group-canonical-order.json', import.meta.url), 'utf8'));
+  const corpus = JSON.parse(await readFile(new URL('../../../../../portability/corpus/group-canonical-order.json', import.meta.url), 'utf8')) as Readonly<{cases: GroupCase[]}>;
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/group_canonical_corpus_wbtest.mbt', '--deny-warn',
   ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
   assert.match(stdout, /Total tests: 2, passed: 2, failed: 0/);
   const queries = stdout.split('\n').filter(line => line.startsWith('ACTQL_GROUP_CORPUS '))
-    .map(line => JSON.parse(line.slice('ACTQL_GROUP_CORPUS '.length)));
+    .map(line => JSON.parse(line.slice('ACTQL_GROUP_CORPUS '.length)) as GroupQuery);
   assert.deepEqual(queries.map(q => q.id), corpus.cases.map(c => c.id));
   for (const c of corpus.cases) {
-    const sql = queries.find(q => q.id === c.id).sql;
+    const sql = queries.find(q => q.id === c.id)!.sql;
     const names = c.by.length ? [...c.by].sort() : ['x'];
     const expected = c.expected_keys.map((key, i) => ({
       ...Object.fromEntries(c.by.map((name, j) => [name, key[j]])), n: c.expected_counts[i],
@@ -60,7 +69,7 @@ test('main canonical group vectors agree with Local and real DuckDB ordering', a
   assert(textLine);
   const textFixture = JSON.parse(
     textLine.slice('ACTQL_GROUP_TEXT_CORPUS '.length),
-  );
+  ) as Pick<GroupQuery, 'sql'>;
   const db = await DuckDBInstance.create(':memory:');
   const connection = await db.connect();
   try {

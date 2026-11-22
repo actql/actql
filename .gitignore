@@ -1862,3 +1862,15 @@ target/
 /adapters/connectors/duckdb/node/test/typed-host.test.d.mts
 /adapters/connectors/duckdb/node/test/typed-fixed-host.test.mjs
 /adapters/connectors/duckdb/node/test/typed-fixed-host.test.d.mts
+/adapters/connectors/duckdb/node/test/inner-join.test.mjs
+/adapters/connectors/duckdb/node/test/inner-join.test.d.mts
+/adapters/connectors/duckdb/node/test/count-group.test.mjs
+/adapters/connectors/duckdb/node/test/count-group.test.d.mts
+/adapters/connectors/duckdb/node/test/group-canonical-corpus.test.mjs
+/adapters/connectors/duckdb/node/test/group-canonical-corpus.test.d.mts
+/adapters/connectors/duckdb/node/test/filter-null-differential.test.mjs
+/adapters/connectors/duckdb/node/test/filter-null-differential.test.d.mts
+/adapters/connectors/duckdb/node/test/native-file-values.test.mjs
+/adapters/connectors/duckdb/node/test/native-file-values.test.d.mts
+/adapters/connectors/duckdb/node/test/adopted-contracts.test.mjs
+/adapters/connectors/duckdb/node/test/adopted-contracts.test.d.mts

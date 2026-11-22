@@ -5,6 +5,11 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { DuckDBInstance } from '@duckdb/node-api';
 
+type JoinFixture = Readonly<{
+  name: 'number' | 'text' | 'boolean' | 'date' | 'timestamp' | 'decimal';
+  sql: string;
+}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
 test('MoonBit composite inner join SQL preserves mapped equality and original pair order', async () => {
@@ -13,7 +18,7 @@ test('MoonBit composite inner join SQL preserves mapped equality and original pa
   ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
   assert.match(stdout, /Total tests: 2, passed: 2, failed: 0/);
   const fixtures = stdout.split('\n').filter(x => x.startsWith('ACTQL_INNER_JOIN '))
-    .map(x => JSON.parse(x.slice('ACTQL_INNER_JOIN '.length)));
+    .map(x => JSON.parse(x.slice('ACTQL_INNER_JOIN '.length)) as JoinFixture);
   assert.deepEqual(fixtures.map(x => x.name), ['number', 'text', 'boolean', 'date', 'timestamp', 'decimal']);
   const cases = {
     number: { types: ['DOUBLE', 'DOUBLE'], left: ['9007199254740992', '-1.5'], right: ['9007199254740992', '-1.5'] },

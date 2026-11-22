@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBInstance, type DuckDBValue } from '@duckdb/node-api';
+
+type GroupFixture = Readonly<{name: 'number' | 'text'; sql: string}>;
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
-function logicalGroupRows(rows) {
+function logicalGroupRows(rows: readonly Record<string, DuckDBValue>[]) {
   return rows.map(row => ({
     k: row.__actql_output_0,
     n: row.__actql_output_1,
@@ -21,7 +23,7 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
   ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
   assert.match(stdout, /Total tests: 5, passed: 5, failed: 0/);
   const fixtures = stdout.split('\n').filter(line => line.startsWith('ACTQL_COUNT_GROUP '))
-    .map(line => JSON.parse(line.slice('ACTQL_COUNT_GROUP '.length)));
+    .map(line => JSON.parse(line.slice('ACTQL_COUNT_GROUP '.length)) as GroupFixture);
   assert.deepEqual(fixtures.map(f => f.name), ['number', 'text']);
   // Inputs and expected answers are fixed independently of emitted SQL.
   const cases = {
@@ -65,7 +67,7 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
   }
   const countIfFixtures = stdout.split('\n')
     .filter(line => line.startsWith('ACTQL_COUNT_IF '))
-    .map(line => JSON.parse(line.slice('ACTQL_COUNT_IF '.length)));
+    .map(line => JSON.parse(line.slice('ACTQL_COUNT_IF '.length)) as Pick<GroupFixture, 'sql'>);
   assert.equal(countIfFixtures.length, 1);
   const db = await DuckDBInstance.create(':memory:');
   const connection = await db.connect();

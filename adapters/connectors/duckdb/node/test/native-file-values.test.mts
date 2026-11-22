@@ -6,12 +6,15 @@ import {mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {withComputeDatabase} from '../session.mjs';
+import type {PhysicalScalar} from '../physical-values.mjs';
+
+type NativeRow = Record<string, PhysicalScalar>;
 
 const limits = {maxRows: 10000, maxCells: 30000, maxTransportBytes: 2000000,
   maxSqlBytes: 10000, maxParameters: 1, maxColumns: 3,
   memoryBytes: 134217728, threads: 1, maxChunkRows: 128, maxChunkBytes: 65536};
 
-async function readNative(text, columns, use) {
+async function readNative(text: string, columns: string, use: (rows: NativeRow[]) => void | Promise<void>) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-native-value-probe-'));
   const path = join(directory, 'input.json');
   try {
@@ -21,7 +24,7 @@ async function readNative(text, columns, use) {
         ?, format='array', records=true, auto_detect=false,
         columns=${columns}, maximum_object_size=1048576, ignore_errors=false)`,
       [{type: {id: 'VARCHAR'}, value: path}], () => {});
-      const rows = [];
+      const rows: NativeRow[] = [];
       await session.command('SELECT * FROM imported ORDER BY rowid', [], chunk => {
         for (let row = 0; row < chunk.rowCount; row++) {
           rows.push(Object.fromEntries(chunk.fields.map((field, column) =>

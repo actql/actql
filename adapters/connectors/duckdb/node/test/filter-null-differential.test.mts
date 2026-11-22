@@ -5,6 +5,8 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
 
+type FilterFixture = Readonly<{sql: string; nullParameter: boolean; operator: string}>;
+
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
 test('nullable comparisons agree between Local and real DuckDB', async () => {
@@ -15,7 +17,7 @@ test('nullable comparisons agree between Local and real DuckDB', async () => {
   assert.match(stdout, /Total tests: 1, passed: 1, failed: 0/);
   const fixtures = stdout.split('\n')
     .filter(line => line.startsWith('ACTQL_FILTER_NULL '))
-    .map(line => JSON.parse(line.slice('ACTQL_FILTER_NULL '.length)));
+    .map(line => JSON.parse(line.slice('ACTQL_FILTER_NULL '.length)) as FilterFixture);
   assert.equal(fixtures.length, 8);
   const expected = new Map([
     ['=', [0]], ['<>', [-1, 1]], ['<=', [-1, 0]], ['>=', [0, 1]],
