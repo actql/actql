@@ -238,7 +238,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   }
   // The receiver was retained in outer control before Read entry. Only this
   // exact admitted Runtime/Program/current selection may activate its route.
-  if requirements is Some(_) || file_source is Some(_) {
+  if requirements is Some(_) ||
+    file_source is Some(_) ||
+    model_compilation is Some(_) {
     command_preparation_result(
       original_operation
       .activate()

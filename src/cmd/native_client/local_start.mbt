@@ -618,10 +618,12 @@ fn local_submission_start(
       (compiled, definition)
     }
     if business is Some(original) {
-      if model is Some(model) {
-        original.prepare_model_run(model, request, compiled, definition)
+      // Each branch transfers the same prepared Request to its managed Run.
+      match model {
+        Some(model) =>
+          original.prepare_model_run(model, request, compiled, definition)
+        None => original.adopt_request_run(request)
       }
-      original.adopt_request_run(request)
     }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,
