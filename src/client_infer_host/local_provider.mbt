@@ -193,6 +193,7 @@ pub fn composed_local_provider(
   allow_cleanup? : (Execution) -> Bool = _ => true,
   boundary_only? : Bool = false,
   input_prefix? : @relation.GeneratedSequence? = None,
+  host_await_io? : Bool = false,
 ) -> @local.ManagedProvider {
   let opened = Ref(false)
   let provider = @local.managed_provider_with_inputs(
@@ -231,9 +232,13 @@ pub fn composed_local_provider(
         @publication_host.client_infer_occurrence_coordinates(occurrence) {
         return Err(project_issue(InvalidAdvance))
       }
-      local_component(active, project_issue, retain_completed~, allow_cleanup~).map_err(
+      local_component(
+        active,
         project_issue,
-      )
+        retain_completed~,
+        allow_cleanup~,
+        host_await_io~,
+      ).map_err(project_issue)
     },
   )
   if !boundary_only && input_prefix is Some(prefix) {

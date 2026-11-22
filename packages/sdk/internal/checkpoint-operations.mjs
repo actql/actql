@@ -1,6 +1,7 @@
 // Existing bounded Checkpoint review and signed resolution operations.
 import {checkedSigner, checkpointAnswerMatches, reviewBytesMatchCid, signedAnswer,
   signedAnswerFromAdmittedSummary} from '../checkpoints.mjs';
+import {hasCanonicalReviewContentPadding} from './checkpoint-answer-construction.generated.mjs';
 import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {reviewEnvelopeBytes} from './transport-response.mjs';
@@ -145,6 +146,7 @@ export function createCheckpointOperations(connection, exchange, responseValue,
       if (!validCheckpointReview(review, {checkpointCid, maxBytes})) {
         fail('InvalidHostCheckpointReview');
       }
+      if (!hasCanonicalReviewContentPadding(review.contentBase64)) fail('ReviewIntegrityFailed');
       const bytes = Uint8Array.from(atob(review.contentBase64),
         character => character.charCodeAt(0));
       if (bytes.byteLength !== review.byteLength ||

@@ -10,6 +10,9 @@ pub fn record_update_mapping_construction_capacity(
   input_units : Int64,
   limits : @rows.RowDeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
+  if source_count < 1 {
+    return None
+  }
   record_mutation_mapping_construction_capacity(
     original,
     source_count,
@@ -29,7 +32,7 @@ pub fn record_key_upsert_mapping_construction_capacity(
   input_units : Int64,
   limits : @rows.RowDeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
-  if key.is_empty() || key.length() > limits.max_bytes {
+  if source_count < 1 || key.is_empty() || key.length() > limits.max_bytes {
     return None
   }
   record_mutation_mapping_construction_capacity(
@@ -42,6 +45,23 @@ pub fn record_key_upsert_mapping_construction_capacity(
 }
 
 ///|
+/// DELETE selects the same Relation and emits the same identity families
+/// without constructing any writable source entries.
+pub fn record_delete_mapping_construction_capacity(
+  original : RecordDeclaration,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  record_mutation_mapping_construction_capacity(
+    original,
+    0,
+    input_units,
+    limits,
+    None,
+  )
+}
+
+///|
 fn record_mutation_mapping_construction_capacity(
   original : RecordDeclaration,
   source_count : Int,
@@ -50,7 +70,7 @@ fn record_mutation_mapping_construction_capacity(
   key_units : Int?,
 ) -> @execution.ExecutionCapacity? {
   let unit_bound = 9223372036854775807L / 64L
-  if source_count < 1 ||
+  if source_count < 0 ||
     source_count > limits.max_fields ||
     input_units < 0L ||
     input_units > unit_bound ||

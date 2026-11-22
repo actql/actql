@@ -105,7 +105,8 @@ export function recordUpdateReplyLossFaults(provider) {
       pathname.startsWith('//') || pathname.length > 4096 || !pathname.isWellFormed() ||
       pathname.includes('?') || pathname.includes('#') ||
       pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92)) ||
-      bodyIncludes !== undefined && (typeof bodyIncludes !== 'string' || !bodyIncludes || bodyIncludes.length > 256)) {
+      (bodyIncludes !== undefined && (typeof bodyIncludes !== 'string' ||
+        bodyIncludes.length < 1 || bodyIncludes.length > 128 || !bodyIncludes.isWellFormed()))) {
     throw new TypeError('InvalidRecordApprovalWriteRoute');
   }
   return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1,

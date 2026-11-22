@@ -2367,6 +2367,26 @@ pub fn client_program_prepare_request_models_read_scopes(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelsReadScopesWithPlannedQuantities")
+pub fn client_program_prepare_request_models_read_scopes_with_planned_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    require_planned_quantities=true,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelsReadScopesWithQuantities")
 pub fn client_program_prepare_request_models_read_scopes_with_quantities(
   parent : @client_local_host.ClientRequestPreparation[

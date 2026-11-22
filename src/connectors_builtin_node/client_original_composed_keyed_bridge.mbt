@@ -104,6 +104,7 @@ pub fn client_program_original_composed_keyed_prefix_advance(
     match poll {
       Complete(_, ..) => (true, true, None)
       Continue(..) | Waiting(..) | Settling(_, ..) => (false, false, None)
+      AwaitIo(..) => (false, true, Some(@connector.ComputeUnsupported))
       Failed(issue, ..) => (false, true, Some(issue))
       Stopped(..) => (false, true, None)
       CarrierComplete(_, ..) =>

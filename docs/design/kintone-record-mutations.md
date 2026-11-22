@@ -258,11 +258,18 @@ existing Effect Owner must recheck the original target/version before claim.
 
 ### Deletion before-data interface responsibilities
 
+The target read encoder derives the API ID query and complete before-field
+selection from the original Mapping. The response projection requires exactly
+one record with that same API ID under the original Form. It derives the
+before data and conditional DELETE body from that one record and its revision.
+
 - Responsibility: the existing vendor Catalog and typed Mapping project
   original checked before DATA; the existing Effect Owner seals and approves
   the actual Preview, while the Site owns physical observations.
 - Inputs and outputs: original Mapping/target, positive checked-value limits
   and mutation/output bounds return private before/guard DATA or typed refusal.
+  The selector path also takes the exact API ID and bounded response bytes,
+  and returns the before data and original conditional request together.
 - Identity: the complete original Catalog/field selection and physical original
   Mapping/target stay matched; exact App/API ID/revision strings bind the
   version fingerprint without a new identity, wire or CID version authority.
@@ -278,7 +285,8 @@ existing Effect Owner must recheck the original target/version before claim.
   the capture child must retain its original physical dependencies until ACK.
 - Resources: original page/Form/declaration, copied record/column/row arrays,
   checked matrix, original target, before writer/output and version hash
-  workspace can overlap. The returned view retains the complete checked page.
+  workspace can overlap with the conditional request writer. The returned view
+  and request share the original target, and the view retains the checked page.
   These positive bounds are not whole-phase reservations or a normal profile.
 - Extension: same-runtime Node/RelA forwards only the original opaque values.
   The generic child currently has no adopted Effect response charge/holding
@@ -289,6 +297,52 @@ existing Effect Owner must recheck the original target/version before claim.
   before values, array order/duplicates, separate equal originals, wide
   revision changes and finite refusal. They do not establish actual provider
   observations, approved physical deletion, reconciliation or installed support.
+
+### DELETE request and recovery data
+
+- The request adapter gives the existing row Effect the selected target and
+  a conditional request. The adapter performs no Site or credential calls.
+- Before finalization, it accepts the exact API ID and the bounded comparison
+  response, and projects the original before data and revision.
+- A logical identity binds the installation, Mapping and selected API ID.
+  Finalization adds the original dispatch tag, observed body digest and
+  conditional request body to the physical request identity.
+- The original adapter retains the request, observed target and bounded
+  response bytes. The Effect owner still holds and checks the approved
+  Preview and the durable claim.
+- Form recheck and target projection are synchronous. The Site and Effect
+  surround physical I/O with their existing authority and current checks.
+- Recovery reprojects the stored response under the same installation,
+  Mapping and dispatch tag. Changed bindings, revision bodies or response
+  digests fail before any possible send.
+- Restoring request data issues no retry or cleanup acknowledgement.
+- The read, response, identity and recovery limits apply independently.
+  The calling Effect must fund its byte copies, canonical encoding, hash
+  workspace and retained request under the actual selected plan.
+  The native comparison quote retains the encoded query and charges its
+  temporary concatenation and writer separately. Form comparison leaves no
+  retained metadata. Target projection shares the existing page, checked
+  before data and revision quote and adds the conditional request writer,
+  document and one-target vector.
+- The Node and RelA bridges forward the same typed Mapping and original
+  Catalog request. Approval and provider response classification stay on
+  the existing Effect and Site paths.
+- The compiled-runtime controls verify exact selector, revision and before
+  data, changed input refusal and same-tag reconstruction from Saved data.
+
+The row driver shares the Form and current target checks. It constructs the
+target operations inside the original credential child. After the Host
+admits a DELETE write, the driver sends the original conditional body once
+through that scoped credential, using the existing POST method override.
+Recovery requires the approved absent state, exact target and original claim
+CID before returning reconstructed request data to the Host.
+
+An installed effect profile selects deletion with one write entry containing
+`resource` and `kind: "delete"`. The selected source supplies all before
+fields. The loader admits the DELETE Mapping with required approval and
+registers its request, finalization, Form, target and write slots on the
+existing managed plan. The prior `resource` and `fields` entry continues to
+select UPDATE.
 
 ### Original key lookup physical boundary
 
@@ -687,6 +741,12 @@ The provider's empty-object acknowledgement becomes `result: {}` in the existing
 applied outcome shape; no missing record, Record Number or guessed revision
 becomes an acknowledgement. Raw batch support remains unchanged, but a batch
 response cannot substitute an individual row projection.
+
+The request adapter retains the same checked before projection used to build
+the conditional request. The response checker checks its nominal identity and
+reuses it for the approved row comparison. During recovery the adapter
+reprojects the stored target bytes once, before checking the saved response.
+Malformed success bodies and non-success responses remain unclassified.
 
 - DELETE outcome responsibility: the existing Catalog retains original target,
   request and native acknowledgement DATA; the existing Common Preview Owner

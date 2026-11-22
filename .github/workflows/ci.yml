@@ -2339,6 +2339,14 @@ jobs:
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone conditional DELETE and original Saved
+        id: packed-kintone-delete
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/delete.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","deleted"]'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
       - name: Test packed Salesforce mock approval and original Saved
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:

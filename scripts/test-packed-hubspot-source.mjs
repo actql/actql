@@ -102,7 +102,8 @@ if (httpCaseInput !== undefined) {
 const caseInput = mockCaseInput ?? httpCaseInput;
 const authoredCase = caseInput === undefined ? undefined : await readAuthoredCase(caseInput);
 assert(authoredCase === undefined || authoredCase.fixture !== undefined, 'An authored case requires a seed and state oracle');
-const fixtureWrite = authoredCase?.review.kind === 'upsert' && authoredCase.review.before === null ? 'CREATE' : 'UPDATE';
+const fixtureWrite = authoredCase?.review.kind === 'delete' ? 'DELETE'
+  : authoredCase?.review.kind === 'upsert' && authoredCase.review.before === null ? 'CREATE' : 'UPDATE';
 const configuredReplyLoss = installedRecordReplyLossExpectation();
 const authoredFaults = httpCaseInput === undefined ? undefined : authoredCase.fixture.faults;
 assert(authoredFaults === undefined || configuredReplyLoss === undefined, 'Select one original fixture fault schedule');

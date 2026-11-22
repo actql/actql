@@ -146,6 +146,38 @@ class CheckpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credentials, ['token'])
         self.assertEqual(signatures, [])
 
+    async def test_review_content_requires_canonical_base64_at_the_existing_byte_limit(self):
+        operations = []
+        response = None
+
+        def handler(request):
+            operation = request.url.path.rsplit('/', 1)[-1]
+            operations.append(operation)
+            if operation == 'connect':
+                return httpx.Response(200, json=PROFILE)
+            self.assertEqual(operation, 'checkpoint-review')
+            return httpx.Response(200, json=response)
+
+        async with await AsyncClient.connect('https://fixture.invalid/', 'token',
+                transport=httpx.MockTransport(handler)) as client:
+            for content, canonical, alias in ((b'x', 'eA==', 'eB=='), (b'xy', 'eHk=', 'eHl='),
+                                               (b'xyz', 'eHl6', None)):
+                with self.subTest(content=content):
+                    cid = 'sha256:' + hashlib.sha256(content).hexdigest()
+                    response = dict(kind='review', checkpointCid=SUMMARY['checkpointCid'],
+                                    artifactCid=cid, byteLength=len(content), contentBase64=canonical)
+                    original = dict(SUMMARY, reviewProjectionCid=cid)
+                    accepted = await client.review_checkpoint(original, max_bytes=len(content))
+                    self.assertEqual(accepted['bytes'], content)
+                    self.assertEqual(accepted['artifact_cid'], cid)
+                    if alias is not None:
+                        self.assertEqual(base64.b64decode(alias, validate=True), content)
+                        response = dict(response, contentBase64=alias)
+                        with self.assertRaises(ClientError) as failure:
+                            await client.review_checkpoint(original, max_bytes=len(content))
+                        self.assertEqual(failure.exception.code, 'ReviewIntegrityFailed')
+        self.assertEqual(operations, ['connect'] + ['checkpoint-review'] * 5)
+
     async def test_signed_noncontrol_ids_preserve_exact_spaces_and_unicode(self):
         from actql_sdk._checkpoints import signed_answer
         signer = Signer('alice-key', 'alice', lambda raw: bytes(64))

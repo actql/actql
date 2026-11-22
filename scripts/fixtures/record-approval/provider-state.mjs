@@ -38,6 +38,13 @@ export function createRecordUpdateProviderState(selection, initialFields, {allow
     return replaceTarget(name, fields);
   }
 
+  function deleteTarget() {
+    assert(target !== null, 'The original DELETE requires an existing target');
+    assert.equal(writes, 0, 'Only one original physical DELETE is expected');
+    target = null;
+    writes++;
+  }
+
   function route(method, pathname, action) {
     return {method, pathname, handle(exchange) {
       if (attempts >= maxRouteAttempts) {
@@ -64,6 +71,6 @@ export function createRecordUpdateProviderState(selection, initialFields, {allow
     }};
   }
 
-  return Object.freeze({get target() {return target;}, control, route, updateTarget, createTarget, reset,
+  return Object.freeze({get target() {return target;}, control, route, updateTarget, createTarget, deleteTarget, reset,
     snapshot: () => structuredClone({writes, target, control, requests, failures})});
 }

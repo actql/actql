@@ -1078,12 +1078,204 @@ pub fn client_program_prepare_request_models_source_free_plan(
     occurrences,
     graphs,
     selected,
-    (model, retained, execution, reservations, holdings, delegations) => {
+    (
+      model,
+      retained,
+      execution,
+      reservations,
+      holdings,
+      delegations,
+      bootstrap,
+      _node_quantities,
+    ) => {
       @client_local_host.prepare_request_models_source_free_plan(
-        parent, input, original, request, compiled, definition, occurrences, graphs,
-        model, retained, execution, reservations, holdings, delegations,
+        parent,
+        input,
+        original,
+        request,
+        compiled,
+        definition,
+        occurrences,
+        graphs,
+        model,
+        retained,
+        execution,
+        reservations,
+        holdings,
+        delegations,
+        bootstrap~,
       )
     },
+  )
+}
+
+///|
+// Each demand is checked against one typed Graph and its selected Limits.
+// This is data on the original Request, with no separate Run or allowance.
+struct ClientNodeGroupModelDemand {
+  graph : @publication_host.ClientInferPlanGraph
+  selected : @infer_host.Limits
+  model : @resources.LedgerLimits
+  retained : Int64
+  execution : Int64
+  reservations : Int
+  holdings : Int
+  delegations : Int
+  bootstrap_retained : Int64
+  bootstrap_execution : Int64
+  quantities : @resources.QuantityAmounts
+}
+
+///|
+pub type CheckClientNodeGroupModelDemand = (
+  @publication_host.ClientNodeModelPreparationLayout?,
+  @check_environment.ModelResponseProfileInstallation,
+  String,
+  String,
+  @check_environment.DecisionProbabilityProfile?,
+  Int64,
+  Int64,
+  Int,
+  Int,
+  Int,
+  Int64,
+  Int64,
+  Int64,
+  Int64,
+  Int64,
+) -> Result[
+  ClientNodeGroupModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+]
+
+///|
+pub type ProjectClientNodeGroupModelDemand = (
+  Int,
+  CheckClientNodeGroupModelDemand,
+) -> Result[
+  ClientNodeGroupModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+]
+
+///|
+fn check_client_node_group_model_demand(
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  model_retained : Int64,
+  model_execution : Int64,
+  reservations : Int,
+  holdings : Int,
+  delegations : Int,
+  bootstrap_retained : Int64,
+  bootstrap_execution : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  ClientNodeGroupModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard model_retained >= selected.model.ledger.retained_bytes &&
+    model_execution >= selected.model.ledger.execution_bytes &&
+    bootstrap_retained >= selected.mapping.logical.max_live_value_bytes &&
+    bootstrap_execution >= selected.identity.wire.max_bytes.to_int64() &&
+    reservations >= 0 &&
+    holdings >= 0 &&
+    delegations >= 0 &&
+    tokens >= 0L &&
+    cost_units >= 0L &&
+    duration_ms >= 0L else {
+    return Err(InsufficientCapacity)
+  }
+  match
+    @publication_host.check_client_node_model_preparation_layout(
+      layout, graph, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(ModelLayout(issue))
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else {
+    return Err(ModelLayout(@publication_host.Unavailable))
+  }
+  Ok({
+    graph,
+    selected,
+    model: {
+      ..selected.model.ledger,
+      retained_bytes: model_retained,
+      execution_bytes: model_execution,
+    },
+    retained: layout.retained_bytes,
+    execution: layout.execution_bytes,
+    reservations: Int::max(selected.input.rows.operation_entries, reservations),
+    holdings: Int::max(selected.input.rows.retained_entries, holdings),
+    delegations: Int::max(selected.input.rows.metadata_entries, delegations),
+    bootstrap_retained,
+    bootstrap_execution,
+    quantities: { tokens, cost_units, duration_ms, },
+  })
+}
+
+///|
+#export_name("clientProgramPrepareRequestNodeModelsSourceFreePlan")
+pub fn client_program_prepare_request_node_models_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+  project : ProjectClientNodeGroupModelDemand,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  client_request_models_plan_projection(
+    parent,
+    input,
+    occurrences,
+    graphs,
+    selected,
+    (
+      model,
+      retained,
+      execution,
+      reservations,
+      holdings,
+      delegations,
+      bootstrap,
+      node_quantities,
+    ) => {
+      @client_local_host.prepare_request_models_source_free_plan(
+        parent,
+        input,
+        original,
+        request,
+        compiled,
+        definition,
+        occurrences,
+        graphs,
+        model,
+        retained,
+        execution,
+        reservations,
+        holdings,
+        delegations,
+        bootstrap~,
+        node_quantities~,
+      )
+    },
+    project=Some(project),
   )
 }
 
@@ -1111,10 +1303,32 @@ pub fn client_program_prepare_request_models_capture_plan(
     occurrences,
     graphs,
     selected,
-    (model, retained, execution, reservations, holdings, delegations) => {
+    (
+      model,
+      retained,
+      execution,
+      reservations,
+      holdings,
+      delegations,
+      bootstrap,
+      _node_quantities,
+    ) => {
       @client_local_host.prepare_request_models_capture_plan(
-        parent, input, original, request, compiled, definition, occurrences, graphs,
-        model, retained, execution, reservations, holdings, delegations,
+        parent,
+        input,
+        original,
+        request,
+        compiled,
+        definition,
+        occurrences,
+        graphs,
+        model,
+        retained,
+        execution,
+        reservations,
+        holdings,
+        delegations,
+        bootstrap~,
       )
     },
   )
@@ -1136,10 +1350,13 @@ fn client_request_models_plan_projection(
     Int,
     Int,
     Int,
+    (Int64, Int64)?,
+    Array[@resources.QuantityAmounts]?,
   ) -> Result[
     @client_local_host.ClientInstalledManagedModelPlan,
     @client_local_host.ClientInstalledManagedRunIssue,
   ],
+  project? : ProjectClientNodeGroupModelDemand? = None,
 ) -> Result[
   @client_local_host.ClientInstalledManagedModelPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -1147,7 +1364,10 @@ fn client_request_models_plan_projection(
   let count = selected.length()
   match
     @client_local_host.reserve_request_models_plan_projection(
-      parent, input, count,
+      parent,
+      input,
+      count,
+      node_physical=project is Some(_),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -1163,10 +1383,82 @@ fn client_request_models_plan_projection(
   let mut reservations = 0
   let mut holdings = 0
   let mut delegations = 0
-  for limits in selected {
-    let r = limits.input.rows.operation_entries
-    let h = limits.input.rows.retained_entries
-    let d = limits.input.rows.metadata_entries
+  let node_quantities : Array[@resources.QuantityAmounts]? = if project
+    is Some(_) {
+    Some([])
+  } else {
+    None
+  }
+  let mut bootstrap_retained = 0L
+  let mut bootstrap_execution = 0L
+  for index, limits in selected {
+    let mut r = limits.input.rows.operation_entries
+    let mut h = limits.input.rows.retained_entries
+    let mut d = limits.input.rows.metadata_entries
+    match project {
+      None => {
+        model.push(limits.model.ledger)
+        retained.push(limits.mapping.logical.max_live_value_bytes)
+        execution.push(limits.identity.wire.max_bytes.to_int64())
+      }
+      Some(project) => {
+        let graph = graphs[index]
+        let demand = match
+          project(index, (
+            layout,
+            installation,
+            runtime_cid,
+            layout_cid,
+            probability,
+            model_r,
+            model_e,
+            reservations,
+            holdings,
+            delegations,
+            bootstrap_r,
+            bootstrap_e,
+            tokens,
+            cost_units,
+            duration_ms,
+          ) => {
+            check_client_node_group_model_demand(
+              graph, limits, layout, installation, runtime_cid, layout_cid, probability,
+              model_r, model_e, reservations, holdings, delegations, bootstrap_r,
+              bootstrap_e, tokens, cost_units, duration_ms,
+            )
+          }) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+        guard physical_equal(demand.graph, graph) &&
+          physical_equal(demand.selected, limits) else {
+          return Err(ForeignOriginal)
+        }
+        guard @execution.checked_preparation_add_product(
+            bootstrap_retained,
+            demand.bootstrap_retained,
+            1L,
+          )
+          is Some(bootstrap_r) &&
+          @execution.checked_preparation_add_product(
+            bootstrap_execution,
+            demand.bootstrap_execution,
+            1L,
+          )
+          is Some(bootstrap_e) else {
+          return Err(InsufficientCapacity)
+        }
+        bootstrap_retained = bootstrap_r
+        bootstrap_execution = bootstrap_e
+        r = demand.reservations
+        h = demand.holdings
+        d = demand.delegations
+        model.push(demand.model)
+        retained.push(demand.retained)
+        execution.push(demand.execution)
+        node_quantities.unwrap().push(demand.quantities)
+      }
+    }
     if r < 0 ||
       h < 0 ||
       d < 0 ||
@@ -1178,11 +1470,15 @@ fn client_request_models_plan_projection(
     reservations += r
     holdings += h
     delegations += d
-    model.push(limits.model.ledger)
-    retained.push(limits.mapping.logical.max_live_value_bytes)
-    execution.push(limits.identity.wire.max_bytes.to_int64())
   }
-  construct(model, retained, execution, reservations, holdings, delegations)
+  let bootstrap = if project is Some(_) {
+    Some((bootstrap_retained, bootstrap_execution))
+  } else {
+    None
+  }
+  construct(
+    model, retained, execution, reservations, holdings, delegations, bootstrap, node_quantities,
+  )
 }
 
 ///|

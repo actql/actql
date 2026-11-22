@@ -35,7 +35,7 @@ pub fn client_broad_residual_advance(
     Ok(Complete(_, ..)) => true
     Ok(Stopped(..)) => raise Stopped
     Ok(Failed(issue, ..)) | Err(issue) => raise Local(issue)
-    Ok(Waiting(..)) | Ok(Settling(_, ..)) => {
+    Ok(AwaitIo(..)) | Ok(Waiting(..)) | Ok(Settling(_, ..)) => {
       @local.cancel_managed_provider(
         @client_local_host.client_broad_residual_execution(owner),
       )

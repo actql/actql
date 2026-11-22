@@ -164,6 +164,7 @@ pub struct LocalManagedInputTransfer[T] {
 pub(all) struct LocalManagedAdvance {
   complete : Bool
   waiting : Bool
+  await_io : Bool
   settlement : Int?
   progress : Int64
   work : Int64
@@ -1968,6 +1969,7 @@ pub fn[T] start_local_managed_dispatch(
       return Ok({
         complete: true,
         waiting: false,
+        await_io: false,
         settlement: None,
         progress: 0L,
         work: 0L,
@@ -2120,6 +2122,7 @@ pub fn[T] start_local_managed_dispatch(
               Ok({
                 complete: false,
                 waiting: false,
+                await_io: false,
                 settlement: None,
                 progress,
                 work,
@@ -2132,6 +2135,20 @@ pub fn[T] start_local_managed_dispatch(
               Ok({
                 complete: false,
                 waiting: true,
+                await_io: false,
+                settlement: None,
+                progress,
+                work,
+              })
+            }
+          Ok(@local.AwaitIo(progress~, work~)) =>
+            if progress < 0L || work < 0L || work > quantum.to_int64() {
+              Err(Configuration(InvalidLimits))
+            } else {
+              Ok({
+                complete: false,
+                waiting: false,
+                await_io: true,
                 settlement: None,
                 progress,
                 work,
@@ -2147,6 +2164,7 @@ pub fn[T] start_local_managed_dispatch(
               Ok({
                 complete: false,
                 waiting: false,
+                await_io: false,
                 settlement: Some(slot),
                 progress,
                 work,
@@ -2173,6 +2191,7 @@ pub fn[T] start_local_managed_dispatch(
             Ok({
               complete: true,
               waiting: false,
+              await_io: false,
               settlement: None,
               progress,
               work,
@@ -2195,6 +2214,7 @@ pub fn[T] start_local_managed_dispatch(
             Ok({
               complete: true,
               waiting: false,
+              await_io: false,
               settlement: None,
               progress,
               work,
@@ -2260,7 +2280,9 @@ pub fn[T] start_local_managed_dispatch(
       while !execution_finished.val {
         match advance(1024) {
           Ok(observation) =>
-            if observation.waiting || observation.settlement is Some(_) {
+            if observation.await_io ||
+              observation.waiting ||
+              observation.settlement is Some(_) {
               // A synchronous caller cannot supply asynchronous custody.
               // Leave the owner available to a bounded Host or explicit stop.
               return Err(Configuration(InputUnavailable))
@@ -2403,6 +2425,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2429,6 +2452,7 @@ pub fn[T] start_local_managed_dispatch(
           return Ok({
             complete: false,
             waiting: false,
+            await_io: false,
             settlement: None,
             progress: finalization_progress(),
             work: work.to_int64(),
@@ -2507,6 +2531,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2638,6 +2663,7 @@ pub fn[T] start_local_managed_dispatch(
                 return Ok({
                   complete: false,
                   waiting: false,
+                  await_io: false,
                   settlement: None,
                   progress: finalization_progress(),
                   work: work.to_int64(),
@@ -2711,6 +2737,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2774,6 +2801,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2818,6 +2846,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2848,6 +2877,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2874,6 +2904,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2902,6 +2933,7 @@ pub fn[T] start_local_managed_dispatch(
         return Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
@@ -2911,6 +2943,7 @@ pub fn[T] start_local_managed_dispatch(
       Ok({
         complete: true,
         waiting: false,
+        await_io: false,
         settlement: None,
         progress: finalization_progress(),
         work: work.to_int64(),
@@ -3388,6 +3421,7 @@ pub fn[T] start_local_managed_dispatch(
             return Ok({
               complete: true,
               waiting: false,
+              await_io: false,
               settlement: None,
               progress: emitted_bytes.val,
               work: 0L,
@@ -3483,6 +3517,7 @@ pub fn[T] start_local_managed_dispatch(
           Ok({
             complete: observation.complete,
             waiting: false,
+            await_io: false,
             settlement: None,
             progress: emitted_bytes.val,
             work: spent.to_int64(),
@@ -3872,6 +3907,7 @@ pub fn[T] start_local_managed_dispatch(
         Ok({
           complete: observation.complete,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress: observation.progress,
           work: delta,

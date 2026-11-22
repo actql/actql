@@ -59,6 +59,7 @@ pub fn bind_client_model_read_scopes(
   identity : @resources.OriginalLedgerIdentity,
   retained_bytes : Array[Int64],
   execution_bytes : Array[Int64],
+  model_limits? : Array[@resources.LedgerLimits]? = None,
 ) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue] {
   // Borrow the private compiler Array in place. No copied inventory or
   // temporary public getter projection is needed before this comparison.
@@ -72,6 +73,9 @@ pub fn bind_client_model_read_scopes(
     plans.length() == retained_bytes.length() &&
     plans.length() == execution_bytes.length() &&
     check_client_compiled_run_definition(compiled, definition) is Ok(_) else {
+    return Err(ForeignRun)
+  }
+  if model_limits is Some(limits) && limits.length() != plans.length() {
     return Err(ForeignRun)
   }
   let mut r = 0L
@@ -116,7 +120,10 @@ pub fn bind_client_model_read_scopes(
   for index, plan in plans {
     let origin : ClientModelReadOrigin = {
       compiled,
-      model_limits: None,
+      model_limits: match model_limits {
+        None => None
+        Some(limits) => Some(limits[index])
+      },
       definition_cid: @publication.publication_contract_identity(definition),
       plan,
       host_policy_cid: @publication.run_publication_host_policy(

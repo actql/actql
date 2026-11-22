@@ -154,10 +154,7 @@ pub fn record_update_target_construction_inventory(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> RecordUpdateConstructionInventory? {
-  if !record_update_mapping_is_original(mapping) ||
-    !record_target_before_limits_valid(limits) ||
-    pages.max_rows != 1 ||
-    mapping.before_fields.length() == 2147483647 {
+  if !record_update_mapping_is_original(mapping) || pages.max_rows != 1 {
     return None
   }
   record_target_before_construction_inventory(
@@ -179,6 +176,10 @@ fn record_target_before_construction_inventory(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> RecordUpdateConstructionInventory? {
+  if !record_target_before_limits_valid(limits) ||
+    before_fields.length() == 2147483647 {
+    return None
+  }
   let columns = before_fields.length() + 1
   guard managed_record_page_inventory(
       original,

@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import * as originalMoon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createInstalledLoaderParent, installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {loadInstalledEffect, installedEffectIdentity} from '../../../host-node/installed-effect.mjs';
+import {installedRowEffectOwnerBinding} from '../../../host-node/installed-row-effect.mjs';
 import {installedSourceConfigurationReader, retireInstalledSourceInitialization} from '../../../host-node/installed-host-services.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
@@ -16,7 +17,7 @@ import {form} from './kintone-update-form.fixture.mjs';
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const base = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
 
-async function fixture(t, {field = 'Subject', key, unique = true} = {}) {
+async function fixture(t, {field = 'Subject', key, unique = true, kind = 'update'} = {}) {
   const dependentCleanup = [];
   let parent, secretReads = 0;
   // The Account gate admits its configuration in this same module namespace.
@@ -50,8 +51,8 @@ async function fixture(t, {field = 'Subject', key, unique = true} = {}) {
     appId: '12', apiOrigin: tls.origin, formBody: Buffer.from(JSON.stringify(originalForm)).toString('base64')}));
   const accountConfigurationWire = canonicalJson({version: 'actql-execution-account-config/0.1', account_id: 'kintone-component',
     entries: [{entry_id: 'records', outcome: 'allow', principal: {all: true}, connection: {any_of: ['kintone:kintone']},
-      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: keyed ? ['read', 'upsert'] : ['read', 'update']}, exclusions: []}]},
-  {dataKeys: true});
+      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', keyed ? 'upsert' : kind === 'delete' ? 'write' : 'update']},
+      exclusions: []}]}, {dataKeys: true});
   const limits = {maxResponseBytes: 16384, maxNodes: 8000, maxDepth: 32, maxFields: 16, maxNameUnits: 512,
     maxColumns: 8, maxCells: 32, maxTableRows: 16, maxValueNodes: 8000, maxValueDepth: 32,
     maxValueTextBytes: 16384, maxContractPairs: 100, maxRequestBytes: 2048, maxRequests: 6,
@@ -61,7 +62,9 @@ async function fixture(t, {field = 'Subject', key, unique = true} = {}) {
     metadataPath, siteProfilePath: sitePath, accountConfigurationWire, limits}));
   const path = join(root, 'effect.json');
   await writeFile(path, JSON.stringify({version: 'actql-installed-kintone-effect/0.1', connectorId: 'kintone',
-    sourceProfilePath: sourcePath, writes: [{resource: 'inquiries', ...(keyed ? {kind: 'upsert', key} : {}), fields: [field]}]}));
+    sourceProfilePath: sourcePath, writes: [kind === 'delete' ? {resource: 'inquiries', kind} :
+      {resource: 'inquiries', ...(keyed ? {kind: 'upsert', key} : {}), fields: [field]}],
+    ...(kind === 'delete' ? {queryUpdateTargets: [{name: 'kintone.inquiries', targetRef: 'connector://kintone/inquiries'}]} : {})}));
   parent = createInstalledLoaderParent({root, moon}); parent.open();
   const load = async () => {
     try {
@@ -81,11 +84,37 @@ async function fixture(t, {field = 'Subject', key, unique = true} = {}) {
       throw failure;
     }
   };
-  return {parent, path, load, tls,
+  return {parent, root, path, load, tls,
     secretReads: () => secretReads, close: () => parent.close()};
 }
 
-test('standard kintone UPDATE initialization keeps the original Site owned until close', async t => {
+test('standard kintone DELETE installs the exact guarded Mapping and closes without any provider call', async t => {
+  const f = await fixture(t, {kind: 'delete'});
+  const identity = await installedEffectIdentity(f.path, {
+    configurationReader: installedSourceConfigurationReader(f.parent.services)});
+  assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
+  const effect = await f.load(), environment = JSON.parse(effect.environmentWire);
+  assert.equal(effect.mappings.length, 1);
+  const original = effect.mappings[0];
+  assert.equal(original.kind, 'delete');
+  assert.deepEqual(effect.queryUpdateTargets, [{name: 'kintone.inquiries', targetRef: original.target,
+    installationBindingCid: effect.connectorBindings[0].bindingCid,
+    installationOwnerCid: installedRowEffectOwnerBinding(effect).cid}]);
+  const mapping = environment.mapping_contracts.find(value => value.mapping_contract_cid === original.mappingCid);
+  assert.equal(mapping.primary_identity, '$id');
+  assert.equal(mapping.target_ref, original.target);
+  assert.equal(mapping.minimum_approval, 'required');
+  assert.deepEqual(mapping.writable_fields, []);
+  assert.deepEqual(mapping.permission_rules, [{effect_kind: 'delete', selector_class: 'id',
+    write_fields: [], permissions: ['kintone:records:delete']}]);
+  assert.deepEqual(Object.keys(mapping.target_schema.fields).sort(), ['$id', 'Computed', 'Subject', 'Tags']);
+  assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), false);
+  await f.close();
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
+});
+
+test('standard kintone UPDATE initialization retains the original Mapping until actual close', async t => {
   const f = await fixture(t);
   const identity = await installedEffectIdentity(f.path, {
     configurationReader: installedSourceConfigurationReader(f.parent.services)});

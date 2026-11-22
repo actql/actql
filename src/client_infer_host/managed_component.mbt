@@ -8,16 +8,21 @@ pub fn local_component(
   project_issue : (Issue) -> @connector.FixedComputeIssue,
   retain_completed? : (Execution) -> Bool = _ => true,
   allow_cleanup? : (Execution) -> Bool = _ => true,
+  host_await_io? : Bool = false,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
     !execution_input_unadvanced(active) ||
-    active.local_component_bound {
+    !(active.local_component_binding is Unbound) {
     return Err(InvalidAdvance)
   }
-  active.local_component_bound = true
+  active.local_component_binding = if host_await_io {
+    WithHostIo
+  } else {
+    Synchronous
+  }
   // The original producer's completed work stays in the cumulative report.
   // Local owns only new deltas from this fresh component entrance onward.
   let charged = Ref(active.entry_work)
@@ -44,9 +49,13 @@ pub fn local_component(
         charged.val = total
         match poll {
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
-          // This installed managed profile does not admit persistence polls.
-          // Never disguise I/O suspension as a checkpoint or zero-work loop.
-          AwaitIo(_) => Err(project_issue(InvalidAdvance))
+          // Only the installed Host that owns the physical wake can wait.
+          AwaitIo(_) =>
+            if active.local_component_binding is WithHostIo {
+              Ok(@local.managed_provider_await_io(delta, delta))
+            } else {
+              Err(project_issue(InvalidAdvance))
+            }
           Waiting(_) => Ok(@local.managed_provider_waiting(delta, delta))
           Settling(slot, ..) =>
             Ok(@local.managed_provider_settling(slot, delta, delta))
@@ -94,7 +103,7 @@ pub fn local_component(
 // their backing alive. Local can detach only its temporary driver roots; this
 // does not reclaim the Model or settle evidence, publication or physical IO.
 fn completed_original_component_scratch_retained(active : Execution) -> Bool {
-  active.local_component_bound &&
+  !(active.local_component_binding is Unbound) &&
   active.output_uses > 0 &&
   original_infer_publication_owner_current(active)
 }

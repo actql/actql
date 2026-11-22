@@ -161,6 +161,14 @@ function encodeSignerSignature(value) {
   return btoa(binary);
 }
 
+// The review envelope already checks the alphabet, length and padding shape.
+// Only its final quartet can spell the same bytes with nonzero padding bits.
+export function hasCanonicalReviewContentPadding(value) {
+  const tail = value.slice(-4);
+  try { return btoa(atob(tail)) === tail; }
+  catch { return false; }
+}
+
 export function createCheckpointAnswerCodec(primitives) {
   shape(primitives, ['canonicalJson', 'bytesCid']);
   const canonicalJson = primitives.canonicalJson, bytesCid = primitives.bytesCid;

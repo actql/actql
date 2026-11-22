@@ -1,11 +1,14 @@
-// Synthetic provider DATA for the original CREATE or revision-checked UPDATE.
+// Synthetic provider DATA only. Revision comparison and exactly one mutation
+// are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
 import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
 import {form} from '../../../adapters/connectors/kintone/test/kintone-update-form.fixture.mjs';
 
-export function kintoneApprovalProvider(selection) {
+export function kintoneApprovalProvider(selection, kind = selection.key === undefined ? 'update' : 'upsert') {
   const {recordId, controlId, key} = selection;
-  const keyed = key !== undefined, creating = keyed && selection.previousName === null;
+  assert(['update', 'delete', 'upsert'].includes(kind));
+  const keyed = kind === 'upsert', creating = keyed && selection.previousName === null;
+  assert.equal(keyed, key !== undefined);
   const controlKey = 'Untouched fixture key';
   if (keyed) assert(typeof key === 'string' && key.length > 0 && key !== controlKey);
   for (const value of [recordId, controlId]) assert.match(value, /^[1-9][0-9]*$/u);
@@ -27,7 +30,15 @@ export function kintoneApprovalProvider(selection) {
     Tags: {type: 'MULTI_SELECT', value: ['red']},
     Computed: {type: 'SINGLE_LINE_TEXT', value: 'server'},
     ...(keyed ? {CustomerKey: {type: 'SINGLE_LINE_TEXT', value: value.id === controlId ? controlKey : key}} : {})});
-  const writeRoute = route('PUT', '/k/v1/records.json', exchange => {
+  const writeRoute = kind === 'delete' ? {
+    ...route('POST', '/k/v1/records.json', exchange => {
+      assert.equal(exchange.headers['x-http-method-override'], 'DELETE');
+      assert(state.target, 'A second physical DELETE has no original target');
+      assert.deepEqual(JSON.parse(exchange.body), {app: '12', ids: [recordId], revisions: [state.target.revision]});
+      state.deleteTarget();
+      return {};
+    }), bodyIncludes: '"ids":',
+  } : route('PUT', '/k/v1/records.json', exchange => {
     assert.equal(exchange.headers['x-http-method-override'], undefined);
     assert(state.target !== null);
     const body = JSON.parse(exchange.body);
@@ -38,7 +49,7 @@ export function kintoneApprovalProvider(selection) {
     state.updateTarget(name, {revision: nextRevision});
     return {records: [{id: recordId, revision: nextRevision}]};
   });
-  const routes = [
+  const routes = [writeRoute,
     route('POST', '/k/v1/app/form/fields.json', exchange => {
       assert.equal(exchange.headers['x-http-method-override'], 'GET');
       assert.deepEqual(JSON.parse(exchange.body), {app: '12'});
@@ -62,15 +73,18 @@ export function kintoneApprovalProvider(selection) {
       assert.deepEqual(Object.keys(body).sort(), ['app', 'fields', 'query']);
       assert.equal(body.app, '12'); assert.deepEqual(body.fields, fields);
       if (body.query === `$id in (${recordId}) order by $id asc limit 1`)
-        return {records: [record(state.target)], totalCount: null};
+        return {records: state.target === null ? [] : [record(state.target)], totalCount: null};
       if (body.query === 'order by $id asc limit 2')
-        return {records: [state.target, state.control].filter(value => value !== null).map(record), totalCount: null};
+        return {records: state.target === null ? [record(state.control)] : [record(state.target), record(state.control)], totalCount: null};
       assert.equal(body.query, `$id > ${controlId} order by $id asc limit 2`);
       return {records: [], totalCount: null};
     }),
-    writeRoute,
   ];
-  return {routes, writeRequest: Object.freeze({method: creating ? 'POST' : writeRoute.method, pathname: writeRoute.pathname,
-    ...(keyed ? {methodOverride: null} : {}), ...(creating ? {bodyIncludes: '"records":['} : {})}),
+  const {handle, ...originalWrite} = writeRoute;
+  const writeRequest = creating
+    ? {method: 'POST', pathname: originalWrite.pathname, methodOverride: null, bodyIncludes: '"records":['}
+    : {...originalWrite, ...(keyed ? {methodOverride: null}
+      : kind === 'delete' ? {methodOverride: 'DELETE'} : {})};
+  return {routes, writeRequest: Object.freeze(writeRequest),
     form: projectedForm, snapshot: state.snapshot, reset: state.reset};
 }
