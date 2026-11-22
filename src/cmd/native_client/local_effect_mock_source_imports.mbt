@@ -430,13 +430,18 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   if !construction.prepare_body(
       self.original,
       native_mock_effect_contract_extent_walk_capacity(20),
+      source_imports_returned=true,
     ) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
   let backing = @run_host.client_effect_imported_evidence_retained_bytes(
     imported, 1024, 20,
   ).bind(retained => @execution.execution_capacity(retained, retained))
-  if !construction.prepare_body(self.original, backing) {
+  if !construction.prepare_body(
+      self.original,
+      backing,
+      source_imports_returned=true,
+    ) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
   // Only now can the next capture phase start. Restore the original full

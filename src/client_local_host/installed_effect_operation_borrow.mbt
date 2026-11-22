@@ -931,8 +931,14 @@ pub fn begin_installed_effect_operation_input(
 pub fn grow_installed_effect_operation_input(
   value : ClientInstalledEffectOperationBorrow,
   input : ClientInstalledEffectOperationExtent,
+  reuse_execution_peak? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  resize_installed_effect_operation_input(value, input, true)
+  resize_installed_effect_operation_input(
+    value,
+    input,
+    true,
+    reuse_execution_peak~,
+  )
 }
 
 ///|
@@ -940,6 +946,7 @@ fn resize_installed_effect_operation_input(
   value : ClientInstalledEffectOperationBorrow,
   input : ClientInstalledEffectOperationExtent,
   growing : Bool,
+  reuse_execution_peak? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
@@ -993,23 +1000,33 @@ fn resize_installed_effect_operation_input(
       None => owner.effect_operation_controls.bind(value => value.captured_rows)
     })
     is Some(rows) &&
-    resolve_installed_effect_capture_extent(input, rows) is Some(input) &&
-    // A deferred constructor holds retained backing, not its unused warm
-    // workspace estimate. Its actual cold input may need less scratch.
-    // Physical operations already hold their initial execution envelope.
-    (match backing {
+    resolve_installed_effect_capture_extent(input, rows) is Some(input) else {
+    return Err(InsufficientCapacity)
+  }
+  let retained = @execution.execution_capacity_retained_bytes(input.capacity)
+  let demand_execution = @execution.execution_capacity_execution_bytes(
+    input.capacity,
+  )
+  // Loan retirement is separate. The next live demand can reuse the original
+  // absolute peak after row/id resolution, without summing it with new data.
+  let execution = if reuse_execution_peak {
+    Int64::max(demand_execution, value.execution_limit)
+  } else {
+    demand_execution
+  }
+  // A deferred constructor holds retained backing, not its unused warm
+  // workspace estimate. Its actual cold input may need less scratch.
+  // Physical operations already hold their initial execution envelope.
+  guard (match backing {
       @resources.NodeManagedRunOperationBacking::Construction(_) =>
         @execution.execution_capacity_retained_bytes(extent.capacity) <=
-        @execution.execution_capacity_retained_bytes(input.capacity) &&
-        (
-          !growing ||
-          value.execution_limit <=
-          @execution.execution_capacity_execution_bytes(input.capacity)
-        )
+        retained &&
+        (!growing || value.execution_limit <= execution)
       @resources.NodeManagedRunOperationBacking::Physical(_) =>
         installed_effect_capacity_within(extent.capacity, input.capacity)
     }) &&
-    installed_effect_capacity_within(input.capacity, maximum.capacity) else {
+    retained <= @execution.execution_capacity_retained_bytes(maximum.capacity) &&
+    execution <= @execution.execution_capacity_execution_bytes(maximum.capacity) else {
     return Err(InsufficientCapacity)
   }
   owner.effect_operation_opening = true
@@ -1023,16 +1040,14 @@ fn resize_installed_effect_operation_input(
       )
     },
     backing,
-    @execution.execution_capacity_retained_bytes(input.capacity),
-    @execution.execution_capacity_execution_bytes(input.capacity),
+    retained,
+    execution,
   ).map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
   match result {
     Err(issue) => Err(issue)
     Ok(_) => {
-      value.execution_limit = @execution.execution_capacity_execution_bytes(
-        input.capacity,
-      )
+      value.execution_limit = execution
       value.input_selected = true
       value.started = true
       Ok(())

@@ -346,9 +346,10 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
   self : Self,
   original : LocalCommandPreparationOriginal,
   capacity : @execution.ExecutionCapacity?,
+  source_imports_returned? : Bool = false,
 ) -> Bool {
   self
-  .prepare_body_result(capacity)
+  .prepare_body_result(capacity, source_imports_returned~)
   .retain_mock_effect_proposal_issue(issue => {
     original.retain_primary(CommandBusinessEffectProposals(issue))
   })
@@ -358,7 +359,19 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
 fn LocalNativeMockEffectImportConstruction::prepare_body_result(
   self : Self,
   capacity : @execution.ExecutionCapacity?,
+  source_imports_returned? : Bool = false,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  if source_imports_returned &&
+    (self.source_snapshot is Some(_) || self.source_copy is Some(_)) {
+    return Err(Managed(InsufficientCapacity))
+  }
+  // At the returned import boundary the original Source transients are
+  // closed. Keep the installed absolute peak independently of later data.
+  let previous_workspace = if source_imports_returned {
+    0L
+  } else {
+    self.workspace
+  }
   guard capacity is Some(body) &&
     @execution.checked_preparation_add_product(
       self.retained,
@@ -368,7 +381,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_body_result(
     is Some(retained) &&
     native_mock_effect_import_workspace(
       self.recipe[0],
-      self.workspace,
+      previous_workspace,
       self.source_snapshot.unwrap_or(0L),
       @execution.execution_capacity_execution_bytes(body) -
       @execution.execution_capacity_retained_bytes(body),
@@ -435,7 +448,11 @@ fn LocalNativeMockEffectImportConstruction::resize_result(
   let result = @local_values.prepare_installed_effect_capture_recipe_extent(
     "native.mock.file.capture", recipe,
   ).bind(input => {
-    @local_values.grow_installed_effect_operation_input(self.operation, input)
+    @local_values.grow_installed_effect_operation_input(
+      self.operation,
+      input,
+      reuse_execution_peak=true,
+    )
   })
   match result {
     Err(issue) => Err(Managed(issue))

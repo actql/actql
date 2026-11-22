@@ -565,7 +565,7 @@ pub fn[I] finish_request_result_metadata(ClientRequestPreparation[I], I) -> Resu
 
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
-pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
+pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent, reuse_execution_peak? : Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn grow_installed_effect_operation_ledger_history(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
 
