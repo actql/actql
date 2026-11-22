@@ -6,7 +6,7 @@ import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} fr
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
 import type {selectInstalledProjectProfile} from '../host-node/installed-project-profile.mjs';
 import type {loadInstalledProjectModelTasks} from '../host-node/installed-project-model-tasks.mjs';
-// @ts-expect-error TS7016: the original declared-file inventory Owner is still authored in JavaScript.
+import type {createDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 import {assertDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 
 type TaskCommon = Parameters<typeof loadInstalledProjectModelTasks>[0];
@@ -36,10 +36,7 @@ type MockRuntime = Pick<TaskCommon, 'clientProjectModelRegistryTaskCount' | 'cli
   clientProgramMockProfileOriginals(profile: unknown): unknown;
 }>;
 type RegistryRuntime = Pick<MockRuntime, 'clientProjectModelRegistryTaskCount' | 'clientProgramInstalledSourceConstructionCapacity'>;
-type RegistrySelection = Readonly<{registry: unknown; count: number}>;
-type Inventory = Readonly<{
-  prepareMetadataInput(projection: Readonly<{capacity(): unknown; project(): RegistrySelection}>): RegistrySelection;
-}>;
+type Inventory = Pick<ReturnType<typeof createDeclaredFileInstallationInventory>, 'prepareMetadataInput'>;
 type FileOpen = (path: string, flags: string) => unknown;
 type LoadOptions = Readonly<{
   limits?: unknown;

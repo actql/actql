@@ -845,12 +845,12 @@ export function createInstalledSourceMaterialAccounting(
     return reader;
   }
 
-  async function withInstalledSourceLoading<Value>(services: object | undefined, construct: () => Value) {
-    if (services === undefined) return construct();
+  async function withInstalledSourceLoading<Value>(services: object | undefined, construct: () => Value): Promise<Awaited<Value>> {
+    if (services === undefined) return construct() as Awaited<Value>;
     const original = installations.get(services);
     if (original === undefined) fail('ForeignInstalledHostServices');
     const material = sourceMaterial(original);
-    if (material === undefined) return construct();
+    if (material === undefined) return construct() as Awaited<Value>;
     // Keep the SAME awaited initializer pending through module selection,
     // runtime identity, provider construction and the final identity reread.
     // Nested reads retain their actual FD cleanup; no wrapper is priced here.

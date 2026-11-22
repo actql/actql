@@ -691,7 +691,7 @@
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "await Promise.allSettled([...flights]);"
               }
             ],
@@ -931,7 +931,7 @@
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "await Promise.allSettled([...flights]);"
               }
             ],

@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-file-installation.mjs",
-      "sha256": "d4f9434565a7ff97ae7d766d25b43dcab40a356d7d1f42233a62be7c2bd40504",
+      "sha256": "bcc16dd03f4bd7e5956770eb91750ac18985e36805b8cc8dd7a53729effd0888",
       "exports": [
         "assertDeclaredFileInstallationInventory",
         "createDeclaredFileInstallationInventory"
@@ -296,7 +296,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "const table = createInstalledConnectorTable([{"
               }
             ],
@@ -306,20 +306,20 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "export function createDeclaredFileInstallationInventory"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "prepareNativeDeclaration: prepare('prepareNativeDeclaration')"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "prepareNativeInput: prepare('prepareNativeInput', false)"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
-                "anchor": "prepareMetadataInput(projection) {"
+                "path": "adapters/local-node/declared-file-installation.mts",
+                "anchor": "prepareMetadataInput<Value extends object & Readonly<{then?: never}>>(projection: Projection<Value>) {"
               }
             ],
             "identity": [
@@ -328,12 +328,12 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "connectorId: connection, providerNamespace"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
-                "anchor": "const source = members.get(sourceMember);"
+                "path": "adapters/local-node/declared-file-installation.mts",
+                "anchor": "const source = members.get(sourceMember as object);"
               },
               {
                 "path": "adapters/host-node/installed-source-context-construction.mts",
@@ -346,20 +346,20 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "record.context = context;"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "record.adapter = adapter;"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
-                "anchor": "retainBoundInstalledSourceFailure(record.context, cause, record.adapter)"
+                "path": "adapters/local-node/declared-file-installation.mts",
+                "anchor": "retainBoundInstalledSourceFailure(record.context!, cause, record.adapter)"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
-                "anchor": "if (retainPrepared) record.prepared = result;"
+                "path": "adapters/local-node/declared-file-installation.mts",
+                "anchor": "if (retainPrepared) record.prepared = result as Prepared;"
               }
             ],
             "synchronization": [
@@ -368,15 +368,15 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "record.loadFlight = Promise.resolve().then(async () => {"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "flights.add(record.loadFlight);"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "await Promise.allSettled([...flights]);"
               }
             ],
@@ -386,15 +386,15 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "throw await failRecord(record, cause);"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "finishInstalledSourceInitialization(record.context, record.adapter, failure, true);"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "if (record.finished || record.failed) fail('DeclaredFileInstallationClosed');"
               }
             ],
@@ -404,7 +404,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "retiring = true;"
               },
               {
@@ -418,11 +418,11 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "const read = reserveInstalledSourceRuntimeIdentity(services);"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "const context = beginInstalledSourceInitialization(services, entry,"
               },
               {
@@ -436,7 +436,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/local-node/declared-file-installation.mjs",
+                "path": "adapters/local-node/declared-file-installation.mts",
                 "anchor": "const registration = 'declared_file', revision = 'declared_file/0.1';"
               }
             ],

@@ -77806,7 +77806,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock-answers.mjs",
-      "sha256": "c216b90c9fbb1c2c14d71243c59fa9fbfb90ffe1606163c3bd3ba76628c5a479",
+      "sha256": "93df1c1187530371eac4da89522d5d5250442f3fc9770e61211f697e40777a21",
       "exports": [
         "loadInstalledProjectMockAnswers",
         "prepareInstalledMockRegistrySelection"
