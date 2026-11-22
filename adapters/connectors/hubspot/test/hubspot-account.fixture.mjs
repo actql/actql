@@ -13,6 +13,7 @@ import * as provider from
   '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -56,10 +57,12 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
     read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(
-    program, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    program, 0, 0, contracts, values, fragment, ordered));
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(
     declaration, requirement, query, evidence));
   // Independent test units. This is not a normal Host retained/workspace price.
@@ -74,6 +77,8 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
       run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
     captureCount: () => {
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      while (!runtimeField(checked(common.clientProgramRowSourceCaptureAdvance(run, 64)), 0)) {}
       const capture = checked(common.clientProgramRowSourceCapture(run));
       const source = checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(
