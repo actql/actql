@@ -138,223 +138,296 @@ export function createRegisteredSdkProvider(options) {
   return configureSdkProvider(options, false, true);
 }
 
+export function createRegisteredSdkProviders(options) {
+  let used = false;
+  return async (moon, context) => {
+    if (used) refuse('OpenAIProviderConfigurationReused');
+    used = true;
+    requireConfigurationContext(context, false, true);
+    const batch = await context.prepareConfiguration(() => {
+      if (!Array.isArray(options) || types.isProxy(options) || !Object.isFrozen(options) ||
+          !integer(options.length, 1, 64) || Reflect.ownKeys(options).length !== options.length + 1) {
+        refuse('InvalidRegisteredSdkProviderConfigurations');
+      }
+      const configurations = [];
+      const ids = new Set();
+      for (let index = 0; index < options.length; index++) {
+        const field = Object.getOwnPropertyDescriptor(options, index);
+        if (!field?.enumerable || !Object.hasOwn(field, 'value')) refuse('InvalidRegisteredSdkProviderConfigurations');
+        const option = field.value;
+        if (option === null || typeof option !== 'object' || types.isProxy(option) || !Object.isFrozen(option)) {
+          refuse('InvalidRegisteredSdkProviderConfigurations');
+        }
+        const id = Object.getOwnPropertyDescriptor(option, 'providerId');
+        if (!id?.enumerable || !Object.hasOwn(id, 'value') || !text(id.value, 256) || ids.has(id.value)) {
+          refuse('InvalidRegisteredSdkProviderConfigurations');
+        }
+        ids.add(id.value);
+        configurations.push(option);
+      }
+      return {configurations, originals: [], bindings: [], installations: []};
+    });
+    for (const options of batch.configurations) {
+      const original = await prepareSdkProvider(moon, context, options, false, true, true);
+      batch.originals.push(original);
+      batch.bindings.push(original.binding);
+    }
+    const selected = await context.prepareTasks(batch.bindings);
+    for (const original of batch.originals) {
+      batch.installations.push(await prepareSdkProviderTasks(context, selected, original, true));
+    }
+    return selected.providerEntries(() => batch.installations.map(prepared =>
+      createSdkProviderEntry(moon, selected, prepared)));
+  };
+}
+
 function configureSdkProvider(options, projectMode, registeredMode = false) {
   let used = false;
   return async (moon, context) => {
     if (used) refuse('OpenAIProviderConfigurationReused');
     used = true;
-    if (!['prepareConfiguration', 'runtimeIdentity', 'artifactIdentity',
-      'prepareBindingOriginals', 'prepareTasks', 'prepareRawPolicies'].every(key => typeof context?.[key] === 'function')) {
-      refuse('OpenAIProviderConfigurationContextUnavailable');
+    requireConfigurationContext(context, projectMode, registeredMode);
+    const original = await prepareSdkProvider(moon, context, options, projectMode, registeredMode);
+    const selected = await context.prepareTasks([original.binding]);
+    const prepared = await prepareSdkProviderTasks(context, selected, original);
+    return selected.providerEntries(() => [createSdkProviderEntry(moon, selected, prepared)]);
+  };
+}
+
+function requireConfigurationContext(context, projectMode, registeredMode) {
+  if (!['prepareConfiguration', 'runtimeIdentity', 'artifactIdentity',
+    'prepareBindingOriginals', 'prepareTasks', 'prepareRawPolicies'].every(key => typeof context?.[key] === 'function')) {
+    refuse('OpenAIProviderConfigurationContextUnavailable');
+  }
+  if (projectMode && typeof context.projectOpenAIProvider !== 'function') {
+    refuse('OpenAIProviderConfigurationContextUnavailable');
+  }
+  if (registeredMode ? typeof context.prepareRegisteredSdk !== 'function' : typeof context.readText !== 'function') {
+    refuse('OpenAIProviderConfigurationContextUnavailable');
+  }
+}
+
+async function prepareSdkProvider(moon, context, options, projectMode, registeredMode, batch = false) {
+  const project = projectMode ? await context.projectOpenAIProvider() : undefined;
+  const config = await context.prepareConfiguration(() => {
+    const selected = configuration(options, project, registeredMode);
+    const maxWireBytes = moon.clientProgramStandardInferModelTransferBytes?.(selected.budget.maxCalls);
+    if (!amount(maxWireBytes)) {
+      refuse('OpenAIProviderTransferCapacityUnavailable');
     }
-    if (projectMode && typeof context.projectOpenAIProvider !== 'function') {
-      refuse('OpenAIProviderConfigurationContextUnavailable');
+    if (typeof moon.clientProgramInstalledNodeModelSdkV4RequestCapacity !== 'function') {
+      refuse('OpenAIProviderRequestCapacityUnavailable');
     }
-    if (registeredMode ? typeof context.prepareRegisteredSdk !== 'function' : typeof context.readText !== 'function') {
-      refuse('OpenAIProviderConfigurationContextUnavailable');
+    const sdkQuote = moon.clientProgramInstalledNodeModelSdkV4RequestCapacity(
+      selected.budget.maxRows, limits.request_bytes, bodyLimits.maxNodes, bodyLimits.maxDepth);
+    const validQuote = quote => Array.isArray(quote) && quote.length === 2 && quote.every(value =>
+      typeof value === 'bigint' && value >= 0n && value <= BigInt(maxInt)) && quote[1] >= quote[0];
+    if (!validQuote(sdkQuote) || sdkQuote[0] === 0n) refuse('OpenAIProviderRequestCapacityUnavailable');
+    let deadline = [0n, 0n];
+    if (selected.transportTimeouts?.callMs !== undefined) {
+      if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
+        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      }
+      deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity();
+      if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
     }
-    const project = projectMode ? await context.projectOpenAIProvider() : undefined;
-    const config = await context.prepareConfiguration(() => {
-      const selected = configuration(options, project, registeredMode);
-      const maxWireBytes = moon.clientProgramStandardInferModelTransferBytes?.(selected.budget.maxCalls);
-      if (!amount(maxWireBytes)) {
-        refuse('OpenAIProviderTransferCapacityUnavailable');
-      }
-      if (typeof moon.clientProgramInstalledNodeModelSdkV4RequestCapacity !== 'function') {
-        refuse('OpenAIProviderRequestCapacityUnavailable');
-      }
-      const sdkQuote = moon.clientProgramInstalledNodeModelSdkV4RequestCapacity(
-        selected.budget.maxRows, limits.request_bytes, bodyLimits.maxNodes, bodyLimits.maxDepth);
-      const validQuote = quote => Array.isArray(quote) && quote.length === 2 && quote.every(value =>
-        typeof value === 'bigint' && value >= 0n && value <= BigInt(maxInt)) && quote[1] >= quote[0];
-      if (!validQuote(sdkQuote) || sdkQuote[0] === 0n) refuse('OpenAIProviderRequestCapacityUnavailable');
-      let deadline = [0n, 0n];
-      if (selected.transportTimeouts?.callMs !== undefined) {
-        if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
-          refuse('OpenAIProviderDeadlineCapacityUnavailable');
-        }
-        deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity();
-        if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
-      }
-      // A prepared request retains the extra callback and header binding.
-      // Also cover the bounded key and final Bearer string while they overlap.
-      const credentialHolding = projectMode || registeredMode
-        ? BigInt(selected.budget.maxRows) * (1024n + 8n * BigInt(selected.maxSecretBytes)) : 0n;
-      const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0] + credentialHolding;
-      const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1] + credentialHolding;
-      if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
-        refuse('OpenAIProviderRequestCapacityUnavailable');
-      }
-      // Preserve the entire previous Read base (including selected deadline
-      // overlap). Add all-row expected wires only to retained; the SAME serial
-      // writer/parse/compare workspace contributes only to execution peak.
-      // These are demands on the original initial Owner, never a budget uplift.
-      const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1] + credentialHolding;
-      return Object.freeze({...selected, maxWireBytes,
-        readRetainedBytes: previousRead + sdkQuote[0],
-        readExecutionBytes: previousRead + sdkQuote[1],
-        physicalLimits: Object.freeze({...limits,
-          adapter_holding_bytes: Number(holding), adapter_workspace_bytes: Number(execution)})});
-    });
-    const physicalLimits = config.physicalLimits;
-    const runtimeCid = await context.runtimeIdentity();
-    const registeredSdk = registeredMode || context.registeredSdkSelected?.(config.providerId)
-      ? await context.prepareRegisteredSdk(config.providerId) : undefined;
-    const builderCid = registeredMode ? registeredSdk?.adapterArtifactCid : await context.artifactIdentity(builderArtifactUrl);
-    const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
-    const lockCid = registeredMode ? registeredSdk?.lockArtifactCid : await context.artifactIdentity(lockArtifactUrl);
-    if (!registeredMode && registeredSdk !== undefined && (!projectMode || registeredSdk.adapterArtifactCid !== builderCid ||
-        registeredSdk.lockArtifactCid !== lockCid || registeredSdk.sdkPackage !== '@ai-sdk/openai' ||
-        registeredSdk.sdkVersion !== '4.0.91' || registeredSdk.route.selector !== config.modelSelector ||
-        registeredSdk.route.modelId !== config.modelId || registeredSdk.route.apiMode !== 'chat_completions' ||
-        registeredSdk.route.endpoint !== config.baseURL + '/chat/completions')) {
+    // A prepared request retains the extra callback and header binding.
+    // Also cover the bounded key and final Bearer string while they overlap.
+    const credentialHolding = projectMode || registeredMode
+      ? BigInt(selected.budget.maxRows) * (1024n + 8n * BigInt(selected.maxSecretBytes)) : 0n;
+    const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0] + credentialHolding;
+    const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1] + credentialHolding;
+    if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
+      refuse('OpenAIProviderRequestCapacityUnavailable');
+    }
+    // Preserve the entire previous Read base (including selected deadline
+    // overlap). Add all-row expected wires only to retained; the SAME serial
+    // writer/parse/compare workspace contributes only to execution peak.
+    // These are demands on the original initial Owner, never a budget uplift.
+    const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1] + credentialHolding;
+    return Object.freeze({...selected, maxWireBytes,
+      readRetainedBytes: previousRead + sdkQuote[0],
+      readExecutionBytes: previousRead + sdkQuote[1],
+      physicalLimits: Object.freeze({...limits,
+        adapter_holding_bytes: Number(holding), adapter_workspace_bytes: Number(execution)})});
+  });
+  const physicalLimits = config.physicalLimits;
+  const runtimeCid = await context.runtimeIdentity();
+  const registeredSdk = registeredMode || context.registeredSdkSelected?.(config.providerId)
+    ? await context.prepareRegisteredSdk(config.providerId) : undefined;
+  const builderCid = registeredMode ? registeredSdk?.adapterArtifactCid : await context.artifactIdentity(builderArtifactUrl);
+  const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
+  const lockCid = registeredMode ? registeredSdk?.lockArtifactCid : await context.artifactIdentity(lockArtifactUrl);
+  if (!registeredMode && registeredSdk !== undefined && (!projectMode || registeredSdk.adapterArtifactCid !== builderCid ||
+      registeredSdk.lockArtifactCid !== lockCid || registeredSdk.sdkPackage !== '@ai-sdk/openai' ||
+      registeredSdk.sdkVersion !== '4.0.91' || registeredSdk.route.selector !== config.modelSelector ||
+      registeredSdk.route.modelId !== config.modelId || registeredSdk.route.apiMode !== 'chat_completions' ||
+      registeredSdk.route.endpoint !== config.baseURL + '/chat/completions')) {
+    refuse('InstalledModelResolvedConfigurationMismatch');
+  }
+  const registeredCredential = registeredSdk?.credential;
+  if (registeredMode && registeredCredential === undefined ||
+      !registeredMode && registeredCredential !== undefined && registeredCredential.profile.reference !== 'OPENAI_API_KEY') {
+    refuse('RegisteredSdkCredentialMismatch');
+  }
+  const apiKey = registeredMode ? undefined : projectMode ? unboundOpenAICredential
+    : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
+  const route = registeredMode ? registeredSdk.route : undefined;
+  const endpoint = route?.endpoint ?? config.baseURL + '/chat/completions';
+  const selector = route?.selector ?? config.modelSelector;
+  const modelId = route?.modelId ?? config.modelId;
+  const apiMode = route?.apiMode ?? 'chat_completions';
+  const builderId = registeredMode ? 'actql/registered-sdk' : 'actql/openai-chat';
+  const codecId = registeredMode ? 'actql/registered-sdk-output' : 'actql/openai-chat-envelope';
+  const sdk = Object.freeze({package_name: registeredMode ? registeredSdk.sdkPackage : '@ai-sdk/openai',
+    version: registeredMode ? registeredSdk.sdkVersion : '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
+  // The same original selector could formerly name different Chat models.
+  // Record the resolved route even when the selector equals the model ID so
+  // a current fixed route cannot match a historical selector-only binding.
+  const bindings = await context.prepareBindingOriginals(() => [
+    JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
+      runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid,
+      ...(registeredSdk === undefined ? {} : {sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid})}),
+    JSON.stringify({provider_id: config.providerId,
+      required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode',
+        ...(registeredCredential === undefined ? [] : ['registered_credential'])],
+      physical_profile: physicalLimits, prepared_rows: config.budget.maxRows,
+      transport: registeredMode ? 'undici-serial-sdk' : 'undici-serial-chat',
+      ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
+      runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
+      read_retained_bytes: String(config.readRetainedBytes),
+      read_execution_bytes: String(config.readExecutionBytes),
+      model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
+      model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
+    JSON.stringify({provider_id: config.providerId, endpoint,
+      selector, model_id: modelId, adapter_kind: 'ai-sdk', api_mode: apiMode,
+      ...(registeredSdk === undefined ? {} : {provider_options: registeredSdk.providerOptions}),
+      ...(registeredCredential === undefined ? {} : {registered_credential: registeredCredential.profile}),
+      ...(registeredMode ? {credential_reference: registeredCredential.profile.reference}
+        : projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
+      ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: selector,
+        models: [{model: selector, data_handling: registeredMode ? JSON.parse(config.dataHandlingContractWire) : handling,
+          generation_config: {temperature: config.generation.temperature, top_p: config.generation.topP,
+            max_output_tokens: config.generation.maxOutputTokens,
+            ...(config.generation.seed === undefined ? {} : {seed_requested: config.generation.seed})}}]}}),
+  ]);
+  const borrow = () => ({binding: {providerId: config.providerId, bindingOriginals: bindings}, config, runtimeCid,
+    builderCid, layoutCid, lockCid, registeredSdk, registeredCredential, apiKey, endpoint, selector,
+    modelId, builderId, codecId, sdk, projectMode, registeredMode});
+  // In a batch these borrowed references survive another Provider's preparation.
+  return batch ? context.prepareConfiguration(borrow) : borrow();
+}
+
+async function prepareSdkProviderTasks(context, selected, original, batch = false) {
+  const {config, runtimeCid, builderCid, lockCid, endpoint, selector, modelId, builderId, codecId,
+    sdk, registeredMode} = original;
+  const physicalLimits = config.physicalLimits;
+  const select = () => ({original,
+    owned: selected.tasks.filter(task => task.providerId === config.providerId), profiles: new Map(), raw: undefined});
+  // The Host caps its Task list. Fund this extra per-Provider index under the
+  // initial configuration owner while later Providers prepare their Tasks.
+  const prepared = batch ? await context.prepareConfiguration(select) : select();
+  const {owned, profiles} = prepared;
+  if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
+  if (registeredMode) {
+    if (owned.some(task => task.modelSelector !== selector)) refuse('InstalledModelResolvedConfigurationMismatch');
+  } else {
+    await selected.verifyChatConfiguration(owned[0].name, selector, modelId, endpoint);
+  }
+  prepared.raw = await context.prepareRawPolicies(policies);
+  for (const task of owned) {
+    const profile = await selected.responseProfileFor(task.name, () => JSON.stringify({
+      version: 'actql-model-response-profile/0.1', adapter: {builder_id: builderId, builder_revision: '1',
+        codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid,
+        port_abi: 'model-physical-port/1', sdk: {package: sdk.package_name, version: sdk.version,
+          interface: sdk.interface, lock_artifact_cid: lockCid}},
+      operation: {endpoint, method: 'POST', streaming: false},
+      // Unbound template DATA is never installed or used for a Request.
+      // The same normalized Core Task supplies all three final identities.
+      task: {contract_cid: unboundCid, kind: 'structured_generate', input_schema_cid: unboundCid, output_schema_cid: unboundCid},
+      completion: {validator_id: codecId, validator_revision: '1',
+        validator_artifact_cid: runtimeCid, basis: 'generation_finish', transport_eof: true,
+        endpoint_envelope: true, output_contract: true}, probability: null,
+      observations: ['provider_request_id', 'provider_reported_model_id', 'finish_reason',
+        'input_tokens', 'output_tokens', 'provider_metadata'], limits: physicalLimits, controls,
+    }));
+    profiles.set(task.taskCid, profile);
+    await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
+      maxCostUnits: config.budget.maxCostUnits, maxDurationMs: config.budget.maxDurationMs,
+      maxWireBytes: config.maxWireBytes,
+      maxTokens: config.budget.maxTokens});
+  }
+  return prepared;
+}
+
+function createSdkProviderEntry(moon, selected, {original, owned, profiles, raw}) {
+  const {config, runtimeCid, builderCid, layoutCid, registeredSdk, registeredCredential, apiKey,
+    endpoint, builderId, codecId, sdk, projectMode} = original;
+  const physicalLimits = config.physicalLimits;
+  const bindingOriginals = selected.bindingOriginalsFor(config.providerId);
+  const installation = Object.freeze({builder_id: builderId, builder_revision: '1',
+    codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid, sdk,
+    endpoint, http_method: 'POST', streaming: false,
+    validator_id: codecId, validator_revision: '1',
+    validator_artifact_cid: runtimeCid, completion_basis: 'generation_finish'});
+  const now = Date.now(), at = ms => new Date(ms).toISOString();
+  const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: config.budget.maxTokens,
+    costUnits: config.budget.maxCostUnits, durationMs: config.budget.maxDurationMs}),
+    perAttempt: Object.freeze({tokens: config.budget.maxTokens, costUnits: config.budget.maxCostUnits,
+      durationMs: config.budget.maxDurationMs})});
+  // Eight byte representations cover live request/response/chunk/header/
+  // metadata copies; 256-byte controls cover bounded parsed nodes, plus a
+  // separate fixed shell. This is finite trusted Host profile DATA. The
+  // actual native all-row/Model bounds are added, never replaced by it.
+  // Keep the adapter's complete declared live holding/workspace in
+  // addition to every prepared row; neither minimum can replace the other.
+  const entries = owned.map(task => {
+    if (registeredCredential !== undefined && task.modelSelector !== registeredSdk.route.selector) {
       refuse('InstalledModelResolvedConfigurationMismatch');
     }
-    const registeredCredential = registeredSdk?.credential;
-    if (registeredMode && registeredCredential === undefined ||
-        !registeredMode && registeredCredential !== undefined && registeredCredential.profile.reference !== 'OPENAI_API_KEY') {
-      refuse('RegisteredSdkCredentialMismatch');
-    }
-    const apiKey = registeredMode ? undefined : projectMode ? unboundOpenAICredential
-      : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
-    const route = registeredMode ? registeredSdk.route : undefined;
-    const endpoint = route?.endpoint ?? config.baseURL + '/chat/completions';
-    const selector = route?.selector ?? config.modelSelector;
-    const modelId = route?.modelId ?? config.modelId;
-    const apiMode = route?.apiMode ?? 'chat_completions';
-    const builderId = registeredMode ? 'actql/registered-sdk' : 'actql/openai-chat';
-    const codecId = registeredMode ? 'actql/registered-sdk-output' : 'actql/openai-chat-envelope';
-    const sdk = Object.freeze({package_name: registeredMode ? registeredSdk.sdkPackage : '@ai-sdk/openai',
-      version: registeredMode ? registeredSdk.sdkVersion : '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
-    // The same original selector could formerly name different Chat models.
-    // Record the resolved route even when the selector equals the model ID so
-    // a current fixed route cannot match a historical selector-only binding.
-    const bindings = await context.prepareBindingOriginals(() => [
-      JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
-        runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid,
-        ...(registeredSdk === undefined ? {} : {sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid})}),
-      JSON.stringify({provider_id: config.providerId,
-        required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode',
-          ...(registeredCredential === undefined ? [] : ['registered_credential'])],
-        physical_profile: physicalLimits, prepared_rows: config.budget.maxRows,
-        transport: registeredMode ? 'undici-serial-sdk' : 'undici-serial-chat',
-        ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
-        runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
-        read_retained_bytes: String(config.readRetainedBytes),
-        read_execution_bytes: String(config.readExecutionBytes),
-        model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
-        model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
-      JSON.stringify({provider_id: config.providerId, endpoint,
-        selector, model_id: modelId, adapter_kind: 'ai-sdk', api_mode: apiMode,
-        ...(registeredSdk === undefined ? {} : {provider_options: registeredSdk.providerOptions}),
-        ...(registeredCredential === undefined ? {} : {registered_credential: registeredCredential.profile}),
-        ...(registeredMode ? {credential_reference: registeredCredential.profile.reference}
-          : projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
-        ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: selector,
-          models: [{model: selector, data_handling: registeredMode ? JSON.parse(config.dataHandlingContractWire) : handling,
-            generation_config: {temperature: config.generation.temperature, top_p: config.generation.topP,
-              max_output_tokens: config.generation.maxOutputTokens,
-              ...(config.generation.seed === undefined ? {} : {seed_requested: config.generation.seed})}}]}}),
-    ]);
-    const selected = await context.prepareTasks([{providerId: config.providerId, bindingOriginals: bindings}]);
-    const owned = selected.tasks.filter(task => task.providerId === config.providerId);
-    if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
-    if (registeredMode) {
-      if (owned.some(task => task.modelSelector !== selector)) refuse('InstalledModelResolvedConfigurationMismatch');
-    } else {
-      await selected.verifyChatConfiguration(owned[0].name, selector, modelId, endpoint);
-    }
-    const raw = await context.prepareRawPolicies(policies);
-    const profiles = new Map();
-    for (const task of owned) {
-      const profile = await selected.responseProfileFor(task.name, () => JSON.stringify({
-        version: 'actql-model-response-profile/0.1', adapter: {builder_id: builderId, builder_revision: '1',
-          codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid,
-          port_abi: 'model-physical-port/1', sdk: {package: sdk.package_name, version: sdk.version,
-            interface: sdk.interface, lock_artifact_cid: lockCid}},
-        operation: {endpoint, method: 'POST', streaming: false},
-        // Unbound template DATA is never installed or used for a Request.
-        // The same normalized Core Task supplies all three final identities.
-        task: {contract_cid: unboundCid, kind: 'structured_generate', input_schema_cid: unboundCid, output_schema_cid: unboundCid},
-        completion: {validator_id: codecId, validator_revision: '1',
-          validator_artifact_cid: runtimeCid, basis: 'generation_finish', transport_eof: true,
-          endpoint_envelope: true, output_contract: true}, probability: null,
-        observations: ['provider_request_id', 'provider_reported_model_id', 'finish_reason',
-          'input_tokens', 'output_tokens', 'provider_metadata'], limits: physicalLimits, controls,
-      }));
-      profiles.set(task.taskCid, profile);
-      await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
-        maxCostUnits: config.budget.maxCostUnits, maxDurationMs: config.budget.maxDurationMs,
-        maxWireBytes: config.maxWireBytes,
-        maxTokens: config.budget.maxTokens});
-    }
-    return selected.providerEntries(() => {
-      const bindingOriginals = selected.bindingOriginalsFor(config.providerId);
-      const installation = Object.freeze({builder_id: builderId, builder_revision: '1',
-        codec_id: codecId, codec_revision: '1', build_artifact_cid: builderCid, sdk,
-        endpoint, http_method: 'POST', streaming: false,
-        validator_id: codecId, validator_revision: '1',
-        validator_artifact_cid: runtimeCid, completion_basis: 'generation_finish'});
-      const now = Date.now(), at = ms => new Date(ms).toISOString();
-      const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: config.budget.maxTokens,
-        costUnits: config.budget.maxCostUnits, durationMs: config.budget.maxDurationMs}),
-        perAttempt: Object.freeze({tokens: config.budget.maxTokens, costUnits: config.budget.maxCostUnits,
-          durationMs: config.budget.maxDurationMs})});
-      // Eight byte representations cover live request/response/chunk/header/
-      // metadata copies; 256-byte controls cover bounded parsed nodes, plus a
-      // separate fixed shell. This is finite trusted Host profile DATA. The
-      // actual native all-row/Model bounds are added, never replaced by it.
-      // Keep the adapter's complete declared live holding/workspace in
-      // addition to every prepared row; neither minimum can replace the other.
-      const entries = owned.map(task => {
-        if (registeredCredential !== undefined && task.modelSelector !== registeredSdk.route.selector) {
-          refuse('InstalledModelResolvedConfigurationMismatch');
-        }
-        const profile = profiles.get(task.taskCid).profile;
-        const originalReadRecipe = Object.freeze({
-          bootstrap: Object.freeze({bootstrapRetainedBytes: 1048576n, bootstrapExecutionBytes: 1048576n,
-            maxReservations: 256, maxHoldings: 256, maxDelegations: 256}),
-          modelRetainedBytes: BigInt(physicalLimits.adapter_holding_bytes),
-          modelExecutionBytes: BigInt(physicalLimits.adapter_workspace_bytes),
-          nodeInstallation: Object.freeze({runtimeArtifactCid: runtimeCid,
-            layoutArtifactCid: layoutCid, installation, probability: undefined,
-            layout: Object.freeze({runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
-              response_profile: profile, prepared_rows: BigInt(config.budget.maxRows),
-              retained_bytes: config.readRetainedBytes, execution_bytes: config.readExecutionBytes})}),
-          metadataAcquisition: Object.freeze({retainedBytes: 2097152n, workspaceBytes: 2097152n,
-            metadata: Object.freeze({maxWireBytes: 1048576, maxLedgerEntries: 4096}),
-            directory: Object.freeze({maxWireBytes: 1048576, maxDirectoryEntries: 4096})}),
-          storeBootstrap: Object.freeze({maxWireBytes: 1048576, maxDirectoryEntries: 4096}),
-          publicationCapacity: Object.freeze({retainedBytes: 16777216n, workspaceBytes: 16777216n}),
-          currentStateCodec: Object.freeze({quantum: 4096, comparisonWork: 770, decode: Object.freeze({
-            maxWork: 2097152, parse: Object.freeze({max_input_bytes: 1048576, max_nodes: 16384, max_depth: 64}),
-            tree: Object.freeze({max_nodes: 16384, max_depth: 64, max_string_bytes: 1048576, max_total_string_bytes: 1048576})})}),
-        });
-        const rawCaptureSelection = Object.freeze({...raw, profile, installation, probability: undefined,
-          selectedAt: at(now), availableUntil: at(now + 86400000), deleteBy: at(now + 172800000),
-          extensionCeilingAt: at(now + 172800000), metadataDeleteBy: at(now + 259200000),
-          selectionAvailable: () => Date.now() < now + 86400000});
-        const physical = {providerId: config.providerId,
-          taskCid: task.taskCid, promptCid: task.promptCid, outputSchemaCid: task.outputSchemaCid,
-          promptPayloadWire: task.promptPayloadWire, bindingOriginals, quantityCapacity, originalReadRecipe, rawCaptureSelection,
-          projectionLimits: bodyLimits, requestLimits: {maxBytes: limits.request_bytes, maxHeaderBytes: limits.header_bytes, maxHeaders: 32},
-          responseLimits: {maxBytes: limits.response_bytes, maxChunkBytes: limits.chunk_bytes, maxChunks: limits.chunks,
-            maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
-          physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
-          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)};
-        const register = registeredCredential === undefined
-          ? createConfiguredUndiciOpenAIChatRegistration({...physical,
-            modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
-            originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
-              maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256}},
-          config.transportTimeouts, projectMode ? config.maxSecretBytes : undefined, registeredSdk)
-          : createConfiguredUndiciRegisteredSdkRegistration(physical,
-            config.transportTimeouts, config.maxSecretBytes, registeredSdk);
-        return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
-      });
-      return [Object.freeze({...entries[0].entry,
-        validatePrompt: (...args) => entries.some(value => value.entry.validatePrompt(...args)),
-        taskInstallations: Object.freeze(entries)})];
+    const profile = profiles.get(task.taskCid).profile;
+    const originalReadRecipe = Object.freeze({
+      bootstrap: Object.freeze({bootstrapRetainedBytes: 1048576n, bootstrapExecutionBytes: 1048576n,
+        maxReservations: 256, maxHoldings: 256, maxDelegations: 256}),
+      modelRetainedBytes: BigInt(physicalLimits.adapter_holding_bytes),
+      modelExecutionBytes: BigInt(physicalLimits.adapter_workspace_bytes),
+      nodeInstallation: Object.freeze({runtimeArtifactCid: runtimeCid,
+        layoutArtifactCid: layoutCid, installation, probability: undefined,
+        layout: Object.freeze({runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
+          response_profile: profile, prepared_rows: BigInt(config.budget.maxRows),
+          retained_bytes: config.readRetainedBytes, execution_bytes: config.readExecutionBytes})}),
+      metadataAcquisition: Object.freeze({retainedBytes: 2097152n, workspaceBytes: 2097152n,
+        metadata: Object.freeze({maxWireBytes: 1048576, maxLedgerEntries: 4096}),
+        directory: Object.freeze({maxWireBytes: 1048576, maxDirectoryEntries: 4096})}),
+      storeBootstrap: Object.freeze({maxWireBytes: 1048576, maxDirectoryEntries: 4096}),
+      publicationCapacity: Object.freeze({retainedBytes: 16777216n, workspaceBytes: 16777216n}),
+      currentStateCodec: Object.freeze({quantum: 4096, comparisonWork: 770, decode: Object.freeze({
+        maxWork: 2097152, parse: Object.freeze({max_input_bytes: 1048576, max_nodes: 16384, max_depth: 64}),
+        tree: Object.freeze({max_nodes: 16384, max_depth: 64, max_string_bytes: 1048576, max_total_string_bytes: 1048576})})}),
     });
-  };
+    const rawCaptureSelection = Object.freeze({...raw, profile, installation, probability: undefined,
+      selectedAt: at(now), availableUntil: at(now + 86400000), deleteBy: at(now + 172800000),
+      extensionCeilingAt: at(now + 172800000), metadataDeleteBy: at(now + 259200000),
+      selectionAvailable: () => Date.now() < now + 86400000});
+    const physical = {providerId: config.providerId,
+      taskCid: task.taskCid, promptCid: task.promptCid, outputSchemaCid: task.outputSchemaCid,
+      promptPayloadWire: task.promptPayloadWire, bindingOriginals, quantityCapacity, originalReadRecipe, rawCaptureSelection,
+      projectionLimits: bodyLimits, requestLimits: {maxBytes: limits.request_bytes, maxHeaderBytes: limits.header_bytes, maxHeaders: 32},
+      responseLimits: {maxBytes: limits.response_bytes, maxChunkBytes: limits.chunk_bytes, maxChunks: limits.chunks,
+        maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
+      physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
+      observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)};
+    const register = registeredCredential === undefined
+      ? createConfiguredUndiciOpenAIChatRegistration({...physical,
+        modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
+        originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
+          maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256}},
+      config.transportTimeouts, projectMode ? config.maxSecretBytes : undefined, registeredSdk)
+      : createConfiguredUndiciRegisteredSdkRegistration(physical,
+        config.transportTimeouts, config.maxSecretBytes, registeredSdk);
+    return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
+  });
+  return Object.freeze({...entries[0].entry,
+    validatePrompt: (...args) => entries.some(value => value.entry.validatePrompt(...args)),
+    taskInstallations: Object.freeze(entries)});
 }

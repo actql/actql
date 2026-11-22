@@ -1,0 +1,6 @@
+SELECT r.`$id` AS id, r.Subject AS previous_name
+FROM kintone.inquiries AS r
+WHERE r.`$id` = @record_id
+|> ASSERT UNIQUE BY (id)
+|> RESULT deleted
+|> EFFECT DELETE kintone.inquiries ID id;

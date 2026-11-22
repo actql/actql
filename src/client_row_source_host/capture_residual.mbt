@@ -124,7 +124,8 @@ pub fn advance_row_capture(
       abort_row_run(run)
       Err(Residual(issue))
     }
-    @local.Stopped(..) | @local.CarrierComplete(_, ..) => Err(InvalidState)
+    @local.AwaitIo(..) | @local.Stopped(..) | @local.CarrierComplete(_, ..) =>
+      Err(InvalidState)
   }
 }
 

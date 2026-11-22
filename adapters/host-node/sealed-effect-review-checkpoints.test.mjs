@@ -89,8 +89,27 @@ test('same original sealed Effect review survives encrypted storage and signed C
   assert.equal(await reviewBytesMatchCid(bytes,review.artifactCid),true);
   await assert.rejects(installed.reviewCheckpoint({principalId:'foreign',checkpointCid:summary.checkpointCid,maxBytes:65536}),{code:'CheckpointReviewDenied'});
   await assert.rejects(installed.reviewCheckpoint({principalId:'reviewer',checkpointCid:summary.checkpointCid,maxBytes:bytes.length-1}),{code:'CheckpointReviewTooLarge'});
-  const answer=await signedAnswer(summary,'approved',{keyId:'reviewer-key',reviewerId:'reviewer',
-    authorityScopeCid:C('7'),sign:bytes=>sign(null,bytes,f.reviewer.privateKey)},new Date(clock).toISOString());
+  const decidedAt = new Date(clock).toISOString();
+  const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
+    authorityScopeCid: C('7'), sign: bytes => sign(null, bytes, f.reviewer.privateKey)};
+  const foreignKey = generateKeyPairSync('ed25519').privateKey;
+  const foreign = await signedAnswer(summary, 'approved', {...signer,
+    keyId: 'foreign-key', sign: bytes => sign(null, bytes, foreignKey)}, decidedAt);
+  let signatures = 0;
+  const wrongApproval = await signedAnswer(summary, 'approved', {...signer,
+    sign(bytes) {
+      const key = signatures++ === 0 ? foreignKey : f.reviewer.privateKey;
+      return sign(null, bytes, key);
+    }}, decidedAt);
+  assert.equal(signatures, 2);
+  const refused = await installed.resolve({principalId: 'reviewer', items: [foreign, wrongApproval]});
+  assert.deepEqual(refused.results.map(({status, reason}) => ({status, reason})), [
+    {status: 'invalid', reason: 'AnswerPrincipalMismatch'},
+    {status: 'invalid', reason: 'ResolutionAuthenticationFailed'},
+  ]);
+  assert.equal((await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10}))
+    .items[0]?.checkpointCid, summary.checkpointCid);
+  const answer = await signedAnswer(summary, 'approved', signer, decidedAt);
   const result=await installed.resolve({principalId:'reviewer',items:[answer]});
   assert.equal(result.results[0].status,'committed',JSON.stringify(result));
 });

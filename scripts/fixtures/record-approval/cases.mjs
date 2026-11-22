@@ -96,13 +96,16 @@ export function kintoneUpdateCase(programs, selected) {
 // Existing shared HTTPS fixture fault DATA only. A provider owns the exact
 // write route; this does not issue a request, classify Run state or grant send.
 export function recordUpdateReplyLossFaults(provider) {
-  const {method, pathname} = provider?.writeRequest ?? {};
+  const {method, pathname, bodyIncludes} = provider?.writeRequest ?? {};
   if (typeof method !== 'string' || !/^[A-Z]{3,16}$/u.test(method) ||
       typeof pathname !== 'string' || !pathname.startsWith('/') ||
       pathname.startsWith('//') || pathname.length > 4096 || !pathname.isWellFormed() ||
       pathname.includes('?') || pathname.includes('#') ||
-      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92))) {
+      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92)) ||
+      (bodyIncludes !== undefined && (typeof bodyIncludes !== 'string' ||
+        bodyIncludes.length < 1 || bodyIncludes.length > 128 || !bodyIncludes.isWellFormed()))) {
     throw new TypeError('InvalidRecordApprovalWriteRoute');
   }
-  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1})]);
+  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1,
+    ...(bodyIncludes === undefined ? {} : {bodyIncludes})})]);
 }

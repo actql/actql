@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureKintoneEffectPlanRecipeBuilder} from '../host/kintone-effect-plan.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {selectInstalledEffectCredentialOperation} from '../../../host-node/installed-effect-plan.mjs';
 import {fixture as nativeFixture, policy} from './kintone-update.fixture.mjs';
 
@@ -18,6 +19,29 @@ function fixture() {
       preview: {maxWireBytes: 65536, maxNodes: 8000, maxDepth: 32}}, maxRecoveryBytes: 65536};
   return {f, prepare, options};
 }
+
+test('kintone DELETE recipe binds all reads, finalization and the distinct DELETE child', () => {
+  const {f, options} = fixture(), {moon} = f;
+  const mapping = checked(moon.clientProgramKintonePrepareDeleteMapping(f.options.declaration,
+    'inquiries', 'required', moon.clientProgramKintoneDeclarationLimits(65536, 8000, 32, 4, 16)));
+  const plan = captureKintoneEffectPlanRecipeBuilder({moon, kind: 'delete'})({...options, mapping});
+  assert.equal(plan.credentialOperations.length, 13);
+  const write = selectInstalledEffectCredentialOperation(plan, 'write');
+  assert.equal(plan.rowOperations[write.operationIndex].operation, 'kintone:records:delete');
+  assert.equal(plan.rowOperations[plan.requestFinalization.operationIndex].operation, 'kintone:records:delete.finalize');
+  for (const phase of ['capture', 'apply', 'resume']) {
+    const target = selectInstalledEffectCredentialOperation(plan, phase + '-target', 'target');
+    assert.equal(target.maxTargetBytes, options.maxTargetBytes);
+    assert.equal(plan.rowOperations[target.operationIndex].operation, 'kintone:records:target-read');
+    assert(target.responseExtent(31, Buffer.alloc(31)));
+    assert.throws(() => target.responseExtent(31, Buffer.alloc(30)), {code: 'KintoneEffectRecipeUnavailable'});
+  }
+  assert(plan.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: '{"requests":[]}'}], 0));
+  for (const name of ['DeleteTargetRead', 'DeleteForm', 'DeleteTarget', 'DeleteResponse']) {
+    assert(f.calls[`clientProgramKintone${name}ConstructionCapacity`] > 0);
+  }
+  assert.equal(f.calls.clientProgramKintoneUpdateProposalConstructionCapacity ?? 0, 0);
+});
 
 test('kintone recipe constructs thirteen distinct original physical slots in the existing Common owner', () => {
   const f = fixture(), plan = f.prepare(f.options);

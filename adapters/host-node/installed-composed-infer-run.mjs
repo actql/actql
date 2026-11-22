@@ -413,6 +413,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const local = withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
     const child = children.find(value => runtimeField(moon.clientProgramInferPlanBoundary(value.selection.graph), 0) === boundary.task);
     if (child?.operation === undefined || child.capture === undefined) throw new Error('ModelPauseOwnerMissing');
+    if (boundary.status === 'await_io') {
+      if (typeof child.operation.waitForIo !== 'function') throw new Error('InferIoNotificationUnavailable');
+      await child.operation.waitForIo();
+      assertCurrent();
+      return {action: 'resume'};
+    }
     if (boundary.status === 'settling') {
       const settlement = child.operation.pendingSettlement();
       const slot = child.operation.settlementSlot(settlement);
@@ -476,16 +482,33 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint});
   }
   if (execution.status !== 'host-tasks-completed') {
-    let retirementPending = false;
+    const failed = children.find(child => child.component.hasFailure?.() === true ||
+      child.component.failure() !== undefined);
+    const componentFailure = failed?.component.failure();
+    let retirementPending = false, retirementFailed = false, retirementFailure;
     for (const child of children) {
-      if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
-      if (child.operation?.physicalStopped()) {
-        await child.capture.persistStoppedAttempts();
-        // A stopped child's accepted response can still be in its SAME
-        // retained Store writer after a write failure. Finish that original
-        // custody before reading durable Saved/Unknown; never replay Compute.
-        if (await child.capture.custody.retirePublication() !== true) retirementPending = true;
-      } else if (child.operation !== undefined) retirementPending = true;
+      try {
+        if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
+        if (child.operation?.physicalStopped()) {
+          await child.capture.persistStoppedAttempts();
+          // A stopped child's accepted response can still be in its SAME
+          // retained Store writer after a write failure. Finish that original
+          // custody before reading durable Saved/Unknown; never replay Compute.
+          if (await child.capture.custody.retirePublication() !== true) retirementPending = true;
+        } else if (child.operation !== undefined) retirementPending = true;
+      } catch (cause) {
+        // Keep this operation and capture on the already retained cleanup
+        // Owner. Its actual stop or Store failure is not a stop observation.
+        if (!retirementFailed) retirementFailure = cause;
+        retirementFailed = true;
+      }
+    }
+    if (retirementFailed) {
+      // The Local driver records its first thrown value before stopping. A
+      // later component projection or cleanup refusal cannot replace it.
+      if (Object.hasOwn(execution, 'failure')) throw execution.failure;
+      if (failed !== undefined) throw componentFailure;
+      throw retirementFailure;
     }
     if (retirementPending || modelController.unresolved(runId)) {
       // A partial Run has no complete ObservationSet or Named Result. Reuse
@@ -498,9 +521,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
       return Object.freeze({status: 'needs_reconciliation'});
     }
-    const failed = children.find(child => child.component.hasFailure?.() === true ||
-      child.component.failure() !== undefined);
-    if (failed !== undefined) throw failed.component.failure();
+    if (failed !== undefined) throw componentFailure;
     if (Object.hasOwn(execution, 'failure')) throw execution.failure;
     throw new Error('InstalledComposedInferComputationFailed');
   }

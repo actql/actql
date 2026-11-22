@@ -48,8 +48,8 @@ export function openRecordApprovalExchange(t, fixture) {
 }
 
 export function assertRecordApprovalTarget(snapshot, expected) {
-  const {id, name} = snapshot.target;
-  assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
+  const target = snapshot.target === null ? null : {id: snapshot.target.id, name: snapshot.target.name};
+  assert.deepEqual(target, expected.target, 'Independent provider target state');
 }
 
 function assertRecordApprovalControl(snapshot, expected) {
@@ -71,7 +71,9 @@ export async function runInstalledRecordApprovalFixture(t, input) {
   if (authoredFixture !== undefined) {
     assert.equal(typeof input.createInstallation, 'function', 'Select an original provider fixture adapter');
     assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
-    fixture = {...input, ...input.createInstallation(authoredFixture.seed)};
+    const kind = authored.review.kind ?? 'update';
+    fixture = {...input, ...input.createInstallation(authoredFixture.seed, kind)};
+    assert.equal(fixture.write?.kind ?? 'update', kind, 'The provider admits the original authored effect kind');
   }
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
@@ -234,10 +236,11 @@ export async function runInstalledRecordApprovalFixture(t, input) {
       if (loss !== undefined) {
         assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
       }
-      if (rejecting || loss !== undefined) {
-        const writeCount = snapshot => snapshot.requests.filter(request =>
-          request.method === provider.writeRequest.method && request.pathname === provider.writeRequest.pathname).length;
-        assert.equal(writeCount(after), writesExpected, 'Count every selected write request, including refused attempts');
+      if (rejecting || loss !== undefined || fixture.write.kind === 'delete') {
+        const {method, pathname, bodyIncludes} = provider.writeRequest;
+        const writeCount = tls.seen().filter(request => request.method === method && request.pathname === pathname &&
+          (bodyIncludes === undefined || request.body.includes(bodyIncludes))).length;
+        assert.equal(writeCount, writesExpected, 'Count every selected write request, including refused attempts');
       }
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,
         requestsBefore: before.requests.length, requestsAfter: after.requests.length, writes: after.writes});

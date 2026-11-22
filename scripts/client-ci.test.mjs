@@ -1096,8 +1096,18 @@ test('Client lanes cover local acceptance without positional command snapshots',
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
   assert(approvalSteps.length > 0, 'Connector acquisition acceptance must be scheduled');
+  const conditionalDelete = approvalSteps.find(step => step.id === 'packed-kintone-delete');
+  const originalKintone = approvalSteps.find(step => step.name === 'Test packed kintone record approval and original Saved');
+  assert(conditionalDelete && originalKintone, 'Both kintone operations use the ordinary installed runner');
+  assert.equal(conditionalDelete.run, originalKintone.run);
+  const deleteCasePath = 'scripts/fixtures/kintone-approval/delete.case.json';
+  const deleteCase = JSON.parse(readFileSync(join(root, deleteCasePath), 'utf8'));
+  assert.equal(deleteCase.review.kind, 'delete');
   for (const step of approvalSteps) {
-    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1', ...(step === conditionalDelete ? {
+      ACTQL_RECORD_APPROVAL_HTTP_CASE: '${{ github.workspace }}/' + deleteCasePath,
+      ACTQL_RECORD_APPROVAL_RESULT_NAMES: JSON.stringify([deleteCase.read.resultName, deleteCase.effect.resultName]),
+    } : {})});
     assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }

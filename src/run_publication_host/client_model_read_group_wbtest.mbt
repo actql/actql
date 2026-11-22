@@ -309,6 +309,21 @@ test "complete compiler Model scope binding refuses foreign duplicated and reord
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
+  // A missing per-model limit may not consume the original binding.
+  assert_true(
+    bind_client_model_read_scopes(
+      compiled,
+      definition,
+      plans,
+      ledger,
+      identity,
+      [7L, 9L],
+      [5L, 6L],
+      model_limits=Some([]),
+    )
+    is Err(ForeignRun),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
   let scopes = bind_client_model_read_scopes(
     compiled,
     definition,

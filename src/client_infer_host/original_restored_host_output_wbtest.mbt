@@ -69,7 +69,7 @@ test "restored Host output borrows the actual completed execution and retains cl
       true
     },
   )
-  active.local_component_bound = true
+  active.local_component_binding = Synchronous
   let held = acquire_output(active).unwrap()
   let before = @resources.ledger_usage(ledger)
   let (output, model) = borrow_original_restored_host_output(
@@ -128,13 +128,13 @@ test "restored Host output refuses foreign and revoked originals without spendin
     )
     is None,
   )
-  assert_false(active.local_component_bound)
+  assert_true(active.local_component_binding is Unbound)
   current.val = false
   assert_true(
     borrow_original_restored_host_output(held, compiled, definition, plan)
     is None,
   )
-  assert_false(active.local_component_bound)
+  assert_true(active.local_component_binding is Unbound)
   assert_true(release_output(held))
   restored_host_output_fixture_close(
     active, ledger, read, installation, profile,
@@ -155,7 +155,7 @@ test "restored Host output fences a saved custody callback releasing its origina
     borrow_original_restored_host_output(held, compiled, definition, plan)
     is None,
   )
-  assert_false(active.local_component_bound)
+  assert_true(active.local_component_binding is Unbound)
   restored_host_output_fixture_close(
     active, ledger, read, installation, profile,
   )
@@ -226,7 +226,7 @@ test "completed Local scratch handoff retains actual original Model and output b
   )
   let before = @resources.ledger_usage(ledger)
   assert_false(completed_original_component_scratch_retained(active))
-  active.local_component_bound = true
+  active.local_component_binding = Synchronous
   assert_false(completed_original_component_scratch_retained(active))
   let held = acquire_output(active).unwrap()
   assert_true(completed_original_component_scratch_retained(active))

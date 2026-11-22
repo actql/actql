@@ -133,8 +133,40 @@ pub fn AdmittedResolution::approval_proof_materials(
   }
   try {
     let evidence = object_of(self.body, "approval_evidence", "")
-    Ok(Some(approval_evidence_proof_materials(evidence, limits)))
+    let { key_id, preimage, signature, .. } = approval_evidence_proof_materials(
+      evidence, limits,
+    )
+    Ok(Some((key_id, preimage, signature)))
   } catch {
+    ResolutionFailed(issue) => Err(issue)
+  }
+}
+
+///|
+pub struct ApprovalVerificationInput {
+  key_id : String
+  approver : String
+  authority_scope_cid : String?
+  preimage : String
+  signature : String
+}
+
+///|
+/// Project the unsigned CID and submitted proof from the original evidence
+/// wire. The Host verifies the signature and Common still admits the
+/// complete Resolution and evidence against the original Checkpoint.
+pub fn approval_verification_input(
+  evidence_wire : String,
+  limits : WireLimits,
+) -> Result[ApprovalVerificationInput, ResolutionIssue] {
+  if !valid_limits(limits) {
+    return Err(ResolutionInvalidLimits)
+  }
+  let evidence = match parse_wire(evidence_wire, limits) {
+    Some(value) => value
+    None => return Err(ResolutionInvalidWire)
+  }
+  Ok(approval_evidence_proof_materials(evidence, limits)) catch {
     ResolutionFailed(issue) => Err(issue)
   }
 }
@@ -143,26 +175,23 @@ pub fn AdmittedResolution::approval_proof_materials(
 fn approval_evidence_proof_materials(
   evidence : @json.CanonicalValue,
   limits : WireLimits,
-) -> (String, String, String) raise ResolutionFailure {
+) -> ApprovalVerificationInput raise ResolutionFailure {
+  let prefix = "approval_evidence.compatibility_approval."
   let approval = object_of(
     evidence, "compatibility_approval", "approval_evidence.",
   )
-  let proof = object_of(
-    approval, "proof", "approval_evidence.compatibility_approval.",
-  )
-  let key = proof_key(
-    proof, "key_id", "approval_evidence.compatibility_approval.proof.",
-  )
-  let signature = text_of(
-    proof, "signature", "approval_evidence.compatibility_approval.proof.",
-  )
-  let identity = if string_field(evidence, "kind") == Some("effect_set") {
-    "attestation_cid"
+  let proof = object_of(approval, "proof", prefix)
+  let key_id = text_of(proof, "key_id", prefix + "proof.")
+  let signature = text_of(proof, "signature", prefix + "proof.")
+  let approver = text_of(approval, "approver", prefix)
+  let (identity, authority_scope_cid) = if string_field(evidence, "kind") ==
+    Some("effect_set") {
+    ("attestation_cid", Some(text_of(approval, "authority_scope_cid", prefix)))
   } else {
-    "run_scope_approval_cid"
+    ("run_scope_approval_cid", None)
   }
   let preimage = unsigned_cid(approval, identity, "proof", limits)
-  (key, preimage, signature)
+  { key_id, approver, authority_scope_cid, preimage, signature, }
 }
 
 ///|
@@ -189,7 +218,11 @@ pub fn PreparedResolutionProof::approval_proof_materials(
       self.limits,
       None,
     )
-    Ok(approval_evidence_proof_materials(evidence, self.limits))
+    let { key_id, preimage, signature, .. } = approval_evidence_proof_materials(
+      evidence,
+      self.limits,
+    )
+    Ok((key_id, preimage, signature))
   } catch {
     ResolutionFailed(issue) => Err(issue)
   }

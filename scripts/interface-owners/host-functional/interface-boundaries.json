@@ -19343,7 +19343,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2a6db3267fef5c8de38023e6e5350fb140435899794c7d9096658c28d2e3f29d",
+      "sha256": "2932d8bff1a620cbac42a51a67e340ceb52d315b9f9932e4fcb7fde0ddc7873f",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -20481,13 +20481,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -20639,8 +20632,7 @@
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
-            "principals/principals",
-            "without/without/without"
+            "principals/principals"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",
@@ -63653,7 +63645,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73a113f6c3320a675409e80ee60e34d1aa114294277183c968fdd144faa3aee2",
+      "sha256": "fa4163af98c0c2775403782dd78afed6bf2fda28785b4eb8a89057531e2f28e0",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -112112,7 +112104,8 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities"
           ],
           "exports": [],
           "attributes": {
@@ -114889,6 +114882,13 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -116086,7 +116086,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ffc40a1c5f06470b219dca2fd2b596a0bed1551198e7fda87e08490a01a47111"
+      "sha256": "2d6f28b3c53bca427be9d220fd551fe4e6701af319a227d3a96ce1be51811070"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a5d5b077c831f7c5af1d3e8f7e1f67ec2362d04aff33ee794977d11aed40e224",
+      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",

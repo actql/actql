@@ -196,6 +196,88 @@ test "pending save drains after stop changes without granting transport" {
 }
 
 ///|
+test "only the Local component with an original Host wake can wait for entry" {
+  for host_await_io in [false, true] {
+    let calls = Ref(0)
+    let current = Ref(evidence_account(@authorization.Allow))
+    let now = Ref("2026-10-02T00:00:00.000Z")
+    let egress = Ref(Some(egress_fixture_observation()))
+    let component : Ref[@local.ManagedProviderExecution?] = Ref(None)
+    let (active, prepared, admission, _) = entry_gate_fixture(
+      calls,
+      current,
+      now,
+      egress,
+      configure=active => {
+        component.val = Some(
+          local_component(
+            active,
+            _ => @connector.ComputeUnsupported,
+            host_await_io~,
+          ).unwrap(),
+        )
+      },
+      prepare_for_entry=active => {
+        for _ in 0..<5000 {
+          match
+            @local.advance_managed_provider(component.val.unwrap(), 7).unwrap() {
+            Waiting(..) => return Waiting(work=active.work)
+            Continue(..) => ()
+            _ => abort("Local must reach the original entry wait")
+          }
+        }
+        abort("Local entry wait exceeded the fixture bound")
+      },
+    )
+    let component = component.val.unwrap()
+    let begins = Ref(0)
+    let ready = Ref(false)
+    let bound = bind_model_entry_persistence(active, prepared, admission, entry => {
+      begins.val += 1
+      @model.model_call_entry_persistence(entry, prepared, () => {
+        if ready.val {
+          @model.Saved(
+            @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+          )
+        } else {
+          @model.Pending
+        }
+      })
+    })
+    assert_true(advance_root(active, 1) is Err(InvalidAdvance))
+    if host_await_io {
+      bound.unwrap()
+      for step in 0..<64 {
+        match @local.advance_managed_provider(component, 7).unwrap() {
+          AwaitIo(..) => break
+          Continue(..) => assert_true(step < 63)
+          _ => abort("Local must pause on the original entry save")
+        }
+      }
+      assert_eq(begins.val, 1)
+    } else {
+      assert_true(bound is Err(ForeignRun))
+      assert_eq(begins.val, 0)
+    }
+    assert_eq(calls.val, 0)
+    assert_true(@local.cancel_managed_provider(component))
+    if host_await_io {
+      assert_false(@local.cleanup_managed_provider(component).unwrap())
+      ready.val = true
+    }
+    for _ in 0..<8 {
+      if @local.managed_provider_stopped(component) {
+        break
+      }
+      @local.advance_managed_provider(component, 7).unwrap() |> ignore
+    }
+    assert_true(@local.managed_provider_stopped(component))
+    assert_true(@local.cleanup_managed_provider(component).unwrap())
+    assert_eq(calls.val, 0)
+  }
+}
+
+///|
 test "persistence poll cannot reenter the original bounded execution" {
   let calls = Ref(0)
   let current = Ref(evidence_account(@authorization.Allow))

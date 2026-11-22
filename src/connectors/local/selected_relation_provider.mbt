@@ -976,6 +976,7 @@ fn bounded_relation_chain_execution_state(
           }
           let (progress, work) = match poll {
             Continue(progress~, work~)
+            | AwaitIo(progress~, work~)
             | Waiting(progress~, work~)
             | Settling(_, progress~, work~)
             | Complete(_, progress~, work~)
@@ -990,7 +991,7 @@ fn bounded_relation_chain_execution_state(
             // A child may retain Store/authority custody during stop. Preserve
             // its explicit pause rather than inventing zero-work Continue.
             return match poll {
-              Waiting(..) | Settling(_, ..) => Ok(poll)
+              AwaitIo(..) | Waiting(..) | Settling(_, ..) => Ok(poll)
               _ => Ok(managed_provider_continue(progress, work))
             }
           }
@@ -1025,6 +1026,7 @@ fn bounded_relation_chain_execution_state(
         }
         let (progress, work) = match poll {
           Continue(progress~, work~)
+          | AwaitIo(progress~, work~)
           | Waiting(progress~, work~)
           | Settling(_, progress~, work~)
           | Complete(_, progress~, work~)
@@ -1047,7 +1049,7 @@ fn bounded_relation_chain_execution_state(
         used.val += work
         match poll {
           Continue(..) => Ok(managed_provider_continue(progress, work))
-          Waiting(..) | Settling(_, ..) => Ok(poll)
+          AwaitIo(..) | Waiting(..) | Settling(_, ..) => Ok(poll)
           Complete(output, ..) => {
             if state.position == count - 1 {
               terminal.val = true

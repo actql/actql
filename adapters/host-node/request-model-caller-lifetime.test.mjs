@@ -1370,6 +1370,45 @@ test('complete source-free Model caller refuses a replaced original component gr
   assert.deepEqual(f.calls,[]);
 });
 
+test('grouped retirement retains each exact runtime borrow while a sibling Scope is pending', () => {
+  const graphs = Object.freeze([{}, {}]);
+  const scopes = Object.freeze([{}, {}]);
+  const borrows = [{}, {}];
+  const settled = [false, false];
+  const returned = [];
+  let siblingReady = false;
+  const model = {graph: graphs, scopes, scope: scopes[0], compiled: {}, runDefinition: {}, control: {
+    finishCheckedClientInferOriginalReadScope(compiled, definition, graph, scope, physicalCleanup) {
+      const index = scopes.indexOf(scope);
+      assert.equal(compiled, model.compiled);
+      assert.equal(definition, model.runDefinition);
+      assert.equal(graph, graphs[index]);
+      assert.equal(physicalCleanup, true);
+      if (index === 0 || siblingReady) settled[index] = true;
+      return settled.every(Boolean);
+    },
+  }};
+  model.components = Object.freeze(scopes.map((scope, index) => ({group: model, scope,
+    control: model.control, graph: graphs[index], compiled: model.compiled,
+    runDefinition: model.runDefinition, runtimeBorrow: borrows[index], selection: {
+      finishTrustedRuntimeScope(actualScope, borrow, compiled, definition, graph) {
+        assert.equal(actualScope, scope);
+        assert.equal(borrow, borrows[index]);
+        if (!model.control.finishCheckedClientInferOriginalReadScope(compiled, definition, graph, actualScope, true)) return false;
+        returned.push(index);
+        return true;
+      },
+    }})));
+  assert.equal(finishNodeInferOriginalReadScopes(model), false);
+  assert.deepEqual(returned, []);
+  assert.deepEqual(model.components.map(member => member.runtimeBorrow), borrows);
+
+  siblingReady = true;
+  assert.equal(finishNodeInferOriginalReadScopes(model), true);
+  assert.deepEqual(returned, [1, 0]);
+  assert(model.components.every(member => member.runtimeBorrow === undefined && member.scopeFinished));
+});
+
 test('complete source-free Host reuses every retained provider and exact child original without reconstruction',async()=>{
   const selections=Object.freeze([{graph:{},occurrence:{}},{graph:{},occurrence:{}}]), calls=[];
   const plan={compiled:{},runDefinition:{wire:'{"run_id":"fixture"}'}}, primary=new Error('original complete Host refusal');
