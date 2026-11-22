@@ -2302,3 +2302,5 @@ target/
 /adapters/host-node/installed-row-source-keyed-preparation.d.mts
 /adapters/host-node/installed-row-source-preparation.mjs
 /adapters/host-node/installed-row-source-preparation.d.mts
+/adapters/host-node/installed-row-source-keyed-lookup.mjs
+/adapters/host-node/installed-row-source-keyed-lookup.d.mts

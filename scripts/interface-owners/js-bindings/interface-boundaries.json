@@ -100828,9 +100828,306 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-keyed-lookup.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowSourceKeyedLookup"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceKeyedLookup",
+          "parameters": [
+            "moon",
+            "limits",
+            "originalReader",
+            "selectedKeyedContent",
+            "sourceAccess",
+            "managedPageLimits",
+            "pageLimits",
+            "openKeyed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "keyedAcquisition",
+            "left",
+            "ledger",
+            "signal",
+            "preparedKeyed",
+            "originalCapture",
+            "originalCaptures",
+            "managedRun",
+            "keyedContent",
+            "publication",
+            "sourceLookup",
+            "access",
+            "maxWork",
+            "maxNodes",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:issueObservation/init:issueObservation",
+          "parameters": [
+            "authorityScopeCid",
+            "observedAt"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:openDag/init:openDag",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:openHost/init:openHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "retainedRelationOutput",
+            "managedRun",
+            "requestIdentity"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:prepareJoin/init:prepareJoin",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup",
+          "parameters": [
+            "verifyRead",
+            "activeSignal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup/openKeyedLookup",
+          "parameters": [
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup/openKeyedLookup#2",
+          "parameters": [
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#2",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedLookup/openKeyedLookup/stop/stop",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-source-mapping.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "2f4ea1724756e4165bc330a9492b327190f39adb6ce016a13cf3ed802f96ed6c",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceKeyedLookup",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/cleanup/cleanup",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/close/close",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:issueObservation/init:issueObservation",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:openDag/init:openDag",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:openHost/init:openHost",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/init:prepareJoin/init:prepareJoin",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup/openKeyedLookup",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup/openKeyedLookup#2",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#2",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#3",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#4",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/openKeyedLookup#5",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/recovery/recovery",
+            "createInstalledRowSourceKeyedLookup/openKeyedLookup/stop/stop"
+          ],
+          "exports": [
+            "createInstalledRowSourceKeyedLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "export function createInstalledRowSourceKeyedLookup("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "async function openKeyedLookup("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "type LookupOptions = {"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "read: () => closed ?"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "moon.clientProgramKeyedLookupLeft(lookup) !== left"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "return identity;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "children.push(acquired);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "pendingRecovery = end.recovery as AcquisitionRecovery | undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "await children[index].verifyRead();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "await acquired.verifyRead();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "fail('InstalledSourceCleanupPending');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "throw new AcquisitionOpenError(error, complete"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "moon.clientProgramKeyedLookupStop(lookup);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "moon.clientProgramKeyedFileLocatorCancel(locator);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "moon.clientProgramKeyedLookupChargeVerification(lookup, request, bytes)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "while (!checked(moon.clientProgramKeyedLookupCleanup(lookup, quantum)))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "publication!.finishInput(lookup)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-lookup.mts",
+                "anchor": "moon.clientProgramOpenInstalledManagedKeyedCaptureHost("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "canonical Effect lookup retains every original request before the first physical grant"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "generic Effect keyed completion failure keeps its original error and closes actual children"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "installed lookup retains the same rows identity and logical work across quanta"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f2b424aca9e13af748e62ff3613fe22d4c81fc04df6201b730aa639ec31ac5dc",
+      "sha256": "c3c3fbab6e0b4d1555cf02593b1ce265492e8d0162c746284320f4a654b82a85",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101287,134 +101584,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/openKeyedLookup",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "keyedAcquisition",
-            "left",
-            "ledger",
-            "signal",
-            "preparedKeyed",
-            "originalCapture",
-            "originalCaptures",
-            "managedRun",
-            "keyedContent",
-            "publication",
-            "sourceLookup",
-            "access",
-            "maxWork",
-            "maxNodes",
-            "quantum"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/close/close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
-          "parameters": [
-            "authorityScopeCid",
-            "observedAt"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "retainedRelationOutput",
-            "managedRun",
-            "requestIdentity"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
-          "parameters": [
-            "verifyRead",
-            "activeSignal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup/openKeyedLookup",
-          "parameters": [
-            "capture"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup/openKeyedLookup#2",
-          "parameters": [
-            "capture"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/recovery/recovery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/openKeyedLookup/stop/stop",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/operationBindings/operationBindings",
           "parameters": [
             "resource"
@@ -101432,6 +101601,13 @@
           "name": "createInstalledRowSource/resources/resources",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -101511,6 +101687,7 @@
         "./installed-row-source-authorization.mjs",
         "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
+        "./installed-row-source-keyed-lookup.mjs",
         "./installed-row-source-keyed-preparation.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-row-source-preparation.mjs",
@@ -101521,7 +101698,6 @@
         "node:crypto",
         "node:fs/promises",
         "node:perf_hooks",
-        "node:timers/promises",
         "node:url",
         "node:util"
       ],
@@ -101789,30 +101965,14 @@
             "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/responseBackingReleased/responseBackingReleased",
             "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
-            "createInstalledRowSource/openKeyedLookup",
-            "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
-            "createInstalledRowSource/openKeyedLookup/close/close",
-            "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
-            "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
-            "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
-            "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
-            "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup/openKeyedLookup",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup/openKeyedLookup#2",
-            "createInstalledRowSource/openKeyedLookup/recovery/recovery",
-            "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
             "cid/cid",
             "createInstalledRowSource/currentPhysicalTargetGeneration",
-            "createInstalledRowSource/prepareOriginalAcquisition"
+            "createInstalledRowSource/prepareOriginalAcquisition",
+            "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent"
           ],
           "exports": [
             "createInstalledRowSource",
