@@ -22,8 +22,8 @@ export const NOTION_USER_LIST_OPERATION = 'notion:users:list';
 export const NOTION_USER_LIST_API_VERSION = userListRequest.read.versionHeader.value;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const providerExports = ['notionProjectUserList','notionUserListIds','notionUserListRowsWire',
-  'notionUserListMetadataJson','notionUserListColumnNames'];
+const providerExports = ['notionProjectUserList','notionUserListRowsWire','notionUserListMetadata',
+  'notionUserListColumnNames','notionUserListPrepareIdentityProgress','notionUserListTrackPageIdentities'];
 const cursorMethods = ['clientProgramRowSourcePrepareCursorProgress', 'clientProgramRowSourceCursorRemainingRows',
   'clientProgramRowSourceCursorHasNext', 'clientProgramRowSourceCursorNext',
   'clientProgramRowSourceAdvanceProviderPageCursor', 'clientProgramRowSourceCursorIssueCode'];
@@ -82,7 +82,8 @@ export function prepareNotionUserListPages({moon, common, names, limits, request
   const progress = cursorResult(Reflect.apply(prepareCursor, common,
     [bound.maxPages, bound.maxTotalRows, bound.pageSize, bound.maxCursorBytes]), common, issueCode);
   // Source capture keeps the complete declared row before the user's SELECT.
-  const selected = Object.freeze(columns.slice()), ids = new Set();
+  const selected = Object.freeze(columns.slice());
+  const identities = checked(provider.notionUserListPrepareIdentityProgress(bound.maxTotalRows));
   return Object.freeze({
     fetchPage({pageIndex, rowCount}) {
       const remaining = cursorResult(Reflect.apply(remainingRows, common,
@@ -104,22 +105,30 @@ export function prepareNotionUserListPages({moon, common, names, limits, request
       const page = checked(provider.notionProjectUserList(response.body, bound.maxResponseBytes,
         bound.maxNodes, bound.maxDepth, Math.min(bound.maxRows, bound.pageSize), bound.maxCursorBytes,
         bound.maxIdentityBytes, bound.maxValueNodes, bound.maxValueTextBytes));
-      const metadata = JSON.parse(checked(provider.notionUserListMetadataJson(page,
-        bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
+      const metadata = checked(provider.notionUserListMetadata(page,
+        bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth));
+      const pageRows = runtimeField(metadata, 0);
+      const cursorPresent = runtimeField(metadata, 1);
+      const cursor = runtimeField(metadata, 2);
+      if (!Number.isSafeInteger(pageRows) || pageRows < 0 ||
+          typeof cursorPresent !== 'boolean' || typeof cursor !== 'string') {
+        fail('NotionUserListCursorRuntimeMismatch');
+      }
       const remaining = cursorResult(Reflect.apply(remainingRows, common,
         [progress, pageIndex, rowCount]), common, issueCode);
-      if (metadata.rowCount > remaining) fail('NotionUserListRowLimit');
-      for (const id of provider.notionUserListIds(page)) {
-        if (ids.has(id)) fail('NotionUserListDuplicateUser');
-        ids.add(id);
+      if (pageRows > remaining) fail('NotionUserListRowLimit');
+      const tracked = provider.notionUserListTrackPageIdentities(identities, page);
+      if (runtimeIsError(tracked)) {
+        const code = runtimeField(tracked, 0);
+        fail(typeof code === 'string' ? code : 'NotionUserListIdentityRuntimeMismatch');
       }
+      checked(tracked);
       const done = cursorResult(Reflect.apply(advanceCursor, common,
-        [progress, pageIndex, rowCount, metadata.rowCount, metadata.nextCursor !== null,
-          metadata.nextCursor ?? '']), common, issueCode);
+        [progress, pageIndex, rowCount, pageRows, cursorPresent, cursor]), common, issueCode);
       if (typeof done !== 'boolean') fail('NotionUserListCursorRuntimeMismatch');
       const rowsWire = checked(provider.notionUserListRowsWire(page, selected,
         bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth));
-      return {rowsWire, rowCount: metadata.rowCount, done};
+      return {rowsWire, rowCount: pageRows, done};
     },
     onError(cause) {return new NotionUserListReadFailure(cause);},
   });

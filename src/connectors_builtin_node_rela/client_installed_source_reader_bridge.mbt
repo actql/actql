@@ -113,6 +113,19 @@ pub fn client_program_installed_json_cursor_source_reader_capacity_with_request(
 }
 
 ///|
+#export_name("clientProgramInstalledJsonIdentityCursorSourceReaderCapacityWithRequest")
+pub fn client_program_installed_json_identity_cursor_source_reader_capacity_with_request(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  request : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_json_identity_cursor_source_reader_capacity_with_request(
+    limits, columns, secret_bytes, request,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest")
 pub fn client_program_installed_preserving_json_source_reader_capacity_with_request(
   limits : Array[Int],
