@@ -336,3 +336,19 @@ test('default installation outputs also refuse symlink aliases before Compute wr
   assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
   assert.equal(existsSync(join(root, 'adapters/portable/strategy.generated.mjs')), false);
 });
+
+test('selected strategy declarations refuse symlink aliases before Compute writes', t => {
+  const f = fixture(t), root = f.modules[1].root;
+  hostFixture(f, 'reader', 'source');
+  const sentinel = join(f.root, 'sentinel.d.mts');
+  writeFileSync(sentinel, 'unchanged outside bytes\n');
+  const output = join(root, 'adapters/portable/strategy.generated.d.mts');
+  mkdirSync(dirname(output), {recursive: true});
+  symlinkSync(sentinel, output);
+  assert.throws(() => checkNodeAssembly(root, true, {names: ['reader'],
+    assembly: 'compute', bridge: 'bridge', adapter: 'portable', installations: true,
+    nativeRemoteStandard: false}), /Aliased or invalid Host output/);
+  assert.equal(readFileSync(sentinel, 'utf8'), 'unchanged outside bytes\n');
+  assert.equal(existsSync(join(root, 'src/compute/moon.pkg')), false);
+  assert.equal(existsSync(join(root, 'adapters/portable/strategy.generated.mjs')), false);
+});

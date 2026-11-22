@@ -3,7 +3,6 @@
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 // @ts-expect-error The source-free plan owner is still authored in JavaScript.
 import {sourceFreePlanOriginal} from './local-values-plan.mjs';
-// @ts-expect-error The selected connector assembly has not generated its declaration yet.
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 // @ts-expect-error The shared runtime facade is still authored in JavaScript.
@@ -45,44 +44,47 @@ type NodeRuntime = Readonly<{
     publication: boolean, consumer: boolean, hostPolicy: boolean): boolean;
   clientProgramLocalEffectHostRuntime?(owner: unknown): object | undefined;
 }>;
-type LoadRuntime = () => NodeRuntime | Promise<NodeRuntime>;
-type Install = (moon: NodeRuntime, setup: object, check: typeof checked,
+type StandardRuntime = NodeRuntime & Parameters<typeof installStrategyContributions>[0];
+type InstallCheck = Parameters<typeof installStrategyContributions>[2];
+type InstalledContributions = InstalledRuntime['contributions'] | Awaited<ReturnType<typeof installStrategyContributions>>;
+type LoadRuntime<Runtime extends NodeRuntime> = () => Runtime | Promise<Runtime>;
+type Install<Runtime extends NodeRuntime> = (moon: Runtime, setup: object, check: InstallCheck,
   configuration: ReturnType<typeof snapshotConfigurations>, signal?: AbortSignal) =>
-    InstalledRuntime['contributions'] | Promise<InstalledRuntime['contributions']>;
-type Composition = Readonly<{loadRuntime: LoadRuntime; install: Install}>;
+    InstalledContributions | Promise<InstalledContributions>;
+type Composition<Runtime extends NodeRuntime> = Readonly<{loadRuntime: LoadRuntime<Runtime>; install: Install<Runtime>}>;
 type EntryControl = Readonly<{signal?: AbortSignal; observer?: unknown; taskObservation?: object}>;
 type Publication = Readonly<{store: unknown; plan: unknown}>;
-type CapturedStrategyTarget = Readonly<{
+type CapturedStrategyTarget<Runtime extends NodeRuntime> = Readonly<{
   setup: object;
   options: unknown;
-  composition: Composition;
+  composition: Composition<Runtime>;
   control?: EntryControl;
   results?: Readonly<{publishCheckedResults?: boolean; publication?: Publication}>;
   cleanup?: StrategyCleanup;
 }>;
-type PublishedStrategyTarget = Readonly<{
+type PublishedStrategyTarget<Runtime extends NodeRuntime> = Readonly<{
   setup: object;
   publication: Publication;
   options: unknown;
-  composition: Composition;
+  composition: Composition<Runtime>;
   control: EntryControl & Readonly<{beforePublication?: () => SynchronousRuntimeData}>;
   cleanup: Readonly<{retainExecution?: RetainExecution; preparationHolder?: unknown}>;
 }>;
-type CapturedEffectTarget = Pick<CapturedStrategyTarget, 'options' | 'control' | 'composition' | 'cleanup'> &
+type CapturedEffectTarget<Runtime extends NodeRuntime> = Pick<CapturedStrategyTarget<Runtime>, 'options' | 'control' | 'composition' | 'cleanup'> &
   Readonly<{owner: unknown}>;
 type EffectOptions = Readonly<{apply?: Readonly<{moon?: unknown}>}>;
 type CleanupFailure = Readonly<{cleanupPending?: boolean; cleanupHandle?: unknown}>;
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 
-async function runCapturedStrategyTarget({
+async function runCapturedStrategyTarget<Runtime extends NodeRuntime>({
   setup,
   options,
   composition: {loadRuntime, install},
   control: {signal, observer, taskObservation} = {},
   results: {publishCheckedResults, publication} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
-}: CapturedStrategyTarget) {
+}: CapturedStrategyTarget<Runtime>) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
   const configurations = snapshotConfigurations(options);
@@ -113,7 +115,9 @@ async function runCapturedStrategyTarget({
   const authorization = (configurations.authorization ?? missingAuthorizationGate()) as InstalledRuntime['authorization'];
   // Seal the activation requirement before any contribution is installed.
   core.requireActivation(setup);
-  const installed = await install(moon, setup, checked, configurations, signal);
+  // The selected strategies consume synchronous Common Results through this
+  // same decoder. The installed Host validates the returned registrations.
+  const installed = await install(moon, setup, checked as InstallCheck, configurations, signal);
   const originalPlan = publication === undefined ? undefined : sourceFreePlanOriginal(publication.plan);
   const observeFailure = core.publicationControl.originalClientDispatchFailureAvailable(originalPlan)
     ? (host: object) => core.publicationControl.observeOriginalClientDispatchFailure(originalPlan, host)
@@ -121,7 +125,7 @@ async function runCapturedStrategyTarget({
   signal?.throwIfAborted();
   return runInstalledStrategy({
     setup,
-    runtime: {core, contributions: installed,
+    runtime: {core, contributions: installed as InstalledRuntime['contributions'],
       sitePolicy: configurations.executionSitePolicy as InstalledRuntime['sitePolicy'], authorization, observeFailure},
     control: {signal, observeCompletion,
       observeTaskStart: taskStartObserver(observer), taskObservation},
@@ -171,14 +175,14 @@ export class CapturedRunExecutionError extends CapturedRunPublicationError {
 // publication inputs and current Store capacity are admitted before any
 // Compute starts. The returned owner keeps internal completion and publication
 // cleanup explicit; publication failure never rewrites the Compute outcome.
-async function runPublishedCapturedStrategyTarget({
+async function runPublishedCapturedStrategyTarget<Runtime extends NodeRuntime>({
   setup,
   publication,
   options,
   composition,
   control: {signal, observer, taskObservation, beforePublication},
   cleanup: {retainExecution, preparationHolder},
-}: PublishedStrategyTarget) {
+}: PublishedStrategyTarget<Runtime>) {
   if (retainExecution !== undefined && typeof retainExecution !== 'function') {
     throw new TypeError('InvalidExecutionOwnerReceiver');
   }
@@ -236,9 +240,9 @@ async function runPublishedCapturedStrategyTarget({
 // Compute an admitted Effect Run through the installed Host without claiming
 // apply or publication success. The exact captured owner remains with the
 // caller for Result pins, Preview, and subsequent durable Effect progress.
-async function runCapturedEffectComputationTarget({
+async function runCapturedEffectComputationTarget<Runtime extends NodeRuntime>({
   owner, options, control, composition, cleanup,
-}: CapturedEffectTarget) {
+}: CapturedEffectTarget<Runtime>) {
   const moon = await composition.loadRuntime();
   if (typeof moon.clientProgramLocalEffectHostRuntime !== 'function') {
     throw new TypeError('Effect computation Host is unavailable');
@@ -255,8 +259,8 @@ async function runCapturedEffectComputationTarget({
 
 // Build-time composition selects a concrete MoonBit artifact and its matching
 // implementation set. Call options cannot substitute either component.
-export function createNodeHostEntry(loadRuntime: LoadRuntime, install: Install) {
-  let runtime: ReturnType<LoadRuntime> | undefined;
+export function createNodeHostEntry<Runtime extends NodeRuntime>(loadRuntime: LoadRuntime<Runtime>, install: Install<Runtime>) {
+  let runtime: ReturnType<LoadRuntime<Runtime>> | undefined;
   const load = () => (runtime ??= loadRuntime());
   // Constructed only by installed composition, never read from caller options.
   const composition = Object.freeze({loadRuntime: load, install});
@@ -310,7 +314,7 @@ export function createNodeHostEntry(loadRuntime: LoadRuntime, install: Install) 
   });
 }
 
-const standard = createNodeHostEntry(
+const standard = createNodeHostEntry<StandardRuntime>(
   () => import(runtimeUrl.href), installStrategyContributions);
 export const runCapturedStrategy = standard.runCapturedStrategy;
 export const runCapturedInternalStrategy = standard.runCapturedInternalStrategy;
