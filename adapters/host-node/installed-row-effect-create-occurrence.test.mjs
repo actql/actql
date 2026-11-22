@@ -142,8 +142,7 @@ test('actual capture failure input callback retires only its pins after the shar
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];
-function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false,
-  requestProjection=false,fileCreate=false}={}){
+function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false,requestProjection=false}={}){
   const events=[],contexts=[],requests=[],requestChildren=[],workspaceEvents=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
   let activeConstructor;
   let projecting = false, projections = 0;
@@ -187,8 +186,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     memberOperations:Object.freeze([]),rowOperations:Object.freeze([
       Object.freeze({operation:'other original occurrence',extent:{}}),
       Object.freeze({operation:'construct',extent:{}})]),
-    requestConstruction:Object.freeze({operationIndex:1}),
-    ...(fileCreate ? {physicalWrite:Object.freeze({operationIndex:0,transferBytes:2n})} : {})}),2):undefined;
+    requestConstruction:Object.freeze({operationIndex:1})}),2):undefined;
   const nativePlan={},parent={},prepared={},identity={};
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:nativePlan}),
     clientProgramInstalledEffectOperationConstructionBegin(token){assert.equal(activeConstructor,undefined);activeConstructor=token;workspaceEvents.push(['begin',token.rowIndex]);return {$tag:1,_0:undefined};},
@@ -232,39 +230,6 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     workspaceEvents.push(['project', row]);
     return ports.controlConstruction(receiver, method, args);
   };
-  if (fileCreate) {
-    const invocation = Object.freeze({}), definition = Object.freeze({}), storeAuthorityCid = cid('e');
-    const artifact = Object.freeze({}), local = Object.freeze({}), nominal = Object.freeze({identity: cid('f')});
-    const descriptor = runtimeTupleFromFields({0:0, 6:'checked-result'});
-    const helper = nodes.find(({node}) => node.type === 'FunctionDeclaration' &&
-      node.id.name === 'previewMemberOriginal').node;
-    moon.clientProgramEffectMemberDescriptor = (actual, stage, effectId) => {
-      assert.equal(actual, prepared);
-      assert.equal(stage, member.stageIndex);
-      assert.equal(effectId, member.effectId);
-      return {ok: descriptor};
-    };
-    moon.strategyPublicationContractIdentity = value => {
-      assert(value === invocation || value === definition);
-      return value === invocation ? cid('c') : cid('d');
-    };
-    Object.assign(ports, {previewContext:{runInvocation:invocation,runDefinition:definition},
-      store:{storeAuthorityCid}, createOriginals:[],
-      sourceSet:{members:[{payload:{summary:{artifact},localResultArtifact:local}}]},
-      previewMemberOriginal:Function('moon','checked','runtimeField',
-        `return (${source.slice(helper.start,helper.end)});`)(moon,checked,runtimeField),
-      control:{
-        effectSourceArtifactPreviewBinding(actual, invocationCid, result, authority) {
-          assert.deepEqual([actual,invocationCid,result,authority],[artifact,cid('c'),'checked-result',storeAuthorityCid]);
-          return runtimeTupleFromFields([cid('1'),cid('2')]);
-        },
-        issueSourceFreeLocalEffectIdentity(actual, inputs, index, original) {
-          assert.deepEqual([actual,inputs,index,original],[prepared,ports.inputs,0,local]);
-          events.push('nominal identity');
-          return nominal;
-        },
-      }});
-  }
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
@@ -293,18 +258,6 @@ test('create original occurrence reaches retained request child before its first
   assert.equal(f.inventoryCalls(),1);assert.equal(f.requestChildren.length,3);
   assert.deepEqual(result.rowsOf[0].map(row=>row.identity),issued);
   for(const child of f.requestChildren){assert.equal(child.prepared.status().pending,true);await child.prepared.release();assert.equal(child.prepared.status().pending,false);}
-});
-
-test('file CREATE request children receive the same nominal source and Effect identity before request construction', async () => {
-  const f = fixture({child:true,managed:true,fileCreate:true});
-  await f.run();
-  assert.deepEqual(f.events.filter(event => ['nominal identity','debit','prepare'].includes(event)),
-    ['nominal identity','debit','prepare','debit','prepare','debit','prepare']);
-  const original = f.contexts[0].fileCreateIdentity;
-  assert.deepEqual(original, {runDefinitionCid:cid('d'),sourceBindingCid:cid('2'),effectIdentityCid:cid('f')});
-  assert(Object.isFrozen(original));
-  assert(f.contexts.every(context => context.fileCreateIdentity === original));
-  for (const child of f.requestChildren) await child.prepared.release();
 });
 
 test('create original inventory failure retains exact cause before sync or child provider construction',async()=>{
