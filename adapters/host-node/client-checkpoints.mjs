@@ -63,8 +63,6 @@ function coded(code, detail) {
     : {cause: detail}), {code});
 }
 const fail = (code, detail) => { throw coded(code, detail); };
-const without = (value, ...keys) => Object.fromEntries(
-  Object.entries(value).filter(([key]) => !keys.includes(key)));
 const hex = value => createHash('sha256').update(value).digest('hex');
 // Captured caller input is opaque data, not an installation identity.
 const capturedValueWire = value => canonicalValueJson(value, {dataKeys: true});
@@ -542,8 +540,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
     } catch { return undefined; }
   }
 
+  const checkpointRuntime = await loadCheckpointRuntime();
   journal = openSqliteCheckpointJournal(join(state, 'journal'), {
-    runtime: await loadCheckpointRuntime(),
+    runtime: checkpointRuntime,
     expectedAuthorityScopeCid: authorityScopeCid,
     modelResumeVerifier,
     now,
@@ -562,16 +561,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
         fail('InvalidResolutionSignature');
       }
       if (approvalEvidenceWire !== '') {
-        const evidence = JSON.parse(approvalEvidenceWire);
-        const approval = evidence.compatibility_approval;
-        const effect = evidence.kind === 'effect_set';
-        const unsigned = contentCid(without(approval,
-          effect ? 'attestation_cid' : 'run_scope_approval_cid', 'proof'));
-        if (approval?.proof?.key_id !== reviewer.keyId ||
-            approval.approver !== reviewer.reviewerId ||
-            effect && approval.authority_scope_cid !== authorityScopeCid ||
-            !verify(null, Buffer.from(unsigned, 'utf8'), reviewer.publicKey,
-              Buffer.from(approval.proof.signature ?? '', 'base64'))) {
+        const input = JSON.parse(
+          checkpointRuntime.approvalVerificationInput(approvalEvidenceWire));
+        if (input.ok !== true || input.key_id !== reviewer.keyId ||
+            input.approver !== reviewer.reviewerId ||
+            (input.authority_scope_cid !== null &&
+              input.authority_scope_cid !== authorityScopeCid) ||
+            !verify(null, Buffer.from(input.preimage, 'utf8'), reviewer.publicKey,
+              Buffer.from(input.signature, 'base64'))) {
           fail('InvalidApprovalSignature');
         }
       }
