@@ -89652,6 +89652,425 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-run-controls.mjs",
+      "sha256": "cd256bbdfa7b321e0561dd0aa9bff327b9339e02079b61e39c8895865af64140",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowEffectRunControls",
+        "createInstalledRowEffectRunLimits"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectRunControls",
+          "parameters": [
+            "owners",
+            "ownerOf",
+            "fail",
+            "selectionChanged",
+            "requireSynchronousEffectResource",
+            "validateOwnerSelections",
+            "assertUpdateTargetSelectionMembersCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/bindRunResources/bindRunResources",
+          "parameters": [
+            "facts",
+            "members"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/resourceFields/resourceFields",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence",
+          "parameters": [
+            "facts",
+            "members",
+            "stageIndex",
+            "updateTargetSelections"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/resourceOwners/resourceOwners",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunLimits",
+          "parameters": [
+            "moon",
+            "readManagedShape",
+            "limits",
+            "owners",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunLimits/runLimits/runLimits",
+          "parameters": [
+            "managed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunLimits/runLimits/runLimits/maxMembers/maxMembers",
+          "parameters": [
+            "bound",
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRunLimits/runLimits/runLimits/maxRows/maxRows",
+          "parameters": [
+            "bound",
+            "owner"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectRunLimits",
+            "createInstalledRowEffectRunLimits/runLimits/runLimits",
+            "createInstalledRowEffectRunLimits/runLimits/runLimits/maxMembers/maxMembers",
+            "createInstalledRowEffectRunLimits/runLimits/runLimits/maxRows/maxRows"
+          ],
+          "exports": [
+            "createInstalledRowEffectRunLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const runLimits"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const rows = runtimeField(shape, 0)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "managed.runtime !== moon"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "managed.controlConstruction(moon, readManagedShape"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "managed.controlConstruction(moon, readManagedShape"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "reject('InvalidInstalledEffectManagedShape')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The synchronous projection only reads the existing managed Plan shape."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const maxRows = owners.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "configuredMaxMembers === undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "cold claim recovery borrows its single original key cohort before capability admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectRunControls",
+            "createInstalledRowEffectRunControls/bindRunResources/bindRunResources",
+            "createInstalledRowEffectRunControls/resourceFields/resourceFields",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/resourceOwners/resourceOwners"
+          ],
+          "exports": [
+            "createInstalledRowEffectRunControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const bindRunResources"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "runResources.set(member, originals.get(owner)!)"
+              },
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-resources.test.mjs",
+                "anchor": "test('"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/assertCurrent/assertCurrent",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+            "createInstalledRowEffectRunControls/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const selectionFence"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-owner-projection.mts",
+                "anchor": "function installedRowEffectOwnerBinding(adapter: unknown)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data_wbtest.mbt",
+                "anchor": "test \"same-call typed installation shares full current purpose Mapping and unchanged virtual wire bounds\" {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('plural current issues each actual physical owner once per fresh observation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "Run continuation current cannot replace an original Mapping selection current assertion"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-standard-write.mjs",
       "sha256": "a8ef71436b1e55618084b5866ea203d880fe9636100258ce9637b93be95fe145",
       "responsibilityFacet": "supplemental",
@@ -90352,7 +90771,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5d041cbfe35176f92e62269e77274004a9fb2a13a7fbe3642bd2b5c68ee3d287",
+      "sha256": "9fbb5037c9e5ec05283077c66df1d33619db4d4302add4e69f03b41b1847fb76",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -91145,6 +91564,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/ownerOf/ownerOf",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
           "parameters": [
             "item"
@@ -91755,22 +92181,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/runLimits/runLimits/maxMembers/maxMembers",
-          "parameters": [
-            "bound",
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
-          "parameters": [
-            "bound",
-            "owner"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/scopeKey/scopeKey",
           "parameters": [
             "member"
@@ -91788,44 +92198,6 @@
           "name": "createRowEffectStage/scopes/scopes/scopes",
           "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -92526,74 +92898,6 @@
               {
                 "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
                 "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Identity is retained with the same Host, installation and Run."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Ownership of Source capture, Model work and file requests is separate."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Synchronization captures each private operation and its receiver before later"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Cancellation prevents new work but does not make cleanup require current"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Resources include the retained preparation, compilation, definition, request,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Extension remains private to the installed Host and the existing typed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/embedded-host-trust-boundary.md",
-                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }
@@ -93302,7 +93606,8 @@
         {
           "operations": [
             "cid/cid",
-            "createRowEffectStage"
+            "createRowEffectStage",
+            "createRowEffectStage/ownerOf/ownerOf"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -93532,8 +93837,6 @@
             "createRowEffectStage/resolveMember/resolveMember/command/command",
             "createRowEffectStage/resolveMember/resolveMember/mapping/mapping",
             "createRowEffectStage/routeOf/routeOf",
-            "createRowEffectStage/runLimits/runLimits/maxMembers/maxMembers",
-            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
             "createRowEffectStage/scopeKey/scopeKey",
             "createRowEffectStage/scopes/scopes",
             "createRowEffectStage/scopes/scopes/scopes",
@@ -95080,12 +95383,7 @@
         },
         {
           "operations": [
-            "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
-            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
-            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
-            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
-            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected"
+            "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent"
           ],
           "exports": [
             "collectInstalledRowEffectUpdateObservations",
@@ -98757,6 +99055,7 @@
         "./installed-row-effect-driver.mjs",
         "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-plan-capture.mjs",
+        "./installed-row-effect-run-controls.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",

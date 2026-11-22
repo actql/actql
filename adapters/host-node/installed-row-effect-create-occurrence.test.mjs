@@ -7,6 +7,7 @@ import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
+import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
@@ -668,8 +669,8 @@ test('actual CREATE read grant uses its original control frame and returns works
 test('ordinary CREATE retains the original Run continuation current fence without a Mapping selection', () => {
   const selected={kind:'create',effectId:'append'},owner={resources:undefined};let reads=0;
   const facts={prepared:{},assertContinuationCurrent(){assert.equal(this,facts);reads++;}};
-  const select=expression('selectionFence',{owners:[],validateOwnerSelections:()=>undefined,ownerOf:member=>{
-    assert.equal(member,selected);return owner;},resourceFields:()=>assert.fail('no legacy Resource original'),
+  const {selectionFence:select}=createInstalledRowEffectRunControls({owners:[],validateOwnerSelections:()=>undefined,ownerOf:member=>{
+    assert.equal(member,selected);return owner;},
     selectionChanged:()=>assert.fail('no Mapping selection is being supplied'),
     assertUpdateTargetSelectionMembersCurrent:()=>assert.fail('no Mapping proof from Run current'),
     requireSynchronousEffectResource:value=>value,fail});
@@ -700,9 +701,9 @@ test('Run continuation current cannot replace an original Mapping selection curr
   const member={kind:'update',stageIndex:0,effectId:'edit',mapping:{target:'target',mappingRef:'mapping',mappingCid:'cid'}};
   const facts={prepared,updateTargetSelections:selections,assertContinuationCurrent(){assert.fail('Run current is not Mapping current');},
     assertUpdateSelectionCurrent(){assert.equal(this,facts);asserted++;}};
-  const select=expression('selectionFence',{owners:[],validateOwnerSelections:(_owners,original,p)=>{
+  const {selectionFence:select}=createInstalledRowEffectRunControls({owners:[],validateOwnerSelections:(_owners,original,p)=>{
     assert.equal(original,selections);assert.equal(p,prepared);return original;},ownerOf:()=>({resources:undefined}),
-    resourceFields:()=>assert.fail('no legacy Resource original'),requireSynchronousEffectResource:value=>value,
+    requireSynchronousEffectResource:value=>value,
     assertUpdateTargetSelectionMembersCurrent:(original,members,p)=>{assert.equal(original,selections);assert.equal(p,prepared);
       assert.deepEqual(members,[{stage_index:0,effect_id:'edit',target_ref:'target',mapping_ref:'mapping',mapping_cid:'cid'}]);},
     selectionChanged:()=>fail('MissingOriginalMappingCurrent'),fail});

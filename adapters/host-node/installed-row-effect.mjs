@@ -101,6 +101,7 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
+import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
 import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -416,26 +417,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const {moon, ledgerRoot} = owners[0];
   const limits = retainedLimits ?? owners[0].limits;
   const readManagedShape = moon.clientProgramInstalledEffectManagedPlanShape;
-  const runLimits = managed => {
-    if (managed === undefined) return {...limits, maxRowsPerMember: limits.maxRows};
-    if (managed.runtime !== moon || managed.closed || typeof managed.controlConstruction !== 'function' ||
-        typeof readManagedShape !== 'function') fail('ForeignInstalledEffectManagedRun');
-    // This SAME adopted Plan supplies a rejection ceiling, not authority or
-    // already funded rows. retainInputs/retainRecoveredInputs still debit the
-    // actual inventory before any row-dependent constructor or provider call.
-    const shape = managed.controlConstruction(moon, readManagedShape, [managed.operationPlan]);
-    const rows = runtimeField(shape, 0), members = runtimeField(shape, 1);
-    if (!Number.isSafeInteger(rows) || rows < 0 || !Number.isSafeInteger(members) || members < 1 ||
-        rows > 2147483647 || members > 2147483647) fail('InvalidInstalledEffectManagedShape');
-    // Core preview/ledger counters are Int. Saturate only this conservative
-    // stage ceiling; an overlarge product must not refuse a small valid stage.
-    const total = Math.min(2147483647, rows * members);
-    const maxRows = owners.reduce((bound, owner) => owner.configuredMaxRows === undefined
-      ? bound : Math.min(bound, owner.configuredMaxRows), total);
-    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
-      ? bound : Math.min(bound, owner.configuredMaxMembers), members);
-    return Object.freeze({...limits, maxMembers, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
-  };
+  const runLimits = createInstalledRowEffectRunLimits({moon, readManagedShape, limits, owners, fail});
   const recipes = owners.flatMap(owner => owner.managedTargetPlanRecipes !== undefined ? []
     : owner.managedPlanRecipes === undefined ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
   let controlEntryBytes = installedEffectSavedControlEntryLimit(recipes);
@@ -499,86 +481,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     memberInstallations.set(retained, owner);
     return retained;
   };
-  const runResources = new WeakMap();
-  const bindRunResources = (facts, members) => {
-    const originals = new Map();
-    for (const member of members) {
-      const owner = ownerOf(member);
-      if (owner.resources === undefined) continue;
-      if (!originals.has(owner)) {
-        const original = requireSynchronousEffectResource(owner.resources.bindRunOriginal(facts));
-        if (original === null || typeof original !== 'object') {
-          fail('InstalledEffectResourcesUnavailable');
-        }
-        originals.set(owner, original);
-      }
-      runResources.set(member, originals.get(owner));
-    }
-  };
-  const resourceFields = member => {
-    if (ownerOf(member).resources === undefined) return {};
-    const runOriginal = runResources.get(member);
-    if (runOriginal === undefined) fail('InstalledEffectResourcesUnavailable');
-    return {runOriginal};
-  };
-  const selectionFence = (facts, members, stageIndex, updateTargetSelections) => {
-    const selections = validateOwnerSelections(owners, updateTargetSelections, facts.prepared);
-    const resourceOwners = [...new Map(members.flatMap(member => {
-      const owner = ownerOf(member);
-      return owner.resources === undefined ? [] : [[owner, resourceFields(member).runOriginal]];
-    })).entries()];
-    const liveAssertion = selections === undefined
-      ? facts.assertContinuationCurrent : facts.assertUpdateSelectionCurrent;
-    if (selections === undefined && resourceOwners.length === 0 && liveAssertion === undefined) return undefined;
-    if (selections !== undefined && typeof liveAssertion !== 'function') selectionChanged();
-    const selectedMembers = members.flatMap(member => {
-      const stage = member.stageIndex ?? stageIndex;
-      if (member.kind === 'update' || member.kind === 'delete') {
-        return [{stage_index: stage, effect_id: member.effectId,
-          target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
-          mapping_cid: member.mapping.mappingCid}];
-      }
-      const selected = selections?.filter(value => value.stage_index === stage &&
-        value.effect_id === member.effectId) ?? [];
-      if (selected.length === 0) return [];
-      // STORE remains a checked Command occurrence with its original Mapping
-      // selection. Bind both to this same installed owner; a generic Command
-      // or a matching selection tuple alone cannot supply STORE purpose.
-      if (selected.length !== 1 || member.kind !== 'command') selectionChanged();
-      const mappings = ownerOf(member).storeMappings.filter(mapping =>
-        mapping.target === selected[0].target_ref &&
-        mapping.mappingRef === selected[0].mapping_ref &&
-        mapping.mappingCid === selected[0].mapping_cid &&
-        mapping.storeCommand.command_ref === member.command.commandRef &&
-        mapping.storeCommand.command_contract_cid === member.command.commandCid);
-      if (mappings.length !== 1) selectionChanged();
-      return [{stage_index: stage, effect_id: member.effectId,
-        target_ref: mappings[0].target, mapping_ref: mappings[0].mappingRef,
-        mapping_cid: mappings[0].mappingCid}];
-    });
-    const assertCurrent = () => {
-      for (const [owner, original] of resourceOwners) {
-        if (requireSynchronousEffectResource(owner.resources.assertCurrent(original)) !== undefined) {
-          fail('InstalledEffectResourcesUnavailable');
-        }
-      }
-      if (selections !== undefined) {
-        validateOwnerSelections(owners, selections, facts.prepared);
-        try {
-          assertUpdateTargetSelectionMembersCurrent(selections, selectedMembers, facts.prepared);
-        } catch (cause) { selectionChanged(cause); }
-      }
-      if (liveAssertion === undefined) return;
-      const result = Reflect.apply(liveAssertion, facts, []);
-      // A live-owner assertion must finish before the physical operation.
-      if (typeof result?.then === 'function') {
-        void Promise.resolve(result).catch(() => {});
-        selectionChanged();
-      }
-    };
-    assertCurrent();
-    return assertCurrent;
-  };
+  const {bindRunResources, resourceFields, selectionFence} = createInstalledRowEffectRunControls({
+    owners, ownerOf, fail, selectionChanged,
+    requireSynchronousEffectResource, validateOwnerSelections, assertUpdateTargetSelectionMembersCurrent,
+  });
   const selectOwner = descriptor => {
     if (singular !== undefined) return singular;
     const route = routes.find(value => value.descriptor.effectId === runtimeField(descriptor, 1));

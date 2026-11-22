@@ -4,19 +4,19 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 
 const source=readFileSync(new URL('./installed-row-effect.mjs',import.meta.url),'utf8');
-const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[],runLimitSelectors=[],recoveredEntriesSelectors=[];
+const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[],recoveredEntriesSelectors=[];
 function visit(value){
   if(value===null||typeof value!=='object')return;
   if(value.type==='FunctionDeclaration'&&value.id.name==='prepareRecovered')found.push(value);
-  if(value.type==='VariableDeclarator'&&value.id.name==='runLimits')runLimitSelectors.push(value.init);
   if(value.type==='VariableDeclarator'&&value.id.name==='prepareRecoveredEntries')recoveredEntriesSelectors.push(value.init);
   for(const child of Object.values(value)){
     if(Array.isArray(child))child.forEach(visit);else visit(child);
   }
 }
-visit(ast);assert.equal(found.length,1);assert.equal(runLimitSelectors.length,1);assert.equal(recoveredEntriesSelectors.length,1);
+visit(ast);assert.equal(found.length,1);assert.equal(recoveredEntriesSelectors.length,1);
 
 function fixture(selected=true){
   const moon={},events=[],preview={},scope={},identity={},stop=new Error('ReachedOriginalCapabilityBoundary');
@@ -43,12 +43,12 @@ function fixture(selected=true){
     resourceFields:()=>({}),orderedSourceIndexes:()=>[],
     physicalRoute(){assert.fail('No route is created before the exact terminal marker');},
     admitCapability(){events.push('capability');return{identity:'capability'};}};
-  const fn=Function(...Object.keys(bindings),`
-    const readManagedShape=moon.clientProgramInstalledEffectManagedPlanShape;
+  const runLimits=createInstalledRowEffectRunLimits({moon, limits:bindings.limits,
+    owners:bindings.owners, readManagedShape:moon.clientProgramInstalledEffectManagedPlanShape, fail:bindings.fail});
+  const fn=Function(...Object.keys(bindings),'runLimits',`
     const prepareRecoveredEntries=(${source.slice(recoveredEntriesSelectors[0].start,recoveredEntriesSelectors[0].end)});
-    const runLimits=(${source.slice(runLimitSelectors[0].start,runLimitSelectors[0].end)});
     return (${source.slice(found[0].start,found[0].end)});`)(
-    ...Object.values(bindings));
+    ...Object.values(bindings),runLimits);
   const facts={moon,control:{effectComputationPreviewWire:value=>{
     assert.strictEqual(value,preview);return JSON.stringify(body);},effectComputationPreviewLedgerIdentity:()=>({}),
     effectComputationPreviewSemanticCid(){events.push('exact terminal');throw stop;}},

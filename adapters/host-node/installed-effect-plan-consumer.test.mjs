@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowSourceAcquisition} from './installed-row-source-acquisition.mjs';
 import {snapshotClientRequest} from '@actql/client-wire';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -528,14 +529,13 @@ const recoveryRowNodes = [];
 (function walk(node) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries', 'runLimits'].includes(node.id.name)) recoveryRowNodes.push(node);
+      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries'].includes(node.id.name)) recoveryRowNodes.push(node);
   for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
   else if (child && typeof child === 'object') walk(child);
 })(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
 const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
-const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
 const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
@@ -625,10 +625,8 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
       assert.strictEqual(original, invocation); return invocationOriginal;
     });
   const limits = {preview: {}, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
-  const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
-    owners: [owner], fail, runtimeField};
-  const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
-    recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
+  const runLimits = createInstalledRowEffectRunLimits({limits, moon,
+    readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape, owners: [owner], fail});
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
     recoveredMembers: () => [member], ownerOf, bindRunResources() {}, selectionFence: () => () => {},

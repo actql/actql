@@ -127119,8 +127119,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const bindRunResources = (facts, members) => {"
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const bindRunResources = (facts: unknown, members: readonly StageMember[])"
               },
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
@@ -127295,8 +127295,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const bindRunResources = (facts, members) => {"
+                "path": "adapters/host-node/installed-row-effect-run-controls.mts",
+                "anchor": "const bindRunResources = (facts: unknown, members: readonly StageMember[])"
               },
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
