@@ -24,6 +24,10 @@ pub fn native_relation_file_capture_limits(@client_row_source_host.RowDeclaratio
 
 pub fn native_relation_file_content_construction_inventory(NativeRelationFilePreparedProvider, Int) -> @execution_relation.PreparationRepresentationUnits?
 
+pub fn native_relation_file_delete_target_io_capacity(NativeRelationFilePreparedProvider) -> @execution_relation.ExecutionCapacity?
+
+pub fn native_relation_file_delete_target_read_io_capacity(NativeRelationFilePreparedProvider, response_bytes? : Int?) -> @execution_relation.ExecutionCapacity?
+
 pub fn native_relation_file_input_capture_limits(@client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@physical_resources.LedgerLimits, NativeRelationFileIssue]
 
 pub fn native_relation_file_input_valid(NativeRelationFileSelection, NativeRelationFileLimits) -> Bool
@@ -51,6 +55,8 @@ pub fn prepare_native_managed_relation_file_query_listing_capture(@installed_are
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_relation_file_content_input(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @publication_store.Store, NativeRelationFileListingFields, String, String, @value_admission.ReferenceLimits, Int, () -> Int64, () -> String, (@value_admission.ReferenceValue) -> String?, read_profile? : NativeRelationFileKeyedReadProfile?) -> Result[NativeRelationFileContentInput, NativeRelationFileIssue]
+
+pub fn prepare_native_relation_file_delete_target_observation(NativeRelationFilePreparedProvider, String, (Int) -> Bool) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 

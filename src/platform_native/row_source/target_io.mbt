@@ -13,6 +13,7 @@ priv enum NativeRelationTargetIOPhase {
 ///|
 priv enum NativeRelationFileTargetMutation {
   ObserveTarget
+  ObserveDeleteTarget
   UpdateTarget(String, String, String)
   DeleteTarget(String, String)
 }
@@ -126,10 +127,27 @@ pub fn native_relation_file_target_io_capacity(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,
 ) -> @execution.ExecutionCapacity? {
+  guard writable_fields > 0 else { return None }
+  native_relation_file_target_io_capacity_original(provider, writable_fields)
+}
+
+///|
+/// The locked DELETE constructs a whole-file replacement from the original
+/// document and exact row, without a mapped field list.
+pub fn native_relation_file_delete_target_io_capacity(
+  provider : NativeRelationFilePreparedProvider,
+) -> @execution.ExecutionCapacity? {
+  native_relation_file_target_io_capacity_original(provider, 0)
+}
+
+///|
+fn native_relation_file_target_io_capacity_original(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+) -> @execution.ExecutionCapacity? {
   let limits = provider.limits
   let selection = provider.selection
-  guard writable_fields > 0 &&
-    writable_fields <= limits.page.max_nodes &&
+  guard writable_fields <= limits.page.max_nodes &&
     file_capture_provider_capacity(
       selection,
       limits,
@@ -232,6 +250,23 @@ pub fn prepare_native_relation_file_target_io(
 }
 
 ///|
+/// Observe the exact DELETE row and its version before Preview. This child
+/// has no field intent and cannot prepare or perform a replacement.
+pub fn prepare_native_relation_file_delete_target_observation(
+  provider : NativeRelationFilePreparedProvider,
+  identity : String,
+  before_response : (Int) -> Bool,
+) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  prepare_native_relation_file_target_io_original(
+    provider,
+    [],
+    identity,
+    ObserveDeleteTarget,
+    before_response=Some(before_response),
+  )
+}
+
+///|
 /// Same physical child for a checked update whose response backing is staged.
 /// The callback runs before any lock/Reader/body and supplies no permission.
 /// After it returns the owner locks and reobserves the original file, then
@@ -304,13 +339,15 @@ fn prepare_native_relation_file_target_io_original(
   before_response? : ((Int) -> Bool)? = None,
   staged_update? : Bool = false,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  let fieldless = mutation is ObserveDeleteTarget ||
+    mutation is DeleteTarget(_, _)
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
-    (writable.is_empty() && !(mutation is DeleteTarget(_, _))) ||
+    writable.is_empty() != fieldless ||
     writable.length() > provider.limits.page.max_nodes {
     return Err(InvalidInput)
   }
   match mutation {
-    ObserveTarget => ()
+    ObserveTarget | ObserveDeleteTarget => ()
     UpdateTarget(version, changes, staging) =>
       if !file_capture_text(changes, provider.limits.page.max_bytes) ||
         !native_relation_file_target_write_names(provider, version, staging) {
@@ -564,7 +601,7 @@ fn NativeRelationFileTargetIO::project(
   }
   self.observed_row = Some((before, version))
   match self.mutation {
-    ObserveTarget => self.phase = TargetReady
+    ObserveTarget | ObserveDeleteTarget => self.phase = TargetReady
     UpdateTarget(expected, changes, _) => {
       let output = file_require(
         @rows.prepare_relation_target_update(
@@ -603,7 +640,7 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
     UpdateTarget(version, changes, staging) =>
       (version, changes, staging, false)
     DeleteTarget(version, staging) => (version, "", staging, true)
-    ObserveTarget => raise FileCaptureStop(Unavailable)
+    ObserveTarget | ObserveDeleteTarget => raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()
   let output = self.replacement.unwrap()
@@ -849,12 +886,34 @@ pub fn native_relation_file_target_read_io_capacity(
   writable_fields : Int,
   response_bytes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
+  guard writable_fields > 0 else { return None }
+  native_relation_file_target_read_io_capacity_original(
+    provider, writable_fields, response_bytes,
+  )
+}
+
+///|
+/// Quote the same original guard-row observation with zero field intents.
+pub fn native_relation_file_delete_target_read_io_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  response_bytes? : Int? = None,
+) -> @execution.ExecutionCapacity? {
+  native_relation_file_target_read_io_capacity_original(
+    provider, 0, response_bytes,
+  )
+}
+
+///|
+fn native_relation_file_target_read_io_capacity_original(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+  response_bytes : Int?,
+) -> @execution.ExecutionCapacity? {
   let limits = provider.limits
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )
-  guard writable_fields > 0 &&
-    writable_fields <= limits.page.max_nodes &&
+  guard writable_fields <= limits.page.max_nodes &&
     file_capture_provider_capacity(
       provider.selection,
       limits,
