@@ -24,6 +24,10 @@ test('Explorer is a separate exact closure and internal peers receive the releas
   assert.equal(metadata.peerDependencies.react, original.peerDependencies.react);
   assert.equal(metadata.peerDependencies['react-dom'], original.peerDependencies['react-dom']);
   assert.equal(metadata.exports['./styles.css'], './dist/plan-explorer.css');
+  const gateway = JSON.parse(await readFile(new URL('../packages/explorer/package.json', import.meta.url)));
+  const installedGateway = releasePackageMetadata(gateway, 'explorer', explorer);
+  assert.equal(installedGateway.dependencies['@actql/local-node'], explorer.packageVersion);
+  assert(!Object.hasOwn(installedGateway.dependencies, '@actql/run-host-core'));
   assert.throws(() => admitCohort({...explorer, packages: cohort.packages}));
   assert.throws(() => admitCohort({...cohort, packages: explorer.packages}));
   assert.throws(() => releasePackageMetadata({name: '@actql/explorer-ui',

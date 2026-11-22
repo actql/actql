@@ -2071,7 +2071,7 @@
         {
           "path": "spec/contracts/actql-interactive-run-control.json",
           "pointer": "",
-          "cid": "sha256:45c70b0da65627b9de1c50ac2974fb588f55a179535d0696abd5a1a8dc6b5690",
+          "cid": "sha256:6a0eb46a1abfe6ead8abbc85a296283e25a6c54e0dde3c694cc1a8088e087b50",
           "version": "actql-interactive-run-control-registry/0.1"
         },
         {
@@ -2144,6 +2144,24 @@
           "path": "spec/contracts/actql-interactive-run-control.json",
           "pointer": "/schemas/run_explanation_view",
           "cid": "sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/explanation_context",
+          "cid": "sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/static_explanation_view",
+          "cid": "sha256:8e4b03ac25f7e1457d676d66caf56ece97fdbad1a3dd78d09552f3bc0e4a73a2",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/run_explanation_context_view",
+          "cid": "sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d",
           "version": "actql-interactive-run-control-registry/0.1"
         }
       ],
@@ -2562,7 +2580,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:00b030b0fd234a32e47f229b6abf0174f4f5fe8d11a194bdcc336e8b1d0a1af4"
+          "document_cid": "sha256:8f3f81b4598c5554095689776d994552a0c8cc6cb4fed0f8ae9bdce5869fa85f"
         },
         {
           "owner": "actql.protocol.discovery",

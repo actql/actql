@@ -2241,7 +2241,8 @@
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
           ],
           "exports": [
             "contentCaptureControl",
@@ -2982,7 +2983,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4106,7 +4107,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6628,7 +6629,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8841,7 +8842,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9681,7 +9682,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -12662,6 +12663,16 @@
             "definition",
             "limits",
             "explanation"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+          "parameters": [
+            "explanation",
+            "definition",
+            "prepared",
+            "evidence"
           ],
           "async": false
         },
@@ -19489,7 +19500,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
+      "sha256": "ab052067eb3b9e969f3a3ec131d2c34b0a21a84136aa319391e76e57d47d006c"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -31093,6 +31104,442 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "packages/run-host-core/explanation-narrative.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "exports": [
+        "StaticExplanationNarrative",
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire: string",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "StaticExplanationNarrative"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "StaticExplanationNarrative",
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/run-host-core/explanation-narrative.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b106cc46882c8d60a88fd53d61f488d15e4a6004e7b9c4cbc8a620ecc8832464",
+      "exports": [
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire",
+            "locale"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/explanation-narrative.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "exports": [
+        "StaticExplanationNarrative",
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire: string",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "StaticExplanationNarrative"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present already disclosed static Explanation data through the existing compiled Local runtime and Common renderer. The Host retains current read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "StaticExplanationNarrative",
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_render_static_explanation_narrative(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/local-node/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/explanation-narrative.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "6e95768357d832c8ab4c14100b5652f2285b702c3817e2d0bce1cdd6e50ecc18",
+      "exports": [
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire",
+            "locale"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+        "./adapters/host-common/compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present already disclosed static Explanation data through the existing compiled Local runtime and Common renderer. The Host retains current read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_render_static_explanation_narrative(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/local-node/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "packages/run-host-core/index.mjs",
       "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
@@ -37151,7 +37598,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -38817,7 +39264,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -39055,7 +39502,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -40561,7 +41008,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -40849,7 +41296,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -42935,7 +43382,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -47883,6 +48330,120 @@
       "referenceQualification": "Same original checked Effect compiler DATA and distinct actual installed Plan, with Resource borrower-delayed retirement; no Host or ordinary runtime acceptance."
     },
     {
+      "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
+      "sha256": "c00eb5739658b679c707135a4272b226089211b2bb369b6ffc560cdb5bc72a29",
+      "operations": [
+        {
+          "name": "[I]capture_request_effect_run_explanation",
+          "declaration": "[ I ] capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , journal_bytes ? : Int"
+        },
+        {
+          "name": "[I]discard_original_effect_run_explanation",
+          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , decline ? : Bool"
+        },
+        {
+          "name": "[I]original_effect_run_explanation_facets",
+          "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestEffectRunExplanationFacets , ClientRequestStaticContextIssue , ]"
+        },
+        {
+          "name": "[I]try_capture_request_effect_run_explanation",
+          "declaration": "[ I ] try_capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , journal_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ClientRequestEffectRunExplanation [ I ] ? , ClientRequestStaticContextIssue , ]"
+        }
+      ],
+      "exports": [],
+      "role": "common-semantics",
+      "owner": "Existing Effect Request compiler and working capacity",
+      "rationale": "Project the exact first-admission Effect compilation already held by the Request, bind the Plan and structural facets to its Definition, and drop those aliases before owner retirement.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]capture_request_effect_run_explanation",
+            "[I]discard_original_effect_run_explanation",
+            "[I]original_effect_run_explanation_facets",
+            "[I]try_capture_request_effect_run_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] capture_request_effect_run_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] original_effect_run_explanation_facets("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_compilation.mbt",
+                "anchor": "pub fn client_effect_explanation_compilation_for_run("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "!physical_equal(selected.definition, definition)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "The Request's working reservation holds every new wire"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "with_request_static_effect_explanation("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "if selected.owner.phase == Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "return Err(Preparation(ForeignOriginal))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "guard current() else"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "reserve_static_context_construction(capacity, input, held)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "original.original = None"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] discard_original_effect_run_explanation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "first Effect Run Explanation borrows its issued compilation and holds all facets on the Request"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "referenceQualification": "The Common Request compiler component is separate from the production Journal caller and public Saved read."
+    },
+    {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
       "sha256": "d62199b6fade564d3fc639d1ac6f2d9a56192f02f757906b03b4d76cf3ba7ab0",
@@ -49687,7 +50248,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4a03e34e2370e2e8e8a7f7a2fcad0512c5ea9a813d01bef0da877f25ed198120",
+      "sha256": "2ec7285c0fdc3fe7fbe5a54c8d8949b6f4718345b8ecff999420f14e16a38f7a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -53526,7 +54087,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53622,7 +54183,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53936,7 +54497,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -57532,7 +58093,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -57666,7 +58227,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -57923,7 +58484,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -58021,7 +58582,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -58389,7 +58950,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -58650,7 +59211,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -58823,7 +59384,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -58936,7 +59497,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -60363,7 +60924,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -61079,7 +61640,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -63903,7 +64464,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -66625,11 +67186,18 @@
               {
                 "path": "src/client_local_host/preparation_request_explanation_read_js_wbtest.mbt",
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"first Effect Run Explanation borrows"
               }
             ]
           },
           "operations": [
-            "client_program_read_request_explanation"
+            "client_program_read_request_explanation",
+            "client_program_begin_request_explanation_context_read",
+            "client_program_read_request_explanation_context",
+            "client_program_reserve_request_explanation_context_read"
           ],
           "exports": []
         },
@@ -67563,6 +68131,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_read_request_checked_static_effect_explanation",
+            "client_program_static_effect_explanation_context_wire",
+            "client_program_static_effect_explanation_facts_wire",
+            "client_program_static_effect_explanation_plan_wire",
+            "client_program_discard_effect_run_explanation",
+            "client_program_effect_run_explanation_wires",
+            "client_program_try_capture_effect_run_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_read_request_checked_static_effect_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "pub struct ClientRequestStaticEffectExplanation {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "guard owner.input is Some(held) && physical_equal(held, input) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, T] with_request_static_effect_explanation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "owner.phase = Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub suberror ClientRequestStaticExplanationBridgeIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, P] reserve_static_context_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "/// Request and installed Model graphs. Disclosure stays with the Host."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_effect_plan_wbtest.mbt",
+                "anchor": "test \"checked static Effect Explanation bridge reads the original Request and its three wires\" {"
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -67640,6 +68282,10 @@
           "declaration": "client_program_begin_logical_observation ( value : @ client_local_host . ClientLogicalObservation , phase : String , ) - > Result [ @ client_local_host . ClientLogicalObservationRecord , @ client_local_host . ClientLogicalObservationIssue , ]"
         },
         {
+          "name": "client_program_begin_request_explanation_context_read",
+          "declaration": "client_program_begin_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_begin_request_explanation_read",
           "declaration": "client_program_begin_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -67712,6 +68358,10 @@
           "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_discard_effect_run_explanation",
+          "declaration": "client_program_discard_effect_run_explanation ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , decline : Bool , ) - > Result [ Unit , @ client_local_host . ClientRequestStaticContextIssue ]"
+        },
+        {
           "name": "client_program_effect_preparation_input_read",
           "declaration": "client_program_effect_preparation_input_read ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > @ publication_host . PreparedClientEffectComputation ?"
         },
@@ -67726,6 +68376,10 @@
         {
           "name": "client_program_effect_preparation_input_sibling",
           "declaration": "client_program_effect_preparation_input_sibling ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_effect_run_explanation_wires",
+          "declaration": "client_program_effect_run_explanation_wires ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , ) - > Result [ Array [ String ] , @ client_local_host . ClientRequestStaticContextIssue ]"
         },
         {
           "name": "client_program_finish_program_json_preparation",
@@ -68040,12 +68694,20 @@
           "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "client_program_read_request_checked_static_effect_explanation",
+          "declaration": "client_program_read_request_checked_static_effect_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ @ client_local_host . ClientRequestStaticEffectExplanation , ClientRequestStaticExplanationBridgeIssue , ]"
+        },
+        {
           "name": "client_program_read_request_checked_static_plan",
           "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
         {
           "name": "client_program_read_request_explanation",
           "declaration": "client_program_read_request_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
+          "name": "client_program_read_request_explanation_context",
+          "declaration": "client_program_read_request_explanation_context ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , context_wire : String ? , template_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
         {
           "name": "client_program_read_request_policy_subject",
@@ -68168,6 +68830,10 @@
           "declaration": "client_program_reserve_request_effect_original_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , prepared : @ publication_host . PreparedClientEffectComputation , count : Int , wire_at : ( Int ) - > String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_explanation_context_read",
+          "declaration": "client_program_reserve_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , context_bytes : Int , template_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_explanation_read",
           "declaration": "client_program_reserve_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -68216,6 +68882,22 @@
           "declaration": "client_program_return_request_original_explanation ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
         },
         {
+          "name": "client_program_static_effect_explanation_context_wire",
+          "declaration": "client_program_static_effect_explanation_context_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_facts_wire",
+          "declaration": "client_program_static_effect_explanation_facts_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_plan_wire",
+          "declaration": "client_program_static_effect_explanation_plan_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_try_capture_effect_run_explanation",
+          "declaration": "client_program_try_capture_effect_run_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , bytes : Int , nodes : Int , depth : Int , work : Int , ) - > Result [ @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] ? , @ client_local_host . ClientRequestStaticContextIssue , ]"
+        },
+        {
           "name": "prepare_request_model_graph_with_file_declarations",
           "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
@@ -68232,7 +68914,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "9f5ae64b37ecdc41bceddadb1438ea386d262303ca951ad6db725efd93f15029"
+      "sha256": "3f9627229b5f97ebdc18b829a22e3ed2a0cde95323caadd8325e7e5dc10ab1d0"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -73146,7 +73828,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -81197,7 +81879,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "8a3a932e669aa6771ef86c674557d5753037e71ab5629f0f33249143ff4e0988",
+      "sha256": "6522c4b4e86335d71b9135cdcc28b9cf8f47e852d47a61aa2ad45033f872ed8f",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -81296,6 +81978,10 @@
           "declaration": "client_effect_compilation_unit_id ( value : ClientEffectCompilation , ) - > String"
         },
         {
+          "name": "client_effect_explanation_compilation_for_run",
+          "declaration": "client_effect_explanation_compilation_for_run ( prepared : PreparedClientEffectComputation , allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , ) - > ClientEffectCompilation ?"
+        },
+        {
           "name": "client_effect_run_start_current",
           "declaration": "client_effect_run_start_current ( allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , at : String , ) - > Bool"
         },
@@ -81344,6 +82030,7 @@
             "client_effect_compilation_result_transformation",
             "client_effect_compilation_template",
             "client_effect_compilation_unit_id",
+            "client_effect_explanation_compilation_for_run",
             "client_effect_run_start_current",
             "issue_client_effect_allowed_run",
             "issue_client_effect_compilation_internal",
@@ -97571,7 +98258,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -98024,7 +98711,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [

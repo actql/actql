@@ -16044,7 +16044,7 @@
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -16327,7 +16327,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -17616,7 +17616,8 @@
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
-            "publicationControl/token/token"
+            "publicationControl/token/token",
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
           ],
           "exports": [],
           "attributes": {
@@ -19237,7 +19238,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -22624,7 +22625,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28346,6 +28347,16 @@
             "definition",
             "limits",
             "explanation"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+          "parameters": [
+            "explanation",
+            "definition",
+            "prepared",
+            "evidence"
           ],
           "async": false
         },
@@ -35173,7 +35184,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
+      "sha256": "ab052067eb3b9e969f3a3ec131d2c34b0a21a84136aa319391e76e57d47d006c"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48910,7 +48921,7 @@
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -49162,7 +49173,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -51552,7 +51563,9 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation"
           ],
           "exports": [],
           "attributes": {
@@ -55163,7 +55176,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -55610,7 +55623,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "prepareDefinition, assertRequestedStopAvailable,"
+                "anchor": "prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -59705,7 +59718,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -62934,7 +62947,12 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5"
           ],
           "exports": [],
           "attributes": {
@@ -63163,11 +63181,15 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
           }
@@ -63403,7 +63425,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -63643,7 +63665,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -63883,7 +63905,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -64748,6 +64770,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+            "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+            "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const staticEffectExplanation = preparation !== undefined &&"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "      const decision = authorizeEgress(request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function hasStaticExplanationPort(name) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -65274,6 +65376,15 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
           "parameters": [
             "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+          "parameters": [
+            "facts",
+            "readEvidence",
+            "hasIntent"
           ],
           "async": false
         },
@@ -66410,6 +66521,44 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun",
           "parameters": [
             "prepared",
@@ -66496,6 +66645,28 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+          "parameters": [
+            "request",
+            "visit"
+          ],
           "async": false
         },
         {
@@ -67109,6 +67280,13 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest",
           "parameters": [
             "runtime",
@@ -67178,6 +67356,17 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [
+            "runtime",
+            "facts",
+            "readEvidence",
+            "journal",
+            "hasIntent"
+          ],
           "async": false
         },
         {
@@ -67929,6 +68118,18 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:readSequenceContracts/init:readSequenceContracts",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal",
+            "visit",
+            "modelInstallation"
+          ],
           "async": false
         },
         {
@@ -68884,7 +69085,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "abea9916810c7140db541d3f59189e41fe3150b97fb5133ef950621d8f7df993"
+      "sha256": "dfe2261e264d53368bbe538eb0a4beb92e147a65f888898f3dbe3d55d141f2b0"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
