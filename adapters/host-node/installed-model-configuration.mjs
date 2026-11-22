@@ -304,6 +304,28 @@ export async function installConfiguredModelProviders({moon, register, project,
         }
         preparing = false;
         return Object.freeze({tasks: Object.freeze(tasks),
+          verifyChatConfiguration(name, selector, modelId, endpoint) {
+            return track(async () => {
+              const original = taskFor(name);
+              if (typeof moon.clientProgramInstalledChatConfigurationMatches !== 'function') {
+                fail('InstalledModelBindingRuntimeUnavailable');
+              }
+              // Read the same funded configuration and binding already used
+              // to normalize this Task. Return no retained parser workspace.
+              const binding = original.defaults.binding;
+              construction.prepareModelTaskInput(Object.freeze({
+                capacity: () => capacity(4n, 0n, 0n, 8n * 4096n,
+                  8n * 65536n, 6n * 65536n),
+                project() {
+                  if (moon.clientProgramInstalledChatConfigurationMatches(binding.value,
+                    binding.originals.configuration.wire, original.providerId,
+                    selector, modelId, endpoint) !== true) fail('InstalledModelResolvedConfigurationMismatch');
+                  return Object.freeze({});
+                },
+                retained: () => capacity(4n),
+              }));
+            });
+          },
           responseProfileFor(name, originalTemplate) {
             return track(async () => {
               const original = taskFor(name);

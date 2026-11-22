@@ -45,6 +45,62 @@ pub fn issue_client_model_provider_binding(
 }
 
 ///|
+/// Check the resolved route against the original nonsecret configuration of
+/// an admitted binding. A capability caller funds these bounded reads before
+/// retaining the selection. Physical installation and send approval are
+/// checked separately by their original owners.
+pub fn client_model_resolved_configuration_matches(
+  binding : @publication.RunEvidenceValue,
+  configuration_wire : String,
+  provider_id : String,
+  selector : String,
+  model_id : String,
+  adapter_kind : String,
+  api_mode : String,
+  endpoint : String,
+) -> Bool {
+  if @publication.run_evidence_value_name(binding) != "model_provider_binding" ||
+    configuration_wire.length() > 65536 {
+    return false
+  }
+  guard parse_plan_identity_value(
+      @publication.run_evidence_value_json(binding),
+      16384,
+      256,
+      8,
+    )
+    is Some(original) &&
+    @canonical.object_field(original, "provider_id")
+    is Some(@canonical.String(original_provider)) &&
+    original_provider == provider_id &&
+    @canonical.object_field(original, "configuration_cid")
+    is Some(@canonical.String(configuration_cid)) &&
+    parse_plan_identity_value(configuration_wire, 65536, 4096, 32)
+    is Some(configuration) else {
+    return false
+  }
+  if configuration_cid != "sha256:" + @sha.hex(@utf8.encode(configuration_wire)) {
+    return false
+  }
+  for
+    (field, expected) in [
+      ("provider_id", provider_id),
+      ("selector", selector),
+      ("endpoint", endpoint),
+      ("model_id", model_id),
+      ("adapter_kind", adapter_kind),
+      ("api_mode", api_mode),
+    ] {
+    guard @canonical.object_field(configuration, field)
+      is Some(@canonical.String(actual)) &&
+      actual == expected else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 // Same original field order/spelling. Measurement includes the sealer's one
 // self-CID field by encoded extent only, without issuing a binding or CID.
 fn[C] emit_client_model_provider_binding_body(
