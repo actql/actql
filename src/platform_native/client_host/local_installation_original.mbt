@@ -168,11 +168,13 @@ fn local_installation_payload(
 fn local_installation_packet(
   host : NativeLocalHostConnection,
   payload : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   local_installation_packet_in_transaction(
     host.database,
     host.epoch.crypto,
     payload,
+    reads~,
   )
 }
 
@@ -562,16 +564,26 @@ fn NativeLocalHostConnection::installation_original_locked(
         if !adopt || count >= 8 {
           return Err(CustodyLost)
         }
+        if operations is Some(access) {
+          // The existing packet holds a <=234-byte projection, three CIDs
+          // and one role marker, then a base64 envelope and SHA-256 tag.
+          // Reserve the simultaneous writer envelope before opening the file.
+          guard access.before_construction is Some(prepare) &&
+            prepare(4096, 24, 2) is Ok(_) else {
+            return Err(CapacityExceeded)
+          }
+        }
         // Reserve before exporting/copying descriptor material. This uses the
         // existing settings capacity and unchanged physical journal limit.
-        guard self.database
-          .reserve_capacity_in_transaction(
+        guard reserve_client_journal_capacity(
+            self.database,
             "client_local_settings",
             "installation:" + file.name,
             8192L,
             1L,
             65536L,
             8L,
+            operations,
           )
           .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
           .map_err(issue => LocalInstallationJournalStop(issue))
@@ -589,32 +601,38 @@ fn NativeLocalHostConnection::installation_original_locked(
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
         self
-        .require_distinct_signing_key_locked(file, exported)
+        .require_distinct_signing_key_locked(file, exported, capture~, reads~)
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
         let payload = local_installation_payload(self, file, provider, exported)
           .map_err(_ => NativeClientRunJournalIssue::Encoding)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
-        let packet = local_installation_packet(self, payload)
+        let packet = local_installation_packet(self, payload, reads~)
           .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
         current()
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
-        self.database
-        .insert("client_local_installation_originals", file.name, packet)
+        insert_client_journal_value(
+          self.database,
+          "client_local_installation_originals",
+          file.name,
+          packet,
+          operations,
+        )
         .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
         |> ignore
-        self.database
-        .compare_exchange(
+        compare_exchange_client_journal_value(
+          self.database,
           "client_local_installation_custody",
           "issued",
           revision,
           @utf8.encode((count + 1).to_string()),
+          operations,
         )
         .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
         .map_err(issue => LocalInstallationJournalStop(issue))

@@ -334,6 +334,50 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
 }
 
 ///|
+/// Persist the selected file projection at the end of explicit adoption.
+/// Model preparation restores this row through its read-only entry below.
+pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_read(
+  self : NativeLocalJournalCapture,
+  configuration : NativeModelHttpConfiguration,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !physical_equal(configuration.capture, self) || self.session.existing_only {
+    return Err(CustodyLost)
+  }
+  let written = Ref(false)
+  self.with_current_adoption_material_in_original_read(
+    (host, _, operations) => {
+      if !physical_equal(host.session.settings, configuration.settings) {
+        return Err(CustodyLost)
+      }
+      host.journal
+      .transaction_with_reads(
+        () => {
+          host
+          .installation_original_locked(
+            configuration.setting,
+            configuration.provider_file,
+            configuration.selected,
+            true,
+            () => self.check_original_read_lifetime().map_err(_ => CustodyLost),
+            capture=Some(self),
+            operations=Some(operations),
+          )
+          .map(_ => ())
+        },
+        reads=Some(operations.reads),
+      )
+      .map_err(issue => {
+        match issue {
+          TransactionUnknown => NativeLocalAdoptionIssue::TransactionUnknown
+          _ => NativeLocalAdoptionIssue::Journal(issue)
+        }
+      })
+    },
+    installation_written=Some(written),
+  )
+}
+
+///|
 /// Join this exact configuration and checked execution to the loaded Runtime.
 /// The adopted provider binding is reused rather than recreated from copies.
 pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read(

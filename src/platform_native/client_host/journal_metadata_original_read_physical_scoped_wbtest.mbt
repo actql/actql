@@ -553,15 +553,9 @@ test "Native Model configuration refuses a foreign credential in the adopted ori
 }
 
 ///|
-test "Native Model credential lookup joins the original scoped SQLite and Read phases" {
+test "Native Model credential adoption and lookup use the original scoped SQLite and Read phases" {
   let name = "model-http-scoped-installation"
   let (installed, file, provider, selection) = local_installation_fixture(name)
-  let expected = local_installation_test_original(
-      installed, file, provider, selection, true,
-    )
-    .unwrap()
-    .export_original()
-    .unwrap()
   let config_files = installed.session.settings.files.map(selected => {
     selected.name
   })
@@ -606,62 +600,100 @@ test "Native Model credential lookup joins the original scoped SQLite and Read p
       metadata_retained=fixture.original.metadata_retained,
     )
     .unwrap()
+  let adopted = native_scoped_model_credential(
+    capture,
+    file.name,
+    provider.name,
+    selection,
+    adopt=true,
+  )
+  let restored = native_scoped_model_credential(
+    capture,
+    file.name,
+    provider.name,
+    selection,
+    adopt=false,
+  )
+  assert_eq(restored, adopted)
+  assert_true(adoption.close().issue() is None)
+  assert_true(capture.descriptor_cleanup_acknowledged())
+  assert_true(crypto.close_checked() is Ok(_))
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+fn native_scoped_model_credential(
+  capture : NativeLocalJournalCapture,
+  setting : String,
+  provider : String,
+  selection : NativeLocalPreparationInstallationSelection,
+  adopt~ : Bool,
+) -> Bytes raise {
   let stage = Ref("open scoped journal")
+  let written = Ref(false)
   let result = capture.with_original_read(host => {
     stage.val = "observe current adoption"
-    capture.with_current_adoption_material_in_original_read((
-      current,
-      _,
-      operations,
-    ) => {
-      stage.val = "select adopted files"
-      guard physical_equal(host, current) &&
-        current.session.settings.files
-        .iter()
-        .find_first(value => value.name == file.name)
-        is Some(adopted_setting) &&
-        current.session.settings.files
-        .iter()
-        .find_first(value => value.name == provider.name)
-        is Some(adopted_provider) else {
-        return Err(CustodyLost)
-      }
-      stage.val = "confirm direct SQL refusal"
-      guard current.database.read(
-          "client_local_installation_originals",
-          file.name,
-        )
-        is Err(_) else {
-        return Err(CustodyLost)
-      }
-      stage.val = "begin scoped installation lookup"
-      current.journal
-      .transaction_with_reads(
-        () => {
-          stage.val = "authenticate and restore original credential"
-          current.installation_original_locked(
-            adopted_setting,
-            adopted_provider,
-            selection,
-            false,
-            () => {
-              capture.check_original_read_lifetime().map_err(_ => CustodyLost)
-            },
-            capture=Some(capture),
-            operations=Some(operations),
+    capture.with_current_adoption_material_in_original_read(
+      (current, _, operations) => {
+        stage.val = "select adopted files"
+        guard physical_equal(host, current) &&
+          current.session.settings.files
+          .iter()
+          .find_first(value => value.name == setting)
+          is Some(adopted_setting) &&
+          current.session.settings.files
+          .iter()
+          .find_first(value => value.name == provider)
+          is Some(adopted_provider) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "confirm direct SQL refusal"
+        guard current.database.read(
+            "client_local_installation_originals", setting,
           )
-        },
-        reads=Some(operations.reads),
-      )
-      .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
-      .bind(projected => {
-        stage.val = "export restored projection"
-        projected.export_original().map_err(issue => Filesystem(issue))
-      })
-      .map(projected => projected == expected)
-    })
+          is Err(_) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "verify original custody before lookup"
+        let expected = if adopt { b"0" } else { b"1" }
+        guard (operations.reads.read)(
+            "client_local_installation_custody", "issued",
+          )
+          is Ok(witness) &&
+          witness.body == expected &&
+          witness.revision == (if adopt { 0L } else { 1L }) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "enter scoped installation transaction"
+        current.journal
+        .transaction_with_reads(
+          () => {
+            stage.val = "adopt or restore original credential"
+            current.installation_original_locked(
+              adopted_setting,
+              adopted_provider,
+              selection,
+              adopt,
+              () => {
+                capture.check_original_read_lifetime().map_err(_ => CustodyLost)
+              },
+              capture=Some(capture),
+              operations=Some(operations),
+            )
+          },
+          reads=Some(operations.reads),
+        )
+        .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
+        .bind(projected => {
+          stage.val = "export original projection"
+          projected.export_original().map_err(issue => Filesystem(issue))
+        })
+      },
+      installation_written=if adopt { Some(written) } else { None },
+    )
   })
-  let found = match result {
+  assert_eq(written.val, adopt)
+  match result {
     Ok(Ok(value)) => value
     Ok(Err(Journal(CustodyLost))) => fail(stage.val + " refused custody")
     Ok(Err(Journal(Physical(_)))) => fail(stage.val + " refused SQLite")
@@ -676,11 +708,6 @@ test "Native Model credential lookup joins the original scoped SQLite and Read p
     Err(OriginalResources(_)) => fail(stage.val + " refused original resources")
     Err(_) => fail(stage.val + " refused original Read")
   }
-  assert_true(found)
-  assert_true(adoption.close().issue() is None)
-  assert_true(capture.descriptor_cleanup_acknowledged())
-  assert_true(crypto.close_checked() is Ok(_))
-  account_original_read_close_fixture(fixture)
 }
 
 ///|

@@ -924,6 +924,28 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             child,
           )
           local_host_result(capture.check_current_in_original_read())
+          // Adoption is the closed writer of the configured projection.
+          // Return the prepared reply after its commit. No later operation
+          // in this callback consumes the invalidated installation snapshot.
+          if operation == "adopt" &&
+            settings.model_http_installation is Some(selected) {
+            let model_configuration = match
+              capture.read_model_http_configuration_in_original_read(
+                selected.files,
+                selected.provider_id,
+                selected.response_profile_cid,
+                local_project_mock_task_limits(),
+              ) {
+              Ok(value) => value
+              Err(Original(issue)) => stop(local_host_issue(issue))
+              Err(_) => stop("LocalModelHttpInstallationRefused")
+            }
+            local_host_result(
+              capture.adopt_model_http_configuration_in_original_read(
+                model_configuration,
+              ),
+            )
+          }
           body
         }
         Ok(
