@@ -155,7 +155,8 @@ class OriginalSavedResultRead:
             async with host._operation_lock():
                 self._prepare_turn(scope)
                 selection = self._prepare_payload(source, packet)
-            del packet
+                del packet
+                core.retire_saved_result_transport(source)
             reader = self._reader
             assert reader is not None
             while not reader.eof:

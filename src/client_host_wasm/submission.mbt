@@ -301,10 +301,13 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
 /// remains available to internal same-Store observation until full close.
 pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.submissions.get(handle) is Some(record) &&
-    record.kind == 3 &&
-    record.produced &&
-    record.append_plan is Ready(_) else {
+    value.submissions.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
+    return retire_saved_result_transport(value, handle, record)
+  }
+  guard record.kind == 3 && record.produced && record.append_plan is Ready(_) else {
     return -2
   }
   if value.commit_exports.values().any(child => child.publication == handle) ||

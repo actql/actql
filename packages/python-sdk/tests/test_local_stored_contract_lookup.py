@@ -139,7 +139,7 @@ class StoredContractLookupTests(unittest.TestCase):
                 self.assertIs(projection.pending_outputs[0], retained)
                 state['cleanup'] = True
                 self.assertTrue(projection.close())
-                self.assertEqual(sum(name == 'reserve' for _, name, _ in calls), 1)
+                self.assertEqual([args[2] for _, name, args in calls if name == 'reserve_bounded'], [71])
                 self.assertIs(core._loans[7], parent)
 
     def test_actual_file_current_rechecks_run_while_reference_loan_is_live(self):

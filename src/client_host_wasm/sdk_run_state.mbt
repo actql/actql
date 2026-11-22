@@ -308,26 +308,52 @@ fn sdk_run_state_candidate(
 }
 
 ///|
-/// Prepare the existing same-row metadata CAS. This output is not public state
-/// until the physical Host confirms the exact committed original row.
-pub fn produce_publication_sdk_run_state(
+// Prepare the same RunState observation once on its own original buffer loan.
+fn prepare_sdk_run_state_update(
   nonce : Int64,
   handle : Int,
   run : Int,
   input : Int,
   current_configuration : Int,
-) -> Int {
+  measured? : Bool = false,
+) -> Result[
+  (@host.ClientSavedRunStateUpdate, StoredPublicationCommitExport),
+  Int,
+] {
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(output) &&
     value.copies.get(input) is Some((slot, physical)) else {
-    return -2
+    return Err(-2)
   }
   if output.invoked || output.pending || output.produced {
-    return -33
+    return Err(-33)
   }
+  output.pending = true
+  let prepared = prepare_sdk_run_state_update_body(
+    value, output, run, slot, physical, handle, input, current_configuration, measured,
+  )
+  output.pending = false
+  prepared.map(update => (update, output))
+}
+
+///|
+fn prepare_sdk_run_state_update_body(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  run : Int,
+  slot : @buffers.BufferSlot,
+  physical : Int,
+  handle : Int,
+  input : Int,
+  current_configuration : Int,
+  measured : Bool,
+) -> Result[@host.ClientSavedRunStateUpdate, Int] {
   match sdk_run_state_current(value, output, run, current_configuration) {
-    Err(code) => return code
+    Err(code) => return Err(code)
     Ok(_) => ()
+  }
+  if output.closing {
+    return Err(-5)
   }
   output.invoked = true
   output.projection = Some(SDKRunState(input, run))
@@ -336,18 +362,59 @@ pub fn produce_publication_sdk_run_state(
       physical_reader_stop(physical, handle) == 0
     }) {
     Ok(value) => value
-    Err(issue) => return issue_code(issue)
+    Err(issue) => return Err(issue_code(issue))
   }
   output.state_borrow = Some(borrow)
+  if measured {
+    guard sdk_run_state_update_construction_capacity() is Some((r, e)) else {
+      return Err(-4)
+    }
+    match @resources.reserve_capacity(value.root, r, e) {
+      Ok(capacity) => output.sdk_run_state_update_capacity = Some(capacity)
+      Err(_) => return Err(-4)
+    }
+  }
+  let (update, prior_bytes) = match
+    build_sdk_run_state_update(value, output, run, slot, current_configuration) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  // Store the candidate before any reconciliation can fail. The constructor
+  // frame has returned, so no parsed snapshot or wrapped-state alias escapes.
+  output.sdk_run_state_update = Some(update)
+  if measured {
+    match
+      reconcile_sdk_run_state_update_capacity(
+        value, output, prior_bytes, update,
+      ) {
+      Ok(_) => ()
+      Err(code) => return Err(code)
+    }
+  }
+  if output.closing {
+    Err(-5)
+  } else {
+    Ok(update)
+  }
+}
+
+///|
+fn build_sdk_run_state_update(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  run : Int,
+  slot : @buffers.BufferSlot,
+  current_configuration : Int,
+) -> Result[(@host.ClientSavedRunStateUpdate, Int), Int] {
   let (manifest, wire) = match
     sdk_run_state_candidate(value, output, run, slot, current_configuration) {
     Ok(value) => value
-    Err(code) => return code
+    Err(code) => return Err(code)
   }
   let (plan, snapshot) = match
     sdk_run_state_snapshot(value, run, current_configuration) {
     Ok(value) => value
-    Err(code) => return code
+    Err(code) => return Err(code)
   }
   let update = match
     @host.prepare_client_saved_run_state_update(
@@ -358,39 +425,276 @@ pub fn produce_publication_sdk_run_state(
       wire,
     ) {
     Ok(value) => value
-    Err(_) => return -35
+    Err(_) => return Err(-35)
   }
-  output.sdk_run_state_update = Some(update)
+  let prior_bytes = @host.client_saved_submission_row(snapshot).body.length()
+  Ok((update, prior_bytes))
+}
+
+///|
+fn write_sdk_run_state_transport(
+  writer : @encode.Writer,
+  update : @host.ClientSavedRunStateUpdate,
+) -> Unit raise {
   let (key, prior, revision, body) = @host.client_saved_run_state_update_row(
     update,
   )
-  let writer = @encode.writer(1048576, 16, 1) catch { _ => return -34 }
+  write_sdk_run_state_fields(
+    writer,
+    key,
+    prior,
+    revision,
+    body,
+    @host.client_saved_run_state_update_candidate_wire(update),
+  )
+}
+
+///|
+fn write_sdk_run_state_fields(
+  writer : @encode.Writer,
+  key : String,
+  prior : Int64,
+  revision : Int64,
+  body : Bytes,
+  state : String,
+) -> Unit raise {
+  @encode.begin_object(writer)
+  @encode.key(writer, "body")
+  @encode.string_value(writer, @utf8.decode(body))
+  @encode.key(writer, "key")
+  @encode.string_value(writer, key)
+  @encode.key(writer, "kind")
+  @encode.string_value(
+    writer,
+    if prior == revision {
+      "retained"
+    } else {
+      "replace"
+    },
+  )
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, prior.to_string())
+  @encode.key(writer, "state")
+  @encode.string_value(writer, state)
+  @encode.end_object(writer)
+}
+
+///|
+// Scoped constructor capacity, apart from the output slot's Core wire and
+// Python copies. The nested row has already been admitted by the original CAS
+// owner. UTF8 decoding owns at most one UTF16 unit per original byte. The
+// actual text writer's backing, trim and synchronous controls are separate.
+fn sdk_run_state_transport_capacity(
+  update : @host.ClientSavedRunStateUpdate,
+  output_bytes : Int,
+) -> Int64? {
+  let (_, _, _, body) = @host.client_saved_run_state_update_row(update)
+  guard @encode.text_writer_construction_inventory(output_bytes, 16, 1)
+    is Some(writer) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    // Extra decode result, tuple, writer/outcome and original size controls.
+    record_headers: writer.record_headers + 12L,
+    reference_slots: writer.reference_slots + 16L,
+    scalar_words: writer.scalar_words + 16L,
+    owned_utf16_units: writer.owned_utf16_units + body.length().to_int64(),
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+fn[T] with_sdk_run_state_transport_capacity(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  update : @host.ClientSavedRunStateUpdate,
+  bytes : Int,
+  encode : () -> Result[T, Int],
+) -> Result[T, Int] {
+  guard output.sdk_run_state_transport is None &&
+    sdk_run_state_transport_capacity(update, bytes) is Some(working) else {
+    return Err(-4)
+  }
+  let capacity = match @resources.reserve_capacity(value.root, 0L, working) {
+    Ok(capacity) => capacity
+    Err(_) => return Err(-4)
+  }
+  output.sdk_run_state_transport = Some(capacity)
+  let result = encode()
+  match @resources.settle_capacity(value.root, capacity) {
+    Ok(_) => output.sdk_run_state_transport = None
+    Err(_) => if result is Ok(_) { return Err(-4) }
+  }
+  result
+}
+
+///|
+fn emit_sdk_run_state_transport(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  update : @host.ClientSavedRunStateUpdate,
+  bytes : Int,
+  exact? : Bool = false,
+) -> Result[Unit, Int] {
+  // No code after success in this frame retains the decoded/escaped Strings.
   let packet = try {
-    @encode.begin_object(writer)
-    for
-      (name, text) in [
-        ("body", @utf8.decode(body)),
-        ("key", key),
-        ("kind", if prior == revision { "retained" } else { "replace" }),
-        ("revision", prior.to_string()),
-        ("state", @host.client_saved_run_state_update_candidate_wire(update)),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, text)
-    }
-    @encode.end_object(writer)
+    let writer = @encode.writer(bytes, 16, 1)
+    write_sdk_run_state_transport(writer, update)
     @encode.finish(writer)
   } catch {
-    _ => return -34
+    _ => return Err(-34)
   }
-  let code = status(
-    @buffers.supply_buffer_output(value.pool, output.slot, @utf8.encode(packet)),
+  let wire = @utf8.encode(packet)
+  if exact && wire.length() != bytes {
+    return Err(-34)
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, output.slot, wire),
   )
-  if code != 0 {
-    return code
+  if result == 0 {
+    Ok(())
+  } else {
+    Err(result)
   }
-  output.produced = true
+}
+
+///|
+/// Prepare the existing same-row metadata CAS. This output is not public state
+/// until the physical Host confirms the exact committed original row.
+pub fn produce_publication_sdk_run_state(
+  nonce : Int64,
+  handle : Int,
+  run : Int,
+  input : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) else { return -2 }
+  let (update, output) = match
+    prepare_sdk_run_state_update(
+      nonce, handle, run, input, current_configuration,
+    ) {
+    Ok(prepared) => prepared
+    Err(code) => return code
+  }
+  match emit_sdk_run_state_transport(value, output, update, 1048576) {
+    Err(code) => return code
+    Ok(_) => output.produced = true
+  }
   validate_publication_sdk_run_state(nonce, handle, current_configuration)
+}
+
+///|
+/// Prepare one actual update and measure its existing closed transport. The
+/// small original holder is not a body output and cannot be confirmed alone.
+pub fn measure_publication_sdk_run_state(
+  nonce : Int64,
+  handle : Int,
+  run : Int,
+  input : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    @buffers.buffer_output_limit(value.pool, output.slot) == Some(1) else {
+    return -2
+  }
+  let (update, original) = match
+    prepare_sdk_run_state_update(
+      nonce,
+      handle,
+      run,
+      input,
+      current_configuration,
+      measured=true,
+    ) {
+    Ok(prepared) => prepared
+    Err(code) => return code
+  }
+  original.pending = true
+  let extent = with_sdk_run_state_transport_capacity(
+    value,
+    original,
+    update,
+    0,
+    () => {
+      try {
+        let writer = @encode.measuring_writer(1048576, 16, 1)
+        write_sdk_run_state_transport(writer, update)
+        Ok(@encode.finish_measurement(writer))
+      } catch {
+        _ => Err(-34)
+      }
+    },
+  )
+  original.pending = false
+  let bytes = match extent {
+    Ok(bytes) => bytes
+    Err(code) => return code
+  }
+  if original.closing {
+    return -5
+  }
+  original.projection = Some(SDKMeasuredRunState(input, run, bytes, false))
+  bytes
+}
+
+///|
+/// Emit the same prepared update into its independently funded body slot.
+/// Original current and prior-row validation still govern the subsequent CAS.
+pub fn emit_publication_sdk_run_state(
+  nonce : Int64,
+  handle : Int,
+  first_handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    value.commit_exports.get(first_handle) is Some(original) &&
+    output.publication == original.publication &&
+    original.projection
+    is Some(SDKMeasuredRunState(input, run, bytes, attempted)) &&
+    original.sdk_run_state_update is Some(update) else {
+    return -2
+  }
+  if output.closing || original.closing {
+    return -5
+  }
+  if output.invoked ||
+    output.pending ||
+    attempted ||
+    original.produced ||
+    original.pending {
+    return -33
+  }
+  guard @buffers.buffer_output_limit(value.pool, output.slot) == Some(bytes) else {
+    return -4
+  }
+  // Retain this particular body before current callbacks or encoding can
+  // fail. Even a partial write stays attached to the original update.
+  output.invoked = true
+  output.sdk_payload_parent = Some(first_handle)
+  original.projection = Some(SDKMeasuredRunState(input, run, bytes, true))
+  original.pending = true
+  output.pending = true
+  let result = match
+    sdk_run_state_current(value, original, run, current_configuration) {
+    Err(code) => Err(code)
+    Ok(_) if output.closing || original.closing => Err(-5)
+    Ok(_) =>
+      with_sdk_run_state_transport_capacity(value, output, update, bytes, () => {
+        emit_sdk_run_state_transport(value, output, update, bytes, exact=true)
+      })
+  }
+  original.pending = false
+  output.pending = false
+  match result {
+    Err(code) => return code
+    Ok(_) => {
+      output.produced = true
+      original.produced = true
+    }
+  }
+  validate_publication_sdk_run_state(nonce, first_handle, current_configuration)
 }
 
 ///|
@@ -403,11 +707,36 @@ fn sdk_run_state_validate(
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(output) &&
     output.produced &&
-    output.projection is Some(SDKRunState(input, run)) &&
-    output.sdk_run_state_update is Some(update) &&
-    value.copies.get(input) is Some((slot, _)) else {
+    output.sdk_run_state_update is Some(update) else {
     return -2
   }
+  let (input, run) = match output.projection {
+    Some(SDKRunState(input, run))
+    | Some(SDKMeasuredRunState(input, run, _, _)) => (input, run)
+    _ => return -2
+  }
+  guard value.copies.get(input) is Some((slot, _)) else { return -2 }
+  if output.pending {
+    return -33
+  }
+  output.pending = true
+  let code = sdk_run_state_validate_body(
+    value, output, run, slot, current_configuration, update, committed,
+  )
+  output.pending = false
+  code
+}
+
+///|
+fn sdk_run_state_validate_body(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  run : Int,
+  slot : @buffers.BufferSlot,
+  current_configuration : Int,
+  update : @host.ClientSavedRunStateUpdate,
+  committed : Bool,
+) -> Int {
   match
     sdk_run_state_candidate(value, output, run, slot, current_configuration) {
     Err(code) => return code

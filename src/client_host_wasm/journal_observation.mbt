@@ -243,8 +243,10 @@ pub fn reserve_journal_observation(
     .any(chunk => chunk.physical_ticket == physical_ticket) {
     return -3
   }
+  // The canonical saved-admission writer bounds this output at 4096 bytes.
+  // The separate physical allowance still covers the original Journal rows.
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
+    @buffers.reserve_output_buffer(value.pool, 4096, physical_copy_bytes, () => {
       physical_input_cleanup(physical_ticket) == 0
     }) {
     Ok(value) => value

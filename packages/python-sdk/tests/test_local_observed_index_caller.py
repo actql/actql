@@ -33,10 +33,14 @@ class ObservedIndexCallerTests(unittest.TestCase):
                     return -32
                 if state['publisher']:
                     return state['publisher']
-                self.assertIn(args[2], (0, 3))
-                observed[args[0]] = fixture.ref if args[2] == 3 else fixture.index
-                if args[2] == 3 and 'after_identity' in state:
-                    state['after_identity']()
+                self.assertIn(args[2], (0, 4))
+                if args[2] == 4:
+                    extent = len(fixture.index) + state.get('extent_delta', 0)
+                    observed[args[0]] = fixture.ref + b':' + str(extent).encode('ascii')
+                    if 'after_extent' in state:
+                        state['after_extent']()
+                else:
+                    observed[args[0]] = fixture.index
                 return 0
             if family == 'publication_commit_export' and name == 'length' and args[0] in observed:
                 return len(observed[args[0]])
@@ -77,7 +81,8 @@ class ObservedIndexCallerTests(unittest.TestCase):
             def consume(identity, body):
                 self.assertEqual(identity, observation_fixture.StoreReconciliationTests.ref)
                 self.assertEqual(body, observation_fixture.StoreReconciliationTests.index)
-                self.assertEqual(len(projection.pending_outputs), 2)
+                self.assertEqual([loan.limit for loan in projection.pending_outputs],
+                                 [79, len(body)])
                 self.assertIs(root._readers[id(reader)], reader)
                 self.assertIs(core._loans[record.ticket], record)
                 consumed.append(True)
@@ -134,11 +139,25 @@ class ObservedIndexCallerTests(unittest.TestCase):
             values, host = self.bridge(root, helper.transfer_ready(root, final), store)
             _, _, projection, facts, transfers, caller, _, state, _ = values
             self.ready(caller)
-            state['after_identity'] = lambda: state.update(publisher=-35)
+            state['after_extent'] = lambda: state.update(publisher=-35)
             with self.assertRaises(LocalCoreError) as failed:
                 host._project_original_observed_index(projection, lambda *_: self.fail('Mixed pair escaped'))
             self.assertEqual(failed.exception.code, -35)
             self.assertEqual(len(projection.pending_outputs), 2)
+            self.cleanup(projection, facts, transfers)
+
+    def test_changed_extent_refuses_delivery_and_keeps_both_originals(self):
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (_, root, _, final), TemporaryDirectory() as directory, helper.store(Path(directory)/'original.sqlite') as store:
+            values, host = self.bridge(root, helper.transfer_ready(root, final), store)
+            core, _, projection, facts, transfers, caller, _, state, _ = values
+            self.ready(caller)
+            state['extent_delta'] = 1
+            with self.assertRaises(LocalCoreError) as failed:
+                host._project_original_observed_index(projection, lambda *_: self.fail('Mixed extent escaped'))
+            self.assertEqual(failed.exception.code, -33)
+            self.assertEqual(len(projection.pending_outputs), 2)
+            self.assertTrue(all(core._loans[loan.ticket] is loan for loan in projection.pending_outputs))
             self.cleanup(projection, facts, transfers)
 
     def test_failed_output_cleanup_keeps_original_handles_without_reprojection(self):

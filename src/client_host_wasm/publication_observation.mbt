@@ -424,7 +424,8 @@ pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
       (
         child.projection is Some(ObservedIndex(_)) ||
         child.projection is Some(ObservedRunState(_)) ||
-        child.projection is Some(SDKRunState(_, _))
+        child.projection is Some(SDKRunState(_, _)) ||
+        child.projection is Some(SDKMeasuredRunState(_, _, _, _))
       )
     }) {
     return -9
