@@ -290,7 +290,7 @@ export function effectFileOperationReceiptSchema(outcome) {
       'replacement_generation', 'typed_outcome'],
     properties: {version: {const: 'actql-local-effect-operation-receipt/0.1'},
       ...Object.fromEntries(identities.map(name => [name, clone(cid)])),
-      backend_kind: {const: 'json_file'}, operation_kind: {const: 'update'},
+      backend_kind: {const: 'json_file'}, operation_kind: {enum: ['update', 'delete']},
       replacement_status: {const: 'acknowledged'},
       replacement_physical_sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
       replacement_byte_count: {type: 'integer', minimum: 0, maximum: 9007199254740991},

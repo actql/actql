@@ -4,7 +4,8 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {expectedPins,targetCid,receipt,rowReceipt,preview,operation,directory,name,resource,
   selectorWire,replacement,generation,outcome,body,rowBody,wire,rowWire,mutations,canonicalText,C,
-  reorderedPreview,reorderedPreviewWire,reorderedRawA,reorderedRawB,reorderedExpectedPins,hash,physicalHash} from './fixtures/effect-file-operation-vectors.mjs';
+  reorderedPreview,reorderedPreviewWire,reorderedRawA,reorderedRawB,reorderedExpectedPins,hash,physicalHash,
+  deletion,deletionExpectedPins} from './fixtures/effect-file-operation-vectors.mjs';
 import {authoring,originalRun} from './fixtures/effect-review-projection-vectors.mjs';
 export function generateEffectFileOperationVectors(){
   assert.deepEqual({targetCid,receiptCid:receipt.receipt_cid,rowCid:rowReceipt.receipt_cid},expectedPins);
@@ -33,6 +34,26 @@ export function generateEffectFileOperationVectors(){
     `  assert_true(prepare_effect_file_operation_receipt(operation, evidence, ${q('{"action":"updated","result":{},"state":"applied"}')}, ${b}) is Err(_))\n`+
     `  let response = prepare_effect_file_operation_receipt(operation, evidence, ${q(canonicalText(outcome))}, ${b}).unwrap()\n`+
     `  assert_true(issue_effect_row_outcome_receipt_from_file(original, 0, 0, ${q(C('0'))}, response, ${b}) is Err(_))\n}\n`;
+  assert.deepEqual({
+    preview:deletion.preview.effect_preview_cid,
+    receipt:deletion.receipt.receipt_cid,
+    row:deletion.rowReceipt.receipt_cid,
+  },deletionExpectedPins);
+  const deleteGeneration = deletion.body.replacement_generation;
+  s+=`\n///|\ntest "file delete receipt binds the original Preview operation at issuance and restore" {\n`+
+    `  let original = admit_effect_preview_identity(${q(deletion.previewWire)}, ${q(originalRun)}, ${q(authoring.authoring_context_cid)}, ${b}).unwrap()\n`+
+    op+
+    `  assert_true(operation.deleting)\n`+
+    `  let bytes = @utf8.encode(${q(deletion.replacement)})\n`+
+    `  let evidence = admit_effect_file_replacement_evidence(bytes, ${q(deleteGeneration.device)}, ${q(deleteGeneration.inode)}, ${deleteGeneration.size}L, 4096).unwrap()\n`+
+    `  let receipt = prepare_effect_file_operation_receipt(operation, evidence, ${q(canonicalText(deletion.outcome))}, ${b}).unwrap()\n`+
+    `  assert_eq(effect_file_operation_receipt_wire(receipt), ${q(deletion.wire)})\n`+
+    `  let saved = admit_saved_effect_file_operation_receipt(${q(deletion.wire)}, bytes, 4096, ${b}).unwrap()\n`+
+    `  let row = issue_effect_row_outcome_receipt_from_file(original, 0, 0, ${q(operation.dispatch_entry_cid)}, saved, ${b}).unwrap()\n`+
+    `  assert_eq(publication_contract_json(row), ${q(deletion.rowWire)})\n`+
+    `  assert_true(admit_effect_file_operation_receipt(operation, evidence, ${q(deletion.switchedWire)}, ${b}) is Err(_))\n`+
+    `  let switched = admit_saved_effect_file_operation_receipt(${q(deletion.switchedWire)}, bytes, 4096, ${b}).unwrap()\n`+
+    `  assert_true(issue_effect_row_outcome_receipt_from_file(original, 0, 0, ${q(operation.dispatch_entry_cid)}, switched, ${b}) is Err(ForeignRow))\n}\n`;
   return execFileSync(process.env.MOON_HOME+'/bin/moonfmt',['-'],{input:s,encoding:'utf8'});
 }
 export function generateEffectFileLedgerVectors(){

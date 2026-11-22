@@ -106,7 +106,8 @@ fn saved_effect_file_application_capacity(
       // ACK/file selection pairs and row-receipt tuples plus both growable backings.
       record_headers: 29L + 12L * count,
       reference_slots: 84L + 32L * count,
-      scalar_words: 29L + 12L * count,
+      // One operation kind per retained receipt and one for the rechecked row.
+      scalar_words: 30L + 13L * count,
       owned_utf16_units: 0L,
       owned_wire_bytes: retained_ack_bytes,
     })

@@ -189,16 +189,22 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     Ok(value) => value
     Err(_) => return Err(Checkpoint(InvalidMaterial))
   }
-  if operation.effect_preview_cid != expected.effect_preview_cid ||
+  let acknowledged_intent = if ack.is_delete() {
+    None
+  } else {
+    Some(ack.changes_wire())
+  }
+  if operation.deleting != expected.deleting ||
+    operation.effect_preview_cid != expected.effect_preview_cid ||
     operation.member_preview_cid != expected.member_preview_cid ||
     operation.row_preview_cid != expected.row_preview_cid ||
     operation.dispatch_entry_cid != expected.dispatch_entry_cid ||
-    ack.is_delete() ||
+    ack.is_delete() != expected.deleting ||
     ack.expected_version() != operation.target_version_cid ||
     @publication.effect_preview_ordered_row_intended_value_wire(
       preview, member_index, row_index,
     ) !=
-    Some(ack.changes_wire()) {
+    acknowledged_intent {
     return Err(Checkpoint(InvalidMaterial))
   }
   let selector = try {
