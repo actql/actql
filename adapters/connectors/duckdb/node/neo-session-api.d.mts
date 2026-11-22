@@ -20,6 +20,7 @@ export interface DuckDBConnection {
   closeSync(): void;
   interrupt(): void;
   run(sql: string): Promise<unknown>;
+  runAndReadAll(sql: string): Promise<{getRowObjects(): Record<string, DuckDBValue>[]}>;
   prepare(sql: string): Promise<DuckDBPreparedStatement>;
   createAppender(table: string, schema?: string): Promise<DuckDBAppender>;
   extractStatements(sql: string): Promise<{

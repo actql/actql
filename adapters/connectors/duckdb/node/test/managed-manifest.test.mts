@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type {Stats} from 'node:fs';
 import {mkdtemp, readFile, rmdir, stat, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -7,31 +8,52 @@ import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {DuckDBInstance} from '@duckdb/node-api';
+import {DuckDBInstance, type DuckDBValue} from '@duckdb/node-api';
 import {exportPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
 import {finishManagedOutputReceipt} from '../managed-output-finish.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
-import {consumePhysicalManifestFiles} from '../../../../store-local/managed-manifest.mjs';
+import {consumePhysicalManifestFiles, type PhysicalManifestControl} from '../../../../store-local/managed-manifest.mjs';
 
-const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-const quote = value => `'${value.replaceAll("'", "''")}'`;
+type ManagedFixture = Readonly<{
+  fixture: Readonly<{
+    managedFileValues(): unknown;
+    managedFilePhysicalLimits(): unknown;
+    managedFileTransportLimits(): unknown;
+  }>;
+  runtime: PhysicalManifestControl & Readonly<{
+    managedOutputOpen(values: unknown, fields: string, physical: unknown, transport: unknown, maxMetadataWork: number): unknown;
+    managedOutputAccept(value: unknown, rows: number, data: string): unknown;
+    managedOutputAdvanceFinish(value: unknown, quantum: number): unknown;
+    managedOutputAvailable(value: unknown): boolean;
+    managedOutputCancel(value: unknown): void;
+    managedOutputComputeVerified(value: unknown): boolean;
+    managedOutputFinish(value: unknown): unknown;
+    managedOutputMeasurements(value: unknown): unknown;
+    managedOutputRetain(value: unknown, bytes: bigint, available: () => boolean): unknown;
+    managedOutputVerifyCompute(value: unknown): unknown;
+  }>;
+}>;
+type PhysicalRow = Record<string, DuckDBValue>;
+
+const sha = (bytes: string | Uint8Array) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
-let fixturePromise;
+let fixturePromise: Promise<ManagedFixture> | undefined;
 function managedFixture() {
   return fixturePromise ??= (async () => {
     await promisify(execFile)('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], {cwd: root});
     await promisify(execFile)('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], {cwd: root});
-    const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
-    const runtime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
+    const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')).href);
+    const runtime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')).href);
     return {fixture, runtime};
   })();
 }
 const managedFields = JSON.stringify([['id', 'DOUBLE', null, null], ['label', 'VARCHAR', null, null]]);
-const openManaged = ({fixture, runtime}) => checked(runtime.managedOutputOpen(
+const openManaged = ({fixture, runtime}: ManagedFixture) => checked(runtime.managedOutputOpen(
   fixture.managedFileValues(), managedFields, fixture.managedFilePhysicalLimits(),
   fixture.managedFileTransportLimits(), 100));
-const managedColumns = row => JSON.stringify([
+const managedColumns = (row: PhysicalRow) => JSON.stringify([
   [exportPhysicalValue(row.id, {id: 'DOUBLE'})], [row.label],
 ]);
 
@@ -92,7 +114,7 @@ test('native Parquet bytes retain order and duplicates through physical Store an
       row_count: 3, chunks: [{cid: body.cid, byte_length: body.bytes, row_count: 3}]};
     const expectedRows = [{id: 1, label: null}, {id: 2, label: 'é'}, {id: 1, label: null}];
     for (let consumer = 0; consumer < 2; consumer++) {
-      let observed;
+      let observed: PhysicalRow[] | undefined;
       const report = await consumePhysicalManifestFiles(store, manifest, [body], expected,
         {maxChunks: 1, maxManifestBytes: 4096, maxReferencedBytes: 1048576},
         `fixture-reader-${consumer}`, async file => {
@@ -124,7 +146,7 @@ test('native Parquet bytes retain order and duplicates through physical Store an
     store.close(); await store.cleanup();
     assert.equal(runtime.managedOutputAvailable(admitted), false);
     assert.equal(store.status().reservedBytes, 0);
-    await unlink(output).catch(error => { if (error.code !== 'ENOENT') throw error; });
+    await unlink(output).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'ENOENT') throw error; });
     await rmdir(directory);
   }
 });
@@ -174,7 +196,7 @@ test('real Parquet invalid later value and cancelled reception cannot issue reta
     }
   } finally {
     connection.closeSync(); database.closeSync();
-    await unlink(output).catch(error => { if (error.code !== 'ENOENT') throw error; });
+    await unlink(output).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'ENOENT') throw error; });
     await rmdir(directory);
   }
 });
@@ -184,7 +206,7 @@ test('native COPY inode replacement is rejected rather than weakening delegated 
   const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 1048576, maxFrameBytes: 4096});
   const database = await DuckDBInstance.create(':memory:');
   const connection = await database.connect();
-  let output, generated;
+  let output: string | undefined, generated: Stats | undefined;
   try {
     const writer = store.reserve(1048576);
     await writer.start();
@@ -201,9 +223,9 @@ test('native COPY inode replacement is rejected rather than weakening delegated 
     // This fixture created the replacement. Remove only that observed inode;
     // the Store itself correctly refuses to unlink an unowned replacement.
     if (generated) {
-      const current = await stat(output);
+      const current = await stat(output!);
       assert.equal(current.ino, generated.ino); assert.equal(current.dev, generated.dev);
-      await unlink(output);
+      await unlink(output!);
     }
     store.close(); await store.cleanup(); await rmdir(directory);
   }
