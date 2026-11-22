@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
+import {createInstalledRowEffectReadDecision} from './installed-row-effect-authorization.mjs';
 import {parse} from 'acorn';
 import * as providerMoon from '../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import * as provider from '../connectors/github/site/github-comment-create.mjs';
@@ -127,7 +128,7 @@ function fixture(options = {}) {
       return decision;
     }}};
   const ownerOf = original => {assert.strictEqual(original, member); return owner;};
-  const readDecision = source.variable('readDecision', {ownerOf});
+  const readDecision = createInstalledRowEffectReadDecision({ownerOf});
   const route = source.variable('physicalRoute', {ownerOf, fail, readDecision})({
     members: [member], entries: [[{request: originalRequest, requestCid: originalRequest.requestCid, value}]],
     previewRows: [[{}]], runInvocationCid: 'original invocation', dispatches: ['original dispatch'],

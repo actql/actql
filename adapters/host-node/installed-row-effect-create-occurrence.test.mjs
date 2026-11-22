@@ -9,6 +9,7 @@ import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
+import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
@@ -41,10 +42,10 @@ const readPorts = (ownerOf, resourceFields = () => ({})) => {
 };
 const expression=(name,ports)=>{
   if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
-  if (['recipeOf', 'decideTargetRead'].includes(name) && ports.targetPlanOf === undefined) {
+  if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
   }
-  if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
+  if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute'].includes(name) &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {
     ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
@@ -73,11 +74,14 @@ test('managed capability uses the same original control frame before any provide
     return {identity: cid('1'), route: 'single_serial', binding: {
       connector_registration: 'original', connector_revision: '0.1', runtime_bundle_cid: cid('2')}};
   };
-  const actual = expression('admitCapability', {ownerOf: original => {
-    assert.strictEqual(original, member);
-    return {owned: receiver, connectorRegistration: 'original', connectorRevision: '0.1', runtimeBundleCid: cid('2')};
-  }, commonCapability: () => assert.fail('existing provider capability must be used'),
-  cidPattern: /^sha256:[0-9a-f]{64}$/, fail});
+  const useExisting = () => assert.fail('existing provider capability must be used');
+  const {admitCapability: actual} = createInstalledRowEffectCapability({
+    moon: {clientProgramEffectApplyCapabilityFromCodes: useExisting}, ownerOf: original => {
+      assert.strictEqual(original, member);
+      return {owned: receiver, connectorRegistration: 'original', connectorRevision: '0.1', runtimeBundleCid: cid('2')};
+    }, cid: useExisting, cidPattern: /^sha256:[0-9a-f]{64}$/u, CAPABILITY_VERSION: 'unused',
+    contractCidOf: useExisting, installedEffectWriteOperation: useExisting, fail,
+  });
   const frame = (original, method, args) => {
     assert.strictEqual(original, receiver);
     assert.strictEqual(method, receiver.issueCapability);
@@ -753,7 +757,11 @@ test('actual Effect execution retains its original cancellation read and avoids 
 test('actual target authorization retains same original grant receiver in its selected control frame', async () => {
   const f=sameControlFrame(),member={resource:'rows'},decision={action:'dispatch'},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
-  const decide=expression('decideTargetRead',{ownerOf:()=>({connection:'connection',authorization:{authorize:async()=>decision},owned:{targetRead:{operation:'read'}},site}),fail});
+  const ownerOf=()=>({connection:'connection',authorization:{authorize:async()=>decision},owned:{targetRead:{operation:'read'}},site});
+  const decide=createInstalledRowEffectTargetAuthorization({
+    ownerOf,targetPlanOf:(_member,owner)=>{assert.equal(owner.managedTargetPlanRecipes,undefined);},
+    recipeOf:recipePort(ownerOf),fail,
+  });
   const read=await decide({member,runInvocationCid:'run',dispatchRequestCid:'dispatch',subjectCid:'subject',controlConstruction:f.work});
   const result=await read.authorizationForRow(0);assert.equal(result.grant,grant.grant);
   assert.deepEqual(f.events,['begin','grant','complete']);assert.equal(f.work.retire(),true);
@@ -832,7 +840,9 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
-  const decide = expression('decideTargetRead', {ownerOf, recipeOf, fail});
+  const decide = createInstalledRowEffectTargetAuthorization({
+    ownerOf, recipeOf, fail, targetPlanOf: (_member, owner) => {assert.equal(owner.managedTargetPlanRecipes, undefined);},
+  });
   const read = await decide({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch', subjectCid: 'subject',
     targetReads: {authorize: () => decision}});
   const observe = expression('observeRows', {ownerOf, managedReadChild, resourceFields: () => ({}),

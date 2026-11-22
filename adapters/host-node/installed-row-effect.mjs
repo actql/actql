@@ -101,6 +101,8 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
+import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision,
+  createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
@@ -503,74 +505,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     ownerOf, cidPattern, targeted, sameEffectValue, sameValue, resourceFields, commandContentRow, fail,
   });
 
-  // The common sealed capability of an installation whose driver issues
-  // none: its runtime, connection and Mapping, and the exact requests.
-  const commonCapability = (member, entries) => {
-    const {connectorRegistration, connectorRevision, runtimeBundleCid, bindingCid, connection, owned,
-      updateWriteSlot} = ownerOf(member);
-    return Object.freeze({
-    identity: cid({
-      version: CAPABILITY_VERSION,
-      connector_registration: connectorRegistration,
-      connector_revision: connectorRevision,
-      runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
-      connection, resource: member.resource,
-      ...(member.kind === 'command'
-        ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
-      operation: installedEffectWriteOperation(owned, member, updateWriteSlot),
-      route: 'single_serial', idempotency: 'unavailable',
-      request_cids: entries.map(entry => owned.capabilityRequestCid === undefined
-        ? entry.requestCid : owned.capabilityRequestCid(entry.request))}),
-    route: 'single_serial'});
-  };
-
-  // Admit a member's capability. A provider-issued capability (its formal
-  // issuer having checked its own evidence) is admitted only when its
-  // binding names this installation's registration, revision and the
-  // runtime the Host itself runs, and its route is the one this factory
-  // drives: one serial row per request, no provider idempotency, an
-  // uncertain send reconciled. The admission does not establish the
-  // provider evidence's authenticity, and nothing it binds is claimed to be
-  // inside the provider's identity.
-  const admitCapability = (member, entries, current, runInvocationCid,
-    dispatchRequestCid, controlConstruction) => {
-    const {owned, connectorRegistration, connectorRevision, runtimeBundleCid} = ownerOf(member);
-    if (owned.issueCapability === undefined) {
-      return commonCapability(member, entries);
-    }
-    const facts = {member, entries, current, runInvocationCid, dispatchRequestCid};
-    const issued = controlConstruction === undefined ? owned.issueCapability(facts)
-      : controlConstruction(owned, owned.issueCapability, [facts]);
-    const binding = issued?.binding;
-    if (!cidPattern.test(issued?.identity ?? '') ||
-        issued.route !== 'single_serial' ||
-        binding === null || typeof binding !== 'object' ||
-        binding.connector_registration !== connectorRegistration ||
-        binding.connector_revision !== connectorRevision ||
-        binding.runtime_bundle_cid !== runtimeBundleCid) {
-      fail('InstalledRowEffectCapabilityNotAdmitted');
-    }
-    return Object.freeze({identity: issued.identity, route: issued.route});
-  };
-  const routeOf = capability => checked(
-    moon.clientProgramEffectApplyCapabilityFromCodes(capability.identity, 0,
-      0, 0, true, true, 2, 1));
-
-  // A current read decision of `resource` for `subjectCid`; a held or denied
-  // read reads nothing.
-  const readDecision = async (member, resource, subjectCid, signal, assertCurrent) => {
-    const {authorization, connection} = ownerOf(member);
-    assertCurrent?.();
-    const decision = await authorization.authorize('acquisition', {
-      connection, resource, operation: 'read'}, {subjectCid, signal});
-    assertCurrent?.();
-    if (decision?.action !== 'dispatch') {
-      throw Object.assign(new Error('InstalledRowEffectCheckNotAuthorized'),
-        {code: 'InstalledRowEffectCheckNotAuthorized',
-          action: decision?.action});
-    }
-    return decision;
-  };
+  const {admitCapability, routeOf} = createInstalledRowEffectCapability({
+    moon, ownerOf, cid, cidPattern, CAPABILITY_VERSION, contractCidOf, installedEffectWriteOperation, fail,
+  });
+  const readDecision = createInstalledRowEffectReadDecision({ownerOf});
   const checkSubject = (runInvocationCid, member) => cid({
     version: ownerOf(member).profile.targetCheck, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
@@ -753,53 +691,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
   };
 
-  // A current read decision of an update member's targets for `subjectCid`:
-  // on the installation's gate, or through the Host's resumed target-read
-  // Checkpoint (`targetReads`), whose approval the driver admits for exactly
-  // this member. A held or denied read reads nothing.
-  const decideTargetRead = async ({member, runInvocationCid,
-    dispatchRequestCid, subjectCid, signal, targetReads, assertCurrent, controlConstruction}) => {
-    const owner = ownerOf(member), {connection, authorization, owned, site} = owner;
-    const operation = targetPlanOf(member, owner)?.targetReadOperation ?? owned.targetRead.operation;
-    const tuple = {connection, resource: member.resource, operation: 'read'};
-    assertCurrent?.();
-    const decision = targetReads === undefined
-      ? await authorization.authorize('acquisition', tuple, {subjectCid, signal})
-      : await targetReads.authorize(tuple, {subjectCid, signal});
-    assertCurrent?.();
-    if (decision?.action !== 'dispatch') {
-      throw Object.assign(new Error('InstalledRowEffectCheckNotAuthorized'),
-        {code: 'InstalledRowEffectCheckNotAuthorized',
-          action: decision?.action});
-    }
-    let approval;
-    if (targetReads !== undefined) {
-      if (typeof owned.admitTargetReadApproval !== 'function') {
-        fail('InstalledRowEffectTargetReadApprovalNotAdmitted');
-      }
-      approval = owned.admitTargetReadApproval({member, decision});
-    }
-    let use = 0;
-    const originals = recipeOf(member)?.credentialOperations?.some(entry =>
-      ['capture-target', 'apply-target', 'resume-target'].includes(entry.phase)) ? new Map() : undefined;
-    return Object.freeze({approval,
-      ...(originals === undefined ? {} : {consumeOriginal(authorization, rowIndex) {
-        const original = originals.get(authorization);
-        if (original === undefined || original.rowIndex !== rowIndex) fail('ForeignInstalledEffectReadChild');
-        originals.delete(authorization);
-        return original.grant;
-      }}),
-      authorizationForRow: async rowIndex => {
-        assertCurrent?.();
-        const grantFacts = {operation, decision: approval ?? decision,
-          resource: member.resource, runInvocationCid, dispatchRequestCid, maxUses: 1};
-        const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
-          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [grantFacts]);
-        const authorization = {...grant, useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`};
-        originals?.set(authorization, {grant, rowIndex});
-        return authorization;
-      }});
-  };
+  const decideTargetRead = createInstalledRowEffectTargetAuthorization({ownerOf, targetPlanOf, recipeOf, fail});
 
   // The observed target of every update row under its read decision. Each
   // observation must be of exactly the target the row's request selects.

@@ -4871,6 +4871,363 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-authorization.mjs",
+      "sha256": "d7df8dd7b92f73f2608b9bbea28552d7c2f17937b7edf1b4f949459fb4a9e3fe",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectCapability",
+        "createInstalledRowEffectReadDecision",
+        "createInstalledRowEffectTargetAuthorization"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectCapability",
+          "parameters": [
+            "moon",
+            "ownerOf",
+            "cid",
+            "cidPattern",
+            "CAPABILITY_VERSION",
+            "contractCidOf",
+            "installedEffectWriteOperation",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCapability/admitCapability/admitCapability",
+          "parameters": [
+            "member",
+            "entries",
+            "current",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "controlConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCapability/commonCapability/commonCapability/commonCapability",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCapability/routeOf/routeOf",
+          "parameters": [
+            "capability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadDecision",
+          "parameters": [
+            "ownerOf"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadDecision/readDecision/readDecision",
+          "parameters": [
+            "member",
+            "resource",
+            "subjectCid",
+            "signal",
+            "assertCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectTargetAuthorization",
+          "parameters": [
+            "ownerOf",
+            "targetPlanOf",
+            "recipeOf",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead",
+          "parameters": [
+            "member",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "subjectCid",
+            "signal",
+            "targetReads",
+            "assertCurrent",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/decideTargetRead",
+          "parameters": [
+            "rowIndex"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+          "parameters": [
+            "authorization",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/originals/originals",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectCapability",
+            "createInstalledRowEffectCapability/admitCapability/admitCapability",
+            "createInstalledRowEffectCapability/commonCapability/commonCapability/commonCapability",
+            "createInstalledRowEffectCapability/routeOf/routeOf"
+          ],
+          "exports": [
+            "createInstalledRowEffectCapability"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const admitCapability"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const routeOf"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "version: CAPABILITY_VERSION"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "binding.connector_registration !== connectorRegistration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const {owned, connectorRegistration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "controlConstruction(owned, owned.issueCapability, [facts])"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "reject('InstalledRowEffectCapabilityNotAdmitted')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Capability selection is synchronous and does not start a physical provider operation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "controlConstruction(owned, owned.issueCapability, [facts])"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "return commonCapability(member, entries)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "managed capability uses the same original control frame before any provider constructor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectReadDecision",
+            "createInstalledRowEffectReadDecision/readDecision/readDecision"
+          ],
+          "exports": [
+            "createInstalledRowEffectReadDecision"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const readDecision = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "await authorization.authorize('acquisition'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "{subjectCid, signal}"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const {authorization, connection} = ownerOf(member)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "assertCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "decision?.action !== 'dispatch'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "{subjectCid, signal}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "operation: 'read'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "export function createInstalledRowEffectReadDecision"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "actual Deny or lost current prevents a confirmation grant/use"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectTargetAuthorization",
+            "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead",
+            "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/decideTargetRead",
+            "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+            "createInstalledRowEffectTargetAuthorization/decideTargetRead/decideTargetRead/originals/originals"
+          ],
+          "exports": [
+            "createInstalledRowEffectTargetAuthorization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const decideTargetRead = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "authorizationForRow: async"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "consumeOriginal(authorization"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "original.rowIndex !== rowIndex"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "originals?.set(authorization, {grant, rowIndex})"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const owner = ownerOf(member), {connection, authorization, owned, site} = owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "site.issueReadGrant(grantFacts)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "reject('ForeignInstalledEffectReadChild')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "await targetReads.authorize(tuple, {subjectCid, signal})"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "const grantFacts = {operation, decision: approval ?? decision"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-authorization.mts",
+                "anchor": "owned.admitTargetReadApproval({member, decision})"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "actual target authorization retains same original grant receiver in its selected control frame"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "managed Salesforce read handoff retains exact issuer originals"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
       "sha256": "568fce846298deec781321bbe6d81237f09557b1c749d12facbf37bb2496f6af",
       "responsibilityFacet": "primary",
@@ -7989,7 +8346,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "3870dc12eb5174d684bd96dece0b6eb39b760d293510ec3ddea054f55ca950ad",
+      "sha256": "aecae524ff5b939aa99c58ba16d078835400bb87f2ddb3411ca3369ee1859925",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -8644,13 +9001,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/commonCapability/commonCapability/commonCapability",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/continuationOf/continuationOf/continuationOf",
           "parameters": [
             "member",
@@ -8662,28 +9012,6 @@
           "name": "createRowEffectStage/controlRecipes/controlRecipes",
           "parameters": [
             "recipe"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
-          "parameters": [
-            "rowIndex"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
-          "parameters": [
-            "authorization",
-            "rowIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
-          "parameters": [
-            "entry"
           ],
           "async": false
         },
@@ -9332,16 +9660,17 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/routeOf/routeOf",
+          "name": "createRowEffectStage/scopeKey/scopeKey",
           "parameters": [
-            "capability"
+            "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/scopeKey/scopeKey",
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf",
           "parameters": [
-            "member"
+            "member",
+            "owner"
           ],
           "async": false
         },
@@ -9543,11 +9872,7 @@
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
-            "createRowEffectStage/commonCapability/commonCapability/commonCapability",
             "createRowEffectStage/continuationOf/continuationOf/continuationOf",
-            "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
-            "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
-            "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
             "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
@@ -9602,7 +9927,6 @@
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
-            "createRowEffectStage/routeOf/routeOf",
             "createRowEffectStage/scopeKey/scopeKey",
             "guarded/guarded",
             "optionalFunction/optionalFunction",
@@ -9618,7 +9942,8 @@
             "createRowEffectStage/retainMember/retainMember",
             "sameEffectValue/sameEffectValue",
             "sameValue/sameValue",
-            "targeted/targeted"
+            "targeted/targeted",
+            "createRowEffectStage/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -14356,6 +14681,7 @@
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
+        "./installed-row-effect-authorization.mjs",
         "./installed-row-effect-construction.mjs",
         "./installed-row-effect-driver.mjs",
         "./installed-row-effect-members.mjs",
