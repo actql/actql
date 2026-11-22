@@ -846,3 +846,16 @@ The quote prices this constructor only. Physical ingress, lookup response
 admission, request finalization, cancellation and cleanup retain their existing
 owners. Exact and one-byte-short lookup controls exercise the original writer
 and demonstrate that the extra quote follows the bounded output.
+
+The lookup response produces the held before state in its existing read child.
+The proposal supplies the original lookup request, and Before retains its own
+record and revision or complete absence. Request construction rechecks that
+same Before against the proposal after the read boundary. The lookup and write
+construction can therefore use distinct phases of the original capture owner.
+
+The before quote reuses the shared native page and typed before projection.
+It adds the lookup observation, retained before proof and bounded identity
+validation. Parsed two-row replies fit the same refusal workspace, while
+only a matching one-record or complete-empty observation may be retained.
+The bounded reply controls exercise the actual present and absent cases,
+one-byte-short admission and refusal of an incomplete count.

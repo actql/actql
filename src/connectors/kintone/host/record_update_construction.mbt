@@ -160,10 +160,29 @@ pub fn record_update_target_construction_inventory(
     mapping.before_fields.length() == 2147483647 {
     return None
   }
-  let columns = mapping.before_fields.length() + 1
+  record_target_before_construction_inventory(
+    mapping.original,
+    mapping.before_fields,
+    body_bytes,
+    pages,
+    values,
+    limits,
+  )
+}
+
+///|
+fn record_target_before_construction_inventory(
+  original : RecordDeclaration,
+  before_fields : Array[String],
+  body_bytes : Int,
+  pages : @catalog.RecordPageLimits,
+  values : @catalog.RecordValueLimits,
+  limits : @catalog.RecordMutationLimits,
+) -> RecordUpdateConstructionInventory? {
+  let columns = before_fields.length() + 1
   guard managed_record_page_inventory(
-      mapping.original,
-      mapping.before_fields,
+      original,
+      before_fields,
       columns,
       body_bytes,
       pages,
@@ -172,8 +191,8 @@ pub fn record_update_target_construction_inventory(
     )
     is Some(page) &&
     @catalog.selected_form_construction_geometry(
-      mapping.original.catalog,
-      mapping.before_fields,
+      original.catalog,
+      before_fields,
     )
     is Some(g) else {
     return None

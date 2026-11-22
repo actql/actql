@@ -115,3 +115,70 @@ pub fn record_key_upsert_proposal_construction_capacity(
   }
   update_construction_capacity({ retained, workspace, })
 }
+
+///|
+/// Parse the bounded lookup response and retain only the established before
+/// state. The lookup request and mapped values remain with the proposal owner.
+pub fn record_key_upsert_before_construction_capacity(
+  mapping : RecordKeyUpsertMapping,
+  body_bytes : Int,
+  pages : @catalog.RecordPageLimits,
+  values : @catalog.RecordValueLimits,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard mapping.self is Some(original) && physical_equal(mapping, original) else {
+    return None
+  }
+  if pages.max_rows < 1 ||
+    pages.max_rows > 2 ||
+    body_bytes < 1 ||
+    body_bytes > pages.max_bytes ||
+    !record_target_before_limits_valid(limits) {
+    return None
+  }
+  let fields = mapping.original.names
+  guard record_target_before_construction_inventory(
+      mapping.original,
+      fields,
+      body_bytes,
+      pages,
+      values,
+      limits,
+    )
+    is Some(base) &&
+    @shape.collection_construction_extent({
+      // Lookup/Before hosts two original-page array copies and the three
+      // validation identity strings. Their cells are all borrowed.
+      records: 18L,
+      record_references: 28L,
+      record_words: 22L,
+      reference_arrays: 4L,
+      reference_items: fields.length().to_int64() + 6L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(ctrl) &&
+    @execution.compose_preparation_representation([
+      base.retained,
+      {
+        ..update_construction_empty(),
+        record_headers: 4L,
+        reference_slots: 9L,
+        scalar_words: 5L,
+      },
+    ])
+    is Some(retained) &&
+    @execution.compose_preparation_representation([
+      base.workspace,
+      {
+        ..record_read_collection_units(ctrl),
+        owned_wire_bytes: 3L * limits.max_identity_bytes.to_int64(),
+      },
+    ])
+    is Some(workspace) else {
+    return None
+  }
+  update_construction_capacity({ retained, workspace, })
+}

@@ -132,33 +132,52 @@ pub fn record_key_upsert_proposal_lookup(
 }
 
 ///|
-/// The same proposal must own the exact lookup whose observed result selects
-/// CREATE or revision-checked UPDATE. The caller owns physical response custody.
-pub fn prepare_record_key_upsert_observed_request(
+/// Keep the before state under the original lookup response operation. The
+/// caller retains this output when its parser and credential child return.
+pub fn prepare_record_key_upsert_proposal_before(
   proposal : RecordKeyUpsertProposal,
   observed : @catalog.RecordLookupObservation,
   values : @catalog.RecordValueLimits,
-  write_limits : @catalog.RecordWriteLimits,
   limits : @catalog.RecordMutationLimits,
-) -> Result[
-  (RecordKeyUpsertBefore, @catalog.RecordKeyUpsertRequest),
-  RecordKeyUpsertExecutionIssue,
-] {
+) -> Result[RecordKeyUpsertBefore, RecordKeyUpsertExecutionIssue] {
   guard proposal.self is Some(original) && physical_equal(proposal, original) else {
     return Err(MappingMismatch)
   }
   if !@catalog.record_key_lookup_uses_request(observed, proposal.lookup) {
     return Err(Lookup(ForeignRequest))
   }
-  let before = match
+  match
     prepare_record_key_upsert_before(
       proposal.mapping.original,
       observed,
       values,
       limits,
     ) {
-    Ok(before) => before
-    Err(issue) => return Err(Before(issue))
+    Ok(before) => Ok(before)
+    Err(issue) => Err(Before(issue))
+  }
+}
+
+///|
+/// Construct the selected mutation from the same retained before observation.
+/// The caller checks currentness and owns request finalization and dispatch.
+pub fn prepare_record_key_upsert_request_from_before(
+  proposal : RecordKeyUpsertProposal,
+  before : RecordKeyUpsertBefore,
+  write_limits : @catalog.RecordWriteLimits,
+  limits : @catalog.RecordMutationLimits,
+) -> Result[@catalog.RecordKeyUpsertRequest, RecordKeyUpsertExecutionIssue] {
+  guard proposal.self is Some(original) && physical_equal(proposal, original) else {
+    return Err(MappingMismatch)
+  }
+  let observed = before.lookup
+  if !record_key_upsert_before_matches(
+      before,
+      proposal.mapping.original,
+      observed,
+    ) ||
+    !@catalog.record_key_lookup_uses_request(observed, proposal.lookup) {
+    return Err(Lookup(ForeignRequest))
   }
   match
     @catalog.prepare_record_key_upsert_request(
@@ -168,7 +187,7 @@ pub fn prepare_record_key_upsert_observed_request(
       limits,
       target=record_key_upsert_before_target(before),
     ) {
-    Ok(request) => Ok((before, request))
+    Ok(request) => Ok(request)
     Err(issue) => Err(Request(issue))
   }
 }

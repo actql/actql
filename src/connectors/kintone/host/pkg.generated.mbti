@@ -72,9 +72,11 @@ pub fn prepare_record_key_upsert_before(RecordDeclaration, @catalog.RecordLookup
 
 pub fn prepare_record_key_upsert_mapping(RecordDeclaration, String, String, Array[@client_row_source_host.RowMappingSource], @client_row_source_host.RowDeclarationLimits) -> Result[RecordKeyUpsertMapping, @client_row_source_host.RowMappingIssue]
 
-pub fn prepare_record_key_upsert_observed_request(RecordKeyUpsertProposal, @catalog.RecordLookupObservation, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[(RecordKeyUpsertBefore, @catalog.RecordKeyUpsertRequest), RecordKeyUpsertExecutionIssue]
-
 pub fn prepare_record_key_upsert_proposal(RecordKeyUpsertMapping, String, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordLookupLimits) -> Result[RecordKeyUpsertProposal, RecordKeyUpsertExecutionIssue]
+
+pub fn prepare_record_key_upsert_proposal_before(RecordKeyUpsertProposal, @catalog.RecordLookupObservation, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordKeyUpsertBefore, RecordKeyUpsertExecutionIssue]
+
+pub fn prepare_record_key_upsert_request_from_before(RecordKeyUpsertProposal, RecordKeyUpsertBefore, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordKeyUpsertRequest, RecordKeyUpsertExecutionIssue]
 
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
@@ -151,6 +153,8 @@ pub fn record_delete_preview_outcome_wire(RecordDeletePreviewOutcome) -> String
 pub fn record_delete_preview_version_cid(RecordDeletePreview) -> String
 
 pub fn record_form_request_body(PreparedRecordRead, Int) -> Result[String, RecordReadIssue]
+
+pub fn record_key_upsert_before_construction_capacity(RecordKeyUpsertMapping, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_key_upsert_before_identity(RecordKeyUpsertBefore) -> String
 

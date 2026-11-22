@@ -73,21 +73,31 @@ fn key_before_reply(
   @catalog.project_record_key_lookup(
     request,
     200,
-    if present {
-      b"{\"records\":[{\"$id\":{\"type\":\"__ID__\",\"value\":\"9007199254740993\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"9007199254740994\"},\"customer_code\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"original-key\"},\"memo\":{\"type\":\"MULTI_LINE_TEXT\",\"value\":\"東京 é\"},\"Tags\":{\"type\":\"MULTI_SELECT\",\"value\":[\"red\",\"東京\",\"red\"]},\"Computed\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"server\"},\"Extra\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"extra\"}}],\"totalCount\":\"1\"}"
-    } else {
-      b"{\"records\":[],\"totalCount\":\"0\"}"
-    },
-    {
-      max_bytes: 20000,
-      max_nodes: 1000,
-      max_depth: 16,
-      max_rows: 2,
-      max_columns: 10,
-      max_cells: 20,
-      max_table_rows: 10,
-    },
+    key_before_response_body(present),
+    key_before_page_limits(),
   ).unwrap()
+}
+
+///|
+fn key_before_response_body(present : Bool) -> Bytes {
+  if present {
+    b"{\"records\":[{\"$id\":{\"type\":\"__ID__\",\"value\":\"9007199254740993\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"9007199254740994\"},\"customer_code\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"original-key\"},\"memo\":{\"type\":\"MULTI_LINE_TEXT\",\"value\":\"東京 é\"},\"Tags\":{\"type\":\"MULTI_SELECT\",\"value\":[\"red\",\"東京\",\"red\"]},\"Computed\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"server\"},\"Extra\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"extra\"}}],\"totalCount\":\"1\"}"
+  } else {
+    b"{\"records\":[],\"totalCount\":\"0\"}"
+  }
+}
+
+///|
+fn key_before_page_limits() -> @catalog.RecordPageLimits {
+  {
+    max_bytes: 20000,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_rows: 2,
+    max_columns: 10,
+    max_cells: 20,
+    max_table_rows: 10,
+  }
 }
 
 ///|
@@ -398,10 +408,15 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
       @catalog.record_lookup_request_body(lookup).contains("customer_code = "),
     )
     let observed = key_before_reply(lookup, present)
-    let (before, request) = prepare_record_key_upsert_observed_request(
+    let before = prepare_record_key_upsert_proposal_before(
       proposal,
       observed,
       delete_preview_values(),
+      delete_preview_limits(),
+    ).unwrap()
+    let request = prepare_record_key_upsert_request_from_before(
+      proposal,
+      before,
       write_limits,
       delete_preview_limits(),
     ).unwrap()
@@ -427,10 +442,18 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
       selected, "original-key", bytes, 10000, write_limits, limits,
     ).unwrap()
     assert_true(
-      prepare_record_key_upsert_observed_request(
+      prepare_record_key_upsert_proposal_before(
         different,
         observed,
         delete_preview_values(),
+        delete_preview_limits(),
+      )
+      is Err(Lookup(ForeignRequest)),
+    )
+    assert_true(
+      prepare_record_key_upsert_request_from_before(
+        different,
+        before,
         write_limits,
         delete_preview_limits(),
       )
@@ -541,5 +564,73 @@ test "UPSERT lookup proposal quote adds retained body and bounded writer work on
       { ..exact, max_columns: 1, },
     )
     is None,
+  )
+}
+
+///|
+test "UPSERT before reuses the charged page reader and refuses incomplete absence" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let mapping = prepare_record_key_upsert_mapping(
+    original,
+    "customers",
+    "customer_code",
+    [{ target: "memo", field: "next", null_behavior: "reject", }],
+    delete_declaration_limits(),
+  ).unwrap()
+  let values = delete_preview_values()
+  let mutation = create_construction_request()
+  let proposal = prepare_record_key_upsert_proposal(
+    mapping,
+    "original-key",
+    b"{\"memo\":\"next\"}",
+    1024,
+    key_before_write_limits(),
+    key_before_lookup_limits(),
+  ).unwrap()
+  let request = record_key_upsert_proposal_lookup(proposal)
+  for present in [false, true] {
+    let body = key_before_response_body(present)
+    let pages = { ..key_before_page_limits(), max_bytes: body.length(), }
+    let quote = record_key_upsert_before_construction_capacity(
+      mapping,
+      body.length(),
+      pages,
+      values,
+      mutation,
+    ).unwrap()
+    assert_true(@execution.execution_capacity_retained_bytes(quote) > 0L)
+    assert_true(
+      @execution.execution_capacity_execution_bytes(quote) >
+      @execution.execution_capacity_retained_bytes(quote),
+    )
+    let observed = @catalog.project_record_key_lookup(request, 200, body, pages).unwrap()
+    let before = prepare_record_key_upsert_proposal_before(
+      proposal, observed, values, mutation,
+    ).unwrap()
+    assert_true(record_key_upsert_before_matches(before, original, observed))
+    assert_eq(record_key_upsert_before_target(before) is Some(_), present)
+    let short = { ..pages, max_bytes: body.length() - 1, }
+    assert_true(
+      record_key_upsert_before_construction_capacity(
+        mapping,
+        body.length(),
+        short,
+        values,
+        mutation,
+      )
+      is None,
+    )
+    assert_true(
+      @catalog.project_record_key_lookup(request, 200, body, short) is Err(_),
+    )
+  }
+  assert_true(
+    @catalog.project_record_key_lookup(
+      request,
+      200,
+      b"{\"records\":[],\"totalCount\":null}",
+      key_before_page_limits(),
+    )
+    is Err(IncompleteResponse),
   )
 }
