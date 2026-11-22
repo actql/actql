@@ -102,7 +102,7 @@ function observation(pid, events = []) {
 const observedCid = digit => 'sha256:' + digit.repeat(64);
 
 test('Native nullable Mock harness checks original preview, exact Read bindings and separate Saved reads', async t => {
-  for (const collapseNull of [false, true]) {
+  for (const fault of [undefined, 'null-preview', 'eligible-field-cleared']) {
     const root = await mkdtemp(join(tmpdir(), 'actql-nullable-mock-unit-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const decisions = [], projects = new Set();
@@ -142,7 +142,7 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
       } else if (command === 'status' && !args.includes('--json')) {
         assert.equal(file, runId);
         const value = {...nullable.definition.review.changes};
-        if (collapseNull) value.clear_value = '';
+        if (fault === 'null-preview') value.clear_value = '';
         stdout = [`Run: "${runId}"`, 'State: "waiting_checkpoint"', `Checkpoint: "${checkpoint}"`,
           `  Original CID: "${cid}"`, 'Stored Effect Preview (read-only; not approval):',
           '  Effect: "update"  Target: "connector://salesforce/Account"', '  Items: 1',
@@ -157,7 +157,10 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
         assert(!decisions.includes(key));
         decisions.push(key);
         if (approve) {
-          await writeFile(target, nullable.after);
+          const bytes = fault === 'eligible-field-cleared'
+            ? nullable.after.replace('"omitted_value": "retain eligible value"', '"omitted_value": null')
+            : nullable.after;
+          await writeFile(target, bytes);
           for (const tag of [5, 6, 7, 8, 9, 10, 11]) events.push({tag,
             ordinal: tag === 6 || tag === 7 ? -1 : 0,
             identity: tag === 6 || tag === 7 ? '' : observedCid((tag === 8 ? 5 : tag).toString(16))});
@@ -176,9 +179,12 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
       }
       return {code: 0, signal: null, stdout, stderr: observation(200 + ++count, events)};
     }});
-    if (collapseNull) {
+    if (fault === 'null-preview') {
       await assert.rejects(execute, /exact intended after fields/u);
       assert.deepEqual(decisions, []);
+    } else if (fault === 'eligible-field-cleared') {
+      await assert.rejects(execute, /Only the explicit NULL and empty Text fields may change/u);
+      assert.deepEqual(decisions, ['approval']);
     } else {
       const outcomes = await execute;
       assert.deepEqual(decisions, ['approval', 'rejection']);
