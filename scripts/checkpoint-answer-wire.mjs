@@ -42,6 +42,11 @@ export function checkpointAnswerContract(registry, protocol) {
   closed(recipe.proof, ['scheme', 'key_id', 'signature']);
   if (recipe.proof.scheme !== 'ed25519-v1' ||
       recipe.proof.signature !== 'actual external callback output; canonical Base64 exact64bytes/88characters; reject nonzero padbits') fail('proof-encoding');
+  closed(recipe.signer, ['token_characters', 'token_min_length', 'token_max_length',
+    'sign_callback', 'authority_scope_cid_required']);
+  const {token_min_length: min, token_max_length: max} = recipe.signer;
+  if (recipe.signer.token_characters !== 'ASCII_A_Z_a_z_0_9_dot_underscore_colon_hyphen' ||
+      !Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min < 1 || max < min) fail('signer-token');
   // Transport the fixed Ed25519 byte demand and canonical pad bits to both SDKs.
   const signatureEncoding = {byteLength: 64, pattern: '[A-Za-z0-9+/]{85}[AQgw]=='};
   const branches = protocol.artifact_schemas.execution_checkpoint.oneOf;
