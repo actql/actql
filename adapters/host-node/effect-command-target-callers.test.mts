@@ -4,19 +4,27 @@ import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 
 // Explicit Common/physical sequencing doubles. These opaque-looking tokens
 // are not issued targets, keys, authenticated Preview or installed authority.
-const ok = value => ({$tag: 1, _0: value});
+type Options = Parameters<typeof verifyPinnedEffectPlan>[0];
+type Runtime = Options['moon'];
+type FixtureRuntime = {
+  -readonly [Name in keyof Runtime as Exclude<Name, 'clientProgramEffectPlanCancelPreparation'>]?: Runtime[Name];
+} & {
+  // The fixture never takes this cancellation path.
+  clientProgramEffectPlanCancelPreparation(): void;
+};
+const ok = (value: unknown) => ({$tag: 1, _0: value});
 const bounds = {maxFields: 10, maxWork: 100, maxBytes: 100,
   maxNodes: 100, maxDepth: 10, maxUtf16Units: 100};
-function fixture({target, key, reject = false}) {
+function fixture({target, key, reject = false}: Readonly<{target: unknown; key: unknown; reject?: boolean}>) {
   const previewInputs = {}, input = {}, task = {}, completed = {}, material = {}, limits = {};
   let calls = 0, reads = 0, cancelled = 0;
   const importing = {}, preparation = {}, cursor = {}, proof = {};
   const expected = target === undefined ? key === undefined ? 'clientProgramEffectPlanImportBegin'
     : 'clientProgramEffectPlanImportBeginWithKey' : key === undefined
     ? 'clientProgramEffectPlanImportBeginWithTarget' : 'clientProgramEffectPlanImportBeginWithTargetAndKey';
-  const moon = {
+  const moon: FixtureRuntime = {
     clientProgramEffectPreviewInputAt(owner, index) { assert.equal(owner, previewInputs); assert.equal(index, 0); return input; },
-    clientProgramEffectInputTask(value) { assert.equal(value, input); return task; },
+    clientProgramEffectInputTask(value) { assert.equal(value, input); return task as unknown as number; },
     clientProgramEffectPlanAdvance: () => ok({_0: true, _1: 1}),
     clientProgramEffectPlanReady: () => ok(cursor),
     clientProgramEffectPlanNext: () => ok(undefined),
@@ -29,8 +37,8 @@ function fixture({target, key, reject = false}) {
     clientProgramEffectPlanCancelImport(value) { assert.equal(value, importing); cancelled++; },
   };
   for (const name of ['clientProgramEffectPlanImportBegin', 'clientProgramEffectPlanImportBeginWithKey',
-    'clientProgramEffectPlanImportBeginWithTarget', 'clientProgramEffectPlanImportBeginWithTargetAndKey']) {
-    moon[name] = function (...args) {
+    'clientProgramEffectPlanImportBeginWithTarget', 'clientProgramEffectPlanImportBeginWithTargetAndKey'] as const) {
+    moon[name] = function (this: typeof moon, ...args: unknown[]) {
       assert.equal(this, moon);
       assert.equal(name, expected, 'no target/key fallback');
       assert.deepEqual(args.slice(0, 7), [previewInputs, 0, completed, material, limits, 10, 100]);
@@ -40,7 +48,7 @@ function fixture({target, key, reject = false}) {
       return reject ? {$tag: 0, _0: 'ForeignBinding'} : ok(importing);
     };
   }
-  const options = {moon, previewInputs, previewIndex: 0, limits, planLimits: bounds,
+  const options: Options = {moon: moon as unknown as Runtime, previewInputs, previewIndex: 0, limits, planLimits: bounds,
     publishedTarget: target, inputKey: key, onChunk() {},
     execution: {effectPhysicalSource(value) { assert.equal(value, task); return {completed, material,
       async withRows(_append, _signal, finish) { reads++; return finish(); }}; }}};
@@ -58,6 +66,6 @@ test('Preview import selects each existing original target/key combination witho
 
 test('original target refusal happens before physical rows and never falls back to the key-only entrance', async () => {
   const f = fixture({target: Object.freeze({}), key: Object.freeze({}), reject: true});
-  await assert.rejects(verifyPinnedEffectPlan(f.options), error => error.code === 'MoonBitHostFailure' && error.cause === 'ForeignBinding');
+  await assert.rejects(verifyPinnedEffectPlan(f.options), error => (error as Error & {code?: string}).code === 'MoonBitHostFailure' && (error as Error).cause === 'ForeignBinding');
   assert.deepEqual(f.facts(), {calls: 1, reads: 0, cancelled: 0});
 });

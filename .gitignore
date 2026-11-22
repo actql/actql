@@ -1936,3 +1936,7 @@ target/
 /adapters/host-node/effect-response-recovery.d.mts
 /adapters/host-node/effect-run-apply.mjs
 /adapters/host-node/effect-run-apply.d.mts
+/adapters/host-node/effect-plan-verify.mjs
+/adapters/host-node/effect-plan-verify.d.mts
+/adapters/host-node/effect-command-target-callers.test.mjs
+/adapters/host-node/effect-command-target-callers.test.d.mts

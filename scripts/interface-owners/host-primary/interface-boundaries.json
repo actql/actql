@@ -5736,7 +5736,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               },
               {
@@ -6036,7 +6036,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               },
               {
@@ -6296,7 +6296,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               },
               {
@@ -6490,7 +6490,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "Match an admitted private Preview"
               },
               {
@@ -6508,7 +6508,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -6530,7 +6530,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "checked, retained Result view"
               },
               {
@@ -6548,7 +6548,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "caller owns partial-output cleanup"
               },
               {
@@ -6566,7 +6566,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "onChunk"
               },
               {
@@ -6584,7 +6584,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "InvalidEffectPlanVerification"
               },
               {
@@ -6620,7 +6620,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "ownedPlanLimits"
               },
               {
@@ -6684,7 +6684,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
@@ -6698,7 +6698,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "Match an admitted private Preview"
               },
               {
@@ -6716,7 +6716,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -6738,7 +6738,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "checked, retained Result view"
               },
               {
@@ -6756,7 +6756,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "caller owns partial-output cleanup"
               },
               {
@@ -6774,7 +6774,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "onChunk"
               },
               {
@@ -6792,7 +6792,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "InvalidEffectPlanVerification"
               },
               {
@@ -6828,7 +6828,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "ownedPlanLimits"
               },
               {
@@ -6892,7 +6892,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]

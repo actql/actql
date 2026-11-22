@@ -46626,7 +46626,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
@@ -47238,7 +47238,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               },
               {
@@ -47460,7 +47460,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
@@ -48223,7 +48223,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
@@ -48409,7 +48409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48427,7 +48427,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48445,7 +48445,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48463,7 +48463,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48481,7 +48481,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48499,7 +48499,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48517,7 +48517,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48535,7 +48535,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48553,7 +48553,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48571,7 +48571,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "verifyPinnedEffectPlan"
               },
               {
@@ -48599,7 +48599,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
@@ -48613,7 +48613,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48627,7 +48627,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48641,7 +48641,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48655,7 +48655,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48669,7 +48669,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48683,7 +48683,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48697,7 +48697,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48711,7 +48711,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48725,7 +48725,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48739,7 +48739,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-plan-verify.mjs",
+                "path": "adapters/host-node/effect-plan-verify.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48755,7 +48755,7 @@
                 "anchor": "## Original target and key callers"
               },
               {
-                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "path": "adapters/host-node/effect-command-target-callers.test.mts",
                 "anchor": "original target refusal happens before physical rows"
               }
             ]
