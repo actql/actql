@@ -34716,7 +34716,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "0b3a6da15f6b5ac0c2826d3494e4176280479874f9d594799c5b27dd9ffa9cf6",
+      "sha256": "37d4a27c36ac80a10a23f7576d9845dc82926f0ea59970f7be6a013b63d52c9f",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -34733,7 +34733,8 @@
             "assertHostRuntime",
             "assertNewHostRuntime",
             "bindSdkStaticOriginals",
-            "runtimeUrl"
+            "runtimeUrl",
+            "verifiedSdkInstallations"
           ],
           "async": true
         },
@@ -34914,6 +34915,70 @@
         },
         {
           "name": "installConfiguredModelProviders/context/init:prepareRawPolicies/init:prepareRawPolicies/init:prepareRawPolicies/retained/retained#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:createLanguageModel/init:createLanguageModel",
+          "parameters": [
+            "fetch"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:project",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:verifyRequest/init:verifyRequest",
+          "parameters": [
+            "wire",
+            "call"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project#2",
           "parameters": [],
           "async": false
         },
@@ -35245,6 +35310,13 @@
             "cause"
           ],
           "async": false
+        },
+        {
+          "name": "originalSdkRecord/originalSdkRecord",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -35353,7 +35425,19 @@
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
-            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2"
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#2",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#3",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#4",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:createLanguageModel/init:createLanguageModel",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:verifyRequest/init:verifyRequest",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project#2",
+            "originalSdkRecord/originalSdkRecord"
           ],
           "exports": [
             "installConfiguredModelProviders"
@@ -35429,6 +35513,10 @@
               {
                 "path": "adapters/host-node/installed-model-configuration.test.mjs",
                 "anchor": "test('configuration seals the context before consuming a retained provider entry getter'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('the original Host verifies SDK software and closes the options before supplying its factory'"
               }
             ]
           }
@@ -35439,7 +35527,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1169,
+    "operations": 1181,
     "exports": 109,
     "explicitContractGroups": 106
   }

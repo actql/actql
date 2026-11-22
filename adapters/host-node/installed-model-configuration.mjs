@@ -9,13 +9,52 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {types as nodeTypes} from 'node:util';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
+const invalidSdkInstallation = 'InvalidInstalledModelSdkInstallation';
+const plainSdkRecord = value => value !== null && typeof value === 'object' &&
+  !nodeTypes.isProxy(value) && Object.getPrototypeOf(value) === Object.prototype;
+
+function originalSdkRecord(value, keys) {
+  if (!plainSdkRecord(value) || !Object.isFrozen(value) || Reflect.ownKeys(value).length !== keys.length ||
+      keys.some(key => {
+        const field = Object.getOwnPropertyDescriptor(value, key);
+        return !field?.enumerable || !Object.hasOwn(field, 'value');
+      })) fail(invalidSdkInstallation);
+  return value;
+}
+
+function sdkProviderOptions(values, namespace, schema) {
+  if (!plainSdkRecord(values) || !Object.isFrozen(values) || !plainSdkRecord(schema) ||
+      !Object.isFrozen(schema) || typeof namespace !== 'string' ||
+      !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/u.test(namespace)) fail(invalidSdkInstallation);
+  const keys = Reflect.ownKeys(values);
+  if (keys.length > 32) fail(invalidSdkInstallation);
+  const snapshot = {};
+  for (const key of keys) {
+    if (typeof key !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/u.test(key) ||
+        Object.hasOwn(Object.prototype, key)) fail(invalidSdkInstallation);
+    const field = Object.getOwnPropertyDescriptor(values, key);
+    const rule = Object.getOwnPropertyDescriptor(schema, key);
+    if (!field?.enumerable || !Object.hasOwn(field, 'value') ||
+        !rule?.enumerable || !Object.hasOwn(rule, 'value')) fail('UnsupportedInstalledModelSdkOption');
+    const value = field.value, allowed = rule.value;
+    if (!(typeof value === 'boolean' || Number.isSafeInteger(value) && !Object.is(value, -0) ||
+          typeof value === 'string' && value.length <= 256) ||
+        !Array.isArray(allowed) || nodeTypes.isProxy(allowed) || !Object.isFrozen(allowed) ||
+        allowed.length > 32 || !Array.prototype.includes.call(allowed, value)) {
+      fail('UnsupportedInstalledModelSdkOption');
+    }
+    snapshot[key] = value;
+  }
+  return Object.freeze({[namespace]: Object.freeze(snapshot)});
+}
 
 // Same installation and original Model/defaults owners. This callback context
 // is not a Provider registry, a Resource, permission or a physical profile.
 // Only trusted Host configuration supplies paths and registration callbacks.
 export async function installConfiguredModelProviders({moon, register, project,
   taskLimits, installationServices, assertCurrent, assertHostRuntime,
-  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl}) {
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl,
+  verifiedSdkInstallations}) {
   if (register === undefined) return {providers: new Map(), projectTasks: undefined};
   if (typeof register !== 'function' || typeof assertCurrent !== 'function') {
     fail('InvalidInstalledModelProviderRegistration');
@@ -23,6 +62,7 @@ export async function installConfiguredModelProviders({moon, register, project,
   let phase = 'registering', failure, preparing = false;
   let defaults, candidates;
   const executionOriginals = new Map();
+  let preparedSdkIds;
   const pending = new Set();
   const track = operation => {
     // A sealed context cannot create even a new asynchronous child from an
@@ -89,6 +129,98 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
+    prepareRegisteredSdk(providerId) {
+      return track(async () => {
+        check();
+        const construction = reader();
+        // Only the original Host installer supplies independently verified
+        // file identities. The configuration callback selects by ID alone.
+        if (arguments.length !== 1 || typeof providerId !== 'string' ||
+            providerId.length < 1 || providerId.length > 256) {
+          fail(invalidSdkInstallation);
+        }
+        const original = verifiedSdkInstallations?.get(providerId);
+        if (original === undefined) fail(invalidSdkInstallation);
+        const requireOriginal = () => {
+          if (verifiedSdkInstallations.get(providerId) !== original) fail(invalidSdkInstallation);
+        };
+        construction.prepareModelTaskInput(Object.freeze({
+          capacity: () => capacity(16n),
+          project() {
+            preparedSdkIds ??= new Set();
+            if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
+            preparedSdkIds.add(providerId);
+            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
+            originalSdkRecord(original.adapter, ['url', 'cid', 'load']);
+            originalSdkRecord(original.lock, ['url', 'cid']);
+            originalSdkRecord(original.sdk, ['url', 'cid', 'packageName', 'version', 'exportName', 'load']);
+            originalSdkRecord(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
+            const {route, sdk} = original;
+            if (route.providerId !== providerId ||
+                [route.selector, route.modelId, route.apiMode, sdk.packageName, sdk.version, sdk.exportName]
+                  .some(value => typeof value !== 'string' || value.length === 0 || value.length > 256) ||
+                typeof route.endpoint !== 'string' || route.endpoint.length > 2048 ||
+                typeof sdk.load !== 'function' || typeof original.adapter.load !== 'function') {
+              fail(invalidSdkInstallation);
+            }
+            return Object.freeze({});
+          },
+          retained: () => capacity(16n),
+        }));
+        const verify = async file => {
+          if (typeof file?.url !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(file.cid) ||
+              !file.url.startsWith('file:') || /[?#]/u.test(file.url)) fail(invalidSdkInstallation);
+          if (await artifactIdentity(file.url) !== file.cid) fail('InstalledModelSdkArtifactMismatch');
+          check();
+          requireOriginal();
+        };
+        // The installed package and its dependencies are trusted code. The
+        // original verification identifies immutable files for this Host,
+        // rather than using the loaded module's metadata as proof of itself.
+        await verify(original.adapter);
+        await verify(original.sdk);
+        await verify(original.lock);
+        const adapter = await original.adapter.load();
+        check();
+        requireOriginal();
+        const sdk = await original.sdk.load();
+        check();
+        requireOriginal();
+        return construction.prepareModelTaskInput(Object.freeze({
+          capacity: () => capacity(64n, 10304n, 0n, 128n, 10304n),
+          project() {
+            if (!nodeTypes.isModuleNamespaceObject(adapter) || !nodeTypes.isModuleNamespaceObject(sdk)) {
+              fail(invalidSdkInstallation);
+            }
+            const factory = sdk[original.sdk.exportName];
+            const {createLanguageModel, verifyRequest} = adapter;
+            if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
+                typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function') {
+              fail(invalidSdkInstallation);
+            }
+            const providerOptions = sdkProviderOptions(original.providerOptions,
+              adapter.optionNamespace, adapter.optionSchema);
+            check();
+            return Object.freeze({route: original.route, providerOptions, sdkPackage: original.sdk.packageName,
+              sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
+              adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
+              createLanguageModel(fetch) {
+                assertCurrent();
+                assertNewHostRuntime?.();
+                requireOriginal();
+                return createLanguageModel(factory, original.route.modelId, fetch);
+              },
+              verifyRequest(wire, call) {
+                assertCurrent();
+                assertNewHostRuntime?.();
+                requireOriginal();
+                return verifyRequest(wire, call, original.route, providerOptions);
+              }});
+          },
+          retained: () => capacity(64n, 10304n),
+        }));
+      });
+    },
     projectOpenAIProvider() {
       return track(async () => {
         check();
