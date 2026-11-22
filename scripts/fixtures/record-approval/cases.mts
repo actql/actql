@@ -1,7 +1,11 @@
 // Independent authored inputs/oracles. These do not supply a Catalog, Mapping,
 // grant or execution support. Ordinary factories must provide those separately.
-const select = value => {
-  for (const key of ['recordId', 'previousName', 'nextName']) {
+type Selection = Readonly<{recordId: string; previousName: string; nextName: string}>;
+type Programs = Readonly<{read: string; update: string}>;
+type SeedInput = Readonly<{recordId?: unknown; previousName?: unknown; controlId?: unknown; controlName?: unknown}>;
+
+const select = (value: Selection) => {
+  for (const key of ['recordId', 'previousName', 'nextName'] as const) {
     if (typeof value?.[key] !== 'string' || !value[key]) throw new TypeError('InvalidRecordApprovalSelection');
   }
   if (value.previousName === value.nextName) throw new TypeError('UnchangedRecordApprovalSelection');
@@ -19,7 +23,7 @@ export const sharedRecordUpdateSelections = Object.freeze({
 
 export const maxRecordUpdateFixtureTextUnits = 16_384;
 
-export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}) {
+export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}: SeedInput) {
   if (typeof recordId !== 'string' || !recordId || typeof previousName !== 'string' || !previousName) {
     throw new TypeError('InvalidRecordApprovalSelection');
   }
@@ -33,7 +37,7 @@ export function recordUpdateFixtureSeed({recordId, previousName, controlId, cont
     control: Object.freeze({id: controlId, name: controlName})});
 }
 
-export function recordUpdateFixtureState(selected) {
+export function recordUpdateFixtureState(selected: Selection & SeedInput) {
   const {recordId, nextName} = select(selected);
   const before = recordUpdateFixtureSeed(selected);
   return Object.freeze({
@@ -42,14 +46,14 @@ export function recordUpdateFixtureState(selected) {
   });
 }
 
-export function salesforceUpdateCase(programs, selected) {
+export function salesforceUpdateCase(programs: Programs, selected: Selection) {
   const {recordId, previousName, nextName} = select(selected);
   return {name: 'salesforce-account-update',
-    effect: {document: programs.update, format: 'aql', resultName: 'updates',
+    effect: {document: programs.update, format: 'aql' as const, resultName: 'updates',
       parameterDeclarations: {record_id: {type: 'string'}, next_name: {type: 'string'}},
       parameters: {record_id: recordId, next_name: nextName},
       expectedRows: [{Id: recordId, previous_name: previousName, next_name: nextName}]},
-    read: {document: programs.read, format: 'aql', resultName: 'main',
+    read: {document: programs.read, format: 'aql' as const, resultName: 'main',
       parameterDeclarations: {record_id: {type: 'string'}}, parameters: {record_id: recordId},
       beforeRows: [{Id: recordId, Name: previousName}], afterRows: [{Id: recordId, Name: nextName}]},
     review: {target: 'connector://salesforce/Account', identity: recordId,
@@ -59,10 +63,10 @@ export function salesforceUpdateCase(programs, selected) {
 // A separate Program for HubSpot's own original field names. The exact same
 // bytes are used for its mock and installed route; no string rewriting occurs.
 // A fixture result alone does not qualify the ordinary installed Effect route.
-export function hubspotUpdateCase(programs, selected) {
+export function hubspotUpdateCase(programs: Programs, selected: Selection & {variant?: string}) {
   const {recordId, previousName, nextName} = select(selected);
   return {name: 'hubspot-company-update',
-    effect: {document: programs.update, format: 'aql', resultName: 'updates',
+    effect: {document: programs.update, format: 'aql' as const, resultName: 'updates',
       parameterDeclarations: {record_id: {type: 'string'}, next_name: {type: 'string'}},
       parameters: {record_id: recordId, next_name: nextName},
       expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}],
@@ -70,7 +74,7 @@ export function hubspotUpdateCase(programs, selected) {
         answer: [{id: recordId, left_name: previousName, right_id: recordId,
           right_name: previousName, next_name: nextName}],
       }} : {})},
-    read: {document: programs.read, format: 'aql', resultName: 'main',
+    read: {document: programs.read, format: 'aql' as const, resultName: 'main',
       parameterDeclarations: {record_id: {type: 'string'}}, parameters: {record_id: recordId},
       beforeRows: [{id: recordId, name: previousName}], afterRows: [{id: recordId, name: nextName}]},
     review: {target: 'connector://hubspot/companies', identity: recordId,
@@ -78,14 +82,14 @@ export function hubspotUpdateCase(programs, selected) {
 }
 
 // Kintone system record ids remain exact strings, including values above 2^53.
-export function kintoneUpdateCase(programs, selected) {
+export function kintoneUpdateCase(programs: Programs, selected: Selection) {
   const {recordId, previousName, nextName} = select(selected);
   return {name: 'kintone-record-update',
-    effect: {document: programs.update, format: 'aql', resultName: 'updates',
+    effect: {document: programs.update, format: 'aql' as const, resultName: 'updates',
       parameterDeclarations: {record_id: {type: 'string'}, next_name: {type: 'string'}},
       parameters: {record_id: recordId, next_name: nextName},
       expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}]},
-    read: {document: programs.read, format: 'aql', resultName: 'main',
+    read: {document: programs.read, format: 'aql' as const, resultName: 'main',
       parameterDeclarations: {record_id: {type: 'string'}}, parameters: {record_id: recordId},
       beforeRows: [{id: recordId, Subject: previousName}], afterRows: [{id: recordId, Subject: nextName}]},
     review: {target: 'connector://kintone/inquiries', identity: recordId,
@@ -95,7 +99,7 @@ export function kintoneUpdateCase(programs, selected) {
 
 // Existing shared HTTPS fixture fault DATA only. A provider owns the exact
 // write route; this does not issue a request, classify Run state or grant send.
-export function recordUpdateReplyLossFaults(provider) {
+export function recordUpdateReplyLossFaults(provider: {writeRequest?: {method?: unknown; pathname?: unknown}} | null | undefined) {
   const {method, pathname} = provider?.writeRequest ?? {};
   if (typeof method !== 'string' || !/^[A-Z]{3,16}$/u.test(method) ||
       typeof pathname !== 'string' || !pathname.startsWith('/') ||
@@ -104,5 +108,5 @@ export function recordUpdateReplyLossFaults(provider) {
       pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92))) {
     throw new TypeError('InvalidRecordApprovalWriteRoute');
   }
-  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1})]);
+  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply' as const, method, pathname, times: 1})]);
 }

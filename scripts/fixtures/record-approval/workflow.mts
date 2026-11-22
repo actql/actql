@@ -3,18 +3,76 @@
 // it cannot supply a claim, current decision, credential or replacement Run.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import type {CheckpointSummary, Client, Execution, RunReference, RunState} from '@actql/sdk';
 import {recordUpdateFixtureSeed} from './cases.mjs';
 
-const sha256 = text => createHash('sha256').update(text).digest('hex');
+type Data = Record<string, unknown>;
+type Program = {
+  document: string;
+  format: Extract<Parameters<Client['startSource']>[1]['format'], 'aql' | 'sql' | 'json' | 'yaml'>;
+  resultName: string;
+  parameterDeclarations: Data;
+  parameters: Data;
+};
+type ReviewOracle = {target: string; identity: unknown; before: Data; changes: Data};
+type ReplyLossStatus = 'succeeded' | 'needs_reconciliation';
+type ReplyLossExpectation = Readonly<{approveStatus: ReplyLossStatus; lookupStatus: ReplyLossStatus}>;
+export type AuthoredRecordApprovalCase = {
+  name: string;
+  effect: Program & {expectedRows: readonly Data[]; additionalResults?: Record<string, readonly Data[]>};
+  read: Program & {beforeRows: readonly Data[]; afterRows: readonly Data[]};
+  review: ReviewOracle;
+  fixture?: {
+    seed: Parameters<typeof recordUpdateFixtureSeed>[0];
+    expected: {before: ReturnType<typeof recordUpdateFixtureSeed>; after: ReturnType<typeof recordUpdateFixtureSeed>};
+    faults?: readonly {kind: 'apply-then-lose-reply'; expected: ReplyLossExpectation}[];
+    schema?: {sourceRef: string; sourceViewContractCid: string; carrierSchemaContractCid: string};
+  };
+};
+type Captured = {binding: unknown; ref: RunReference; runId: string; checkpointId: string;
+  summary: CheckpointSummary; reviewBase64: string};
+type ReadReceipt = (name: string) => unknown;
+type SaveReceipt = (name: string, value: Data) => unknown;
+type ApprovalClient = Pick<Client, 'startSource' | 'attach' | 'checkpoints' | 'reviewCheckpoint' | 'close'>;
+type ResolveCheckpoint<C> = (client: C, captured: Captured) => ReturnType<Client['resolveCheckpoints']>;
+type PhaseOptions<C extends ApprovalClient> = {
+  phase: string;
+  client: C;
+  definition?: AuthoredRecordApprovalCase;
+  createDefinition?: () => AuthoredRecordApprovalCase;
+  load: ReadReceipt;
+  save: SaveReceipt;
+  approve?: ResolveCheckpoint<C>;
+  reject?: ResolveCheckpoint<C>;
+  observeClose?: (observation: Data) => unknown;
+  replyLossExpectation?: ReplyLossExpectation;
+  decision?: 'approved' | 'rejected';
+};
+type UncheckedReview = {
+  version: unknown; review_projection_cid: unknown; effect_preview_cid: unknown;
+  authority_scope_cid: unknown; approval_claims: unknown;
+  displayed_scope: {effects: readonly {kind: unknown; target: unknown; count: unknown}[]};
+  displayed_rows: readonly {
+    target_row_identity: unknown;
+    preview_strength: unknown;
+    row_preview_cid: string;
+    target_guard: {state: unknown; version_cid: string};
+    before: {state: unknown; value: Data};
+    intended_changes: unknown;
+    after: unknown;
+  }[];
+};
+
+const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
-const text = value => typeof value === 'string' && value.length > 0;
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const closed = (value, keys) => object(value) && Object.keys(value).length === keys.length &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const object = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
+const closed = (value: unknown, keys: readonly string[]): value is Data => object(value) && Object.keys(value).length === keys.length &&
   keys.every(key => Object.hasOwn(value, key));
 
-export function admitAuthoredRecordApprovalCase(value) {
+export function admitAuthoredRecordApprovalCase(value: unknown) {
   const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
-  const rows = value => Array.isArray(value) && value.every(object);
+  const rows = (value: unknown) => Array.isArray(value) && value.every(object);
   assert(object(value));
   const fixture = Object.hasOwn(value, 'fixture');
   assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
@@ -61,14 +119,15 @@ export function admitAuthoredRecordApprovalCase(value) {
 
 // Trusted fixture expectation, never a Program option or a permission decision.
 // Each selected provider capability supplies its own two independent outcomes.
-export function recordApprovalReplyLossExpectation(value) {
+export function recordApprovalReplyLossExpectation(value: unknown) {
   if (value === undefined) return undefined;
   assert(value && typeof value === 'object' && !Array.isArray(value));
   assert.deepEqual(Object.keys(value).sort(), ['approveStatus', 'lookupStatus']);
-  for (const status of [value.approveStatus, value.lookupStatus]) {
+  for (const status of [(value as ReplyLossExpectation).approveStatus, (value as ReplyLossExpectation).lookupStatus]) {
     assert(['succeeded', 'needs_reconciliation'].includes(status));
   }
-  return Object.freeze({approveStatus: value.approveStatus, lookupStatus: value.lookupStatus});
+  return Object.freeze({approveStatus: (value as ReplyLossExpectation).approveStatus,
+    lookupStatus: (value as ReplyLossExpectation).lookupStatus});
 }
 
 export function recordApprovalReplyLossExpectationFromEnvironment(env = process.env) {
@@ -79,10 +138,10 @@ export function recordApprovalReplyLossExpectationFromEnvironment(env = process.
   return recordApprovalReplyLossExpectation(JSON.parse(wire));
 }
 
-function retainCase(original) {
+function retainCase(original: unknown) {
   // Snapshot only fixture DATA before the first public await. Caller mutation
   // must not turn a returned product value into a new expected-value oracle.
-  const value = structuredClone(original);
+  const value = structuredClone(original) as AuthoredRecordApprovalCase;
   assert(text(value?.name));
   for (const program of [value.effect, value.read]) {
     assert(text(program?.document) && ['aql', 'sql', 'json', 'yaml'].includes(program.format));
@@ -104,7 +163,7 @@ function retainCase(original) {
   return value;
 }
 
-function binding(value) {
+function binding(value: AuthoredRecordApprovalCase) {
   const {document: effect, ...effectInput} = value.effect;
   const {document: read, ...readInput} = value.read;
   return {caseName: value.name, effectSha256: sha256(effect), readSha256: sha256(read),
@@ -112,10 +171,10 @@ function binding(value) {
     ...(value.fixture === undefined ? {} : {fixture: value.fixture})};
 }
 
-function checkReview(review, summary, ref, expected) {
+function checkReview(review: UncheckedReview, summary: CheckpointSummary, ref: RunReference, expected: ReviewOracle) {
   assert.equal(review.version, 'actql-review-projection/0.1');
   assert.equal(review.review_projection_cid, summary.reviewProjectionCid);
-  assert.equal(review.effect_preview_cid, summary.requiredArtifact.cid);
+  assert.equal(review.effect_preview_cid, summary.requiredArtifact!.cid);
   assert.equal(review.authority_scope_cid, ref.authorityScopeCid);
   assert.deepEqual(review.approval_claims, summary.requirements);
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
@@ -135,8 +194,8 @@ function checkReview(review, summary, ref, expected) {
   assert.deepEqual(row.after, row.intended_changes);
 }
 
-async function readAdditionalResults(run, effect) {
-  const retained = {};
+async function readAdditionalResults(run: Execution, effect: AuthoredRecordApprovalCase['effect']) {
+  const retained: Record<string, Awaited<ReturnType<ReturnType<Execution['result']>['all']>>> = {};
   for (const [name, expected] of Object.entries(effect.additionalResults ?? {})) {
     const rows = await run.result(name).all();
     assert.deepEqual(rows, expected, 'Independent original Result: ' + name);
@@ -145,7 +204,7 @@ async function readAdditionalResults(run, effect) {
   return retained;
 }
 
-async function readOriginal(client, value, phase, save) {
+async function readOriginal(client: ApprovalClient, value: AuthoredRecordApprovalCase, phase: 'before' | 'after', save: SaveReceipt) {
   const program = value.read;
   const run = await client.startSource(program.document, {format: program.format,
     parameterDeclarations: program.parameterDeclarations, parameters: program.parameters});
@@ -156,7 +215,7 @@ async function readOriginal(client, value, phase, save) {
   await save(phase, {ref: run.ref, rows});
 }
 
-async function saveRunObservation(save, name, run, state) {
+async function saveRunObservation(save: SaveReceipt, name: string, run: Execution, state: RunState) {
   // Only the original returned public reply: never a private cause, a second
   // status request, or a synthesized observation when the original await threw.
   const issue = state.terminal_error;
@@ -169,9 +228,9 @@ async function saveRunObservation(save, name, run, state) {
 // One invocation is one existing phase. The external ordinary consumer owns
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
-export async function runRecordUpdateApprovalPhase({phase, client,
+export async function runRecordUpdateApprovalPhase<C extends ApprovalClient>({phase, client,
   definition, createDefinition, load, save, approve, reject, observeClose, replyLossExpectation,
-  decision = 'approved'}) {
+  decision = 'approved'}: PhaseOptions<C>) {
   let failed = false, primary;
   try {
     assert(['approved', 'rejected'].includes(decision));
@@ -199,18 +258,18 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       const state = await run.wait();
       await saveRunObservation(save, 'capture-wait', run, state);
       assert.equal(state.status, 'waiting_checkpoint');
-      const page = await client.checkpoints({checkpointId: state.checkpoint.id});
+      const page = await client.checkpoints({checkpointId: state.checkpoint!.id});
       assert.equal(page.items.length, 1);
       const summary = page.items[0];
-      assert.equal(summary.checkpointCid, state.checkpoint.checkpoint_cid);
+      assert.equal(summary.checkpointCid, state.checkpoint!.checkpoint_cid);
       const review = await client.reviewCheckpoint(summary);
       checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')), summary, run.ref, value.review);
       await readOriginal(client, value, 'before', save);
       await save('captured', {binding: originalBinding, ref: run.ref,
-        runId: state.run_id, checkpointId: state.checkpoint.id, summary,
+        runId: state.run_id, checkpointId: state.checkpoint!.id, summary,
         reviewBase64: Buffer.from(review.bytes).toString('base64')});
     } else {
-      const captured = await load('captured');
+      const captured = (await load('captured')) as Captured;
       assert.deepEqual(captured.binding, originalBinding, 'Reopen the same Program, parameters and independent oracle');
       const run = await client.attach(captured.ref);
       assert.deepEqual(run.ref, captured.ref);
@@ -219,15 +278,15 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         await saveRunObservation(save, phase + '-status', run, state);
         assert.equal(state.run_id, captured.runId);
         assert.equal(state.status, 'waiting_checkpoint');
-        assert.equal(state.checkpoint.id, captured.checkpointId);
-        if (rejecting) assert.equal(state.checkpoint.checkpoint_cid, captured.summary.checkpointCid);
+        assert.equal(state.checkpoint!.id, captured.checkpointId);
+        if (rejecting) assert.equal(state.checkpoint!.checkpoint_cid, captured.summary.checkpointCid);
         const review = await client.reviewCheckpoint(captured.summary);
         assert.equal(Buffer.from(review.bytes).toString('base64'), captured.reviewBase64);
         checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')),
           captured.summary, run.ref, value.review);
         const resolveCheckpoint = rejecting ? reject : approve;
         assert.equal(typeof resolveCheckpoint, 'function', 'The selected resolution must be explicitly configured');
-        const answer = await resolveCheckpoint(client, captured);
+        const answer = await resolveCheckpoint!(client, captured);
         if (loss !== undefined) await save('approval-answer', {ref: run.ref,
           statuses: answer.results.map(item => item.status)});
         assert.deepEqual(answer.results.map(item => item.status), ['committed']);
@@ -267,7 +326,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         assert.equal(state.run_id, captured.runId);
         assert.equal(state.status, 'cancelled');
       } else if (loss !== undefined) {
-        const observed = await load('reply-loss');
+        const observed = (await load('reply-loss')) as {binding: unknown; ref: unknown; runId: unknown; status: unknown};
         assert.deepEqual(observed.binding, originalBinding);
         assert.deepEqual(observed.ref, run.ref);
         assert.equal(observed.runId, captured.runId);
@@ -286,7 +345,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
             ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
         }
       } else {
-        const approved = await load('approved');
+        const approved = (await load('approved')) as {binding: unknown; ref: unknown; rows: unknown; additionalResults?: unknown};
         assert.deepEqual(approved.binding, originalBinding);
         assert.deepEqual(approved.ref, run.ref);
         // The first read of the same original Run is Result, before status.
@@ -304,19 +363,19 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       }
     }
   } catch (error) {failed = true;primary = error;}
-  const diagnosticFailures = [];
-  const failureData = cause => {
+  const diagnosticFailures: unknown[] = [];
+  const failureData = (cause: {name?: unknown; code?: unknown} | undefined) => {
     try {
-      const token = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/u.test(value);
+      const token = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/u.test(value);
       return {name: token(cause?.name) ? cause.name : undefined, code: token(cause?.code) ? cause.code : undefined};
     } catch {return {available: false};}
   };
-  const recordClose = async (stage, cleanup) => {
+  const recordClose = async (stage: 'started' | 'returned' | 'threw', cleanup?: unknown) => {
     if (observeClose === undefined) return;
     try {await observeClose({phase, pid: process.pid, stage, primaryPresent: failed,
-      ...(failed ? {primary: failureData(primary)} : {}),
+      ...(failed ? {primary: failureData(primary as Parameters<typeof failureData>[0])} : {}),
       firstClose: {attempted: true, returned: stage === 'returned', state: stage === 'started' ? 'pending' : stage},
-      ...(stage === 'threw' ? {cleanup: failureData(cleanup)} : {})});}
+      ...(stage === 'threw' ? {cleanup: failureData(cleanup as Parameters<typeof failureData>[0])} : {})});}
     catch (cause) {diagnosticFailures.push(cause);}
   };
   await recordClose('started');

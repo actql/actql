@@ -1956,3 +1956,7 @@ target/
 /scripts/record-approval-ci-input.d.mts
 /scripts/record-approval-ci-input.test.mjs
 /scripts/record-approval-ci-input.test.d.mts
+/scripts/fixtures/record-approval/cases.mjs
+/scripts/fixtures/record-approval/cases.d.mts
+/scripts/fixtures/record-approval/workflow.mjs
+/scripts/fixtures/record-approval/workflow.d.mts
