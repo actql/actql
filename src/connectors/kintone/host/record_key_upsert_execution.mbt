@@ -1,6 +1,7 @@
 ///|
 pub(all) enum RecordKeyUpsertExecutionIssue {
   MappingMismatch
+  SavedRequestMismatch
   Values(@catalog.RecordWriteJsonIssue)
   Lookup(@catalog.RecordLookupIssue)
   Before(RecordReadIssue)
@@ -14,6 +15,7 @@ pub struct RecordKeyUpsertProposal {
   priv mut self : RecordKeyUpsertProposal?
   priv mapping : RecordKeyUpsertMapping
   priv values : @catalog.RecordWriteValues
+  priv value_wire : String
   priv lookup : @catalog.RecordLookupRequest
 }
 
@@ -114,10 +116,21 @@ pub fn prepare_record_key_upsert_proposal(
     Ok(value) => value
     Err(issue) => return Err(Lookup(issue))
   }
+  let value_wire = match
+    @catalog.record_write_values_json(
+      values,
+      Int::min(max_input_bytes, write_limits.max_output_bytes),
+      write_limits.max_nodes,
+      write_limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Values(issue))
+  }
   let proposal : RecordKeyUpsertProposal = {
     self: None,
     mapping,
     values,
+    value_wire,
     lookup,
   }
   proposal.self = Some(proposal)
@@ -129,6 +142,13 @@ pub fn record_key_upsert_proposal_lookup(
   value : RecordKeyUpsertProposal,
 ) -> @catalog.RecordLookupRequest {
   value.lookup
+}
+
+///|
+pub fn record_key_upsert_proposal_value_wire(
+  value : RecordKeyUpsertProposal,
+) -> String {
+  value.value_wire
 }
 
 ///|
@@ -159,6 +179,21 @@ pub fn prepare_record_key_upsert_proposal_before(
 }
 
 ///|
+fn record_key_upsert_has_original_before(
+  proposal : RecordKeyUpsertProposal,
+  before : RecordKeyUpsertBefore,
+) -> Bool {
+  proposal.self is Some(original) &&
+  physical_equal(proposal, original) &&
+  record_key_upsert_before_matches(
+    before,
+    proposal.mapping.original,
+    before.lookup,
+  ) &&
+  @catalog.record_key_lookup_uses_request(before.lookup, proposal.lookup)
+}
+
+///|
 /// Construct the selected mutation from the same retained before observation.
 /// The caller checks currentness and owns request finalization and dispatch.
 pub fn prepare_record_key_upsert_request_from_before(
@@ -170,18 +205,12 @@ pub fn prepare_record_key_upsert_request_from_before(
   guard proposal.self is Some(original) && physical_equal(proposal, original) else {
     return Err(MappingMismatch)
   }
-  let observed = before.lookup
-  if !record_key_upsert_before_matches(
-      before,
-      proposal.mapping.original,
-      observed,
-    ) ||
-    !@catalog.record_key_lookup_uses_request(observed, proposal.lookup) {
+  if !record_key_upsert_has_original_before(proposal, before) {
     return Err(Lookup(ForeignRequest))
   }
   match
     @catalog.prepare_record_key_upsert_request(
-      observed,
+      before.lookup,
       proposal.values,
       write_limits,
       limits,
@@ -190,4 +219,125 @@ pub fn prepare_record_key_upsert_request_from_before(
     Ok(request) => Ok(request)
     Err(issue) => Err(Request(issue))
   }
+}
+
+///|
+/// Correlate the exact proposal, lookup and before target with its one native
+/// mutation. Equal values or another target from the same page cannot stand
+/// in for the originals held by this request.
+pub fn record_key_upsert_execution_matches(
+  proposal : RecordKeyUpsertProposal,
+  before : RecordKeyUpsertBefore,
+  request : @catalog.RecordKeyUpsertRequest,
+) -> Bool {
+  if !record_key_upsert_has_original_before(proposal, before) ||
+    !@catalog.record_key_upsert_request_matches_lookup(request, before.lookup) ||
+    !physical_equal(
+      @catalog.record_key_upsert_request_values(request),
+      proposal.values,
+    ) {
+    return false
+  }
+  match (before.target, @catalog.record_key_upsert_request_operation(request)) {
+    (None, Insert) =>
+      @catalog.record_key_upsert_create_request(request) is Some(_)
+    (Some(target), Update) => {
+      guard @catalog.record_key_upsert_update_request(request) is Some(update) else {
+        return false
+      }
+      let records = @catalog.record_update_request_values(update)
+      records.length() == 1 &&
+      physical_equal(records[0].0, target) &&
+      physical_equal(records[0].1, proposal.values)
+    }
+    _ => false
+  }
+}
+
+///|
+/// Restore the saved material through the same native constructors. The
+/// surrounding owner verifies the saved digests and binds the returned DATA
+/// to its original Preview and claim. This path performs no physical lookup
+/// or write and cannot change the already selected branch.
+pub fn restore_record_key_upsert_execution(
+  mapping : RecordKeyUpsertMapping,
+  identity : String,
+  value_bytes : Bytes,
+  target_bytes : Bytes,
+  operation : @catalog.RecordKeyUpsertOperation,
+  original_body : String,
+  max_input_bytes : Int,
+  lookup_limits : @catalog.RecordLookupLimits,
+  pages : @catalog.RecordPageLimits,
+  values : @catalog.RecordValueLimits,
+  write_limits : @catalog.RecordWriteLimits,
+  request_limits : @catalog.RecordMutationLimits,
+  before_limits : @catalog.RecordMutationLimits,
+) -> Result[
+  (
+    RecordKeyUpsertProposal,
+    RecordKeyUpsertBefore,
+    @catalog.RecordKeyUpsertRequest,
+  ),
+  RecordKeyUpsertExecutionIssue,
+] {
+  guard @scalar.admit_utf8_length(
+      original_body,
+      request_limits.max_output_bytes,
+    )
+    is Ok(_) else {
+    return Err(Request(Request(BudgetExceeded)))
+  }
+  let proposal = match
+    prepare_record_key_upsert_proposal(
+      mapping, identity, value_bytes, max_input_bytes, write_limits, lookup_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let observed = match
+    @catalog.project_record_key_lookup(
+      proposal.lookup,
+      200,
+      target_bytes,
+      pages,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Lookup(issue))
+  }
+  let before = match
+    prepare_record_key_upsert_proposal_before(
+      proposal, observed, values, before_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if (before.target is None) != (operation is Insert) {
+    return Err(SavedRequestMismatch)
+  }
+  let request = match
+    prepare_record_key_upsert_request_from_before(
+      proposal, before, write_limits, request_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let body = match operation {
+    Insert => {
+      guard @catalog.record_key_upsert_create_request(request) is Some(create) else {
+        return Err(SavedRequestMismatch)
+      }
+      @catalog.record_create_request_body(create)
+    }
+    Update => {
+      guard @catalog.record_key_upsert_update_request(request) is Some(update) else {
+        return Err(SavedRequestMismatch)
+      }
+      @catalog.record_update_request_body(update)
+    }
+  }
+  if body != original_body {
+    return Err(SavedRequestMismatch)
+  }
+  Ok((proposal, before, request))
 }

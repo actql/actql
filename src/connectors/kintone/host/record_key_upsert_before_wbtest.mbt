@@ -553,6 +553,137 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
 }
 
 ///|
+test "saved keyed UPSERT restores only the original presence branch and exact native body" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let mapping = prepare_record_key_upsert_mapping(
+    original,
+    "customers",
+    "customer_code",
+    [{ target: "memo", field: "next_memo", null_behavior: "reject", }],
+    delete_declaration_limits(),
+  ).unwrap()
+  let lookup = key_before_lookup_limits()
+  let write = key_before_write_limits()
+  let request_limits = create_construction_request()
+  let restore = (present, operation, body, target_bytes, limits) => {
+    let result = restore_record_key_upsert_execution(
+      mapping,
+      "original-key",
+      b"{\"memo\":\"next\"}",
+      target_bytes,
+      operation,
+      body,
+      1000,
+      lookup,
+      key_before_page_limits(),
+      delete_preview_values(),
+      write,
+      limits,
+      delete_preview_limits(),
+    )
+    if result is Ok((proposal, before, request)) {
+      assert_eq(record_key_upsert_before_target(before) is Some(_), present)
+      assert_eq(
+        record_key_upsert_proposal_value_wire(proposal),
+        "{\"memo\":\"next\"}",
+      )
+      assert_true(
+        record_key_upsert_execution_matches(proposal, before, request),
+      )
+    }
+    result
+  }
+  for
+    (present, operation, other, body) in [
+      (
+        false,
+        @catalog.Insert,
+        @catalog.Update,
+        "{\"app\":\"12\",\"records\":[{\"memo\":{\"value\":\"next\"},\"customer_code\":{\"value\":\"original-key\"}}]}",
+      ),
+      (
+        true,
+        @catalog.Update,
+        @catalog.Insert,
+        "{\"app\":\"12\",\"records\":[{\"id\":\"9007199254740993\",\"record\":{\"memo\":{\"value\":\"next\"}},\"revision\":\"9007199254740994\"}],\"upsert\":false}",
+      ),
+    ] {
+    let original_bytes = key_before_response_body(present)
+    let exact = { ..request_limits, max_output_bytes: body.length(), }
+    let (proposal, before, request) = restore(
+      present, operation, body, original_bytes, exact,
+    ).unwrap()
+    let (renewed, renewed_before, _) = restore(
+      present, operation, body, original_bytes, exact,
+    ).unwrap()
+    assert_false(
+      record_key_upsert_execution_matches(renewed, renewed_before, request),
+    )
+    assert_false(
+      record_key_upsert_execution_matches(proposal, renewed_before, request),
+    )
+    assert_true(
+      restore(present, other, body, original_bytes, exact)
+      is Err(SavedRequestMismatch),
+    )
+    assert_true(
+      restore(
+        present,
+        operation,
+        body,
+        key_before_response_body(!present),
+        exact,
+      )
+      is Err(SavedRequestMismatch),
+    )
+    assert_true(
+      restore(
+        present,
+        operation,
+        body.replace(old="next", new="else"),
+        original_bytes,
+        exact,
+      )
+      is Err(SavedRequestMismatch),
+    )
+    assert_true(
+      restore(present, operation, body, original_bytes, {
+        ..exact,
+        max_output_bytes: body.length() - 1,
+      })
+      is Err(Request(Request(BudgetExceeded))),
+    )
+    if before.target is Some(_) {
+      let other_target = @catalog.prepare_original_record_target(
+        @catalog.record_key_lookup_page(before.lookup),
+        0,
+        exact.max_identity_bytes,
+      ).unwrap()
+      let copied = @catalog.prepare_record_key_upsert_request(
+        before.lookup,
+        proposal.values,
+        write,
+        exact,
+        target=Some(other_target),
+      ).unwrap()
+      assert_false(
+        record_key_upsert_execution_matches(proposal, before, copied),
+      )
+    }
+  }
+  assert_true(
+    restore(
+      false,
+      Insert,
+      "{}",
+      b"{\"records\":[],\"totalCount\":null}",
+      request_limits,
+    )
+    is Err(Lookup(IncompleteResponse)),
+  )
+}
+
+///|
 test "UPSERT lookup proposal quote adds retained body and bounded writer work on the same values" {
   let original = key_before_declaration(key_before_catalog(memo_required=true))
   let mapping = prepare_record_key_upsert_mapping(

@@ -876,3 +876,12 @@ execution workspace. The copied-target map is bounded by the original Form's
 lookup destinations and the same comparison work limit as the CREATE scan.
 The controls exercise both exact writer limits, one-byte-short failures
 and refusal to quote a foreign or present-record Before as an insert.
+
+The proposal retains its bounded admitted value wire. Saved request recovery
+rebuilds the same proposal and fully admits the saved lookup response under
+the original Form and lookup contract. The selected presence branch must
+match the saved operation before finalization, and the original serializer
+must reproduce the complete native request body. Cold recovery performs no
+provider read and has no authority to substitute a different request.
+The surrounding owner still compares the original saved digests, Preview,
+and claim before the reconstructed material may be used.

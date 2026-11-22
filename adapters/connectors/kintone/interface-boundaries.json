@@ -6599,7 +6599,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_execution.mbt",
-      "sha256": "c66805e7b3434b9bd6ade0c03ed08cbcb66a50db5878268e017b363439919e43",
+      "sha256": "d690d8db647ec08699841fd6cfd029c0e796b4c8d9f41e497e2325bc986dc9fe",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing original kintone Catalog and Host request construction",
@@ -6622,8 +6622,24 @@
           "declaration": "prepare_record_key_upsert_request_from_before ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , write_limits : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordKeyUpsertRequest , RecordKeyUpsertExecutionIssue ]"
         },
         {
+          "name": "record_key_upsert_execution_matches",
+          "declaration": "record_key_upsert_execution_matches ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , request : @ catalog . RecordKeyUpsertRequest , ) - > Bool"
+        },
+        {
+          "name": "record_key_upsert_has_original_before",
+          "declaration": "record_key_upsert_has_original_before ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , ) - > Bool"
+        },
+        {
           "name": "record_key_upsert_proposal_lookup",
           "declaration": "record_key_upsert_proposal_lookup ( value : RecordKeyUpsertProposal , ) - > @ catalog . RecordLookupRequest"
+        },
+        {
+          "name": "record_key_upsert_proposal_value_wire",
+          "declaration": "record_key_upsert_proposal_value_wire ( value : RecordKeyUpsertProposal , ) - > String"
+        },
+        {
+          "name": "restore_record_key_upsert_execution",
+          "declaration": "restore_record_key_upsert_execution ( mapping : RecordKeyUpsertMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , operation : @ catalog . RecordKeyUpsertOperation , original_body : String , max_input_bytes : Int , lookup_limits : @ catalog . RecordLookupLimits , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , before_limits : @ catalog . RecordMutationLimits , ) - > Result [ ( RecordKeyUpsertProposal , RecordKeyUpsertBefore , @ catalog . RecordKeyUpsertRequest , ) , RecordKeyUpsertExecutionIssue , ]"
         }
       ],
       "contracts": [
@@ -6634,7 +6650,11 @@
             "prepare_record_key_upsert_proposal",
             "prepare_record_key_upsert_proposal_before",
             "prepare_record_key_upsert_request_from_before",
-            "record_key_upsert_proposal_lookup"
+            "record_key_upsert_proposal_lookup",
+            "record_key_upsert_execution_matches",
+            "record_key_upsert_has_original_before",
+            "record_key_upsert_proposal_value_wire",
+            "restore_record_key_upsert_execution"
           ],
           "exports": [],
           "attributes": {
@@ -6696,6 +6716,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "The focused proposal control checks exact request bodies in both branches"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "saved keyed UPSERT restores only the original presence branch and exact native body"
               }
             ]
           }
@@ -9302,7 +9326,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
-      "sha256": "c653019ad892a8802ba33c3a273412c7d6c3fce323e045886b3c3b9727f6f828",
+      "sha256": "586fe96e80d6a3af8e09ca0d7061a40bcf34b30531cede13f66c1769526ddd10",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing kintone proposal and Common execution preparation inventories",
@@ -9315,10 +9339,6 @@
         {
           "name": "record_key_upsert_create_construction_capacity",
           "declaration": "record_key_upsert_create_construction_capacity ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
-        },
-        {
-          "name": "record_key_upsert_has_original_before",
-          "declaration": "record_key_upsert_has_original_before ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , ) - > Bool"
         },
         {
           "name": "record_key_upsert_proposal_construction_capacity",
@@ -9340,7 +9360,6 @@
             "record_key_upsert_before_construction_capacity",
             "record_key_upsert_proposal_construction_capacity",
             "record_key_upsert_update_construction_capacity",
-            "record_key_upsert_has_original_before",
             "record_key_upsert_request_checks",
             "record_key_upsert_create_construction_capacity"
           ],

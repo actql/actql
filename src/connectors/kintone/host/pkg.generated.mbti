@@ -170,11 +170,15 @@ pub fn record_key_upsert_before_wire(RecordKeyUpsertBefore) -> String?
 
 pub fn record_key_upsert_create_construction_capacity(RecordKeyUpsertProposal, RecordKeyUpsertBefore, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
+pub fn record_key_upsert_execution_matches(RecordKeyUpsertProposal, RecordKeyUpsertBefore, @catalog.RecordKeyUpsertRequest) -> Bool
+
 pub fn record_key_upsert_mapping(RecordKeyUpsertMapping) -> @client_row_source_host.RowMapping
 
 pub fn record_key_upsert_proposal_construction_capacity(RecordKeyUpsertMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, @catalog.RecordLookupLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_key_upsert_proposal_lookup(RecordKeyUpsertProposal) -> @catalog.RecordLookupRequest
+
+pub fn record_key_upsert_proposal_value_wire(RecordKeyUpsertProposal) -> String
 
 pub fn record_key_upsert_update_construction_capacity(RecordKeyUpsertProposal, RecordKeyUpsertBefore, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -258,6 +262,8 @@ pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, Stri
 
 pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
+pub fn restore_record_key_upsert_execution(RecordKeyUpsertMapping, String, Bytes, Bytes, @catalog.RecordKeyUpsertOperation, String, Int, @catalog.RecordLookupLimits, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, @catalog.RecordMutationLimits) -> Result[(RecordKeyUpsertProposal, RecordKeyUpsertBefore, @catalog.RecordKeyUpsertRequest), RecordKeyUpsertExecutionIssue]
+
 pub fn restore_record_update_execution(RecordUpdateMapping, String, Bytes, Bytes, String, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, preview_limits? : @catalog.RecordMutationLimits) -> Result[(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest), RecordUpdateExecutionIssue]
 
 pub fn retire_managed_record(ManagedRecordRead) -> Unit
@@ -338,6 +344,7 @@ pub struct RecordKeyUpsertBefore {
 
 pub(all) enum RecordKeyUpsertExecutionIssue {
   MappingMismatch
+  SavedRequestMismatch
   Values(@catalog.RecordWriteJsonIssue)
   Lookup(@catalog.RecordLookupIssue)
   Before(RecordReadIssue)

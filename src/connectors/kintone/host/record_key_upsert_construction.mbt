@@ -184,21 +184,6 @@ pub fn record_key_upsert_before_construction_capacity(
 }
 
 ///|
-fn record_key_upsert_has_original_before(
-  proposal : RecordKeyUpsertProposal,
-  before : RecordKeyUpsertBefore,
-) -> Bool {
-  proposal.self is Some(original) &&
-  physical_equal(proposal, original) &&
-  record_key_upsert_before_matches(
-    before,
-    proposal.mapping.original,
-    before.lookup,
-  ) &&
-  @catalog.record_key_lookup_uses_request(before.lookup, proposal.lookup)
-}
-
-///|
 fn record_key_upsert_request_checks(
   count : Int,
 ) -> @shape.CollectionConstructionExtent? {
