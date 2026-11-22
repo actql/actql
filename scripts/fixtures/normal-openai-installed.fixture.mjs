@@ -18,7 +18,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google'].includes(phase));
+  'registered-google', 'registered-mixed'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
@@ -40,14 +40,13 @@ const {open} = await import(publicModules.get('@actql/node'));
 const providerModule = publicModules.get('@actql/provider-ai-sdk');
 const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
 const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
-const work = workflowWorkObservation({createObservation: createHostObservationConnection});
-const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
-const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google'}[phase];
+const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
+  'registered-mixed': 'mixed'}[phase];
 const selection = fresh ? {
-  usage: phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
+  usage: phase === 'registered-mixed' ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
     : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
   rateLimit: phase === 'rate-limit',
@@ -55,8 +54,10 @@ const selection = fresh ? {
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert([undefined, 'anthropic', 'google'].includes(selection.provider));
-const anthropic = selection.provider === 'anthropic', google = selection.provider === 'google';
+assert([undefined, 'anthropic', 'google', 'mixed'].includes(selection.provider));
+const mixed = selection.provider === 'mixed';
+const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal: mixed});
+const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
   ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered', 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
@@ -65,10 +66,10 @@ assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const project = selection.project === true;
 const registered = selection.registered === true;
-if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true, registered,
+if (project) assert.deepEqual(selection, {usage: mixed ? null : 'reported', timeout: null, rateLimit: false, project: true, registered,
   ...(selection.provider === undefined ? {} : {provider: selection.provider})});
-const providerName = selection.provider ?? 'openai';
-const routeFixture = {
+const providerName = mixed ? 'openai' : selection.provider ?? 'openai';
+const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
     credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
     resolvedModelId: 'fixture-chat', path: '_internal/openai-chat.mjs', version: '4.0.91',
@@ -82,30 +83,41 @@ const routeFixture = {
     requestPath: '/v1beta/models/gemini-2.5-flash:generateContent', resolvedModelId: 'gemini-2.5-flash',
     path: '_internal/google-generate-content.mjs', version: '4.0.124', exportName: 'createGoogle',
     apiMode: 'generate_content', options: {structuredOutputs: true}},
-}[providerName];
-const {officialHost, credentialReference, credentialHeader, credentialPrefix, requestPath, resolvedModelId} = routeFixture;
+};
+const route = (name, providerId, index) => ({...routeFixtures[name], name, providerId, index,
+  selector: name === 'anthropic' && mixed ? 'fixture-messages' : 'fixture-chat'});
+const routes = [route(providerName, 'models/http', 0)];
+if (mixed) routes.push(route('anthropic', 'models/messages', 1));
+const selectedRoute = routes[0];
+const {credentialReference} = selectedRoute;
+const routesByHost = new Map(routes.map(original => [original.officialHost, original]));
+const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
+const credentialValue = original => mixed ? fixtureCredential + '-' + original.name : fixtureCredential;
 let modelSdkRegistrations;
 if (registered) {
-  const packageName = '@ai-sdk/' + providerName;
-  const sdkEntry = createRequire(new URL(providerModule)).resolve(packageName);
-  assert.equal(sdkEntry, realpathSync(sdkEntry));
-  assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/' + packageName + '/dist/index.js'));
-  const image = async (path, file) => Object.freeze({path,
-    cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
-  const {path, version, exportName, apiMode, options} = routeFixture;
-  modelSdkRegistrations = Object.freeze([Object.freeze({
-    adapter: await image(path, new URL(path, providerModule)),
-    lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
-    sdk: Object.freeze({...await image('dist/index.js', sdkEntry),
-      packageName, version, exportName}),
-    route: Object.freeze({providerId: 'models/http', modelId: resolvedModelId, selector: 'fixture-chat',
-      apiMode, endpoint: 'https://' + officialHost + requestPath}),
-    providerOptions: Object.freeze(options),
-    credential: Object.freeze({
-      reference: phase === 'registered-credential-reference' ? 'ACTQL_TEST_UNAPPROVED_MODEL_KEY' : credentialReference,
-      header: phase === 'registered-credential-header' ? 'x-api-key' : credentialHeader,
-    }),
-  })]);
+  const originals = [];
+  for (const original of routes) {
+    const packageName = '@ai-sdk/' + original.name;
+    const sdkEntry = createRequire(new URL(providerModule)).resolve(packageName);
+    assert.equal(sdkEntry, realpathSync(sdkEntry));
+    assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/' + packageName + '/dist/index.js'));
+    const image = async (path, file) => Object.freeze({path,
+      cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
+    const {path, version, exportName, apiMode, options} = original;
+    originals.push(Object.freeze({
+      adapter: await image(path, new URL(path, providerModule)),
+      lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
+      sdk: Object.freeze({...await image('dist/index.js', sdkEntry), packageName, version, exportName}),
+      route: Object.freeze({providerId: original.providerId, modelId: original.resolvedModelId, selector: original.selector,
+        apiMode, endpoint: 'https://' + original.officialHost + original.requestPath}),
+      providerOptions: Object.freeze(options),
+      credential: Object.freeze({
+        reference: phase === 'registered-credential-reference' ? 'ACTQL_TEST_UNAPPROVED_MODEL_KEY' : original.credentialReference,
+        header: phase === 'registered-credential-header' ? 'x-api-key' : original.credentialHeader,
+      }),
+    }));
+  }
+  modelSdkRegistrations = Object.freeze(originals);
 }
 if (phase === 'registered-invalid') {
   const original = modelSdkRegistrations[0];
@@ -146,8 +158,7 @@ if (phase === 'registered-too-late') {
   process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
   process.exit(0);
 }
-const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
-const maxCalls = usageMode === 'reported' ? 1n : 2n;
+const maxCalls = usageMode === 'reported' || mixed ? 1n : 2n;
 const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
 const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = {
@@ -164,12 +175,14 @@ if (fresh) {
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await put('model-tasks.json', JSON.stringify({version: 'actql-model-tasks/0.1',
     tasks: {'model-task:first': './first.json', 'model-task:second': './second.json'},
-    providers: {'models/http': {type: providerName, api_key_env: credentialReference}},
+    providers: Object.fromEntries(routes.map(original => [original.providerId,
+      {type: original.name, api_key_env: original.credentialReference}])),
     default_provider: 'models/http'}));
   for (const [path, task] of [
     ['first.json', {task: 'model-task:first', instructions: 'Return the exact boolean.',
       input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}}],
     ['second.json', {task: 'model-task:second', instructions: 'Return the exact label.',
+      ...(mixed ? {model: {provider: routes[1].providerId, name: routes[1].selector}} : {}),
       input: {quantity: 'number'}, output: {label: 'string'}, limits: {max_items: 2, max_output_tokens: 100}}],
   ]) await put(path, JSON.stringify(task));
   const keys = generateKeyPairSync('ed25519');
@@ -177,11 +190,14 @@ if (fresh) {
   await put('operator-public.fixture', keys.publicKey.export({type: 'spki', format: 'pem'}));
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'provider.key', '-out', 'provider.crt', '-days', '1', '-subj', '/CN=localhost',
-    '-addext', project ? 'subjectAltName=DNS:' + officialHost : 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+    '-addext', project ? 'subjectAltName=' + routes.map(original => 'DNS:' + original.officialHost).join(',')
+      : 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
   {stdio: 'ignore'});
 } else await access('.state');
 if (project) {
-  assert.equal(process.env[credentialReference], undefined, 'Do not inherit an operator credential');
+  for (const original of routes) {
+    assert.equal(process.env[original.credentialReference], undefined, 'Do not inherit an operator credential');
+  }
   await assert.rejects(access('provider-credential.fixture'), {code: 'ENOENT'});
 }
 
@@ -191,14 +207,21 @@ let calls = 0, egressChecks = 0, projectTlsConnects = 0, unexpectedProjectConnec
 let pulse, continuousWrites = 0, responseClosedBeforeFirstClose = false, finishContinuousResponse;
 const continuousResponseClosed = fresh && timeoutMode === 'call'
   ? new Promise(resolve => {finishContinuousResponse = resolve;}) : undefined;
-const schemas = [];
+const schemas = [], dispatchedProviders = new Set(), connectedHosts = new Set();
 const server = createServer({cert: certificate, key: await readFile('provider.key')}, async (request, response) => {
   calls++;
   assert.equal(missingKey, false, 'Missing project credential must never use the fixture transport');
   diagnostic.request(request);
   assert.equal(fresh, true, 'A Saved read must never contact the provider');
+  const original = mixed ? routesByHost.get(request.headers.host) : selectedRoute;
+  assert(original !== undefined, 'The request must belong to one selected Provider');
+  const {officialHost, credentialHeader, credentialPrefix, requestPath, resolvedModelId} = original;
+  const anthropic = original.name === 'anthropic', google = original.name === 'google';
+  const index = mixed ? original.index : calls - 1;
+  if (mixed) assert.equal(dispatchedProviders.has(original.providerId), false, 'One dispatch per original Provider');
+  dispatchedProviders.add(original.providerId);
   assert.equal(request.url, requestPath);
-  assert(request.headers[credentialHeader] === credentialPrefix + fixtureCredential,
+  assert(request.headers[credentialHeader] === credentialPrefix + credentialValue(original),
     'Unexpected synthetic credential');
   if (project) {
     assert.equal(request.headers.host, officialHost);
@@ -213,9 +236,10 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   let schema, promptText;
   if (anthropic) {
     assert.equal(body.output_config.format.type, 'json_schema');
-    assert.equal(body.output_config.format.schema.properties.answer.type, 'boolean');
+    assert.equal(body.output_config.format.schema.properties[index === 0 ? 'answer' : 'label'].type,
+      index === 0 ? 'boolean' : 'string');
     assert.equal(body.tools, undefined);
-    assert.deepEqual(body.system, [{type: 'text', text: 'Return the exact boolean.'}]);
+    assert.deepEqual(body.system, [{type: 'text', text: index === 0 ? 'Return the exact boolean.' : 'Return the exact label.'}]);
     schema = body.output_config.format.schema;
     promptText = body.messages[0].content[0].text;
   } else if (google) {
@@ -232,8 +256,8 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   }
   schemas.push(schema);
   const input = JSON.parse(promptText);
-  assert.deepEqual(input, calls === 1 ? {text: 'first'} : {quantity: 7});
-  const value = calls === 1 ? {answer: true} : {label: 'exact-label'};
+  assert.deepEqual(input, index === 0 ? {text: 'first'} : {quantity: 7});
+  const value = index === 0 ? {answer: true} : {label: 'exact-label'};
   if (timeoutMode === 'headers') return; // Actual request received; no response headers.
   response.setHeader('content-type', 'application/json');
   response.setHeader('x-request-id', 'installed-' + calls);
@@ -300,8 +324,12 @@ const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatPro
     : createOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat', providerId: 'models/http',
       apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
 const registerModelProviders = registered ? async (runtime, context) => {
-  assert.equal(context.registeredSdkSelected('models/http'), true);
-  return configureProvider(await import(providerModule))(runtime, context);
+  for (const original of routes) assert.equal(context.registeredSdkSelected(original.providerId), true);
+  const provider = await import(providerModule);
+  if (!mixed) return configureProvider(provider)(runtime, context);
+  const options = Object.freeze(routes.map(original => Object.freeze({...providerOptions, providerId: original.providerId,
+    dataHandlingContractWire: JSON.stringify(fixtureHandling)})));
+  return provider.createRegisteredSdkProviders(options)(runtime, context);
 } : configureProvider(await import(providerModule));
 const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'installed-' + field,
   stages: [{id: 'main', inputs: {}, steps: [
@@ -312,18 +340,32 @@ const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'insta
     results: {answer: {from: 'inferred', fields: ['id', 'outcome', 'value']}}}],
   results: {answer: {from: {stage: 'main', result: 'answer'}}}});
 const textContract = {type: 'string', nullable: false};
-async function checkResult(run, expected, index) {
-  const result = await run.result('answer');
+async function checkResult(run, expected, index, resultName = 'answer') {
+  const result = await run.result(resultName);
   assert.deepEqual(await result.all(), [expected]);
   const description = await result.describe();
   assert.deepEqual(description.ref, run.ref);
-  assert.equal(description.resultName, 'answer');
+  assert.equal(description.resultName, resultName);
   assert.deepEqual(description.columns, [
     {name: 'id', contract: textContract},
     {name: 'outcome', contract: textContract},
     {name: 'value', contract: {type: 'object', nullable: true, additional_properties: false,
       fields: index === 0 ? {answer: {type: 'boolean', nullable: false}} : {label: textContract}}},
   ]);
+}
+const mixedCases = [
+  {stage: 'first', input: ['model-task:first', 'text', 'first', 'string'],
+    row: {id: 'original-text', outcome: 'ok', value: {answer: true}}},
+  {stage: 'second', input: ['model-task:second', 'quantity', 7, 'number'],
+    row: {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}},
+];
+function mixedProgram() {
+  return {version: 'actql/0.1', id: 'installed-two-providers', stages: mixedCases.map(({stage, input}) =>
+    ({...program(...input).stages[0], id: stage})), results: Object.fromEntries(mixedCases.map(({stage}) =>
+    [stage, {from: {stage, result: 'answer'}}]))};
+}
+async function checkMixedResults(run) {
+  for (const [index, {stage, row}] of mixedCases.entries()) await checkResult(run, row, index, stage);
 }
 // New explicit usage-aware local callback contract. This small authored Sink
 // persists only the bounded seven-field projection; it is not the old five-part
@@ -414,19 +456,38 @@ try {
     // Redirect only the socket in this fixture process. Keep its original
     // HTTPS host, SNI, certificate checks, request and installed transport.
     tls.connect = (options, ...args) => {
-      if (!fresh || projectTlsConnects !== 0 || options?.host !== officialHost ||
-          options.servername !== officialHost || Number(options.port) !== 443 ||
+      const host = options?.host;
+      if (!fresh || !routesByHost.has(host) || connectedHosts.has(host) ||
+          options.servername !== host || Number(options.port) !== 443 ||
           options.socket !== undefined || options.rejectUnauthorized === false) {
         unexpectedProjectConnection = true;
         throw new Error('Unexpected project TLS connection');
       }
+      connectedHosts.add(host);
       projectTlsConnects++;
       return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
     };
   }
   client = await open(openOptions);
-  if (fresh) {
-    if (project) process.env[credentialReference] = fixtureCredential;
+  if (fresh && project) {
+    for (const original of routes) process.env[original.credentialReference] = credentialValue(original);
+  }
+  if (fresh && mixed) {
+    const submissionRef = client.newSubmission({nonce: 'installed-two-providers'});
+    await writeFile('submission-0.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
+    const run = await client.start(mixedProgram(), {submissionRef});
+    await writeFile('run-0.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
+    originalRef = run.ref;
+    const waited = await run.wait();
+    await diagnostic.terminal(0, waited);
+    assert.equal(waited.status, 'succeeded');
+    await checkMixedResults(run);
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
+    assert.equal(calls, 2);
+    assert.deepEqual([...dispatchedProviders].sort(), routes.map(original => original.providerId).sort());
+    assert.notDeepEqual(schemas[0], schemas[1]);
+  } else if (fresh) {
     const cases = [
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
@@ -483,7 +544,11 @@ try {
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const run = await client.attach(ref);
-    if (timeoutMode === undefined) {
+    if (mixed) {
+      originalRef = ref;
+      await checkMixedResults(run);
+      assert.equal((await run.status()).status, 'succeeded');
+    } else if (timeoutMode === undefined) {
       // The original Saved Result precedes this process's first status read.
       const expected = selection.rateLimit ? {outcome: 'failed:provider_error', value: null}
         : {outcome: 'ok', value: {answer: true}};
@@ -513,7 +578,7 @@ finally {
     }
   }
   if (project) {
-  delete process.env[credentialReference];
+    for (const original of routes) delete process.env[original.credentialReference];
     tls.connect = connectTls;
   }
   clearInterval(pulse);
@@ -528,12 +593,21 @@ finally {
 if (failed) throw primary;
 if (project) {
   assert.equal(unexpectedProjectConnection, false);
-  assert.equal(projectTlsConnects, fresh ? 1 : 0);
+  assert.equal(projectTlsConnects, fresh ? routes.length : 0);
+}
+if (mixed) {
+  const observed = work.forOriginal(originalRef);
+  assert.equal(observed.complete, true);
+  assert.equal(observed.modelCallStarts, fresh ? routes.length : 0);
+  assert.equal(observed.totals.modelCallStarts, observed.modelCallStarts);
 }
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
   ...(registered ? {registeredSdk: true} : {}),
+  ...(mixed ? {mixedProviders: routes.map(original => original.providerId),
+    dispatchedProviders: [...dispatchedProviders].sort(), originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
+    originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
   ...(phase === 'cold' ? {egressChecks,

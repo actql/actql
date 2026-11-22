@@ -23,6 +23,7 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
   const original = managed?.value, request = managed?.request, graph = selected.graph,
     compiled = plan.compiled, definition = plan.runDefinition, budget = model?.budget,
     publication = model?.publicationCapacity;
+  const installation = selected.originalReadInstallation;
   const sourceLedger = acquired?.ledger, captured = acquired?.captured;
   const current = () => {
     if (model === null || typeof model !== 'object' || model.closed || model.scopeFinished ||
@@ -33,7 +34,8 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
         component === undefined || model.component !== component ||
         typeof component.bindOriginal !== 'function' ||
         typeof publication !== 'function' || model.publicationCapacity !== publication ||
-        model.originalReadInstallation !== undefined || model.managed !== managed ||
+        model.originalReadInstallation !== installation || model.managed !== managed ||
+        installation !== undefined && (group === undefined || acquired !== undefined) ||
         managed?.closed || managed?.model !== (group ?? model) ||
         group !== undefined && (!Array.isArray(group.components) || !group.components.includes(model) ||
           group.closed || group.scopeFinished) || original === undefined ||
@@ -44,6 +46,14 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
           model.sourceLedger !== sourceLedger || acquired.captured !== captured)) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
     }
+    if (installation === undefined) return;
+    if (selected.currentProvider() !== true) throw new TypeError('InferTrustedRuntimeViewUnavailable');
+    if (model.runtimeBorrow === undefined) {
+      selected.assertTrustedRuntime();
+      if (!control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
+        throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+      }
+    } else selected.assertTrustedRuntimeScope(scope, model.runtimeBorrow, compiled, definition, graph);
   };
   current();
   if (model.taken || model.readAttempted || model.read !== undefined) {
@@ -89,20 +99,39 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
       if (!model.taken || model.readAttempted) throw new TypeError('InvalidInstalledRequestModelPreparation');
       model.readAttempted = true;
       try {
-        model.read = control.prepareCheckedClientInferOriginalRead(plan.compiled,
-          plan.runDefinition, selected.graph, scope, model.budget);
-        return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+        if (installation === undefined) {
+          model.read = control.prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget);
+        } else {
+          const nodeInstallation = installation.nodeInstallation;
+          selectedInferOriginalCurrentStateCodec(installation, nodeInstallation);
+          selectedInferOriginalPublicationCapacity(installation, nodeInstallation);
+          current();
+          // The adopted group already owns this Scope. Retain its runtime
+          // borrow before the checked Node read can fail or take custody.
+          model.runtimeBorrow = selected.bindTrustedRuntimeScope(scope, compiled, definition, graph);
+          current();
+          model.read = control.prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope, nodeInstallation);
+          current();
+        }
+        const startup = installation === undefined ? budget : inferOriginalReadStartupCapacity(installation);
+        const originalRead = {control, compiled, runDefinition: definition,
           // This installed caller always hands the completed observation to
           // inferTaskPublicationPlan; its existing body owner needs this SAME
           // read. This does not enable retention in raw/private Model consumers.
           scope, read: model.read, inputBodyRead: model.read, publicationCapacity,
-          readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
-          modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
+          readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes,
+          modelRetainedBytes: startup.modelRetainedBytes, modelExecutionBytes: startup.modelExecutionBytes};
+        if (installation !== undefined) {
+          originalRead.nodeInstallation = installation.nodeInstallation;
+          originalRead.metadataInstallation = installation;
+        }
+        return Object.freeze(originalRead);
       } catch (cause) {model.readFailure = cause; throw cause;}
     },
     async retire() {
       if (model.closed && model.scopeFinished) return true;
       current();
+      if (installation !== undefined) throw new TypeError('InvalidInstalledRequestModelPreparation');
       retireNodeInferOriginalRead(model);
       model.read = undefined;
       if (control.finishCheckedClientInferOriginalReadScope(plan.compiled,

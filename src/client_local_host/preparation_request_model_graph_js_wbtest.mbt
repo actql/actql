@@ -2981,6 +2981,9 @@ test "two Model Request adopts one module and all original scopes with one aggre
     module_entries,
   } = f
   let ledger = parent.ledger
+  // Use distinct original limits while preserving the previous aggregate.
+  let first_limits = { ..effect_model_plan_limits, retained_bytes: 1100L, }
+  let second_limits = { ..effect_model_plan_limits, retained_bytes: 900L, }
   let before_plan = @resources.preparation_capacity_working_extents(
     parent.program_capacity.unwrap(),
     input,
@@ -2994,13 +2997,17 @@ test "two Model Request adopts one module and all original scopes with one aggre
     definition,
     occurrences,
     graphs,
-    [effect_model_plan_limits, effect_model_plan_limits],
+    [first_limits, second_limits],
     [7L, 9L],
     [5L, 6L],
     40,
     40,
     40,
     bootstrap=Some((31L, 37L)),
+    node_quantities=Some([
+      { tokens: 64L, cost_units: 20L, duration_ms: 1500L, },
+      { tokens: 200L, cost_units: 30L, duration_ms: 250L, },
+    ]),
   ).unwrap()
   assert_eq(module_entries, [0, 1])
   // This authored graph has three configured tasks and two input edges. Its
@@ -3051,7 +3058,34 @@ test "two Model Request adopts one module and all original scopes with one aggre
     prepare_request_model_read_scope(parent, input, plan)
     is Err(ForeignOriginal),
   )
-  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  assert_true(
+    prepare_request_models_read_scopes(
+      parent,
+      input,
+      plan,
+      quantity_limits=Some({
+        tokens: 900L,
+        cost_units: 900L,
+        duration_ms: 900L,
+      }),
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(@resources.quantity_configuration_matches(ledger, None))
+  let scopes = prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    require_planned_quantities=true,
+  ).unwrap()
+  // The authored contract clips each Provider to 128 tokens, zero cost and
+  // 1000 ms before summation. Clipping after summation would give other caps.
+  assert_true(
+    @resources.quantity_configuration_matches(
+      ledger,
+      Some({ tokens: 192L, cost_units: 0L, duration_ms: 1250L, }),
+    ),
+  )
   assert_eq(scopes.length(), 2)
   complete_request_model_preparation(parent, input, plan).unwrap()
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
@@ -3074,6 +3108,51 @@ test "two Model Request adopts one module and all original scopes with one aggre
   assert_true(physical_equal(run.ledger.unwrap(), ledger))
   let second = @publication_host.prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
   let first = @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  let first_consumer = @publication_host.claim_client_model_read_preparation(
+    first,
+    compiled,
+    definition,
+    graphs[0],
+    7L,
+    5L,
+  ).unwrap()
+  let second_consumer = @publication_host.claim_client_model_read_preparation(
+    second,
+    compiled,
+    definition,
+    graphs[1],
+    9L,
+    6L,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      first_consumer,
+      compiled,
+      definition,
+      graphs[0],
+    )
+    is Ok(Some(limits)) &&
+    physical_equal(limits, first_limits),
+  )
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      second_consumer,
+      compiled,
+      definition,
+      graphs[1],
+    )
+    is Ok(Some(limits)) &&
+    physical_equal(limits, second_limits),
+  )
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      first_consumer,
+      compiled,
+      definition,
+      graphs[1],
+    )
+    is Err(@publication_host.ForeignRun),
+  )
   @publication_host.settle_client_model_read(first, true).unwrap()
   assert_false(
     @publication_host.finish_client_model_read_scope(

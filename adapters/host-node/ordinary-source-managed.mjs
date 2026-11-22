@@ -2210,14 +2210,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
-      const quantityLimits = model.selection?.quantityCapacity?.limits;
-      if (multiple && quantityLimits === undefined && members.some(member =>
+      const plannedQuantities = multiple && members.every(member => member.originalReadInstallation !== undefined);
+      const quantityLimits = plannedQuantities ? undefined : model.selection?.quantityCapacity?.limits;
+      if (multiple && !plannedQuantities && quantityLimits === undefined && members.some(member =>
           member.selection?.quantityCapacity !== undefined)) fail('InstalledModelQuantityCapacityUnavailable');
-      const scope = multiple
-        ? quantityLimits === undefined ? moon.clientProgramPrepareRequestModelsReadScopes
-          : moon.clientProgramPrepareRequestModelsReadScopesWithQuantities
-        : quantityLimits === undefined ? moon.clientProgramPrepareRequestModelReadScope
-          : moon.clientProgramPrepareRequestModelReadScopeWithQuantities;
+      const scope = plannedQuantities ? moon.clientProgramPrepareRequestModelsReadScopesWithPlannedQuantities
+        : multiple
+          ? quantityLimits === undefined ? moon.clientProgramPrepareRequestModelsReadScopes
+            : moon.clientProgramPrepareRequestModelsReadScopesWithQuantities
+          : quantityLimits === undefined ? moon.clientProgramPrepareRequestModelReadScope
+            : moon.clientProgramPrepareRequestModelReadScopeWithQuantities;
       const complete = moon.clientProgramCompleteRequestModelPreparation;
       const adopt = multiple ? moon.clientProgramAdoptRequestModelsPreparation
         : moon.clientProgramAdoptRequestModelPreparation;

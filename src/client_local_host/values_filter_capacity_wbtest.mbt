@@ -97,6 +97,11 @@ fn values_filter_capacity_execute(count : Int, filtered : Bool) -> Unit raise {
   for _ in 0..<100000 {
     let poll = @local.advance_managed_provider(active, 64).unwrap()
     let (work, terminal) = match poll {
+      @local.AwaitIo(..) => {
+        values_filter_capacity_cleanup(active)
+        fail("synchronous Values/Filter provider attempted physical I/O")
+        (0L, true)
+      }
       @local.Continue(work~, ..) | @local.Waiting(work~, ..) => (work, false)
       @local.Settling(_, work~, ..) => (work, false)
       @local.Complete(output, work~, ..) => {

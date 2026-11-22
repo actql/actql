@@ -350,6 +350,51 @@ test('installed Node composed input claims the same original layout before its o
   assert.equal(originalReadCleaned(f.originalPreparation.read), true);
 });
 
+test('abort wakes the managed original I/O wait while its read still owns pending cleanup', async () => {
+  const f = originalNodeComposedFixture();
+  const controller = new AbortController();
+  const notification = createInferIoNotification();
+  let stopRequests = 0, physicalStopped = false, reclaimed = 0, waiting = true;
+  f.moon.clientProgramBindInferPhysicalPreflightCurrent = () => assert.fail('No physical preflight starts in this wait control');
+  f.moon.clientProgramCancelInferExecution = active => {
+    assert.equal(active, f.active);
+    stopRequests++;
+    return true;
+  };
+  f.moon.clientProgramInferExecutionStopped = active => {
+    assert.equal(active, f.active);
+    return physicalStopped;
+  };
+  f.moon.clientProgramAdvanceInferExecution = () => assert.fail('The Host waiter cannot drive the original component');
+  f.moon.clientProgramCleanupInferExecution = active => {
+    assert.equal(active, f.active);
+    assert.equal(physicalStopped, true);
+    reclaimed++;
+    return {$tag: 1, _0: true};
+  };
+  const operation = openNodeInferOperation({...f.options, managedIo: true,
+    signal: controller.signal, ioNotification: notification, assertRuntimeCurrent() {}});
+  const observed = operation.waitForIo().finally(() => {waiting = false;});
+  const rejection = assert.rejects(observed, {name: 'AbortError'});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(waiting, true);
+  controller.abort();
+  await rejection;
+  assert.equal(stopRequests, 1);
+  assert.equal(f.claims(), 1);
+  assert.equal(operation.cleanup(), false);
+  assert.equal(operation.cleanupPending(), true);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  assert.equal(reclaimed, 0);
+  // The original physical port must separately observe its own stop.
+  physicalStopped = true;
+  assert.equal(operation.cleanup(), true);
+  assert.equal(operation.cleanupPending(), false);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+  assert.equal(reclaimed, 1);
+  assert.equal(notification.notify(), false);
+});
+
 test('installed Node composed layout refusal preserves the original cause and never retries an envelope or unowned start', () => {
   const f = originalNodeComposedFixture({refuse: true});
   assert.throws(() => openNodeInferOperation(f.options), error =>
