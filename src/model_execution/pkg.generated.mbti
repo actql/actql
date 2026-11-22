@@ -59,6 +59,8 @@ pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, S
 
 pub fn begin_original_model_usage_publication(ModelExecution, OriginalModelPublicationCapacity, VerifiedModelCapture, Int64, Int64, Int) -> Result[ModelUsagePublication, ModelExecutionIssue]
 
+pub fn bind_admitted_structured_model_provider(StructuredModelCapability, AdmittedModelProvider, @check_environment.ModelResponseProfileInstallation) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue]
+
 pub fn bind_original_model_mock_answers(ModelMockInstallation, ModelMockAnswers) -> Result[Unit, ModelMockInstallationIssue]
 
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
@@ -72,6 +74,8 @@ pub fn bind_prepared_model_observation(ModelPreparedCallSet, (ModelPhysicalObser
 pub fn bind_prepared_model_scope(ModelPreparedCallSet, @run_publication.BoundModelInvocationScope) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
+
+pub fn bound_structured_model_async_request_plan(AdmittedStructuredModelProvider, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 

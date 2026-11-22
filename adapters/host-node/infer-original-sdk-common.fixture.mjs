@@ -43,11 +43,12 @@ export function originalHttpCommonFixture(t,moon,options) {
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts}={},independentHttp) {
+  physical,rowTexts,structuredSdk=false}={},independentHttp) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
   const count=rowTexts?.length??1;
+  if (structuredSdk) assert.ok(!independentHttp && !nativeDecision);
   assert.ok(count>=1&&count<=2);
   if(rowTexts!==undefined){assert.equal(nativeDecision,false);assert.ok(rowTexts.every(value=>typeof value==='string'));}
   if(independentHttp) {
@@ -131,6 +132,10 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   // former fixture1024 support declaration correctly failed preflight; tighten
   // the physical selection rather than widening the Host/language budget.
   profileBody.limits.request_bytes=1000;
+  if (structuredSdk) {
+    profileBody.adapter.codec_id='fixture/sdk-v4-saved-text';
+    profileBody.completion.validator_id='fixture/sdk-v4-saved-text';
+  }
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
   profileBody.adapter.sdk=independentHttp?null:{package:nativeDecision?'@ai-sdk/typesafe-ai':'@ai-sdk/openai',
@@ -167,6 +172,12 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     perAttempt:{tokens:128n,costUnits:0n,durationMs:1000n}};
   const originals=providerBindingOriginals('models/fixture',{selector:task.authored_model_selector,
     endpoint:profileBody.operation.endpoint});
+  if (structuredSdk) {
+    const route={model_id:modelId,adapter_kind:'ai-sdk',api_mode:'chat_completions'};
+    const wire=canonicalText({...JSON.parse(originals.configuration.wire),...route});
+    originals.configuration={wire,cid:hash(wire)};
+  }
+  let structuredAdmission;
   let sends=0;
   const requests=[];
   const ports=[];
@@ -203,13 +214,20 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
       const port=independentHttp?preparePhysical({...common,endpoint:physical.endpoint,
         headers:[['content-type','application/json']],requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16}})
         : preparePhysical({...common,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
-          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only'});
+          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',
+          ...(structuredSdk ? {structuredAdmission} : {})});
       ports.push(port);
       return port.preflight;
     }}]).get('models/fixture');
   const dependencies=readInstalledModelDependencies(moon,execution,{environmentWire,executionContracts:[],
     dependencyBodies:[prompt,retry,backoff].map(value=>({cid:value.cid,bodyWire:value.wire}))});
   const admittedProvider=admitInstalledModelProvider(moon,execution,dependencies,new Map([['models/fixture',registered]]));
+  const providerBinding=admitInstalledModelProviderBinding(moon,'models/fixture',registered);
+  if (structuredSdk) {
+    structuredAdmission=checked(moon.clientProgramBindAdmittedStructuredModelProvider(
+      registered.provider,admittedProvider,providerBinding.value,originals.configuration.wire,
+      task.authored_model_selector,modelId,'ai-sdk','chat_completions',profile,installation,true,true));
+  }
   const accountWire=canonicalText({version:'actql-execution-account-config/0.1',account_id:'local',entries:[{
     entry_id:'model',outcome:'allow',principal:{any_of:['owner']},connection:{any_of:['models/fixture']},
     resource:{all:true},operation:{any_of:['infer','model_raw_capture']},exclusions:[]}]});
@@ -252,8 +270,10 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   // Read the existing normative originals, not old copies embedded in a WB
   // admission vector. Expected response/capture values remain independent.
   const aoa=JSON.parse(readFileSync(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-  const registry=canonicalText(JSON.parse(readFileSync(new URL('../../'+aoa.pipeline_registry_file,import.meta.url),'utf8')));
+  const registryBody=canonicalText(JSON.parse(readFileSync(new URL('../../'+aoa.pipeline_registry_file,import.meta.url),'utf8')));
   const values=canonicalText(aoa.execution_contracts['REL.values']);
+  const registry=checked(moon.clientPrepareInstalledSequenceContracts(
+    registryBody,values,undefined,undefined));
   const operation=openNodeInferOperation({moon,preparedProgram:prepared,step,graph,registry,values,
     provider:moon.clientProgramAdmittedModelProvider(admittedProvider,execution),
     originalPreparation,durableCalls:true,quantityCapacity:quantities,signal,ioNotification,
@@ -268,7 +288,6 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     throw error;
   }
   assert.equal(boundary.status,'waiting');
-  const providerBinding=admitInstalledModelProviderBinding(moon,'models/fixture',registered);
   const opened=await controller.open({operation,preparedCallSet:boundary.preparedCallSet,plan,
     selected:{step,graph,providerBinding,observeAccount:()=>account,currentProvider:()=>true,
       egressAdmission:checked(moon.clientProgramAdmitInferEgress(prepared,step,execution,

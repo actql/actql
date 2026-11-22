@@ -154,3 +154,110 @@ pub fn client_program_observe_infer_raw_capture(
     call, registration, content_cid, byte_count, http_status, transport_eof, observed_at,
   )
 }
+
+///|
+// Bind only the exact original configuration, Profile and admitted Provider.
+#export_name("clientProgramBindAdmittedStructuredModelProvider")
+pub fn client_program_bind_admitted_structured_model_provider(
+  provider : @model.ModelProvider,
+  original : @model.AdmittedModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration : String,
+  selector : String,
+  model_id : String,
+  adapter_kind : String,
+  api_mode : String,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  adapter_supports : Bool,
+  model_supports : Bool,
+) -> Result[
+  @model.AdmittedStructuredModelProvider,
+  @model.StructuredModelCapabilityIssue,
+] {
+  match
+    @model.register_structured_model_capability(
+      provider,
+      binding,
+      configuration,
+      {
+        selector,
+        model_id,
+        adapter_kind,
+        api_mode,
+        endpoint: installation.endpoint,
+      },
+      profile,
+      adapter_supports,
+      model_supports,
+    ) {
+    Ok(capability) =>
+      @model.bind_admitted_structured_model_provider(
+        capability, original, installation,
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// The selected Host decoder transfers only the answer of its own SDK
+// invocation. Optional observations remain unavailable until corroborated.
+#export_name("clientProgramModelStructuredRequestPlan")
+pub fn client_program_model_structured_request_plan(
+  admitted : @model.AdmittedStructuredModelProvider,
+  request : @model.ModelRequest,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
+  read_answer : (@model.ModelPhysicalCall, @model.ModelSavedRawReceipt, Bytes) -> String?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.bound_structured_model_async_request_plan(
+    admitted,
+    request,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    profile,
+    installation,
+    start,
+    (call, receipt, bytes) => {
+      read_answer(call, receipt, bytes).map(body => {
+        body,
+        observation: {
+          origin: @publication.Reported,
+          provider_model: None,
+          provider_revision: None,
+          provider_request_id: None,
+          gateway_request_id: None,
+          input_tokens: None,
+          output_tokens: None,
+          provider_finish_reason: None,
+          historical_finish_reason: None,
+          response_profile_cid: Some(
+            @check_environment.model_response_profile_identity(profile),
+          ),
+          response_complete: Some(true),
+          raw_response_artifact_cid: None,
+          provider_metadata: None,
+          observed_at: "",
+        },
+        transport_eof: true,
+        endpoint_complete: true,
+        answer_complete: true,
+      })
+    },
+  )
+}
+
+///|
+#export_name("clientProgramModelPhysicalSavedStructured")
+pub fn client_program_model_physical_saved_structured(
+  call : @model.ModelPhysicalCall,
+  receipt : @model.ModelSavedRawReceipt,
+  bytes : Bytes,
+) -> Result[@model.ModelPhysicalCallPoll, @model.ModelExecutionIssue] {
+  @model.model_physical_saved_structured_response(call, receipt, bytes)
+}

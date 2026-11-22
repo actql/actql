@@ -10,6 +10,8 @@ import {pathToFileURL} from 'node:url';
 import {createOriginalUndiciFetch} from '../../packages/provider-ai-sdk/_internal/original-undici-transport.mjs';
 import {originalSdkCommonFixture} from './infer-original-sdk-common.fixture.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 const moon=await import(process.env.ACTQL_INFER_ORIGINAL_RUNTIME===undefined
   ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href
@@ -30,7 +32,15 @@ async function until(read,accept) {
 }
 
 test('original HTTP Common caller saves and settles one real loopback response before same-owner cleanup',
-  {timeout:15000},async t=>{
+  {timeout:15000}, t => originalHttpSettlement(t, false));
+
+test('selected structured SDK settles the original verified Raw through Common and the journal',
+  {timeout:15000}, t => originalHttpSettlement(t, true));
+
+test('selected structured SDK retains the original unknown when Raw cannot be confirmed',
+  {timeout:15000}, t => originalHttpSettlement(t, true, true));
+
+async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -60,7 +70,11 @@ test('original HTTP Common caller saves and settles one real loopback response b
         maxHeaderBytes:128,observedHeaders:['content-type']},
       physicalAcquisitionLimits:{maxPlaintextBytes:65536,
         maxBorrowedBackingBytes:131072,maxReads:64}});
-    const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch}});
+    const refusal = new Error('FixtureRawConfirmationUnavailable');
+    const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,
+      beforeOriginalRead({read}) {
+        if (refuseRaw && read === 2) throw refusal;
+      }});
     assert.equal(f.sends,undefined,'Do not reuse the uninstrumented fixture counter');
     assert.equal(calls.length,0);
     assert.deepEqual(await f.opened.authorize(),{status:'dispatch'});
@@ -72,21 +86,19 @@ test('original HTTP Common caller saves and settles one real loopback response b
       operation:f.operation,plan:f.plan,store:f.store,storeAuthorityCid:f.storeAuthorityCid,
       durableCalls:true,captureOnly:true});
     capture.configureModelJournal({observe:f.opened.observe,entry:f.opened.entry});
-    const boundary=await f.operation.run();
-    assert.equal(boundary.status,'settling');
-    assert.equal(calls.length,1);
-    assert.deepEqual({method:calls[0].method,path:calls[0].path},
-      {method:'POST',path:'/v1/chat/completions'});
-    assert.equal(JSON.parse(calls[0].body).model,'gpt-4.1-nano');
-    assert.equal(f.originalReads(),2,'Actual Store rechecks originals after transport');
-    const entry=f.opened.entry(0);
-    assert.ok(entry);
-    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown',
-      'A saved raw response alone is not the settled slot');
-    const saved=await capture.persistSettlement(boundary.settlement,entry);
-    assert.equal(saved.state,'SavedSuccess');
-    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'SavedSuccess');
-    await f.operation.run();
+    if (refuseRaw) {
+      await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
+      assert.equal(f.ports[0].rawFailure(),refusal);
+      assert.equal(f.originalReads(),2);
+      assert.equal(calls.length,1);
+      assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');
+      assert.equal(f.operation.acquireOutput(),undefined);
+      // The installed driver observes the same failed flight without starting
+      // another invocation or acknowledging the uncertain remote outcome.
+      await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
+    } else {
+      await assertOriginalSettlement(f,capture,calls,structuredSdk);
+    }
     assert.equal(calls.length,1,'Settlement must not repeat the original physical request');
     await until(()=>capture.custody.cleanup(),value=>value===true);
     await until(()=>f.opened.cleanup(),value=>value===true);
@@ -101,5 +113,41 @@ test('original HTTP Common caller saves and settles one real loopback response b
       f.plan.runDefinition,f.plan.inferGraph,original.scope,true),true);
     await until(()=>sockets.size,value=>value===0);
     assert.equal(calls.length,1);
-    t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite settlement; synthetic funding, public Model E2E0');
-  });
+    t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite; synthetic funding and private Host fixture');
+}
+
+async function assertOriginalSettlement(f,capture,calls,structuredSdk) {
+    const boundary=await f.operation.run();
+    assert.equal(boundary.status,'settling');
+    assert.equal(calls.length,1);
+    assert.deepEqual({method:calls[0].method,path:calls[0].path},
+      {method:'POST',path:'/v1/chat/completions'});
+    assert.equal(JSON.parse(calls[0].body).model,'gpt-4.1-nano');
+    assert.equal(f.originalReads(),2,'Actual Store rechecks originals after transport');
+    const entry=f.opened.entry(0);
+    assert.ok(entry);
+    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown',
+      'A saved raw response alone is not the settled slot');
+    if (structuredSdk) {
+      const exporter=checked(moon.clientProgramStartInferCallSettlementExport(
+        boundary.settlement,65536,100000));
+      try {
+        let wire='';
+        await until(()=> {
+          const progress=checked(moon.clientProgramAdvanceInferCaptureExport(exporter,256));
+          wire+=runtimeField(progress,1);
+          return runtimeField(progress,0);
+        },Boolean);
+        const bundle=JSON.parse(wire);
+        assert.equal(bundle.captures.length,1);
+        assert.deepEqual(bundle.captures[0].structured_response,{reason:null,risk:'low'});
+        assert.match(bundle.captures[0].evidence.raw_response_artifact_cid,/^sha256:[a-f0-9]{64}$/u);
+      } finally {
+        assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exporter)),true);
+      }
+    }
+    const saved=await capture.persistSettlement(boundary.settlement,entry);
+    assert.equal(saved.state,'SavedSuccess');
+    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'SavedSuccess');
+    assert.ok(await f.operation.run());
+}

@@ -3720,7 +3720,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
+      "sha256": "009a5e886cce57475d261f4737ffd4d91f81fd04c00da26ab6fb1039a2b0f141",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -3837,7 +3837,8 @@
           "name": "createModelRawTransportPersistence/persist/persist",
           "parameters": [
             "call",
-            "raw"
+            "raw",
+            "bytesOnly"
           ],
           "async": true
         },

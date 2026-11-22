@@ -338,6 +338,11 @@ fn observe_model_physical_usage(
   let result = observe_original_model_physical_usage(state, call, observed)
   if !(observed is PhysicalPending) {
     call.usage_result = Some(result)
+    // This path has no Chat RAW usage reader. Seal the original custody's
+    // accounting observation before the journal asks for the attempt proof.
+    if model_call_requires_structured_receipt(call) {
+      retire_model_raw_usage_child(call) |> ignore
+    }
   }
   result
 }

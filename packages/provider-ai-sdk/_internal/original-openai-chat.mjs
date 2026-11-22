@@ -1,7 +1,7 @@
 import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {prepareOpenAIChatRequest} from './openai-chat.mjs';
 import {isDeepStrictEqual} from 'node:util';
-import {createSdkModelPreflight} from './model-port.mjs';
+import {createSdkModelPreflight, createSdkStructuredModelPreflight} from './model-port.mjs';
 
 // Isolate this callback context from the original seven-material handoff.
 // The original Read keeps this same expected wire until SDK/Read retirement.
@@ -91,7 +91,7 @@ function prepareProjectedOriginal({moon,request,taskCid,promptCid,
 export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   request,taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
   modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,
-  notify,rawCaptureBinder,...port}) {
+  notify,rawCaptureBinder,structuredAdmission,...port}) {
   const fields=['maxBytes','maxDepth','maxFrames','maxNodes','maxWork'];
   if (projectionLimits===null || typeof projectionLimits!=='object' ||
       Array.isArray(projectionLimits) ||
@@ -145,6 +145,8 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       return true;
     },
   };
-  return createSdkModelPreflight({...port,moon,request,notify,preparationProgress:progress,
-    ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})});
+  const options = {...port,moon,request,notify,preparationProgress:progress,
+    ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})};
+  return structuredAdmission === undefined ? createSdkModelPreflight(options)
+    : createSdkStructuredModelPreflight(options, structuredAdmission);
 }

@@ -2,7 +2,8 @@ import {runtimePair} from './compiler-binding.generated.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
-  retireSdkDecodedResult, sdkOriginalIoObservationAvailable, bindSdkTransportCredential} from './intercepted-request.mjs';
+  retireSdkDecodedResult, sdkOriginalIoObservationAvailable, bindSdkTransportCredential,
+  confirmSavedSdkTransportResponse, pollSdkDecode, takeSavedSdkDecodedResult} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
 // All records, SDK/request/response buffers and Promise overlaps must be funded
@@ -11,6 +12,22 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 export function createSdkModelPreflight(options) {
   return createSdkPhysicalPreflight(options, generationPlan,
     (moon, response) => moon.clientProgramModelPhysicalSavedChat(response), 'raw-only');
+}
+
+// The admitted selection belongs to the existing installed Provider. The
+// runtime still binds this exact Request, Profile, Call, Store and one send.
+export function createSdkStructuredModelPreflight(options, admission) {
+  const moon = options?.moon;
+  if (admission === undefined ||
+      typeof moon?.clientProgramModelStructuredRequestPlan !== 'function' ||
+      typeof moon?.clientProgramModelPhysicalSavedStructured !== 'function') {
+    throw new TypeError('StructuredSdkPhysicalRuntimeUnavailable');
+  }
+  return createSdkPhysicalPreflight(options, (runtime, request, bytes, amounts,
+    profile, installation, start, readDecoded) =>
+    runtime.clientProgramModelStructuredRequestPlan(admission, request, bytes,
+      amounts.tokens, amounts.costUnits, amounts.durationMs,
+      profile, installation, start, readDecoded), undefined, 'saved-sdk');
 }
 
 function generationPlan(moon, request, bytes, quantities, profile, installation, start) {
@@ -40,6 +57,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
   observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}, preparePlan, selectSaved, responseMode) {
   const deferredRaw = rawCaptureBinder !== undefined;
+  const structured = responseMode === 'saved-sdk';
   if (typeof fetch !== 'function' || needsCredential && !deferredRaw ||
       (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
         persistRaw !== undefined || cleanupRaw !== undefined ||
@@ -69,13 +87,35 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   const wake = () => {
     try { notify(); } catch { /* Wake is not execution or persistence evidence. */ }
   };
+  const readDecoded = structured ? (original, receipt, bytes) => {
+    if (retired || original !== call) return undefined;
+    const decoded = takeSavedSdkDecodedResult(preparation, receipt, bytes);
+    const content = decoded.content;
+    // This initial profile permits one complete text/JSON answer. SDK
+    // defaults do not supply provider-reported usage or Raw metadata.
+    if (decoded.finishReason?.unified !== 'stop' ||
+        !Array.isArray(content) || content.length !== 1 ||
+        content[0]?.type !== 'text' || typeof content[0].text !== 'string') {
+      return undefined;
+    }
+    return content[0].text;
+  } : undefined;
   const pollResponse = () => {
     // Only the unused SDK projection is dropped. Saved/raw observations and
     // the same Store/Entry cleanup obligation remain owned independently.
-    if (!retired && preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (!structured && !retired && preparation !== undefined) retireSdkDecodedResult(preparation);
     if (response !== undefined && failure === undefined && !startUnknown) {
       try {
-        if (selectedResponse === undefined) selectedResponse = selectSaved(moon, response, checked);
+        if (selectedResponse !== undefined) return selectedResponse;
+        if (structured) {
+          const decoded = pollSdkDecode(preparation);
+          if (decoded.kind === 'pending') return moon.clientProgramModelPhysicalPending();
+          if (decoded.kind !== 'ready') throw new TypeError('StructuredSdkDecodeUnavailable');
+          selectedResponse = checked(moon.clientProgramModelPhysicalSavedStructured(
+            call, response.receipt, response.bytes));
+        } else {
+          selectedResponse = selectSaved(moon, response, checked);
+        }
         return selectedResponse;
       }
       catch (error) {
@@ -95,9 +135,15 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       // The installed persistence port must use this exact original call and
       // raw backing, reconfirm Store bytes, and return its nominal saved view.
       // No SDK decoded defaults supply Common's answer or usage observations.
-      saving = Promise.resolve().then(() => persistRaw(call, raw)).then(saved => {
-        response = saved.response;
-        if (response === undefined) throw new TypeError('MissingSavedRawChat');
+      saving = Promise.resolve().then(() => structured
+        ? persistRaw(call, raw, true) : persistRaw(call, raw)).then(saved => {
+        if (structured) {
+          confirmSavedSdkTransportResponse(preparation, raw, saved);
+          response = saved;
+        } else {
+          response = saved.response;
+          if (response === undefined) throw new TypeError('MissingSavedRawChat');
+        }
       }).catch(error => {
         failure = error;
       }).finally(() => { saving = undefined; wake(); });
@@ -114,11 +160,11 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       catch { /* Neither failure nor cancellation is a quiescence ACK. */ }
     }
     const observed = pollResponse();
-    // Only this installed raw-only physical mode with an actual original
-    // cleanup port reports the separate fact. Generic/native stay unsupported.
+    // Only a selected original transport with an actual cleanup port reports
+    // the separate fact. Legacy decoded/native transports stay unchanged.
     // SDK true is DATA: the same Common callback still checks Call/Entry/Plan/
     // attempt/reservation before admitting its own internal nominal observation.
-    if (responseMode === 'raw-only' && io !== undefined &&
+    if ((responseMode === 'raw-only' || structured) && io !== undefined &&
         typeof moon.clientProgramModelPhysicalIoObservation === 'function') {
       return moon.clientProgramModelPhysicalIoObservation(call, io === true, observed);
     }
@@ -223,12 +269,12 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     preparationTerminal = true;
     try {
       prepareSdkTransport(preparation, {fetch, responseLimits, observeAt, responseMode});
-      if (responseMode === 'raw-only' && sdkOriginalIoObservationAvailable(preparation) &&
+      if ((responseMode === 'raw-only' || structured) && sdkOriginalIoObservationAvailable(preparation) &&
           typeof moon.clientProgramModelPhysicalIoObservation !== 'function') {
         throw new TypeError('OriginalSdkPhysicalIoObservationUnavailable');
       }
       plan = checked(preparePlan(moon, request, BigInt(original.requestBytes),
-        quantities, profile, installation, start));
+        quantities, profile, installation, start, readDecoded));
     } catch { return [true, undefined]; }
     return [true, plan];
   };
@@ -278,8 +324,10 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       // Promise/view, including failure. Further recovery requires an explicit
       // owner-funded token/lifetime; it is not a language-level retry ban.
       reconciliationPending = true;
-      reconciling = Promise.resolve().then(() => persistRaw(call, raw))
+      reconciling = Promise.resolve().then(() => structured
+        ? persistRaw(call, raw, true) : persistRaw(call, raw))
         .then(saved => {
+          if (structured) return saved;
           if (saved?.response === undefined) throw new TypeError('MissingSavedRawChat');
           reconciled = saved.response;
           return saved;

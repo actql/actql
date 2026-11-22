@@ -543,10 +543,11 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aeeeff7cb1a3ac655d663763bea159fda49adefc38a0d29c2df77100a7f41532",
+      "sha256": "25a38b6d253120bba474b851decb60a4e15611a3a21617b1c881e310119008ee",
       "exports": [
         "createSdkModelPreflight",
-        "createSdkNativeDecisionPreflight"
+        "createSdkNativeDecisionPreflight",
+        "createSdkStructuredModelPreflight"
       ],
       "operations": [
         {
@@ -696,9 +697,40 @@
           "async": false
         },
         {
+          "name": "createSdkPhysicalPreflight/readDecoded/readDecoded",
+          "parameters": [
+            "original",
+            "receipt",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "createSdkPhysicalPreflight/start/start",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkStructuredModelPreflight",
+          "parameters": [
+            "options",
+            "admission"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight",
+          "parameters": [
+            "runtime",
+            "request",
+            "bytes",
+            "amounts",
+            "profile",
+            "installation",
+            "start",
+            "readDecoded"
           ],
           "async": false
         },
@@ -751,11 +783,15 @@
             "createSdkPhysicalPreflight/preflight/preflight",
             "createSdkPhysicalPreflight/start/start",
             "generationPlan",
-            "createSdkPhysicalPreflight/bindRaw/bindRaw"
+            "createSdkPhysicalPreflight/bindRaw/bindRaw",
+            "createSdkPhysicalPreflight/readDecoded/readDecoded",
+            "createSdkStructuredModelPreflight",
+            "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight"
           ],
           "exports": [
             "createSdkModelPreflight",
-            "createSdkNativeDecisionPreflight"
+            "createSdkNativeDecisionPreflight",
+            "createSdkStructuredModelPreflight"
           ],
           "attributes": {
             "responsibility": [
@@ -844,6 +880,10 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "selected structured SDK settles the original verified Raw"
               }
             ]
           }
@@ -1378,7 +1418,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7089c8acf0aca6821cff605d3ab3f882bc2f855ad22fe1df4369429703ecc2ea",
+      "sha256": "f6acd7146502e0bddb8e9c3603e0f3df198b877146987a7154f4d079e3d47425",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1405,6 +1445,7 @@
             "signal",
             "notify",
             "rawCaptureBinder",
+            "structuredAdmission",
             "port"
           ],
           "async": false
