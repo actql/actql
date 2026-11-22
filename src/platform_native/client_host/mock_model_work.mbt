@@ -1110,6 +1110,12 @@ pub fn NativeClientMockModelWork::close(
           }),
         )
         if closed {
+          if self.provider_role is PortableHttp(work) {
+            // Its Raw/current callbacks retain this Work. Cut the Work's
+            // own edge only after the Model confirms retirement. Any pending
+            // Store child still owns its exact registration and cleanup.
+            work.registration = None
+          }
           self.lookup_entries = None
           self.active = None
           self.prepared = None

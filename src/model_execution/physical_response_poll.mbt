@@ -388,6 +388,12 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.entry = None
     call.terminal = None
     call.decoded_response = None
+    if call.raw_capture is Some(raw) {
+      // The receipt keeps its original Raw. Drop only Raw's cached reverse
+      // edge, after physical and holding retirement, so its current callbacks
+      // do not retain the Native Work and Store after the last consumer.
+      raw.saved = None
+    }
     call.raw_capture = None
     call.io_observation = None
     call.original_binding = None
