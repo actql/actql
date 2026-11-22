@@ -262,6 +262,14 @@ test "portable HTTP borrows only the paid codec result of the exact request and 
     ..installation,
     endpoint: "https://other.example/v1/structured",
   }
+  assert_true(model_http_chat_installation_matches(admitted, installation))
+  assert_false(model_http_chat_installation_matches(admitted, other_endpoint))
+  assert_false(
+    model_http_chat_installation_matches(admitted, {
+      ..installation,
+      streaming: true,
+    }),
+  )
   assert_true(
     prepare_model_http_chat_request(admitted, request, other_endpoint, 100)
     is Err(ForeignRequest),

@@ -41,19 +41,50 @@ struct NativeClientModelHttpCall {
 ///|
 struct NativeModelHttpInstallation {
   capture : NativeLocalJournalCapture
+  runtime : NativeLocalPackagedRuntime
   provider : @model.AdmittedStructuredModelProvider
+  profile : @environment.ModelResponseProfileInstallation
   credential : @filesystem.PrivateFileProjection
 }
 
 ///|
+fn NativeLocalJournalCapture::require_loaded_model_http_in_original_read(
+  self : NativeLocalJournalCapture,
+  runtime : NativeLocalPackagedRuntime,
+) -> Result[NativeLocalLoadedModelHttp, NativeClientModelHttpIssue] {
+  if self.check_original_read_lifetime() is Err(issue) {
+    return Err(Original(issue))
+  }
+  guard self.original_resources is Some(original) &&
+    runtime.original_resources is Some(pair) &&
+    physical_equal(pair, original.pair) &&
+    runtime.original_read is Some((host, read)) &&
+    physical_equal(host, original.host) &&
+    physical_equal(read, original.read) &&
+    runtime.model_http_load is Some(Ok(loaded)) &&
+    !loaded.stopping else {
+    return Err(ForeignOriginal)
+  }
+  Ok(loaded)
+}
+
+///|
 /// Borrow the original private-file projection through the existing installed
-/// credential journal. The trusted installer funds this configuration/record
-/// read in the same original Read preparation before calling this method.
+/// credential journal on the selected Runtime. The installer funds this
+/// configuration read and the retained profile/Runtime references first.
 pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_read(
   self : NativeLocalJournalCapture,
+  runtime : NativeLocalPackagedRuntime,
   provider : @model.AdmittedStructuredModelProvider,
+  profile : @environment.ModelResponseProfileInstallation,
   installation_setting : String,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
+  if !@model.model_http_chat_installation_matches(provider, profile) {
+    return Err(ForeignOriginal)
+  }
+  if self.require_loaded_model_http_in_original_read(runtime) is Err(issue) {
+    return Err(issue)
+  }
   self
   .with_current_adoption_material_in_original_read((host, _, operations) => {
     let files = host.session.settings.files
@@ -88,7 +119,13 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
       reads=Some(operations.reads),
     )
     .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
-    .map(credential => { capture: self, provider, credential, })
+    .map(credential => {
+      capture: self,
+      runtime,
+      provider,
+      profile,
+      credential,
+    })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
 }
@@ -100,6 +137,7 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
 struct NativeClientModelHttpPlan {
   request : @model.ModelRequest
   original : @model.PreparedModelHttpChatRequest
+  installation : NativeModelHttpInstallation
   mut attempted : Bool
   mut call : NativeClientModelHttpCall?
 }
@@ -107,35 +145,44 @@ struct NativeClientModelHttpPlan {
 ///|
 /// Supply the exact preflight body to the Core Plan. The original execution
 /// funds the plan and this fixed handoff control before issuing either.
-/// Preparation creates no physical Client and retains no credential.
+/// Preparation creates no physical Client and reads no credential bytes.
 fn prepare_native_model_http_plan(
   request : @model.ModelRequest,
   prepared : @model.PreparedModelHttpChatRequest,
-  provider : @model.AdmittedStructuredModelProvider,
-  installation : @environment.ModelResponseProfileInstallation,
+  installation : NativeModelHttpInstallation,
   quantities : @resources.QuantityAmounts,
 ) -> Result[
   (@model.ModelPhysicalRequestPlan, NativeClientModelHttpPlan),
   @model.ModelExecutionIssue,
 ] {
-  guard @model.prepared_model_http_chat_material(prepared, request, provider)
+  guard @model.prepared_model_http_chat_material(
+      prepared,
+      request,
+      installation.provider,
+    )
     is Some(_) else {
     return Err(@model.RequestIdentity)
   }
   let handoff : NativeClientModelHttpPlan = {
     request,
     original: prepared,
+    installation,
     attempted: false,
     call: None,
   }
-  @model.prepared_model_http_chat_plan(prepared, installation, quantities, entry => {
-    guard handoff.call is Some(call) else { return None }
-    let started = call.start_for_entry(entry)
-    if started is Some(_) {
-      handoff.call = None
-    }
-    started
-  }).map(plan => (plan, handoff))
+  @model.prepared_model_http_chat_plan(
+    prepared,
+    installation.profile,
+    quantities,
+    entry => {
+      guard handoff.call is Some(call) else { return None }
+      let started = call.start_for_entry(entry)
+      if started is Some(_) {
+        handoff.call = None
+      }
+      started
+    },
+  ).map(plan => (plan, handoff))
 }
 
 ///|
@@ -145,7 +192,6 @@ fn prepare_native_model_http_plan(
 pub fn NativeModelHttpInstallation::start_model_http_preflight(
   self : NativeModelHttpInstallation,
   request : @model.ModelRequest,
-  profile : @environment.ModelResponseProfileInstallation,
   quantities : @resources.QuantityAmounts,
   max_frames : Int,
   retain : (NativeClientModelHttpPlan) -> Unit,
@@ -154,7 +200,7 @@ pub fn NativeModelHttpInstallation::start_model_http_preflight(
     @model.start_model_http_chat_request_projection(
       self.provider,
       request,
-      profile,
+      self.profile,
       max_frames,
     ) {
     Ok(value) => value
@@ -165,16 +211,11 @@ pub fn NativeModelHttpInstallation::start_model_http_preflight(
       match @model.advance_model_http_chat_request_projection(projection) {
         Ok(None) => Ok(None)
         Ok(Some(original)) =>
-          prepare_native_model_http_plan(
-            request,
-            original,
-            self.provider,
-            profile,
-            quantities,
-          ).map(pair => {
-            retain(pair.1)
-            Some(pair.0)
-          })
+          prepare_native_model_http_plan(request, original, self, quantities).map(pair => {
+              retain(pair.1)
+              Some(pair.0)
+            },
+          )
         Err(issue) => Err(native_model_http_projection_issue(issue))
       }
     },
@@ -203,30 +244,23 @@ fn native_model_http_projection_issue(
 /// partial constructor stays with the same Runtime's cleanup.
 pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   self : NativeLocalJournalCapture,
-  runtime : NativeLocalPackagedRuntime,
   ca_path : String,
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
   handoff : NativeClientModelHttpPlan,
-  installation : NativeModelHttpInstallation,
   raw_registration : @host.ClientModelRawCaptureRegistration,
   expires_at : Int64,
 ) -> Result[NativeClientModelHttpCall, NativeClientModelHttpIssue] {
-  match self.check_original_read_lifetime() {
-    Ok(_) => ()
-    Err(issue) => return Err(Original(issue))
+  let installation = handoff.installation
+  guard physical_equal(installation.capture, self) && !handoff.attempted else {
+    return Err(ForeignOriginal)
   }
-  guard !handoff.attempted &&
-    physical_equal(installation.capture, self) &&
-    self.original_resources is Some(original) &&
-    runtime.original_resources is Some(pair) &&
-    physical_equal(pair, original.pair) &&
-    runtime.original_read is Some((host, read)) &&
-    physical_equal(host, original.host) &&
-    physical_equal(read, original.read) &&
-    runtime.model_http_load is Some(Ok(loaded)) &&
-    !loaded.stopping &&
-    @model.prepared_model_http_chat_material(
+  let loaded = match
+    self.require_loaded_model_http_in_original_read(installation.runtime) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @model.prepared_model_http_chat_material(
       handoff.original,
       handoff.request,
       installation.provider,

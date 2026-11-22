@@ -16,6 +16,30 @@ pub struct ModelHttpChatProjection {
 }
 
 ///|
+/// Verify the precise portable route against the already admitted provider.
+/// The Native installer separately retains its physical Runtime and Read.
+pub fn model_http_chat_installation_matches(
+  provider : AdmittedStructuredModelProvider,
+  installation : @environment.ModelResponseProfileInstallation,
+) -> Bool {
+  let selected = provider.capability
+  selected.resolved.adapter_kind == "portable-http" &&
+  selected.resolved.api_mode == "chat-completions" &&
+  installation.sdk is None &&
+  installation.http_method == "POST" &&
+  !installation.streaming &&
+  installation.completion_basis == "generation_finish" &&
+  selected.resolved.endpoint.has_prefix("https://") &&
+  check_structured_model_selection(
+    selected,
+    selected.resolved,
+    provider.original.execution,
+    installation,
+  )
+  is Ok(_)
+}
+
+///|
 /// Enter this preparation only after the original Model Read funds the codec,
 /// its cursor and the simultaneous UTF-8 output.
 pub fn start_model_http_chat_request_projection(
@@ -25,20 +49,7 @@ pub fn start_model_http_chat_request_projection(
   max_frames : Int,
 ) -> Result[ModelHttpChatProjection, OpenAIChatProjectionIssue] {
   let selected = provider.capability
-  if selected.resolved.adapter_kind != "portable-http" ||
-    selected.resolved.api_mode != "chat-completions" ||
-    installation.sdk is Some(_) ||
-    installation.http_method != "POST" ||
-    installation.streaming ||
-    installation.completion_basis != "generation_finish" ||
-    !selected.resolved.endpoint.has_prefix("https://") ||
-    check_structured_model_selection(
-      selected,
-      selected.resolved,
-      provider.original.execution,
-      installation,
-    )
-    is Err(_) {
+  if !model_http_chat_installation_matches(provider, installation) {
     return Err(ForeignRequest)
   }
   let bounds = @environment.model_response_profile_limits(selected.profile)
