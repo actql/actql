@@ -8,6 +8,7 @@ fn local_execute_original_publish_values(
   run : LocalRunInstallation,
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
+  prepared : @run_host.PreparedClientProgram,
   request : @run_host.ClientRequestIdentity,
   reference : @local_host.NativeClientSubmissionReference,
   attempt : String,
@@ -64,25 +65,7 @@ fn local_execute_original_publish_values(
     max_payload_bytes: run.result_payload_bytes,
   })
   business.publication_results = Some(results)
-  let authoring = @publication.seal_run_evidence_value(
-    "authoring_context",
-    encode_request_json(
-      Json::object(
-        Map([
-          ("version", Json::string("actql-authoring-context/0.1")),
-          (
-            "program_definition_cid",
-            Json::string(@run_host.client_request_program_cid(request)),
-          ),
-          ("annotations", Json::array([])),
-        ]),
-      ),
-      65536,
-    ),
-    65536,
-    8192,
-    64,
-  ).unwrap_or_else(() => stop("LocalAuthoringEvidenceUnavailable"))
+  let authoring = selection.publication_authoring(prepared)
   let now = local_utc_now()
   let intent : @local_publication.NativeRunPublicationIntent = {
     namespace_id: run.namespace_id,
