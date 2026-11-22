@@ -3507,17 +3507,18 @@ test('retained original file metadata restores its checked locator after Source 
     },
     clientProgramCloseSourceCapture(owner) { return moon.clientProgramCloseSourceCapture(owner, 1); },
   });
-  const makeContinuation = (value, restore) => {
+  const makeContinuation = (value, source, restore) => {
     const continuation = acquiredEffectContinuation({moon: receivingMoon, checkpoints,
       acquired: {...admitted, control, kind: 'infer', prepared: value.preparedProgram},
       submission: {requestId: 'original-file-custody'}, declaredResults: ['r'],
       principalId: 'owner', unitId: 'original-file-unit', restore});
-    continuation.accessFor({authorization: {authorize: async () => ({action: 'dispatch'})}}, sourceFor(value).occurrence);
+    continuation.accessFor({authorization: {authorize: async () => ({action: 'dispatch'})}}, source.occurrence);
     return continuation;
   };
-  const first = makeContinuation(original);
-  await first.prepared([sourceFor(original)]);
-  await first.captured(sourceFor(original), original.captured,
+  const originalSource = sourceFor(original);
+  const first = makeContinuation(original, originalSource);
+  await first.prepared([originalSource]);
+  await first.captured(originalSource, original.captured,
     await original.captured.issueSourceEvidence({authorityScopeCid: token('a'),
       effectiveDataPolicyCid: original.captured.checkedSource.sourceDataPolicyCid}),
     '2026-10-10T00:00:00.000Z', '2026-10-10T00:00:01.000Z');
@@ -3545,8 +3546,9 @@ test('retained original file metadata restores its checked locator after Source 
       await read.consumePage([{...JSON.parse(read.requestWire), content: admittedContent}]);
     }});
   assert.equal(recovered.listingRequests(), 0);
-  const second = makeContinuation(recovered, {continuation, view});
-  await second.prepared([sourceFor(recovered)]);
+  const recoveredSource = sourceFor(recovered);
+  const second = makeContinuation(recovered, recoveredSource, {continuation, view});
+  await second.prepared([recoveredSource]);
   t.after(async () => {
     for (let attempt = 0; attempt < 100; attempt++) {
       try { await second.close(); return; }
@@ -3554,7 +3556,7 @@ test('retained original file metadata restores its checked locator after Source 
     }
     assert.fail('original Source cleanup never completed');
   });
-  const restored = second.restore(sourceFor(recovered), saved, undefined).captured;
+  const restored = second.restore(recoveredSource, saved, undefined).captured;
   const again = checked(moon.clientProgramExportSourceOriginalRead(restored.capture.originalRead()));
   assert.deepEqual([again._0, again._1, again._2],
     [saved.original_input.schema_cid, cid(items), items.map(canonical)]);
@@ -3569,22 +3571,54 @@ test('retained original file metadata restores its checked locator after Source 
     originalBinding.requirement, saved.requirement_cid, saved.binding, saved.binding,
     saved.descriptor, saved.rows, undefined, originalBinding.capacity, available, issuer,
     {_0: schema, _1: rows, _2: wires})), {code: 'MoonBitHostFailure'});
-  // Four million existing capture units plus 22,404,096 original-input units.
-  // One short refuses before creating the receiving buffer.
-  const insufficient = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, 26404095n, 64000000n));
-  const tooSmall = moon.clientProgramRestoreSourceCapture(originalBinding.requirement,
+  const reopen = (ledger, original) => moon.clientProgramRestoreSourceCapture(originalBinding.requirement,
     saved.requirement_cid, saved.binding, saved.binding, saved.descriptor, saved.rows,
-    insufficient, originalBinding.capacity, () => true, originalBinding.referenceIssuer,
-    {_0: again._0, _1: cid(items), _2: items.map(canonical)});
+    ledger, originalBinding.capacity, () => true, originalBinding.referenceIssuer, original);
+  const closeQuote = owner => {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (moon.clientProgramCloseSourceCapture(owner, 64)) return;
+    }
+    assert.fail('receiving Source quote did not close');
+  };
+  const baseline = checked(reopen(undefined, undefined));
+  let projectedCaptureBytes;
+  try {
+    [projectedCaptureBytes] = moon.clientProgramSourceCaptureUsage(baseline);
+    assert(projectedCaptureBytes > 0n);
+  } finally {
+    closeQuote(baseline);
+  }
+  // The seven unqualified input columns retain two Array headers and fourteen
+  // name slots in addition to the original read allowance. The projected
+  // capture's separately observed row budget is shared by both variants.
+  const originalInputBytes = 22_404_096n + 2n * 16n + 14n * 8n;
+  const heldBytes = projectedCaptureBytes + originalInputBytes;
+  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [heldBytes, 0n, 0n]);
+  // The admitted readmission header overlaps the receiving reservation until
+  // it is settled. Count its records, refs, words and three CID strings.
+  const headerBytes = 11n * 16n + 18n * 8n + 16n * 8n + 3n * 71n * 2n;
+  const ceiling = heldBytes + headerBytes;
+  const originalInput = {_0: again._0, _1: cid(items), _2: items.map(canonical)};
+  const exact = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, ceiling, 64_000_000n));
+  const exactOwner = checked(reopen(exact, originalInput));
+  try {
+    assert.deepEqual(moon.clientProgramSourceCaptureUsage(exactOwner), [heldBytes, 0n, 0n]);
+  } finally {
+    closeQuote(exactOwner);
+  }
+  const insufficient = checked(moon.clientProgramAcquisitionLedger(1, 1, 0n, ceiling - 1n, 64_000_000n));
+  const tooSmall = reopen(insufficient, originalInput);
+  if (tooSmall.$tag === 1) closeQuote(tooSmall._0);
   assert.equal(tooSmall.$tag, 0);
   assert.match(inspect(tooSmall._0), /ClientSourceCaptureIssue.*Physical/u);
   assert.equal(tooSmall._0._0, 5, 'compiled LedgerIssue.RetentionLimit');
-  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(insufficient), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
-  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [26404096n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(insufficient),
+    ['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes', 'reservedExecutionBytes']), [0n, 0n, 0n, 0n]);
   const left = checked(moon.clientProgramKeyedCaptureLeftRead(recovered.acquisition, restored.capture.source()));
   const ledger = lookupLedger();
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(recovered);
   const lookup = await recovered.adapter.openKeyedLookup({preparedProgram: recovered.preparedProgram,
-    keyedAcquisition: recovered.acquisition, left, ledger, quantum: 1,
+    keyedAcquisition: recovered.acquisition, left, ledger, preparedKeyed, quantum: 1,
     originalCapture: restored.capture});
   t.after(lookup.close);
   assert.equal(gets, 1);
@@ -3594,7 +3628,7 @@ test('retained original file metadata restores its checked locator after Source 
   await assert.rejects(restored.close(), {code: 'SourceCaptureCleanupPending'});
   assert.throws(() => checked(moon.clientProgramExportSourceOriginalRead(restoredRead)), {code: 'MoonBitHostFailure'});
   assert.equal(moon.clientProgramSourceCaptureCleanupPending(receivingOwner), true);
-  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [26404096n, 0n, 0n],
+  assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [heldBytes, 0n, 0n],
     'logical revocation does not return the live original-input allocation');
   let cleaned = false;
   for (let attempt = 0; attempt < 100; attempt++) {
