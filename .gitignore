@@ -1982,3 +1982,9 @@ target/
 /scripts/fixtures/record-approval/installed-child.d.mts
 /scripts/fixtures/record-approval/scoped-fds.fixture.mjs
 /scripts/fixtures/record-approval/scoped-fds.fixture.d.mts
+/scripts/fixtures/record-approval/mock-project.mjs
+/scripts/fixtures/record-approval/mock-project.d.mts
+/scripts/fixtures/hubspot-approval/mock-project.mjs
+/scripts/fixtures/hubspot-approval/mock-project.d.mts
+/scripts/fixtures/kintone-approval/mock-project.mjs
+/scripts/fixtures/kintone-approval/mock-project.d.mts

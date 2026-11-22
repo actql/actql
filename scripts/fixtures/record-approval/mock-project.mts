@@ -2,13 +2,17 @@
 // no permission; the caller deliberately installs these independent files.
 export function recordUpdateMockProjectFiles({connection, resource, alias,
   idField, valueField, recordId, previousValue, controlId, controlValue,
-  updatePermission, observePermission}) {
+  updatePermission, observePermission}: {
+  connection: string; resource: string; alias: string; idField: string; valueField: string;
+  recordId: string; previousValue: string; controlId: string; controlValue: string;
+  updatePermission: string; observePermission: string;
+}) {
   for (const value of [connection, resource, alias, idField, valueField, recordId,
     previousValue, controlId, controlValue, updatePermission, observePermission]) {
     if (typeof value !== 'string' || !value) throw new TypeError('InvalidRecordUpdateMockInput');
   }
   if (recordId === controlId || idField === valueField) throw new TypeError('AmbiguousRecordUpdateMockInput');
-  const json = value => JSON.stringify(value, null, 2) + '\n';
+  const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
   return {
     'actql.config.json': json({version: 'actql-config/0.1', connectors: './connectors.json',
       state_dir: './.actql', profile: 'mock',

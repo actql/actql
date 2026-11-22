@@ -18,9 +18,12 @@ selections retain their original control defaults; existing Whole/binary/three-
 Source variants retain their original selections. Shared fixture DATA does not
 establish that either installed consumer executed or qualify live behavior.
 
-Copy `record-approval` and the selected sibling fixture directory into an
-external normal installation of the five Client packages. The consumer owns a
-fresh project, installation directory and receipt prefix. Its configuration is:
+Run `npm ci` in the source checkout to prepare the fixtures. The repository's
+prepare step emits their `.mjs` entry points from the `.mts` sources.
+Copy `record-approval` and the selected sibling fixture directory with their
+emitted JavaScript into an external normal installation of the five Client
+packages. The consumer owns a fresh project, installation directory and receipt
+prefix. Its configuration is:
 
 ```json
 {
