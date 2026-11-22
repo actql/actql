@@ -286,16 +286,20 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self._check_proposal_read('produce_sdk_read_evidence_decision', insert_only=True)
 
     def _check_proposal_read(self, export, *, insert_only=False):
-        for enabled, effect, legacy, expected in (
-                (True, 0, False, [11, 0]), (False, 0, False, [0, 0]),
-                (True, 1, False, [10, 0]), (True, 0, True, [0, 0])):
-            with self.subTest(enabled=enabled, effect=effect, legacy=legacy):
+        cases = [(True, 0, False, False, [11, 0]), (False, 0, False, False, [0, 0]),
+                 (True, 1, False, False, [10, 0]), (True, 0, True, False, [0, 0])]
+        if insert_only:
+            cases.append((True, 0, False, True, [11, 0]))
+        for enabled, effect, legacy, retained, expected in cases:
+            with self.subTest(enabled=enabled, effect=effect, legacy=legacy, retained=retained):
                 core, binding, store, _ = self.fixture(
                     census_export=export, legacy_census_supplier=legacy)
                 originals = self.terminal_original(store)
                 observed, readers, epochs = [], [], []
                 key = store.namespaced_key('probe', 'inserted')
                 write = ByteWrite(key, None, b'new-original')
+                if retained:
+                    self.assertEqual(store.compare_exchange(key, None, write.payload), 0)
                 def observe():
                     readers.append(binding._observed_reader)
                     epochs.append(store._connection._outer_transaction_epoch)
@@ -305,6 +309,10 @@ class ClosedWasmSqlTests(unittest.TestCase):
                         observe()
                         take()
                     binding.inspect_reader(reader, prepare)
+                def stage(_, consume):
+                    if insert_only:
+                        observe()
+                    consume(write)
                 def before_commit():
                     rows = []
                     binding._observed_reader.read('probe', 'inserted', rows.append)
@@ -315,13 +323,15 @@ class ClosedWasmSqlTests(unittest.TestCase):
                     project = (store.store_publication_projected_inspected if insert_only
                                else store.compare_exchange_projected_inspected)
                     self.assertEqual(project(
-                        1, lambda _, consume: consume(write), originals, fences, inspect=inspect,
+                        1, stage, originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
                         _sdk_delivery_prewrite=enabled), (0,))
-                self.assertIs(readers[0], readers[1])
-                self.assertEqual(epochs[0], epochs[1])
+                self.assertTrue(all(reader is readers[0] for reader in readers))
+                self.assertEqual(epochs, [epochs[0]] * len(observed))
+                if insert_only:
+                    expected = [expected[0], *expected]
                 self.assertEqual(observed, expected)
-                self.assertEqual(store._connection.total_changes, changes + 1)
+                self.assertEqual(store._connection.total_changes, changes + (not retained))
                 self.assertEqual(store.read(key), StoredBytes(0, write.payload))
                 self.assertIsNone(store._connection._closed_invocation)
 
@@ -333,6 +343,36 @@ class ClosedWasmSqlTests(unittest.TestCase):
 
     def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback(self):
         self._reject_write_during_proposal('produce_sdk_read_evidence_decision', insert_only=True)
+
+    def test_saved_evidence_row_consumer_cannot_write_during_its_proposal(self):
+        consumers, failures = [], []
+        def effect():
+            try:
+                consumers[0](write)
+            except LocalStorageError as failure:
+                failures.append(failure)
+            return 0
+        export = 'produce_sdk_read_evidence_decision'
+        core, binding, store, _ = self.fixture(census_export=export, effect=effect)
+        originals = self.terminal_original(store)
+        write = ByteWrite(store.namespaced_key('probe', 'do-not-insert'), None, b'bytes')
+        def project(_, consume):
+            consumers.append(consume)
+            LocalCore._call(core, 'publication_commit_export', export, 1, 1)
+        def inspect(reader, take):
+            binding.inspect_reader(reader, lambda _: take())
+        with binding.fenced() as fences:
+            changes = store._connection.total_changes
+            with self.assertRaisesRegex(LocalStorageError, 'prewrite invocation') as raised:
+                store.store_publication_projected_inspected(
+                    1, project, originals, fences, inspect=inspect,
+                    current=binding._current_observer, before_commit=lambda: None,
+                    _sdk_delivery_prewrite=True)
+        self.assertEqual(len(failures), 1)
+        self.assertIs(raised.exception, failures[0])
+        self.assertEqual(store._connection.total_changes, changes)
+        self.assertIsNone(store.read(write.key))
+        self.assertIsNone(store._connection._closed_invocation)
 
     def _reject_write_during_proposal(self, export, *, insert_only=False):
         consumers = []

@@ -1805,6 +1805,7 @@ class LocalByteStore:
                 generations: list[int] = []
                 keys: set[str] = set()
                 thread = get_ident()
+                write_attempted = False
 
                 def consume_ordinal(ordinal: int) -> None:
                     nonlocal record_count, payload_bytes
@@ -1813,10 +1814,15 @@ class LocalByteStore:
                     failure: BaseException | None = None
 
                     def consume(write: ByteWrite) -> None:
-                        nonlocal delivered, failure, record_count, payload_bytes
+                        nonlocal delivered, failure, record_count, payload_bytes, write_attempted
                         try:
                             if not active or get_ident() != thread or delivered:
                                 raise ValueError('Local physical projection consumer is not active')
+                            if (_sdk_delivery_prewrite and reuse_identical
+                                    and type(self._connection) is _TrackedSQLiteConnection
+                                    and self._connection._closed_invocation is not None):
+                                raise LocalStorageError('Evidence writes require the original prewrite invocation to return')
+                            write_attempted = True
                             self._exchange_write_keys((write,))
                             if (write.key in original_keys
                                     or (not reuse_identical and write.key in keys)):
@@ -1894,9 +1900,14 @@ class LocalByteStore:
                 if inspect is None:
                     consume_all()
                 else:
+                    # The insert-only evidence producer constructs its first
+                    # row inside consume_all. End its read phase when the
+                    # Store receives that row, including an identical reuse.
                     self._inspect_namespace_locked(
                         lambda reader: inspect(reader, consume_all), fences, current,
-                        _projected_prewrite=(lambda: not consumed) if _sdk_delivery_prewrite else None)
+                        _projected_prewrite=(
+                            (lambda: not (write_attempted if reuse_identical else consumed))
+                            if _sdk_delivery_prewrite else None))
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:

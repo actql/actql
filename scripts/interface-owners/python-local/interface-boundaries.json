@@ -29305,6 +29305,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
               }
             ]
           }
@@ -65752,7 +65756,7 @@
           "parameters": []
         }
       ],
-      "sha256": "e3e109a4d36947b558f8c7d4f07c9a381678a11cb18d681736bd5a34eefb5dab",
+      "sha256": "3aa1681ceb5872e1c2d1c1405164ec78b3953f216f0b105e009204f233eb8f7b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66901,6 +66905,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
               }
             ]
           }

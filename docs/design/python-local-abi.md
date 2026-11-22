@@ -3668,9 +3668,10 @@ effect requires a fresh census; original current, row and binding checks still
 run. Saved routing uses this only for the paired selector.
 
 The evidence, first-delivery and terminal Saved proposals can reuse their
-initial census inside the original write-free inspection, before the Store
-consumes any projected write. The Store ends eligibility before the first write and
-refuses writes while the closed invocation is live. Precommit and readback keep
+initial census inside the original write-free inspection. The insert-only
+evidence producer can also reuse it while constructing the first projected
+row. The Store refuses a write through a live closed invocation and ends
+eligibility before applying or reusing that row. Precommit and readback keep
 their original validation, with the same reader's copy and query counters in
 force through precommit.
 
