@@ -3,8 +3,7 @@
 // this adapter neither creates a completion nor serializes semantic evidence.
 import {storeCompletedResultPublicationPayload} from
   '../host-common/durable-result-payload.mjs';
-// @ts-expect-error TS7016: the Local values planner still owns this authored JavaScript limit.
-import {localContractLimits} from './local-values-plan.mjs';
+import {localContractLimits} from './local-publication-limits.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
 type PayloadArguments = Parameters<typeof storeCompletedResultPublicationPayload>;

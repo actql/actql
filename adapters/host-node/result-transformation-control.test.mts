@@ -3,8 +3,7 @@ import test from 'node:test';
 import type {outputExportControl} from '../host-common/output-export-control.mjs';
 // @ts-expect-error TS7016: remove after migrating the Common runtime facade.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-// @ts-expect-error TS7016: remove after migrating the Local output limits owner.
-import {localOutputLimits} from './local-values-plan.mjs';
+import {localOutputLimits} from './local-publication-limits.mjs';
 
 type FixtureOptions = Readonly<{advance?: (count: number) => unknown; finish?: () => unknown; unselected?: boolean}>;
 

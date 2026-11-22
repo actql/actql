@@ -33,8 +33,7 @@ import {prepareCapturedTableCommit, prepareRecoveredTableCommit,
 import {reconcileOriginalTableCommit} from './table-commit-reconciliation.mjs';
 // @ts-expect-error TS7016: the durable Effect Ledger still has a JavaScript entry.
 import {openEffectLedger} from './effect-ledger.mjs';
-// @ts-expect-error TS7016: the local values plan still has a JavaScript entry.
-import {localContractLimits} from './local-values-plan.mjs';
+import {localContractLimits} from './local-publication-limits.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction}
   from './installed-host-services.mjs';
 

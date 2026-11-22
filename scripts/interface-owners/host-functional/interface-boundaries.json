@@ -58736,7 +58736,7 @@
     {
       "module": "adapters/host-node/infer-result-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "875ddef135245d9ff8d5c36a67ae18882022ec7cf316fd5414943ab1f9b6c5c5",
+      "sha256": "f6e8e54b87d2cb3c791dcfea9d1914b1870ff8b7fe49310bd60db1f7ac13f6d8",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -58895,7 +58895,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/infer-result-publication.mts",
-                "anchor": "import {localContractLimits} from './local-values-plan.mjs';"
+                "anchor": "import {localContractLimits} from './local-publication-limits.mjs';"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -59039,7 +59039,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/infer-result-publication.mts",
-                "anchor": "import {localContractLimits} from './local-values-plan.mjs';"
+                "anchor": "import {localContractLimits} from './local-publication-limits.mjs';"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -59081,7 +59081,7 @@
       "imports": [
         "../host-common/durable-result-payload.mjs",
         "../host-common/runtime-result.mjs",
-        "./local-values-plan.mjs"
+        "./local-publication-limits.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -133502,7 +133502,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "4b54f587610c2405d83bf15f32a97542d92d317b956f3621256add1f65e710c6",
+      "sha256": "6fa07674991613ea7eebd7487ab5b81f139fbfee042e878b931e7637dbe49268",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -133759,7 +133759,7 @@
         "./infer-operation.mjs",
         "./infer-original-installation.mjs",
         "./installed-effect-plan.mjs",
-        "./local-values-plan.mjs",
+        "./local-publication-limits.mjs",
         "node:util"
       ],
       "compilerFields": [],

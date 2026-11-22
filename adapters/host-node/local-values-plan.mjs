@@ -5,9 +5,11 @@ import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {localContractLimits as limits, localOutputLimits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
+export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
   if (control.clientRequiresQueryTime?.(prepared) !== true) return undefined;
@@ -89,19 +91,6 @@ function checkedOriginalQueryInvocation(original, control, prepared, request, ki
 // Contract and evidence issuance bounds only. Captured Named Result snapshots
 // consume the same original logical output policy as durable publication,
 // including its relation wrapper; these metadata bounds do not cap row data.
-const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
-  maxDepth: 64});
-export const localOutputLimits = Object.freeze({
-  maxResultFields: 10, maxResultMappingWork: 1000,
-  maxResultOrderWork: 10000, maxResultWorkspaceEntries: 100,
-  maxRows: 10000, maxValueNodes: 1000000, maxValueTextBytes: 10000000,
-  maxValueDepth: 64, maxValueWork: 1000000, maxWireBytes: 10000000,
-  maxWireNodes: 1000000, maxWireDepth: 64, maxColumns: 100,
-  maxOrderWork: 1000000, maxLogicalWireBytes: 10000000,
-  maxLogicalWireNodes: 1000003, maxLogicalWireDepth: 66,
-  maxSchemaFields: 100, maxSchemaBytes: 100000,
-  maxSchemaNodes: 10000, maxSchemaDepth: 64, maxBatchBytes: 65536,
-});
 // Project the common checked policy; no adapter-specific row/field formula.
 export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal) {
   let values;
@@ -125,8 +114,6 @@ function checkedPublicationLimitValues(values) {
   }
   return Object.freeze(Object.fromEntries(names.map((name,index) => [name,values[index]])));
 }
-export const localContractLimits = limits;
-
 const cid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',

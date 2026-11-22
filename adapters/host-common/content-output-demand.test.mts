@@ -3,8 +3,7 @@ import test from 'node:test';
 import type {contentGenerationControl as typedContentGenerationControl} from './content-generation-control.mjs';
 // @ts-expect-error TS7016: the Common runtime facade is still authored in JS.
 import {contentGenerationControl} from './runtime-core.mjs';
-// @ts-expect-error TS7016: the Local output limits owner is still authored in JS.
-import {localOutputLimits, localContractLimits} from '../host-node/local-values-plan.mjs';
+import {localOutputLimits, localContractLimits} from '../host-node/local-publication-limits.mjs';
 
 type Generation = ReturnType<typeof typedContentGenerationControl>;
 type CommonBindings = Parameters<typeof typedContentGenerationControl>[0];

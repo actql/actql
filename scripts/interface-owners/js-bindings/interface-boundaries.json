@@ -106086,7 +106086,7 @@
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4790b4ca057fe62f41a88535910bc4b4f25b7abd21b78d550e3a6cca72a992cd",
+      "sha256": "9032a2a4f00947283e10597260f6d93e099dbf1aa0efdfb9fc561e5b15198597",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -107779,7 +107779,7 @@
         "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
-        "./local-values-plan.mjs",
+        "./local-publication-limits.mjs",
         "./table-capture-recovery.mjs",
         "./table-commit-apply.mjs",
         "./table-commit-reconciliation.mjs",
@@ -107794,7 +107794,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3e51e7dc8979b315516e5afe225b51bd1101beb50a0433a69d046dc1246a0303",
+      "sha256": "3f7ba2b8be8dce48da7c398988df2eb0e0d71438b00421bcdb9c3b4784d53eaa",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -114187,6 +114187,7 @@
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-publication-limits.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"

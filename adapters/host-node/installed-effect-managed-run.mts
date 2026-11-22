@@ -2,8 +2,7 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
-// @ts-expect-error TS7016: local-values-plan still owns the shared limits in authored JavaScript.
-import {localContractLimits} from './local-values-plan.mjs';
+import {localContractLimits} from './local-publication-limits.mjs';
 import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import type {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';

@@ -21179,7 +21179,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "4790b4ca057fe62f41a88535910bc4b4f25b7abd21b78d550e3a6cca72a992cd",
+      "sha256": "9032a2a4f00947283e10597260f6d93e099dbf1aa0efdfb9fc561e5b15198597",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",
@@ -21841,7 +21841,7 @@
         "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
-        "./local-values-plan.mjs",
+        "./local-publication-limits.mjs",
         "./table-capture-recovery.mjs",
         "./table-commit-apply.mjs",
         "./table-commit-reconciliation.mjs",

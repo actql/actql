@@ -2113,8 +2113,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               }
             ],
             "extension": [
@@ -2213,8 +2213,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               }
             ],
             "extension": [
@@ -3436,8 +3436,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -4108,8 +4108,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -4797,8 +4797,8 @@
                 "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -5371,8 +5371,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -31132,8 +31132,141 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/local-publication-limits.mjs",
+      "sha256": "20066e73b94e0ec8dfc7a6333545b13e8576767d3280d0deffaebd5b9d7185c9",
+      "exports": [
+        "localContractLimits",
+        "localOutputLimits"
+      ],
+      "operations": [],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "localContractLimits",
+            "localOutputLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/content-output-demand.test.mts",
+                "anchor": "assert.equal(output,localOutputLimits)"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3e51e7dc8979b315516e5afe225b51bd1101beb50a0433a69d046dc1246a0303",
+      "sha256": "3f7ba2b8be8dce48da7c398988df2eb0e0d71438b00421bcdb9c3b4784d53eaa",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32245,12 +32378,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localContractLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -33298,12 +33431,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localContractLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -33888,12 +34021,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localContractLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -34284,12 +34417,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localOutputLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "localContractLimits"
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -34433,6 +34566,7 @@
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-publication-limits.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"
