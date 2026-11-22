@@ -2034,3 +2034,7 @@ target/
 /scripts/verification-actions.test.d.mts
 /scripts/native-core-test-selection.mjs
 /scripts/native-core-test-selection.d.mts
+/scripts/measure-distribution-artifacts.mjs
+/scripts/measure-distribution-artifacts.d.mts
+/scripts/npm-pack-json.test.mjs
+/scripts/npm-pack-json.test.d.mts

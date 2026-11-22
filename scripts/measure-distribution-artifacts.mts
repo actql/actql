@@ -10,16 +10,22 @@ import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {gzipSync} from 'node:zlib';
+import type {Metafile} from 'esbuild';
 import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
+type PackRun = (command: string, args: readonly string[], cwd: string) =>
+  {stdout: string} | Promise<{stdout: string}>;
+type PackMetadata = {name: string; version: unknown; filename: string; size: unknown};
+type DistributionPackOptions = {repository: string; destination: string; run: PackRun};
+
 // Shared normal-prepack adapter. npm owns package versions and filenames.
-export async function packDistributionPackages({repository, destination, run}) {
+export async function packDistributionPackages({repository, destination, run}: DistributionPackOptions) {
   const packages = [];
   for (const name of ['client-wire', 'sdk', 'node', 'run-host-core', 'local-node']) {
     const result = await run('npm', normalNpmPackJsonArgs(['pack', '--pack-destination', destination, '--json']),
       join(repository, 'packages', name));
     const report = parseNpmPackJson(result.stdout);
-    const metadata = Array.isArray(report) && report.length === 1 ? report[0] : undefined;
+    const metadata = Array.isArray(report) && report.length === 1 ? report[0] as PackMetadata : undefined;
     assert.equal(metadata?.name, `@actql/${name}`, 'npm pack name differs');
     assert.equal(basename(metadata.filename), metadata.filename);
     assert(metadata.filename.endsWith('.tgz') && typeof metadata.version === 'string');
@@ -45,7 +51,7 @@ const root = await mkdtemp(join(build, 'distribution-artifacts-'));
 const npmCache = join(root, 'npm-cache');
 const environment = {...process.env, npm_config_cache: npmCache};
 
-function run(command, args, cwd, timeout = 30000) {
+function run(command: string, args: readonly string[], cwd: string, timeout = 30000) {
   const result = spawnSync(command, args, {cwd, env: environment,
     encoding: 'utf8', timeout, maxBuffer: 4 * 1024 * 1024});
   if (result.error || result.status !== 0) {
@@ -55,7 +61,7 @@ function run(command, args, cwd, timeout = 30000) {
   return result;
 }
 
-async function bytesUnder(path) {
+async function bytesUnder(path: string): Promise<number> {
   const entry = await stat(path);
   if (!entry.isDirectory()) return entry.size;
   let size = 0;
@@ -65,7 +71,7 @@ async function bytesUnder(path) {
   return size;
 }
 
-function measure(command, args, cwd) {
+function measure(command: string, args: readonly string[], cwd: string) {
   const started = performance.now();
   const result = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v',
     command, ...args], cwd);
@@ -79,11 +85,18 @@ function measure(command, args, cwd) {
     peak_rss_bytes: Number(peak[1]) * (platform() === 'linux' ? 1024 : 1)};
 }
 
-const tarballs = {};
+const tarballs: Record<string, Awaited<ReturnType<typeof packDistributionPackages>>[number]> = {};
 for (const pkg of await packDistributionPackages({repository, destination: root, run})) {
   tarballs[pkg.name.slice('@actql/'.length)] = pkg;
 }
-const profiles = {};
+const profiles: Record<string, {
+  installed_packages: string[];
+  installed_bytes: number;
+  scope?: string;
+  samples?: ReturnType<typeof measure>[];
+  connect_only?: ReturnType<typeof measureLocal>;
+  two_runs_one_session?: ReturnType<typeof measureLocal>;
+}> = {};
 
 // The Run Host compiler is a separate package. Measure its actual import and
 // checked Values compilation without pulling it into the remote SDK.
@@ -207,14 +220,19 @@ console.log(JSON.stringify({import_ms: imported - started,
   first_run_to_result_ms: firstRunMs,
   following_run_to_result_ms: followingRunMs}));
 `);
-function measureLocal(kind) {
+function measureLocal(kind: 'connect' | 'run') {
   const result = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v',
     process.execPath, 'local-probe.mjs', kind], localInstallation, 120000);
   const peak = platform() === 'darwin'
     ? result.stderr.match(/(\d+)\s+maximum resident set size/u)
     : result.stderr.match(/Maximum resident set size \(kbytes\):\s*(\d+)/u);
   if (!peak) throw new Error('Missing Local process RSS');
-  return {...JSON.parse(result.stdout.trim()),
+  return {...JSON.parse(result.stdout.trim()) as {
+    import_ms: number;
+    first_local_connect_ms: number;
+    first_run_to_result_ms: number | null;
+    following_run_to_result_ms: number | null;
+  },
     peak_rss_bytes: Number(peak[1]) * (platform() === 'linux' ? 1024 : 1)};
 }
 profiles.standard_local = {
@@ -236,7 +254,7 @@ run(join(repository, 'node_modules/.bin/esbuild'), [
   '--bundle', '--platform=browser', '--format=esm', '--target=es2022',
   `--outfile=${browser}`, `--metafile=${browserMetadata}`,
 ], root);
-const bundleMap = JSON.parse(await readFile(browserMetadata, 'utf8'));
+const bundleMap = JSON.parse(await readFile(browserMetadata, 'utf8')) as Metafile;
 const browserInputs = Object.keys(bundleMap.inputs).sort();
 assert(browserInputs.length >= 2 && browserInputs.every(path =>
   /node_modules\/@actql\/(?:sdk|client-wire)\//u.test(path)));

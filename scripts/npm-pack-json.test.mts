@@ -4,6 +4,7 @@ import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 
@@ -27,7 +28,7 @@ test('normal pack JSON policy refuses disabled hooks duplicate JSON and competin
     ['pack', '--json', '--ignore-scripts=true'], ['pack', '--json', '--ignore-scripts=false'],
     ['pack', '--json', '--foreground-scripts'], ['pack', '--json', '--foreground-scripts=true'],
     ['pack', '--json', '--foreground-scripts=false']]) {
-    assert.throws(() => normalNpmPackJsonArgs(args), TypeError);
+    assert.throws(() => normalNpmPackJsonArgs(args as readonly string[]), TypeError);
   }
 });
 
@@ -42,17 +43,17 @@ test('pack JSON parses only the complete value without recovering diagnostic suf
   }
 });
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'normal-pack-json-adapter-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const names = ['client-wire', 'sdk', 'node', 'run-host-core', 'local-node'];
-  const calls = [], authored = names.map(name => {
+  const calls: {command: string; args: readonly string[]; cwd: string}[] = [], authored = names.map(name => {
     const filename = `${name}-1.2.3.tgz`, bytes = Buffer.from(`authored archive DATA: ${name}\n`);
     writeFileSync(join(root, filename), bytes);
     return {name: `@actql/${name}`, version: '1.2.3', filename, size: bytes.length,
       expectedSha256: createHash('sha256').update(bytes).digest('hex')};
   });
-  const run = async (command, args, cwd) => {
+  const run: Parameters<typeof packDistributionPackages>[0]['run'] = async (command, args, cwd) => {
     const index = calls.length, name = names[index];
     assert.equal(command, 'npm');
     assert.deepEqual(args, ['pack', '--pack-destination', root, '--json', '--foreground-scripts=false']);
@@ -84,7 +85,7 @@ test('distribution pack adapter still refuses a wrong package name filename or s
     const f = fixture(t);
     await assert.rejects(packDistributionPackages({repository: f.root, destination: f.root,
       run: async (...args) => {
-        const report = parseNpmPackJson((await f.run(...args)).stdout);
+        const report = parseNpmPackJson((await f.run(...args)).stdout) as readonly Record<string, unknown>[];
         return {stdout: JSON.stringify([{...report[0], ...change}])};
       }}), {code: 'ERR_ASSERTION'});
     assert.equal(f.calls.length, 1);
