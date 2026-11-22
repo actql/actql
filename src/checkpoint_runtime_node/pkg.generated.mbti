@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn approval_verification_input(String) -> String
+
 pub fn checkpoint_admit(String) -> String
 
 pub fn checkpoint_expired_at(String, String) -> String

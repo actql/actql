@@ -128,3 +128,25 @@ returns, two still-live snapshots include exact canonical Host/Credential root
 directories and all descendants. The observer does not acknowledge physical
 cleanup. The setup closes its real installed Source bootstrap before the
 public phases; Saved-first recovery must make no provider request or UPDATE.
+
+## Reproduce the owned TLS conditional DELETE case
+
+Use the same bounded command and normal installation with these explicit fixture
+inputs. `delete.case.json` binds its own Program, target, before image, expected
+absent state and independent control. The HTTPS fixture checks the exact string
+ID and revision in the conditional DELETE and only applies one mutation.
+
+```sh
+export ACTQL_RECORD_APPROVAL_HTTP_CASE="$PWD/scripts/fixtures/kintone-approval/delete.case.json"
+export ACTQL_RECORD_APPROVAL_RESULT_NAMES='["main","deleted"]'
+```
+
+The default case verifies approval, absence and typed Result, then reads the
+original Saved Result from a fresh process before status. Add `--reject` after
+`--kintone-approval` to verify that the signed rejection leaves both records
+unchanged. For the separate applied-write reply-loss run, use approval and set
+`ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION` to
+`{"approveStatus":"needs_reconciliation","lookupStatus":"needs_reconciliation"}`.
+Every run uses fresh fixture and Host roots. In the loss case the provider
+applies the original DELETE once, drops its reply and sees no new write on the
+same-Run lookup.

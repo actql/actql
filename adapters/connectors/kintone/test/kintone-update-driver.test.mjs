@@ -6,14 +6,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {recordCheckpointApproval} from '../../../host-common/checkpoint-approval.mjs';
-import {kintoneUpdateDriver, KINTONE_UPDATE_TARGET_VERSION} from '../host/kintone-update-driver.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {kintoneDeleteDriver, kintoneUpdateDriver, KINTONE_UPDATE_TARGET_VERSION} from '../host/kintone-update-driver.mjs';
 import {cid, encode, bytes, identity, revision, form, value, policy, observation, fixture as requestFixture} from './kintone-update.fixture.mjs';
 
 const response = () => ({useCid: cid('1'), statusCode: 200,
   body: bytes({records: [{id: identity, revision: '9007199254740995'}]})});
-function fixture(changes = {}) {
+function fixture(changes = {}, kind = 'update') {
+  const updating = kind === 'update', operation = 'kintone:records:' + kind;
   const native = requestFixture(), state = {decisions: [], grants: [], originals: new WeakSet(),
-    reads: [], writes: [], admitted: [], denied: false, response: response()};
+    reads: [], writes: [], admitted: [], denied: false,
+    response: updating ? response() : {useCid: cid('1'), statusCode: 200, body: bytes({})}};
   const site = {
     issueReadGrant(facts) {
       assert.strictEqual(this, site); state.grants.push(facts);
@@ -32,19 +35,32 @@ function fixture(changes = {}) {
   const config = {...native.options, site, authorization, connection: 'kintone:kintone',
     formResource: 'inquiries-form', fields: ['Computed', 'Subject', 'Tags'],
     maxRows: 2, maxMembers: 4, maxRecoveryBytes: 200000, ...changes};
-  const driver = kintoneUpdateDriver(config), member = Object.freeze({kind: 'update', resource: 'inquiries',
-    memberIndex: 0, effectId: 'update-inquiry', mapping: Object.freeze({mappingRef: native.adapter.mappingRef,
-      mappingCid: native.adapter.mappingCid})});
+  let mappingRef = native.adapter.mappingRef, mappingCid = native.adapter.mappingCid;
+  if (!updating) {
+    const {moon, declaration} = config;
+    config.mapping = checked(moon.clientProgramKintonePrepareDeleteMapping(declaration, 'inquiries', 'required',
+      moon.clientProgramKintoneDeclarationLimits(65536, 8000, 32, 4, 16)));
+    const {maxInputBytes: _updateOnly, ...bounds} = config.limits; config.limits = bounds;
+    const body = JSON.parse(moon.clientProgramKintoneDeleteMappingBody(config.mapping));
+    mappingRef = body.mapping_ref; mappingCid = body.mapping_contract_cid;
+  }
+  const driver = updating ? kintoneUpdateDriver(config) : kintoneDeleteDriver(config);
+  const member = Object.freeze({kind, resource: 'inquiries', memberIndex: 0, effectId: `${kind}-inquiry`,
+    mapping: Object.freeze({mappingRef, mappingCid})});
   const describeOptions = {member, maxRows: config.maxRows, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
     controlConstruction(receiver, method, args) {return Reflect.apply(method, receiver, args);},
-    async readChild(authorization, input, row, slot, project) {
+    async readChild(authorization, input, row, slot, project, prepareOperations) {
       assert.strictEqual(input.grant, authorization.grant);
       if (slot !== 'target') {
         assert(state.originals.has(authorization), 'same Site issuer original reaches the child');
         assert.equal(Object.hasOwn(authorization, 'useId'), false);
       }
       await input.currentBeforeSend(); state.reads.push({authorization, input, row, slot});
-      const operation = [...input.operations.values()][0];
+      if (!updating && slot === 'target') {
+        assert.equal(input.operations, undefined);
+        assert.equal(typeof prepareOperations, 'function');
+      }
+      const operation = [...(prepareOperations?.() ?? input.operations).values()][0];
       assert.equal(operation.method, 'POST'); assert(operation.headers.some(([k,v]) => k === 'x-http-method-override' && v === 'GET'));
       const target = slot === 'target' ? observation({id: JSON.parse(operation.body).query.match(/\(([0-9]+)\)/u)[1]})
         : {statusCode: 200, body: bytes(form)};
@@ -52,23 +68,60 @@ function fixture(changes = {}) {
       return project(target);
     }};
   const describe = () => driver.describe(describeOptions);
-  const prepare = (current, selector = identity) => driver.prepareRequest({member, current, selector, value});
+  const prepare = (current, selector = identity) => driver.prepareRequest({member, current, selector,
+    ...(updating ? {value} : {})});
   const target = Object.freeze({grant: Object.freeze({target: true}), useId: 'original-target'});
   const observe = (current, entries, options = {}) => driver.observeTargets({...describeOptions, current, entries,
     authorizationForRow: () => target, ...options});
   const finalize = logical => driver.finalizeRequest({request: logical.request, requestTag: cid('c')});
-  const send = (current, request, changes = {}) => invokeDeclaredRowUpdate(driver, {member, current, request,
-    credential: {binding: {}}, authorization: {grant: {}, useId: 'one-write',
-      scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
-    async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
-    ...changes}, 'kintone:records:update', {phase: 'write',
-    maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes,
-    maxTargetBytes: '/k/v1/records.json'.length});
+  const send = (current, request, changes = {}) => {
+    const invocation = {member, current, request,
+      credential: {binding: {}}, authorization: {grant: {}, useId: 'one-write',
+        scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation}},
+      async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
+      ...changes};
+    return updating ? invokeDeclaredRowUpdate(driver, invocation, operation, {phase: 'write',
+      maxRequestBytes: config.limits.maxRequestBytes, maxResponseBytes: config.limits.maxResponseBytes,
+      maxTargetBytes: '/k/v1/records.json'.length}) : driver.send(invocation);
+  };
   const recover = (entry, requestCid) => ({maxRows: config.maxRows, durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     recorded: {members: [{claims: [{canonicalRequestCid: requestCid}]}]}, members: [member],
-    body: {effects: [{changes: [{after: {value: structuredClone(value)}, target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});
+    body: {effects: [{changes: [{after: updating ? {value: structuredClone(value)} : {state: 'absent'},
+      target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});
   return {native, state, config, driver, member, target, describeOptions, describe, prepare, observe, finalize, send, recover};
 }
+
+test('kintone DELETE driver keeps the original reads and issues one conditional write under its exact grant', async () => {
+  const f = fixture({}, 'delete'), current = await f.describe();
+  const request = f.prepare(current);
+  assert.equal(f.driver.writeOperation(f.member), 'kintone:records:delete');
+  const [observed] = await f.observe(current, [request]);
+  assert.equal(observed.before.$id, identity);
+  assert.deepEqual(f.state.reads.map(read => read.slot), ['schema', 'schema-before', 'target', 'schema-after']);
+  assert.equal(f.state.writes.length, 0);
+  const physical = f.finalize(request);
+  f.driver.recheckRequests({member: f.member, entries: [physical], current});
+  await assert.rejects(f.send(current, physical.request, {authorization: {grant: {}, useId: 'foreign',
+    scope: {resourceOrigin: 'https://foreign.example.test', connectorRegistration: 'kintone', operation: 'kintone:records:delete'}}}),
+  {code: 'ForeignKintoneDeleteOrigin'});
+  assert.equal(f.state.writes.length, 0);
+  const lost = new Error('lost conditional response');
+  f.state.writeError = lost;
+  await assert.rejects(f.send(current, physical.request), error => error === lost);
+  assert.equal(f.state.writes.length, 1);
+  const operation = f.state.writes[0].operations.get('kintone:records:delete');
+  assert.equal(operation.method, 'POST');
+  assert.equal(operation.path, '/k/v1/records.json');
+  assert(operation.headers.some(([key, value]) => key === 'x-http-method-override' && value === 'DELETE'));
+  assert.deepEqual(JSON.parse(operation.body), {app: '12', ids: [identity], revisions: [revision]});
+  const recovery = f.driver.recoveryEntry({member: f.member, current, entries: [physical]});
+  const cold = kintoneDeleteDriver(f.config), context = f.recover(recovery, physical.requestCid);
+  const restored = cold.recoverRequests(context).requests[0][0];
+  assert.equal(cold.requestCid(restored), physical.requestCid);
+  context.body.effects[0].changes[0].after = {state: 'present', value: {Subject: 'foreign'}};
+  assert.throws(() => cold.recoverRequests(context), {code: 'ForeignKintoneDeleteRecovery'});
+  assert.equal(f.state.writes.length, 1);
+});
 
 test('kintone driver preserves same-issued metadata and distinct serial original target reads before final PUT', async () => {
   const f = fixture(), current = await f.describe();

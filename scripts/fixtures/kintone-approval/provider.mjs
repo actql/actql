@@ -1,10 +1,11 @@
-// Synthetic provider DATA only. Revision comparison and exactly one UPDATE
+// Synthetic provider DATA only. Revision comparison and exactly one mutation
 // are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
 import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
 import {form} from '../../../adapters/connectors/kintone/test/kintone-update-form.fixture.mjs';
 
-export function kintoneApprovalProvider(selection) {
+export function kintoneApprovalProvider(selection, kind = 'update') {
+  assert(['update', 'delete'].includes(kind));
   const {recordId, controlId} = selection;
   for (const value of [recordId, controlId]) assert.match(value, /^[1-9][0-9]*$/u);
   const revision = '9007199254740994', nextRevision = '9007199254740995';
@@ -16,7 +17,15 @@ export function kintoneApprovalProvider(selection) {
     Subject: {type: 'SINGLE_LINE_TEXT', value: value.name},
     Tags: {type: 'MULTI_SELECT', value: ['red']},
     Computed: {type: 'SINGLE_LINE_TEXT', value: 'server'}});
-  const writeRoute = route('PUT', '/k/v1/records.json', exchange => {
+  const writeRoute = kind === 'delete' ? {
+    ...route('POST', '/k/v1/records.json', exchange => {
+      assert.equal(exchange.headers['x-http-method-override'], 'DELETE');
+      assert(state.target, 'A second physical DELETE has no original target');
+      assert.deepEqual(JSON.parse(exchange.body), {app: '12', ids: [recordId], revisions: [state.target.revision]});
+      state.deleteTarget();
+      return {};
+    }), bodyIncludes: '"ids":',
+  } : route('PUT', '/k/v1/records.json', exchange => {
     assert.equal(exchange.headers['x-http-method-override'], undefined);
     const body = JSON.parse(exchange.body);
     const name = body?.records?.[0]?.record?.Subject?.value;
@@ -26,7 +35,7 @@ export function kintoneApprovalProvider(selection) {
     state.updateTarget(name, {revision: nextRevision});
     return {records: [{id: recordId, revision: nextRevision}]};
   });
-  const routes = [
+  const routes = [writeRoute,
     route('POST', '/k/v1/app/form/fields.json', exchange => {
       assert.equal(exchange.headers['x-http-method-override'], 'GET');
       assert.deepEqual(JSON.parse(exchange.body), {app: '12'});
@@ -38,14 +47,14 @@ export function kintoneApprovalProvider(selection) {
       assert.deepEqual(Object.keys(body).sort(), ['app', 'fields', 'query']);
       assert.equal(body.app, '12'); assert.deepEqual(body.fields, fields);
       if (body.query === `$id in (${recordId}) order by $id asc limit 1`)
-        return {records: [record(state.target)], totalCount: null};
+        return {records: state.target === null ? [] : [record(state.target)], totalCount: null};
       if (body.query === 'order by $id asc limit 2')
-        return {records: [record(state.target), record(state.control)], totalCount: null};
+        return {records: state.target === null ? [record(state.control)] : [record(state.target), record(state.control)], totalCount: null};
       assert.equal(body.query, `$id > ${controlId} order by $id asc limit 2`);
       return {records: [], totalCount: null};
     }),
-    writeRoute,
   ];
-  return {routes, writeRequest: Object.freeze({method: writeRoute.method, pathname: writeRoute.pathname}),
+  const {handle, ...writeRequest} = writeRoute;
+  return {routes, writeRequest: Object.freeze(writeRequest),
     form: structuredClone(form), snapshot: state.snapshot, reset: state.reset};
 }
