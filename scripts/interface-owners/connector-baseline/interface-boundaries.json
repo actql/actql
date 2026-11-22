@@ -7345,13 +7345,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-source.mjs",
+                "path": "adapters/host-node/installed-table-source.mts",
                 "anchor": "checkpointApprovalFacts"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-source.mjs",
+                "path": "adapters/host-node/installed-table-source.mts",
                 "anchor": "TableSourceReadGrantNotAuthorized"
               }
             ],

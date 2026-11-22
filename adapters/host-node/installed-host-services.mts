@@ -11,7 +11,6 @@ import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceChec
 import {checked} from '../host-common/runtime-result.mjs';
 // @ts-expect-error TS7016: installed-row-effect still has a JavaScript entry.
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
-// @ts-expect-error TS7016: installed-table-source still has a JavaScript entry.
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
 // @ts-expect-error TS7016: installed-table-effect still has a JavaScript entry.
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
@@ -65,7 +64,7 @@ type HostOriginal = Omit<ContextRecord['original'], 'moon'> & {
 type EffectSelection = {constructing?: boolean; sealed?: boolean};
 type Bound = {
   site?: Holdings['sourceProfile']; authorization?: Holdings['authorization']; reader?: Holdings['sourceReader'];
-  adapter?: Holdings['sourceProfile'] & Readonly<{tableReadTargets?: readonly unknown[]}>; bridge?: unknown;
+  adapter?: Holdings['sourceProfile'] & Readonly<{tableReadTargets?: Awaited<ReturnType<typeof createInstalledTableSource>>['tableReadTargets']}>; bridge?: unknown;
   constructing: boolean; attempted: boolean; siteAttempted?: boolean; failed?: boolean; closed?: boolean;
 };
 type SiteSelection = Readonly<{site: NonNullable<Bound['site']>; authorization: NonNullable<Bound['authorization']>}>;
@@ -92,11 +91,10 @@ type HostServicesInput = Readonly<{
   accountCurrent?: () => undefined; receiver?: unknown; initialPreparation?: unknown;
 }>;
 type RowFactory = (input: Readonly<Record<string, unknown>>) => Promise<NonNullable<Bound['adapter']>>;
-type TableTarget = Readonly<{resource: string; schemaWire: string; selector: Readonly<{schema_cid: string}>}>;
-type TableInput = Readonly<{
-  targets: readonly TableTarget[];
-  limits: Readonly<{maxPages: number; maxPageBytes: number; maxPageRows: number; maxCaptureRows: number}>;
-  connection: unknown;
+type TableSourceInputs = Parameters<typeof createInstalledTableSource>[0];
+type TableSiteInputs = Parameters<typeof installedTableReadSite>[0];
+type TableInput = Pick<TableSourceInputs, 'limits'> & Readonly<{
+  targets: readonly Readonly<{resource: string; schemaWire: string; selector: Readonly<{schema_cid: string}>}>[];
 }>;
 type TableBridge = object & Readonly<{frameLimits?: Readonly<{maxBytes: number}>}>;
 
@@ -367,7 +365,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
           connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
-        const site = installedTableReadSite({connection: input.connection, authorization,
+        const site = installedTableReadSite({connection: input.connection as TableSiteInputs['connection'], authorization,
           principalId: original.principalId, ownAuthorization: true,
           targets: () => owned.adapter?.tableReadTargets ?? []});
         owned.site = site;
@@ -404,12 +402,13 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
             maxTotalRows:(input as TableInput).limits.maxCaptureRows,
             transferBytes:4n*BigInt((bridge as TableBridge).frameLimits!.maxBytes)});
         };
-        const adapter = await createInstalledTableSource({...input, bridge, site, authorization,
+        const adapter = await createInstalledTableSource({...input as Pick<TableSourceInputs, 'targets' | 'limits' | 'publicationBindingCid'>,
+          bridge: bridge as TableSourceInputs['bridge'], site, authorization,
           readerCapacity, bindReader,
-          moon: original.moon, sourceInitialization: context, ...prepared,
-          baseEnvironmentWire: scope.baseEnvironmentWire,
-          connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
-          connectorRevision: scope.installation.revision});
+          moon: original.moon as Runtime & TableSourceInputs['moon'], sourceInitialization: context, ...prepared,
+          baseEnvironmentWire: scope.baseEnvironmentWire!,
+          connectorId: scope.connectorId!, connectorRegistration: scope.installation.registration!,
+          connectorRevision: scope.installation.revision!});
         owned.adapter = adapter;
         current();
         if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
