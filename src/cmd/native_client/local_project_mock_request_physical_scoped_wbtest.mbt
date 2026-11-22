@@ -2791,3 +2791,220 @@ test "Native original README static explain refuses an Environment without origi
     static_lookup_metadata=false,
   )
 }
+
+///|
+test "Native Source-only mapped UPDATE retains its parameterized Query capture and evidence" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  let directory = project._retained_project.directory
+  let original_bytes = local_input_text_file(
+    directory, "mock/data.json", 65536L,
+  )
+  project.prepare_source_declarations().unwrap()
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let environment = native_shared_file_effect_environment(project)
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let input : Json = {
+    "kind": "aql",
+    "input": {
+      "format": "aql",
+      "text": "SELECT a.id, a.value FROM salesforce.accounts AS a WHERE a.id = @target |> RESULT updates |> EFFECT UPDATE salesforce.Account ID id SET (value = value);",
+      "parameterDeclarations": { "target": { "type": "string" } },
+    },
+    "parameters": { "target": "a1" },
+    "stopBefore": "commit",
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_project_mock_relation_wire(input).unwrap(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value("prepare mapped AQL with its original parameters")
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected mapped UPDATE")
+  }
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  assert_eq(@run_host.client_direct_acquisition_occurrence_count(direct), 1)
+  let original = local_effect_first_compilation(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "local-test",
+    "parameterized-query-request",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+    source_inputs=project.prepare_effect_sources(prepared, direct),
+  )
+  assert_true(
+    @local_values.select_installed_effect_source_input(
+      prepared,
+      original.request,
+      0,
+      0,
+    )
+    is Ok(QueryRoute(_)),
+  )
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let limits = local_project_mock_file_limits()
+  let capture_recipes = []
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    original,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: limits.max_work,
+      max_bytes: limits.page.max_bytes,
+      max_nodes: limits.page.max_nodes,
+      max_depth: limits.page.max_depth,
+    },
+    limits.page.max_bytes,
+    capture_recipes,
+    query_contracts=Some(
+      (
+        @env.get_env_var("ACTQL_TEST_NATIVE_QUERY_CONTRACT").unwrap(),
+        @env.get_env_var("ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT").unwrap(),
+      ),
+    ),
+    provider_factory=native_request_provider_factory,
+  )
+  assert_true(
+    @local_values.prepared_installed_effect_managed_whole_source(plan, 0)
+    is Err(_),
+  )
+  let requirement = @local_values.prepared_installed_effect_managed_query_requirement(
+    plan, 0,
+  ).unwrap()
+  let state = retain_native_mock_effect_plan(
+    original, prepared, plan, capture_recipes,
+  )
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).unwrap()
+  let run = @local_values.begin_request_effect_managed_run(
+    facility.parent,
+    original.request,
+  ).unwrap()
+  let capture = state
+    .prepare_mock_effect_source_capture(
+      run,
+      facility.arena,
+      facility.physical,
+      0,
+    )
+    .native_file_route_value("open the same physical Query Read")
+  guard state.input_originals[0] is QueryEffectInput(acquisition) else {
+    fail("expected the admitted Query acquisition")
+  }
+  assert_true(
+    physical_equal(
+      @row_host.row_acquisition_requirement(acquisition),
+      requirement,
+    ),
+  )
+  while !state.advance_mock_effect_source_capture(capture).unwrap() {
+    ()
+  }
+  assert_true(state.retain_mock_effect_source_input(capture) is Some(_))
+  let source = @row_host.row_captured_input_source(state.captured_inputs[0]).unwrap()
+  assert_eq(@query.captured_source_row_count(source), Some(1))
+  state.source_started_at = Some("2026-10-10T00:00:01.000Z")
+  state.source_completed_at = Some("2026-10-10T00:00:02.000Z")
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared,
+    original.allowed,
+    original.definition,
+  ).unwrap()
+  state
+  .open_mock_effect_source_host(run, bound)
+  .native_file_route_value("attach original Query to Effect Host")
+  state
+  .issue_mock_effect_direct_sources(run, bound)
+  .native_file_route_value("issue original Query Source evidence")
+  {
+    let held = state.direct_sources.unwrap()
+    let observed = @run_host.client_effect_direct_sources_publication_observation(
+      held._retained_publication.unwrap(),
+    )
+    assert_eq(held.observations.length(), 1)
+    assert_true(
+      @publication.run_evidence_value_json(observed).contains(
+        @publication.run_evidence_value_identity(held.observations[0]),
+      ),
+    )
+  }
+  assert_true(
+    @local_values.retire_installed_effect_captured_consumers(run).unwrap(),
+  )
+  state.effect_host = None
+  state.effect_capture = None
+  assert_true(capture.close().unwrap())
+  @local_values.retire_installed_source_read(state.source_reads[0]).unwrap()
+  state.sources.clear()
+  state.sources.shrink_to_fit()
+  state.source_reads.clear()
+  state.source_reads.shrink_to_fit()
+  state.captured_inputs.clear()
+  state.captured_inputs.shrink_to_fit()
+  state.input_originals.clear()
+  state.input_originals.shrink_to_fit()
+  @local_values.quiesce_installed_managed_run(run).unwrap()
+  state
+  .retire_mock_effect_direct_sources()
+  .native_file_route_value("settle original Query evidence")
+  assert_true(
+    @local_values.retire_installed_managed_run(run)
+    is Err(Resource(Unavailable)),
+  )
+  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  @local_values.retire_installed_managed_run(run).unwrap()
+  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+  facility.arena.try_close().unwrap()
+  assert_eq(
+    local_input_text_file(directory, "mock/data.json", 65536L),
+    original_bytes,
+  )
+}
