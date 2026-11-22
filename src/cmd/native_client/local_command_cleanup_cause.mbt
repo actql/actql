@@ -483,6 +483,8 @@ fn command_preparation_cleanup_cause(
         Evidence(_) => "ModelEvidence"
         Capture(_) => "ModelCapture"
         Store(_) => "ModelStore"
+        Transport(issue) =>
+          command_preparation_cleanup_cause(CommandBusinessModelHttp(issue))
         Start(_) => "ModelStart"
         Review(_) => "EffectReview"
         Encoding => "ModelEncoding"

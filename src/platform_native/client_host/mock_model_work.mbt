@@ -58,6 +58,7 @@ pub(all) enum NativeClientMockModelIssue {
   Evidence(@publication.RunEvidenceValueIssue)
   Capture(@model.ModelExecutionIssue)
   Store(@publication_store.NativePublicationStoreIssue)
+  Transport(NativeClientModelHttpIssue)
   Start(NativeClientSourceWorkIssue)
   Review(NativeClientMockEffectReviewIssue)
   Encoding
@@ -200,6 +201,14 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
 pub fn NativeClientMockModelWork::observe_step_in_original_read(
   self : Self,
 ) -> Result[Unit, NativeClientMockModelIssue] {
+  self.observe_model_step_in_original_read(physical=false)
+}
+
+///|
+fn NativeClientMockModelWork::observe_model_step_in_original_read(
+  self : Self,
+  physical~ : Bool,
+) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.closing ||
       self.closed ||
@@ -235,9 +244,19 @@ pub fn NativeClientMockModelWork::observe_step_in_original_read(
           @publication.publication_contract_identity(self.definition) {
           return Err(Journal(ForeignRun))
         }
-        @host.client_local_adopted_current_account(material, host.database).map_err(
-          local_current_material_issue,
-        )
+        let current = match
+          @host.client_local_adopted_current_account(material, host.database) {
+          Ok(value) => value
+          Err(issue) => return Err(local_current_material_issue(issue))
+        }
+        if physical {
+          host.journal
+          .recheck_model_run_cut(self.request, operations.reads)
+          .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
+          .map(_ => current)
+        } else {
+          Ok(current)
+        }
       })
       .map_err(issue => NativeClientMockModelIssue::Original(issue)),
     )
@@ -713,41 +732,139 @@ pub fn NativeClientMockModelWork::borrow_opened_original_model(
 }
 
 ///|
-/// One bounded Core work batch. Its just-observed Account snapshot is
-/// spent on return; even a Waiting/failed step must refresh before another.
-/// Actual save and subsequent ACK are separated by this outer return boundary.
+// Core advances and outer physical steps borrow the same bounded observation.
+// Neither can use it after the step returns, even when the step failed.
+fn[T] NativeClientMockModelWork::with_observed_step(
+  self : Self,
+  step : (@infer.Execution) -> Result[T, NativeClientMockModelIssue],
+) -> Result[T, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.account is Some(_) &&
+    self.observation_time is Some(_) &&
+    self.settlement is None &&
+    self.active is Some(active) else {
+    return Err(NotOpened)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+    self.account = None
+    self.observation_time = None
+  }
+  step(active)
+}
+
+///|
+/// One bounded Core work batch. Actual Entry persistence and acknowledgement
+/// remain on opposite sides of this original Model step.
 pub fn NativeClientMockModelWork::advance(
   self : Self,
 ) -> Result[@infer.Poll, NativeClientMockModelIssue] {
-  try {
-    guard !self.closing &&
-      !self.closed &&
-      !self.advancing &&
-      self.account is Some(_) &&
-      self.observation_time is Some(_) &&
-      self.settlement is None &&
-      self.active is Some(active) else {
-      return Err(NotOpened)
+  self.with_observed_step(active => {
+    try {
+      let result = mock_model_require(
+        @infer.advance(active, 31).map_err(issue => {
+          NativeClientMockModelIssue::Model(issue)
+        }),
+      )
+      if self.prepared is None &&
+        @infer.prepared_call_set(active) is Some(prepared) {
+        mock_model_require(self.bind_prepared(active, prepared))
+      }
+      Ok(result)
+    } catch {
+      NativeMockModelStop(issue) => Err(issue)
     }
-    self.advancing = true
-    defer {
-      self.advancing = false
-      self.account = None
-      self.observation_time = None
+  })
+}
+
+///|
+fn[T] NativeClientMockModelWork::with_observed_http_step(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  step : () -> Result[T, NativeClientModelHttpIssue],
+) -> Result[T, NativeClientMockModelIssue] {
+  self
+  .observe_model_step_in_original_read(physical=true)
+  .bind(_ => {
+    self.with_observed_step(_ => {
+      guard physical_equal(call.capture, self.capture) &&
+        self.entry_recorded &&
+        self.entry is Some(entry) &&
+        call.original is Some(original) &&
+        original.entry is Some(entered) &&
+        physical_equal(entered, entry) &&
+        self.prepared is Some(prepared) &&
+        @model.prepared_model_request(prepared, call.request.slot)
+        is Some(request) &&
+        physical_equal(request, call.request) else {
+        return Err(ForeignOriginal)
+      }
+      step().map_err(issue => Transport(issue))
+    })
+  })
+}
+
+///|
+/// One bounded readiness step on the exact consumed Entry, after its durable
+/// acknowledgement. True means that this Call has a complete HTTP response
+/// and its Client has returned. Store confirmation is a separate step.
+pub fn NativeClientMockModelWork::drive_http_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+) -> Result[Bool, NativeClientMockModelIssue] {
+  self.with_observed_http_step(call, () => {
+    call
+    .drive_in_original_read()
+    .map(_ => call.response is Some(_) && call.client is None)
+  })
+}
+
+///|
+/// Retain the returned child on the original command before saving it. The
+/// response facts and durable Run identity both come from this exact Work.
+pub fn NativeClientMockModelWork::prepare_http_raw_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  store : @publication_store.Store,
+) -> Result[NativeClientModelRawCapture, NativeClientMockModelIssue] {
+  self.with_observed_http_step(call, () => {
+    guard self.observation_time is Some(at) else {
+      return Err(NativeClientModelHttpIssue::ForeignOriginal)
     }
-    let result = mock_model_require(
-      @infer.advance(active, 31).map_err(issue => {
-        NativeClientMockModelIssue::Model(issue)
-      }),
+    call.prepare_raw_save_in_original_read(
+      self.request,
+      self.compiled,
+      self.definition,
+      self.namespace_id,
+      store,
+      at,
     )
-    if self.prepared is None &&
-      @infer.prepared_call_set(active) is Some(prepared) {
-      mock_model_require(self.bind_prepared(active, prepared))
+  })
+}
+
+///|
+/// Confirm the already retained Store child and decode its original response
+/// under the same fresh observation. A refusal leaves the child with the caller.
+pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  raw : NativeClientModelRawCapture,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  self.with_observed_http_step(call, () => {
+    guard !call.cancelled &&
+      call.raw is Some(original) &&
+      physical_equal(raw.capture, self.capture) &&
+      physical_equal(raw.view, original) else {
+      return Err(NativeClientModelHttpIssue::ForeignOriginal)
     }
-    Ok(result)
-  } catch {
-    NativeMockModelStop(issue) => Err(issue)
-  }
+    raw
+    .persist_in_original_read()
+    .map_err(issue => NativeClientModelHttpIssue::RawStore(issue))
+    .bind(_ => call.adopt_saved_chat(raw))
+  })
 }
 
 ///|

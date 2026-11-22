@@ -30,6 +30,33 @@ struct NativeClientModelRawCapture {
 }
 
 ///|
+// External Model steps can span other actors' durable changes. Compare the
+// actual row with the authenticated operation's already decoded Run; do not
+// adopt a later revision or reparse an unchanged body to keep driving it.
+fn NativeClientRunJournal::recheck_model_run_cut(
+  self : Self,
+  request : @host.ClientRequestIdentity,
+  reads : NativeClientJournalReadAccess,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !self.operation_active {
+    // Without the operation cache, the immediately preceding retained read
+    // already observed the actual Run.
+    return Ok(())
+  }
+  let key = @host.client_request_scope_cid(request)
+  guard self.operation_row(key) is Some(original) else {
+    return Err(CustodyLost)
+  }
+  match
+    read_client_journal_value(self.database, "client_runs", key, Some(reads)) {
+    Ok(current) if current.revision == original.revision &&
+      current.body == original.body => Ok(())
+    Ok(_) | Err(@sqlite.NotFound) => Err(ForeignRun)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 fn native_model_raw_run_current(
   host : NativeLocalHostConnection,
   request : @host.ClientRequestIdentity,
@@ -43,7 +70,10 @@ fn native_model_raw_run_current(
       !run.cancellation_requested &&
       run.publication_binding == Some(binding) &&
       @publication.publication_contract_identity(run.definition) ==
-      @publication.publication_contract_identity(definition) => Ok(())
+      @publication.publication_contract_identity(definition) =>
+      host.journal
+      .recheck_model_run_cut(request, reads)
+      .map_err(issue => Journal(issue))
     Ok(_) => Err(Journal(ForeignRun))
     Err(issue) => Err(Journal(issue))
   }
@@ -180,7 +210,7 @@ fn NativeClientModelRawCapture::require_current_in_original_read(
 /// Only one normal save attempt is admitted. Record authenticated readback
 /// before rechecking current authority, so a late refusal cannot erase the
 /// known durable holding or create permission to send again.
-pub fn NativeClientModelRawCapture::persist_in_original_read(
+fn NativeClientModelRawCapture::persist_in_original_read(
   self : NativeClientModelRawCapture,
 ) -> Result[Unit, NativeClientModelRawIssue] {
   if self.phase != Prepared {

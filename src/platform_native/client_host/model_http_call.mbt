@@ -362,7 +362,7 @@ fn NativeClientModelHttpCall::observe_unknown(
 /// The existing outer Native loop calls once per readiness step, outside the
 /// Core poll. A failed physical close retains the same Client for its next
 /// cleanup step. A missing response can never schedule a replacement send.
-pub fn NativeClientModelHttpCall::drive_in_original_read(
+fn NativeClientModelHttpCall::drive_in_original_read(
   self : NativeClientModelHttpCall,
 ) -> Result[Unit, NativeClientModelHttpIssue] {
   guard self.original is Some(call) && !self.advancing else {
@@ -400,7 +400,7 @@ pub fn NativeClientModelHttpCall::drive_in_original_read(
       }
       self.started = true
     }
-    match client.poll_bearer_post() {
+    match client.poll_bearer_post(wait_milliseconds=50) {
       Ok(None) => return Ok(())
       Ok(Some(response)) => self.response = Some(response)
       Err(issue) => {
@@ -557,7 +557,7 @@ pub fn NativeClientModelHttpCall::close_unentered_in_original_read(
 /// Prepare the Store child from the exact completed HTTP response. The command
 /// retains the returned child before persistence, including when Store or
 /// Read return fails. A failed save cannot acquire another HTTP attempt.
-pub fn NativeClientModelHttpCall::prepare_raw_save_in_original_read(
+fn NativeClientModelHttpCall::prepare_raw_save_in_original_read(
   self : NativeClientModelHttpCall,
   request : @host.ClientRequestIdentity,
   compiled : @host.ClientCompiledRun,
@@ -613,7 +613,7 @@ pub fn NativeClientModelHttpCall::prepare_raw_save_in_original_read(
 ///|
 /// Borrow the confirmed receipt on the original Read. The decoded text stays
 /// on that Read until the same original Model observes the settled Call.
-pub fn NativeClientModelHttpCall::adopt_saved_chat(
+fn NativeClientModelHttpCall::adopt_saved_chat(
   self : NativeClientModelHttpCall,
   saved : NativeClientModelRawCapture,
 ) -> Result[Unit, NativeClientModelHttpIssue] {
