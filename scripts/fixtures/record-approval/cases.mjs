@@ -19,17 +19,20 @@ export const sharedRecordUpdateSelections = Object.freeze({
 
 export const maxRecordUpdateFixtureTextUnits = 16_384;
 
-export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}) {
-  if (typeof recordId !== 'string' || !recordId || typeof previousName !== 'string' || !previousName) {
+export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'},
+  {allowAbsent = false} = {}) {
+  const absent = allowAbsent && previousName === null;
+  if (typeof recordId !== 'string' || !recordId || !absent && (typeof previousName !== 'string' || !previousName)) {
     throw new TypeError('InvalidRecordApprovalSelection');
   }
   if (typeof controlId !== 'string' || !controlId || controlId === recordId || typeof controlName !== 'string') {
     throw new TypeError('InvalidRecordApprovalControl');
   }
-  if ([recordId, previousName, controlId, controlName].some(text => text.length > maxRecordUpdateFixtureTextUnits)) {
+  if ([recordId, previousName, controlId, controlName].some(text =>
+    text !== null && text.length > maxRecordUpdateFixtureTextUnits)) {
     throw new RangeError('RecordApprovalFixtureSeedLimit');
   }
-  return Object.freeze({target: Object.freeze({id: recordId, name: previousName}),
+  return Object.freeze({target: absent ? null : Object.freeze({id: recordId, name: previousName}),
     control: Object.freeze({id: controlId, name: controlName})});
 }
 
@@ -96,13 +99,15 @@ export function kintoneUpdateCase(programs, selected) {
 // Existing shared HTTPS fixture fault DATA only. A provider owns the exact
 // write route; this does not issue a request, classify Run state or grant send.
 export function recordUpdateReplyLossFaults(provider) {
-  const {method, pathname} = provider?.writeRequest ?? {};
+  const {method, pathname, bodyIncludes} = provider?.writeRequest ?? {};
   if (typeof method !== 'string' || !/^[A-Z]{3,16}$/u.test(method) ||
       typeof pathname !== 'string' || !pathname.startsWith('/') ||
       pathname.startsWith('//') || pathname.length > 4096 || !pathname.isWellFormed() ||
       pathname.includes('?') || pathname.includes('#') ||
-      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92))) {
+      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92)) ||
+      bodyIncludes !== undefined && (typeof bodyIncludes !== 'string' || !bodyIncludes || bodyIncludes.length > 256)) {
     throw new TypeError('InvalidRecordApprovalWriteRoute');
   }
-  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1})]);
+  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply', method, pathname, times: 1,
+    ...(bodyIncludes === undefined ? {} : {bodyIncludes})})]);
 }

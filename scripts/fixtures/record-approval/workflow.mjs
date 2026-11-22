@@ -3,7 +3,7 @@
 // it cannot supply a claim, current decision, credential or replacement Run.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {recordUpdateFixtureSeed} from './cases.mjs';
+import {maxRecordUpdateFixtureTextUnits, recordUpdateFixtureSeed} from './cases.mjs';
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
@@ -20,14 +20,16 @@ export function admitAuthoredRecordApprovalCase(value) {
   assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
   const {effect, read, review} = value;
   assert(object(effect));
+  const keyed = review?.kind === 'upsert';
   const additional = Object.hasOwn(effect, 'additionalResults');
   assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
   assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
-  assert(closed(review, ['target', 'identity', 'before', 'changes']));
+  assert(closed(review, ['target', 'identity', 'before', 'changes', ...(keyed ? ['kind'] : [])]));
   assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
   assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
   assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
-  assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  assert(object(review.before) || keyed && review.before === null);
+  assert(object(review.changes) && Object.keys(review.changes).length > 0);
   if (fixture) {
     assert(object(value.fixture));
     const {seed, expected, schema} = value.fixture;
@@ -39,13 +41,18 @@ export function admitAuthoredRecordApprovalCase(value) {
       assert(text(schema.sourceRef) && schema.sourceRef.startsWith('connector://') &&
         [schema.sourceViewContractCid, schema.carrierSchemaContractCid].every(value => typeof value === 'string' && cid.test(value)));
     }
-    assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
-    recordUpdateFixtureSeed(seed);
+    assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName', ...(keyed ? ['key'] : [])]));
+    if (keyed) {
+      assert(text(seed.key) && seed.key.isWellFormed() && seed.key.length <= maxRecordUpdateFixtureTextUnits);
+      assert.equal(seed.previousName === null, review.before === null);
+    }
+    const original = recordUpdateFixtureSeed(seed, {allowAbsent: keyed});
     assert(closed(expected, ['before', 'after']));
-    for (const state of [expected.before, expected.after]) {
+    for (const [state, absent] of [[expected.before, original.target === null], [expected.after, false]]) {
       assert(closed(state, ['target', 'control']));
-      assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
-        text(row.id) && typeof row.name === 'string'));
+      const row = value => closed(value, ['id', 'name']) && text(value.id) && typeof value.name === 'string';
+      assert(row(state.control));
+      assert(absent ? state.target === null : row(state.target));
     }
     if (scheduled) {
       const {faults} = value.fixture;
@@ -100,7 +107,9 @@ function retainCase(original) {
   assert(Array.isArray(value.read.beforeRows) && Array.isArray(value.read.afterRows));
   assert(text(value.review?.target));
   assert(Object.hasOwn(value.review, 'identity'));
-  assert(value.review.before && Object.keys(value.review.before).length > 0 && value.review.changes);
+  assert(value.review.kind === 'upsert' && value.review.before === null ||
+    object(value.review.before) && Object.keys(value.review.before).length > 0);
+  assert(value.review.changes);
   return value;
 }
 
@@ -119,17 +128,22 @@ function checkReview(review, summary, ref, expected) {
   assert.equal(review.authority_scope_cid, ref.authorityScopeCid);
   assert.deepEqual(review.approval_claims, summary.requirements);
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
-    ({kind, target, count})), [{kind: 'update', target: expected.target, count: 1}]);
+    ({kind, target, count})), [{kind: expected.kind ?? 'update', target: expected.target, count: 1}]);
   assert.equal(review.displayed_rows.length, 1);
   const row = review.displayed_rows[0];
   assert.deepEqual(row.target_row_identity, expected.identity);
   assert.equal(row.preview_strength, 'full_diff');
   assert.match(row.row_preview_cid, cid);
-  assert.equal(row.target_guard.state, 'version');
-  assert.match(row.target_guard.version_cid, cid);
-  assert.equal(row.before.state, 'present');
-  for (const [field, value] of Object.entries(expected.before)) {
-    assert.deepEqual(row.before.value[field], value, 'Independent original field: ' + field);
+  if (expected.before === null) {
+    assert.deepEqual(row.target_guard, {state: 'not_applicable'});
+    assert.deepEqual(row.before, {state: 'absent'});
+  } else {
+    assert.equal(row.target_guard.state, 'version');
+    assert.match(row.target_guard.version_cid, cid);
+    assert.equal(row.before.state, 'present');
+    for (const [field, value] of Object.entries(expected.before)) {
+      assert.deepEqual(row.before.value[field], value, 'Independent original field: ' + field);
+    }
   }
   assert.deepEqual(row.intended_changes, {state: 'present', value: expected.changes});
   assert.deepEqual(row.after, row.intended_changes);

@@ -48,6 +48,10 @@ export function openRecordApprovalExchange(t, fixture) {
 }
 
 export function assertRecordApprovalTarget(snapshot, expected) {
+  if (expected.target === null) {
+    assert.equal(snapshot.target, null, 'Independent provider target absence');
+    return;
+  }
   const {id, name} = snapshot.target;
   assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
 }
@@ -234,11 +238,10 @@ export async function runInstalledRecordApprovalFixture(t, input) {
       if (loss !== undefined) {
         assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
       }
-      if (rejecting || loss !== undefined) {
-        const writeCount = snapshot => snapshot.requests.filter(request =>
-          request.method === provider.writeRequest.method && request.pathname === provider.writeRequest.pathname).length;
-        assert.equal(writeCount(after), writesExpected, 'Count every selected write request, including refused attempts');
-      }
+      const writeCount = after.requests.filter(request => request.method === provider.writeRequest.method &&
+        request.pathname === provider.writeRequest.pathname &&
+        (provider.writeRequest.methodOverride === undefined || request.methodOverride === provider.writeRequest.methodOverride)).length;
+      assert.equal(writeCount, writesExpected, 'Count every selected write request, including refused attempts');
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,
         requestsBefore: before.requests.length, requestsAfter: after.requests.length, writes: after.writes});
     }
