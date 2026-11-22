@@ -4424,7 +4424,7 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {

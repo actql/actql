@@ -111,7 +111,7 @@ type MetadataAcquisition = Readonly<{
 // necessary at every action. Resource/egress admission is a separate caller
 // duty, never supplied by a bounded key read or a signed metadata grant.
 export async function prepareInstallationMetadataSite(options: MetadataOptions,
-  runtimeCore: RuntimeCore, operationSites: Pick<WeakMap<object, RegisteredSite>, 'set'>,
+  runtimeCore: RuntimeCore, operationSites: {set(credential: object, site: RegisteredSite): void},
   text: (value: unknown) => value is string, cidPattern: RegExp) {
   const {installationMetadata: input, profile, principalId, authorization,
     connection, connectorRegistration, connectorRevision, runtimeBundleCid,

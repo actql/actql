@@ -2052,6 +2052,8 @@ target/
 /adapters/host-node/installed-row-source-metadata-site.d.mts
 /adapters/host-node/installed-row-source-credential-options.mjs
 /adapters/host-node/installed-row-source-credential-options.d.mts
+/adapters/host-node/installed-row-source-credential-site.mjs
+/adapters/host-node/installed-row-source-credential-site.d.mts
 /scripts/build-connector-authoring.mjs
 /scripts/build-connector-authoring.d.mts
 /scripts/record-approval-ci-input.mjs

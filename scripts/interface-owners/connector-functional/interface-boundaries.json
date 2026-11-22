@@ -14184,7 +14184,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14202,7 +14202,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14220,7 +14220,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14238,7 +14238,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14256,7 +14256,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14274,7 +14274,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14292,7 +14292,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14310,7 +14310,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14328,7 +14328,7 @@
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "bindReadResourceChild: bindResourceChild,"
               }
             ],
@@ -14841,11 +14841,333 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-credential-site.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "createInstalledRowSourceCredentialSite"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceCredentialSite",
+          "parameters": [
+            "runtimeCore",
+            "text",
+            "cidPattern"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/installedRowCredentialOperationSite",
+          "parameters": [
+            "credential"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite",
+          "parameters": [
+            "profile",
+            "principalId",
+            "authorization",
+            "connection",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "resolveSecret",
+            "ca",
+            "admitsApprovalTarget",
+            "admitsEffectTargetRead",
+            "installationMetadata",
+            "runAcquisitionLimits",
+            "configurationReader",
+            "ownAuthorization",
+            "secretMaterial",
+            "responseHeaders",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/callResource/callResource",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "decision",
+            "physicalBinding",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "subjectCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/openRowSourceCredentialSite",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/retainCredentialOperationSite",
+          "parameters": [
+            "site",
+            "custody",
+            "identity",
+            "enabled",
+            "originalBind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite#2",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite#3",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/checkpoint-approval.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "../site-node/sqlite-credential-journal.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-row-source-credential-custody.mjs",
+        "./installed-row-source-credential-options.mjs",
+        "./installed-row-source-mapping.mjs",
+        "./installed-row-source-metadata-site.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "e36319f7d476425867ab582ab852efc46199f4b1661d124128b2884c1037e759",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceCredentialSite",
+            "createInstalledRowSourceCredentialSite/installedRowCredentialOperationSite",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/callResource/callResource",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/openRowSourceCredentialSite",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+            "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite/synchronous/synchronous",
+            "createInstalledRowSourceCredentialSite/retainCredentialOperationSite",
+            "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite",
+            "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite#2",
+            "createInstalledRowSourceCredentialSite/retainCredentialOperationSite/retainCredentialOperationSite#3"
+          ],
+          "exports": [
+            "createInstalledRowSourceCredentialSite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "export function createInstalledRowSourceCredentialSite("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "async function openRowSourceCredentialSite("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "return attached.site;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "return sign({operation, runInvocationCid, dispatchRequestCid, maxUses,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "const original = operationSites.get(credential as object);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "authorization.issued(decision) || hostCommit"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "operationSites.set(site.credential, Object.freeze({"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "const bindReceiver = originalBind === undefined ? custody : site;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "synchronous(approved.enter());"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "await loadRowSourceCredentialCustody(custodyOptions)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "fail('RowSourceEffectTargetReadApprovalNotAdmitted');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "fail('RowSourceGrantNotAuthorized');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "Reflect.apply(custodyClose, custody, []);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "fail('RowSourceAuthorizationCleanupPending');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "if (!declaredHeaders.has(name)) fail('UndeclaredResponseHeader');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "maxBytes: metadata.maxIssuerKeyBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "admitCheckpointEffectTargetRead(decision: Decision"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "await prepareInstallationMetadataSite("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
+                "anchor": "same Site admits the original target decision and signs only its exact read operation"
+              },
+              {
+                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
+                "anchor": "entry failure or lifecycle change keeps the original failure and issues no credential"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody retains the Journal while its original resolver is pending"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "4c80fa8fe44b54b2febee3f9e20437bfb85b6edf05b412d8b6938d4d4bb5439a",
+      "sha256": "311781d4cb6d1e3916a69abf05e18137d0c635f0068559d9f4f2b3ab28908e2f",
       "operations": [
         {
           "name": "createInstalledRowSource",
@@ -15602,13 +15924,6 @@
           "async": true
         },
         {
-          "name": "installedRowCredentialOperationSite",
-          "parameters": [
-            "credential"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledRowSite",
           "parameters": [
             "root",
@@ -15655,148 +15970,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialSite",
-          "parameters": [
-            "profile",
-            "principalId",
-            "authorization",
-            "connection",
-            "connectorRegistration",
-            "connectorRevision",
-            "runtimeBundleCid",
-            "commonMoon",
-            "resolveSecret",
-            "ca",
-            "admitsApprovalTarget",
-            "admitsEffectTargetRead",
-            "installationMetadata",
-            "runAcquisitionLimits",
-            "configurationReader",
-            "ownAuthorization",
-            "secretMaterial",
-            "responseHeaders",
-            "now",
-            "grantLifetimeMs",
-            "openCredentialJournal"
-          ],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialSite/callResource/callResource",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-          "parameters": [
-            "decision",
-            "physicalBinding",
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
-          "parameters": [
-            "operation",
-            "decision",
-            "resource",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "subjectCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
-          "parameters": [
-            "operation",
-            "decision",
-            "resource",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/synchronous/synchronous",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite",
-          "parameters": [
-            "site",
-            "custody",
-            "identity",
-            "enabled",
-            "originalBind"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite/retainCredentialOperationSite",
-          "parameters": [
-            "authorization",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite/retainCredentialOperationSite#2",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite/retainCredentialOperationSite#3",
-          "parameters": [
-            "acquisition",
-            "authorization"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -15817,35 +15990,29 @@
         "rowSourceMapping"
       ],
       "imports": [
-        "../../packages/sdk/host-port.mjs",
         "../host-common/acquisition-outcome.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/checkpoint-approval.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
-        "../site-node/https-credential-resource.mjs",
-        "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-row-source-authorization.mjs",
-        "./installed-row-source-credential-custody.mjs",
         "./installed-row-source-credential-options.mjs",
+        "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
-        "./installed-row-source-metadata-site.mjs",
         "./installed-row-source-targets.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
         "./original-query-preparation.mjs",
-        "./source-profile-json.mjs",
         "./typed-response-json-codec.mjs",
         "node:crypto",
         "node:fs/promises",
-        "node:path",
         "node:perf_hooks",
         "node:timers/promises",
         "node:url",
@@ -15926,17 +16093,6 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/verifyKeyedRead",
-            "openRowSourceCredentialSite",
-            "openRowSourceCredentialSite/callResource/callResource",
-            "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-            "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
-            "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-            "openRowSourceCredentialSite/synchronous/synchronous",
             "text/text",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
@@ -16006,8 +16162,8 @@
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "admitCheckpointEffectTargetRead(decision: Decision, physicalBinding: unknown, operation: string)"
               },
               {
                 "path": "adapters/host-node/installed-row-run.mts",
@@ -16138,7 +16294,7 @@
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "kind: 'effect_target'"
               },
               {
@@ -16212,7 +16368,7 @@
                 "anchor": "const observed = site.close();"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "currentEffectRead(approved)"
               },
               {
@@ -16290,7 +16446,7 @@
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
@@ -16344,7 +16500,7 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
@@ -16402,7 +16558,7 @@
                 "anchor": "Additional declarations/trees/strings"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "Each such approval adds a seven-field record"
               },
               {
@@ -16960,9 +17116,7 @@
             "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
-            "createInstalledRowSource/sourceBody/sourceBody",
-            "retainCredentialOperationSite",
-            "retainCredentialOperationSite/retainCredentialOperationSite#3"
+            "createInstalledRowSource/sourceBody/sourceBody"
           ],
           "exports": [],
           "attributes": {
@@ -17178,8 +17332,8 @@
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "admitCheckpointEffectTargetRead(decision: Decision, physicalBinding: unknown, operation: string)"
               },
               {
                 "path": "adapters/host-node/installed-row-run.mts",
@@ -17270,7 +17424,7 @@
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "kind: 'effect_target'"
               },
               {
@@ -17324,7 +17478,7 @@
                 "anchor": "Bound connector construction"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "currentEffectRead(approved)"
               },
               {
@@ -17382,7 +17536,7 @@
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
@@ -17424,7 +17578,7 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
@@ -17470,7 +17624,7 @@
                 "anchor": "Additional declarations/trees/strings"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "Each such approval adds a seven-field record"
               },
               {
@@ -18144,14 +18298,10 @@
         },
         {
           "operations": [
-            "installedRowCredentialOperationSite",
             "openInstalledRowSite",
             "openInstalledRowSite/init:close/init:close",
             "openInstalledRowSite/init:resolveSecret/init:resolveSecret",
-            "openInstalledRowSite/openInstalledRowSite",
-            "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
-            "retainCredentialOperationSite/retainCredentialOperationSite",
-            "retainCredentialOperationSite/retainCredentialOperationSite#2"
+            "openInstalledRowSite/openInstalledRowSite"
           ],
           "exports": [
             "installedRowCredentialOperationSite",
@@ -18160,7 +18310,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18170,7 +18320,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18180,7 +18330,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18190,7 +18340,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18200,7 +18350,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18234,13 +18384,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "function retainCredentialOperationSite"
               },
               {
@@ -18338,8 +18488,8 @@
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "admitCheckpointEffectTargetRead(decision: Decision, physicalBinding: unknown, operation: string)"
               },
               {
                 "path": "adapters/host-node/installed-row-run.mts",
@@ -18422,7 +18572,7 @@
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "kind: 'effect_target'"
               },
               {
@@ -18472,7 +18622,7 @@
                 "anchor": "const observed = site.close();"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "currentEffectRead(approved)"
               },
               {
@@ -18522,7 +18672,7 @@
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
@@ -18560,7 +18710,7 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
@@ -18606,7 +18756,7 @@
                 "anchor": "Additional declarations/trees/strings"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "Each such approval adds a seven-field record"
               },
               {
