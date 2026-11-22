@@ -336,7 +336,7 @@
                 "anchor": "const source = members.get(sourceMember);"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "source.original !== original || source.material !== material"
               }
             ],
@@ -426,8 +426,8 @@
                 "anchor": "const context = beginInstalledSourceInitialization(services, entry,"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "prepareBorrowedDeclaration(sourceContext) {"
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "prepareBorrowedDeclaration(this: object, sourceContext: object) {"
               }
             ],
             "extension": [

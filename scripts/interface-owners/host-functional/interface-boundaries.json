@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "a0a56be835ba46773319bc7a694b77034c6a1b886d1a1f234c711224f36bec04",
+      "sha256": "a78c9d19e41c21dcdad742ba2cbddbe3a037f551b9f04b1e6e3eda3b866f8ed3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134554,256 +134554,6 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContext",
-          "parameters": [
-            "original",
-            "material",
-            "installation",
-            "connectorId",
-            "baseEnvironmentWire",
-            "role",
-            "services"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
-          "parameters": [
-            "sourceContext"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "writesJson",
-            "writes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
-          "parameters": [
-            "declared",
-            "mappingOriginals"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
-          "parameters": [
-            "site",
-            "provider",
-            "mappingOriginals"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
-          "parameters": [
-            "declared",
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/createInstalledSourceContext",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/retainNativeInput/retainNativeInput",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "fail/fail",
           "parameters": [
             "code"
@@ -134827,14 +134577,12 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./account-construction.mjs",
-        "./installed-check-environment-construction.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mts",
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
-        "./installed-source-construction-geometry.mjs",
         "./installed-source-context-construction.mjs",
         "./installed-source-context-custody.mjs",
         "./installed-source-material-accounting.mjs",
@@ -135062,200 +134810,6 @@
         },
         {
           "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "## Builtin DuckDB installation custody"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native Salesforce original Reader protocol"
-              },
-              {
-                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
-                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
-              },
-              {
-                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
-                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
-                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
-                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
           "exports": [
             "captureInstalledSourceServices"
           ],
@@ -135460,21 +135014,7 @@
             "bindInstalledSourceConstruction/current/current",
             "bindInstalledSourceConstruction/domain/domain/domain",
             "bindInstalledSourceConstruction/prepare/prepare/prepare",
-            "createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
-            "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
-            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
-            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
-            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
-            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
-            "createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
-            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
-            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
-            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
-            "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
-            "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
-            "fail/fail",
-            "createInstalledSourceContext",
-            "createInstalledSourceContext/createInstalledSourceContext"
+            "fail/fail"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -135754,251 +135294,6 @@
           }
         },
         {
-          "operations": [
-            "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-            "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-            "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
-                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
-                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
-              },
-              {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              },
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Verification"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
-            "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
-            "createInstalledSourceContext/retainNativeInput/retainNativeInput",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
-                "anchor": "test('HubSpot real initial parent funds Native Mapping"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [
             "installedSourceEnvironmentConstructionReader",
@@ -136222,76 +135517,6 @@
         },
         {
           "operations": [
-            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
-            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
-            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Responsibility:"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Inputs and outputs:"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Identity:"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Ownership:"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Synchronization:"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Failure:"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Cancellation:"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Resources:"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Extension:"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
-                "anchor": "- Verification:"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "closeInstalledAccountConstruction",
             "installedAccountConstruction",
             "installedAccountConstruction/installedAccountConstruction"
@@ -136378,96 +135603,19 @@
               }
             ]
           }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated responsibility:"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated inputs and outputs:"
-              },
-              {
-                "path": "adapters/host-node/installed-source-material-accounting.mts",
-                "anchor": "function installedSourceConfigurationReader(services: object)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated identity:"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated ownership:"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated synchronization:"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated failure:"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated cancellation:"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated resources:"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/check_environment/wire-admission-construction-interface.md",
-                "anchor": "- Populated extension:"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
-                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
-              },
-              {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
-                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
-              },
-              {
-                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
-                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
-              }
-            ]
-          }
         }
       ],
       "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "9ba32230b285adb8d989521e3e2a76a121aac7134068974d16678bf9b593d490",
+      "sha256": "f77879d04e4919cd035a40e1d4f58c600f6979e667495ac92a83db3101822bc1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
-        "createInstalledSourceContextConstruction"
+        "createInstalledSourceContextConstruction",
+        "createInstalledSourceContextFactory"
       ],
       "operations": [
         {
@@ -136693,6 +135841,275 @@
             "project"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory",
+          "parameters": [
+            "reject",
+            "sourceContexts",
+            "composeInstalledSourceEnvironment",
+            "installedSourceConfigurationReader",
+            "reserveSource",
+            "reconcileSource",
+            "freezeSourceProjection",
+            "sourceProjectionMethods",
+            "requireSynchronousSourceConstruction",
+            "prepareSourceNativeInput",
+            "retainCompletedSourceNativeConstruction",
+            "rowSourceCheckEnvironment",
+            "rowSourceMapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext",
+          "parameters": [
+            "original",
+            "material",
+            "installation",
+            "connectorId",
+            "baseEnvironmentWire",
+            "role",
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
+          "parameters": [
+            "sourceContext"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
+          "parameters": [
+            "writesJson",
+            "writes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
+          "parameters": [
+            "write"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+          "parameters": [
+            "write"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "declared",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "site",
+            "provider",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
+          "parameters": [
+            "declared",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/createInstalledSourceContext",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/retainNativeInput/retainNativeInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -136736,20 +136153,26 @@
             "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#3",
             "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#4",
             "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#5",
-            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#6"
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#6",
+            "createInstalledSourceContextFactory"
           ],
           "exports": [
-            "createInstalledSourceContextConstruction"
+            "createInstalledSourceContextConstruction",
+            "createInstalledSourceContextFactory"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "createInstalledSourceContextConstruction({fail, original, material, services, scope,"
               },
               {
                 "path": "adapters/host-node/installed-source-context-construction.mts",
                 "anchor": "export function createInstalledSourceContextConstruction"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "createInstalledSourceContextFactory({fail, sourceContexts,"
               }
             ],
             "inputsOutputs": [
@@ -136845,6 +136268,670 @@
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
                 "anchor": "SAME parent Command Effect retains the original live Source Environment without constructing or charging it twice"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/createInstalledSourceContext"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "prepareAuthoredCommands(this: object, viewsWire: unknown, specification: unknown, expectedCatalogCid?: unknown)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mts",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "The configuration JSON entrance reserves buffer and decoded String overlap"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mts",
+                "anchor": "test('authored Command composition retains exact contract bodies and source catalog while quoting before projection'"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mts",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source text decoder retains one String and exact file limit refusals'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source strict UTF8 and JSON retain their distinct original decode envelopes'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source text decoder keeps the original failed close pending until the same FD acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed acceptance and lost currentness keep the previous inventory prefix funded'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed asynchronous successor preserves prefix and Source borrow until its actual settle'"
+              },
+              {
+                "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
+                "anchor": "JSON configuration construction admits a large String on the unchanged original parent"
+              },
+              {
+                "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
+                "anchor": "JSON configuration construction still refuses genuinely excessive structure before native parse"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/retainNativeInput/retainNativeInput",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot real initial parent funds Native Mapping"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
               }
             ]
           }
