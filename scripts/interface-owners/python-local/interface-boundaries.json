@@ -15044,7 +15044,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation begins every Core export"
+                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
               }
             ],
             "verification": [
@@ -15063,6 +15063,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
               }
             ]
           }
@@ -28711,7 +28715,7 @@
           ]
         }
       ],
-      "sha256": "6fbaa953673dd9f919ac51f0061f288a7a1352db21126f25332d57b75c101d07",
+      "sha256": "169113055d4af4852480334e71abb24d414540cf063f6525bf6664a0a5d7d8e4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29144,7 +29148,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation begins every Core export"
+                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
               }
             ],
             "verification": [
@@ -29239,6 +29243,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
               }
             ]
           }
@@ -63004,7 +63012,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "When Saved payload preparation traps, the response can still hold"
+                "anchor": "When Saved payload preparation or chunk production traps, the response can"
               }
             ],
             "failure": [
@@ -79017,7 +79025,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "When Saved payload preparation traps, the response can still hold"
+                "anchor": "When Saved payload preparation or chunk production traps, the response can"
               }
             ],
             "failure": [
@@ -80656,7 +80664,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation begins every Core export"
+                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
               }
             ],
             "verification": [
@@ -80683,6 +80691,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
               }
             ]
           }

@@ -21,7 +21,8 @@ import test_local_closed_invocation as closed
 
 
 class ClosedWasmSqlTests(unittest.TestCase):
-    def fixture(self, *, effect=None, capture=True, legacy_census_supplier=False):
+    def fixture(self, *, effect=None, capture=True, legacy_census_supplier=False,
+                census_export='prepare_sdk_payload_input'):
         fixture = closed.ClosedInvocationTests()
         self.addCleanup(fixture.doCleanups)
         core, binding, store, path, _ = fixture.fixture()
@@ -51,7 +52,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 i32.const {ticket} call $current i64.const 1 i64.eq
                 if else unreachable end
                 i32.const {ticket} call $schema)
-            (func (export "actql_publication_commit_export_prepare_sdk_payload_input")
+            (func (export "actql_publication_commit_export_{census_export}")
                     (param i64) (param $effect i32) (param $negotiate i32) (result i32)
                 (local $before i32)
                 i32.const {ticket} call $current i64.const 1 i64.eq
@@ -187,13 +188,29 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 (store.namespaced_key('probe', 'row'),))
             return 0
 
-        core, binding, store, _ = self.fixture(effect=effect)
-        with self.assertRaises(LocalStorageError):
-            binding.inspect(lambda _: LocalCore._call(
-                core, 'publication_commit_export', 'prepare_sdk_payload_input', 1, 1))
-        self.assertTrue(core._closing)
-        self.assertIsNone(binding._observed_reader)
-        self.assertIsNone(store._connection._closed_invocation)
+        for export in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk'):
+            with self.subTest(export=export):
+                core, binding, store, _ = self.fixture(effect=effect, census_export=export)
+                with self.assertRaises(LocalStorageError):
+                    binding.inspect(lambda _: LocalCore._call(
+                        core, 'publication_commit_export', export, 1, 1))
+                self.assertTrue(core._closing)
+                self.assertIsNone(binding._observed_reader)
+                self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export(self):
+        for export, effect, expected in (
+                ('produce_sdk_payload_chunk', 0, 11),
+                ('produce_sdk_payload_chunk', 1, 10),
+                ('produce_sdk_payload_receipt', 0, 0)):
+            with self.subTest(export=export, effect=effect):
+                core, binding, store, _ = self.fixture(census_export=export)
+                actual = []
+                binding.inspect(lambda _: actual.append(
+                    LocalCore._call(core, 'publication_commit_export', export, effect, 1)))
+                self.assertEqual(actual, [expected])
+                self.assertIsNone(binding._observed_reader)
+                self.assertIsNone(store._connection._closed_invocation)
 
     def test_journal_metadata_assignments_still_poison_closed_epoch(self):
         for setting in ('application_id', 'user_version'):

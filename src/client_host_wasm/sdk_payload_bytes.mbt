@@ -201,7 +201,13 @@ pub fn produce_publication_sdk_payload_chunk(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }

@@ -4075,13 +4075,14 @@ standalone codec and ordinal methods retain their original independent frames
 for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
 
-Incremental Saved payload input preparation begins every Core export with the
-complete cancellation census. A guest can then ask the existing current
-operation import about optional unchanged-reader proof support using ticket
-zero, which cannot name a loan. Result 1 opts in. Result 0 or the original
-unallocated-ticket refusal leaves full validation active. The schema query
-continues to return physical schema 0 or 1 unchanged, and previous guests
-keep their existing positive-ticket calls.
+Incremental Saved payload input preparation and chunk production each begin
+their Core export with the complete cancellation census. Rechecking an
+already produced chunk starts its own export and census. A guest can then ask
+the existing current operation import about optional unchanged-reader proof
+support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
+or the original unallocated-ticket refusal leaves full validation active. The
+schema query continues to return physical schema 0 or 1 unchanged, and previous
+guests keep their existing positive-ticket calls.
 
 Only after opt-in does the guest ask for proof with its negated live ticket.
 This query returns 1 for the same unchanged read, 0 after proof becomes
@@ -4095,9 +4096,9 @@ Nothing crosses a SQLite reader, chunk, operation, or await. The optimization
 adds no retained census rows. Existing current and cleanup ownership remain
 with the original invocation.
 
-When Saved payload preparation traps, the response can still hold the
-original first output and clock borrow. After the trapped invocation is
-quiescent, the response enters the existing terminal Saved retirement on
+When Saved payload preparation or chunk production traps, the response can
+still hold an original output and clock borrow. Once the trapped invocation
+is quiescent, the response enters the existing terminal Saved retirement on
 that same parent before closing those children. Retirement permits the
 actual child close and stop calls to run. Their refusal still retains the
 original loans, and the read failure stays primary.

@@ -210,7 +210,10 @@ class _InvocationObservation:
 
     def supports_saved_census_read(self) -> bool:
         return (self.wasm_export is not None
-                and self.wasm_export[1] == 'actql_publication_commit_export_prepare_sdk_payload_input'
+                and self.wasm_export[1] in (
+                    'actql_publication_commit_export_prepare_sdk_payload_input',
+                    'actql_publication_commit_export_produce_sdk_payload_chunk',
+                )
                 and self.admitted and self.closed_import and not self.suspended and not self.effect_seen)
 
     def _guard_originals(self) -> None:
