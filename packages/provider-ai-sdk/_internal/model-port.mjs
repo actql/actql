@@ -1,9 +1,10 @@
-import {runtimePair, runtimeTriple} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimePair, runtimeTriple} from './compiler-binding.generated.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
   retireSdkDecodedResult, sdkOriginalIoObservationAvailable, bindSdkTransportCredential,
-  confirmSavedSdkTransportResponse, pollSdkDecode, takeSavedSdkDecodedResult} from './intercepted-request.mjs';
+  confirmSavedSdkTransportResponse, pollSdkDecode, takeSavedSdkDecodedResult,
+  prepareRegisteredSdkLanguageModel} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
 // All records, SDK/request/response buffers and Promise overlaps must be funded
@@ -29,6 +30,104 @@ export function createSdkStructuredModelPreflight(options, admission, readReport
     runtime.clientProgramModelStructuredRequestPlan(admission, request, bytes,
       amounts.tokens, amounts.costUnits, amounts.durationMs,
       profile, installation, start, readDecoded), undefined, 'saved-sdk', readReportedUsage);
+}
+
+export function originalSdkCallOptions(generation, prompt, responseFormat, unsupported, providerOptions) {
+  const exactInteger = (value, minimum) => typeof value === 'bigint' &&
+    value >= minimum && value <= BigInt(Number.MAX_SAFE_INTEGER);
+  // MoonBit's JS Int64 representation can carry a negative seed as unsigned.
+  const raw = runtimeField(generation, 4);
+  const seed = typeof raw === 'bigint' && raw >= -9_223_372_036_854_775_808n &&
+    raw <= 18_446_744_073_709_551_615n ? BigInt.asIntN(64, raw) : raw;
+  const temperature = runtimeField(generation, 1), topP = runtimeField(generation, 2);
+  const tokens = runtimeField(generation, 3);
+  if (!Number.isFinite(temperature) || !Number.isFinite(topP) || !exactInteger(tokens, 1n) ||
+      seed !== undefined && !exactInteger(seed, -BigInt(Number.MAX_SAFE_INTEGER))) {
+    throw new TypeError(unsupported);
+  }
+  const options = {prompt, responseFormat, temperature, topP, maxOutputTokens: Number(tokens),
+    ...(seed === undefined ? {} : {seed: Number(seed)})};
+  if (providerOptions !== undefined) options.providerOptions = providerOptions;
+  return options;
+}
+
+export function sdkProjectionBounds(limits, invalid) {
+  const fields = ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'];
+  if (limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
+      Object.keys(limits).sort().join(',') !== fields.join(',') ||
+      fields.some(name => !Number.isSafeInteger(limits[name]) ||
+        limits[name] < (name === 'maxWork' ? 0 : 1) || limits[name] > 2_147_483_647)) {
+    throw new TypeError(invalid);
+  }
+  return Object.freeze({...limits});
+}
+
+// The verified Host supplies one registration. Common projects the prompt
+// from the same admitted capability it uses to create the physical Plan.
+export function createAdmittedRegisteredSdkPreflight({moon, request, admission,
+  registeredSdk, taskCid, promptCid, outputSchemaCid, projectionLimits,
+  maxRequestBytes, maxHeaderBytes, maxHeaders, checked, notify, signal, ...port}) {
+  const route = registeredSdk?.route, sdk = port.installation?.sdk;
+  if (route === undefined || sdk === undefined ||
+      sdk.package_name !== registeredSdk.sdkPackage || sdk.version !== registeredSdk.sdkVersion ||
+      sdk.interface !== 'v4' || sdk.lock_artifact_cid !== registeredSdk.lockArtifactCid ||
+      port.installation.build_artifact_cid !== registeredSdk.adapterArtifactCid ||
+      port.installation.endpoint !== route.endpoint ||
+      typeof moon?.clientProgramStartAdmittedStructuredSdkProjection !== 'function' ||
+      typeof moon.clientProgramAdvanceOpenAIChatProjection !== 'function' ||
+      typeof moon.clientProgramRetireOpenAIChatProjection !== 'function' ||
+      typeof moon.clientProgramAdmittedStructuredSdkRouteMatches !== 'function' ||
+      moon.clientProgramAdmittedStructuredSdkRouteMatches(admission,
+        route.selector, route.modelId, route.apiMode, route.endpoint) !== true) {
+    throw new TypeError('RegisteredSdkPhysicalInstallationUnavailable');
+  }
+  const bounds = sdkProjectionBounds(projectionLimits, 'InvalidRegisteredSdkProjectionLimits');
+  let cursor, terminal = false;
+  const preparationProgress = {
+    advance() {
+      if (terminal || signal?.aborted) return {kind: 'rejected'};
+      if (cursor === undefined) {
+        cursor = checked(moon.clientProgramStartAdmittedStructuredSdkProjection(
+          admission, request, port.profile, port.installation, bounds.maxBytes, bounds.maxNodes,
+          bounds.maxDepth, bounds.maxFrames, bounds.maxWork));
+        return {kind: 'pending'};
+      }
+      const projected = checked(moon.clientProgramAdvanceOpenAIChatProjection(cursor));
+      if (projected === undefined) return {kind: 'pending'};
+      preparationProgress.cleanup();
+      const generation = moon.clientProgramModelRequestGeneration(request);
+      if (generation === undefined || runtimeField(generation, 0) !== route.selector ||
+          runtimeField(projected, 3) !== taskCid || runtimeField(projected, 4) !== promptCid ||
+          runtimeField(projected, 5) !== outputSchemaCid || runtimeField(projected, 6) !== route.selector) {
+        throw new TypeError('RegisteredSdkOriginalSelectionUnavailable');
+      }
+      // The verifier and SDK borrow one immutable request projection. The
+      // SDK cannot revise its own expected prompt or schema before fetch.
+      const prompt = Object.freeze([Object.freeze({role: 'system', content: runtimeField(projected, 0)}),
+        Object.freeze({role: 'user', content: Object.freeze([
+          Object.freeze({type: 'text', text: runtimeField(projected, 1)})])})]);
+      const schema = JSON.parse(runtimeField(projected, 2), (_key, value) =>
+        value !== null && typeof value === 'object' ? Object.freeze(value) : value);
+      const responseFormat = Object.freeze({type: 'json', name: 'actql_output', schema});
+      const options = Object.freeze(originalSdkCallOptions(generation, prompt, responseFormat,
+        'RegisteredSdkGenerationUnsupported', registeredSdk.providerOptions));
+      return {kind: 'ready', preparation: prepareRegisteredSdkLanguageModel({moon, admission,
+        selector: route.selector, modelId: route.modelId, apiMode: route.apiMode, endpoint: route.endpoint,
+        sdkProvider: registeredSdk.sdkProvider, createLanguageModel: registeredSdk.createLanguageModel,
+        options, verifyRequest: body => registeredSdk.verifyRequest(body, options),
+        maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify})};
+    },
+    cleanup() {
+      if (cursor !== undefined) {
+        moon.clientProgramRetireOpenAIChatProjection(cursor);
+        cursor = undefined;
+      }
+      terminal = true;
+      return true;
+    },
+  };
+  return createSdkStructuredModelPreflight({...port, moon, request, checked, notify,
+    preparationProgress}, admission, registeredSdk.readReportedUsage);
 }
 
 function generationPlan(moon, request, bytes, quantities, profile, installation, start) {

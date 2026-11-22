@@ -2,6 +2,7 @@
 // physical declarations. This fixture never establishes a normal numerical
 // profile, runtime provenance, public startup or permission for a live service.
 import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -43,7 +44,7 @@ export function originalHttpCommonFixture(t,moon,options) {
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts,structuredSdk=false}={},independentHttp) {
+  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false}={},independentHttp) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
@@ -55,10 +56,13 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     assert.equal(nativeDecision,false);
     assert.notEqual(physical,undefined,'Independent HTTP requires its explicit loopback transport');
   }
+  const registeredSdkMode=structuredSdk==='registered';
   const preparePhysical=independentHttp
     ? (await import('../../packages/provider-http/_internal/model-port.mjs')).createHttpChatPreflight
     : nativeDecision
     ? (await import('../../packages/provider-ai-sdk/_internal/native-decision-preflight.mjs')).createAdmittedTypeSafeDecisionPreflight
+    : registeredSdkMode
+    ? (await import('../../packages/provider-ai-sdk/_internal/model-port.mjs')).createAdmittedRegisteredSdkPreflight
     : (await import('../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs')).createAdmittedOpenAIChatPreflight;
   // Optional exact loopback transport for the joined physical diagnostic.
   // Preserve its function identity: wrapping it would lose the existing
@@ -143,6 +147,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     lock_artifact_cid:hash(readFileSync(new URL('../../packages/provider-ai-sdk/package-lock.json',import.meta.url)))};
   const profileOriginal=seal(profileBody);
   const profile=control.readInstalledModelResponseProfile(profileOriginal.wire,profileOriginal.cid,bounds);
+  const registeredProfile=foreignRegisteredProfile
+    ? control.readInstalledModelResponseProfile(profileOriginal.wire,profileOriginal.cid,bounds) : profile;
   const installation={...profileBody.adapter,endpoint:profileBody.operation.endpoint,
     sdk:independentHttp?undefined:{package_name:profileBody.adapter.sdk.package,version:profileBody.adapter.sdk.version,interface:'v4',
       lock_artifact_cid:profileBody.adapter.sdk.lock_artifact_cid},
@@ -177,7 +183,27 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     const wire=canonicalText({...JSON.parse(originals.configuration.wire),...route});
     originals.configuration={wire,cid:hash(wire)};
   }
-  let structuredAdmission;
+  let registeredSdk;
+  if (registeredSdkMode) {
+    const {openAIChatStaticOriginals:{createOpenAI}}=await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
+    const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
+    registeredSdk=Object.freeze({route:Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
+      modelId,apiMode:'chat_completions',endpoint}),sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
+      sdkVersion:installation.sdk.version,lockArtifactCid:installation.sdk.lock_artifact_cid,
+      adapterArtifactCid:installation.build_artifact_cid,providerOptions:Object.freeze({}),
+      createLanguageModel:fetch=>createOpenAI({baseURL,apiKey:'fixture-only',fetch}).chat(modelId),
+      verifyRequest(body,options) {
+        const {seed,maxOutputTokens,topP,temperature,prompt:messages,responseFormat}=options;
+        return isDeepStrictEqual(JSON.parse(body),{model:modelId,max_tokens:maxOutputTokens,
+          temperature,top_p:topP,...(seed===undefined?{}:{seed}),
+          messages:[messages[0],{role:'user',content:messages[1].content[0].text}],
+          response_format:{type:'json_schema',json_schema:{name:responseFormat.name,
+            schema:responseFormat.schema,strict:true}}});
+      },
+      readReportedUsage:body=>({inputTokens:BigInt(body.usage.prompt_tokens),
+        outputTokens:BigInt(body.usage.completion_tokens)})});
+  }
+  let structuredAdmission, registeredProjectionIssue;
   let sends=0;
   const requests=[];
   const ports=[];
@@ -213,6 +239,16 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
           return new Response(responseWire,{headers:{'content-type':'application/json'}});})};
       const port=independentHttp?preparePhysical({...common,endpoint:physical.endpoint,
         headers:[['content-type','application/json']],requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16}})
+        : registeredSdkMode ? preparePhysical({...common,profile:registeredProfile,admission:structuredAdmission,registeredSdk,
+          checked(value) {
+            try {return checked(value);}
+            catch (error) {
+              if (foreignRegisteredProfile) {
+                registeredProjectionIssue=moon.clientProgramOpenAIChatProjectionIssueKind(error.cause);
+              }
+              throw error;
+            }
+          }})
         : preparePhysical({...common,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
           : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',
           ...(structuredSdk ? {structuredAdmission} : {})});
@@ -280,6 +316,17 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     physicalPreflight:(request,notification,binder)=>registered.physicalPreflight(request,notification,binder,admittedProvider)});
   const plan={compiled,runDefinition,inferGraph:graph};
   operation.bindRun(control,plan);
+  if (foreignRegisteredProfile) {
+    // The Common projection fails before Waiting or a Journal CallSet exists.
+    await assert.rejects(operation.run(), {code:'MoonBitHostFailure'});
+    assert.equal(registeredProjectionIssue,'foreign_request');
+    await operation.close();
+    assert.equal(operation.cleanupPending(),false);
+    control.stopCheckedClientInferOriginalReadPreparation(compiled,runDefinition,graph,scope,read);
+    control.settleCheckedClientInferOriginalReadPreparation(compiled,runDefinition,graph,read,true);
+    assert.equal(control.finishCheckedClientInferOriginalReadScope(compiled,runDefinition,graph,scope,true),true);
+    return;
+  }
   let boundary;
   try {boundary=await operation.run();}
   catch(error){

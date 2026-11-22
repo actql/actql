@@ -1174,6 +1174,13 @@ checks the configured options against the adapter's closed schema before a
 factory call. The option snapshot and resolved route accompany request
 checking, which requires the same installation and current Host.
 
+The registered SDK port projects instructions, mapped input and output schema
+from the already admitted structured capability. Common checks that capability's
+profile and selected installation before projection and consumes the same
+capability again to prepare the physical Plan. The adapter verifies the SDK's
+endpoint-specific request against the projected material and option snapshot.
+The existing Entry and transport gate retain authority over the physical send.
+
 ### Original physical Model limits in Request Plans
 
 The existing Node Plan entrance checks the native Model floors and receives the

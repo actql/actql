@@ -395,6 +395,8 @@ pub fn retire_openai_chat_projection(OpenAIChatProjection) -> Unit
 
 pub fn retire_original_model_mock(ModelMockInstallation) -> Result[Bool, ModelMockInstallationIssue]
 
+pub fn start_admitted_structured_sdk_projection(AdmittedStructuredModelProvider, ModelRequest, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, Int, Int, Int, Int, Int) -> Result[OpenAIChatProjection, OpenAIChatProjectionIssue]
+
 pub fn start_model_call_settlement_export(ModelCallSettlement, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
 
 pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]

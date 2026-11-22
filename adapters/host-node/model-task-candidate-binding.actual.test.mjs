@@ -56,6 +56,7 @@ test('the original Host verifies SDK software and closes the options before supp
   const host = 'adapters/host-node/embedded-local.mjs';
   const adapter = await write(adapterRoot, 'index.mjs', `
     export const optionNamespace = 'controlled';
+    export const sdkProvider = 'fixture-provider';
     export const optionSchema = Object.freeze({mode: Object.freeze(['strict'])});
     export const createLanguageModel = (factory, modelId, fetch) => factory(modelId, fetch);
     export const verifyRequest = (wire, call, route, options) => wire === call.expected &&

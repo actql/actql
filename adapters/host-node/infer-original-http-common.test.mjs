@@ -35,7 +35,10 @@ test('original HTTP Common caller saves and settles one real loopback response b
   {timeout:15000}, t => originalHttpSettlement(t, false));
 
 test('selected structured SDK settles the original verified Raw through Common and the journal',
-  {timeout:15000}, t => originalHttpSettlement(t, true));
+  {timeout:15000}, t => originalHttpSettlement(t, 'registered'));
+
+test('registered SDK rejects a separate equal profile before Entry and transport',
+  {timeout:15000}, t => originalHttpSettlement(t, 'registered', {foreignRegisteredProfile:true}));
 
 test('selected structured SDK retains the original unknown when Raw cannot be confirmed',
   {timeout:15000}, t => originalHttpSettlement(t, true, {refuseRaw: true}));
@@ -73,7 +76,7 @@ test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
-  status=200, outcome, wire=responseWire, usage=[3,2]} = {}) {
+  status=200, outcome, wire=responseWire, usage=[3,2], foreignRegisteredProfile=false} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -110,10 +113,15 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       physicalAcquisitionLimits:{maxPlaintextBytes:65536,
         maxBorrowedBackingBytes:131072,maxReads:64}});
     const refusal = new Error('FixtureRawConfirmationUnavailable');
-    const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,
+    const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,foreignRegisteredProfile,
       beforeOriginalRead({read}) {
         if (refuseRaw && read === 2) throw refusal;
       }});
+    if (foreignRegisteredProfile) {
+      assert.equal(calls.length,0);
+      assert.equal(sockets.size,0);
+      return;
+    }
     assert.equal(f.sends,undefined,'Do not reuse the uninstrumented fixture counter');
     assert.equal(calls.length,0);
     assert.deepEqual(await f.opened.authorize(),{status:'dispatch'});

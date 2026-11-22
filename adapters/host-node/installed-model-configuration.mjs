@@ -187,15 +187,18 @@ export async function installConfiguredModelProviders({moon, register, project,
             const adapter = read(adapterName, original.adapter, 'module').namespace;
             sdkImageCustody.assertCurrent();
             const factory = sdk[original.sdk.exportName];
-            const {createLanguageModel, verifyRequest} = adapter;
+            const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage} = adapter;
             if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
-                typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function') {
+                typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function' ||
+                typeof sdkProvider !== 'string' || sdkProvider.length < 1 || sdkProvider.length > 256 ||
+                readReportedUsage !== undefined && typeof readReportedUsage !== 'function') {
               fail(invalidSdkInstallation);
             }
             const providerOptions = sdkProviderOptions(original.providerOptions,
               adapter.optionNamespace, adapter.optionSchema);
             check();
-            return Object.freeze({route: original.route, providerOptions, sdkPackage: original.sdk.packageName,
+            return Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
+              sdkPackage: original.sdk.packageName,
               sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
               adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
               createLanguageModel(fetch) {

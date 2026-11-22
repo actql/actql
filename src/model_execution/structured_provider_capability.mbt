@@ -254,3 +254,38 @@ pub fn bound_structured_model_async_request_plan(
     read_decoded,
   )
 }
+
+///|
+/// Project the existing admitted text instructions, typed inputs and output
+/// schema for an installed SDK. This cursor produces no provider HTTP body.
+pub fn start_admitted_structured_sdk_projection(
+  value : AdmittedStructuredModelProvider,
+  request : ModelRequest,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[OpenAIChatProjection, OpenAIChatProjectionIssue] {
+  if !physical_equal(value.capability.profile, profile) ||
+    check_structured_model_selection(
+      value.capability,
+      value.capability.resolved,
+      value.original.execution,
+      installation,
+    )
+    is Err(_) {
+    return Err(ForeignRequest)
+  }
+  start_openai_chat_projection(
+    value.original,
+    request,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_frames,
+    max_work,
+  )
+}

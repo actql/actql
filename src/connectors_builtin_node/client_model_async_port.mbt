@@ -218,6 +218,25 @@ pub fn client_program_admitted_structured_sdk_route_matches(
 }
 
 ///|
+#export_name("clientProgramStartAdmittedStructuredSdkProjection")
+pub fn client_program_start_admitted_structured_sdk_projection(
+  admitted : @model.AdmittedStructuredModelProvider,
+  request : @model.ModelRequest,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[@model.OpenAIChatProjection, @model.OpenAIChatProjectionIssue] {
+  @model.start_admitted_structured_sdk_projection(
+    admitted, request, profile, installation, max_bytes, max_nodes, max_depth, max_frames,
+    max_work,
+  )
+}
+
+///|
 // The selected decoder transfers its original answer and optional reported
 // usage from the same SDK read. Core meters and checks the observed quantities.
 #export_name("clientProgramModelStructuredRequestPlan")
