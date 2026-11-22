@@ -19,6 +19,8 @@ fn[T] require_native_lookup_dependency(
 /// executes no Source, Model, compiler or Request issuer. The caller backs the
 /// bounded metadata/first durable wire copies before entry; the lookup still
 /// owns all physical children, consumed work and failed-cleanup obligations.
+/// Direct encoder calls can fund their writer separately from admission.
+/// The nested checked Policy and Catalog constructors use before_body.
 pub fn client_keyed_lookup_native_dependency_bodies(
   lookup : ClientKeyedLookupInput,
   retention : @publication.PublicationContract,
@@ -27,6 +29,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
   max_depth : Int,
   physical_source? : (String, String)? = None,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
+  before_emit? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -35,8 +38,15 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     return Err(ForeignInput)
   }
   keyed_lookup_native_dependency_bodies_from_original(
-    lookup, completed, retention, limits, max_nodes, max_depth, physical_source,
+    lookup,
+    completed,
+    retention,
+    limits,
+    max_nodes,
+    max_depth,
+    physical_source,
     before_body,
+    before_emit~,
   )
 }
 
@@ -62,6 +72,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   before_body : ((Int, Int, Int) -> Bool)?,
   serial? : KeyedDependencySerialFunding? = None,
   retain_catalog? : Bool = true,
+  before_emit? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -235,12 +246,17 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     Ok(())
   }
   let policy_receiver = Some(receive_policy_body)
+  let emit_funding = if before_emit is Some(_) {
+    before_emit
+  } else {
+    before_body
+  }
   fn emit(
     kind : String,
     cid : String,
     produce : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Unit raise NativeLookupDependencyStop {
-    if before_body is Some(prepare) {
+    if emit_funding is Some(prepare) {
       let measure = try {
         let writer = @encode.measuring_writer(remaining, max_nodes, max_depth)
         produce(writer)
@@ -251,7 +267,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       if !prepare(measure.0, measure.1, measure.2) {
         raise NativeLookupDependencyStop(ConstructionRefused)
       }
-      if lookup.closed || lookup.left.lookup_issue is Some(_) {
+      if lookup.closed ||
+        lookup.left.lookup_issue is Some(_) ||
+        !lookup.native_completion
+        .map(value => physical_equal(value, completed))
+        .unwrap_or(false) {
         raise NativeLookupDependencyStop(ForeignInput)
       }
     }
@@ -396,7 +416,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @canonical.object_field(node, "pipeline") is Some(pipeline) else {
       return Err(ForeignInput)
     }
-    if before_body is None {
+    if emit_funding is None {
       let pipeline_wire = @canonical.stringify_value(
         pipeline, remaining, max_nodes, max_depth,
       )

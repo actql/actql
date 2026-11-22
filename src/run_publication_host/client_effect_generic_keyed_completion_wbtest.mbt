@@ -647,6 +647,7 @@ fn run_original_source_completion(
     }
     assert_true(exact_references > 0)
     let quotes : Array[(Int, Int)] = []
+    let emissions : Array[(Int, Int)] = []
     let collected = client_keyed_lookup_native_dependency_bodies(
       lookup,
       retention,
@@ -663,13 +664,48 @@ fn run_original_source_completion(
         quotes.push((b, n))
         true
       }),
+      before_emit=Some((b, n, _) => {
+        emissions.push((b, n))
+        true
+      }),
     ).unwrap()
+    assert_true(!emissions.is_empty())
     assert_true(quotes.contains((bytes, nodes)))
     assert_eq(
       collected.map(@publication.captured_effect_dependency_body_cid),
       bodies.map(@publication.captured_effect_dependency_body_cid),
     )
     let before_refusal = @resources.ledger_usage(ledger)
+    let attempted_emissions = Ref(0)
+    let late_admissions = Ref(0)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_body=Some((_, _, _) => {
+          if attempted_emissions.val > 0 {
+            late_admissions.val += 1
+          }
+          true
+        }),
+        before_emit=Some((_, _, _) => {
+          attempted_emissions.val += 1
+          false
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(attempted_emissions.val, 1)
+    assert_eq(late_admissions.val, 0)
     assert_true(
       client_keyed_lookup_native_dependency_bodies(
         lookup,

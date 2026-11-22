@@ -83,7 +83,7 @@ priv struct LocalNativeMockEffectProposals {
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
   mut _retained_combined_source_unit : @run_host.ClientEffectCombinedSourceUnit?
   mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
-  _retained_lookup_dependencies : Array[
+  mut _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
   ]
   mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
@@ -461,6 +461,38 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           guard physical_source is Some(_) else {
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }
+          let before_body = if measured {
+            let measuring = mock_effect_dependency_measurement_bytes(
+              wire.max_nodes,
+              wire.max_depth,
+            ).bind(bytes => @execution.execution_capacity(0L, bytes))
+            if !construction.prepare_body(self.original, measuring) {
+              stop("LocalOriginalEffectProposalsUnavailable")
+            }
+            Some((bytes, nodes, depth) => {
+              construction.prepare_canonical(self.original, bytes, nodes, depth)
+            })
+          } else {
+            None
+          }
+          let before_emit = if measured {
+            Some((bytes, nodes, depth) => {
+              // The writer returns a wire for the immediately following
+              // admission. Its output is already included in that body's
+              // capacity. Hold the emission peak here only as workspace.
+              let capacity = native_mock_effect_plan_wire_capacity(
+                bytes, nodes, depth,
+              ).bind(quote => {
+                @execution.execution_capacity(
+                  0L,
+                  @execution.execution_capacity_execution_bytes(quote),
+                )
+              })
+              construction.prepare_body(self.original, capacity)
+            })
+          } else {
+            None
+          }
           let dependencies = @run_host.client_keyed_lookup_native_dependency_bodies(
               lookup,
               retention,
@@ -473,14 +505,14 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
               wire.max_nodes,
               wire.max_depth,
               physical_source~,
+              before_body~,
+              before_emit~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Dependency(issue)
             })
             .native_effect_proposal(self.original)
-          for dependency in dependencies {
-            held._retained_lookup_dependencies.push(dependency)
-          }
+          held._retained_lookup_dependencies = dependencies
         }
       }
       let invocation = held.invocation.unwrap()
