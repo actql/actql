@@ -37,7 +37,7 @@ is not a physical cleanup acknowledgement. A timeout or missing response has
 no successful constructor here. A later absent record is not a retained delete
 marker: the existing Effect Owner must preserve Unknown without resend.
 
-## Retention and remaining connections
+### Deletion retention and consuming connections
 
 The original page's decode tree, records and Form catalog stay reachable through
 each target until the existing capture/Effect cleanup retires them. A batch also
@@ -46,12 +46,16 @@ pair-comparison work overlap that storage. Explicit positive caller limits
 bound preparation; they are not reservations, a budget SSOT or an adopted
 normal numerical profile.
 
-The physical Credential Site, original current/approval/Preview checks,
-same-attempt journal/Unknown handling, and release of every retained original
-remain mandatory consuming connections. Insert/update/upsert field material,
-attachment custody, process-action metadata and their physical dispatch are
-independent unfinished parts of the same Connector outcome. This protocol
-material does not advertise installed write support or relax those obligations.
+The installed DELETE consumes these projections through the physical Credential
+Site, original current/approval/Preview checks, same-attempt journal and
+Unknown handling. Its owners also retire every retained original.
+
+The standard installed Node Effect supports UPDATE, conditional DELETE and
+[keyed UPSERT](#original-keyed-upsert-material). The UPSERT profile selects one
+writable, provider-enforced unique Text field and the exact declared write
+fields. A complete lookup and the approved original presence select one create
+or one revision-guarded update. Numeric and compound UPSERT keys, attachment
+custody and process-action dispatch are outside this installed profile.
 
 ## Original unique Text-key lookup
 
@@ -845,3 +849,127 @@ not funding or cleanup evidence. The same existing capture/Source/Effect owners
 retain physical reads, permission, claim, cancellation and cleanup. Node and
 RelA expose these original DATA values without a second owner or saved-state
 reconstruction policy.
+
+### Keyed UPSERT Mapping
+
+The kintone Catalog and Common Relation Mapping own the original Form key and
+checked write fields. The Form must admit the selected field as a writable,
+provider-enforced `SINGLE_LINE_TEXT` lookup key. The same lookup-key admission
+checks the field code used in physical query preparation.
+
+The Mapping records the natural key as `primary_identity` and keeps the
+resource identity on the provider's native `$id`. Common resolves the
+`upsert` permission rule by the exact `key` selector and full written-field set.
+The rule requires both the existing create and update permissions. The
+selector supplies the key at insertion and all other required Form fields
+must have admitted sources.
+
+Construction borrows the same original declaration and Form and emits a
+bounded, synchronous DATA projection. The Mapping carries no lookup result.
+Missing, nullable or nonunique keys, unavailable write fields and invalid
+permission or resource-identity facts refuse the original construction.
+Cancellation and cleanup of the later request stay with its physical owner.
+
+The original text, selected field inventories and canonical Mapping writer
+need their existing construction custody. An installed connection must quote
+the actual Mapping and subsequent lookup and request work before allocating it.
+Both physical branches still require the original selected authorization,
+current Preview and claim. The focused Host and Common controls verify
+Form selection, exact permissions and distinct physical identity.
+
+### Original mapped UPSERT proposal
+
+The provider preserves the original Mapping, its selected field rules and
+intended checked cells while preparing the keyed lookup. The proposal
+returns the original typed lookup request to the existing physical caller.
+Its complete response must belong to the same lookup occurrence; a separately
+issued lookup with equal fields and bytes does not satisfy this check.
+
+The observed record supplies the original native `$id`, revision and before
+image for UPDATE. Complete absence selects CREATE with the original key.
+The original write rules refuse extra fields, missing mandatory cells and
+null outside `write_null`. Finite field comparison exhaustion remains a
+budget refusal.
+
+The proposal and native request remain under the existing capture owner.
+The physical caller owns authorization, current checks, cancellation and
+cleanup, and must fund the retained values, lookup and before projection
+before construction. Neither branch can retry or change the selected request.
+The focused proposal control checks exact request bodies in both branches
+and refuses a foreign lookup, key replacement and missing required fields.
+
+The native proposal quote reuses the existing checked-value construction
+inventory shared with UPDATE. It adds the selected lookup request, its
+retained encoded body and selected field backing. Escaping, UTF-8 validation,
+Array growth, temporary field controls and the open writer are workspace.
+The original Form, selector and field text remain borrowed. The body extent
+uses the original selected field names and the admitted key and writer limits.
+
+The existing preparation owner composes these quantities before the proposal.
+The quote prices this constructor only. Physical ingress, lookup response
+admission, request finalization, cancellation and cleanup retain their existing
+owners. Exact and one-byte-short lookup controls exercise the original writer
+and demonstrate that the extra quote follows the bounded output.
+
+The lookup response produces the held before state in its existing read child.
+The proposal supplies the original lookup request, and Before retains its own
+record and revision or complete absence. Request construction rechecks that
+same Before against the proposal after the read boundary. The lookup and write
+construction can therefore use distinct phases of the original capture owner.
+
+The before quote reuses the shared native page and typed before projection.
+It adds the lookup observation, retained before proof and bounded identity
+validation. Parsed two-row replies fit the same refusal workspace, while
+only a matching one-record or complete-empty observation may be retained.
+The bounded reply controls exercise the actual present and absent cases,
+one-byte-short admission and refusal of an incomplete count.
+
+For an observed record, the request quote uses the existing single-record
+conditional UPDATE writer. The quote requires the proposal's own nominal
+lookup and Before, and retains the request wrapper and native body. The
+original record, revision, lookup and intended values remain borrowed.
+The Form and key comparisons and the writer are execution workspace.
+The present-record control checks the exact conditional PUT body,
+one-byte-short refusal and rejection of a separately issued lookup.
+
+Complete absence selects the separate CREATE quote. The source cell bodies
+and key text stay with the proposal. The returned request owns the added key
+carrier, its admitted cell vector, the native field document and final body.
+The copy, required-field checks, write validation and both writers are
+execution workspace. The copied-target map is bounded by the original Form's
+lookup destinations and the same comparison work limit as the CREATE scan.
+The controls exercise both exact writer limits, one-byte-short failures
+and refusal to quote a foreign or present-record Before as an insert.
+
+The proposal retains its bounded admitted value wire. Saved request recovery
+rebuilds the same proposal and fully admits the saved lookup response under
+the original Form and lookup contract. The selected presence branch must
+match the saved operation before finalization, and the original serializer
+must reproduce the complete native request body. Cold recovery performs no
+provider read and has no authority to substitute a different request.
+The surrounding owner still compares the original saved digests, Preview,
+and claim before the reconstructed material may be used.
+
+The write plan can quote finalization from the selected Mapping and limits
+before the physical lookup. CREATE and UPDATE are mutually exclusive, so
+the finalization allowance uses the greater retained and execution extent
+of the two. The cold-recovery allowance keeps each earlier native output
+while the next constructor runs, takes the peak over the construction
+phases, and retains all three returned originals. The Host separately
+accounts for the saved envelope, its byte buffers and any physical calls.
+
+The Node request carrier holds the exact functions of its original Common
+runtime. It admits the configured Mapping against that same declaration,
+then binds the Kintone App, key, and recovered material to the installation.
+Its finalized identity includes the original row tag, lookup-response digest,
+selected operation branch, and complete body. A fresh observation can confirm
+the original before-state but cannot replace it. Both Node assemblies use the
+same bridge for this projection.
+
+The carrier returns exactly one physical POST or revision-checked PUT request
+and can project a response for that same native request. Recovery checks the
+closed envelope and its digests before invoking the native reconstruction.
+Incomplete absence, a foreign branch, and an uncorrelated response remain
+refusals or unclassified evidence. The existing Effect owner retains the
+authorization, physical call, ledger claim, and cleanup. Host plan allowances
+remain responsible for the JSON envelopes, encoded bytes, and saved material.

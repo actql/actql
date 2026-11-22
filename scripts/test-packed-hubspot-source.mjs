@@ -102,6 +102,8 @@ if (httpCaseInput !== undefined) {
 const caseInput = mockCaseInput ?? httpCaseInput;
 const authoredCase = caseInput === undefined ? undefined : await readAuthoredCase(caseInput);
 assert(authoredCase === undefined || authoredCase.fixture !== undefined, 'An authored case requires a seed and state oracle');
+const fixtureWrite = authoredCase?.review.kind === 'delete' ? 'DELETE'
+  : authoredCase?.review.kind === 'upsert' && authoredCase.review.before === null ? 'CREATE' : 'UPDATE';
 const configuredReplyLoss = installedRecordReplyLossExpectation();
 const authoredFaults = httpCaseInput === undefined ? undefined : authoredCase.fixture.faults;
 assert(authoredFaults === undefined || configuredReplyLoss === undefined, 'Select one original fixture fault schedule');
@@ -234,7 +236,7 @@ const receipt = {fixtureVariant: reject ? 'rejected' : replyLossExpectation !== 
   : replyLossExpectation !== undefined
   ? 'Selected installed Local capture, one signed approval and one applied TLS write with lost reply, followed by same-original public lookup without another write. Explicit per-capability outcome expectations; Unknown is not success or physical cleanup ACK.'
   : approval
-  ? `Actual installed Local capture, signed approval, exactly one synthetic TLS provider ${authoredCase?.review.kind === 'delete' ? 'DELETE' : 'UPDATE'} and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.`
+  ? `Actual installed Local capture, signed approval, exactly one synthetic TLS provider ${fixtureWrite} and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.`
   : 'Actual public Local/HTTPS using the exact borrowed ordinary installed cohort; fresh Host and original same-Run restoration in a fresh process. No new npm install, package build, live service, write or normal numeric-profile claim.',
   productSource: original.manifest.sourceSha, manifestSha256: original.manifestSha256,
   inputKind: original.kind ?? 'normal-composition-release', freshNormalInstall: ci,

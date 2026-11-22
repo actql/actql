@@ -5,7 +5,7 @@ import './installed-effect-read-slots.test.mjs';
 import {types as nodeTypes} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
+import {captureInstalledEffectPlanRecipe, selectInstalledEffectWriteBranch, prepareInstalledEffectManagedPlan,
   captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe,
   prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
   prepareInstalledEffectControlConstruction, installedEffectSavedControlEntryLimit,
@@ -1548,6 +1548,43 @@ test('installed recipe keeps member Describe and row target occurrences distinct
     [occurrence('write', false, 1)],
   ]) assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...recipe,
     credentialOperations: Object.freeze(entries)}), 5), {code: 'InvalidInstalledEffectPlanRecipe'});
+});
+
+test('keyed UPSERT selects only the physical write named by its admitted Preview presence', () => {
+  const operation = name => Object.freeze({operation: name, extent: {}});
+  const occurrence = (slot, operationIndex, extra = {}) => Object.freeze({
+    phase: 'write', ...(slot === undefined ? {} : {slot}), operationIndex,
+    maxRequestBytes: 128, maxResponseBytes: 64, ...extra,
+  });
+  const absent = occurrence('absent', 0);
+  const present = occurrence('present', 1);
+  const capture = (entries, names = ['records:create', 'records:update']) =>
+    captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze([]),
+      rowOperations: Object.freeze(names.map(operation)), credentialOperations: Object.freeze(entries)}), 2);
+  const recipe = capture([present, absent]);
+  const notFound = {before: {state: 'absent'}, target_guard: {state: 'not_applicable'}};
+  const versioned = {before: {state: 'present', value: {}}, target_guard: {state: 'version'}};
+  for (const [preview, name] of [[notFound, 'records:create'], [versioned, 'records:update']]) {
+    const selected = selectInstalledEffectWriteBranch(recipe, 'upsert', preview);
+    assert.equal(selected.slot, preview.before.state);
+    assert.equal(recipe.rowOperations[selected.operationIndex].operation, name);
+    assert.ok(Object.isFrozen(selected));
+  }
+  for (const invalid of [undefined, {before: notFound.before, target_guard: versioned.target_guard},
+    {before: versioned.before, target_guard: notFound.target_guard}]) {
+    assert.throws(() => selectInstalledEffectWriteBranch(recipe, 'upsert', invalid),
+      {code: 'InvalidInstalledEffectWriteBranch'});
+  }
+  assert.throws(() => selectInstalledEffectWriteBranch(recipe, 'create', notFound),
+    {code: 'InvalidInstalledEffectWriteBranch'});
+  assert.equal(selectInstalledEffectWriteBranch(capture([occurrence(undefined, 0)]), 'upsert', notFound), undefined);
+  for (const entries of [[absent], [present], [absent, occurrence(undefined, 1)],
+    [absent, occurrence('replacement', 1)], [absent, occurrence('present', 0)],
+    [absent, occurrence('present', 1, {resource: 'different-resource'})]]) {
+    assert.throws(() => capture(entries), {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  assert.throws(() => capture([absent, present], ['same', 'same']),
+    {code: 'InvalidInstalledEffectPlanRecipe'});
 });
 
 test('same installed driver keeps create update and upsert recipes tied to their original checked kind', () => {

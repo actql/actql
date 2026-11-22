@@ -253,6 +253,17 @@ pub fn record_write_values_fields(values : RecordWriteValues) -> Array[String] {
 }
 
 ///|
+/// Exact field and null presence from the original checked values.
+pub fn record_write_values_field_at(
+  values : RecordWriteValues,
+  index : Int,
+) -> (String, Bool)? {
+  values.originals
+  .get(index)
+  .map(cell => (cell.0, cell.1.value is @admitted.Null))
+}
+
+///|
 pub fn record_write_values_match_catalog(
   values : RecordWriteValues,
   catalog : FormFieldCatalog,
