@@ -1021,9 +1021,11 @@ class LocalCore:
                             'journal_query_header', 'journal_copy_row'):
                     index = 1 if name in ('journal_query_copy', 'journal_copy',
                                           'journal_query_header', 'journal_copy_row') else 0
-                    journal = self._journal_callbacks(args[index])
-                    pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
-                            and journal.current is span.binding._current_observer)
+                    ticket = abs(args[index]) if name == 'journal_current_operation' else args[index]
+                    journal = self._journal_callbacks(ticket)
+                    pure = ((name == 'journal_current_operation' and ticket == 0)
+                            or (type(journal) is _JournalCallbacks and journal.reader is span.reader
+                                and journal.current is span.binding._current_observer))
                 elif name in ('publisher_current', 'publisher_begin', 'publisher_copy', 'publisher_finish'):
                     from ._local_host_binding import _OriginalPublisherPort
                     index = 1 if name == 'publisher_copy' else 0
@@ -1627,9 +1629,16 @@ class LocalCore:
         return and effect boundaries; every import still validates original
         lifetime and the same SQL snapshot. Other suppliers keep full checks.
 
-        Zero selects complete original observation for raw/cleanup callers.
+        A zero result on a real positive ticket selects full raw/cleanup
+        observation. An input ticket of zero only asks about optional support.
         It is not an Allow, permission cache, reader handle or continuation.
         """
+        if ticket < 0:
+            return self._journal_saved_census_read(-ticket)
+        if ticket == 0:
+            from ._local_host_binding import _InvocationObservation
+            span = getattr(self, '_invocation_observation', None)
+            return int(type(span) is _InvocationObservation and span.supports_saved_census_read())
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
@@ -1666,6 +1675,26 @@ class LocalCore:
                 or operation != self._host_operation_sequence):
             return -41
         return operation
+
+    def _journal_saved_census_read(self, ticket: int) -> int:
+        """Return whether this export still owns its uninterrupted original reader."""
+        from ._local_host_binding import _InvocationObservation
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        span = getattr(self, '_invocation_observation', None)
+        if type(span) is not _InvocationObservation or not span.supports_saved_census_read():
+            return 0
+        if (span.current.ticket != ticket
+                or callbacks.reader is not span.reader or callbacks.current is not span.binding._current_observer):
+            raise span._fail(ValueError('Foreign Saved census reader'))
+        span.check()
+        unchanged = span.reader.check_unchanged
+        if unchanged is None:
+            raise span._fail(ValueError('Original Saved census reader is unavailable'))
+        unchanged(span.reader)
+        span._guard_originals()
+        return 1
 
     def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
         callbacks = self._journal_callbacks(ticket)
@@ -3392,23 +3421,24 @@ class LocalCore:
 
     def publication_sdk_payload_ordinal(self, first: _Output,
                                         current_configuration: int, *,
-                                        field: Literal['result', 'binding']) -> int:
-        """Read a Core routing coordinate, never a read grant or Store ACK."""
+                                        field: Literal['result', 'binding', 'saved_pair']) -> int:
+        """Read routing DATA from Core, without granting access or acknowledging a Store."""
         with self._lock:
             self._owned_output(first, 'publication_commit_export')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if (type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31
-                    or type(field) is not str or field not in ('result', 'binding')):
+                    or type(field) is not str or field not in ('result', 'binding', 'saved_pair')):
                 raise ValueError('Invalid original SDK routing selector')
+            selector = ('result', 'binding', 'saved_pair').index(field)
             ordinal = self._call('publication_commit_export', 'sdk_payload_ordinal',
-                first.handle, current_configuration, 0 if field == 'result' else 1)
+                first.handle, current_configuration, selector)
             if type(ordinal) is not int:
                 raise RuntimeError('Invalid Local Core payload ordinal')
             if ordinal < 0:
                 raise LocalCoreError('sdk_payload_ordinal', ordinal)
-            if ordinal >= 8:
+            if ordinal >= (64 if field == 'saved_pair' else 8):
                 raise RuntimeError('Invalid Local Core payload ordinal')
             self._owned_output(first, 'publication_commit_export')
             if self._closing:
@@ -3716,6 +3746,42 @@ class LocalCore:
             self._check('validate_saved_payload_binding', self._call(
                 'publication_commit_export', 'validate_payload_binding', original.handle,
                 record.handle, current_configuration, result, binding_index))
+
+    def _try_saved_reader_facts(self, original: _Output, record: _Output, observation: _Input,
+                                configuration: int, result: int, binding: int) -> bool:
+        """Select the compatible private call only on the original closed reader."""
+        from ._local_host_binding import OriginalHostBinding
+        host = getattr(self, '_host_current_binding', None)
+        if (type(host) is not OriginalHostBinding
+                or type(getattr(self, '_closed_wasm_exports', None)) is not _ClosedWasmExports
+                or not self._ordinary_host or self._closing
+                or any(type(value) is not int or not 0 <= value < 8 for value in (result, binding))):
+            return False
+        reader = host._observed_reader
+        if (reader is None or reader._invocation_candidate is None or reader.check_unchanged is None
+                or (reader._projected_prewrite is not None and not reader._projected_prewrite())):
+            return False
+        try:
+            self._owned_output(original, 'submission_lookup')
+            self._owned_output(record, 'payload_record')
+            self._owned_input(observation)
+        except ValueError:
+            # Use the standalone validators' existing order for an invalid loan.
+            return False
+        entry = ('publication_commit_export', 'validate_payload_binding')
+        supported = self._call(*entry, 0, 0, 0, -(2**31), 0)
+        if supported == -2:
+            return False
+        if supported != 1:
+            raise LocalCoreError('saved_reader_facts_capability', supported)
+        selector = -(2**30) - (8 * result + binding)
+        code = self._call(*entry, original.handle, record.handle, configuration,
+                          selector, observation.handle)
+        snapshot_code = code + 1024
+        if snapshot_code in (-2, -5, -31, -32):
+            self._check('validate_payload_snapshot', snapshot_code)
+        self._check('validate_saved_payload_binding', code)
+        return True
 
     def begin_saved_read_cleanup(self, original: _Output) -> None:
         """Retire interrupted synchronous call latches, never physical duties.

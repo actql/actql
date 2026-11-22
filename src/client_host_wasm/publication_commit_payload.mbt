@@ -10,6 +10,71 @@ pub fn validate_publication_commit_payload_binding(
   result : Int,
   binding_index : Int,
 ) -> Int {
+  // A no-loan capability query stays distinct from either real validation.
+  // An older guest refuses these zero handles with -2 before reading Store.
+  if result == -2147483648 &&
+    publication == 0 &&
+    payload_record == 0 &&
+    current_configuration == 0 &&
+    binding_index == 0 {
+    return if selected(nonce) is Some(_) { 1 } else { -2 }
+  }
+  // The private Saved selector encodes two checked 0..7 coordinates. Its
+  // last argument is now the same sealed physical-observation input.
+  if result >= -1073741887 && result <= -1073741824 {
+    guard selected(nonce) is Some(value) &&
+      value.payload_records.get(payload_record) is Some(payload) &&
+      payload.source is SavedResult(_, saved) else {
+      return -2
+    }
+    let coordinates = -1073741824 - result
+    let binding = validate_original_publication_payload_binding(
+      nonce,
+      publication,
+      payload_record,
+      current_configuration,
+      coordinates / 8,
+      coordinates % 8,
+    )
+    if binding != 0 {
+      return binding
+    }
+    let same_reader_census = if saved_result_export_parent(value, publication)
+      is Some((parent, original)) &&
+      physical_equal(saved, original) &&
+      parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
+      match physical_journal_current_operation(0) {
+        1L => true
+        0L | -41L => false
+        _ => return -41
+      }
+    } else {
+      false
+    }
+    let snapshot = validate_original_payload_record_snapshot(
+      nonce,
+      payload_record,
+      binding_index,
+      current_configuration,
+      same_reader_census~,
+    )
+    // Keep the two original failure roles distinct without another export.
+    return if snapshot == 0 { 0 } else { snapshot - 1024 }
+  }
+  validate_original_publication_payload_binding(
+    nonce, publication, payload_record, current_configuration, result, binding_index,
+  )
+}
+
+///|
+fn validate_original_publication_payload_binding(
+  nonce : Int64,
+  publication : Int,
+  payload_record : Int,
+  current_configuration : Int,
+  result : Int,
+  binding_index : Int,
+) -> Int {
   if selected(nonce) is Some(value) &&
     value.payload_records.get(payload_record) is Some(payload) &&
     payload.source is SavedResult(parent, saved) {

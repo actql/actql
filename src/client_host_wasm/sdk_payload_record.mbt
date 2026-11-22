@@ -33,7 +33,16 @@ fn sdk_payload_record_binding_current(
       if ordinals != (result, binding_index) {
         return -32
       }
-      match saved_payload_binding(value, payload, current_configuration) {
+      // The enclosing export already completed its first census. The nested
+      // binding still reads the original rows and asks the physical owner
+      // whether this same reader remains eligible before omitting a census.
+      match
+        saved_payload_binding(
+          value,
+          payload,
+          current_configuration,
+          same_reader_census=context.same_reader_census,
+        ) {
         Ok(binding) => {
           let selected = match
             context.owner.view_binding(context.view, binding_index) {
@@ -138,7 +147,13 @@ pub fn bind_publication_sdk_payload_record(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }
@@ -164,7 +179,8 @@ pub fn bind_publication_sdk_payload_record(
 ///|
 /// Routing coordinates only, rechecked under the original Run/current Owner.
 /// The physical Host must bind the exact original record and current six facts
-/// before byte access. field=0 selects Result, field=1 its durable binding.
+/// before byte access. Field 0 selects Result and 1 its durable binding.
+/// Field 2 selects both from the same original Saved read.
 pub fn publication_sdk_payload_ordinal(
   nonce : Int64,
   first_handle : Int,
@@ -177,14 +193,22 @@ pub fn publication_sdk_payload_ordinal(
     first.projection is Some(SDKReadDeliveryStorage(_, run)) else {
     return -2
   }
-  if field != 0 && field != 1 {
+  if field != 0 &&
+    field != 1 &&
+    (field != 2 || saved_result_export_parent(value, first.publication) is None) {
     return -3
   }
   if first.pending {
     return -5
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=field == 2,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }
@@ -224,9 +248,15 @@ pub fn publication_sdk_payload_ordinal(
     Err(code) => return code
     Ok(_) => ()
   }
-  if field == 0 {
-    result
-  } else {
-    binding
+  match field {
+    0 => result
+    1 => binding
+    // Both coordinates are independently bounded by this read profile.
+    _ =>
+      if result >= 0 && result < 8 && binding >= 0 && binding < 8 {
+        result * 8 + binding
+      } else {
+        -32
+      }
   }
 }

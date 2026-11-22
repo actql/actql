@@ -139,7 +139,7 @@ class _InvocationObservation:
                  'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
                  'admitted', 'disabled', 'checking_physical', 'platform', 'publisher',
                  'publisher_buffer', 'publisher_received', 'wasm_export', 'closed_import',
-                 'statement_epoch')
+                 'statement_epoch', 'effect_seen')
 
     def __init__(self, binding: 'OriginalHostBinding', reader: _NamespaceReader,
                  connection: _TrackedSQLiteConnection) -> None:
@@ -159,6 +159,7 @@ class _InvocationObservation:
         self.wasm_export: tuple[Any, str, Any, Any] | None = None
         self.closed_import = False
         self.statement_epoch = connection._closed_statement_epoch
+        self.effect_seen = False
         self.failure: BaseException | None = None
         self.suspended = False
         self.active = True
@@ -206,6 +207,26 @@ class _InvocationObservation:
             return False
         self._guard_sql()
         return True
+
+    def supports_saved_census_read(self) -> bool:
+        if (self.wasm_export is None or not self.admitted or not self.closed_import
+                or self.suspended or self.effect_seen):
+            return False
+        name = self.wasm_export[1]
+        if name in ('actql_publication_commit_export_produce_sdk_read_evidence_decision',
+                    'actql_publication_commit_export_produce_sdk_read_delivery_storage',
+                    'actql_publication_commit_export_produce_sdk_terminal_storage'):
+            prewrite = self.reader._projected_prewrite
+            return prewrite is not None and prewrite()
+        return name in (
+            'actql_publication_commit_export_prepare_sdk_payload_codecs',
+            'actql_publication_commit_export_sdk_payload_ordinal',
+            'actql_publication_commit_export_bind_sdk_payload_record',
+            'actql_publication_commit_export_validate_payload_binding',
+            'actql_publication_commit_export_prepare_sdk_payload_input',
+            'actql_publication_commit_export_produce_sdk_payload_chunk',
+            'actql_publication_commit_export_observe_sdk_terminal',
+        )
 
     def _guard_originals(self) -> None:
         try:
@@ -356,6 +377,7 @@ class _InvocationObservation:
         try:
             if self.failure is not None:
                 raise self.failure
+            self.effect_seen = True
             if self.admitted:
                 self.check(physical=True)
             self.suspended = True
@@ -722,6 +744,7 @@ class OriginalHostBinding:
                 or installation is not self._state._installation
                 or self._source._observe_roots is not None or self._state._observe_roots is not None
                 or reader is None or reader._invocation_check is None
+                or (reader._projected_prewrite is not None and not reader._projected_prewrite())
                 or reader._invocation_candidate is None
                 or type(connection) is not _TrackedSQLiteConnection
                 or not connection._closed_eligible()):

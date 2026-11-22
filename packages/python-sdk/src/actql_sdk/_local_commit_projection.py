@@ -182,13 +182,14 @@ class OriginalCommitProjection:
 
     def validate_reader_facts(self, record: _Output, observation: _Input,
                               result: int, binding_index: int) -> None:
-        """Compose the two existing complete public validators in order.
-
-        The caller retains the same sealed input and physical fences. This
-        ABI78 path is not the private combined guest export: snapshot current
-        and binding checks remain in their original Core implementations.
-        """
+        """Keep the original binding and snapshot judgments in order."""
         with self._core._lock:
+            if self._saved:
+                self._current()
+                if self._core._try_saved_reader_facts(
+                        self._publication, record, observation, self._configuration,
+                        result, binding_index):
+                    return
             self.validate_payload_binding(record, result, binding_index)
             self._core.validate_payload_snapshot(
                 record, observation, self._configuration)
