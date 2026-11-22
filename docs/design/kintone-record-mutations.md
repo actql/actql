@@ -893,3 +893,19 @@ of the two. The cold-recovery allowance keeps each earlier native output
 while the next constructor runs, takes the peak over the construction
 phases, and retains all three returned originals. The Host separately
 accounts for the saved envelope, its byte buffers and any physical calls.
+
+The Node request carrier holds the exact functions of its original Common
+runtime. It admits the configured Mapping against that same declaration,
+then binds the Kintone App, key, and recovered material to the installation.
+Its finalized identity includes the original row tag, lookup-response digest,
+selected operation branch, and complete body. A fresh observation can confirm
+the original before-state but cannot replace it. Both Node assemblies use the
+same bridge for this projection.
+
+The carrier returns exactly one physical POST or revision-checked PUT request
+and can project a response for that same native request. Recovery checks the
+closed envelope and its digests before invoking the native reconstruction.
+Incomplete absence, a foreign branch, and an uncorrelated response remain
+refusals or unclassified evidence. The existing Effect owner retains the
+authorization, physical call, ledger claim, and cleanup. Host plan allowances
+remain responsible for the JSON envelopes, encoded bytes, and saved material.

@@ -216,3 +216,168 @@ pub fn client_program_kintone_key_upsert_observed_request(
     target=@kintone_host.record_key_upsert_before_target(before),
   )
 }
+
+///|
+#export_name("clientProgramKintonePrepareKeyUpsertMapping")
+pub fn client_program_kintone_prepare_key_upsert_mapping(
+  original : @kintone_host.RecordDeclaration,
+  resource : String,
+  key : String,
+  sources : Array[@client_row_source_host.RowMappingSource],
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> Result[
+  @kintone_host.RecordKeyUpsertMapping,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @kintone_host.prepare_record_key_upsert_mapping(
+    original, resource, key, sources, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertMappingBody")
+pub fn client_program_kintone_key_upsert_mapping_body(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  original : @kintone_host.RecordDeclaration,
+) -> Result[String, @client_row_source_host.RowMappingIssue] {
+  if !@kintone_host.record_key_upsert_mapping_matches_declaration(
+      mapping, original,
+    ) {
+    return Err(InvalidSpecification)
+  }
+  Ok(@kintone_host.record_key_upsert_mapping(mapping).body)
+}
+
+///|
+#export_name("clientProgramKintonePrepareKeyUpsertProposal")
+pub fn client_program_kintone_prepare_key_upsert_proposal(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  identity : String,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  lookup_limits : @kintone_catalog.RecordLookupLimits,
+) -> Result[
+  @kintone_host.RecordKeyUpsertProposal,
+  @kintone_host.RecordKeyUpsertExecutionIssue,
+] {
+  @kintone_host.prepare_record_key_upsert_proposal(
+    mapping, identity, bytes, max_input_bytes, write_limits, lookup_limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertProposalLookup")
+pub fn client_program_kintone_key_upsert_proposal_lookup(
+  proposal : @kintone_host.RecordKeyUpsertProposal,
+) -> @kintone_catalog.RecordLookupRequest {
+  @kintone_host.record_key_upsert_proposal_lookup(proposal)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertProposalValueWire")
+pub fn client_program_kintone_key_upsert_proposal_value_wire(
+  proposal : @kintone_host.RecordKeyUpsertProposal,
+) -> String {
+  @kintone_host.record_key_upsert_proposal_value_wire(proposal)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertProposalBefore")
+pub fn client_program_kintone_key_upsert_proposal_before(
+  proposal : @kintone_host.RecordKeyUpsertProposal,
+  observed : @kintone_catalog.RecordLookupObservation,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordKeyUpsertBefore,
+  @kintone_host.RecordKeyUpsertExecutionIssue,
+] {
+  @kintone_host.prepare_record_key_upsert_proposal_before(
+    proposal, observed, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneFinalizeKeyUpsertRequest")
+pub fn client_program_kintone_finalize_key_upsert_request(
+  proposal : @kintone_host.RecordKeyUpsertProposal,
+  before : @kintone_host.RecordKeyUpsertBefore,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordKeyUpsertRequest,
+  @kintone_host.RecordKeyUpsertExecutionIssue,
+] {
+  @kintone_host.prepare_record_key_upsert_request_from_before(
+    proposal, before, write_limits, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertExecutionMatches")
+pub fn client_program_kintone_key_upsert_execution_matches(
+  proposal : @kintone_host.RecordKeyUpsertProposal,
+  before : @kintone_host.RecordKeyUpsertBefore,
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> Bool {
+  @kintone_host.record_key_upsert_execution_matches(proposal, before, request)
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertPhysicalRequest")
+pub fn client_program_kintone_key_upsert_physical_request(
+  request : @kintone_catalog.RecordKeyUpsertRequest,
+) -> Result[(String, String), @kintone_host.RecordKeyUpsertExecutionIssue] {
+  match @kintone_catalog.record_key_upsert_request_operation(request) {
+    Insert => {
+      guard @kintone_catalog.record_key_upsert_create_request(request)
+        is Some(original) else {
+        return Err(SavedRequestMismatch)
+      }
+      Ok(("create", @kintone_catalog.record_create_request_body(original)))
+    }
+    Update => {
+      guard @kintone_catalog.record_key_upsert_update_request(request)
+        is Some(original) else {
+        return Err(SavedRequestMismatch)
+      }
+      Ok(("update", @kintone_catalog.record_update_request_body(original)))
+    }
+  }
+}
+
+///|
+#export_name("clientProgramKintoneRestoreKeyUpsertExecution")
+pub fn client_program_kintone_restore_key_upsert_execution(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  identity : String,
+  bytes : Bytes,
+  target_bytes : Bytes,
+  branch : String,
+  body : String,
+  max_input_bytes : Int,
+  lookup : @kintone_catalog.RecordLookupLimits,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  write : @kintone_catalog.RecordWriteLimits,
+  request_limits : @kintone_catalog.RecordMutationLimits,
+  before_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  (
+    @kintone_host.RecordKeyUpsertProposal,
+    @kintone_host.RecordKeyUpsertBefore,
+    @kintone_catalog.RecordKeyUpsertRequest,
+  ),
+  @kintone_host.RecordKeyUpsertExecutionIssue,
+] {
+  let operation : @kintone_catalog.RecordKeyUpsertOperation = match branch {
+    "create" => Insert
+    "update" => Update
+    _ => return Err(SavedRequestMismatch)
+  }
+  @kintone_host.restore_record_key_upsert_execution(
+    mapping, identity, bytes, target_bytes, operation, body, max_input_bytes, lookup,
+    pages, values, write, request_limits, before_limits,
+  )
+}

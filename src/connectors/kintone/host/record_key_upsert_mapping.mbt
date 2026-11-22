@@ -95,3 +95,13 @@ pub fn record_key_upsert_mapping(
 ) -> @rows.RowMapping {
   value.mapping
 }
+
+///|
+pub fn record_key_upsert_mapping_matches_declaration(
+  value : RecordKeyUpsertMapping,
+  original : RecordDeclaration,
+) -> Bool {
+  value.self is Some(issued) &&
+  physical_equal(value, issued) &&
+  physical_equal(value.original, original)
+}

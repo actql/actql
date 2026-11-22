@@ -6509,7 +6509,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_mapping.mbt",
-      "sha256": "48b0190cf37c725bdab16fecc0f70ba181b15ec71a1d6d21e82217645243bc92",
+      "sha256": "e71b377dcb068e0fbc9ca9df3f0b08201d5c85bdff1f9d8edd5ac037170e83ca",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing original kintone Catalog and Common Relation Mapping Owners",
@@ -6522,6 +6522,10 @@
         {
           "name": "record_key_upsert_mapping",
           "declaration": "record_key_upsert_mapping ( value : RecordKeyUpsertMapping , ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_key_upsert_mapping_matches_declaration",
+          "declaration": "record_key_upsert_mapping_matches_declaration ( value : RecordKeyUpsertMapping , original : RecordDeclaration , ) - > Bool"
         }
       ],
       "contracts": [
@@ -6529,7 +6533,8 @@
           "operations": [
             "<module>",
             "prepare_record_key_upsert_mapping",
-            "record_key_upsert_mapping"
+            "record_key_upsert_mapping",
+            "record_key_upsert_mapping_matches_declaration"
           ],
           "exports": [],
           "attributes": {
@@ -6728,12 +6733,16 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "558ad3cd62a1aa040d15806633f262f4119705085f411d4f4dac2cd6f51dd07c",
+      "sha256": "f9dcdff0b1d5a762403ad6ecb0e21feb1620f90688aaff36d698b0d1d9a07208",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_kintone_finalize_key_upsert_request",
+          "declaration": "client_program_kintone_finalize_key_upsert_request ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
         {
           "name": "client_program_kintone_key_upsert_before",
           "declaration": "client_program_kintone_key_upsert_before ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordReadIssue ]"
@@ -6767,6 +6776,14 @@
           "declaration": "client_program_kintone_key_upsert_create_request ( request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > @ kintone_catalog . RecordCreateRequest ?"
         },
         {
+          "name": "client_program_kintone_key_upsert_execution_matches",
+          "declaration": "client_program_kintone_key_upsert_execution_matches ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_mapping_body",
+          "declaration": "client_program_kintone_key_upsert_mapping_body ( mapping : @ kintone_host . RecordKeyUpsertMapping , original : @ kintone_host . RecordDeclaration , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
           "name": "client_program_kintone_key_upsert_observed_request",
           "declaration": "client_program_kintone_key_upsert_observed_request ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , before : @ kintone_host . RecordKeyUpsertBefore , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
@@ -6787,6 +6804,22 @@
           "declaration": "client_program_kintone_key_upsert_outcome_wire ( outcome : @ kintone_catalog . RecordKeyUpsertEffectOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_key_upsert_physical_request",
+          "declaration": "client_program_kintone_key_upsert_physical_request ( request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Result [ ( String , String ) , @ kintone_host . RecordKeyUpsertExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_before",
+          "declaration": "client_program_kintone_key_upsert_proposal_before ( proposal : @ kintone_host . RecordKeyUpsertProposal , observed : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_lookup",
+          "declaration": "client_program_kintone_key_upsert_proposal_lookup ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > @ kintone_catalog . RecordLookupRequest"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_value_wire",
+          "declaration": "client_program_kintone_key_upsert_proposal_value_wire ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > String"
+        },
+        {
           "name": "client_program_kintone_key_upsert_request",
           "declaration": "client_program_kintone_key_upsert_request ( lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
@@ -6805,6 +6838,18 @@
         {
           "name": "client_program_kintone_key_upsert_uses_lookup",
           "declaration": "client_program_kintone_key_upsert_uses_lookup ( request : @ kintone_catalog . RecordKeyUpsertRequest , lookup : @ kintone_catalog . RecordLookupObservation , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_prepare_key_upsert_mapping",
+          "declaration": "client_program_kintone_prepare_key_upsert_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , key : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_key_upsert_proposal",
+          "declaration": "client_program_kintone_prepare_key_upsert_proposal ( mapping : @ kintone_host . RecordKeyUpsertMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , lookup_limits : @ kintone_catalog . RecordLookupLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertProposal , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_key_upsert_execution",
+          "declaration": "client_program_kintone_restore_key_upsert_execution ( mapping : @ kintone_host . RecordKeyUpsertMapping , identity : String , bytes : Bytes , target_bytes : Bytes , branch : String , body : String , max_input_bytes : Int , lookup : @ kintone_catalog . RecordLookupLimits , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordKeyUpsertProposal , @ kintone_host . RecordKeyUpsertBefore , @ kintone_catalog . RecordKeyUpsertRequest , ) , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
         },
         {
           "name": "client_program_kintone_write_values_json",
@@ -6833,7 +6878,17 @@
             "client_program_kintone_key_upsert_response_uses_request",
             "client_program_kintone_key_upsert_update_request",
             "client_program_kintone_key_upsert_uses_lookup",
-            "client_program_kintone_write_values_json"
+            "client_program_kintone_write_values_json",
+            "client_program_kintone_finalize_key_upsert_request",
+            "client_program_kintone_key_upsert_execution_matches",
+            "client_program_kintone_key_upsert_mapping_body",
+            "client_program_kintone_key_upsert_physical_request",
+            "client_program_kintone_key_upsert_proposal_before",
+            "client_program_kintone_key_upsert_proposal_lookup",
+            "client_program_kintone_key_upsert_proposal_value_wire",
+            "client_program_kintone_prepare_key_upsert_mapping",
+            "client_program_kintone_prepare_key_upsert_proposal",
+            "client_program_kintone_restore_key_upsert_execution"
           ],
           "exports": [],
           "attributes": {
@@ -6983,12 +7038,16 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "e0160454de2affa8d0d9d243f020356462e82da8bbe27df7d44866a0a1718b93",
+      "sha256": "4f52094df9583ebbe32f618c40f6623336788ec23463fed7f9f7d142879b2b27",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_kintone_finalize_key_upsert_request",
+          "declaration": "client_program_kintone_finalize_key_upsert_request ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
         {
           "name": "client_program_kintone_key_upsert_before",
           "declaration": "client_program_kintone_key_upsert_before ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordReadIssue ]"
@@ -7022,6 +7081,14 @@
           "declaration": "client_program_kintone_key_upsert_create_request ( request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > @ kintone_catalog . RecordCreateRequest ?"
         },
         {
+          "name": "client_program_kintone_key_upsert_execution_matches",
+          "declaration": "client_program_kintone_key_upsert_execution_matches ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_mapping_body",
+          "declaration": "client_program_kintone_key_upsert_mapping_body ( mapping : @ kintone_host . RecordKeyUpsertMapping , original : @ kintone_host . RecordDeclaration , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
           "name": "client_program_kintone_key_upsert_observed_request",
           "declaration": "client_program_kintone_key_upsert_observed_request ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , before : @ kintone_host . RecordKeyUpsertBefore , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
@@ -7042,6 +7109,22 @@
           "declaration": "client_program_kintone_key_upsert_outcome_wire ( outcome : @ kintone_catalog . RecordKeyUpsertEffectOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_key_upsert_physical_request",
+          "declaration": "client_program_kintone_key_upsert_physical_request ( request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Result [ ( String , String ) , @ kintone_host . RecordKeyUpsertExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_before",
+          "declaration": "client_program_kintone_key_upsert_proposal_before ( proposal : @ kintone_host . RecordKeyUpsertProposal , observed : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_lookup",
+          "declaration": "client_program_kintone_key_upsert_proposal_lookup ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > @ kintone_catalog . RecordLookupRequest"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_proposal_value_wire",
+          "declaration": "client_program_kintone_key_upsert_proposal_value_wire ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > String"
+        },
+        {
           "name": "client_program_kintone_key_upsert_request",
           "declaration": "client_program_kintone_key_upsert_request ( lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
@@ -7060,6 +7143,18 @@
         {
           "name": "client_program_kintone_key_upsert_uses_lookup",
           "declaration": "client_program_kintone_key_upsert_uses_lookup ( request : @ kintone_catalog . RecordKeyUpsertRequest , lookup : @ kintone_catalog . RecordLookupObservation , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_prepare_key_upsert_mapping",
+          "declaration": "client_program_kintone_prepare_key_upsert_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , key : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_key_upsert_proposal",
+          "declaration": "client_program_kintone_prepare_key_upsert_proposal ( mapping : @ kintone_host . RecordKeyUpsertMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , lookup_limits : @ kintone_catalog . RecordLookupLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertProposal , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_key_upsert_execution",
+          "declaration": "client_program_kintone_restore_key_upsert_execution ( mapping : @ kintone_host . RecordKeyUpsertMapping , identity : String , bytes : Bytes , target_bytes : Bytes , branch : String , body : String , max_input_bytes : Int , lookup : @ kintone_catalog . RecordLookupLimits , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordKeyUpsertProposal , @ kintone_host . RecordKeyUpsertBefore , @ kintone_catalog . RecordKeyUpsertRequest , ) , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
         },
         {
           "name": "client_program_kintone_write_values_json",
@@ -7088,7 +7183,17 @@
             "client_program_kintone_key_upsert_response_uses_request",
             "client_program_kintone_key_upsert_update_request",
             "client_program_kintone_key_upsert_uses_lookup",
-            "client_program_kintone_write_values_json"
+            "client_program_kintone_write_values_json",
+            "client_program_kintone_finalize_key_upsert_request",
+            "client_program_kintone_key_upsert_execution_matches",
+            "client_program_kintone_key_upsert_mapping_body",
+            "client_program_kintone_key_upsert_physical_request",
+            "client_program_kintone_key_upsert_proposal_before",
+            "client_program_kintone_key_upsert_proposal_lookup",
+            "client_program_kintone_key_upsert_proposal_value_wire",
+            "client_program_kintone_prepare_key_upsert_mapping",
+            "client_program_kintone_prepare_key_upsert_proposal",
+            "client_program_kintone_restore_key_upsert_execution"
           ],
           "exports": [],
           "attributes": {
@@ -8756,6 +8861,300 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Installation verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/host/kintone-key-upsert-request.mjs",
+      "sha256": "ce9ecc03188afa472d27d894d5e23b6718e3204653875e418642be09b745f201",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Original Kintone keyed UPSERT request and saved material projection",
+      "exports": [
+        "createKintoneKeyUpsertRequestAdapter"
+      ],
+      "operations": [
+        {
+          "name": "capture/capture",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "origin",
+            "appId",
+            "connectorId",
+            "resource",
+            "siteBindingCid",
+            "generationCid",
+            "guestSpaceId",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/createKintoneKeyUpsertRequestAdapter",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/get/get",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:assertFinalized/init:assertFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:finalize/init:finalize",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:prepare/init:prepare",
+          "parameters": [
+            "value",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:projectTarget/init:projectTarget",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:recheckForm/init:recheckForm",
+          "parameters": [
+            "request",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:requestCid/init:requestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:restore/init:restore",
+          "parameters": [
+            "wire",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:restore/init:restore/init:restore",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:savedWire/init:savedWire",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:targetReadBody/init:targetReadBody",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/init:writeRequest/init:writeRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/native/native",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneKeyUpsertRequestAdapter/target/target",
+          "parameters": [
+            "before",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "digest/digest",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../../packages/sdk/internal/data.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../site/kintone-record-write.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/capture",
+            "closed/closed",
+            "closed/closed#2",
+            "createKintoneKeyUpsertRequestAdapter",
+            "createKintoneKeyUpsertRequestAdapter/createKintoneKeyUpsertRequestAdapter",
+            "createKintoneKeyUpsertRequestAdapter/get/get",
+            "createKintoneKeyUpsertRequestAdapter/init:assertFinalized/init:assertFinalized",
+            "createKintoneKeyUpsertRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+            "createKintoneKeyUpsertRequestAdapter/init:finalize/init:finalize",
+            "createKintoneKeyUpsertRequestAdapter/init:prepare/init:prepare",
+            "createKintoneKeyUpsertRequestAdapter/init:projectResponse/init:projectResponse",
+            "createKintoneKeyUpsertRequestAdapter/init:projectTarget/init:projectTarget",
+            "createKintoneKeyUpsertRequestAdapter/init:recheckForm/init:recheckForm",
+            "createKintoneKeyUpsertRequestAdapter/init:requestCid/init:requestCid",
+            "createKintoneKeyUpsertRequestAdapter/init:requestFacts/init:requestFacts",
+            "createKintoneKeyUpsertRequestAdapter/init:restore/init:restore",
+            "createKintoneKeyUpsertRequestAdapter/init:restore/init:restore/init:restore",
+            "createKintoneKeyUpsertRequestAdapter/init:savedWire/init:savedWire",
+            "createKintoneKeyUpsertRequestAdapter/init:targetReadBody/init:targetReadBody",
+            "createKintoneKeyUpsertRequestAdapter/init:writeRequest/init:writeRequest",
+            "createKintoneKeyUpsertRequestAdapter/native/native",
+            "createKintoneKeyUpsertRequestAdapter/target/target",
+            "digest/digest"
+          ],
+          "exports": [
+            "createKintoneKeyUpsertRequestAdapter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The Node request carrier holds the exact functions of its original Common"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The carrier returns exactly one physical POST or revision-checked PUT request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Its finalized identity includes the original row tag, lookup-response digest,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "authorization, physical call, ledger claim, and cleanup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "the original before-state but cannot replace it."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Incomplete absence, a foreign branch, and an uncorrelated response remain"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous request data projection does not own a physical operation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "remain responsible for the JSON envelopes, encoded bytes, and saved material."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "same bridge for this projection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/kintone-key-upsert-request.test.mjs",
+                "anchor": "keyed UPSERT refuses unstable Form, incomplete absence and a rehashed opposite saved branch"
               }
             ]
           }
