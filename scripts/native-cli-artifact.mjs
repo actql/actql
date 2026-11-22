@@ -204,7 +204,9 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     abi.httpLibraryBundled = true;
     delete abi.httpLibraryRequirements;
     httpRuntime = {library: remoteHttp.path, provider: 'verified-package-member',
-      sha256: remoteHttp.sha256, bytes: remoteHttp.bytes, dependencies: remoteHttp.dependencies, abi: remoteHttp.abi};
+      sha256: remoteHttp.sha256, bytes: remoteHttp.bytes, dependencies: remoteHttp.dependencies, abi: remoteHttp.abi,
+      preparationSource: localRuntime.remoteHttpPreparation.source,
+      preparationSha256: localRuntime.remoteHttpPreparation.sha256};
   } else if (platform === 'linux-x64-gnu') {
     const library = run('ldconfig', ['-p']).split('\n').find(line => /libcurl\.so\.4 .*x86-64.*=> /u.test(line))?.split('=> ')[1]?.trim();
     assert(library, 'No x64 libcurl.so.4 runtime available for the declared distribution');
