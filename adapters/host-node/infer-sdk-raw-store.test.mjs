@@ -157,10 +157,24 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
   if (deferredRaw) {
     // The Core/registration ports remain doubles. This joins the real pinned
     // SDK and encrypted Store through the actual operation's private binder.
-    moon.clientProgramStartOpenAIChatProjection=()=>({$tag:1,_0:{}});
-    moon.clientProgramAdvanceOpenAIChatProjection=()=>({$tag:1,_0:++projectionSteps===2?
-      {_0:input,_1:projectedInput,_2:JSON.stringify(schema),_3:'task',_4:'prompt',_5:'schema',_6:'fixture-chat'}:undefined});
-    moon.clientProgramRetireOpenAIChatProjection=()=>{};
+    const cursor = Object.freeze({});
+    const projected = {_0: input, _1: projectedInput, _2: JSON.stringify(schema),
+      _3: 'task', _4: 'prompt', _5: 'schema', _6: 'fixture-chat'};
+    moon.clientProgramStartOpenAIChatProjection=()=>({$tag:1,_0:cursor});
+    moon.clientProgramAdvanceOpenAIChatProjection=actual=>{
+      assert.equal(actual, cursor);
+      return {$tag:1,_0:++projectionSteps===2 ? projected : undefined};
+    };
+    moon.clientProgramFinishOpenAIChatSdkV4Projection=(actual, model, maxRequestBytes)=>{
+      assert.equal(actual, cursor);
+      assert.equal(projectionSteps, 2);
+      assert.equal(model, 'gpt-4.1-nano');
+      assert.equal(maxRequestBytes, 4096);
+      return {$tag:1,_0:{...projected,_7:JSON.stringify({model,temperature:0.25,top_p:0.875,
+        max_tokens:16,messages:[{role:'system',content:input},{role:'user',content:projectedInput}],
+        response_format:{type:'json_schema',json_schema:{schema,strict:true,name:'actql_output'}}})}};
+    };
+    moon.clientProgramRetireOpenAIChatProjection=actual=>assert.equal(actual, cursor);
     moon.clientProgramModelRequestGeneration=()=>({_0:'fixture-chat',_1:0.25,_2:0.875,_3:16n,_4:undefined});
   }
   const port = deferredRaw ? createAdmittedOpenAIChatPreflight({...physicalOptions,
@@ -228,12 +242,12 @@ test('joined fixed SDK and original encrypted Store preserve exact raw bytes acr
 });
 
 test('joined actual raw reader close failure blocks SDK cleanup until the same FD closes', {timeout: 5000}, async t => {
-  let original, prototype, createReadStream;
+  let original, prototype, read;
   let originalCleanup;
   let closeAttempts = 0, captures = 0;
   const failure = Object.assign(new Error('OriginalRawReaderClosePending'), {code: 'EIO'});
   const restore = () => {
-    if (prototype !== undefined) prototype.createReadStream = createReadStream;
+    if (prototype !== undefined) prototype.read = read;
   };
   const f = await joinedFixture(t, {physicalFor: fixture => ({...fixture.physical,
     async confirmModelRawEvidence(...args) {
@@ -248,22 +262,23 @@ test('joined actual raw reader close failure blocks SDK cleanup until the same F
     const [name] = await readdir(objects);
     const probe = await open(join(objects, name), 'r');
     prototype = Object.getPrototypeOf(probe);
-    createReadStream = prototype.createReadStream;
+    read = prototype.read;
     await probe.close();
     // Fault only the actual consumeObject FD. Verification/metadata readers
     // retain their own scope; no fake cleanup handle is supplied to the port.
-    prototype.createReadStream = function(options) {
+    prototype.read = function(...args) {
       if (captures === 0 && new Error().stack.includes('at consumeObject ')) {
         captures++;
         original = this;
         const close = this.close;
+        restore();
         this.close = function() {
           closeAttempts++;
           if (closeAttempts <= 2) return Promise.reject(failure);
           return Reflect.apply(close, this, []);
         };
       }
-      return Reflect.apply(createReadStream, this, [options]);
+      return Reflect.apply(read, this, args);
     };
   }});
   t.after(async () => {
