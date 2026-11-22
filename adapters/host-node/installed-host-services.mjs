@@ -26,6 +26,7 @@ import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNam
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledSourcePhysicalConstruction} from './installed-source-physical-construction.mjs';
+import {createInstalledSourceMaterialAccounting} from './installed-source-material-accounting.mjs';
 
 const sourceNativeThen = Promise.prototype.then;
 const installations = new WeakMap();
@@ -148,145 +149,9 @@ function sourceCall(original, material, name, args) {
   finally {material.busy = false;}
 }
 
-// This is only a bound view of the SAME original Core material. The existing
-// file owner retains its operation tokens and sole physical close/retry duty.
-function sourceIo(original, material) {
-  if (material.io !== undefined) return material.io;
-  const io = Object.freeze({
-    begin(bytes) {
-      if (this !== io) fail('ForeignInstalledSourceIo');
-      if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
-      return sourceCall(original, material, 'BeginInstalledSourceIo', [material.capacity, material.input, bytes]);
-    },
-    charge(operation, bytes) {
-      if (this !== io) fail('ForeignInstalledSourceIo');
-      return sourceCall(original, material, 'ChargeInstalledSourceIo', [operation, bytes]);
-    },
-    uncertain(operation) {
-      if (this !== io) fail('ForeignInstalledSourceIo');
-      return sourceCall(original, material, 'MarkInstalledSourceIoTransferUncertain', [operation]);
-    },
-    finish(operation) {
-      if (this !== io) fail('ForeignInstalledSourceIo');
-      return sourceCall(original, material, 'FinishInstalledSourceIoAfterCleanup', [operation]);
-    },
-  });
-  material.io = io;
-  return io;
-}
-
-function sourceCapacityQuote(original, material, values, pendingProvider) {
-  let base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
-  if (material.providers.length === 0 && pendingProvider === undefined) return base;
-  if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
-    fail('InstalledSourceInitializationRuntimeUnavailable');
-  }
-  // A pure pending quote has not entered its native constructor. Fold its
-  // fixed singleton before admission without registering ungranted DATA or
-  // copying the retained provider population. Failed admitted prefixes stay.
-  if (pendingProvider !== undefined) {
-    base = sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, [pendingProvider]]);
-  }
-  if (material.providers.length === 0) return base;
-  return sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, material.providers]);
-}
-
-function sourceQuote(original, material, nodes = 0n, text = 0n, wire = 0n) {
-  return sourceCapacityQuote(original, material,
-    [material.nodes, material.text, material.wire, nodes, text, wire]);
-}
-
-function releaseFinishedSourceWorkspaces(material) {
-  for (const workspace of material.workspaces) {
-    if (!workspace.finished || typeof workspace.cleanup?.method !== 'function') continue;
-    try {
-      const value = Reflect.apply(workspace.cleanup.method, workspace.cleanup.handle, []);
-      if (Object.getOwnPropertyDescriptor(value ?? {}, 'pending')?.value === false) {
-        material.workspaces.delete(workspace);
-      }
-    } catch { /* An unknown original cleanup state keeps its full workspace. */ }
-  }
-}
-
-function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained, pendingProvider) {
-  if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
-  releaseFinishedSourceWorkspaces(material);
-  let activeNodes = nodes, activeText = text, activeWire = wire;
-  let retainedNodes = retained?.nodes ?? nodes, retainedText = retained?.text ?? text,
-    retainedWire = retained?.wire ?? wire;
-  for (const active of material.workspaces) {
-    if (active === workspace) continue;
-    activeNodes += active.nodes; activeText += active.text; activeWire += active.wire;
-    retainedNodes += active.retained?.nodes ?? active.nodes;
-    retainedText += active.retained?.text ?? active.text;
-    retainedWire += active.retained?.wire ?? active.wire;
-  }
-  // Every live original constructor overlaps the completed prefix AND all
-  // other active/failed native workspaces. Replace only this read's extent,
-  // after the same parent has admitted the complete simultaneous quantities.
-  const quote = sourceCapacityQuote(original, material,
-    [material.nodes + retainedNodes, material.text + retainedText, material.wire + retainedWire,
-      activeNodes, activeText, activeWire], pendingProvider);
-  sourceCall(original, material, 'ReserveInstalledSourceConstruction',
-    [material.capacity, material.input, quote]);
-  if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});
-}
-
-function reconcileSource(original, material) {
-  releaseFinishedSourceWorkspaces(material);
-  if (material.workspaces.size !== 0) {
-    // Core reconciliation is retained-only. Until every native child has
-    // actually closed, keep the admitted high-water debit instead of shrinking
-    // beneath a sibling's buffers or a failed original cleanup.
-    reserveSource(original, material);
-    return;
-  }
-  sourceCall(original, material, 'ReconcileInstalledSourceConstruction',
-    [material.capacity, material.input, sourceQuote(original, material)]);
-}
-
-function retainSourceFailure(material, cause, workspace) {
-  // Observe only the existing physical cleanup owner's status. Its original
-  // retry remains with installed-host-cleanup; this adds no FD retry engine.
-  const handle = Object.getOwnPropertyDescriptor(Object(cause), 'cleanupHandle')?.value;
-  let child;
-  if (handle !== undefined) {
-    const method = Object.getOwnPropertyDescriptor(handle, 'status')?.value;
-    child = {handle, method};
-  } else if (Object.getOwnPropertyDescriptor(Object(cause), 'cleanupPending')?.value === true) {
-    child = {handle: undefined, method: undefined};
-  }
-  if (child !== undefined) material.cleanup.push(child);
-  if (workspace !== undefined) {
-    workspace.finished = true;
-    workspace.cleanup = child;
-    if (child === undefined) material.workspaces.delete(workspace);
-  }
-}
-
-// Invalid asynchronous construction never becomes an admitted projection.
-// Its SAME Source borrow nevertheless remains pending until the actual native
-// computation settles. No later completion repairs the original refusal.
-function requireSynchronousSourceConstruction(material, value) {
-  if (!nodeTypes.isPromise(value)) return value;
-  material.inputs.push(value);material.ioPending++;
-  const settle = (result, failed) => {
-    try {
-      material.inputs.push(result);
-      if (failed) retainSourceFailure(material, result);
-    } catch {material.cleanup.push({handle: undefined, method: undefined});}
-    finally {material.ioPending--;}
-  };
-  try {
-    const joined = Reflect.apply(sourceNativeThen, value,
-      [result => settle(result, false), cause => settle(cause, true)]);
-    material.inputs.push(joined);
-  } catch {
-    // Native observation itself failed: retain the pending original borrow.
-    material.cleanup.push({handle: undefined, method: undefined});
-  }
-  fail('InstalledSourceConstructorNotSynchronous');
-}
+const {sourceIo, sourceQuote, releaseFinishedSourceWorkspaces, reserveSource, reconcileSource,
+  retainSourceFailure, requireSynchronousSourceConstruction} =
+  createInstalledSourceMaterialAccounting({fail, sourceCall, sourceNativeThen});
 
 function sourceProjectionMethods(projection) {
   if (!projection || nodeTypes.isProxy(projection) || !Object.isFrozen(projection)) fail('InvalidInstalledSourceCommandProjection');

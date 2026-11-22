@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9eb62522f8f7ad7d8165bcc7f8703329ab920306e656874ad439ce33ccfd00c5",
+      "sha256": "3cf434ce75d988cc84905902bcf5cf581b3800f29c4ab4a3f62ab4478c4ad4a9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -135314,20 +135314,6 @@
           "async": true
         },
         {
-          "name": "requireSynchronousSourceConstruction/joined/joined",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireSynchronousSourceConstruction/joined/joined#2",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "reserveInstalledSourceEnvironment",
           "parameters": [
             "services",
@@ -135356,20 +135342,6 @@
             "path"
           ],
           "async": true
-        },
-        {
-          "name": "reserveSource",
-          "parameters": [
-            "original",
-            "material",
-            "nodes",
-            "text",
-            "wire",
-            "workspace",
-            "retained",
-            "pendingProvider"
-          ],
-          "async": false
         },
         {
           "name": "retainBoundInstalledSourceFailure",
@@ -135430,35 +135402,6 @@
           "async": false
         },
         {
-          "name": "sourceIo/io/init:begin/init:begin",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceIo/io/init:charge/init:charge",
-          "parameters": [
-            "operation",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceIo/io/init:finish/init:finish",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceIo/io/init:uncertain/init:uncertain",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceProjectionMethods/sourceProjectionMethods",
           "parameters": [
             "name"
@@ -135488,6 +135431,7 @@
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-construction-geometry.mjs",
+        "./installed-source-material-accounting.mjs",
         "./installed-source-physical-construction.mjs",
         "./installed-table-effect.mjs",
         "./installed-table-source.mjs",
@@ -136186,8 +136130,6 @@
             "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
             "installedSourceConfigurationReader/reader/init:readText/init:readText",
             "prepareInstalledSourceAcquisitionContracts",
-            "requireSynchronousSourceConstruction/joined/joined",
-            "requireSynchronousSourceConstruction/joined/joined#2",
             "reserveInstalledSourceEnvironment",
             "reserveInstalledSourceRuntimeIdentity",
             "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
@@ -136195,14 +136137,9 @@
             "retainInstalledSourceConstruction",
             "retireInstalledSourceInitialization",
             "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
-            "sourceIo/io/init:begin/init:begin",
-            "sourceIo/io/init:charge/init:charge",
-            "sourceIo/io/init:finish/init:finish",
-            "sourceIo/io/init:uncertain/init:uncertain",
             "sourceProjectionMethods/sourceProjectionMethods",
             "withInstalledSourceLoading",
             "fail/fail",
-            "reserveSource",
             "sourceCall"
           ],
           "exports": [
@@ -137200,6 +137137,260 @@
         }
       ],
       "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
+    },
+    {
+      "module": "adapters/host-node/installed-source-material-accounting.mjs",
+      "sha256": "be81a0088db3e4660bf9c2ea7b3ccb0c685bac1c296fe0c4504c174fc4bec548",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "createInstalledSourceMaterialAccounting"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledSourceMaterialAccounting",
+          "parameters": [
+            "reject",
+            "sourceCall",
+            "sourceNativeThen"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reconcileSource",
+          "parameters": [
+            "original",
+            "material"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/releaseFinishedSourceWorkspaces",
+          "parameters": [
+            "material"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction",
+          "parameters": [
+            "material",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/reserveSource",
+          "parameters": [
+            "original",
+            "material",
+            "nodes",
+            "text",
+            "wire",
+            "workspace",
+            "retained",
+            "pendingProvider"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/retainSourceFailure",
+          "parameters": [
+            "material",
+            "cause",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceIo",
+          "parameters": [
+            "original",
+            "material"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceIo/io/init:begin/init:begin",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceIo/io/init:charge/init:charge",
+          "parameters": [
+            "operation",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceIo/io/init:finish/init:finish",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceIo/io/init:uncertain/init:uncertain",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceMaterialAccounting/sourceQuote",
+          "parameters": [
+            "original",
+            "material",
+            "nodes",
+            "text",
+            "wire"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledSourceMaterialAccounting",
+            "createInstalledSourceMaterialAccounting/reconcileSource",
+            "createInstalledSourceMaterialAccounting/releaseFinishedSourceWorkspaces",
+            "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction",
+            "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined",
+            "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined#2",
+            "createInstalledSourceMaterialAccounting/reserveSource",
+            "createInstalledSourceMaterialAccounting/retainSourceFailure",
+            "createInstalledSourceMaterialAccounting/sourceIo",
+            "createInstalledSourceMaterialAccounting/sourceIo/io/init:begin/init:begin",
+            "createInstalledSourceMaterialAccounting/sourceIo/io/init:charge/init:charge",
+            "createInstalledSourceMaterialAccounting/sourceIo/io/init:finish/init:finish",
+            "createInstalledSourceMaterialAccounting/sourceIo/io/init:uncertain/init:uncertain",
+            "createInstalledSourceMaterialAccounting/sourceQuote"
+          ],
+          "exports": [
+            "createInstalledSourceMaterialAccounting"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "export function createInstalledSourceMaterialAccounting"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function sourceIo"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function sourceQuote"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function reserveSource"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "if (this !== io) fail('ForeignInstalledSourceIo');"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceCall, sourceNativeThen})"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function releaseFinishedSourceWorkspaces"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function requireSynchronousSourceConstruction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function retainSourceFailure"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "fail('InstalledSourceConstructorNotSynchronous');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The existing Host retires the original material and its physical children. This accounting observes their original cleanup state synchronously."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "const quote = sourceCapacityQuote(original, material,"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function reconcileSource"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-bound-construction-failures.actual.test.mjs",
+                "anchor": "failed native workspace stays on its original parent while completed workspace returns"
+              },
+              {
+                "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
+                "anchor": "JSON configuration construction admits a large String on the unchanged original parent"
+              }
+            ]
+          }
+        }
+      ],
+      "rationale": "The original installed Host service accounts for physical metadata I/O, concurrent construction workspaces and the original cleanup state through the same Source material."
     },
     {
       "module": "adapters/host-node/installed-source-physical-construction.mjs",
