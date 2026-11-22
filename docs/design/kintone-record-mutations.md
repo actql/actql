@@ -785,3 +785,30 @@ not funding or cleanup evidence. The same existing capture/Source/Effect owners
 retain physical reads, permission, claim, cancellation and cleanup. Node and
 RelA expose these original DATA values without a second owner or saved-state
 reconstruction policy.
+
+### Keyed UPSERT Mapping
+
+The kintone Catalog and Common Relation Mapping own the original Form key and
+checked write fields. The Form must admit the selected field as a writable,
+provider-enforced `SINGLE_LINE_TEXT` lookup key. The same lookup-key admission
+checks the field code used in physical query preparation.
+
+The Mapping records the natural key as `primary_identity` and keeps the
+resource identity on the provider's native `$id`. Common resolves the
+`upsert` permission rule by the exact `key` selector and full written-field set.
+The rule requires both the existing create and update permissions. The
+selector supplies the key at insertion and all other required Form fields
+must have admitted sources.
+
+Construction borrows the same original declaration and Form and emits a
+bounded, synchronous DATA projection. The Mapping carries no lookup result.
+Missing, nullable or nonunique keys, unavailable write fields and invalid
+permission or resource-identity facts refuse the original construction.
+Cancellation and cleanup of the later request stay with its physical owner.
+
+The original text, selected field inventories and canonical Mapping writer
+need their existing construction custody. An installed connection must quote
+the actual Mapping and subsequent lookup and request work before allocating it.
+Both physical branches still require the original selected authorization,
+current Preview and claim. The focused Host and Common controls verify
+Form selection, exact permissions and distinct physical identity.

@@ -1,16 +1,23 @@
 ///|
-fn key_before_catalog() -> @catalog.FormFieldCatalog {
-  @catalog.project_form_fields(
-    b"{\"revision\":\"7\",\"properties\":{\"customer_code\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"customer_code\",\"expression\":\"\",\"unique\":true,\"required\":true},\"memo\":{\"type\":\"MULTI_LINE_TEXT\",\"code\":\"memo\",\"required\":false},\"Tags\":{\"type\":\"MULTI_SELECT\",\"code\":\"Tags\",\"required\":false},\"Computed\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"Computed\",\"expression\":\"\\\"server\\\"\"},\"Extra\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"Extra\",\"expression\":\"\",\"required\":false}}}",
-    "12",
-    {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 16,
-      max_fields: 10,
-      max_name_units: 1000,
-    },
-  ).unwrap()
+fn key_before_catalog(
+  memo_required? : Bool = false,
+) -> @catalog.FormFieldCatalog {
+  let body = "{\"revision\":\"7\",\"properties\":{\"customer_code\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"customer_code\",\"expression\":\"\",\"unique\":true,\"required\":true},\"memo\":{\"type\":\"MULTI_LINE_TEXT\",\"code\":\"memo\",\"required\":false},\"Tags\":{\"type\":\"MULTI_SELECT\",\"code\":\"Tags\",\"required\":false},\"Computed\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"Computed\",\"expression\":\"\\\"server\\\"\"},\"Extra\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"Extra\",\"expression\":\"\",\"required\":false}}}"
+  let body = if memo_required {
+    body.replace(
+      old="\"code\":\"memo\",\"required\":false",
+      new="\"code\":\"memo\",\"required\":true",
+    )
+  } else {
+    body
+  }
+  @catalog.project_form_fields(@utf8.encode(body), "12", {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_fields: 10,
+    max_name_units: 1000,
+  }).unwrap()
 }
 
 ///|
@@ -277,5 +284,73 @@ test "keyed UPSERT before preserves declaration snapshot and refuses foreign inc
       target=record_key_upsert_before_target(foreign),
     )
     is Err(InvalidLookup),
+  )
+}
+
+///|
+test "keyed UPSERT Mapping binds the original Form key and both permissions, preserving native identity" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let sources : Array[@rows.RowMappingSource] = [
+    { target: "memo", field: "next_memo", null_behavior: "reject", },
+  ]
+  let limits = delete_declaration_limits()
+  let mapped = prepare_record_key_upsert_mapping(
+    original, "customers", "customer_code", sources, limits,
+  ).unwrap()
+  let update = prepare_record_update_mapping(
+    original, "customers", sources, "required", limits,
+  ).unwrap()
+  guard @json.parse(mapped.body) is Object(body) &&
+    @json.parse(record_update_mapping(update).body) is Object(update_body) else {
+    fail("Original Mapping body required")
+  }
+  assert_eq(body.get("primary_identity"), Some("customer_code".to_json()))
+  assert_eq(
+    body.get("resource_identity_cid"),
+    update_body.get("resource_identity_cid"),
+  )
+  assert_eq(body.get("minimum_approval"), Some("required".to_json()))
+  assert_eq(body.get("required_fields"), Some((["memo"] : Json)))
+  assert_eq(body.get("writable_fields"), Some((["memo"] : Json)))
+  assert_eq(
+    body.get("permission_rules"),
+    Some(
+      (
+        [
+          {
+            "effect_kind": "upsert",
+            "selector_class": "key",
+            "write_fields": ["memo"],
+            "permissions": ["kintone:records:create", "kintone:records:update"],
+          },
+        ] : Json),
+    ),
+  )
+  assert_eq(mapped.write_fields, ["memo"])
+  assert_true(
+    prepare_record_key_upsert_mapping(
+      original, "customers", "memo", sources, limits,
+    )
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_record_key_upsert_mapping(
+      original,
+      "customers",
+      "customer_code",
+      [],
+      limits,
+    )
+    is Err(MissingRequiredField("memo")),
+  )
+  assert_true(
+    prepare_record_key_upsert_mapping(
+      original,
+      "customers",
+      "customer_code",
+      [{ target: "Computed", field: "computed", null_behavior: "reject", }],
+      limits,
+    )
+    is Err(FieldNotWritable("Computed")),
   )
 }

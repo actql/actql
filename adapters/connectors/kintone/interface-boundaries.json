@@ -1122,7 +1122,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_lookup.mbt",
-      "sha256": "3ec90356d629f1f6b57c13639a338b8bd8cf82080ec0048a98602090a619c43e",
+      "sha256": "6f9c98f2343ff2aaf0371393a635559e4d099a5a674b16f38c723ccf703d077a",
       "exports": [],
       "operations": [
         {
@@ -1180,6 +1180,10 @@
         {
           "name": "record_lookup_request_uses_catalog",
           "declaration": "record_lookup_request_uses_catalog ( request : RecordLookupRequest , catalog : FormFieldCatalog , ) - > Bool"
+        },
+        {
+          "name": "require_record_text_lookup_key",
+          "declaration": "require_record_text_lookup_key ( catalog : FormFieldCatalog , key : String , ) - > Result [ Unit , RecordLookupIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -1201,7 +1205,8 @@
             "record_lookup_request_body",
             "record_lookup_request_uses_catalog",
             "recheck_record_lookup_form",
-            "record_lookup_request_app_id"
+            "record_lookup_request_app_id",
+            "require_record_text_lookup_key"
           ],
           "exports": [],
           "attributes": {
@@ -6491,6 +6496,91 @@
               {
                 "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
                 "anchor": "keyed UPSERT before retains full present original and reuses exact target in native UPDATE"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_key_upsert_mapping.mbt",
+      "sha256": "8ccf2ef56df008a14bfd354a0a06f6a1c7e49403b5ea1a81b1adc262bbfd7728",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing original kintone Catalog and Common Relation Mapping Owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_key_upsert_mapping",
+          "declaration": "prepare_record_key_upsert_mapping ( original : RecordDeclaration , resource : String , key : String , sources : Array [ @ rows . RowMappingSource ] , limits : @ rows . RowDeclarationLimits , ) - > Result [ @ rows . RowMapping , @ rows . RowMappingIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_key_upsert_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The kintone Catalog and Common Relation Mapping own the original Form key"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The Form must admit the selected field"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The Mapping records the natural key as `primary_identity`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Construction borrows the same original declaration and Form"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "bounded, synchronous DATA projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Missing, nullable or nonunique keys, unavailable write fields"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Cancellation and cleanup of the later request stay with its physical owner."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The original text, selected field inventories and canonical Mapping writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Both physical branches still require the original selected authorization"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Form selection, exact permissions and distinct physical identity."
               }
             ]
           }
