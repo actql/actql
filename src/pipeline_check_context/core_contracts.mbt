@@ -653,7 +653,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     ValuesWireLaw =>
       "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f"
     ValuesExecutionRules =>
-      "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae"
+      "sha256:acdc65097f478d6b14126eb2d2e1bdd8df5893de923b3f9db7412b73b4a318fe"
     BoundTransferRules =>
       "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
     RelationCountRules =>
@@ -674,7 +674,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     SeriesCountRules =>
       "sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05"
     LocalSnapshotRules =>
-      "sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a"
+      "sha256:2525cf415e21053e77b5fb4fc199ea47617c4ddf5f6d1938dd0463a7f84961e4"
     LocalSourceReferenceRules =>
       "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
     LocalInputType(cid) | LocalInputScores(cid) => cid

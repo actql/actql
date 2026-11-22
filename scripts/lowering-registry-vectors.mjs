@@ -92,7 +92,8 @@ function nativeSourceEnvironment(text, name, advertisedContracts) {
     // These fixtures explicitly select the same query evidence roles. Refresh
     // their normative bodies, not the Source subject or an issued observation.
     assert.equal(capability.capability_contract_cids.length, advertisedContracts.length);
-    capability.capability_contract_cids = advertisedContracts.map(name => machineCid(queryContracts.get(name)));
+    capability.capability_contract_cids = advertisedContracts
+      .map(name => machineCid(queryContracts.get(name))).sort();
   }
   preimage.connector_capabilities.sort((a, b) => {
     const left = machineCid(a), right = machineCid(b);
@@ -145,6 +146,18 @@ function nativeSourceAcquisitionContracts() {
   // its Environment; callers retain that same original instead of stale CIDs.
   return body;
 }
+function nativeRowCaptureContracts(path) {
+  let body = nativeSourceContracts(path, 'capture_fixture');
+  for (const [field, contractName] of [
+    ['query', 'actql-query-acquisition'], ['evidence', 'actql-query-process-evidence'],
+  ]) {
+    const pattern = new RegExp(`(let capture_fixture_${field}_contract : String = )"[^\\n]+"`, 'g');
+    assert.equal([...body.matchAll(pattern)].length, 1, `${path}: ${field}`);
+    const wire = JSON.stringify(queryContracts.get(contractName));
+    body = body.replace(pattern, (_, declaration) => declaration + JSON.stringify(wire));
+  }
+  return body;
+}
 function installedConsumerContracts(alias, name) {
   return consumerLines.join('\n') + `
 
@@ -159,7 +172,9 @@ fn ${name}() -> @${alias}.ClientInstalledSequenceContracts raise {
 }
 `;
 }
+const nativeRowCapture = 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt';
 for (const [path, body] of [
+  [nativeRowCapture, nativeRowCaptureContracts(nativeRowCapture)],
   ['src/client_local_host/resident_source_query_regression_wbtest.mbt',
     nativeSourceContracts('src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original')],
   ['src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt',

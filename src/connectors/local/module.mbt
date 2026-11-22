@@ -401,6 +401,59 @@ pub fn local_module_metered_output_start_capacity(
 }
 
 ///|
+// This closed unkeyed group reads one original Text cell and one row count.
+// ANY_VALUE keeps at most one borrowed non-NULL cell. The bounded group child
+// retains its full output allowance and retires scratch before its successor.
+fn local_module_borrowed_text_singleton_group(
+  kernel : @lower.PreparedKernel,
+) -> Bool {
+  let input = @lower.kernel_input_schema(kernel)
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    !@lower.group_is_window(group) &&
+    @lower.group_key_count(group) == 0 &&
+    @schema.all_fields_required(input) &&
+    @schema.field_count(input) == 1 &&
+    @schema.field_at(input, 0) is Some(field) &&
+    @schema.field_contract(field).shape is @contract.Text(_) &&
+    @lower.group_aggregate_count(group) == 2 else {
+    return false
+  }
+  let mut saw_value = false
+  let mut saw_count = false
+  for index in 0..<2 {
+    guard @lower.group_aggregate_at(group, index) is Some(aggregate) &&
+      @lower.group_aggregate_filter(aggregate) is None &&
+      @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+      @lower.group_aggregate_order_count(aggregate) == 0 else {
+      return false
+    }
+    match
+      (
+        @lower.group_aggregate_function(aggregate),
+        @lower.group_aggregate_argument(aggregate),
+      ) {
+      (@relation.AnyValue, @lower.AggregateField(_)) =>
+        saw_value = @lower.group_aggregate_result(aggregate).shape
+          is @contract.Text(_)
+      (@relation.Count, @lower.AggregateRows) =>
+        saw_count = @lower.group_aggregate_result(aggregate).shape
+          is @contract.Number
+      _ => return false
+    }
+  }
+  saw_value && saw_count
+}
+
+///|
+fn local_default_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+  if @lower.inner_join_kind(@lower.join_kernel_profile(kernel)) == @join.Semi {
+    @execution.bounded_join_borrows_input(kernel)
+  } else {
+    selected_join_borrows_carried_values(kernel)
+  }
+}
+
+///|
 fn local_module_default_output_start_capacity(
   installed : LocalComputeModule,
   slot : Int,
@@ -460,8 +513,7 @@ fn local_module_default_output_start_capacity(
   }
   let borrowed_join = count == 1 &&
     (match @execution.generated_sequence_step_at(sequence, 0) {
-      Some(@lower.JoinStep(kernel)) =>
-        selected_join_borrows_carried_values(kernel)
+      Some(@lower.JoinStep(kernel)) => local_default_join_borrows_input(kernel)
       _ => false
     })
   if count == 1 &&
@@ -585,7 +637,7 @@ fn local_module_default_output_start_capacity(
   for index in 0..<count {
     if @execution.generated_sequence_step_at(sequence, index)
       is Some(@lower.JoinStep(kernel)) {
-      if !selected_join_borrows_carried_values(kernel) {
+      if !local_default_join_borrows_input(kernel) {
         append_chain = false
       }
     }
@@ -679,7 +731,7 @@ fn local_module_default_output_start_capacity(
         // The same bounded JOIN child funds every complete output row before
         // commit, including inside a reclaimed Relation chain. Admit only
         // required scalar input/output cells here. Text requires the same
-        // INNER JOIN borrowed-cell/charged-comparison proof; other DATA keeps
+        // borrowed-cell proof under the checked Join kind; other DATA keeps
         // its full prepaid lifecycle. This changes no comparison or row bound.
         if count > 1 {
           let prepared = @lower.bound_preparation(
@@ -826,6 +878,15 @@ fn local_module_default_output_start_capacity(
         // storage remain in the bounded constructor quote. Keep full R while
         // this original ACK-qualified chain replaces the absent legacy table.
         metered_retention = false
+      Some(@lower.RowStep(kernel)) if count > 1 &&
+        local_module_borrowed_text_singleton_group(kernel) &&
+        @execution.bounded_group_step_supported(sequence, kernel) => {
+        // The bounded group borrows the input Text and detaches its accepted
+        // output before cleanup. Keep complete returned DATA prepaid; the
+        // same before-commit attachment funds each live intermediate row.
+        bounded_family_chain = true
+        metered_retention = false
+      }
       Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
         is Some(group) => {
         // Bounded COUNT now shares this task's before-commit output funding.

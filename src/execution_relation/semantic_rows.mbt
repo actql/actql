@@ -264,6 +264,7 @@ fn admitted_rank(value : @admitted.Value) -> Int {
     @admitted.Reference(_) => 10
     @admitted.JsonData(_) => 11
     @admitted.Signed64(_) => 12
+    @admitted.Binary(_) => 13
   }
 }
 
@@ -286,6 +287,12 @@ fn compare_admitted_value(
       compare_complete_scalar(Number(a), Number(b), control)
     (@admitted.Signed64(a), @admitted.Signed64(b)) =>
       Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
+    (@admitted.Binary(a), @admitted.Binary(b)) =>
+      compare_complete_text(
+        @admitted.bytes_wire_text(a),
+        @admitted.bytes_wire_text(b),
+        control,
+      )
     (@admitted.Text(a), @admitted.Text(b)) =>
       compare_complete_scalar(Text(a), Text(b), control)
     (@admitted.Date(a), @admitted.Date(b)) =>

@@ -204,7 +204,7 @@ test "original Default and Supplied values compose with Set Dedupe and unique as
     #|{"version":"actql/0.1","id":"local.default-set-dedupe-assertion","params":{"id":{"type":"int64","default":"9007199254740993"}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"}]},"as":"left_values"},{"derive":{"id":{"$param":"id"}},"as":"left"},{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"a"}]},"as":"right_values"},{"derive":{"id":{"$param":"id"}},"as":"right"},{"from":"left","append":{"with":"right"}},{"dedupe_rows":{"by":["id"],"order_by":[{"field":"key","dir":"asc","nulls":"last"}]}},{"assert_rows":{"unique_by":["id"]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let environment = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
+    "sha256:afebeb63f2e0e48434bf005f65ab0af8a0c2704f0afb5a8c70df72e91b26e86e",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

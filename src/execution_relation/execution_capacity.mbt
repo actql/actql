@@ -230,18 +230,17 @@ pub fn bounded_number_group_borrows_input(
 }
 
 ///|
-// The bounded INNER JOIN compares only its checked immediate key columns.
-// Other required columns are carried as original immutable cells: neither
-// binary input scan nor projected output constructs their value forest.
-// Text keys use the existing charged UTF-16 comparison cursor. Flat LEFT JOIN
-// with Number/Bool keys carries the same cells or the admitted null singleton;
-// it constructs no input forest. Full recursive/presence/other outer recipes stay.
-fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+/// The bounded equality Join reads original required cells. INNER also uses
+/// the charged Text key cursor. Flat LEFT and SEMI with Number/Boolean keys
+/// keep carried Text borrowed; SEMI emits only original left cells after a
+/// match. The caller still funds comparison workspace and output construction.
+pub fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  let flat_left = @lower.inner_join_kind(profile) == @join.Left
-  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
+  let kind = @lower.inner_join_kind(profile)
+  let immediate_keys_only = kind == @join.Left || kind == @join.Semi
+  guard (kind == @join.Inner || immediate_keys_only) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -251,7 +250,7 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
     Some(true) else {
     return false
   }
-  if flat_left {
+  if immediate_keys_only {
     let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
     for field in 0..<@schema.field_count(output) {
       match @schema.field_at(output, field).unwrap().contract.shape {
@@ -268,7 +267,7 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
       @schema.all_fields_required(schema) else {
       return false
     }
-    if flat_left {
+    if immediate_keys_only {
       for field in 0..<@schema.field_count(schema) {
         match @schema.field_at(schema, field).unwrap().contract.shape {
           @contract.Number | @contract.Boolean | @contract.Text(_) => ()
@@ -284,7 +283,10 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
-        @contract.Text(_) => if flat_left || contract.nullable { return false }
+        @contract.Text(_) =>
+          if immediate_keys_only || contract.nullable {
+            return false
+          }
         _ => return false
       }
     }
@@ -531,6 +533,15 @@ pub fn generated_bounded_sequence_capacity(
             // LIMIT measures every original cell and forwards checked cells;
             // its range/order metadata constructs no copied input forest.
             @lower.kernel_body(kernel) is @lower.Limit(_, _, _) ||
+            // A direct Boolean assertion reads immediate scalar operands.
+            // It forwards all other required scalar cells from the same row;
+            // the original Fragment frames and complete output stay funded.
+            (match @lower.kernel_body(kernel) {
+              @lower.AssertAll(predicate) =>
+                bounded_string_group_scalar_filter(predicate) &&
+                bounded_number_group_scalar_schema(input)
+              _ => false
+            }) ||
             // ASSERT UNIQUE compares original cells through its bounded
             // key/index workspace and forwards the same admitted values.
             // It builds no second input forest or measurement wire.
@@ -643,6 +654,24 @@ pub fn generated_bounded_sequence_capacity(
     !borrowed_pivot {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  // The original unkeyed direct Number MIN/MAX yields one nullable cell.
+  // Its contributors borrow already admitted cells. The existing workspace
+  // funds contributor references, comparison state and pending row storage.
+  let singleton_number_extremum = borrowed_scalar_group &&
+    @schema.field_count(schema) == 1 &&
+    operation is @lower.RowStep(kernel) &&
+    @lower.kernel_group(kernel) is Some(group) &&
+    @lower.group_key_count(group) == 0 &&
+    @lower.group_aggregate_count(group) == 1 &&
+    @lower.group_aggregate_at(group, 0) is Some(aggregate) &&
+    @lower.group_aggregate_function(aggregate)
+    is (@relation.Min | @relation.Max) &&
+    @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+    @lower.group_aggregate_filter(aggregate) is None &&
+    @lower.group_aggregate_result(aggregate).shape is @contract.Number &&
+    @lower.group_aggregate_argument(aggregate) is @lower.AggregateField(field) &&
+    @schema.lookup(@lower.kernel_input_schema(kernel), field) is Some(contract) &&
+    contract.shape is @contract.Number
   // The bounded window constructor charges original input cells with its
   // workspace-funded stepped cursor. Carried output cells are the same
   // immutable values; only the two numeric boundaries and row containers are
@@ -722,8 +751,16 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_string_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
-    literal_output_nodes=literal_nodes,
-    literal_output_text=literal_text,
+    literal_output_nodes=if singleton_number_extremum {
+      1L
+    } else {
+      literal_nodes
+    },
+    literal_output_text=if singleton_number_extremum {
+      0L
+    } else {
+      literal_text
+    },
     bounded_measurement=borrowed_values ||
       (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||

@@ -310,6 +310,47 @@ pub(all) enum TextEncodingError {
 } derive(Eq, Debug)
 
 ///|
+fn utf8_scalar_width(scalar : Int) -> UInt64 {
+  if scalar < 0x80 {
+    1UL
+  } else if scalar < 0x800 {
+    2UL
+  } else if scalar < 0x10000 {
+    3UL
+  } else {
+    4UL
+  }
+}
+
+///|
+fn append_utf8_scalar(h : Hasher, scalar : Int) -> Unit {
+  if scalar < 0x80 {
+    append(h, scalar.to_byte())
+  } else if scalar < 0x800 {
+    append(h, (0xc0 | (scalar >> 6)).to_byte())
+    append(h, (0x80 | (scalar & 63)).to_byte())
+  } else if scalar < 0x10000 {
+    append(h, (0xe0 | (scalar >> 12)).to_byte())
+    append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
+    append(h, (0x80 | (scalar & 63)).to_byte())
+  } else {
+    append(h, (0xf0 | (scalar >> 18)).to_byte())
+    append(h, (0x80 | ((scalar >> 12) & 63)).to_byte())
+    append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
+    append(h, (0x80 | (scalar & 63)).to_byte())
+  }
+}
+
+///|
+/// Absorb one already admitted Unicode scalar without constructing an
+/// intermediate String or Bytes. The original message length owns the charge.
+pub fn update_utf8_scalar(h : Hasher, value : Char) -> Unit raise HashFailure {
+  let scalar = value.to_int()
+  admit_length(h, utf8_scalar_width(scalar))
+  append_utf8_scalar(h, scalar)
+}
+
+///|
 /// Hashes the UTF-8 encoding without Unicode or newline normalization.
 /// Input must represent Unicode scalar values. Unpaired surrogates are rejected
 /// without returning a digest, rather than replaced or passed to a backend that may panic.
@@ -334,25 +375,8 @@ pub fn text_hex(input : String) -> Result[String, TextEncodingError] {
       index = index + 1
       unit
     }
-    if scalar < 0x80 {
-      append(h, scalar.to_byte())
-      h.length += 1UL
-    } else if scalar < 0x800 {
-      append(h, (0xc0 | (scalar >> 6)).to_byte())
-      append(h, (0x80 | (scalar & 63)).to_byte())
-      h.length += 2UL
-    } else if scalar < 0x10000 {
-      append(h, (0xe0 | (scalar >> 12)).to_byte())
-      append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
-      append(h, (0x80 | (scalar & 63)).to_byte())
-      h.length += 3UL
-    } else {
-      append(h, (0xf0 | (scalar >> 18)).to_byte())
-      append(h, (0x80 | ((scalar >> 12) & 63)).to_byte())
-      append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
-      append(h, (0x80 | (scalar & 63)).to_byte())
-      h.length += 4UL
-    }
+    append_utf8_scalar(h, scalar)
+    h.length += utf8_scalar_width(scalar)
   }
   Ok(hex_bytes(finish_bytes(h)))
 }

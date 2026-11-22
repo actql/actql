@@ -45,9 +45,9 @@ const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.
 test('current Local snapshot interpretation binds ContentRef without accepting former contract identities', () => {
   const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json', 'utf8'));
   // Independently hashed normative bodies; these are not runtime outputs.
-  verifyIdentity(snapshot, 'sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a');
+  verifyIdentity(snapshot, 'sha256:2525cf415e21053e77b5fb4fc199ea47617c4ddf5f6d1938dd0463a7f84961e4');
   assert.equal(snapshot.dependencies.checked_type.cid,
-    'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1');
+    'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1');
   assert.equal(machineCid(registry.schemas.canonical_value_contract),
     snapshot.dependencies.checked_type.cid);
   assert.deepEqual(snapshot.schema.$defs,

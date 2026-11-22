@@ -33,6 +33,7 @@ pub fn capture(value : @admitted.Value) -> Value {
     | @admitted.Timestamp(_)
     | @admitted.Decimal(_)
     | @admitted.Signed64(_)
+    | @admitted.Binary(_)
     | @admitted.Array(_)
     | @admitted.Object(_)
     | @admitted.JsonData(_)
@@ -77,7 +78,7 @@ pub fn unary(
     | TryDecimal
     | TryTimestamp
     | Quantize(_) => Err(InvalidOperand)
-    FarmFingerprint =>
+    FarmFingerprint | Sha256 =>
       if value is Null {
         Ok(Null)
       } else {

@@ -15,13 +15,22 @@ const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const leaf = {type:'object', required:['type','nullable'], additionalProperties:false,
   properties:{type:{const:'int64'},nullable:{type:'boolean'}}};
 
+const bytesLeaf = {type:'object', required:['type','nullable'], additionalProperties:false,
+  properties:{type:{const:'bytes'},nullable:{type:'boolean'}}};
+
+function signed64Predecessor(schema) {
+  const retained = structuredClone(schema);
+  assert.deepEqual(retained.$defs.value_contract.oneOf.pop(), bytesLeaf);
+  return retained;
+}
+
 test('signed64 preserves legacy alternatives and refreshes the five original constructor/row-kernel type copies', () => {
   let copies = 0, refreshed = 0;
   const inspect = (current, previous, path) => {
     if (!current || typeof current !== 'object' || !previous || typeof previous !== 'object') return;
     if (previous.$defs?.value_contract) {
       const before = previous.$defs.value_contract.oneOf;
-      const after = current.$defs.value_contract.oneOf;
+      const after = signed64Predecessor(current).$defs.value_contract.oneOf;
       const original = structuredClone(before);
       const text = original.find(value => value.properties.type.const === 'string');
       if (isDeepStrictEqual(after, [...before, leaf])) {
@@ -46,7 +55,7 @@ test('signed64 preserves legacy alternatives and refreshes the five original con
   for (const name of ['author_value_contract', 'canonical_value_contract']) {
     const expected = structuredClone(before.schemas[name]);
     expected.$defs.value_contract.oneOf.push(leaf);
-    assert.deepEqual(protocol.schemas[name], expected);
+    assert.deepEqual(signed64Predecessor(protocol.schemas[name]), expected);
   }
   assert.deepEqual(signed64Body(protocol).grammar, leaf);
 });
@@ -57,10 +66,14 @@ test('signed64 inherited barrier changes only its type declaration and original 
   expected.barrier_schema.$defs.value_contract.oneOf.push(leaf);
   expected.barrier_schema_cid = machineCid(expected.barrier_schema);
   const current = read('spec/dependencies/actql-text-time-base.json');
-  assert.deepEqual(current, expected);
-  verifyIdentity(current, vectors.inheritedBarrier.currentCid, vectors.inheritedBarrier.canonicalPreimage);
+  const retained = structuredClone(current);
+  retained.barrier_schema = signed64Predecessor(retained.barrier_schema);
+  retained.barrier_schema_cid = machineCid(retained.barrier_schema);
+  assert.deepEqual(retained, expected);
+  verifyIdentity(retained, vectors.inheritedBarrier.currentCid, vectors.inheritedBarrier.canonicalPreimage);
+  assert.equal(current.barrier_schema_cid, machineCid(current.barrier_schema));
   assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid,
-    vectors.inheritedBarrier.currentCid);
+    machineCid(current));
 });
 
 test('signed64 and legacy Contract preimages remain distinct with independently authored exact bytes', () => {
@@ -70,11 +83,17 @@ test('signed64 and legacy Contract preimages remain distinct with independently 
     identities.add(value.cid);
   }
   assert.equal(identities.size, vectors.contracts.length);
-  verifyIdentity(protocol.schemas.canonical_value_contract,
+  verifyIdentity(signed64Predecessor(protocol.schemas.canonical_value_contract),
     vectors.canonicalGrammar.cid, vectors.canonicalGrammar.canonicalPreimage);
   const expected = vectors.valuesExecution;
-  verifyIdentity(read('spec/contracts/actql-aoa.json').execution_contracts['REL.values'],
-    expected.cid, expected.canonicalPreimage);
+  const currentValues = read('spec/contracts/actql-aoa.json').execution_contracts['REL.values'];
+  assert.equal(currentValues.dependencies.canonical_value_contract.cid,
+    machineCid(protocol.schemas.canonical_value_contract));
+  const retainedValues = structuredClone(currentValues);
+  retainedValues.params_schema = signed64Predecessor(retainedValues.params_schema);
+  retainedValues.dependencies.canonical_value_contract.cid = vectors.canonicalGrammar.cid;
+  delete retainedValues.semantics.byte_values;
+  verifyIdentity(retainedValues, expected.cid, expected.canonicalPreimage);
   const legacy = read('portability/corpus/text-enumeration-identities.json').valuesExecution;
   verifyIdentity(legacy.body, legacy.cid, legacy.canonicalPreimage);
   assert.notEqual(expected.cid, legacy.cid);

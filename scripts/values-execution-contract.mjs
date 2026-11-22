@@ -3,6 +3,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {byteValuesBody} from './protocol-value-contracts.mjs';
 import {fieldPattern} from './aggregate-schema.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -56,6 +57,7 @@ export function executionContract(protocol) {
       text_enumeration: 'exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority',
       decimal: 'canonical_fixed_scale_string_under_declared_precision_and_scale',
       int64: 'canonical_signed_decimal_String_in_full_signed64_range_distinct_logical_type_no_JSON_Number_or_implicit_coercion',
+      byte_values: byteValuesBody(protocol).wire.pattern,
       empty_rows: 'retain_declared_schema',
       row_order: 'retain_occurrence_order', row_multiplicity: 'retain_all_occurrences',
       object_key_order: 'canonical_utf16_order_not_row_order',

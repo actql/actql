@@ -98,7 +98,7 @@ test "original Sealed record feeds existing Result binding with fixed content an
       "\"result_fields\":[\"id\"]",
       "\"physical_sha256\":\"" + digest + "\"",
       "\"result_schema_cid\":\"sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513\"",
-      "\"codec_contract_cid\":\"sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc\"",
+      "\"codec_contract_cid\":\"sha256:160f77d834848dcfe4249f6b204d915ce21275c78b7f7042edba8d0b4bd2156f\"",
       "\"material_generation_cid\":\"sha256:" + "c".repeat(64) + "\"",
       "\"store_authority_cid\":\"sha256:" + "b".repeat(64) + "\"",
     ] {

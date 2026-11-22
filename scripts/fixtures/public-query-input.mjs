@@ -201,8 +201,49 @@ export const commaJoinOriginal = {
   sourceReadCount: 0, sourceReadSessionCount: 0,
 };
 
+export const scalarSubquerySuccesses = [
+  ['scalar-subquery-literal', 'SELECT (SELECT 1) AS x', 1],
+  ['scalar-subquery-cte-aggregate',
+    "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL "
+      + "SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+      + 'SELECT (SELECT MAX(v) FROM t) AS x', 30],
+  ['scalar-subquery-empty', 'SELECT (SELECT 1 WHERE FALSE) AS x', null],
+].map(([name, text, x]) => ({name, text, format: 'sql',
+  expected: [{x}], columns: [relationNumber('x', true)], sourceReadCount: 0}));
+
+export const membershipSubqueryNullDuplicates = {name: 'membership-subquery-null-duplicates', format: 'sql',
+  text: 'WITH t AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL, 7]) AS n), '
+    + 'k AS (SELECT n FROM UNNEST(ARRAY<NUMBER>[1, 1, NULL]) AS n) '
+    + 'SELECT n FROM t WHERE n IN (SELECT n FROM k)',
+  results: {main: {rows: [{n: 1}, {n: 1}], columns: [relationNumber('n', true)], unordered: true}},
+  sourceReadCount: 0, sourceReadSessionCount: 0};
+
+const existsOriginalRows = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL "
+  + "SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) ";
+export const existsSubquerySuccesses = [
+  ['exists-subquery-uncorrelated', 'SELECT n FROM t WHERE EXISTS (SELECT n FROM t)'],
+  ['exists-subquery-correlated',
+    'SELECT a.n FROM t AS a WHERE EXISTS (SELECT b.n FROM t AS b WHERE b.n = a.n)'],
+].map(([name, text]) => ({name, text: existsOriginalRows + text, format: 'sql',
+  results: {main: {rows: [{n: 1}, {n: 2}, {n: 3}], columns: [relationNumber('n')], unordered: true}},
+  sourceReadCount: 0, sourceReadSessionCount: 0}));
+
+const existsSubqueryCarriedText = {name: 'exists-subquery-carried-text', format: 'sql',
+  text: existsOriginalRows
+    + 'SELECT a.s AS s FROM t AS a WHERE EXISTS (SELECT b.n FROM t AS b WHERE b.n = a.n)',
+  results: {main: {
+    rows: [{s: 'a'}, {s: 'b'}, {s: 'a'}],
+    columns: [{name: 's', contract: {type: 'string', nullable: false, max_utf8_bytes: 1}}],
+    unordered: true,
+  }},
+  sourceReadCount: 0, sourceReadSessionCount: 0};
+
 export const queryCompositionSuccesses = [
   arrayLengthOriginal, unixSecondsOriginal, commaJoinOriginal,
+  ...scalarSubquerySuccesses,
+  membershipSubqueryNullDuplicates,
+  ...existsSubquerySuccesses,
+  existsSubqueryCarriedText,
   {
     name: 'simple-case-original', format: 'sql',
     text: "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT CASE n WHEN 1 THEN 'one' ELSE 'other' END AS result FROM t",
@@ -740,6 +781,12 @@ export const farmFingerprintOriginal = {name: 'farm-fingerprint-original', forma
   text: "SELECT FARM_FINGERPRINT('a') AS result",
   expected: [{result: '-5528939962900187677'}], columns: [{name: 'result',
     contract: {type: 'int64', nullable: false}}], sourceReadCount: 0};
+export const sha256Original = {name: 'sha256-original', format: 'sql',
+  text: "SELECT SHA256('a') AS x, SHA256(NULL) AS missing, SHA256(SHA256('a')) AS twice",
+  expected: [{x: 'ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=', missing: null,
+    twice: 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='}],
+  columns: ['x', 'missing', 'twice'].map(name => ({name,
+    contract: {type: 'bytes', nullable: name === 'missing'}})), sourceReadCount: 0};
 export const regexpContainsOriginal = {name: 'regexp-contains-original', format: 'sql',
   text: "SELECT REGEXP_CONTAINS('abc', 'a') AS result",
   expected: [{result: true}], columns: [{name: 'result',
@@ -991,6 +1038,7 @@ export const sourceFreeSuccesses = [
   arrayToStringOriginal,
   formatStringsOriginal,
   farmFingerprintOriginal,
+  sha256Original,
   toJsonStringOriginal,
   ...jsonValueOriginals,
   regexpContainsOriginal,

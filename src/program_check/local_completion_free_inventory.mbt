@@ -558,6 +558,7 @@ fn local_completion_free_checked_expression(tag : String) -> Bool {
     | "between"
     | "byte_length"
     | "farm_fingerprint"
+    | "sha256"
     | "case"
     | "cbrt"
     | "chr"

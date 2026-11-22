@@ -438,6 +438,8 @@ test('current regex imports bind both literal aliases and complete pattern and r
   const lowering = 'src/lowering_relation';
   const path = relation + '/moon.pkg';
   const entry = currentPackageConfigurations[path];
+  const shaRevision = '077d8ba85e6aadc71fec9bce130ce461303042ac';
+  const shaReview = gitTree(root, shaRevision);
   const packages = {
     regex_pattern: {alias: 'regex', members: [
       'emit.mbt', 'matcher.mbt', 'matcher_test.mbt', 'moon.pkg', 'parser.mbt',
@@ -448,12 +450,23 @@ test('current regex imports bind both literal aliases and complete pattern and r
       'sql_replacement_test.mbt', 'vectors.generated_test.mbt',
     ]},
   };
-  assert.equal(entry.revision, revision);
+  assert.equal(entry.revision, shaRevision);
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', shaRevision, 'HEAD'], {cwd: root});
   const body = reviewed.read(path).toString();
-  assert.equal(hash(body), entry.digest);
-  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(hash(body), 'ed50ecf39857c24b0f7f166c038131cd92ff32be335497c10bc63d50770fd7eb');
   assert.equal(reviewed.entries.get(path)?.mode, '100644');
+  const successor = shaReview.read(path).toString();
+  assert.equal(hash(successor), entry.digest);
+  assert.equal(currentTree.read(path).toString(), successor);
+  assert.equal(shaReview.entries.get(path)?.mode, '100644');
+  const shaImport = '  "actql/actql/sha256" @sha,\n';
+  const encoder = '  "actql/actql/encode_core" @encode,\n';
+  const slack = '  "actql/actql/connectors/slack/catalog" @slack,\n';
+  assert.equal(successor.split(shaImport).length, 2);
+  assert.equal(successor.split(encoder + shaImport).length, 2);
+  assert.equal(successor.split(slack).length, 2);
+  assert.equal(successor.replace(encoder + shaImport, encoder).replace(slack, slack + shaImport), body);
 
   for (const directory of [relation, lowering]) {
     const manifest = directory + '/moon.pkg';
@@ -476,6 +489,7 @@ test('current regex imports bind both literal aliases and complete pattern and r
 
   const selected = packageSourceInputs({tree: currentTree, packages: [relation, lowering], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
+  assert(selected.directories.some(row => row.path === 'src/sha256/*'));
   const mutation = mutationSourceInputs(currentTree);
   assert.deepEqual(mutation.unresolved, []);
   assert(!mutation.directories.some(row => row.path === 'src/**'));
@@ -498,11 +512,11 @@ test('current regex imports bind both literal aliases and complete pattern and r
       }
     }
   }
-  for (const changed of [prior.read(path).toString(), body.replace('@regex', '@unreviewed'),
-    body.replace('regex_replacement', 'unreviewed_replacement'),
-    body.replace('[ "not", "js" ]', '[ "native" ]'),
-    body + '\noptions(pre_build: "unreviewed-hook")\n']) {
-    assert.notEqual(changed, body);
+  for (const changed of [prior.read(path).toString(), body, successor.replace('@regex', '@unreviewed'),
+    successor.replace('regex_replacement', 'unreviewed_replacement'),
+    successor.replace('[ "not", "js" ]', '[ "native" ]'),
+    successor + '\noptions(pre_build: "unreviewed-hook")\n']) {
+    assert.notEqual(changed, successor);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const changedTree = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: changedTree, packages: [relation], target: 'js'})
