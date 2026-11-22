@@ -1,0 +1,33 @@
+{
+  "name": "hubspot-company-update",
+  "effect": {
+    "documentPath": "update.aql",
+    "format": "aql",
+    "resultName": "updates",
+    "parameterDeclarations": {"record_id": {"type": "string"}, "next_name": {"type": "string"}},
+    "parameters": {"record_id": "9007199254740993", "next_name": "After HubSpot approval"},
+    "expectedRows": [{"id": "9007199254740993", "previous_name": "Before HubSpot approval", "next_name": "After HubSpot approval"}]
+  },
+  "read": {
+    "documentPath": "read.aql",
+    "format": "aql",
+    "resultName": "main",
+    "parameterDeclarations": {"record_id": {"type": "string"}},
+    "parameters": {"record_id": "9007199254740993"},
+    "beforeRows": [{"id": "9007199254740993", "name": "Before HubSpot approval"}],
+    "afterRows": [{"id": "9007199254740993", "name": "After HubSpot approval"}]
+  },
+  "review": {
+    "target": "connector://hubspot/companies",
+    "identity": "9007199254740993",
+    "before": {"name": "Before HubSpot approval"},
+    "changes": {"name": "After HubSpot approval"}
+  },
+  "fixture": {
+    "seed": {"recordId": "9007199254740993", "previousName": "Before HubSpot approval", "controlId": "9007199254740994", "controlName": "Untouched control"},
+    "expected": {
+      "before": {"target": {"id": "9007199254740993", "name": "Before HubSpot approval"}, "control": {"id": "9007199254740994", "name": "Untouched control"}},
+      "after": {"target": {"id": "9007199254740993", "name": "After HubSpot approval"}, "control": {"id": "9007199254740994", "name": "Untouched control"}}
+    }
+  }
+}

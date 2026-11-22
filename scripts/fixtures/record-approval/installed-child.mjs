@@ -10,6 +10,7 @@ import {workflowWorkObservation, assertRecordWorkflowWork} from '../../../adapte
 
 const [connectorId, phase, configuration, prefix, state, credential] = process.argv.slice(2);
 const replyLossExpectation = recordApprovalReplyLossExpectationFromEnvironment();
+const sourceSchemaWire = process.env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA;
 const createDefinition = {salesforce: salesforceUpdateCase,
   hubspot: hubspotUpdateCase, kintone: kintoneUpdateCase}[connectorId];
 assert.equal(typeof createDefinition, 'function');
@@ -18,7 +19,7 @@ const observation = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR === connect
 let originalRef;
 const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUpdateApprovalPhase({...selected,
   replyLossExpectation,
-  createDefinition: () => createDefinition(programs, selection),
+  createDefinition: selected.definition === undefined ? () => createDefinition(programs, selection) : undefined,
   async load(name) {
     const value = await load(name);
     if (name === 'captured') originalRef = value.ref;
@@ -36,6 +37,8 @@ const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUp
 let outcome;
 await runRecordApprovalCommand({argv: [phase, configuration, prefix],
   retainProgramInputs: process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1',
+  fixtureReplyLossExpectation: replyLossExpectation,
+  fixtureSourceSchema: sourceSchemaWire === undefined ? undefined : JSON.parse(sourceSchemaWire),
   programDirectory: new URL(`../${connectorId}-approval/`, import.meta.url),
   connect: options => connect(observation === undefined ? options
     : {...options, installation: {...options.installation, observation: observation.connection}}),
