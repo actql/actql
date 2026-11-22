@@ -61,7 +61,11 @@ export async function runInstalledRecordApprovalFixture(t, input) {
     assertRecordApprovalTarget(original, expected.before);
     assertRecordApprovalControl(original, expected.before);
   }
-  const loss = recordApprovalReplyLossExpectation(fixture.replyLossExpectation);
+  const faults = authoredFixture?.faults;
+  if (faults !== undefined) {
+    assert(fixture.replyLossExpectation === undefined && fixture.faults === undefined, 'Select one original fixture fault schedule');
+  }
+  const loss = recordApprovalReplyLossExpectation(faults === undefined ? fixture.replyLossExpectation : faults[0]?.expected);
   assert(!rejecting || (loss === undefined && fixture.faults === undefined), 'The rejection case selects only the ordinary provider');
   if (loss !== undefined) assert.equal(fixture.faults, undefined, 'Select one original reply-loss fault only');
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1', 'Preserve original state on every outcome');

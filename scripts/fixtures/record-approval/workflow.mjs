@@ -30,7 +30,9 @@ export function admitAuthoredRecordApprovalCase(value) {
   assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
   if (fixture) {
     const {seed, expected} = value.fixture ?? {};
-    assert(closed(value.fixture, ['seed', 'expected']));
+    assert(object(value.fixture));
+    const scheduled = Object.hasOwn(value.fixture, 'faults');
+    assert(closed(value.fixture, ['seed', 'expected', ...(scheduled ? ['faults'] : [])]));
     assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
     recordUpdateFixtureSeed(seed);
     assert(closed(expected, ['before', 'after']));
@@ -38,6 +40,14 @@ export function admitAuthoredRecordApprovalCase(value) {
       assert(closed(state, ['target', 'control']));
       assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
         text(row.id) && typeof row.name === 'string'));
+    }
+    if (scheduled) {
+      const {faults} = value.fixture;
+      assert(Array.isArray(faults) && faults.length <= 1);
+      for (const fault of faults) {
+        assert(closed(fault, ['kind', 'expected']) && fault.kind === 'apply-then-lose-reply');
+        assert(recordApprovalReplyLossExpectation(fault.expected) !== undefined);
+      }
     }
   }
   return retainCase(value);

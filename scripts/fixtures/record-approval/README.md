@@ -85,6 +85,13 @@ expectations to the same Run receipt and checks them against the provider
 observations. The standalone phase commands use the independently supplied
 connection and check the Program and Review oracles.
 
+An installed HTTP case may set `fixture.faults` to an empty array or one
+`{"kind":"apply-then-lose-reply","expected":{"approveStatus":"needs_reconciliation","lookupStatus":"needs_reconciliation"}}`
+entry. The existing provider adapter selects the exact write route. The case
+supplies the outcomes to check, and the ordinary fixture observes the original
+approval and lookup replies. Use a single fault selection. Standalone phase
+commands refuse a scheduled fault without the matching installed fixture.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.

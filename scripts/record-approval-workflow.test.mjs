@@ -279,6 +279,33 @@ test('authored provider seed differs from the independent expected control befor
   assert.equal(provider.snapshot().writes, 0);
 });
 
+test('authored reply loss requires the exact installed fixture selection before connecting', async t => {
+  const value = await definition('kintone');
+  const selected = sharedRecordUpdateSelections.kintone;
+  const seed = {recordId: selected.recordId, previousName: selected.previousName,
+    controlId: selected.controlId, controlName: 'Untouched control'};
+  const expected = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+  const fault = {kind: 'apply-then-lose-reply', expected};
+  value.fixture = {seed, expected: recordUpdateFixtureState(selected), faults: [fault]};
+  const f = await commandFixture(t, 'kintone', {casePath: 'case.json', connect: {mode: 'local'}});
+  const path = join(f.root, 'case.json');
+  for (const faults of [[fault, fault], [{...fault, pathname: '/foreign'}],
+    [{...fault, expected: {...expected, lookupStatus: 'retry'}}]]) {
+    await writeFile(path, JSON.stringify({...value, fixture: {...value.fixture, faults}}));
+    await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
+  }
+  await writeFile(path, JSON.stringify(value));
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
+  f.options.fixtureReplyLossExpectation = {...expected, lookupStatus: 'succeeded'};
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'RecordApprovalFaultRequiresMatchingInstalledFixture'});
+  f.options.fixtureReplyLossExpectation = expected;
+  await runRecordApprovalCommand(f.options);
+  assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
+  assert.deepEqual(f.events, []);
+  await assert.rejects(runInstalledRecordApprovalFixture(t, {casePath: path, createInstallation: kintoneApprovalInstallation,
+    replyLossExpectation: expected}), /Select one original fixture fault schedule/u);
+});
+
 test('shared command refuses incompatible authored case inputs before connecting', async t => {
   const value = await definition('hubspot'), config = {casePath: 'case.json', connect: {mode: 'local'}};
   const f = await commandFixture(t, 'hubspot', config), path = join(f.root, 'case.json');

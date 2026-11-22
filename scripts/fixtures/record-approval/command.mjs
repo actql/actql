@@ -5,6 +5,7 @@ import {constants} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createPrivateKey, sign} from 'node:crypto';
+import {isDeepStrictEqual} from 'node:util';
 import {admitAuthoredRecordApprovalCase} from './workflow.mjs';
 
 const text = value => typeof value === 'string' && value.trim().length > 0;
@@ -33,7 +34,8 @@ export async function readAuthoredCase(path) {
 }
 
 export async function runRecordApprovalCommand({argv, programDirectory, connect,
-  runPhase, createDefinition, retainProgramInputs = false, log = value => console.log(JSON.stringify(value))}) {
+  runPhase, createDefinition, retainProgramInputs = false, fixtureReplyLossExpectation,
+  log = value => console.log(JSON.stringify(value))}) {
   if (typeof retainProgramInputs !== 'boolean') throw new TypeError('InvalidRecordApprovalFixtureMode');
   const [phase, configurationPath, receiptPrefix] = argv;
   if (argv.length !== 3 || !['check', 'capture', 'approve', 'reject', 'recover'].includes(phase) ||
@@ -67,6 +69,10 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
       throw new TypeError('InvalidRecordApprovalCaseSelection');
     }
     definition = await readAuthoredCase(resolve(dirname(path), configuration.casePath));
+    const scheduled = definition.fixture?.faults?.[0];
+    if (scheduled !== undefined && !isDeepStrictEqual(scheduled.expected, fixtureReplyLossExpectation)) {
+      throw new TypeError('RecordApprovalFaultRequiresMatchingInstalledFixture');
+    }
   } else if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
     try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}
     catch (cause) {

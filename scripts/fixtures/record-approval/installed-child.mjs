@@ -36,6 +36,7 @@ const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUp
 let outcome;
 await runRecordApprovalCommand({argv: [phase, configuration, prefix],
   retainProgramInputs: process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1',
+  fixtureReplyLossExpectation: replyLossExpectation,
   programDirectory: new URL(`../${connectorId}-approval/`, import.meta.url),
   connect: options => connect(observation === undefined ? options
     : {...options, installation: {...options.installation, observation: observation.connection}}),
