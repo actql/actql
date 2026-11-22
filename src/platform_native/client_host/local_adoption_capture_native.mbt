@@ -15,6 +15,7 @@ pub(all) struct NativeLocalExistingAdoptionInput {
 /// The optional Model selection comes from the same protected operator file.
 /// Its dependent configuration names are resolved on the same source Root.
 pub(all) struct NativeLocalModelConfigurationSelection {
+  provider_id : String
   files : NativeModelHttpConfigurationFiles
   execution : String?
   policy : String?

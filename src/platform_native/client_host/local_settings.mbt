@@ -22,7 +22,7 @@ priv struct NativeLocalConfigurationSelection {
   manifest : Bytes
   manifest_cid : String
   operator_host : NativeLocalOperatorHostOriginal?
-  model_configured : Bool
+  model_provider : String?
 }
 
 ///|
@@ -423,7 +423,7 @@ fn select_native_local_configuration(
     manifest,
     manifest_cid,
     operator_host,
-    model_configured: model_configuration is Some(_),
+    model_provider: model_configuration.map(selected => selected.provider_id),
   })
 }
 
@@ -445,11 +445,11 @@ fn NativeLocalConfigurationSelection::check_source(
         Err(issue) => return Err(issue)
       }
     }
-    if self.model_configured &&
+    if self.model_provider is Some(_) &&
       !source.verify_generation(file.name, file.generation) {
       return Err(SourceChanged)
     }
-    let maximum = if self.model_configured {
+    let maximum = if self.model_provider is Some(_) {
       file.generation.size
     } else {
       65536L

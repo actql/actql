@@ -548,6 +548,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         self.initial_product_selected
       ),
       model_configuration=settings.model_http_installation.map(selected => {
+        provider_id: selected.provider_id,
         files: selected.files,
         execution: selected.execution_file,
         policy: selected.policy_file,
