@@ -2094,3 +2094,7 @@ target/
 /adapters/host-node/effect-result-work.d.mts
 /adapters/host-node/effect-result-work.test.mjs
 /adapters/host-node/effect-result-work.test.d.mts
+/adapters/host-node/table-operation-preview.mjs
+/adapters/host-node/table-operation-preview.d.mts
+/adapters/host-node/table-capture-recovery.mjs
+/adapters/host-node/table-capture-recovery.d.mts

@@ -111759,7 +111759,7 @@
     {
       "module": "adapters/host-node/table-operation-preview.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
+      "sha256": "1c637217fe3e960844352f504def2661dbb3e5bd0ee4d6160ffd4abcdbd516f0",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -111834,7 +111834,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111844,7 +111844,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111854,7 +111854,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111864,7 +111864,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111874,7 +111874,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111884,7 +111884,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111894,7 +111894,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111904,7 +111904,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111914,7 +111914,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111924,7 +111924,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               },
               {
@@ -111944,7 +111944,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -111954,7 +111954,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -111964,7 +111964,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -111974,7 +111974,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -111984,7 +111984,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -111994,7 +111994,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -112004,7 +112004,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -112014,7 +112014,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -112024,7 +112024,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -112034,7 +112034,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "fail"
               },
               {
@@ -112054,7 +112054,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112064,7 +112064,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112074,7 +112074,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112084,7 +112084,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112094,7 +112094,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112104,7 +112104,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112114,7 +112114,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112124,7 +112124,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112134,7 +112134,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112144,7 +112144,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "hash"
               },
               {
@@ -112166,7 +112166,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112176,7 +112176,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112186,7 +112186,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112196,7 +112196,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112206,7 +112206,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112216,7 +112216,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112226,7 +112226,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112236,7 +112236,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112246,7 +112246,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112256,7 +112256,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "positive"
               },
               {
@@ -112278,7 +112278,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112288,7 +112288,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112298,7 +112298,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112308,7 +112308,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112318,7 +112318,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112328,7 +112328,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112338,7 +112338,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112348,7 +112348,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112358,7 +112358,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112368,7 +112368,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "wire"
               },
               {
@@ -112390,7 +112390,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112400,7 +112400,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112410,7 +112410,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112420,7 +112420,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112430,7 +112430,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112440,7 +112440,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112450,7 +112450,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112460,7 +112460,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112470,7 +112470,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {
@@ -112480,7 +112480,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "// The installed Table adapter's pure authoring connection. It consumes the"
               },
               {

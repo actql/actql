@@ -103118,7 +103118,7 @@
     {
       "module": "adapters/host-node/table-capture-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ff56026da3774ab808b7e3631e6fca8239ba623584fc52860598a93e06b20f2a",
+      "sha256": "1a3ad57b393ba224f462be0b7ead273cd6f60cd9cf1f70a8f915e6fee4a647eb",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [
@@ -103209,8 +103209,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103223,8 +103223,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103237,7 +103237,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
+                "path": "adapters/host-node/table-capture-recovery.mts",
                 "anchor": "const binding = control.tablePreviewLedgerBinding(tablePreview);"
               },
               {
@@ -103251,7 +103251,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
+                "path": "adapters/host-node/table-capture-recovery.mts",
                 "anchor": "// owners. This module neither recreates Compute nor grants approval/send rights."
               },
               {
@@ -103265,8 +103265,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103279,8 +103279,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103293,8 +103293,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}: RecoveryOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -103307,8 +103307,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}: RecoveryOptions) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103321,8 +103321,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "const exactKeys = (value, fields) => value !== null && typeof value === 'object' &&"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "const exactKeys = (value: unknown, fields: readonly string[]): value is Record<string, unknown> =>"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103353,8 +103353,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103367,8 +103367,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103381,7 +103381,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
+                "path": "adapters/host-node/table-capture-recovery.mts",
                 "anchor": "const binding = control.tablePreviewLedgerBinding(tablePreview);"
               },
               {
@@ -103395,7 +103395,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
+                "path": "adapters/host-node/table-capture-recovery.mts",
                 "anchor": "// owners. This module neither recreates Compute nor grants approval/send rights."
               },
               {
@@ -103409,8 +103409,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "export function capturedTableRecoveryRecord({control, tableInput, tablePreview}: Readonly<{"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103423,8 +103423,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103437,8 +103437,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}: RecoveryOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -103451,8 +103451,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}: RecoveryOptions) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103465,8 +103465,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "const exactKeys = (value, fields) => value !== null && typeof value === 'object' &&"
+                "path": "adapters/host-node/table-capture-recovery.mts",
+                "anchor": "const exactKeys = (value: unknown, fields: readonly string[]): value is Record<string, unknown> =>"
               },
               {
                 "path": "docs/design/connector-layout.md",

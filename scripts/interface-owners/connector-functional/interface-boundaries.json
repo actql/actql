@@ -19462,7 +19462,7 @@
     },
     {
       "module": "adapters/host-node/table-operation-preview.mjs",
-      "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
+      "sha256": "1c637217fe3e960844352f504def2661dbb3e5bd0ee4d6160ffd4abcdbd516f0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing pure Table operation authoring from checked Program and captured input; Common bind/admission remains authoritative",
@@ -19541,37 +19541,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "neither fabricates"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "authorTableOperationPreview"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "logical_request_scope_cid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "control.bindTableInput"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "checkSourceFreeLocalEffectPreviewIdentities"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "ForeignTableStorageMapping"
               }
             ],
@@ -19580,7 +19580,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/table-operation-preview.mjs",
+                "path": "adapters/host-node/table-operation-preview.mts",
                 "anchor": "TablePreviewByteLimit"
               }
             ],
