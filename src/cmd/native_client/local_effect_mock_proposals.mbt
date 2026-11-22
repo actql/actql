@@ -749,7 +749,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           current.rows.push(proposal)
         }
       }
-      let (receipt, _) = @execution.finish_completed_relation_export(stream)
+      let (receipt, _) = @execution.finish_completed_relation_export(
+          stream,
+          before_finish=before_emit,
+        )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.receipt = Some(receipt)

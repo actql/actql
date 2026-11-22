@@ -764,7 +764,7 @@ pub fn finish_completed_output_export_preparation(CompletedOutputExportPreparati
 
 pub fn finish_completed_output_import(CompletedOutputImport) -> Result[CompletedOutput, CompletedImportIssue]
 
-pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
+pub fn finish_completed_relation_export(CompletedOutputExport, before_finish? : ((ExecutionCapacity) -> Bool)?) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
 
 pub fn finish_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Result[CompletedRelationExportReceipt, CompletedExportIssue]
 

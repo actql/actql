@@ -805,12 +805,13 @@ pub fn finish_completed_output_export(
 ///|
 pub fn finish_completed_relation_export(
   value : CompletedOutputExport,
+  before_finish? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue] {
   if value.reading {
     return Err(Closed)
   }
   value.reading = true
-  let result = finish_completed_export_stream(value)
+  let result = finish_completed_export_stream(value, before_finish~)
   value.reading = false
   result.bind(finished => {
     guard finished.2 is Some(logical) else { return Err(Closed) }
@@ -949,6 +950,7 @@ pub fn completed_relation_export_measurement(
 ///|
 fn finish_completed_export_stream(
   value : CompletedOutputExport,
+  before_finish? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[
   (CompletedOutputExportReceipt, String, LogicalRelationIdentity?),
   CompletedExportIssue,
@@ -963,6 +965,21 @@ fn finish_completed_export_stream(
   }
   if value.row != IndexedRows::row_count(value.rows) {
     return Err(NotFinished)
+  }
+  if before_finish is Some(reserve) {
+    guard completed_relation_export_finish_workspace(value) is Some(capacity) else {
+      return Err(Admission(CaptureLimit))
+    }
+    let funded = reserve(capacity)
+    if value.source is None ||
+      !completed_output_available(source) ||
+      value.source.map(original => physical_equal(original, source)) !=
+      Some(true) {
+      return Err(Unavailable)
+    }
+    if !funded {
+      return Err(Admission(CaptureLimit))
+    }
   }
   value.source = None
   let owner = @lower.sequence_owner(source.completion.sequence)
@@ -1021,6 +1038,38 @@ fn finish_completed_export_stream(
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }
+}
+
+///|
+// Fund the last delimiter, two original hash sinks and their final hash
+// scratch, plus the new receipt records and CIDs. The original schema,
+// field names and six populated summary arrays transfer without a copy.
+// Their still-live backing is supplied by the caller's open view quote.
+fn completed_relation_export_finish_workspace(
+  value : CompletedOutputExport,
+) -> ExecutionCapacity? {
+  let pending = @encode.observed_writer_usage(value.writer).0 -
+    value.drained_bytes
+  guard pending >= 0 &&
+    pending < 2147483647 &&
+    completed_export_row_writer_capacity(value, pending + 1) is Some(writers) &&
+    @shape.reference_array_retained_extent(6L, 0L) is Some(empty) else {
+    return None
+  }
+  // Logical identity and two CIDs, row/content receipt and usage,
+  // result/tuple/Option carriers, measurement/Relation receipt, and the
+  // six empty arrays installed after their populated backing moves.
+  preparation_representation_cost({
+    record_headers: 17L + empty.record_headers,
+    reference_slots: 41L + empty.reference_slots,
+    scalar_words: 26L + empty.scalar_words,
+    owned_utf16_units: 2L * 71L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => {
+    execution_capacity(0L, bytes).bind(receipt => {
+      add_execution_capacity(writers, receipt)
+    })
+  })
 }
 
 ///|

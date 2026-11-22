@@ -556,3 +556,60 @@ test "Result export admits the original row measurement before allocating its cu
     assert_true(completed_output_available(source))
   }
 }
+
+///|
+test "Result export funds the original final receipt beside both open writers" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["day","whole"]}}
+    ),
+  )
+  let exact = Ref(0L)
+  for accept in [true, false] {
+    let (_, stream) = original_export_row_preparation(source, occurrence)
+    let mut visits = 0
+    let mut reentry_closed = false
+    let reserve = fn(capacity) {
+      visits += 1
+      // Receipt cannot start on a reentrant request or after the wrong row.
+      reentry_closed = finish_completed_relation_export(stream) is Err(Closed)
+      let quote = execution_capacity_execution_bytes(capacity)
+      if accept {
+        exact.val = quote
+      }
+      quote <= exact.val - (if accept { 0L } else { 1L })
+    }
+    assert_true(
+      finish_completed_relation_export(stream, before_finish=Some(reserve))
+      is Err(NotFinished),
+    )
+    assert_eq(visits, 0)
+    while next_completed_output_export(stream).unwrap() is Some(_) {
+      ()
+    }
+    let result = finish_completed_relation_export(
+      stream,
+      before_finish=Some(reserve),
+    )
+    assert_eq(visits, 1)
+    assert_true(reentry_closed && exact.val > 0L)
+    if accept {
+      let (receipt, tail) = result.unwrap()
+      assert_eq(tail, "]")
+      assert_eq(receipt.measurement.row_count, 2)
+      assert_true(stream.source is None)
+      cancel_completed_relation_export_receipt(receipt)
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+      assert_true(stream.source is Some(_))
+      assert_eq(stream.column_rows, [2, 2])
+      assert_eq(stream.row, 2)
+      cancel_completed_output_export(stream)
+    }
+    assert_true(completed_output_available(source))
+  }
+}

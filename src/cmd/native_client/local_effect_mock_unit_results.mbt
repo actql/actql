@@ -220,7 +220,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
           is Some(_) {
       ()
     }
-    let (receipt, _) = @execution.finish_completed_relation_export(stream)
+    let (receipt, _) = @execution.finish_completed_relation_export(
+        stream,
+        before_finish=before_measure,
+      )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
     entry.receipt = Some(receipt)
