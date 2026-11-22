@@ -1009,7 +1009,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {

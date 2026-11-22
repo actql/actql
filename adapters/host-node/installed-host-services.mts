@@ -6,7 +6,6 @@ import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentCom
 // a Run admission nor permission. Other service facets extend this SAME owner.
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization}
-  // @ts-expect-error TS7016: the installed Row Source still has a JavaScript entry.
   from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 // @ts-expect-error TS7016: installed-row-effect still has a JavaScript entry.
@@ -468,7 +467,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
         return adapter;
       } finally {owned.constructing = false;}
     },
-    createRowSource: (options: unknown) => construct(options, 'source', createInstalledRowSource),
+    createRowSource: (options: unknown) => construct(options, 'source', createInstalledRowSource as RowFactory),
     createRowEffect: (options: unknown) => construct(options, 'effect', createInstalledRowEffect),
   });
   return bound;
@@ -788,7 +787,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         ...(effectCredentialLimits === undefined ? {} : {runAcquisitionLimits: effectCredentialLimits}),
         root, principalId, commonMoon: moon, runtimeBundleCid, assertCurrent: current,
         accountConstruction: installedAccountConstruction(services),
-        configurationReader: installedSourceConfigurationReader(services)}).then((original: SiteSelection) => {
+        configurationReader: installedSourceConfigurationReader(services)} as
+          Parameters<typeof openInstalledRowSite>[0]).then((original: SiteSelection) => {
           sites.set(original.site, implementation);
           siteInstallations.set(original.site, selection);
         return original;

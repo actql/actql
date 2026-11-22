@@ -6,7 +6,6 @@ import {types as nodeTypes} from 'node:util';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016: the shared Row Source still has an authored JavaScript entry.
 import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import type {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
 import type {FrameLimits} from './process-frames.mjs';
@@ -63,8 +62,9 @@ type SourceInputs = Readonly<{moon: Runtime; baseEnvironmentWire: string; connec
   sourceInitialization?: object; readerCapacity?: unknown; bindReader?: (reader: ReaderFactory) => void;
   declaration?: unknown; declared?: unknown; environment?: Readonly<{wire: string}>;
   publicationBindingCid?: string}>;
-type Declaration = Readonly<{catalog_cid: string; views: readonly Readonly<{resource: string;
-  fields: readonly string[]}>[]}>;
+type Declaration = Parameters<typeof rowSourceCheckEnvironment>[1] & Readonly<{
+  catalog_cid: string; views: readonly Readonly<{source_ref: string; resource: string; fields: readonly string[]}>[];
+}>;
 type FrozenGeneration = Readonly<{schema_wire: unknown; receipt: Readonly<{catalog_identity_cid: unknown;
   table_uuid: unknown; schema_cid: unknown; storage_mapping_cid: unknown; generation_cid: unknown;
   row_count: unknown}>; mapping: Readonly<{schema_cid: unknown; mapping_cid: unknown}>}>;
@@ -438,10 +438,13 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     providerReader=createInstalledTableSourceReader({moon,initialCapacity:readerCapacity,readPages,frameLimits:bridge.frameLimits});
     bindReader(providerReader);
   }
+  // Table supplies the existing Table Site alongside the shared runtime and
+  // responds through its own reader. Forward those originals as one input.
   return createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
     environmentWire: environment.wire, connectorId, connectorRegistration,
     connectorRevision, site, authorization, readOperation: 'table.read',
     physicalTarget, ...(providerReader===undefined?{readPages}:{providerReader}), bindingCid, publicationBindingCid, limits,
     tableReadTargets: Object.freeze(installed.map(target => physicalTarget(target.resource,
-      declared.views.find(view => view.resource === target.resource)!.fields)))});
+      declared.views.find(view => view.resource === target.resource)!.fields)))} as unknown as
+      Parameters<typeof createInstalledRowSource>[0]) as Promise<SourceAdapter>;
 }

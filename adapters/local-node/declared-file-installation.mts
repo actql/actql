@@ -8,7 +8,6 @@ import {beginInstalledSourceInitialization, finishInstalledSourceInitialization,
   retainInstalledHostServiceInstallation, reserveInstalledSourceRuntimeIdentity,
   retainBoundInstalledSourceFailure, withInstalledSourceLoading, installedSourceConfigurationReader}
   from '../host-node/installed-host-services.mjs';
-// @ts-expect-error TS7016: the installed Row Source factory is still authored in JavaScript.
 import {createInstalledRowSource} from '../host-node/installed-row-source.mjs';
 // @ts-expect-error TS7016: the installed Row Effect factory is still authored in JavaScript.
 import {createInstalledRowEffect} from '../host-node/installed-row-effect.mjs';
@@ -122,7 +121,7 @@ const sourceModule = Object.freeze({
   identityParts: (profile: Readonly<Partial<Profile>>) => [checkProfile(profile, 'source')],
   load: (profile: Readonly<Partial<Profile>>, options: AdapterOptions) => {
     checkProfile(profile, 'source');
-    return createInstalledRowSource(options);
+    return createInstalledRowSource(options as Parameters<typeof createInstalledRowSource>[0]);
   },
 });
 const effectModule = Object.freeze({

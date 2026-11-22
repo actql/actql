@@ -1156,7 +1156,7 @@
                 "anchor": "restoreDeclaration"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {
@@ -1457,7 +1457,7 @@
                 "anchor": "restoreDeclaration"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {
@@ -2017,7 +2017,7 @@
                 "anchor": "restoreDeclaration"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {

@@ -12,7 +12,6 @@ import {createInstalledRowEffect,retainInstalledRowEffectAdapter,installedRowEff
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: the original Row Source is still authored in JavaScript.
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';

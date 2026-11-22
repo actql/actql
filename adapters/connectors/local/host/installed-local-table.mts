@@ -5,7 +5,6 @@ import {isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
-// @ts-expect-error TS7016: the original Row Source still has an authored JavaScript entry.
 import {installRowSourceAuthorization} from '../../../host-node/installed-row-source.mjs';
 export {installedTableReadSite} from '../../../host-node/installed-table-source.mjs';
 import {createInstalledTableEffect, checkInstalledTableEffectLimits} from '../../../host-node/installed-table-effect.mjs';

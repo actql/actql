@@ -3891,7 +3891,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               }
             ],
@@ -4350,7 +4350,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -9107,7 +9107,7 @@
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -9133,7 +9133,7 @@
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -9159,7 +9159,7 @@
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -9185,7 +9185,7 @@
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {

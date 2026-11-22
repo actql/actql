@@ -10,6 +10,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
 import {fileURLToPath} from 'node:url';
+// @ts-expect-error TS7016: runtime-core still has an authored JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
@@ -33,14 +34,108 @@ import {createInstalledRowSourceAcquisition} from './installed-row-source-acquis
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
 export {installRowSourceAuthorization, encodeTypedResponseJson};
-const text = value => typeof value === 'string' && value.length > 0;
+type Acquisition = Parameters<typeof createInstalledRowSourceAcquisition>[0];
+type ReadAuthority = Parameters<typeof createInstalledRowSourceReadAuthority>[0];
+type KeyedPreparation = Parameters<typeof createInstalledRowSourceKeyedPreparation>[0];
+type KeyedLookup = Parameters<typeof createInstalledRowSourceKeyedLookup>[0];
+type KeyedRead = Parameters<typeof createInstalledRowSourceKeyedRead>[0];
+type Preparation = Parameters<typeof createInstalledRowSourcePreparation>[0];
+type Prepared = NonNullable<Parameters<Preparation['preparations']['get']>[0]>;
+type PreparedOwner = NonNullable<ReturnType<Preparation['preparations']['get']>>;
+type KeyedPrepared = Parameters<KeyedPreparation['keyedPreparations']['get']>[0];
+type KeyedOwner = NonNullable<ReturnType<KeyedPreparation['keyedPreparations']['get']>>;
+type SourceAuthority = Preparation['sourceAccess']['authorization'] & Readonly<{
+  accountConfiguration?: unknown; accountConstruction?: unknown; context?: unknown;
+}>;
+type SourceInitialization = Readonly<{
+  prepareReadMetadata<Result>(declared: unknown, construct: () => Result): Result;
+}>;
+type WholeCapacityOptions = Readonly<{preparedProgram: unknown; sourceSelection: unknown; installedContracts: unknown}>;
+type PhysicalTarget = ReadAuthority['physicalTarget'];
+type OriginalReader = NonNullable<Acquisition['originalReader']> & Readonly<{retire?: () => unknown}>;
+type ReaderDemand = NonNullable<Acquisition['readerDemand']> & Readonly<{
+  queryPages: number; maxResponseBytes: number; maxRows: number; maxTotalRows: number; transferBytes?: bigint;
+}>;
+type Driver = NonNullable<Acquisition['readPages']> & KeyedRead['readPages'];
+type SourceMoon = ReadAuthority['moon'] & Preparation['moon'] & Acquisition['moon'] &
+  KeyedPreparation['moon'] & KeyedRead['moon'] & KeyedLookup['moon'] & Readonly<{
+  clientProgramRowSourcePrepareAcquisition(declaration: unknown, requirement: unknown,
+    query: string, evidence: string, listingPolicy: unknown): unknown;
+  clientProgramRowSourcePrepareAcquisitionWithContracts?(declaration: unknown, requirement: unknown,
+    contracts: unknown, listingPolicy: unknown): unknown;
+  clientProgramRowSourceCheckOriginalAcquisition(acquisition: unknown, declaration: unknown, requirement: unknown): unknown;
+  clientProgramInstalledRowCaptureCapacity(acquisition: unknown): unknown;
+  clientProgramInstalledProviderRowCaptureCapacityMatches(capacity: unknown, acquisition: unknown, provider: unknown): boolean;
+  clientProgramPrepareWholeSourceCapacity(prepared: unknown, selection: unknown, declaration: unknown, contracts: unknown,
+    provider: unknown, maxRows: number, maxPageBytes: number, maxNodes: number, maxDepth: number,
+    maxPageRows: number, maxPages: number): unknown;
+  clientProgramWholeSourceCapacityMatches(capacity: unknown, acquisition: unknown, provider: unknown): boolean;
+  clientProgramInstalledListingRowCaptureCapacity(acquisition: unknown, reportCapacity: unknown): unknown;
+  clientProgramInstalledRowInputPolicy(maxRows: number, maxPageBytes: number, maxNodes: number,
+    maxDepth: number, maxPageRows: number): unknown;
+  clientProgramInstalledEffectRowInputPolicy(maxPages: number, maxRows: number, maxPageBytes: number,
+    maxNodes: number, maxDepth: number, maxPageRows: number): unknown;
+}>;
+type SourceOptions<Publication extends object, Surface extends readonly string[] | undefined, Realization extends string> = Readonly<{
+  moon: SourceMoon;
+  declaration: unknown;
+  commands?: unknown;
+  declared: Readonly<{catalog_cid: string; views: readonly Readonly<{source_ref: string; resource: string}>[]}>;
+  environmentWire: string;
+  environment?: Readonly<{wire: string}>;
+  sourceInitialization?: object;
+  connectorId: string;
+  connectorRegistration: string;
+  connectorRevision: string;
+  site: Acquisition['site'] & Readonly<{referenceCurrent?(): boolean; close(): unknown}>;
+  authorization: SourceAuthority;
+  readOperation: string | Readonly<Record<string, string>>;
+  physicalTarget: PhysicalTarget | readonly object[];
+  readPages?: Driver;
+  bindingCid: string;
+  publicationBindingCid?: string;
+  tableReadTargets?: readonly object[];
+  publication?: Publication;
+  publicationSurface?: Surface;
+  realizationKey?: Realization;
+  limits: Acquisition['limits'];
+  referenceIssuer?: unknown;
+  listingPolicy?: unknown;
+  captureContent?: KeyedRead['captureContent'];
+  listingReportCapacity?: object;
+  prepareAcquisition?: (input: Readonly<{
+    declaration: unknown; requirement: unknown; queryContract: string; evidenceContract: string;
+  }>) => unknown;
+  directReadIdentity?: NonNullable<Acquisition['directReadIdentity']> & NonNullable<ReadAuthority['directReadIdentity']> &
+    NonNullable<Preparation['directReadIdentity']>;
+  prepareRead?: Acquisition['prepareRead'];
+  grantBeforeBegin?: boolean;
+  originalSourceAccess?: Readonly<{authorization: SourceAuthority; connection: string}>;
+  providerReader?: object;
+  prepareSourceRead?: Preparation['prepareSourceRead'];
+  closeSourceRead?: Acquisition['closeSourceRead'];
+  prepareKeyedSourceRead?: KeyedRead['prepareKeyedSourceRead'];
+  closeKeyedSourceRead?: KeyedRead['closeKeyedSourceRead'];
+  originalKeyedTransport?: Readonly<{transferBytes: bigint; executionBytes: bigint}>;
+  readAsset?: (path: string) => string;
+  originalPageLimits?: Acquisition['pageLimits'];
+}>;
+type MandatorySourceKeys = 'realizationKey' | 'supportsRetainedRelationOutput' | 'connectorRegistration' |
+  'connectorRevision' | 'environmentWire' | 'connectorBindings' | 'readAuthorization' | 'sourceAccess' |
+  'sourceReadAccesses' | 'admitsSource' | 'ledgerCapacity' | 'prepare' | 'open' | 'close' |
+  'retirePreparedSource' | 'prepareRetained';
+type PublishedSurface<Body extends Record<MandatorySourceKeys, unknown>, Surface> = Surface extends readonly string[]
+  ? Pick<Body, MandatorySourceKeys | Extract<Surface[number], keyof Body>> & Partial<Body>
+  : Body;
+
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
-const cid = value => `sha256:${createHash('sha256')
+const cid = (value: unknown) => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 export const {installedRowCredentialOperationSite, loadRowSourceCredentialCustody,
-  openRowSourceCredentialCustody, openRowSourceCredentialSite, openInstalledRowSite} =
+  openRowSourceCredentialCustody, openRowSourceCredentialSite, openInstalledRowSite}: ReturnType<typeof createInstalledRowSourceCredentialSite> =
   createInstalledRowSourceCredentialSite({runtimeCore, text, cidPattern});
 
 // The installed source adapter of one row declaration (see
@@ -58,17 +153,18 @@ export const {installedRowCredentialOperationSite, loadRowSourceCredentialCustod
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 // Standard installations may instead supply their frozen full target DATA
 // inventory. It has no authorization/current/physical cleanup methods.
-export async function createInstalledRowSource({moon, declaration, commands,
+export async function createInstalledRowSource<Publication extends object = object,
+  Surface extends readonly string[] | undefined = undefined, Realization extends string = 'row-source-acquired'>({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, publicationBindingCid, tableReadTargets, publication,
-  publicationSurface, realizationKey = 'row-source-acquired', limits, referenceIssuer, listingPolicy, captureContent,
+  publicationSurface, realizationKey = 'row-source-acquired' as Realization, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
-  originalKeyedTransport, readAsset, originalPageLimits}) {
+  originalKeyedTransport, readAsset, originalPageLimits}: SourceOptions<Publication, Surface, Realization>) {
   if (typeof realizationKey !== 'string' || realizationKey.length === 0) fail('InvalidInstalledSourcePublication');
-  let selectedSurface;
+  let selectedSurface: string[] | undefined;
   if (publicationSurface !== undefined) {
     if (!Array.isArray(publicationSurface) || nodeTypes.isProxy(publicationSurface) ||
         !Object.isFrozen(publicationSurface)) fail('InvalidInstalledSourcePublication');
@@ -81,7 +177,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
     if (['realizationKey','supportsRetainedRelationOutput','connectorRegistration','connectorRevision',
       'environmentWire','connectorBindings','readAuthorization','sourceAccess','sourceReadAccesses',
-      'admitsSource','ledgerCapacity','prepare','open','close'].some(key => !selectedSurface.includes(key))) {
+      'admitsSource','ledgerCapacity','prepare','open','close'].some(key => !selectedSurface!.includes(key))) {
       fail('InvalidInstalledSourcePublication');
     }
     // Common preparation cleanup is part of the original Source lifecycle.
@@ -91,7 +187,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       if (!selectedSurface.includes(name)) selectedSurface.push(name);
     }
   }
-  let publicationFields = {};
+  let publicationFields: PropertyDescriptorMap = {};
   if (publication !== undefined) {
     if (!publication || typeof publication !== 'object' || nodeTypes.isProxy(publication) ||
         !Object.isFrozen(publication) ||
@@ -103,7 +199,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
   }
   const readerDemand = sourceInitialization === undefined ? undefined
-    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader, undefined, commands);
+    : assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, providerReader, undefined, commands) as ReaderDemand | undefined;
   const retainedAcquisitionContracts = sourceInitialization !== undefined && prepareAcquisition === undefined;
   const prepareWithContracts = !retainedAcquisitionContracts ? undefined
     : moon.clientProgramRowSourcePrepareAcquisitionWithContracts;
@@ -125,7 +221,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
           ["attempt", "input", "subject", "useId"].join("\0") ||
         !Number.isSafeInteger(directReadIdentity.input) || directReadIdentity.input < 0 ||
         !["subject", "attempt", "useId"].every(key =>
-          typeof directReadIdentity[key] === "function"))) {
+          typeof directReadIdentity[key as 'subject' | 'attempt' | 'useId'] === "function"))) {
     fail("InvalidInstalledSourceReadIdentity");
   }
   if ((prepareRead !== undefined && typeof prepareRead !== "function") ||
@@ -135,7 +231,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // One trusted installation's original declaration and I/O-free preparer.
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
-  let originalReader;
+  let originalReader: OriginalReader | undefined;
   // Managed and advanced page readers are distinct installation alternatives.
   // A managed reader never needs a dummy or fallback unaccounted readPages.
   if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined) {
@@ -160,7 +256,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // issuer; the same RowRun still admits its actual original child below.
   if (readAsset !== undefined && (prepareSourceRead === undefined ||
       typeof readAsset !== 'function')) fail('InstalledSourceReadUnavailable');
-  let pageLimits;
+  let pageLimits: Acquisition['pageLimits'];
   if (originalPageLimits !== undefined) {
     if (prepareSourceRead === undefined || originalPageLimits === null ||
         typeof originalPageLimits !== 'object' || nodeTypes.isProxy(originalPageLimits) ||
@@ -171,7 +267,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       !Number.isSafeInteger(properties[name].value) || properties[name].value < 1 ||
       properties[name].value > 2147483647) ||
       typeof moon.clientProgramRowSourceBeginWithPageLimits !== 'function') fail('InvalidInstalledSourcePageLimits');
-    pageLimits = Object.freeze({maxNodes: properties.maxNodes.value, maxDepth: properties.maxDepth.value});
+    pageLimits = Object.freeze({maxNodes: properties.maxNodes.value!, maxDepth: properties.maxDepth.value!});
   }
   if (providerReader !== undefined) {
     if (providerReader === null || typeof providerReader !== 'object' ||
@@ -196,7 +292,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
     originalReader = Object.freeze({capacity, prepare, retire, receiver: providerReader});
   }
-  let managedPageLimits;
+  let managedPageLimits: Acquisition['managedPageLimits'];
   if (readerDemand !== undefined) {
     // This is the SAME immutable service selection already checked against
     // this declaration/Environment/reader, not the legacy preparer option.
@@ -248,9 +344,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // its SAME initialization material. Existing provider-specific preparers and
   // explicit legacy constructors keep their original raw-wire entry law.
   let acquisitionContracts = retainedAcquisitionContracts
-    ? prepareInstalledSourceAcquisitionContracts(sourceInitialization, queryContract, evidenceContract) : undefined;
+    ? prepareInstalledSourceAcquisitionContracts(sourceInitialization!, queryContract, evidenceContract) : undefined;
   const constructReadMetadata = () => {
-    const sourceRefs = new Set();
+    const sourceRefs = new Set<string>();
     const sourceReadAccesses = Object.freeze(declared.views.map(view => {
       sourceRefs.add(view.source_ref);
       return Object.freeze({authorization, connection: site.connection,
@@ -260,8 +356,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
   };
   const {sourceRefs, sourceReadAccesses} = sourceInitialization === undefined
     ? constructReadMetadata()
-    : sourceInitialization.prepareReadMetadata(declared, constructReadMetadata);
-  if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
+    : (sourceInitialization as SourceInitialization).prepareReadMetadata(declared, constructReadMetadata);
+  if (!(['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows'] as const)
     .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
       limits[key] <= 2_147_483_647)) {
     fail('InvalidInstalledRowSourceLimits');
@@ -286,8 +382,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
       fields[name].value < 0n || fields[name].value > 9223372036854775807n)) {
       fail('InvalidInstalledKeyedTransportLimits');
     }
-    keyedTransferBytes = fields.transferBytes.value;
-    keyedExecutionBytes = fields.executionBytes.value;
+    keyedTransferBytes = fields.transferBytes.value!;
+    keyedExecutionBytes = fields.executionBytes.value!;
   }
   // A plural Source can expose separately registered metadata/content reads.
   // Copy its closed Resource->operation binding once; a Run's selected view
@@ -304,18 +400,18 @@ export async function createInstalledRowSource({moon, declaration, commands,
   const immutableTargets = prepareImmutablePhysicalTargets(physicalTarget);
   if (immutableTargets !== undefined) physicalTarget = immutableTargets.prepare;
   let physicalTargetGeneration = immutableTargets?.inventory;
-  const preparations = new WeakMap();
+  const preparations = new WeakMap<Prepared, PreparedOwner>();
   // SAME prepared read, retained until the accounted RowRun takes custody.
-  const preparingSourceReads = new Set();
-  const reauthorizingPreparations = new WeakSet();
-  const keyedPreparations = new WeakMap();
-  function prepareOriginalAcquisition(requirement) {
+  const preparingSourceReads = new Set<unknown>();
+  const reauthorizingPreparations = new WeakSet<Prepared>();
+  const keyedPreparations = new WeakMap<KeyedPrepared, KeyedOwner>();
+  function prepareOriginalAcquisition(requirement: unknown) {
     if (retainedAcquisitionContracts && acquisitionContracts === undefined) fail('InstalledSourceInitializationClosed');
     const acquisition = prepareAcquisition === undefined
       ? !retainedAcquisitionContracts
         ? checked(moon.clientProgramRowSourcePrepareAcquisition(
           declaration, requirement, queryContract, evidenceContract, listingPolicy))
-        : checked(Reflect.apply(prepareWithContracts, moon,
+        : checked(Reflect.apply(prepareWithContracts!, moon,
           [declaration, requirement, acquisitionContracts, listingPolicy]))
       : prepareAcquisition(Object.freeze({declaration, requirement,
         queryContract, evidenceContract}));
@@ -326,7 +422,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     return acquisition;
   }
   const providerSiteCurrent = originalReader === undefined ? undefined : site.referenceCurrent;
-  function managedProviderCaptureCapacity(requirement) {
+  function managedProviderCaptureCapacity(requirement: unknown) {
     if (originalReader === undefined) {
       if (typeof prepareSourceRead !== 'function') fail('InstalledSourceCapacityUnavailable');
       // A Host-backed original read uses the same checked Row acquisition,
@@ -346,7 +442,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     return Object.freeze({capacity, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
-  function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}) {
+  function managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}: WholeCapacityOptions) {
     if (originalReader === undefined) {
       if (typeof prepareSourceRead !== 'function') fail('InstalledSourceCapacityUnavailable');
     } else if (typeof providerSiteCurrent !== 'function' ||
@@ -359,7 +455,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
-  const captureCapacity = owner => {
+  const captureCapacity = (owner: PreparedOwner) => {
     if (originalReader !== undefined) {
       if (owner.wholeInput) {
         if (moon.clientProgramWholeSourceCapacityMatches(
@@ -384,9 +480,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
     connectorRevision, bindingCid});
   function currentPhysicalTargetGeneration() { return physicalTargetGeneration; }
   const {ordinaryRecoveryBinding, decideRead, currentRead} = createInstalledRowSourceReadAuthority({
-    preparations, installationBinding, immutableTargets,
+    preparations: preparations as ReadAuthority['preparations'], installationBinding, immutableTargets,
     currentPhysicalTargetGeneration,
-    moon, declaration, site, physicalTarget, directReadIdentity, valueCid, cid, cidPattern});
+    moon, declaration, site, physicalTarget: physicalTarget as PhysicalTarget, directReadIdentity, valueCid, cid, cidPattern});
   // Preserve an original installation's exact immutable access metadata;
   // this is neither a wire object nor an authorization decision. Defaults
   // keep the ordinary singleton Source projection unchanged.
@@ -403,11 +499,11 @@ export async function createInstalledRowSource({moon, declaration, commands,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
   const {prepareKeyed, verifyKeyedRead, keyedRecoveryBinding} = createInstalledRowSourceKeyedPreparation({
-    keyedPreparations, originalReader, moon, declaration, limits, sourceRefs, cidPattern, valueCid, site, physicalTarget,
+    keyedPreparations, originalReader, moon, declaration, limits, sourceRefs, cidPattern, valueCid, site, physicalTarget: physicalTarget as PhysicalTarget,
     sourceAccess, decideRead, currentRead, connectorRegistration, connectorRevision, bindingCid});
 
   const {prepare, prepareRetained} = createInstalledRowSourcePreparation({
-    moon, declaration, sourceRefs, site, physicalTarget, cidPattern, immutableTargets, currentPhysicalTargetGeneration,
+    moon, declaration, sourceRefs, site, physicalTarget: physicalTarget as PhysicalTarget, cidPattern, immutableTargets, currentPhysicalTargetGeneration,
     sourceAccess, preparations, preparingSourceReads, reauthorizingPreparations, valueCid,
     ordinaryRecoveryBinding, directReadIdentity, currentRead, originalReader, prepareSourceRead, decideRead,
     prepareOriginalAcquisition});
@@ -420,8 +516,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
 
   const {openKeyed, selectedKeyedContent} = createInstalledRowSourceKeyedRead({
     originalReader, captureContent, referenceIssuer, moon, sourceRefs, text, prepareKeyedSourceRead, closeKeyedSourceRead,
-    keyedPreparations, declaration, limits, physicalTarget, valueCid, keyedTransferBytes, keyedExecutionBytes,
-    connectorRegistration, connectorRevision, bindingCid, currentRead, site, cid, operationBindings, readPages, sourceAccess});
+    keyedPreparations, declaration, limits, physicalTarget: physicalTarget as PhysicalTarget, valueCid, keyedTransferBytes, keyedExecutionBytes,
+    connectorRegistration, connectorRevision, bindingCid, currentRead, site, cid, operationBindings, readPages: readPages!, sourceAccess});
 
   const openKeyedLookup = createInstalledRowSourceKeyedLookup({
     moon, limits, originalReader, selectedKeyedContent, sourceAccess, managedPageLimits, pageLimits, openKeyed});
@@ -429,7 +525,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   let constructionClosed = false;
   const sourceBody = {
     realizationKey,
-    supportsRetainedRelationOutput: true,
+    supportsRetainedRelationOutput: true as const,
     connectorRegistration, connectorRevision,
     environmentWire,
     ...(environment === undefined ? {} : {environmentOriginal: environment}),
@@ -446,7 +542,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
     ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
       ? {managedWholeSourceCapacity} : {}),
-      managedEffectPlanSelection(selection) {
+      managedEffectPlanSelection(selection?: object) {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
         // be replaced by that default merely because its column counts match.
@@ -480,10 +576,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
           inputLimits,
           transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});
       },
-    admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    admitsSource: (sourceRef: string) => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
     prepareRetained,
-    retirePreparedSource(prepared) {
+    retirePreparedSource(prepared: Prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
       // Started reads have already transferred to their original RowRun's
@@ -494,7 +590,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         preparingSourceReads.delete(owner.originalRead);
       }
     },
-    retainedCapture(prepared) {
+    retainedCapture(prepared: Prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
@@ -502,7 +598,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       return Object.freeze({capacity, referenceIssuer,
         ...(owner.wholeInput ? {wholeInput: true} : {requirement: owner.requirement})});
     },
-    ledgerCapacity(prepared) {
+    ledgerCapacity(prepared: Prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
@@ -515,7 +611,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         executionBytes: BigInt(limits.maxPageBytes),
       });
     },
-    keyedLedgerCapacity(keyedAcquisition, {maxWork, originalWork} = {}) {
+    keyedLedgerCapacity(keyedAcquisition: unknown, {maxWork, originalWork}: Readonly<{maxWork?: number; originalWork?: number}> = {}) {
       if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
       for (const value of [maxWork, originalWork]) {
         if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
@@ -557,7 +653,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       // constructor's aliases; the request to stop is not its acknowledgement.
       return Promise.resolve(observed).then(value => {
         if (!constructionClosed) {
-          closeInstalledSourceConstruction(sourceInitialization, installedSource);
+          closeInstalledSourceConstruction(sourceInitialization!, installedSource);
           acquisitionContracts = undefined;
           constructionClosed = true;
         }
@@ -570,15 +666,16 @@ export async function createInstalledRowSource({moon, declaration, commands,
   }
   // Provider-only publication fields enter the sole adapter before freezing
   // and exact registration. They cannot replace any common lifecycle method.
-  let surface = sourceBody;
+  let surface: Partial<typeof sourceBody> = sourceBody;
   if (selectedSurface !== undefined) {
     surface = {};
     for (const key of selectedSurface) {
       if (!Object.hasOwn(sourceBody, key)) fail('InvalidInstalledSourcePublication');
-      Object.defineProperty(surface, key, Object.getOwnPropertyDescriptor(sourceBody, key));
+      Object.defineProperty(surface, key, Object.getOwnPropertyDescriptor(sourceBody, key)!);
     }
   }
-  const installedSource = Object.freeze(Object.defineProperties(surface, publicationFields));
+  const installedSource = Object.freeze(Object.defineProperties(surface, publicationFields)) as
+    PublishedSurface<typeof sourceBody, Surface> & Readonly<Publication>;
   if (sourceInitialization !== undefined) {
     retainInstalledSourceConstruction(sourceInitialization, installedSource, declaration, declared, environment);
   }

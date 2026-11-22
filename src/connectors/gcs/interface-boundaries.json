@@ -943,7 +943,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               }
             ]
@@ -3172,7 +3172,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               }
             ]
@@ -5622,7 +5622,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -6837,7 +6837,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -8350,7 +8350,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {

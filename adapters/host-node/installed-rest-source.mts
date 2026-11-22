@@ -5,7 +5,6 @@ import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {captureInstalledSourceServices} from './installed-host-services.mjs';
-// @ts-expect-error TS7016: remove after installed-row-source has an authored TypeScript entry.
 import {createInstalledRowSource} from './installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createRestSourceMetadata} from './rest-source-metadata.mjs';
@@ -29,7 +28,9 @@ type RuntimeOptions = Readonly<{
   moon?: object; installation?: unknown; sourceInitialization?: unknown; runtimeBundleCid?: unknown;
   resolveSecret?: unknown; configurationReader?: unknown; installationServices?: unknown;
 }>;
-type Declared = DeclaredRestPublication & Readonly<{views: readonly Readonly<{resource: string; fields: readonly string[]}>[]}>;
+type Declared = DeclaredRestPublication & Readonly<{views: readonly Readonly<{
+  source_ref: string; resource: string; fields: readonly string[];
+}>[]}>;
 type Prepared = Readonly<{declaration: unknown; declared: Declared; environment: Readonly<{wire: string}>}>;
 type HostPolicy = Readonly<Record<typeof installedJsonSourceReaderLimitNames[number] |
   'maxDeclarationBytes' | 'maxDeclarationNodes' | 'maxSecretBytes', number>>;
@@ -40,14 +41,15 @@ type PhysicalTarget = (resource: string, fields: unknown, originalPath?: string)
 type TargetMaterial = Readonly<{targets: readonly ReturnType<PhysicalTarget>[];
   requests: readonly (RestSourceRead | RestReadOriginal)[]}>;
 type ReadOriginals = ReturnType<typeof captureRestReadOriginals>;
-type SiteClosure = NonNullable<Parameters<typeof retainInstalledHostInitializationFailure>[1]['sourceProfile']>;
+type RowSourceInput = Parameters<typeof createInstalledRowSource<object, undefined, 'row-source-acquired'>>[0];
 type ProviderReader = ReturnType<typeof createInstalledCredentialSourceReader>;
 type Services = {
   (method: 'sourceReaderImplementationProfile', options: Readonly<Record<string, unknown>>): HostPolicy;
   (method: 'sourceReaderImplementation', options: Readonly<Record<string, unknown>>):
     Readonly<{capacity: unknown; runAcquisitionLimits: unknown}>;
   (method: 'openRowSite', options: Readonly<Record<string, unknown>>): Promise<Readonly<{
-    site: SiteClosure; authorization: Readonly<{context: Readonly<{contextCid: string}>}>;
+    site: RowSourceInput['site'];
+    authorization: RowSourceInput['authorization'] & Readonly<{context: Readonly<{contextCid: string}>}>;
   }>>;
   (method: 'createSourceReader', options: Readonly<Record<string, unknown>>): ProviderReader;
 };
@@ -279,7 +281,8 @@ export function createInstalledRestSource(definition: RestSourceInstallationDefi
           return selected(input, applySynchronousProjection);
         }});
       if (providerReader.capacity !== implementation.capacity) fail('RestSourceReaderImplementationMismatch');
-      return await createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
+      return await createInstalledRowSource({moon: moon as RowSourceInput['moon'], declaration, declared, environment,
+        sourceInitialization: sourceInitialization as RowSourceInput['sourceInitialization'],
         environmentWire: environment.wire,
         connectorId: input.installed.connectorId, connectorRegistration: original.registration,
         connectorRevision: original.revision, site, authorization, readOperation: operation,

@@ -12577,7 +12577,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
@@ -13384,7 +13384,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
@@ -16587,7 +16587,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
               }
             ],
@@ -17219,7 +17219,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "eb6beeb980747763962daf0b98ca8214912c902ddef99c1a226edd57efe2a44a",
+      "sha256": "50f39d831923b7b47fb0447702296bcdf0c4e3a3fb57aba0d0729ed331f38796",
       "operations": [
         {
           "name": "cid/cid",
@@ -17554,7 +17554,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "No provider name or type appears here"
               },
               {
@@ -17596,7 +17596,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {
@@ -17662,7 +17662,7 @@
                 "anchor": "actual_catalog != expected_catalog"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -17670,7 +17670,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
@@ -17728,7 +17728,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -17744,7 +17744,7 @@
                 "anchor": "kind: 'effect_target'"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -17798,7 +17798,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "authorizationFor"
               },
               {
@@ -17810,7 +17810,7 @@
                 "anchor": "const current = () => site.referenceCurrent();"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "const observed = site.close();"
               },
               {
@@ -17818,7 +17818,7 @@
                 "anchor": "currentEffectRead(approved)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -17880,7 +17880,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "Completion is never"
               },
               {
@@ -17896,7 +17896,7 @@
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -17938,7 +17938,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "signal"
               },
               {
@@ -17988,7 +17988,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "maxPageBytes"
               },
               {
@@ -18078,7 +18078,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "rowSourceMapping"
               },
               {
@@ -18530,7 +18530,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "No provider name or type appears here"
               },
               {
@@ -18560,7 +18560,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {
@@ -18610,7 +18610,7 @@
                 "anchor": "actual_catalog != expected_catalog"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -18618,7 +18618,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
@@ -18652,7 +18652,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -18668,7 +18668,7 @@
                 "anchor": "kind: 'effect_target'"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -18706,7 +18706,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "authorizationFor"
               },
               {
@@ -18722,7 +18722,7 @@
                 "anchor": "currentEffectRead(approved)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -18764,7 +18764,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "Completion is never"
               },
               {
@@ -18780,7 +18780,7 @@
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -18810,7 +18810,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "signal"
               },
               {
@@ -18848,7 +18848,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "maxPageBytes"
               },
               {
@@ -18910,7 +18910,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "rowSourceMapping"
               },
               {
@@ -19094,11 +19094,11 @@
                 "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "const properties = Object.getOwnPropertyDescriptors(originalPageLimits);"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": ".map(name => readAsset(`spec/contracts/${name}`));"
               }
             ],
@@ -19156,7 +19156,7 @@
                 "anchor": "// supplier; no local scalar/fallback Ledger or cleanup ACK is created."
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "if (readAsset !== undefined && (prepareSourceRead === undefined ||"
               }
             ],
@@ -19208,7 +19208,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19218,7 +19218,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19228,7 +19228,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19238,7 +19238,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19248,7 +19248,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19258,7 +19258,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "fail('InstalledSourceReaderNotCurrent')"
               },
               {
@@ -19268,7 +19268,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "fail('InstalledSourceReaderNotCurrent')"
               },
               {
@@ -19282,13 +19282,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "function prepareOriginalAcquisition"
               },
               {
@@ -19569,7 +19569,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "No provider name or type appears here"
               },
               {
@@ -19599,7 +19599,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "createInstalledRowSource"
               },
               {
@@ -19649,7 +19649,7 @@
                 "anchor": "actual_catalog != expected_catalog"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -19657,7 +19657,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
@@ -19683,7 +19683,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -19699,7 +19699,7 @@
                 "anchor": "kind: 'effect_target'"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -19729,7 +19729,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "authorizationFor"
               },
               {
@@ -19741,7 +19741,7 @@
                 "anchor": "const current = () => site.referenceCurrent();"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "const observed = site.close();"
               },
               {
@@ -19749,7 +19749,7 @@
                 "anchor": "currentEffectRead(approved)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -19783,7 +19783,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "Completion is never"
               },
               {
@@ -19799,7 +19799,7 @@
                 "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "openRowSourceCredentialCustody"
               },
               {
@@ -19825,7 +19825,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "signal"
               },
               {
@@ -19863,7 +19863,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "maxPageBytes"
               },
               {
@@ -19917,7 +19917,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "rowSourceMapping"
               },
               {

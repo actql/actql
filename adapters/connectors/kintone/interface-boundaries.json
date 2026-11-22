@@ -236,7 +236,7 @@
                 "anchor": "## Installed Credential Site"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "export async function createInstalledRowSource"
               }
             ],
@@ -574,7 +574,7 @@
                 "anchor": "## Installed Credential Site"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "export async function createInstalledRowSource"
               }
             ],
