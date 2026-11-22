@@ -57189,7 +57189,7 @@
     {
       "module": "adapters/host-node/infer-io-notification.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8aecfb5fd04d08fa46fc71aa1aeaa8d3e89940917b6b5bae98a7f2ce51e30010",
+      "sha256": "b9484260b824ce35eac50c602248c1ea8c7d3023f96fd338279ecb39d2a8b3f8",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -57255,7 +57255,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57269,7 +57269,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57283,7 +57283,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "// One original operation claims it once. Notifications carry no model data."
               },
               {
@@ -57297,8 +57297,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
-                "anchor": "const state = {claimed: false, closed: false, pending: false, waiter: undefined};"
+                "path": "adapters/host-node/infer-io-notification.mts",
+                "anchor": "const state: NotificationState = {claimed: false, closed: false, pending: false, waiter: undefined};"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57311,7 +57311,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57325,7 +57325,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "throw new TypeError('InvalidInferIoNotification');"
               },
               {
@@ -57339,8 +57339,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
-                "anchor": "const state = {claimed: false, closed: false, pending: false, waiter: undefined};"
+                "path": "adapters/host-node/infer-io-notification.mts",
+                "anchor": "const state: NotificationState = {claimed: false, closed: false, pending: false, waiter: undefined};"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57353,7 +57353,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "// A bounded physical wakeup, not an acknowledgement, outcome or send permit."
               },
               {
@@ -57367,7 +57367,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57381,7 +57381,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-io-notification.test.mjs",
+                "path": "adapters/host-node/infer-io-notification.test.mts",
                 "anchor": "test('physical notification coalesces before registration without carrying an ACK', async () => {"
               },
               {
@@ -57399,7 +57399,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57413,7 +57413,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57427,7 +57427,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "// One original operation claims it once. Notifications carry no model data."
               },
               {
@@ -57441,8 +57441,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
-                "anchor": "const state = {claimed: false, closed: false, pending: false, waiter: undefined};"
+                "path": "adapters/host-node/infer-io-notification.mts",
+                "anchor": "const state: NotificationState = {claimed: false, closed: false, pending: false, waiter: undefined};"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57455,7 +57455,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57469,7 +57469,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "throw new TypeError('InvalidInferIoNotification');"
               },
               {
@@ -57483,8 +57483,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
-                "anchor": "const state = {claimed: false, closed: false, pending: false, waiter: undefined};"
+                "path": "adapters/host-node/infer-io-notification.mts",
+                "anchor": "const state: NotificationState = {claimed: false, closed: false, pending: false, waiter: undefined};"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -57497,7 +57497,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "// A bounded physical wakeup, not an acknowledgement, outcome or send permit."
               },
               {
@@ -57511,7 +57511,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-io-notification.mjs",
+                "path": "adapters/host-node/infer-io-notification.mts",
                 "anchor": "export function createInferIoNotification() {"
               },
               {
@@ -57525,7 +57525,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-io-notification.test.mjs",
+                "path": "adapters/host-node/infer-io-notification.test.mts",
                 "anchor": "test('physical notification coalesces before registration without carrying an ACK', async () => {"
               },
               {

@@ -2214,3 +2214,7 @@ target/
 /adapters/host-node/infer-original-installation-snapshot.test.d.mts
 /adapters/host-node/infer-original-publication-selection.test.mjs
 /adapters/host-node/infer-original-publication-selection.test.d.mts
+/adapters/host-node/infer-io-notification.mjs
+/adapters/host-node/infer-io-notification.d.mts
+/adapters/host-node/infer-io-notification.test.mjs
+/adapters/host-node/infer-io-notification.test.d.mts

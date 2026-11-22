@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {setImmediate as turn} from 'node:timers/promises';
 import {createInferIoNotification, claimInferIoNotification} from './infer-io-notification.mjs';
+// @ts-expect-error TS7016: the original Infer driver is still authored in JavaScript.
 import {openNodeInferOperation} from './infer-operation.mjs';
 
 test('physical notification coalesces before registration without carrying an ACK', async () => {
@@ -56,8 +57,18 @@ test('disposing a non-I/O poll retires its resolver and does not consume future 
 
 // These are explicit physical Core-port doubles, not public execution proof.
 // Common Owner/ACK admission is covered separately by the MoonBit entry tests.
+type Options = Readonly<{
+  notification?: Readonly<{notify(): unknown}>; signal?: AbortSignal;
+  onPoll?(advances: number, complete: () => void): void;
+  cleanup?: () => boolean; startFailure?: unknown; omitNotification?: boolean;
+}>;
+type Operation = Readonly<{
+  run(): Promise<unknown>; stop(): Promise<unknown>; close(): Promise<unknown>;
+  cleanup(): boolean; cleanupPending(): boolean;
+}>;
+
 function fixture({notification = createInferIoNotification(), signal, onPoll,
-  cleanup = () => true, startFailure, omitNotification = false} = {}) {
+  cleanup = () => true, startFailure, omitNotification = false}: Options = {}) {
   const active = {};
   let pending = true, requested = false, stopped = false;
   let advances = 0, starts = 0, cleanups = 0, progress = 0;
@@ -67,7 +78,7 @@ function fixture({notification = createInferIoNotification(), signal, onPoll,
       starts++;
       return startFailure === undefined ? {$tag: 1, _0: active} : {$tag: 0, _0: startFailure};
     },
-    clientProgramAdvanceInferExecution(owner) {
+    clientProgramAdvanceInferExecution(owner: unknown) {
       assert.equal(owner, active);
       advances++;
       const wasPending = pending;
@@ -75,13 +86,13 @@ function fixture({notification = createInferIoNotification(), signal, onPoll,
       if (requested && !pending) { stopped = true; return {$tag: 1, _0: 'stopped'}; }
       return {$tag: 1, _0: wasPending ? 'await_io' : 'complete'};
     },
-    clientProgramInferExecutionPollKind: poll => poll,
+    clientProgramInferExecutionPollKind: (poll: unknown) => poll,
     clientProgramInferExecutionOutput: () => output,
     clientProgramCancelInferExecution() { requested = true; },
     clientProgramInferExecutionStopped: () => stopped,
     clientProgramCleanupInferExecution() { cleanups++; return {$tag: 1, _0: cleanup()}; },
   };
-  const open = () => openNodeInferOperation({moon, preparedProgram: {}, step: 0,
+  const open = (): Operation => openNodeInferOperation({moon, preparedProgram: {}, step: 0,
     graph: {}, registry: '', values: '', fragment: '', ordered: '', provider: {}, signal,
     ioNotification: omitNotification ? undefined : notification,
     observeProgress() { progress++; }});
