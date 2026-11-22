@@ -20,6 +20,7 @@ import {createMockFileRowCodec, mockFileRowFootprint, mockFileEffectPlanRecipe}
   from '../local-node/installed-mock-row-effect.mjs';
 import {createMockFileTarget} from './mock-file-target.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
@@ -273,6 +274,72 @@ test('Mock actual codec deletes an original row through the locked file owner', 
       assert.equal((await file.close()).pending, false);
     }
   });
+});
+
+test('Mock actual CREATE codec inserts beside untouched rows through the locked file owner', async () => {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const {writes, views} = catalog.connections.salesforce;
+  Object.assign(writes[0], {operation: 'create', permission: 'salesforce:record:create',
+    writable_fields: ['group', 'value'], write_null_fields: ['value']});
+  views[0].schema.value.nullable = true;
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await withMockCatalog(async ({directory, bundle, assertCurrent}) => {
+    const original = bundle.sources[0], [account] = bundle.writables;
+    const {physical} = account;
+    const contract = checked(moon.clientProgramRelationPrepareInsertContract(physical.declaration,
+      physical.resource, physical.primaryIdentity, 1048576, 16384, 32, 100));
+    const digest = character => 'sha256:' + character.repeat(64);
+    const content = 'sha256:9f9eea815fedc32b706f3a87007cb26f3b61d5f16117949904ae53a88c508f9f';
+    const key = checked(moon.clientProgramEffectFileCreateStorageKey(digest('b'), digest('a'), digest('a'), content, 0));
+    assert.equal(key, '33cbd34e407306183290fe3d37d1093e2abe0f21521250a9cc587293255f5743');
+    const methods = {admit: 'clientProgramRelationAdmitDocument', project: 'clientProgramRelationProjectTargetDocument',
+      insert: 'clientProgramRelationPrepareTargetInsert'};
+    const codec = createMockFileRowCodec({bundle, original, createContracts: new Map([[account, contract]]),
+      call: (name, ...args) => Reflect.apply(moon[methods[name]], moon, args)});
+    const path = join(directory, 'mock/data.json'), before = files['mock/data.json'];
+    const record = {target: key, value: {group: 'created', value: null}};
+    const originalRun = Object.freeze({purpose: 'file CREATE codec component'});
+    let writes = 0;
+    const file = createMockFileTarget({dataPath: path, maxBytes: 1048576, assertCurrent, observeWrite: () => writes++});
+    const children = [];
+    const child = (authorize, charges) => {
+      const owned = file.updateChild({runOriginal: originalRun, authorize, replace(latest) {
+        checked(moon.clientProgramRelationInsertWorkspaceCapacity(contract, physical.itemsPath.length,
+          latest.length, JSON.stringify(record.value).length));
+        return codec.replace('create', latest, account, record, {chargeBytes(bytes) {charges.push(bytes);}});
+      }});
+      children.push(owned);
+      return owned;
+    };
+    try {
+      const refusal = new Error('original authority refused'), deniedCharges = [];
+      const denied = child(() => {throw refusal;}, deniedCharges);
+      await assert.rejects(denied.prepare(), cause => cause === refusal);
+      assert.deepEqual(deniedCharges, []);
+      assert.equal((await denied.release()).pending, false);
+      assert.equal(await readFile(path, 'utf8'), before);
+      const charges = [], inserted = child(() => {}, charges);
+      await inserted.prepare();
+      assert.equal((await inserted.release()).pending, false);
+      const lastAccount = '"value": "keep-account"\n        }';
+      assert.equal(before.split(lastAccount).length, 2);
+      const after = before.replace(lastAccount, lastAccount + `,{"group":"created","id":"${key}","value":null}`);
+      assert.equal(await readFile(path, 'utf8'), after);
+      assert.deepEqual(charges, [BigInt(Buffer.byteLength(before)), BigInt(Buffer.byteLength(after))]);
+      const duplicateCharges = [], duplicate = child(() => {}, duplicateCharges);
+      await assert.rejects(duplicate.prepare(), {code: 'MoonBitHostFailure'});
+      assert.equal((await duplicate.release()).pending, false);
+      assert.deepEqual(duplicateCharges, [BigInt(Buffer.byteLength(after))]);
+      assert.equal(await readFile(path, 'utf8'), after);
+      assert.equal(writes, 1);
+      await assert.rejects(lstat(path + '.actql-write.lock'), {code: 'ENOENT'});
+    } finally {
+      for (const owned of children) await owned.release();
+      assert.equal((await file.closeFor(originalRun)).pending, false);
+      assert.equal((await file.close()).pending, false);
+    }
+  }, files);
 });
 
 test('plural Mock actual recipe adds only the same nonphysical footprint operation and preserves single-target slots', async () => {

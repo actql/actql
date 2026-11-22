@@ -64,19 +64,22 @@ const ports = Object.freeze({
 // Internal DATA codec, shared by the actual locked writer and its component
 // controls. It borrows the original Catalog/Common; it owns no file, Account,
 // request admission, dispatch claim or current/cleanup capability.
-export function createMockFileRowCodec({bundle, original, call}) {
-  const admit = (bytes, target) => {
+export function createMockFileRowCodec({bundle, original, call, createContracts}) {
+  const admit = (bytes, target, includeTarget = true) => {
     const originalDocument = checked(call('admit', bytes, targetLimits.maxFileBytes,
       targetLimits.maxNodes, targetLimits.maxDepth, targetLimits.maxRows, targetLimits.maxWork));
     const projections = new Map();
     for (const source of bundle.sources) for (const model of source.physical) {
+      // The CREATE codec checks its selected original using the retained
+      // constructor. Other collections are still checked against this file.
+      if (!includeTarget && source === original && model === target.physical) continue;
       const writable = source === original && model === target.physical
         ? target.write.writable_fields ?? noFields : model.writableFields;
       projections.set(model, checked(call('project', originalDocument, model.declaration,
         model.resource, model.itemsPath, model.keyPath, model.primaryIdentity, writable)));
     }
     const selected = projections.get(target.physical);
-    if (selected === undefined) fail('InvalidInstalledMockEffect');
+    if (includeTarget && selected === undefined) fail('InvalidInstalledMockEffect');
     return {originalDocument, projections, selected};
   };
   const observe = (document, target) => {
@@ -88,10 +91,20 @@ export function createMockFileRowCodec({bundle, original, call}) {
   };
   return Object.freeze({admit, observe,
     replace(operation, bytes, target, record, physicalOperation) {
-      if (operation !== 'update' && operation !== 'delete') fail('InvalidMockEffectRequest');
+      if (operation !== 'update' && operation !== 'delete' && operation !== 'create') fail('InvalidMockEffectRequest');
       // Re-admit the latest WHOLE document supplied by the SAME locked file
       // owner, then replace only the original row's admitted spans.
       physicalOperation?.chargeBytes(BigInt(bytes.length));
+      if (operation === 'create') {
+        const prepared = createContracts?.get(target);
+        if (operationOf(target) !== 'create' || prepared === undefined) fail('InvalidMockEffectRequest');
+        const {originalDocument} = admit(bytes, target, false);
+        const {itemsPath, keyPath} = target.physical;
+        const replacement = checked(call('insert', originalDocument, prepared, itemsPath, keyPath,
+          record.target, wire(record.value)));
+        physicalOperation?.chargeBytes(BigInt(replacement.length));
+        return replacement;
+      }
       const document = admit(bytes, target), observed = observe(document, record.target);
       if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
         fail('MockTargetVersionConflict');

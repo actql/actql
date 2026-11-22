@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "065858933145004e1db98fcfb56cc07cbe72127eb560a5627c50507147797f26",
+      "sha256": "e1d1583ab84636323f313f3530ca178ecec9fba8508a0321f2be200432c8edeb",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118015,7 +118015,8 @@
           "parameters": [
             "bundle",
             "original",
-            "call"
+            "call",
+            "createContracts"
           ],
           "async": false
         },
@@ -118023,7 +118024,8 @@
           "name": "createMockFileRowCodec/admit/admit",
           "parameters": [
             "bytes",
-            "target"
+            "target",
+            "includeTarget"
           ],
           "async": false
         },
@@ -118839,6 +118841,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual CREATE codec inserts beside untouched rows through the locked file owner"
               }
             ]
           }

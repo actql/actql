@@ -350,11 +350,15 @@
     {
       "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8e9ad8a6d3dd09b2fdcd446fbc991d569855983f0371e9985cce412ef99b278c",
+      "sha256": "14e984c71ce82714f537a5a7c55f9e8e38d5eab52beb777ac1d5284a36b4cb4b",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_effect_file_create_storage_key",
+          "declaration": "client_program_effect_file_create_storage_key ( run_definition_cid : String , installation_cid : String , effect_identity_cid : String , content_cid : String , occurrence : Int , ) - > Result [ String , @ publication . EffectRowOutcomeIssue ]"
+        },
         {
           "name": "client_program_relation_accept_charged_document",
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
@@ -376,12 +380,24 @@
           "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
+          "name": "client_program_relation_insert_workspace_capacity",
+          "declaration": "client_program_relation_insert_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , mapped_utf16 : Int , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_observe_target",
           "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
+          "name": "client_program_relation_prepare_insert_contract",
+          "declaration": "client_program_relation_prepare_insert_contract ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedContract , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
           "name": "client_program_relation_prepare_target_delete",
           "declaration": "client_program_relation_prepare_target_delete ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_prepare_target_insert",
+          "declaration": "client_program_relation_prepare_target_insert ( original : @ client_row_source_host . RelationDocument , prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] , identity : String , mapped_wire : String , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
         },
         {
           "name": "client_program_relation_prepare_target_update",
@@ -424,13 +440,17 @@
         {
           "operations": [
             "<module>",
+            "client_program_effect_file_create_storage_key",
             "client_program_relation_accept_charged_document",
             "client_program_relation_accept_charged_input_document",
             "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
             "client_program_relation_document_usage",
+            "client_program_relation_insert_workspace_capacity",
             "client_program_relation_observe_target",
+            "client_program_relation_prepare_insert_contract",
             "client_program_relation_prepare_target_delete",
+            "client_program_relation_prepare_target_insert",
             "client_program_relation_prepare_target_update",
             "client_program_relation_project_target_document",
             "client_program_relation_target_before",
@@ -505,6 +525,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual CREATE codec inserts beside untouched rows through the locked file owner"
               }
             ]
           }
@@ -514,11 +538,15 @@
     {
       "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fa868b682962f2922f5cb427baf518a61529a1d43926f39f652dfe38935416e3",
+      "sha256": "0ad2c2f5606b67ae33af9a1bea3e1b557c03177f20863b3dcdc41247e4089708",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_effect_file_create_storage_key",
+          "declaration": "client_program_effect_file_create_storage_key ( run_definition_cid : String , installation_cid : String , effect_identity_cid : String , content_cid : String , occurrence : Int , ) - > Result [ String , @ publication . EffectRowOutcomeIssue ]"
+        },
         {
           "name": "client_program_relation_accept_charged_document",
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
@@ -540,12 +568,24 @@
           "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
+          "name": "client_program_relation_insert_workspace_capacity",
+          "declaration": "client_program_relation_insert_workspace_capacity ( prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path_depth : Int , original_bytes : Int , mapped_utf16 : Int , ) - > Result [ @ execution . ExecutionCapacity , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_observe_target",
           "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
+          "name": "client_program_relation_prepare_insert_contract",
+          "declaration": "client_program_relation_prepare_insert_contract ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , ) - > Result [ @ client_row_source_host . RelationDocumentPreparedContract , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
           "name": "client_program_relation_prepare_target_delete",
           "declaration": "client_program_relation_prepare_target_delete ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_prepare_target_insert",
+          "declaration": "client_program_relation_prepare_target_insert ( original : @ client_row_source_host . RelationDocument , prepared : @ client_row_source_host . RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] , identity : String , mapped_wire : String , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
         },
         {
           "name": "client_program_relation_prepare_target_update",
@@ -588,13 +628,17 @@
         {
           "operations": [
             "<module>",
+            "client_program_effect_file_create_storage_key",
             "client_program_relation_accept_charged_document",
             "client_program_relation_accept_charged_input_document",
             "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
             "client_program_relation_document_usage",
+            "client_program_relation_insert_workspace_capacity",
             "client_program_relation_observe_target",
+            "client_program_relation_prepare_insert_contract",
             "client_program_relation_prepare_target_delete",
+            "client_program_relation_prepare_target_insert",
             "client_program_relation_prepare_target_update",
             "client_program_relation_project_target_document",
             "client_program_relation_target_before",
@@ -669,6 +713,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual CREATE codec inserts beside untouched rows through the locked file owner"
               }
             ]
           }

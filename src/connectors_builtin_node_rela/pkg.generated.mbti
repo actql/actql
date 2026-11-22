@@ -695,6 +695,8 @@ pub fn client_program_effect_direct_source_coordinates(@run_publication_host.Pre
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
+pub fn client_program_effect_file_create_storage_key(String, String, String, String, Int) -> Result[String, @run_publication.EffectRowOutcomeIssue]
+
 pub fn client_program_effect_infer_occurrences(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
 
 pub fn client_program_effect_input_at(@physical_strategy_host.CapturedEffectInputs, Int) -> @physical_strategy_host.CapturedEffectInput?
@@ -2293,9 +2295,15 @@ pub fn client_program_relation_admit_target_document(@client_row_source_host.Row
 
 pub fn client_program_relation_document_usage(@client_row_source_host.RelationDocument) -> Array[Int64]?
 
+pub fn client_program_relation_insert_workspace_capacity(@client_row_source_host.RelationDocumentPreparedContract, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_prepare_insert_contract(@client_row_source_host.RowDeclaration, String, String, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocumentPreparedContract, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_prepare_target_insert(@client_row_source_host.RelationDocument, @client_row_source_host.RelationDocumentPreparedContract, Array[String], Array[String], String, String) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
