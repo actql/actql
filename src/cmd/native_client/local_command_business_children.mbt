@@ -539,6 +539,19 @@ fn LocalCommandPreparationOriginal::close_business_children(
         Ok(_) => business.request_body = None
       }
     }
+    if business.model_run is Some(model) {
+      if business.request_run is Some(run) {
+        match @local_values.quiesce_installed_managed_run(run) {
+          Err(issue) => return Err(CommandBusinessModelPlan(issue))
+          Ok(_) => ()
+        }
+      }
+      match model.finish_scopes() {
+        Err(issue) => return Err(CommandBusinessModelPlan(ModelRead(issue)))
+        Ok(false) => return Err(CommandBusinessChildren)
+        Ok(true) => business.model_run = None
+      }
+    }
     // Source preparation DATA is retained by this same caller only until its
     // logical children finish. Do not root it through physical C retirement.
     business.file_capacity = None

@@ -58,6 +58,7 @@ fn command_preparation_cleanup_kind(
     CommandBusinessModel(_) => "business-model"
     CommandBusinessModelHttp(_) => "business-model-http"
     CommandBusinessModelGraph(_) => "business-model-graph"
+    CommandBusinessModelPlan(_) => "business-model-plan"
     CommandBusinessQueryPlan(_) => "business-query-plan"
     CommandBusinessQueryRequirement(_) => "business-query-requirement"
     CommandBusinessQueryRow(_) => "business-query-row"

@@ -454,6 +454,14 @@ fn command_preparation_cleanup_cause(
         ModelGraph(_) => "ModelGraphConstruction"
         _ => "ModelGraphRequest"
       }
+    CommandBusinessModelPlan(cause) =>
+      match cause {
+        ForeignOriginal => "ModelPlanForeignOriginal"
+        InsufficientCapacity => "ModelPlanCapacity"
+        Resource(_) | Ledger(_) | Preparation(_) => "ModelPlanResource"
+        CleanupPending => "ModelPlanCleanupPending"
+        _ => "ModelPlan"
+      }
     CommandBusinessModelHttp(cause) =>
       match cause {
         ForeignOriginal => "ForeignOriginal"

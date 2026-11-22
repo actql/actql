@@ -48,6 +48,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
   CommandBusinessModelHttp(@local_host.NativeClientModelHttpIssue)
   CommandBusinessModelGraph(@local_values.ClientRequestProgramPlanIssue)
+  CommandBusinessModelPlan(@local_values.ClientInstalledManagedRunIssue)
   CommandBusinessQueryPlan(@local_values.ClientRequestProgramPlanIssue)
   CommandBusinessQueryRequirement(@local_values.ClientLocalQueryIssue)
   CommandBusinessQueryRow(@row_host.RowHostIssue)
@@ -245,6 +246,7 @@ fn prepare_local_command_preparation_original(
       request_retiring: false,
       model_work: [],
       effect_model: None,
+      model_run: None,
       saved_effect_rows: [],
       saved_effect_files: None,
       values_work: None,

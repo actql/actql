@@ -4,7 +4,9 @@
 priv struct LocalCommandModelCompilation {
   program : @run_host.PreparedClientProgram
   compilation : @run_host.ClientTaskCompilation
-  _graphs : Array[@run_host.ClientInferPlanGraph]
+  occurrences : Array[@run_host.ClientInferOccurrence]
+  graphs : Array[@run_host.ClientInferPlanGraph]
+  bounds : Array[@infer.Limits]
   _installations : Array[@local_host.NativeModelHttpInstallation]
 }
 
@@ -31,7 +33,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
     physical_equal(original, prepared) else {
     stop("LocalBusinessOriginalUnavailable")
   }
-  let (occurrences, graphs, providers) = self.with_business_request(capture, () => {
+  let occurrences = self.with_business_request(capture, () => {
     // Ordinary intake held the checked Program for normalization and authoring.
     // Switch to the SAME Request's funded Model Plan input before constructing
     // any occurrence/Graph inventory. Cleanup owns whichever borrow is live.
@@ -57,7 +59,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
       occurrences.length() == count else {
       stop("LocalOriginalModelUnavailable")
     }
-    (occurrences, Array(capacity=count), Array(capacity=count))
+    occurrences
   })
   let contracts = runtime.installed_contracts
   let limits = local_project_mock_task_limits()
@@ -77,7 +79,8 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
     }
   }
   let compilation_limits = @run_host.client_standard_pure_compilation_limits()
-  for occurrence in occurrences {
+  let mut selected = None
+  for index, occurrence in occurrences {
     let execution = match
       capture.prepare_model_http_execution_in_original_read(
         configuration, occurrence, limits,
@@ -103,7 +106,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
       }
     }
     self.with_business_request(capture, () => {
-      match
+      let graph = match
         @local_values.prepare_request_model_graph(
           parent,
           input,
@@ -112,18 +115,35 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
           contracts,
           manifests=native_request_manifests,
           compilation_limits~,
+          caller_material=Some(
+            native_model_compilation_storage(if index == 0 { count } else { 0 }),
+          ),
         ) {
-        Ok(graph) => {
-          graphs.push(graph)
-          providers.push(installed)
-        }
+        Ok(graph) => graph
         Err(issue) => {
           self.retain_primary(CommandBusinessModelGraph(issue))
           stop("LocalOriginalModelGraphUnavailable")
         }
       }
+      if selected is None {
+        selected = Some(
+          (Array(capacity=count), Array(capacity=count), Array(capacity=count)),
+        )
+      }
+      let (graphs, providers, bounds) = selected.unwrap()
+      let limits = match @infer.prepared_composed_bounds(occurrence, graph) {
+        Ok(value) => value
+        Err(issue) => {
+          self.retain_primary(CommandBusinessModel(@local_host.Model(issue)))
+          stop("LocalOriginalModelBoundsUnavailable")
+        }
+      }
+      graphs.push(graph)
+      providers.push(installed)
+      bounds.push(limits)
     })
   }
+  let (graphs, providers, bounds) = selected.unwrap()
   self.with_business_request(capture, () => {
     let result = if count == 1 {
       @local_values.prepare_request_model_compilation(
@@ -149,7 +169,9 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
         Some({
           program: prepared,
           compilation,
-          _graphs: graphs,
+          occurrences,
+          graphs,
+          bounds,
           _installations: providers,
         })
       Err(issue) => {
@@ -164,10 +186,45 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
 fn LocalCommandBusinessPreparation::configured_model_compilation(
   self : Self,
   prepared : @run_host.PreparedClientProgram,
-) -> @run_host.ClientTaskCompilation? raise ClientStop {
+) -> LocalCommandModelCompilation? raise ClientStop {
   guard self.model_compilation is Some(model) else { return None }
   if !physical_equal(model.program, prepared) {
     stop("LocalBusinessOriginalUnavailable")
   }
-  Some(model.compilation)
+  Some(model)
+}
+
+///|
+// Fund the selected Native arrays and caller records before the first Graph
+// returns. Each member separately funds the real Common bounds selection.
+fn native_model_compilation_storage(
+  count : Int,
+) -> @execution.PreparationRepresentationUnits raise ClientStop {
+  let bounds = @infer.prepared_composed_bounds_construction()
+  if count == 0 {
+    return bounds
+  }
+  let arrays = @execution.preparation_array_representation(
+    if count == 1 {
+      4L
+    } else {
+      3L
+    },
+    3L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
+    true,
+  ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
+  @execution.compose_preparation_representation([
+    bounds,
+    arrays,
+    {
+      // Compilation holder, member-selection tuple, Run Scope holder,
+      // quantity record and their optional carriers. The grouped adoption
+      // also passes the original Scope array in an optional argument.
+      record_headers: 9L,
+      reference_slots: 18L,
+      scalar_words: 3L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ]).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
 }
