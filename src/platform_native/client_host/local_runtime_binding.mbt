@@ -445,6 +445,7 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
 fn NativeLocalHostConnection::runtime_policy_pair(
   self : NativeLocalHostConnection,
   scope : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[
   @host.ClientNativeLocalScalarRuntimePair?,
   NativeClientRunJournalIssue,
@@ -452,7 +453,23 @@ fn NativeLocalHostConnection::runtime_policy_pair(
   match self.packaged_runtime {
     None => Ok(None)
     Some(binding) =>
-      if binding.scope == scope && local_runtime_binding_current(self, binding) {
+      if binding.scope != scope {
+        Err(CustodyLost)
+      } else if capture is Some(original) {
+        original
+        .with_current_adoption_material_in_original_read((host, material, _) => {
+          if physical_equal(host, self) &&
+            local_runtime_binding_current_with_access(
+              binding,
+              original.runtime_binding_access(host, material),
+            ) {
+            Ok(binding.pair)
+          } else {
+            Err(CustodyLost)
+          }
+        })
+        .map_err(_ => CustodyLost)
+      } else if local_runtime_binding_current(self, binding) {
         Ok(binding.pair)
       } else {
         Err(CustodyLost)

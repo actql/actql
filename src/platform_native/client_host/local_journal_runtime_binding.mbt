@@ -1,4 +1,46 @@
 ///|
+fn NativeLocalJournalCapture::runtime_binding_access(
+  self : NativeLocalJournalCapture,
+  host : NativeLocalHostConnection,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+) -> NativeLocalRuntimeBindingAccess {
+  {
+    runtime_current: runtime => {
+      if self.read_callback_active && self.read_facts_valid {
+        runtime.local_runtime_require_live() is Ok(_)
+      } else {
+        runtime.check_current() is Ok(_)
+      }
+    },
+    scope: (principal, connection) => {
+      self.operation_scope(host, material, principal, connection)
+    },
+    read_allowed: (principal, connection) => {
+      self.operation_account(host, material, {
+        principal,
+        connection,
+        resource: "run",
+        operation: "read",
+      })
+      is Ok(@authorization.Allow(_))
+    },
+    selected: name => {
+      // The current original above admitted this immutable settings
+      // list in the same command. No caller callback or mutation is
+      // dispatched between that observation and this pure selection.
+      match
+        host.session.settings.files.iter().find_first(file => file.name == name) {
+        Some(file) => Ok(file)
+        None => Err(CustodyLost)
+      }
+    },
+  }
+}
+
+///|
 // Runtime binding consumes the existing command's admitted material. Its
 // closed getters project scope, Account and selected-file facts without SQL.
 // Actual Runtime/Read lifetime remains checked by the retained original port.
@@ -15,39 +57,7 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
     operations,
   ) => {
     let observe = () => {
-      let access : NativeLocalRuntimeBindingAccess = {
-        runtime_current: runtime => {
-          if self.read_callback_active && self.read_facts_valid {
-            runtime.local_runtime_require_live() is Ok(_)
-          } else {
-            runtime.check_current() is Ok(_)
-          }
-        },
-        scope: (principal, connection) => {
-          self.operation_scope(host, material, principal, connection)
-        },
-        read_allowed: (principal, connection) => {
-          self.operation_account(host, material, {
-            principal,
-            connection,
-            resource: "run",
-            operation: "read",
-          })
-          is Ok(@authorization.Allow(_))
-        },
-        selected: name => {
-          // The current original above admitted this immutable settings
-          // list in the same command. No caller callback or mutation is
-          // dispatched between that observation and this pure selection.
-          match
-            host.session.settings.files
-            .iter()
-            .find_first(file => file.name == name) {
-            Some(file) => Ok(file)
-            None => Err(CustodyLost)
-          }
-        },
-      }
+      let access = self.runtime_binding_access(host, material)
       with_local_runtime_binding_frame(
         access,
         () => {

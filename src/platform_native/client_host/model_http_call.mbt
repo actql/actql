@@ -415,6 +415,8 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
           selected,
           false,
           () => self.check_original_read_lifetime().map_err(_ => CustodyLost),
+          capture=Some(self),
+          operations=Some(operations),
         )
       },
       reads=Some(operations.reads),

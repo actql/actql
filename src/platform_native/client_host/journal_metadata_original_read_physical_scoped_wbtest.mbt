@@ -553,6 +553,137 @@ test "Native Model configuration refuses a foreign credential in the adopted ori
 }
 
 ///|
+test "Native Model credential lookup joins the original scoped SQLite and Read phases" {
+  let name = "model-http-scoped-installation"
+  let (installed, file, provider, selection) = local_installation_fixture(name)
+  let expected = local_installation_test_original(
+      installed, file, provider, selection, true,
+    )
+    .unwrap()
+    .export_original()
+    .unwrap()
+  let config_files = installed.session.settings.files.map(selected => {
+    selected.name
+  })
+  let input = {
+    ..adoption_capture_test_input(name),
+    configuration_files: config_files,
+  }
+  installed.close().unwrap()
+  let crypto = installed.epoch.crypto
+  let fixture = journal_metadata_original_read_fixture()
+  let adoption = fixture.original
+    .stage(@arena.HostRead, fn() {
+      let original = match
+        prepare_native_local_existing_adoption_capture_in_current_read_context(
+          input, crypto, 256,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        original
+        .open(
+          construction=Some(value => {
+            fixture.original.prepare_account_construction(value)
+          }),
+        )
+        .issue() {
+        None => Ok(original)
+        Some(AdoptionOriginal(issue)) => Err(issue)
+        Some(_) => Err(CustodyLost)
+      }
+    })
+    .unwrap()
+  let capture = adoption
+    .capture_journal_with_original_resources(
+      fixture.host,
+      fixture.pair,
+      fixture.read,
+      100.0,
+      8,
+      8388608L,
+      metadata_retained=fixture.original.metadata_retained,
+    )
+    .unwrap()
+  let stage = Ref("open scoped journal")
+  let result = capture.with_original_read(host => {
+    stage.val = "observe current adoption"
+    capture.with_current_adoption_material_in_original_read((
+      current,
+      _,
+      operations,
+    ) => {
+      stage.val = "select adopted files"
+      guard physical_equal(host, current) &&
+        current.session.settings.files
+        .iter()
+        .find_first(value => value.name == file.name)
+        is Some(adopted_setting) &&
+        current.session.settings.files
+        .iter()
+        .find_first(value => value.name == provider.name)
+        is Some(adopted_provider) else {
+        return Err(CustodyLost)
+      }
+      stage.val = "confirm direct SQL refusal"
+      guard current.database.read(
+          "client_local_installation_originals",
+          file.name,
+        )
+        is Err(_) else {
+        return Err(CustodyLost)
+      }
+      stage.val = "begin scoped installation lookup"
+      current.journal
+      .transaction_with_reads(
+        () => {
+          stage.val = "authenticate and restore original credential"
+          current.installation_original_locked(
+            adopted_setting,
+            adopted_provider,
+            selection,
+            false,
+            () => {
+              capture.check_original_read_lifetime().map_err(_ => CustodyLost)
+            },
+            capture=Some(capture),
+            operations=Some(operations),
+          )
+        },
+        reads=Some(operations.reads),
+      )
+      .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
+      .bind(projected => {
+        stage.val = "export restored projection"
+        projected.export_original().map_err(issue => Filesystem(issue))
+      })
+      .map(projected => projected == expected)
+    })
+  })
+  let found = match result {
+    Ok(Ok(value)) => value
+    Ok(Err(Journal(CustodyLost))) => fail(stage.val + " refused custody")
+    Ok(Err(Journal(Physical(_)))) => fail(stage.val + " refused SQLite")
+    Ok(Err(Journal(TransactionUnknown))) =>
+      fail(stage.val + " lost transaction certainty")
+    Ok(Err(Filesystem(_))) => fail(stage.val + " refused filesystem")
+    Ok(Err(_)) => fail(stage.val + " refused observation")
+    Err(Physical(_) | DatabasePending(_, Physical(_))) =>
+      fail(stage.val + " refused original SQLite")
+    Err(Filesystem(_) | DatabasePending(_, Filesystem(_))) =>
+      fail(stage.val + " refused original filesystem")
+    Err(OriginalResources(_)) => fail(stage.val + " refused original resources")
+    Err(_) => fail(stage.val + " refused original Read")
+  }
+  assert_true(found)
+  assert_true(adoption.close().issue() is None)
+  assert_true(capture.descriptor_cleanup_acknowledged())
+  assert_true(crypto.close_checked() is Ok(_))
+  account_original_read_close_fixture(fixture)
+}
+
+///|
 // The Read and its retained-byte ledger are real. Private fixture records
 // present mismatched preparation inputs, without issuing a signing use or
 // claiming that the test has an installed approval path.

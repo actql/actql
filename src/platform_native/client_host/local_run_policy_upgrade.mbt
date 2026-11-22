@@ -79,6 +79,7 @@ fn local_policy_upgrade_packet(
 fn local_policy_upgrade_payload(
   host : NativeLocalHostConnection,
   packet : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   let fields = match
     @host.client_local_original_record_fields(packet, [
@@ -97,7 +98,7 @@ fn local_policy_upgrade_payload(
     epoch_hex_bytes(fields[2]) is Some(tag) else {
     return Err(CustodyLost)
   }
-  let (key, _, _) = match read_epoch_custody(host.database) {
+  let (key, _, _) = match read_epoch_custody(host.database, reads~) {
     Ok(value) => value
     Err(issue) => return Err(Epoch(issue))
   }
@@ -111,16 +112,21 @@ fn local_policy_upgrade_payload(
 fn read_local_policy_upgrade_original(
   host : NativeLocalHostConnection,
   row : @sqlite.NativeJournalValue,
+  capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalPolicyUpgradeOriginal, NativeClientRunJournalIssue] {
-  read_local_policy_upgrade_original_with_runtime_dependency(host, row, (
-    scope,
-    _,
-  ) => {
-    match host.runtime_policy_pair(scope) {
-      Ok(Some(value)) => Ok(value)
-      _ => Err(CustodyLost)
-    }
-  })
+  read_local_policy_upgrade_original_with_runtime_dependency(
+    host,
+    row,
+    (scope, _) => {
+      match host.runtime_policy_pair(scope, capture~) {
+        Ok(Some(value)) => Ok(value)
+        _ => Err(CustodyLost)
+      }
+    },
+    capture~,
+    reads~,
+  )
 }
 
 ///|
@@ -138,11 +144,13 @@ fn read_local_policy_upgrade_original_with_runtime_dependency(
     @host.ClientNativeLocalScalarRuntimePair,
     NativeClientRunJournalIssue,
   ],
+  capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalPolicyUpgradeOriginal, NativeClientRunJournalIssue] {
   if row.revision != 0L {
     return Err(CustodyLost)
   }
-  let body = match local_policy_upgrade_payload(host, row.body) {
+  let body = match local_policy_upgrade_payload(host, row.body, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -205,6 +213,7 @@ fn read_local_policy_upgrade_original_with_runtime_dependency(
       selection.principal,
       selection.connection,
       host.epoch.crypto,
+      capture~,
     ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
