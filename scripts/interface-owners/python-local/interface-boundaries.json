@@ -80422,7 +80422,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "1658af9d033a241e86a3bcded4d8ae4b28958c69f56dd6492466afe6b94d628e",
+      "sha256": "36ea6c5afafadd779f28fe674915962c6ae370f95143543cc271fc18b10d530f",
       "exports": [],
       "operations": [
         {
