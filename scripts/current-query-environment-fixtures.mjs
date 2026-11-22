@@ -6,6 +6,10 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 const definitions = [
   {
+    "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+    "original_cid": "sha256:aeb50e7260b47a2a152ee593bac2956835f53570c6c5fc68b5caf39c1da3959e"
+  },
+  {
     "path": "src/run_publication_host/client_effect_program_test.mbt",
     "original_cid": "sha256:7d396c299e58a85fec0efdfecd0801c94a4cded4b29215a75291428a32aee0aa"
   },
@@ -108,8 +112,31 @@ const namedBindings = [{
     "src/run_publication_host/client_effect_run_materials_wbtest.mbt",
     "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
     "src/run_publication_host/client_serialization_effect_branch_wbtest.mbt",
-    "src/run_publication_host/client_serialization_retained_task_wbtest.mbt"
+    "src/run_publication_host/client_serialization_retained_task_wbtest.mbt",
+    "src/run_publication_host/client_serialization_whole_captured_input_wbtest.mbt"
   ]
+}, {
+  owner: 'src/run_publication_host/client_effect_source_request_binding_wbtest.mbt',
+  name: 'bound_effect_source_environment',
+  consumers: [
+    'client_effect_source_request_binding_wbtest.mbt',
+    'client_effect_combined_source_unit_wbtest.mbt',
+    'client_effect_mixed_direct_invocation_wbtest.mbt',
+    'client_effect_model_mixed_sources_wbtest.mbt',
+    'client_effect_saved_model_imports_wbtest.mbt',
+    'client_source_acquisition_wbtest.mbt',
+  ].map(name => 'src/run_publication_host/' + name),
+}, {
+  owner: 'src/run_publication_host/client_effect_local_update_source_normalization_wbtest.mbt',
+  name: 'local_update_source_environment',
+  consumers: [
+    'src/run_publication_host/client_effect_local_update_source_normalization_wbtest.mbt',
+    'src/run_publication_host/client_source_preparation_input_wbtest.mbt',
+  ],
+}, {
+  owner: 'src/client_local_host/preparation_request_source_input_wbtest.mbt',
+  name: 'funded_request_source_environment_wire',
+  consumers: ['src/client_local_host/preparation_request_source_input_wbtest.mbt'],
 }, {
   owner: 'src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt',
   name: 'resident_effect_source_environment',
@@ -201,10 +228,10 @@ for (const binding of namedBindings) {
   const cid = JSON.parse(wire).evidence_bundle_cid;
   for (const path of binding.consumers) {
     let text = texts.get(path);
-    const pattern = new RegExp('(admit_client_check_environment\\(\\s*' + binding.name + ',\\s*")([^"]+)(")', 'g');
+    const pattern = new RegExp('((?:@publication_host\\.)?admit_client_check_environment\\(\\s*' + binding.name + ',\\s*")([^"]+)(")', 'g');
     const matches = [...text.matchAll(pattern)];
     assert(matches.length > 0, path + ': exact environment argument');
-    for (const match of matches) text = text.replaceAll(match[2], cid);
+    text = text.replace(pattern, (_, prefix, _prior, suffix) => prefix + cid + suffix);
     texts.set(path, text);
   }
   for (const path of binding.selectorConsumers ?? []) {
