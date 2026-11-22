@@ -15550,11 +15550,210 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-keyed-preparation.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "createInstalledRowSourceKeyedPreparation"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceKeyedPreparation",
+          "parameters": [
+            "keyedPreparations",
+            "originalReader",
+            "moon",
+            "declaration",
+            "limits",
+            "sourceRefs",
+            "cidPattern",
+            "valueCid",
+            "site",
+            "physicalTarget",
+            "sourceAccess",
+            "decideRead",
+            "currentRead",
+            "connectorRegistration",
+            "connectorRevision",
+            "bindingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedPreparation/keyedRecoveryBinding",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedPreparation/prepareKeyed",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "keyedAcquisition",
+            "requestIdentity",
+            "access"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceKeyedPreparation/prepareKeyed/prepareKeyed",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedPreparation/prepareKeyed/prepareKeyed#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceKeyedPreparation/verifyKeyedRead",
+          "parameters": [
+            "preparedProgram",
+            "keyedAcquisition",
+            "preparedKeyed",
+            "access",
+            "signal"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-source-mapping.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "2c71f4a32b1d2e0ca1ddd491958b1510350dddf8054c139c2e5e1013121de987",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceKeyedPreparation",
+            "createInstalledRowSourceKeyedPreparation/keyedRecoveryBinding",
+            "createInstalledRowSourceKeyedPreparation/prepareKeyed",
+            "createInstalledRowSourceKeyedPreparation/prepareKeyed/prepareKeyed",
+            "createInstalledRowSourceKeyedPreparation/prepareKeyed/prepareKeyed#2",
+            "createInstalledRowSourceKeyedPreparation/verifyKeyedRead"
+          ],
+          "exports": [
+            "createInstalledRowSourceKeyedPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "export function createInstalledRowSourceKeyedPreparation("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "async function verifyKeyedRead("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "type PrepareKeyedOptions = Readonly<{"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "return Object.freeze({prepared, occurrence: Object.freeze({stage, input, task})});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "owner.keyedAcquisition !== keyedAcquisition || owner.access !== access"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "selectionCid: prepared.checkedSource.selectionCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "keyedPreparations.set(prepared, {preparedProgram, preparedEffect, keyedAcquisition, access,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "const owner = keyedPreparations.get(preparedKeyed);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "const decision = await currentRead(preparedKeyed, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "const recheck = () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "fail('InstalledSourceProgramMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-keyed-preparation.mts",
+                "anchor": "moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition, preparedEffect)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "keyed read preparation binds the original Program, port and exact declared response"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "retained keyed read checks its original preparation and current authority without source I/O"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "const sourceBinding = value.adapter.keyedRecoveryBinding(selectedRead.prepared);"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "41b56790d466ddae4b8dd68e9cc9118251ca13022d0aec96de26d4feea5247c1",
+      "sha256": "803314f812dbd93ca6db855a508bc095708710ecdcc8acf986a8abb1a42c4ce8",
       "operations": [
         {
           "name": "cid/cid",
@@ -15850,13 +16049,6 @@
           "name": "createInstalledRowSource/invalidReaderField",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/keyedRecoveryBinding",
-          "parameters": [
-            "prepared"
           ],
           "async": false
         },
@@ -16171,31 +16363,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/prepareKeyed",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "keyedAcquisition",
-            "requestIdentity",
-            "access"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/prepareRetained",
           "parameters": [
             "preparedProgram",
@@ -16280,17 +16447,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/verifyKeyedRead",
-          "parameters": [
-            "preparedProgram",
-            "keyedAcquisition",
-            "preparedKeyed",
-            "access",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -16323,6 +16479,7 @@
         "./installed-row-source-authorization.mjs",
         "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
+        "./installed-row-source-keyed-preparation.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-row-source-read-authority.mjs",
         "./installed-row-source-targets.mjs",
@@ -16364,7 +16521,6 @@
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/describePreparedSource/describePreparedSource",
             "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
-            "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
             "createInstalledRowSource/openKeyed",
@@ -16400,13 +16556,9 @@
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/prepare",
-            "createInstalledRowSource/prepareKeyed",
-            "createInstalledRowSource/prepareKeyed/prepareKeyed",
-            "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
             "createInstalledRowSource/prepareRetained",
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
-            "createInstalledRowSource/verifyKeyedRead",
             "text/text",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",

@@ -32,6 +32,7 @@ import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
 import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
 import {createInstalledRowSourceCredentialSite} from './installed-row-source-credential-site.mjs';
 import {createInstalledRowSourceReadAuthority} from './installed-row-source-read-authority.mjs';
+import {createInstalledRowSourceKeyedPreparation} from './installed-row-source-keyed-preparation.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -404,97 +405,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
   const sourceAccess = originalSourceAccess ?? Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
-  // A declared keyed response port is selected before observing any left
-  // rows. It is not a fabricated Direct requirement or an individual GET.
-  async function prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity,
-    sourceAccess: access = sourceAccess}) {
-    // This selected declaration covers the Direct reader only, not a keyed
-    // child or listing report. Other original profiles retain their behavior.
-    if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
-    if ((preparedProgram === undefined) === (preparedEffect === undefined) || requestIdentity === undefined ||
-        (preparedEffect === undefined
-          ? moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
-            moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true
-          : moon.clientProgramEffectRequestScope(preparedEffect, requestIdentity) === undefined ||
-            moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition, preparedEffect) !== true)) {
-      fail('InstalledSourceProgramMismatch');
-    }
-    const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
-      declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000));
-    const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
-    if (!Array.isArray(facts) || facts.length !== 6 || !sourceRefs.has(facts[0])) {
-      fail('InstalledSourceEvidenceFactsUnavailable');
-    }
-    const selectedCoordinates = moon.clientProgramKeyedAcquisitionInputCoordinates(keyedAcquisition);
-    const coordinates = runtimeIsOk(selectedCoordinates) ? runtimeField(selectedCoordinates, 0) : undefined;
-    if (coordinates === undefined || coordinates.length !== 4 ||
-        !coordinates.every(value => Number.isSafeInteger(value) && value >= 0)) {
-      fail('InvalidAcquisitionOccurrence');
-    }
-    const [stage, input, task, step] = coordinates;
-    const [resource, ...fields] = checked(
-      moon.clientProgramKeyedRowCapacityTarget(capacity, declaration));
-    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
-    const programCid = moon.clientRequestProgramCid(requestIdentity);
-    const parametersCid = moon.clientRequestParametersCid(requestIdentity);
-    if (![programCid, parametersCid].every(value => cidPattern.test(value))) {
-      fail('InstalledKeyedRequestIdentityUnavailable');
-    }
-    const selectionCid = valueCid({version: 'actql-installed-keyed-selection/0.1',
-      programCid, parametersCid, coordinates, sourceFacts: facts});
-    const prepared = Object.freeze({
-      checkedSource: Object.freeze({selectionCid, programCid, parametersCid, step,
-        sourceRef, sourceContractCid, carrierSchemaContractCid, sourceDataPolicyCid,
-        dataClassification, sourceViewContractCid}),
-      readTuple: Object.freeze({connection: site.connection, resource, operation: 'read'}),
-      physicalBinding: physicalTarget(resource, fields),
-    });
-    const decision = await decideRead(prepared, access);
-    if (decision?.action === 'deny') fail(authorizationRuntimeCode(decision), decision);
-    keyedPreparations.set(prepared, {preparedProgram, preparedEffect, keyedAcquisition, access,
-      physicalBindingCid: valueCid(prepared.physicalBinding)});
-    return Object.freeze({prepared, occurrence: Object.freeze({stage, input, task})});
-  }
-
-  // Reopening retained bytes needs the same checked keyed selection's current
-  // read authority, not a new RowRun or a grant inferred from saved metadata.
-  // This checks the original preparation and installed target without I/O.
-  async function verifyKeyedRead({preparedProgram, keyedAcquisition, preparedKeyed,
-    sourceAccess: access = sourceAccess, signal}) {
-    const owner = keyedPreparations.get(preparedKeyed);
-    if (owner === undefined || owner.preparedProgram !== preparedProgram ||
-        owner.keyedAcquisition !== keyedAcquisition || owner.access !== access) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    const recheck = () => {
-      signal?.throwIfAborted();
-      if (moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
-        fail('InstalledSourceProgramMismatch');
-      }
-      const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
-        declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000));
-      const [resource, ...fields] = checked(moon.clientProgramKeyedRowCapacityTarget(capacity, declaration));
-      if (valueCid(preparedKeyed.physicalBinding) !== owner.physicalBindingCid ||
-          valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid) {
-        fail('InstalledSourcePreparationMismatch');
-      }
-    };
-    recheck();
-    const decision = await currentRead(preparedKeyed, access, signal);
-    recheck();
-    return decision;
-  }
-  function keyedRecoveryBinding(prepared) {
-    const owner = keyedPreparations.get(prepared);
-    if (owner === undefined || valueCid(prepared.physicalBinding) !== owner.physicalBindingCid) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    return Object.freeze({version: 'actql-installed-keyed-read-binding/0.1',
-      selectionCid: prepared.checkedSource.selectionCid,
-      physicalBindingCid: owner.physicalBindingCid,
-      connectorRegistration, connectorRevision, bindingCid, connection: site.connection});
-  }
+  const {prepareKeyed, verifyKeyedRead, keyedRecoveryBinding} = createInstalledRowSourceKeyedPreparation({
+    keyedPreparations, originalReader, moon, declaration, limits, sourceRefs, cidPattern, valueCid, site, physicalTarget,
+    sourceAccess, decideRead, currentRead, connectorRegistration, connectorRevision, bindingCid});
 
   function describePreparedSource(requirement, occurrence, checkedOwner, wholeInput = false, plannedAcquisition, effectful = false) {
     const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
