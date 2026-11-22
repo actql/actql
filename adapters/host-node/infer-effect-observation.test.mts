@@ -4,11 +4,14 @@ import {withOriginalInferModelObservation} from './infer-effect-observation.mjs'
 
 // Actual stepping adapter with explicit Core scan/receipt and original
 // publication ports. No Model/Source execution, physical funding or ABI claim.
+type Runtime = Parameters<typeof withOriginalInferModelObservation>[0]['moon'];
+type FixtureRuntime = {-readonly [Name in keyof Runtime]: Runtime[Name]};
+
 function fixture({refuseStart=false,failAdvance=false,missingExtent=false}={}) {
-  const binding={},scan={},receipt={},events=[],grows=[];
+  const binding={},scan={},receipt={},events: string[]=[],grows: [bigint, bigint][]=[];
   let step=0;
-  const ok=_0=>({$tag:1,_0});
-  const moon={
+  const ok=(_0: unknown)=>({$tag:1,_0});
+  const moon: FixtureRuntime={
     clientProgramInferModelIdentityStartCapacity(original) {
       assert.strictEqual(original,binding);events.push('quote-start');
       return missingExtent?undefined:{_0:10n,_1:20n};
@@ -41,7 +44,7 @@ function fixture({refuseStart=false,failAdvance=false,missingExtent=false}={}) {
       assert.equal(bytes,16384);events.push('quote-projection');return {_0:5n,_1:6n};
     },
   };
-  const operation={growOriginalPublicationCapacity(r,e) {
+  const operation={growOriginalPublicationCapacity(r: bigint,e: bigint) {
     events.push('grow');if(refuseStart)throw Error('OriginalBudgetRefused');grows.push([r,e]);
   }};
   return {moon,operation,binding,scan,receipt,events,grows};
@@ -72,7 +75,7 @@ test('Model projection consumer failure retains primary cause while retiring sam
 test('Model projection scan failure retires original cursor without a fabricated receipt',async()=>{
   const f=fixture({failAdvance:true});
   await assert.rejects(withOriginalInferModelObservation({...f,quantum:7,
-    consume(){assert.fail('No completed projection');}}),error=>error.cause==='OriginalScanRefused');
+    consume(){assert.fail('No completed projection');}}),error=>(error as Error).cause==='OriginalScanRefused');
   assert.equal(f.events.includes('finish'),false);
   assert.deepEqual(f.events.slice(-1),['cancel-scan']);
   assert.equal(f.events.includes('cancel-receipt'),false);

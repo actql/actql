@@ -2218,3 +2218,7 @@ target/
 /adapters/host-node/infer-io-notification.d.mts
 /adapters/host-node/infer-io-notification.test.mjs
 /adapters/host-node/infer-io-notification.test.d.mts
+/adapters/host-node/infer-effect-observation.mjs
+/adapters/host-node/infer-effect-observation.d.mts
+/adapters/host-node/infer-effect-observation.test.mjs
+/adapters/host-node/infer-effect-observation.test.d.mts

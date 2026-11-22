@@ -101706,7 +101706,7 @@
     },
     {
       "module": "adapters/host-node/infer-effect-observation.mjs",
-      "sha256": "eb06ee6e79dadb4293ad452951834fa355a5d522a25e13488ccf9f93c0e6ea40",
+      "sha256": "69c31191ce7e50de8e51755dd0cd055ef89e58c95fb83644bc1aee8c61744dd8",
       "exports": [
         "withOriginalInferModelObservation"
       ],
@@ -101756,7 +101756,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "Physical stepping of the existing Core Model outcome identity scan."
               },
               {
@@ -101766,13 +101766,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
-                "anchor": "export async function withOriginalInferModelObservation("
+                "path": "adapters/host-node/infer-effect-observation.mts",
+                "anchor": "export async function withOriginalInferModelObservation<Binding, Result>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "binding, scan, receipt"
               },
               {
@@ -101782,8 +101782,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
-                "anchor": "if (receipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel(receipt);"
+                "path": "adapters/host-node/infer-effect-observation.mts",
+                "anchor": "if (receipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel!(receipt);"
               },
               {
                 "path": "adapters/host-node/infer-operation.mjs",
@@ -101792,41 +101792,41 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "await yieldEventLoop();"
               },
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "return await consume({binding, scan, receipt, retainedBytes, executionBytes});"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-effect-observation.test.mjs",
+                "path": "adapters/host-node/infer-effect-observation.test.mts",
                 "anchor": "Model projection consumer failure retains primary cause while retiring same scan and receipt once"
               },
               {
-                "path": "adapters/host-node/infer-effect-observation.test.mjs",
+                "path": "adapters/host-node/infer-effect-observation.test.mts",
                 "anchor": "Model projection scan failure retires original cursor without a fabricated receipt"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
-                "anchor": "moon.clientProgramInferModelIdentityCancel(scan);"
+                "path": "adapters/host-node/infer-effect-observation.mts",
+                "anchor": "moon.clientProgramInferModelIdentityCancel!(scan);"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-effect-observation.mjs",
+                "path": "adapters/host-node/infer-effect-observation.mts",
                 "anchor": "operation.growOriginalPublicationCapacity(retainedBase + retained, executionBase + execution);"
               },
               {
-                "path": "adapters/host-node/infer-effect-observation.test.mjs",
+                "path": "adapters/host-node/infer-effect-observation.test.mts",
                 "anchor": "Model projection rejects absent ABI or missing/refused backing before scan construction"
               }
             ],
@@ -101838,7 +101838,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-effect-observation.test.mjs",
+                "path": "adapters/host-node/infer-effect-observation.test.mts",
                 "anchor": "Model projection steps same scan with backing before constructors and retains original binding through consumption"
               },
               {
