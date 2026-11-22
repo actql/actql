@@ -2,25 +2,43 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {setImmediate as yieldTurn} from 'node:timers/promises';
 
-const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
-const positive = value => Number.isSafeInteger(value) && value > 0;
+type NativeMethods = Readonly<{
+  openFileRoot(path: string): unknown;
+  openFileDirectory(parent: unknown, component: string, maximum?: number): unknown;
+  openRootFile(parent: unknown, component: string): unknown;
+  fileRootCurrent(original: unknown): unknown;
+  fileRootStat(original: unknown): unknown;
+  fileRootNext(directory: unknown): unknown;
+  fileRootRead(file: unknown, offset: number, length: number): unknown;
+  fileRootClose(original: unknown): unknown;
+  fileRootEntryKind(directory: unknown, name: string): unknown;
+}>;
+type Slot = {original: unknown; outcome: 'closed' | 'pending' | 'unknown' | undefined};
+type RootInput = Readonly<{native: unknown; path: string; assertCurrent(): undefined}>;
+type ReaderInput = Readonly<{limits: unknown; assertCurrent(): undefined; signal?: AbortSignal}>;
+type FileObservation = Readonly<{path: string; metadata: Metadata; version: string}>;
+type ListingInput = Readonly<{contentVersion?: boolean; onFile(file: FileObservation): unknown}>;
+type ReadInput = Readonly<{expectedVersion?: string; contentVersion?: boolean}>;
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 const methods = ['openFileRoot', 'openFileDirectory', 'openRootFile', 'fileRootCurrent',
-  'fileRootStat', 'fileRootNext', 'fileRootRead', 'fileRootClose', 'fileRootEntryKind'];
+  'fileRootStat', 'fileRootNext', 'fileRootRead', 'fileRootClose', 'fileRootEntryKind'] as const;
 const metadataKeys = ['dev', 'ino', 'size', 'links', 'modifiedSeconds', 'modifiedNanos',
-  'changedSeconds', 'changedNanos'];
-const equalMetadata = (left, right) => metadataKeys.every(key => left[key] === right[key]);
-function readMetadata(value) {
+  'changedSeconds', 'changedNanos'] as const;
+type Metadata = Readonly<Record<typeof metadataKeys[number], bigint>>;
+const equalMetadata = (left: Metadata, right: Metadata) => metadataKeys.every(key => left[key] === right[key]);
+function readMetadata(value: unknown): Metadata {
   if (value === null || typeof value !== 'object' ||
-      metadataKeys.some(key => typeof value[key] !== 'bigint') || value.size < 0n ||
-      value.modifiedNanos < 0n || value.modifiedNanos >= 1000000000n ||
-      value.changedNanos < 0n || value.changedNanos >= 1000000000n) fail('InvalidLocalFileMetadata');
-  return Object.freeze(Object.fromEntries(metadataKeys.map(key => [key, value[key]])));
+      metadataKeys.some(key => typeof (value as Metadata)[key] !== 'bigint') || (value as Metadata).size < 0n ||
+      (value as Metadata).modifiedNanos < 0n || (value as Metadata).modifiedNanos >= 1000000000n ||
+      (value as Metadata).changedNanos < 0n || (value as Metadata).changedNanos >= 1000000000n) fail('InvalidLocalFileMetadata');
+  return Object.freeze(Object.fromEntries(metadataKeys.map(key => [key, (value as Metadata)[key]]))) as Metadata;
 }
-const version = metadata => 'sha256:' + createHash('sha256').update(JSON.stringify({
+const version = (metadata: Metadata) => 'sha256:' + createHash('sha256').update(JSON.stringify({
   size: String(metadata.size), modifiedSeconds: String(metadata.modifiedSeconds),
   modifiedNanos: String(metadata.modifiedNanos),
 })).digest('hex');
-const currentResult = value => {
+const currentResult = (value: unknown) => {
   if (value === undefined) return;
   if (value instanceof Promise) void value.catch(() => {});
   fail('InvalidLocalFileCurrentFence');
@@ -29,23 +47,24 @@ const currentResult = value => {
 // Same existing filesystem custody, not a permission or resource factory.
 // The Host admits this actual native namespace and its FD lifetime separately;
 // each Source child supplies its same current scope before covered I/O.
-export function openLocalFileRoot({native, path, assertCurrent}) {
+export function openLocalFileRoot({native, path, assertCurrent}: RootInput) {
   if (!isAbsolute(path ?? '') || !path.isWellFormed() ||
       Buffer.byteLength(path) > 4096 || typeof assertCurrent !== 'function') fail('InvalidLocalFileRoot');
   const callbacks = Object.freeze(Object.fromEntries(methods.map(name => {
     const method = Object.getOwnPropertyDescriptor(native ?? {}, name)?.value;
     if (typeof method !== 'function') fail('LocalFilesystemUnavailable');
     return [name, method];
-  })));
-  const call = (name, ...args) => Reflect.apply(callbacks[name], native, args);
-  const readers = new Set();
-  let root, rootClose, closing = false;
+  })) as NativeMethods);
+  const call = <Name extends keyof NativeMethods>(name: Name, ...args: Parameters<NativeMethods[Name]>) =>
+    Reflect.apply(callbacks[name] as (...args: Parameters<NativeMethods[Name]>) => unknown, native, args);
+  const readers = new Set<{close(): unknown}>();
+  let root: unknown, rootClose: Slot | undefined, closing = false;
   const current = () => {
     if (closing) fail('LocalFileRootClosing');
     currentResult(assertCurrent());
     if (root !== undefined) currentResult(call('fileRootCurrent', root));
   };
-  const closeNative = slot => {
+  const closeNative = (slot: Slot) => {
     if (slot.outcome === 'closed' || slot.outcome === 'unknown') return;
     const result = call('fileRootClose', slot.original);
     const outcome = Object.getOwnPropertyDescriptor(result ?? {}, 'outcome')?.value;
@@ -55,7 +74,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
   };
   function closeRoot() {
     closing = true;
-    const errors = [];
+    const errors: unknown[] = [];
     for (const reader of readers) {
       try {reader.close();} catch (cause) {errors.push(cause);}
     }
@@ -67,7 +86,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
     return Object.freeze({pending: readers.size !== 0 || root !== undefined,
       errors: Object.freeze(errors)});
   }
-  let originalMetadata;
+  let originalMetadata: Metadata;
   try {current();root = call('openFileRoot', path);current();originalMetadata = readMetadata(call('fileRootStat', root));}
   catch (cause) {
     const observed = closeRoot();
@@ -82,13 +101,14 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
     metadata: originalMetadata,
     assertCurrent: current,
     close: closeRoot,
-    openReader({limits, assertCurrent: checkRead, signal}) {
+    openReader({limits, assertCurrent: checkRead, signal}: ReaderInput) {
       current();
-      const names = ['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes'];
-      const fields = limits !== null && typeof limits === 'object' ? Object.getOwnPropertyDescriptors(limits) : {};
+      const names = ['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes'] as const;
+      const fields: Record<string, PropertyDescriptor> = limits !== null && typeof limits === 'object' ? Object.getOwnPropertyDescriptors(limits) : {};
       if (typeof checkRead !== 'function' || Reflect.ownKeys(fields).length !== names.length ||
           names.some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidLocalFileReadLimits');
-      const bounds = Object.freeze(Object.fromEntries(names.map(name => [name, fields[name].value])));
+      const bounds = Object.freeze(Object.fromEntries(names.map(name => [name, fields[name].value]))) as
+        Readonly<Record<typeof names[number], number>>;
       if (!positive(bounds.maxEntries) || bounds.maxEntries > 100000 ||
           !positive(bounds.maxDepth) || bounds.maxDepth > 128 ||
           !positive(bounds.maxPathBytes) || bounds.maxPathBytes > 4096 ||
@@ -97,18 +117,19 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
           !Number.isSafeInteger(bounds.maxReadBytes) || bounds.maxReadBytes < bounds.maxFileBytes) {
         fail('InvalidLocalFileReadLimits');
       }
-      const slots = [];
-      let stopping = false, released = false, flight, failure;
+      const slots: Slot[] = [];
+      let stopping = false, released = false, flight: Promise<unknown> | undefined, failure: unknown;
       let examined = 0, files = 0, readBytes = 0;
       const check = () => {
         current();signal?.throwIfAborted();
         if (stopping || released) fail('LocalFileReadClosing');
         currentResult(checkRead());
       };
-      function acquire(name, parent, component, maximum) {
+      function acquire(name: 'openFileDirectory' | 'openRootFile', parent: unknown, component: string,
+        maximum?: number) {
         check();
-        const original = call(name, parent, component, ...(maximum === undefined ? [] : [maximum]));
-        const slot = {original, outcome: undefined};
+        const original = call(name, parent, component, ...(maximum === undefined ? [] : [maximum]) as [] | [number]);
+        const slot: Slot = {original, outcome: undefined};
         // Retain before current/stat/decoder or any later callback can fail.
         slots.push(slot);check();currentResult(call('fileRootCurrent', original));
         return slot;
@@ -117,7 +138,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
         stopping = true;
         if (released) return Object.freeze({pending: false});
         if (flight !== undefined) return Object.freeze({pending: true});
-        const errors = [];
+        const errors: unknown[] = [];
         for (const slot of slots.slice().reverse()) {
           try {closeNative(slot);} catch (cause) {errors.push(cause);}
         }
@@ -126,12 +147,14 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
         }
         return Object.freeze({pending: !released, errors: Object.freeze(errors)});
       }
-      function finishSlot(slot) {
+      function finishSlot(slot: Slot) {
         closeNative(slot);
         if (slot.outcome !== 'closed') fail('LocalFileCleanupPending');
         slots.splice(slots.indexOf(slot), 1);
       }
-      async function content(slot, metadata, collect) {
+      async function content(slot: Slot, metadata: Metadata, collect: true): Promise<{version: string; bytes: Buffer}>;
+      async function content(slot: Slot, metadata: Metadata, collect: false): Promise<{version: string}>;
+      async function content(slot: Slot, metadata: Metadata, collect: boolean): Promise<{version: string; bytes?: Buffer}> {
         if (metadata.size > BigInt(bounds.maxFileBytes) ||
             metadata.size > BigInt(bounds.maxReadBytes - readBytes)) fail('LocalFileBytesLimit');
         readBytes += Number(metadata.size);
@@ -147,7 +170,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
             Math.min(65536, Number(metadata.size) - offset));
           if (!Buffer.isBuffer(chunk) || chunk.length === 0 ||
               chunk.length > Math.min(65536, Number(metadata.size) - offset)) fail('LocalFileChanged');
-          hash.update(chunk);if (collect) chunk.copy(bytes, offset);
+          hash.update(chunk);if (collect) chunk.copy(bytes!, offset);
           offset += chunk.length;
           await yieldTurn(undefined, {signal});
         }
@@ -156,7 +179,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
         return {version: 'sha256:' + hash.digest('hex'),
           ...(collect ? {bytes} : {})};
       }
-      function execute(operation) {
+      function execute<T>(operation: () => Promise<T>) {
         check();if (flight !== undefined || failure !== undefined) fail('LocalFileReadAlreadyAttempted');
         const work = Promise.resolve().then(operation);
         flight = work;
@@ -165,11 +188,11 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
       const reader = Object.freeze({
         close,
         status: () => Object.freeze({pending: !released}),
-        list({contentVersion = false, onFile}) {
+        list({contentVersion = false, onFile}: ListingInput) {
           if (typeof onFile !== 'function' || typeof contentVersion !== 'boolean') fail('InvalidLocalFileListing');
           return execute(async () => {
             const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
-            async function visit(parent, component, prefix, depth) {
+            async function visit(parent: unknown, component: string, prefix: string, depth: number) {
               if (depth > bounds.maxDepth) fail('LocalDirectoryDepthLimit');
               const directory = acquire('openFileDirectory', parent, component, bounds.maxEntries);
               for (;;) {
@@ -197,7 +220,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
             await visit(root, '', '', 0);
           });
         },
-        read(path, {expectedVersion, contentVersion = false} = {}) {
+        read(path: string, {expectedVersion, contentVersion = false}: ReadInput = {}) {
           if (typeof path !== 'string' || !path.isWellFormed() || !path ||
               Buffer.byteLength(path) > bounds.maxPathBytes || typeof contentVersion !== 'boolean') fail('InvalidLocalFilePath');
           const components = path.split('/');
@@ -206,7 +229,7 @@ export function openLocalFileRoot({native, path, assertCurrent}) {
           return execute(async () => {
             let parent = root;
             for (const component of components.slice(0,-1)) parent = acquire('openFileDirectory', parent, component, bounds.maxEntries).original;
-            const file = acquire('openRootFile', parent, components.at(-1));
+            const file = acquire('openRootFile', parent, components.at(-1)!);
             const metadata = readMetadata(call('fileRootStat', file.original));
             const value = await content(file, metadata, true);
             const observedVersion = contentVersion ? value.version : version(metadata);

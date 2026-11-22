@@ -4,7 +4,7 @@
     {
       "module": "adapters/connectors/local/site/root-filesystem.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "33de750d358e5ffdf8cb04a4987cb9a621dba3a19450bae4a35beb2fd0761353",
+      "sha256": "31eb81e503c8eb2d0edf24857b0a8f2655e6798501698684f8d71e8297febef5",
       "exports": [
         "openLocalFileRoot"
       ],
@@ -208,13 +208,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "export function openLocalFileRoot"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "readMetadata"
               },
               {
@@ -224,7 +224,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "slot.outcome"
               },
               {
@@ -234,29 +234,29 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "flight"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "LocalFileCloseUnconfirmed"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "stopping = true"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "maxReadBytes"
               },
               {
@@ -264,7 +264,7 @@
                 "anchor": "fileRootRead"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "Buffer.allocUnsafeSlow(Number(metadata.size))"
               }
             ],
@@ -300,13 +300,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "export function openLocalFileRoot"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "readMetadata"
               },
               {
@@ -316,7 +316,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "slot.outcome"
               },
               {
@@ -326,29 +326,29 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "flight"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "LocalFileCloseUnconfirmed"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "stopping = true"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "maxReadBytes"
               },
               {
@@ -356,7 +356,7 @@
                 "anchor": "fileRootRead"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "Buffer.allocUnsafeSlow(Number(metadata.size))"
               }
             ],
@@ -1133,7 +1133,7 @@
                 "anchor": "stopping=true"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -1450,7 +1450,7 @@
                 "anchor": "stopping=true"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -1994,7 +1994,7 @@
                 "anchor": "stopping=true"
               },
               {
-                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
