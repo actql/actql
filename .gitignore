@@ -2232,3 +2232,5 @@ target/
 /adapters/host-node/installed-infer-capture.test.d.mts
 /adapters/host-node/infer-trusted-runtime-view.mjs
 /adapters/host-node/infer-trusted-runtime-view.d.mts
+/scripts/selected-infer-startup-entry.test.mjs
+/scripts/selected-infer-startup-entry.test.d.mts

@@ -3050,7 +3050,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/selected-infer-startup-entry.test.mjs",
+                "path": "scripts/selected-infer-startup-entry.test.mts",
                 "anchor": "test("
               },
               {
@@ -4003,7 +4003,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/selected-infer-startup-entry.test.mjs",
+                "path": "scripts/selected-infer-startup-entry.test.mts",
                 "anchor": "test("
               },
               {

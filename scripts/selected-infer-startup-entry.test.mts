@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -14,17 +15,17 @@ const localAdapterInputs = adapterModuleGraph(root, [
 ]);
 // Source-copied package layouts, not a packed product or numerical profile.
 // Nested Local installation deliberately does not rely on npm hoisting.
-function installation(t) {
+function installation(t: TestContext) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-selected-startup-entry-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const node = join(directory, 'node_modules/@actql/node');
   const local = join(node, 'node_modules/@actql/local-node');
-  const put = (path, bytes) => {
+  const put = (path: string, bytes: string | Buffer) => {
     mkdirSync(dirname(path), {recursive: true});
     writeFileSync(path, bytes);
   };
   for (const [name, destination] of [['node', node], ['local-node', local]]) {
-    const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json')));
+    const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'), 'utf8'));
     assert.equal(manifest.exports['./selected-infer-startup'], './selected-infer-startup.cjs');
     assert.ok(manifest.files.includes('selected-infer-startup.cjs'));
     put(join(destination, 'package.json'), JSON.stringify(manifest));
@@ -97,7 +98,8 @@ console.log(JSON.stringify({checked: true, physicalAcks: 0, providerCalls: 0,
   return {directory, node, local, entry, put};
 }
 
-function child(fixture, args, mode = 'selected', extra = {}) {
+function child(fixture: ReturnType<typeof installation>, args: string[],
+  mode: 'selected' | 'absent' | 'changed-loader' | 'sdk-eager' = 'selected', extra: NodeJS.ProcessEnv = {}) {
   const result = spawnSync(process.execPath, [...args, fixture.entry, mode], {
     cwd: fixture.directory, env: {PATH: process.env.PATH, ...extra},
     encoding: 'utf8', timeout: 10000, maxBuffer: 1024 * 1024,
