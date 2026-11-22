@@ -19005,7 +19005,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/collection-mapping.test.mjs",
+                "path": "adapters/host-node/collection-mapping.test.mts",
                 "anchor": "test('an explicit collection-only create reaches raw Common Effect preparation'"
               },
               {

@@ -4,13 +4,31 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
-import {rowSourceCheckEnvironment, rowSourceMapping} from
-  './installed-row-source.mjs';
+import {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
+import {rowSourceMapping} from './installed-row-source-mapping.mjs';
+import type {RowSourceMappingRuntime} from './installed-row-source-mapping.mjs';
 
-const read = path => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
+type Common = RowSourceMappingRuntime & {
+  clientProgramRowSourceRestoreRelationDeclaration(connectorId: string, registration: string,
+    version: string, views: string, expectedCatalogCid: string | undefined): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+  clientProgramCheckEnvironment(body: string, evidenceCid: string, textTime: boolean, veca: boolean,
+    rela: boolean, sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareEffectComputationWithParameters(document: string, format: string,
+    environment: unknown, parameters: string | undefined, evidence: readonly unknown[]): unknown;
+  clientProgramEffectPreparationReady(outcome: unknown): unknown;
+};
+type Mapping = ReturnType<typeof rowSourceMapping>;
+type Operation = 'create' | 'update' | 'upsert' | 'delete';
+type Effect = {
+  target: Mapping['target']; mapping: Mapping['mappingRef']; from: {result: string};
+  selector?: {id: string};
+};
+
+const moon: Common = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const read = (path: string) => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
 const [views, baseWire] = await Promise.all([
   read('src/connectors/github/source-views.json'),
   read('spec/local-check-environment.json').then(wire => wire.trimEnd()),
@@ -23,9 +41,9 @@ const writes = JSON.stringify({writes: [{resource: 'entries',
   fields: [{name: 'text', type: 'string', nullable: false}],
   create: {fields: ['text'], required: ['text'],
     permission: 'fixture:append', approval: 'required'}}]});
-const mappingFor = declaration => rowSourceMapping(moon, declaration,
+const mappingFor = (declaration: unknown) => rowSourceMapping(moon, declaration,
   writes, 'entries', [{target: 'text', field: 'text', null_behavior: 'reject'}]);
-const prepareWith = (declaration, bodies) => {
+const prepareWith = (declaration: unknown, bodies: readonly string[]) => {
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
   const environment = rowSourceCheckEnvironment(baseWire, declared, bodies);
   const owner = moon.clientProgramCheckEnvironment(environment.wire,
@@ -33,19 +51,19 @@ const prepareWith = (declaration, bodies) => {
   assert.ok(owner);
   // These authored JSON-only vectors test Mapping/type admission directly.
   // A raw checked token is never presented as a funded Request or send permit.
-  return request => moon.clientProgramEffectPreparationReady(
+  return (request: {input: unknown}) => moon.clientProgramEffectPreparationReady(
     moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(request.input), 'json', owner, undefined, []));
 };
-const program = (mapping, operation = 'create') => ({version: 'actql/0.1',
+const program = (mapping: Mapping, operation: Operation = 'create') => ({version: 'actql/0.1',
   id: 'collection-create', stages: [{id: 'produce', inputs: {},
     steps: [{values: {schema: {text: {type: 'string', nullable: false}},
       rows: [{text: 'literal e\u0301\r\n'}]}, as: 'values'}],
     results: {rows: {from: 'values', fields: ['text']}},
     effects: {append: {[operation]: {target: mapping.target,
-      mapping: mapping.mappingRef, from: {result: 'rows'}}}}}],
+      mapping: mapping.mappingRef, from: {result: 'rows'}}} as Record<string, Effect>}}],
   results: {answer: {from: {stage: 'produce', result: 'rows'}}}});
-const request = input => ({kind: 'program', input, parameters: null});
+const request = (input: unknown) => ({kind: 'program', input, parameters: null});
 
 test('an explicit collection-only create reaches raw Common Effect preparation', () => {
   const declaration = restore(), mapping = mappingFor(declaration);
@@ -66,7 +84,7 @@ test('an explicit collection-only create reaches raw Common Effect preparation',
 
 test('collection omission, row addressing and modified collection bindings are refused', () => {
   const declaration = restore(), mapping = mappingFor(declaration);
-  for (const operation of ['update', 'upsert', 'delete']) {
+  for (const operation of ['update', 'upsert', 'delete'] as const) {
     assert.equal(prepareWith(declaration, [mapping.body])(
       request(program(mapping, operation))), undefined);
   }
