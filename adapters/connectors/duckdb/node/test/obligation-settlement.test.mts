@@ -4,7 +4,7 @@ import {settleObligationRun} from '../bench/obligation-settlement.mjs';
 
 test('all cleanup actions run and retain execution plus cleanup failures', async () => {
   const primary = Error('execution failed'), connection = Error('connection failed');
-  const store = Error('holding remains'), visited = [];
+  const store = Error('holding remains'), visited: string[] = [];
   await assert.rejects(settleObligationRun(primary, [
     ['connection-close', () => { visited.push('connection'); throw connection; }],
     ['instance-close', () => { visited.push('instance'); }],

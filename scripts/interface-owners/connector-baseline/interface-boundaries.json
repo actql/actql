@@ -2372,7 +2372,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-appender.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-appender.test.mts",
                 "anchor": "real appender preserves adopted physical scalar extremes, null and duplicate order"
               }
             ]
@@ -2611,7 +2611,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/physical-scalar-bytes.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/physical-scalar-bytes.test.mts",
                 "anchor": "floating physical transport preserves exact special bit patterns"
               }
             ]

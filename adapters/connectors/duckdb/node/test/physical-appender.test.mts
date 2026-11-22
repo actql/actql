@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DuckDBInstance, DOUBLE, BOOLEAN, INTEGER, VARCHAR} from '@duckdb/node-api';
+import {DuckDBInstance, DOUBLE, BOOLEAN, INTEGER, VARCHAR, type DuckDBAppender, type DuckDBValue} from '@duckdb/node-api';
 import {createPhysicalAppender} from '../physical-appender.mjs';
 import {exportPhysicalValue, physicalType} from '../physical-values.mjs';
 
 test('physical appender validates the whole row before native writes and poisons partial native failure', () => {
-  const writes = [];
+  const writes: (number | string)[] = [];
   const native = {columnCount: 2, columnType: i => i ? VARCHAR : INTEGER,
     appendInteger: value => writes.push(value), appendVarchar: value => writes.push(value),
-    endRow: () => writes.push('end')};
+    endRow: () => writes.push('end')} satisfies Pick<DuckDBAppender,
+    'columnCount' | 'columnType' | 'appendInteger' | 'appendVarchar' | 'endRow'> as unknown as DuckDBAppender;
   const row = [{type: {id: 'INTEGER'}, value: '3'}, {type: {id: 'VARCHAR'}, value: 'x'}];
   const adapter = createPhysicalAppender(native, 2);
   assert.throws(() => adapter.append([row[0], {type: {id: 'VARCHAR'}, value: 4}]),
@@ -18,10 +19,10 @@ test('physical appender validates the whole row before native writes and poisons
   assert.deepEqual(writes, []);
   adapter.append(row);
   assert.deepEqual(writes, [3, 'x', 'end']);
-  const charges = [];
+  const charges: number[] = [];
   assert.throws(() => adapter.append([row[0], {type: {id: 'VARCHAR'}, value: 4}],
     bytes => charges.push(bytes)), {code: 'InvalidPhysicalValue'});
-  assert.deepEqual(charges, []);
+  assert.deepEqual(charges, [] as number[]);
   assert.deepEqual(writes, [3, 'x', 'end']);
   assert.throws(() => adapter.append(row, () => { throw Error('budget'); }), /budget/);
   assert.deepEqual(writes, [3, 'x', 'end']);
@@ -36,9 +37,10 @@ test('physical appender validates the whole row before native writes and poisons
 });
 
 test('bounded column chunks append complete rows and retain failure ownership', () => {
-  const chunks = [];
+  const chunks: DuckDBValue[][] = [];
   const native = {columnCount: 1, columnType: () => INTEGER,
-    appendDataChunk: chunk => chunks.push(chunk.getColumnValues(0))};
+    appendDataChunk: chunk => chunks.push(chunk.getColumnValues(0))} satisfies Pick<DuckDBAppender,
+    'columnCount' | 'columnType' | 'appendDataChunk'> as unknown as DuckDBAppender;
   const adapter = createPhysicalAppender(native, 1, {rows: 2, bytes: 100});
   for (const value of ['1', '2', '3']) {
     adapter.append([{type: {id: 'INTEGER'}, value}]);
@@ -57,15 +59,16 @@ test('bounded column chunks append complete rows and retain failure ownership', 
 });
 
 test('scalar batches preserve exact doubles and reject malformed rows before native write', () => {
-  const chunks = [];
+  const chunks: DuckDBValue[][][] = [];
   const native = {columnCount: 3,
     columnType: index => [DOUBLE, BOOLEAN, VARCHAR][index],
-    appendDataChunk: chunk => chunks.push([0, 1, 2].map(index => chunk.getColumnValues(index)))};
+    appendDataChunk: chunk => chunks.push([0, 1, 2].map(index => chunk.getColumnValues(index)))} satisfies Pick<DuckDBAppender,
+    'columnCount' | 'columnType' | 'appendDataChunk'> as unknown as DuckDBAppender;
   const appender = createPhysicalAppender(native, 3, {rows: 2, bytes: 1024});
-  const charges = [];
+  const charges: number[] = [];
   assert.throws(() => appender.appendScalars([-0, 'true', 'é'], bytes => charges.push(bytes)),
     {code: 'InvalidScalarImport'});
-  assert.deepEqual(charges, []);
+  assert.deepEqual(charges, [] as number[]);
   appender.appendScalars([-0, true, 'é'], bytes => charges.push(bytes));
   appender.appendScalars([1e308, false, null], bytes => charges.push(bytes));
   appender.flush();

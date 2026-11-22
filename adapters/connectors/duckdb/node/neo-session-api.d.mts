@@ -20,9 +20,14 @@ export interface DuckDBConnection {
   closeSync(): void;
   interrupt(): void;
   run(sql: string): Promise<unknown>;
-  runAndReadAll(sql: string): Promise<{getRowObjects(): Record<string, DuckDBValue>[]}>;
+  runAndReadAll(sql: string): Promise<{
+    readonly columnCount: number;
+    columnType(index: number): DuckDBType;
+    getRows(): DuckDBValue[][];
+    getRowObjects(): Record<string, DuckDBValue>[];
+  }>;
   prepare(sql: string): Promise<DuckDBPreparedStatement>;
-  createAppender(table: string, schema?: string): Promise<DuckDBAppender>;
+  createAppender(table: string, schema?: string | null, catalog?: string | null): Promise<DuckDBAppender>;
   extractStatements(sql: string): Promise<{
     readonly count: number;
     prepare(index: number): Promise<DuckDBPreparedStatement>;
@@ -107,6 +112,10 @@ export interface DuckDBDecimalType extends DuckDBType {
   readonly scale: number;
 }
 export declare const DuckDBTypeId: Readonly<Record<number, string>>;
+export declare const BOOLEAN: DuckDBType;
+export declare const DOUBLE: DuckDBType;
+export declare const INTEGER: DuckDBType;
+export declare const VARCHAR: DuckDBType;
 
 export interface DuckDBVector {
   readonly itemCount: number;
@@ -120,6 +129,7 @@ export declare class DuckDBDataChunk {
   static create(types: readonly DuckDBType[], rowCount?: number): DuckDBDataChunk;
   readonly rowCount: number;
   getColumnVector(index: number): DuckDBVector;
+  getColumnValues(index: number): DuckDBValue[];
   setColumnValues(index: number, values: readonly DuckDBValue[]): void;
 }
 

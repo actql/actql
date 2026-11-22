@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes,
-  PhysicalValueError} from '../physical-values.mjs';
+  PhysicalValueError, type PhysicalBinder} from '../physical-values.mjs';
 
 test('physical scalar frame accounting matches encoded JSON bytes', () => {
   const values = [null, true, false, '', '0123456789abcdef', 'a/b',
@@ -28,13 +28,13 @@ test('floating physical transport preserves exact special bit patterns', () => {
 });
 
 test('small integer and floating imports preserve canonical limits without per-cell buffers', () => {
-  const observed = [];
+  const observed: number[] = [];
   const sink = {
     bindInteger: (_index, value) => observed.push(value),
     bindUInteger: (_index, value) => observed.push(value),
     bindFloat: (_index, value) => observed.push(value),
     bindDouble: (_index, value) => observed.push(value),
-  };
+  } satisfies Pick<PhysicalBinder, 'bindInteger' | 'bindUInteger' | 'bindFloat' | 'bindDouble'> as unknown as PhysicalBinder;
   bindPhysicalValue(sink, 1, {type: {id: 'INTEGER'}, value: '-2147483648'});
   bindPhysicalValue(sink, 1, {type: {id: 'UINTEGER'}, value: '4294967295'});
   bindPhysicalValue(sink, 1, {type: {id: 'FLOAT'}, value: '80000000'});

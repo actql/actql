@@ -1848,3 +1848,11 @@ target/
 /adapters/connectors/duckdb/node/test/obligation-stream.test.d.mts
 /adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mjs
 /adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.d.mts
+/adapters/connectors/duckdb/node/bench/obligation-settlement.mjs
+/adapters/connectors/duckdb/node/bench/obligation-settlement.d.mts
+/adapters/connectors/duckdb/node/test/obligation-settlement.test.mjs
+/adapters/connectors/duckdb/node/test/obligation-settlement.test.d.mts
+/adapters/connectors/duckdb/node/test/physical-scalar-bytes.test.mjs
+/adapters/connectors/duckdb/node/test/physical-scalar-bytes.test.d.mts
+/adapters/connectors/duckdb/node/test/physical-appender.test.mjs
+/adapters/connectors/duckdb/node/test/physical-appender.test.d.mts

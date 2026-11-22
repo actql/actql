@@ -1,6 +1,6 @@
 // Independent benchmark settlement: attempt every owned cleanup action and
 // preserve both execution failure and unconfirmed cleanup. Not product Host code.
-export async function settleObligationRun(primary, actions) {
+export async function settleObligationRun(primary: unknown, actions: Iterable<readonly [string, () => unknown]>) {
   const failures = [];
   for (const [phase, action] of actions) {
     try { await action(); }
