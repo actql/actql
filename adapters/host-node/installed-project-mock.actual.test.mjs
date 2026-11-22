@@ -10,7 +10,7 @@ import {prepareOrdinaryMockAccountSubjects} from './ordinary-mock-account.mjs';
 import {createInstalledHostServices, installedAccountConstruction,
   closeInstalledAccountConstruction, retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {createDeclaredFileInstallationInventory} from '../local-node/declared-file-installation.mjs';
-import {multipleTargetMockProjectFiles} from './fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, multipleTargetMockProjectFiles} from './fixtures/mock-multiple-targets.fixture.mjs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
@@ -76,13 +76,9 @@ test('installed Mock mapping retains only the declared nullable write policy', a
 });
 
 test('installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE', async () => {
-  const files = {...multipleTargetMockProjectFiles()};
+  const files = {...mixedDeleteUpdateMockProject().files};
   const catalog = JSON.parse(files['mock/catalog.json']);
   const {writes} = catalog.connections.salesforce;
-  const {writable_fields: fields, ...account} = writes[0];
-  assert.deepEqual(fields, ['value']);
-  writes[0] = {...account, operation: 'delete', permission: 'salesforce:record:delete'};
-  files['mock/catalog.json'] = JSON.stringify(catalog);
   await withMockCatalog(({bundle}) => {
     const [account, contact] = bundle.writables;
     const remove = JSON.parse(account.mapping.body), update = JSON.parse(contact.mapping.body);
