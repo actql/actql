@@ -13,6 +13,7 @@ import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
 import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
+import {readAuthoredCase} from './fixtures/record-approval/command.mjs';
 
 // Reuse the original consumer and its normal admission unchanged. The outer
 // command receipt exists before installation, including failed preparation.
@@ -88,6 +89,15 @@ const mockConnector = wholeMock || threeSourceMock || binarySourceMock ? 'hubspo
 const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
   : selection === '--kintone-approval' ? 'kintone' : undefined);
 const approval = approvalConnector !== undefined;
+const mockCaseInput = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
+let authoredMockCase;
+if (mockCaseInput !== undefined) {
+  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone'].includes(mockConnector) &&
+    !wholeMock && !threeSourceMock && !binarySourceMock && process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS !== '1',
+  'Select one supported authored mock case');
+  authoredMockCase = await readAuthoredCase(mockCaseInput);
+  assert(authoredMockCase.fixture !== undefined, 'An authored mock case requires a seed and state oracle');
+}
 const replyLossExpectation = installedRecordReplyLossExpectation();
 assert(replyLossExpectation === undefined || approval && mockConnector === undefined,
   'Applied reply loss is an explicit installed provider fixture selection');
@@ -155,6 +165,14 @@ const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-m
   'scripts/fixtures/packed-hubspot-restart.mjs',
   'adapters/site-node/https-exchange-fixture.mjs'];
 const inputs = [];
+let mockCasePath;
+if (authoredMockCase !== undefined) {
+  const path = 'authored-mock-case.json';
+  mockCasePath = join(application, path);
+  const bytes = Buffer.from(JSON.stringify(authoredMockCase));
+  await writeFile(mockCasePath, bytes, {mode: 0o600, flag: 'wx'});
+  inputs.push({path, bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex')});
+}
 for (const path of fixtureFiles) {
   // This is an independently authored consumer input, not a product overlay.
   // Every approval/Result/Saved/close helper remains the same original file.
@@ -180,6 +198,7 @@ try {
       : `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
     {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM',
       env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
+        ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath}),
         ...((wholeMock || threeSourceMock || binarySourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
         ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source'
           : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : ''}
@@ -200,7 +219,8 @@ assert(execution.complete && execution.outputComplete && execution.status === 0 
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
 const receipt = {fixtureVariant: reject ? 'rejected' : replyLossExpectation !== undefined ? 'applied-write-reply-loss'
-  : binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
+  : binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input'
+  : authoredMockCase === undefined ? 'original' : 'authored-mock',
   ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
   qualification: reject
   ? 'Owned TLS provider fixture: one same-checkpoint rejection, unchanged full target and control, and separate-process same-Run lookup.'

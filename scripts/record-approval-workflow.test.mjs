@@ -23,10 +23,12 @@ import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
-import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
+import {mockProjectFiles as hubspotMock,
+  mockProjectFilesFromSeed as hubspotMockFromSeed} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
 import {runHubSpotApprovalPhase} from './fixtures/hubspot-approval/workflow.mjs';
-import {mockProjectFiles as kintoneMock} from './fixtures/kintone-approval/mock-project.mjs';
+import {mockProjectFiles as kintoneMock,
+  mockProjectFilesFromSeed as kintoneMockFromSeed} from './fixtures/kintone-approval/mock-project.mjs';
 import {runKintoneApprovalPhase} from './fixtures/kintone-approval/workflow.mjs';
 
 const cid = mark => 'sha256:' + mark.repeat(64);
@@ -988,16 +990,17 @@ test('record approval target oracle refuses protocol-valid writes with unexpecte
   }
 });
 
-for (const [connector, makeFixture, buildMock, resource, idField, nameField, alternate] of [
-  ['hubspot', hubspotProviderFixture, hubspotMock, 'companies', 'id', 'name',
+for (const [connector, makeFixture, buildMockFromSeed, resource, idField, nameField, alternate] of [
+  ['hubspot', hubspotProviderFixture, hubspotMockFromSeed, 'companies', 'id', 'name',
     {recordId: '77', controlId: '88', previousName: 'Bureau Est', nextName: 'Bureau Sud', controlName: 'Bureau Nord'}],
-  ['kintone', kintoneProviderFixture, kintoneMock, 'inquiries', '$id', 'Subject',
+  ['kintone', kintoneProviderFixture, kintoneMockFromSeed, 'inquiries', '$id', 'Subject',
     {recordId: '9007199254741991', controlId: '9007199254741998', previousName: '依頼前', nextName: '依頼済', controlName: '照合用'}],
 ]) test(`${connector} provider resets to the original alternate case with detached observations`, () => {
   const fixture = makeFixture(alternate), before = fixture.value.snapshot();
   const expected = {target: {id: alternate.recordId, name: alternate.previousName},
     control: {id: alternate.controlId, name: alternate.controlName}};
-  const files = buildMock(fixture.selected);
+  const {recordId, previousName, controlId, controlName} = alternate;
+  const files = buildMockFromSeed({recordId, previousName, controlId, controlName});
   const rows = JSON.parse(files['mock/data.json'])[connector][resource].rows;
   assert.deepEqual(rows, [expected.target, expected.control].map(({id, name}) => ({[idField]: id, [nameField]: name})));
   assertRecordApprovalTarget(before, expected);

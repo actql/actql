@@ -97,6 +97,13 @@ supplies the outcomes to check, and the ordinary fixture observes the original
 approval and lookup replies. Use a single fault selection. Standalone phase
 commands refuse a scheduled fault without the matching installed fixture.
 
+Set `ACTQL_RECORD_APPROVAL_MOCK_CASE` to the absolute path of a case file to
+run it with the existing `--mock-hubspot-approval` or `--mock-kintone-approval`
+packed fixture. The Mock uses the same authored Program, parameters, seed,
+Review, and expected states. It constructs the existing Mock catalog for the
+selected connector. The installed HTTP adapter checks the provider schema and
+applies the HTTP fault schedule in its own run.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.
