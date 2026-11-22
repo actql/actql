@@ -9,7 +9,7 @@
     {
       "module": "adapters/site-node/remote-credential-signature.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "45758f3adf6bbc27b722d8f3b22dbe9cd78de372303557514fd1de5e2b1fea51",
+      "sha256": "5a300f6533fce113110343721715fd3a3a1abc401335af0733cfaecc80e01671",
       "exports": [
         "admitSignedRemoteCredentialGrant",
         "signRemoteCredentialGrant"
@@ -55,7 +55,7 @@
                 "anchor": "credential_grant_signature_preimage"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "admitSignedRemoteCredentialGrant"
               }
             ],
@@ -75,23 +75,23 @@
                 "anchor": "actql-remote-credential-grant-signature/0.1"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "authorities.get(projection[5])"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "Object.freeze({version, keyId, grantCid, body, signature})"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "privateKey"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "control.signaturePreimage"
               },
               {
@@ -101,11 +101,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "RemoteCredentialAuthorityRejected"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "RemoteCredentialSignatureRejected"
               }
             ],
@@ -128,17 +128,17 @@
                 "anchor": "admit_credential_signature_envelope"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "InvalidRemoteCredentialSigner"
               }
             ],
             "verification": [
               {
-                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "path": "adapters/site-node/sqlite-credential-journal.test.mts",
                 "anchor": "untrusted or altered issuer envelope"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "path": "adapters/site-node/sqlite-credential-journal.test.mts",
                 "anchor": "authenticate current grants without consuming a use"
               }
             ]

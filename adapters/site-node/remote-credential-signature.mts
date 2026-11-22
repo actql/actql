@@ -1,20 +1,34 @@
 import {sign, verify} from 'node:crypto';
+import type {remoteCredentialControl} from '../host-common/remote-credential-control.mjs';
+import type {createInstallationPreparationMetadata} from '../host-common/installation-preparation-metadata.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-const fail = (code, cause) => {
+type RunControl = ReturnType<typeof remoteCredentialControl>;
+type MetadataControl = ReturnType<ReturnType<typeof createInstallationPreparationMetadata>['forSubject']>;
+type Control = RunControl | MetadataControl;
+type Projector = Pick<Control, 'signatureEnvelopeProjection'>;
+type Signer = Projector & Pick<Control, 'signaturePreimage' | 'prepareSignatureEnvelope'>;
+type Verifier = Projector & Pick<Control, 'admitSignatureEnvelope' | 'signatureEnvelopeGrant' | 'signaturePreimage'>;
+type Envelope = Parameters<RunControl['admitSignatureEnvelope']>[0];
+type SigningOptions = Readonly<{keyId: string; privateKey: Parameters<typeof sign>[2]}>;
+type Authorities = ReadonlyMap<string, ReadonlyMap<string, Parameters<typeof verify>[2]>>;
+type Grant = Extract<SynchronousRuntimeData, object>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
-function envelopeObject(value, control) {
+function envelopeObject(value: unknown, control: Projector): Envelope {
   const [version, keyId, grantCid, body, signature] =
     control.signatureEnvelopeProjection(value);
   return Object.freeze({version, keyId, grantCid, body, signature});
 }
 
-export function signRemoteCredentialGrant(grant, control, {
+export function signRemoteCredentialGrant(grant: unknown, control: Signer, {
   keyId,
   privateKey,
-}) {
+}: SigningOptions) {
   if (!text(keyId) || privateKey === undefined ||
       typeof control?.signaturePreimage !== 'function' ||
       typeof control?.prepareSignatureEnvelope !== 'function' ||
@@ -34,8 +48,8 @@ export function signRemoteCredentialGrant(grant, control, {
   );
 }
 
-export function admitSignedRemoteCredentialGrant(envelope, authorities,
-  control) {
+export function admitSignedRemoteCredentialGrant(envelope: Envelope, authorities: Authorities,
+  control: Verifier): Grant {
   if (envelope === null || typeof envelope !== 'object' ||
       !text(envelope.version) ||
       !text(envelope.keyId) || !text(envelope.grantCid) ||
@@ -64,5 +78,5 @@ export function admitSignedRemoteCredentialGrant(envelope, authorities,
     fail('RemoteCredentialSignatureRejected', error);
   }
   if (!accepted) fail('RemoteCredentialSignatureRejected');
-  return control.signatureEnvelopeGrant(admitted);
+  return control.signatureEnvelopeGrant(admitted) as Grant;
 }

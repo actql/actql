@@ -1,4 +1,4 @@
-import {DatabaseSync} from 'node:sqlite';
+import {DatabaseSync, type SQLInputValue, type StatementSync} from 'node:sqlite';
 import {
   closeSync,
   existsSync,
@@ -12,13 +12,65 @@ import {admitSignedRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
+import type {remoteCredentialControl} from '../host-common/remote-credential-control.mjs';
+import type {createInstallationPreparationMetadata} from '../host-common/installation-preparation-metadata.mjs';
 
-const fail = (code, cause) => {
+type RunControl = ReturnType<typeof remoteCredentialControl>;
+type MetadataControl = ReturnType<ReturnType<typeof createInstallationPreparationMetadata>['forSubject']>;
+type JournalMethods =
+  | 'identity' | 'json' | 'admitJson' | 'projection'
+  | 'prepareUse' | 'useIdentity' | 'useJson' | 'authorizeUse' | 'useProjection'
+  | 'admitSignatureEnvelope' | 'signatureEnvelopeGrant'
+  | 'signatureEnvelopeProjection' | 'signaturePreimage';
+type MetadataProjection = Pick<MetadataControl, 'subjectFields' | 'scopeFields'>;
+type RunJournal = Pick<RunControl, JournalMethods>;
+type MetadataJournal = Pick<MetadataControl, JournalMethods | 'kind'> & MetadataProjection;
+type JournalControl = RunJournal | MetadataJournal;
+type RunScope = Parameters<RunControl['prepareUse']>[1]['scope'];
+type ScopeFor<Control extends JournalControl> =
+  Control extends MetadataJournal ? object : RunScope;
+type Envelope = Parameters<typeof admitSignedRemoteCredentialGrant>[0];
+type Authorities = Parameters<typeof admitSignedRemoteCredentialGrant>[1];
+
+type JournalOptions = Readonly<{
+  credentialAuthorities?: Authorities;
+  maxGrants?: number;
+  maxUses?: number;
+  maxGrantBytes?: number;
+  maxUseBytes?: number;
+}>;
+type Outcome = 'claimed' | 'succeeded' | 'failed' | 'unknown';
+type GrantRow = Readonly<{
+  signature_version: string;
+  signature_key_id: string;
+  grant_cid: string;
+  grant_json: string;
+  signature: string;
+  revoked: number;
+}>;
+type UseRow = Readonly<{
+  use_cid: string;
+  grant_cid: string;
+  use_id: string;
+  use_ordinal: number;
+  use_json: string;
+  outcome: number;
+}>;
+type CountRow = Readonly<{count: number}>;
+// These prepared SELECTs return named columns. DatabaseSync uses number
+// for INTEGER unless the statement is configured to return bigint.
+type RowReader<Row> = {
+  get(...params: SQLInputValue[]): Row | undefined;
+  all(...params: SQLInputValue[]): Row[];
+} & StatementSync;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const count = value => Number.isSafeInteger(value) && value >= 0;
-const outcomes = Object.freeze(new Map([
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) >= 0;
+const outcomes = Object.freeze(new Map<Outcome, number>([
   ['claimed', 0],
   ['succeeded', 1],
   ['failed', 2],
@@ -28,7 +80,11 @@ const outcomes = Object.freeze(new Map([
 // The original Run projection remains the exact existing 17-member array.
 // A closed metadata control retains its original opaque Subject and Scope;
 // named DATA is not flattened into missing legacy fields or new authority.
-function validJournalGrantProjection(control, projection, grantCid) {
+function validJournalGrantProjection(
+  control: JournalControl & Partial<MetadataProjection>,
+  projection: unknown,
+  grantCid: string,
+) {
   const purpose = Object.getOwnPropertyDescriptor(control, 'kind');
   if (purpose === undefined) {
     return Array.isArray(projection) && projection.length === 17 &&
@@ -64,19 +120,19 @@ function validJournalGrantProjection(control, projection, grantCid) {
   return true;
 }
 
-function syncDirectory(path) {
+function syncDirectory(path: string) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
 }
 
-export function openSqliteCredentialJournal(root, {
+export function openSqliteCredentialJournal(root: string, {
   credentialAuthorities,
   maxGrants = 100_000,
   maxUses = 1_000_000,
   maxGrantBytes = 32_768,
   maxUseBytes = 4096,
-} = {}) {
+}: JournalOptions = {}) {
   if (!text(root) || !(credentialAuthorities instanceof Map) ||
       credentialAuthorities.size === 0 ||
       !count(maxGrants) || maxGrants === 0 ||
@@ -161,22 +217,22 @@ export function openSqliteCredentialJournal(root, {
   try {
   const selectGrant = database.prepare(
     'SELECT * FROM credential_grants WHERE grant_cid = ?',
-  );
+  ) as RowReader<GrantRow>;
   const selectUse = database.prepare(
     'SELECT * FROM credential_uses WHERE use_cid = ?',
-  );
+  ) as RowReader<UseRow>;
   const selectUseId = database.prepare(`
     SELECT * FROM credential_uses WHERE grant_cid = ? AND use_id = ?
-  `);
+  `) as RowReader<UseRow>;
   const grantCount = database.prepare(
     'SELECT COUNT(*) AS count FROM credential_grants',
-  );
+  ) as RowReader<CountRow>;
   const useCount = database.prepare(
     'SELECT COUNT(*) AS count FROM credential_uses',
-  );
+  ) as RowReader<CountRow>;
   const grantUseCount = database.prepare(`
     SELECT COUNT(*) AS count FROM credential_uses WHERE grant_cid = ?
-  `);
+  `) as RowReader<CountRow>;
   const insertGrant = database.prepare(`
     INSERT INTO credential_grants (
       grant_cid,
@@ -200,13 +256,13 @@ export function openSqliteCredentialJournal(root, {
   `);
   const selectAllUses = database.prepare(`
     SELECT * FROM credential_uses ORDER BY rowid
-  `);
+  `) as RowReader<UseRow>;
 
   const active = () => {
     if (closed) fail('RemoteCredentialJournalClosed');
     transaction.assertUsable();
   };
-  const requireControl = control => {
+  const requireControl = (control: JournalControl) => {
     if (typeof control?.identity !== 'function' ||
         typeof control?.json !== 'function' ||
         typeof control?.admitJson !== 'function' ||
@@ -220,14 +276,14 @@ export function openSqliteCredentialJournal(root, {
     }
     return control;
   };
-  const record = row => Object.freeze({
+  const record = (row: UseRow) => Object.freeze({
     useCid: row.use_cid,
     grantCid: row.grant_cid,
     useId: row.use_id,
     useOrdinal: Number(row.use_ordinal),
     outcome: [...outcomes].find(([, code]) => code === row.outcome)?.[0],
   });
-  const admitGrant = (row, control) => admitSignedRemoteCredentialGrant({
+  const admitGrant = (row: GrantRow, control: JournalControl) => admitSignedRemoteCredentialGrant({
     version: row.signature_version,
     keyId: row.signature_key_id,
     grantCid: row.grant_cid,
@@ -237,7 +293,7 @@ export function openSqliteCredentialJournal(root, {
 
   return Object.freeze({
     path,
-    acceptGrant(envelope, control) {
+    acceptGrant(envelope: Envelope, control: JournalControl) {
       active();
       requireControl(control);
       const grant = admitSignedRemoteCredentialGrant(
@@ -264,7 +320,7 @@ export function openSqliteCredentialJournal(root, {
           }
           return admitGrant(existing, control);
         }
-        if (Number(grantCount.get().count) >= maxGrants) {
+        if (Number(grantCount.get()!.count) >= maxGrants) {
           fail('RemoteCredentialGrantCapacityExceeded');
         }
         insertGrant.run(
@@ -277,7 +333,10 @@ export function openSqliteCredentialJournal(root, {
         return grant;
       });
     },
-    checkGrant(grantCid, trustedNowMilliseconds, scope, control) {
+    checkGrant<Control extends JournalControl>(
+      grantCid: string, trustedNowMilliseconds: bigint,
+      scope: ScopeFor<Control>, control: Control,
+    ) {
       active();
       requireControl(control);
       if (!text(grantCid) || typeof trustedNowMilliseconds !== 'bigint' ||
@@ -291,13 +350,16 @@ export function openSqliteCredentialJournal(root, {
         // This prospective use is neither persisted nor a physical permit.
         control.prepareUse(grant, {
           useId: 'admission-check', trustedNowMilliseconds,
-          usedCount: Number(grantUseCount.get(grantCid).count),
-          revoked: row.revoked === 1, scope,
+          usedCount: Number(grantUseCount.get(grantCid)!.count),
+          revoked: row.revoked === 1, scope: scope as RunScope,
         });
         return grant;
       });
     },
-    claim(grantCid, useId, trustedNowMilliseconds, scope, control) {
+    claim<Control extends JournalControl>(
+      grantCid: string, useId: string, trustedNowMilliseconds: bigint,
+      scope: ScopeFor<Control>, control: Control,
+    ) {
       active();
       requireControl(control);
       if (!text(grantCid) || !text(useId) ||
@@ -312,14 +374,14 @@ export function openSqliteCredentialJournal(root, {
         const grant = admitGrant(grantRow, control);
         const existing = selectUseId.get(grantCid, useId);
         const usedCount = existing === undefined
-          ? Number(grantUseCount.get(grantCid).count)
+          ? Number(grantUseCount.get(grantCid)!.count)
           : Number(existing.use_ordinal) - 1;
         const use = control.prepareUse(grant, {
           useId,
           trustedNowMilliseconds,
           usedCount,
           revoked: grantRow.revoked === 1,
-          scope,
+          scope: scope as RunScope,
         });
         const useCid = control.useIdentity(use);
         const useJson = control.useJson(use);
@@ -344,19 +406,22 @@ export function openSqliteCredentialJournal(root, {
             use,
           });
         }
-        if (Number(useCount.get().count) >= maxUses) {
+        if (Number(useCount.get()!.count) >= maxUses) {
           fail('RemoteCredentialUseCapacityExceeded');
         }
         insertUse.run(useCid, grantCid, useId, usedCount + 1, useJson);
         return Object.freeze({
           replayed: false,
-          record: record(selectUse.get(useCid)),
+          record: record(selectUse.get(useCid)!),
           grant,
           use,
         });
       });
     },
-    authorize(use, trustedNowMilliseconds, scope, control) {
+    authorize<Control extends JournalControl>(
+      use: unknown, trustedNowMilliseconds: bigint,
+      scope: ScopeFor<Control>, control: Control,
+    ) {
       active();
       requireControl(control);
       if (typeof trustedNowMilliseconds !== 'bigint' ||
@@ -373,12 +438,12 @@ export function openSqliteCredentialJournal(root, {
         control.authorizeUse(use, {
           trustedNowMilliseconds,
           revoked: grantRow.revoked === 1,
-          scope,
+          scope: scope as RunScope,
         });
         return record(useRow);
       });
     },
-    finish(useCid, outcome) {
+    finish(useCid: string, outcome: Outcome) {
       active();
       if (!text(useCid) || !outcomes.has(outcome) || outcome === 'claimed') {
         fail('InvalidRemoteCredentialOutcome');
@@ -390,11 +455,11 @@ export function openSqliteCredentialJournal(root, {
         if (current.outcome !== 0 && current.outcome !== 3) {
           fail('RemoteCredentialOutcomeConflict');
         }
-        finishUse.run(outcomes.get(outcome), useCid);
-        return record(selectUse.get(useCid));
+        finishUse.run(outcomes.get(outcome)!, useCid);
+        return record(selectUse.get(useCid)!);
       });
     },
-    revoke(grantCid) {
+    revoke(grantCid: string) {
       active();
       if (!text(grantCid)) fail('InvalidRemoteCredentialGrant');
       return transaction.run(() => {
@@ -405,7 +470,7 @@ export function openSqliteCredentialJournal(root, {
         return true;
       });
     },
-    inspect(useCid) {
+    inspect(useCid: string) {
       active();
       const row = selectUse.get(useCid);
       return row === undefined ? undefined : record(row);

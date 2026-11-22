@@ -137,8 +137,8 @@ export function createInstallationPreparationMetadata(moon: unknown) {
           return registerGrant(checked(call('GrantPrepare', text(value.issuerAuthority),
             rawScope(value.scope, subject), time(value.expiresUnixMilliseconds), value.maxUses)));
         },
-        identity: (token: unknown) => call('GrantCid', own(grants, token, subject)),
-        json: (token: unknown) => checked(call('GrantWire', own(grants, token, subject))),
+        identity: (token: unknown) => call('GrantCid', own(grants, token, subject)) as string,
+        json: (token: unknown) => checked(call('GrantWire', own(grants, token, subject))) as string,
         admitJson(wire: unknown, cid: unknown) {
           return registerGrant(checked(call('GrantAdmit', own(subjects, subject), text(wire), text(cid))));
         },
@@ -152,7 +152,7 @@ export function createInstallationPreparationMetadata(moon: unknown) {
         },
         subjectFields: () => subjectFields(subject),
         scopeFields(token: unknown) {rawScope(token, subject); return scopeFields(token);},
-        signaturePreimage: (token: unknown) => checked(call('SignaturePreimage', own(grants, token, subject))),
+        signaturePreimage: (token: unknown) => checked(call('SignaturePreimage', own(grants, token, subject))) as Uint8Array,
         prepareSignatureEnvelope(token: unknown, key: unknown, signature: unknown) {
           return retain(envelopes, checked(call('SignaturePrepare', own(grants, token, subject),
             text(key), text(signature))), subject);
@@ -171,8 +171,8 @@ export function createInstallationPreparationMetadata(moon: unknown) {
           return retain(uses, checked(call('UsePrepare', own(grants, token, subject), text(value.useId),
             time(value.trustedNowMilliseconds), value.usedCount, value.revoked, rawScope(value.scope, subject))), subject);
         },
-        useIdentity: (token: unknown) => call('UseCid', own(uses, token, subject)),
-        useJson: (token: unknown) => checked(call('UseWire', own(uses, token, subject))),
+        useIdentity: (token: unknown) => call('UseCid', own(uses, token, subject)) as string,
+        useJson: (token: unknown) => checked(call('UseWire', own(uses, token, subject))) as string,
         admitUse(token: unknown, wire: unknown, cid: unknown) {
           return retain(uses, checked(call('UseAdmit', own(grants, token, subject), text(wire), text(cid))), subject);
         },

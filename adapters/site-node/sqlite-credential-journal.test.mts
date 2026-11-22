@@ -4,17 +4,30 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {generateKeyPairSync} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
-import test from 'node:test';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
+import test, {type TestContext} from 'node:test';
+import type {remoteCredentialControl} from '../host-common/remote-credential-control.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 
+type Control = ReturnType<typeof remoteCredentialControl>;
+type Journal = ReturnType<typeof openSqliteCredentialJournal>;
+type JournalOptions = Parameters<typeof openSqliteCredentialJournal>[1];
+type CommitFailure = Error & Readonly<{
+  code: string;
+  outcome: 'unknown';
+  connectionUsable: boolean;
+}>;
+
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url,
+).href);
+const {runtimeCore}: {runtimeCore(value: unknown): {remoteCredentialControl: Control}} =
+  await import(new URL('../host-common/runtime-core.mjs', import.meta.url).href);
 const control = runtimeCore(moon).remoteCredentialControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const scope = Object.freeze({
   issuerAuthority: 'credential-authority-a',
   principal: 'principal-a',
@@ -34,9 +47,9 @@ const scope = Object.freeze({
   maxUses: 2,
 });
 
-async function fixture(t, options = {}) {
+async function fixture(t: TestContext, options: JournalOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-credential-journal-'));
-  const journals = [];
+  const journals: Journal[] = [];
   t.after(async () => {
     for (const journal of journals.reverse()) journal.close();
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
@@ -55,7 +68,7 @@ async function fixture(t, options = {}) {
     journals.push(journal);
     return journal;
   };
-  const sign = grant => signRemoteCredentialGrant(grant, control, {
+  const sign = (grant: unknown) => signRemoteCredentialGrant(grant, control, {
     keyId: 'key-a',
     privateKey: keys.privateKey,
   });
@@ -75,7 +88,8 @@ test('a closed database is not closed again after directory sync fails',
     try {
       await chmod(root, 0o300);
       assert.throws(() => journal.close(), error =>
-        error.code === 'EACCES' || error.code === 'EPERM');
+        (error as NodeJS.ErrnoException).code === 'EACCES' ||
+        (error as NodeJS.ErrnoException).code === 'EPERM');
       assert.equal(databaseCloses, 1);
       assert.throws(() => journal.recover(),
         {code: 'RemoteCredentialJournalClosed'});
@@ -107,11 +121,11 @@ test('credential COMMIT uncertainty keeps its cause without replaying a grant',
     try {
       assert.throws(() => journal.acceptGrant(sign(grant), control),
         error => {
-          assert.equal(error.code,
+          assert.equal((error as CommitFailure).code,
             'RemoteCredentialJournalCommitOutcomeUnknown');
-          assert.equal(error.cause, cause);
-          assert.equal(error.outcome, 'unknown');
-          assert.equal(error.connectionUsable, true);
+          assert.equal((error as CommitFailure).cause, cause);
+          assert.equal((error as CommitFailure).outcome, 'unknown');
+          assert.equal((error as CommitFailure).connectionUsable, true);
           return true;
         });
     } finally {

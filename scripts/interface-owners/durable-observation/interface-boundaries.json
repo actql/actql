@@ -8036,7 +8036,7 @@
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b60e24a25350f2cf4360e417e8df3ef8f3d88a9b39eabcf103ab7900409f8f1d",
+      "sha256": "9224ca152309f60eb27e5effa9fd9e0e59d649d0142126d930ae856c4f01ac62",
       "exports": [
         "openSqliteCredentialJournal"
       ],
