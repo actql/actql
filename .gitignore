@@ -2014,3 +2014,5 @@ target/
 /scripts/fixtures/deal-review-two-models.d.mts
 /scripts/fixtures/model-registration-project.mjs
 /scripts/fixtures/model-registration-project.d.mts
+/scripts/node-benchmark-evidence.mjs
+/scripts/node-benchmark-evidence.d.mts

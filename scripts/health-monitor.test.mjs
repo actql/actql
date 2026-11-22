@@ -681,7 +681,8 @@ test('CPU, toolchain, fixture, build or dirty mismatch refuses comparison', () =
 
 test('Release methodology identity binds actual cold and Native Python collector sources', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-health-methodology-'));
-  const quickFiles = ['scripts/benchmark-node-operations.mjs', 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+  const quickFiles = ['scripts/benchmark-node-operations.mjs', 'scripts/node-benchmark-evidence.mts',
+    'adapters/host-node/fixtures/mock-project-effect-public.mjs',
     'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
     'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',

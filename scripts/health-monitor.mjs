@@ -304,7 +304,8 @@ export async function fixtureIdentities(mode = 'quick', {root = repository} = {}
   if (!['quick', 'release'].includes(mode)) throw new Error('Unknown measurement methodology mode');
   // Bind the actual selected entry collectors, timing/statistics and artifact
   // inspection code. This is a fixed source inventory, not a dependency scanner.
-  const files = ['scripts/benchmark-node-operations.mjs', 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+  const files = ['scripts/benchmark-node-operations.mjs', 'scripts/node-benchmark-evidence.mts',
+    'adapters/host-node/fixtures/mock-project-effect-public.mjs',
     'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
     'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',

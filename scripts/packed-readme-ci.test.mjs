@@ -15,7 +15,7 @@ import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {packedEffectControlCases, assertMockEffectControlOutcome} from './packed-mock-effect-controls.mjs';
-import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {packedModelControlPhases} from './packed-model-controls.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';

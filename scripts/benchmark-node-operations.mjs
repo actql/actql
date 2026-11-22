@@ -1,67 +1,17 @@
 // Run only against a separately prepared, source-qualified ordinary installation.
 // No preload, package preparation, product overlay, internal Host port or resend.
 import assert from 'node:assert/strict';
-import {createHash, randomBytes, randomUUID} from 'node:crypto';
-import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
+import {randomBytes, randomUUID} from 'node:crypto';
+import {appendFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {arch, platform, release, cpus, totalmem} from 'node:os';
-import {dirname, join, relative, resolve} from 'node:path';
+import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {assessLatency, recordOperationMeasurements, calibratedLatencyTarget, collectOperationSamples,
   assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+import {hash, nodeBenchmarkFailure, verifyNodeBenchmarkPackages} from './node-benchmark-evidence.mjs';
+export {nodeBenchmarkFailure, verifyNodeBenchmarkPackages} from './node-benchmark-evidence.mjs';
 
-// Keep failure inspection outside successful sample timing. Read only bounded
-// public data: never call execution/status/result/cleanup methods to diagnose it.
-export function nodeBenchmarkFailure(error) {
-  const data = (value, key) => {
-    try {
-      for (let depth = 0; value !== null && typeof value === 'object' && depth < 4;
-        depth++, value = Object.getPrototypeOf(value)) {
-        const property = Object.getOwnPropertyDescriptor(value, key);
-        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
-      }
-    } catch { /* An unreadable diagnostic must not replace the original failure. */ }
-  };
-  const text = value => typeof value === 'string' ? value.slice(0, 2048) : undefined;
-  const reference = value => {
-    const result = {};
-    for (const key of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
-      const field = text(data(value, key)); if (field !== undefined) result[key] = field;
-    }
-    return Object.keys(result).length ? result : undefined;
-  };
-  const queue = [{edge: 'primary', value: error}], seen = new Set(), chain = [];
-  while (queue.length && chain.length < 8) {
-    const {edge, value} = queue.shift();
-    if (value === null || typeof value !== 'object' || seen.has(value)) continue;
-    seen.add(value);
-    const entry = {edge, name: text(data(value, 'name')) ?? 'Error',
-      code: text(data(value, 'code')) ?? null, message: text(data(value, 'message')) ?? ''};
-    const status = data(value, 'status'), requestId = text(data(value, 'requestId'));
-    if (Number.isSafeInteger(status)) entry.status = status;
-    if (requestId !== undefined) entry.requestId = requestId;
-    const cleanupPending = data(value, 'cleanupPending');
-    if (typeof cleanupPending === 'boolean') entry.cleanupPending = cleanupPending;
-    const executionRef = reference(data(value, 'executionRef')) ?? reference(data(data(value, 'execution'), 'ref'));
-    if (executionRef) entry.executionRef = executionRef;
-    const observation = data(value, 'observation'), state = {};
-    for (const key of ['run_id', 'status', 'revision', 'result_available']) {
-      const field = data(observation, key);
-      if (typeof field === 'string') state[key] = text(field);
-      else if (typeof field === 'boolean' || Number.isSafeInteger(field)) state[key] = field;
-    }
-    if (Object.keys(state).length) entry.observation = state;
-    chain.push(entry);
-    for (const key of ['cause', 'original_error', 'cleanup_error', 'originalError', 'cleanupError']) {
-      const child = data(value, key);
-      if (child !== null && typeof child === 'object') queue.push({edge: key, value: child});
-    }
-  }
-  const primary = chain[0] ?? {name: 'Error', code: null,
-    message: typeof error === 'string' ? text(error) : 'Uninspectable thrown value'};
-  return {...primary, errorChain: chain, ...(queue.length ? {errorChainTruncated: true} : {})};
-}
 // Independent literal oracles: JOIN selects the matching id and label; UNION
 // retains both ordered ids; Decimal SUM is (125 + 250 + 25) / 100 = "4.00".
 // No expected value is obtained from a compiler or a previous product result.
@@ -124,37 +74,6 @@ export function nodeUsedMaterialProtocol() {
     mutation: 'one same-size byte change, preserving the original generation bytes',
     observation: 'one later public Result.all must reject; no retry or restoration',
     close: 'await the original Client; cleanup failure cannot qualify the boundary'};
-}
-export async function verifyNodeBenchmarkPackages(manifest, manifestPath, consumer) {
-  assert(Array.isArray(manifest.packages) && manifest.packages.length > 0);
-  assert(manifest.packages.some(row => row.name === '@actql/node'));
-  const observations = [], names = new Set();
-  for (const pkg of manifest.packages) {
-    assert(/^(?:@actql\/)?[a-z0-9-]+$/u.test(pkg.name) && !names.has(pkg.name));
-    names.add(pkg.name);
-    assert.equal(pkg.file, pkg.file.split('/').at(-1));
-    const tar = await readFile(join(dirname(manifestPath), pkg.file));
-    assert.equal(tar.length, pkg.bytes); assert.equal(hash(tar), pkg.sha256);
-    assert.equal('sha512-' + createHash('sha512').update(tar).digest('base64'), pkg.integrity);
-    const base = join(consumer, 'node_modules', pkg.name), files = [];
-    async function visit(dir) {
-      assert(!(await lstat(dir)).isSymbolicLink(), 'Installed package cannot be a source symlink');
-      for (const name of (await readdir(dir)).sort()) {
-        const file = join(dir, name), st = await lstat(file);
-        assert(!st.isSymbolicLink(), 'Installed product payload cannot be linked');
-        if (st.isDirectory()) await visit(file);
-        else {
-          assert(st.isFile()); const data = await readFile(file);
-          files.push({path: relative(base, file), bytes: data.length, mode: st.mode & 0o777, sha256: hash(data)});
-        }
-      }
-    }
-    await visit(base);
-    const sort = rows => rows.toSorted((a, b) => a.path.localeCompare(b.path));
-    assert.deepEqual(sort(files), sort(pkg.files));
-    observations.push({package: pkg.name, files});
-  }
-  return observations;
 }
 export async function runNodeWarmBenchmark({manifestPath, consumer, output, controlsPath, mode = 'diagnostic'}) {
   assert(['diagnostic', 'final', 'record-only'].includes(mode));
