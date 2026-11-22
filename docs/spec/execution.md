@@ -2455,6 +2455,12 @@ dispatch, approved target version, actual `authorization_context_cid` and approv
 Account DispatchAuthorization MUST still admit the exact tuple, row and target
 immediately before durable dispatch and physical replacement.
 
+<!-- requirement-block: reconciliation.file-operation-kind-bound -->
+At issuance and recovery the receipt's `operation_kind` MUST match the approved
+`update` or `delete` member, including when the receipt has a valid self CID.
+A DELETE acknowledges replacement with the selected row removed and has no
+intended field-value body.
+
 <!-- requirement-block: reconciliation.file-operation-generation-size-bound -->
 Only the original Writer's acknowledged staging and directory synchronization
 and returned device/inode/size generation establish a known replacement. The

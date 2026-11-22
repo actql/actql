@@ -12,7 +12,7 @@ import {mockTemplates} from './native-cli-mock-scenario.mjs';
 // durations; neither is added to the separately sampled approval latency.
 export async function observeNativeMockHarnessPhase(records, phase, action, template) {
   assert(['release-verification', 'source-platform-admission', 'scratch-creation',
-    'registry-open', 'installation', 'installed-package-admission', 'scenario', 'shared-file-scenario', 'nullable-update-scenarios',
+    'registry-open', 'installation', 'installed-package-admission', 'scenario', 'shared-file-scenario', 'nullable-update-scenarios', 'mixed-file-mutation-scenarios',
     'installed-integrity', 'registry-close', 'release-project-sequences', 'original-mock-regressions'].includes(phase),
   'Unknown Mock harness phase');
   assert(phase === 'scenario' ? mockTemplates.includes(template) : template === undefined,

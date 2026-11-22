@@ -30,6 +30,85 @@ fn relation_document_test_admit(
 }
 
 ///|
+test "relation target deletion preserves rows whitespace and another collection" {
+  let declaration = relation_mapping_declaration()
+  let first = "{\"id\":\"first\",\"label\":\"before🌱\",\"choices\":[\",\"],\"amount\":null}"
+  let middle = "{\"id\":\"middle\",\"label\":null,\"choices\":[],\"amount\":\"123.450\"}"
+  let last = "{\"id\":\"last\",\"label\":null,\"choices\":[],\"amount\":null}"
+  let prefix = " \n{\"control\":[\{middle}],\"collection\":{\"records\":[ "
+  let suffix = " ]}}\n "
+  let input = prefix + first + " \t,\n" + middle + "  ,\r\n" + last + suffix
+  let document = relation_document_test_admit(declaration, input).unwrap()
+  for
+    item in [
+      ("first", " \t\n" + middle + "  ,\r\n" + last, 4, ["middle", "last"]),
+      ("middle", first + " \t,\n  \r\n" + last, 5, ["first", "last"]),
+      ("last", first + " \t,\n" + middle + "  \r\n", 5, ["first", "middle"]),
+    ] {
+    let (id, records, gap, kept) = item
+    let row = observe_relation_target(document, declaration, id).unwrap()
+    let version = relation_target_version(row).unwrap()
+    let expected = @utf8.encode(prefix + records + suffix)
+    let max_work = expected.length() + gap
+    let output = prepare_relation_target_delete(
+      document, row, version, max_work,
+    ).unwrap()
+    assert_eq(output, expected)
+    assert_true(
+      prepare_relation_target_delete(document, row, version, max_work - 1)
+      is Err(InvalidPage),
+    )
+    let next = relation_document_test_admit(declaration, @utf8.decode(output)).unwrap()
+    assert_eq(relation_target_row_count(next), Some(2))
+    for index, identity in kept {
+      assert_eq(relation_target_row_identity(next, index), Some(identity))
+    }
+  }
+  let singleton = relation_document_test_admit(
+    declaration,
+    prefix + middle + suffix,
+  ).unwrap()
+  let row = observe_relation_target(singleton, declaration, "middle").unwrap()
+  let expected = @utf8.encode(prefix + suffix)
+  assert_eq(
+    prepare_relation_target_delete(
+      singleton,
+      row,
+      relation_target_version(row).unwrap(),
+      expected.length(),
+    ).unwrap(),
+    expected,
+  )
+}
+
+///|
+test "relation target deletion requires the same observed original and version" {
+  let declaration = relation_mapping_declaration()
+  let input = relation_document_test_text()
+  let document = relation_document_test_admit(declaration, input).unwrap()
+  let other = relation_document_test_admit(declaration, input).unwrap()
+  let row = observe_relation_target(document, declaration, "first").unwrap()
+  let version = relation_target_version(row).unwrap()
+  assert_true(
+    prepare_relation_target_delete(document, row, "stale", 10000000)
+    is Err(ForeignSource),
+  )
+  assert_true(
+    prepare_relation_target_delete(other, row, version, 10000000)
+    is Err(ForeignSource),
+  )
+  assert_true(
+    prepare_relation_target_delete(document, { ..row, }, version, 10000000)
+    is Err(ForeignSource),
+  )
+  assert_true(discard_relation_target_document_original(document))
+  assert_true(
+    prepare_relation_target_delete(document, row, version, 10000000)
+    is Err(ForeignSource),
+  )
+}
+
+///|
 test "generic relation target applies arbitrary typed fields and preserves every untouched byte" {
   let declaration = relation_mapping_declaration()
   let original = relation_document_test_text()

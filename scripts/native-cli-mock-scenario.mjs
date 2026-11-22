@@ -1,5 +1,5 @@
 import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -350,12 +350,33 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), commands};
 }
 
-export async function runNativeSharedFileMockScenario({root, run, launcherTimings = 'optional'}) {
+export function runNativeSharedFileMockScenario({root, run, launcherTimings = 'optional'}) {
   const fixture = threeWriteMockProject();
-  const project = join(root, 'native-shared-file-mock'), file = join(project, 'mock/data.json');
+  const changes = fixture.changes.map(change => ({...change, kind: 'update'}));
+  return runNativeSharedFileMutation({project: join(root, 'native-shared-file-mock'),
+    fixture, changes, decision: 'approve', run, launcherTimings});
+}
+
+export async function runNativeMixedFileMockScenarios({root, run, launcherTimings = 'optional'}) {
+  const fixture = mixedDeleteUpdateMockProject();
+  const changes = [
+    {kind: 'delete', resource: 'Account', id: 'a1'},
+    {kind: 'update', resource: 'Contact', id: 'c1', after: 'C-new'},
+  ];
+  const results = [];
+  for (const decision of ['approve', 'reject']) {
+    const result = await runNativeSharedFileMutation({project: join(root, 'native-mixed-file-' + decision),
+      fixture, changes, decision, run, launcherTimings});
+    results.push({decision, ...result});
+  }
+  return results;
+}
+
+async function runNativeSharedFileMutation({project, fixture, changes, decision, run, launcherTimings}) {
+  const file = join(project, 'mock/data.json');
   const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
   const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
-    rows: fixture.changes.length, work: {modelRows: 0, writeOrdinals: [0, 0, 0]}});
+    rows: changes.length, work: {modelRows: 0, writeOrdinals: changes.map(() => 0)}});
   await mkdir(project, {mode: 0o700});
   for (const [name, body] of Object.entries(fixture.files)) {
     const path = join(project, name);
@@ -386,21 +407,34 @@ export async function runNativeSharedFileMockScenario({root, run, launcherTiming
   assert.deepEqual(reviewLines.slice(previewIndex + 1).map(line => {
     const field = /^      (Before|After): (.+)$/u.exec(line);
     return field ? [field[1], JSON.parse(field[2])] : line;
-  }), fixture.changes.flatMap(({resource, id, after}) => [
-    `  Effect: "update"  Target: "connector://salesforce/${resource}"`,
+  }), changes.flatMap(({kind, resource, id, after}) => [
+    `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
     '  Items: 1', '  Preview strength: "full_diff"', '  Changes:',
     `    Row: ${JSON.stringify(id)}`,
     ['Before', {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
-    ['After', {state: 'present', value: {value: after}}],
+    ['After', kind === 'delete' ? {state: 'absent'} : {state: 'present', value: {value: after}}],
   ]), 'Original Review must preserve ordered targets and every intended change');
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
 
-  await invoke('approval', ['approve', checkpoint, '--wait', '--json']);
+  await invoke(decision === 'approve' ? 'approval' : 'rejection',
+    [decision, checkpoint, ...(decision === 'approve' ? ['--wait'] : []), '--json']);
   await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'},
-    'The original target lock path must be absent when the approval command returns');
+    'The original target lock path must be absent when the decision command returns');
   const after = await targetSnapshot(file);
-  assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
-    'Only the three independently expected updates may change');
+  const common = {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
+    beforeSha256: before.sha256, afterSha256: after.sha256, lockPathAbsent: true};
+  if (decision === 'reject') {
+    assert.deepEqual(after, before, 'Rejection must not replace the original file');
+    runState(await invoke('saved-status', ['status', runId, '--json']), 'cancelled', runId);
+    assert.deepEqual(await targetSnapshot(file), before, 'Saved rejection must not write');
+    return {...common, commands};
+  }
+  if (changes.some(change => change.kind === 'delete')) {
+    assert.equal(after.bytes, fixture.after, 'The ordered DELETE and UPDATE must preserve every untouched byte');
+  } else {
+    assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
+      'Only the independently expected updates may change');
+  }
   assert.notEqual(after.sha256, before.sha256);
   runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);
   assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
@@ -414,9 +448,8 @@ export async function runNativeSharedFileMockScenario({root, run, launcherTiming
   const saved = await invoke('saved-result', resultArguments);
   assert.equal(saved.stdout, first.stdout, 'Fresh-process Saved Result must retain the original bytes');
   assert.deepEqual(await targetSnapshot(file), after, 'Saved lookup must not replay any update');
-  return {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
-    beforeSha256: before.sha256, afterSha256: after.sha256, resultRows: rows.length,
-    resultSha256: createHash('sha256').update(first.stdout).digest('hex'), lockPathAbsent: true, commands};
+  return {...common, resultRows: rows.length,
+    resultSha256: createHash('sha256').update(first.stdout).digest('hex'), commands};
 }
 
 export async function runNativeNullableMockScenarios({root, run, launcherTimings}) {

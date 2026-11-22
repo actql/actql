@@ -9,11 +9,36 @@ pub fn native_relation_file_target_update_construction(
   response_bytes : Int,
   changes_wire : String,
 ) -> (@execution.ExecutionCapacity, Int64)? {
+  native_relation_file_target_write_construction(
+    provider, writable_fields, response_bytes, changes_wire, false,
+  )
+}
+
+///|
+/// The same locked child, original document and bounded placement as UPDATE.
+/// A deletion carries no mapped field wire and can only shrink the file.
+pub fn native_relation_file_target_delete_construction(
+  provider : NativeRelationFilePreparedProvider,
+  response_bytes : Int,
+) -> (@execution.ExecutionCapacity, Int64)? {
+  native_relation_file_target_write_construction(
+    provider, 0, response_bytes, "", true,
+  )
+}
+
+///|
+fn native_relation_file_target_write_construction(
+  provider : NativeRelationFilePreparedProvider,
+  writable_fields : Int,
+  response_bytes : Int,
+  changes_wire : String,
+  deleting : Bool,
+) -> (@execution.ExecutionCapacity, Int64)? {
   let limits = provider.limits
   let contract = @rows.relation_document_prepared_contract(
     provider.prepared_contract,
   )
-  guard writable_fields > 0 &&
+  guard (deleting || writable_fields > 0) &&
     writable_fields <= limits.page.max_nodes &&
     changes_wire.length() <= limits.page.max_bytes &&
     file_capture_response_backing_page(limits.page, Some(response_bytes))
@@ -63,24 +88,27 @@ pub fn native_relation_file_target_update_construction(
   let text_profile = file_capture_text_contract_nodes(contract) is Some(_)
   // Numeric/reference/nested Contracts retain their full original output
   // envelope. Only the existing closed Text law bounds rendering by text.
-  let value_bytes = if text_profile {
+  let value_bytes = if deleting {
+    1
+  } else if text_profile {
     Int64::min(limits.page.max_bytes.to_int64(), encoded).to_int()
   } else {
     limits.page.max_bytes
   }
-  let value_nodes = if text_profile {
+  let value_nodes = if deleting || text_profile {
     change_nodes
   } else {
     limits.page.max_nodes
   }
-  let value_depth = if text_profile {
+  let value_depth = if deleting || text_profile {
     change_depth
   } else {
     limits.page.max_depth
   }
   let output_bytes = Int64::min(
     limits.page.max_bytes.to_int64(),
-    response_bytes.to_int64() + value_bytes.to_int64(),
+    response_bytes.to_int64() +
+    (if deleting { 0L } else { value_bytes.to_int64() }),
   )
   guard file_capture_metadata_capacity(
       provider.selection,
@@ -137,9 +165,10 @@ pub fn native_relation_file_target_update_construction(
         owned_wire_bytes: 0L,
       },
       {
-        record_headers: 8L,
-        reference_slots: 16L,
-        scalar_words: 8L,
+        // Include the typed write variant and the ACK operation flag.
+        record_headers: 9L,
+        reference_slots: 19L,
+        scalar_words: 10L,
         owned_utf16_units: text,
         owned_wire_bytes: page.max_bytes.to_int64() + output_bytes,
       },
@@ -174,9 +203,9 @@ pub fn native_relation_file_target_update_construction(
   guard @execution.preparation_representation_cost({
       // Same generation/ACK/predecessor, plus callback/Result controls. The
       // complete changes buffer and replacement overlap remain held on error.
-      record_headers: 12L,
-      reference_slots: 32L,
-      scalar_words: 16L,
+      record_headers: 13L,
+      reference_slots: 35L,
+      scalar_words: 18L,
       owned_utf16_units: 0L,
       owned_wire_bytes: output_bytes + encoded_change_bytes,
     })
