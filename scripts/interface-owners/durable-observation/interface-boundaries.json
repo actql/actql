@@ -2899,7 +2899,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
@@ -3097,7 +3097,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
@@ -3345,7 +3345,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
@@ -3575,7 +3575,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3647,7 +3647,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3755,7 +3755,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3823,7 +3823,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               }
             ],
@@ -3873,7 +3873,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "009a5e886cce57475d261f4737ffd4d91f81fd04c00da26ab6fb1039a2b0f141",
+      "sha256": "23d758ea6e1d31b373c84d8d5c9bf83dac6fa0a8cb3742d163eed8f5f8858e1c",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -4067,7 +4067,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4081,7 +4081,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4095,7 +4095,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4105,11 +4105,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4123,7 +4123,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4137,7 +4137,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4151,7 +4151,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4165,7 +4165,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4179,7 +4179,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4197,7 +4197,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawCaptureStorePort"
               },
               {
@@ -4228,7 +4228,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4242,7 +4242,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4256,7 +4256,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4266,11 +4266,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4288,7 +4288,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4302,7 +4302,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4316,7 +4316,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4330,7 +4330,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4348,7 +4348,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4366,7 +4366,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "createModelRawTransportPersistence"
               },
               {
@@ -4398,7 +4398,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4412,7 +4412,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4426,7 +4426,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4436,11 +4436,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4454,7 +4454,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4468,7 +4468,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4482,7 +4482,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4496,7 +4496,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4510,7 +4510,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4528,7 +4528,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "originalModelRawTransportPersistenceMatches"
               },
               {
@@ -4552,7 +4552,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4566,7 +4566,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4580,7 +4580,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4590,11 +4590,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4608,7 +4608,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4622,7 +4622,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4636,7 +4636,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4650,7 +4650,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4664,7 +4664,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4682,7 +4682,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "retainedRawFailure"
               },
               {
@@ -4709,7 +4709,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4723,7 +4723,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4737,7 +4737,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4747,11 +4747,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4765,7 +4765,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4779,7 +4779,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4793,7 +4793,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4807,7 +4807,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4821,7 +4821,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4839,7 +4839,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "tuple"
               },
               {
@@ -4870,38 +4870,38 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "original.registration === registration;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence!);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "persist.cleanup = call => {"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "persist.cleanup = (call: unknown) => {"
               }
             ],
             "resources": [
@@ -4945,38 +4945,38 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "original.registration === registration;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence!);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
-                "anchor": "persist.cleanup = call => {"
+                "path": "adapters/host-node/infer-raw-capture.mts",
+                "anchor": "persist.cleanup = (call: unknown) => {"
               }
             ],
             "resources": [
@@ -5015,7 +5015,7 @@
                 "anchor": "ModelPhysicalCall"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5029,7 +5029,7 @@
                 "anchor": "original.entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5043,7 +5043,7 @@
                 "anchor": "receipt binding mutations"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5053,11 +5053,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "rawCustodyRetained"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5071,7 +5071,7 @@
                 "anchor": "one original ACK"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5085,7 +5085,7 @@
                 "anchor": "unknown without re-entry"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5099,7 +5099,7 @@
                 "anchor": "cancellation and permission loss"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5113,7 +5113,7 @@
                 "anchor": "maximumStoredCaptureWire"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5127,7 +5127,7 @@
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
@@ -5145,7 +5145,7 @@
                 "anchor": "pre-gate diagnostic is unsent"
               },
               {
-                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "path": "adapters/host-node/infer-raw-capture.mts",
                 "anchor": "// Membership of a private physical port"
               },
               {
