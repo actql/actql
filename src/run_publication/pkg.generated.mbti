@@ -333,6 +333,8 @@ pub fn cold_static_plan_validation_construction(String, Bool, Int, Int64, Int, I
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
 
+pub fn complete_effect_preview_dispatch_keys_with_identity(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
+
 pub fn computation_evidence_check_fixture_phase(ComputationEvidenceCheck) -> String
 
 pub fn content_byte_completed_rows(ContentByteEncoder) -> Int

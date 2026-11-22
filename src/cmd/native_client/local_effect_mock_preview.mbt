@@ -544,17 +544,17 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     keys.push(row_keys)
     key_cids.push(row_cids)
   }
-  let completed = @publication.complete_effect_preview_dispatch_keys(
-      semantic, key_cids, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
-    )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+  let completed = {
+    let (wire, identity) = @publication.complete_effect_preview_dispatch_keys_with_identity(
+        semantic, key_cids, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
+      )
+      .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+      .native_effect_proposal_with_cause(report)
+    @effect.check_admitted_effect_preview_apply_keys(identity, scope, keys)
+    .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewKeys(issue))
     .native_effect_proposal_with_cause(report)
-  @effect.admit_effect_preview_apply_identity(
-    completed, run_cid, authoring_cid, scope, keys, max_bytes, max_nodes, max_depth,
-  )
-  .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewKeys(issue))
-  .native_effect_proposal_with_cause(report)
-  |> ignore
+    wire
+  }
   let preview = @run_host.bind_captured_client_effect_preview(
       materials,
       captured,
