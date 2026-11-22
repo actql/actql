@@ -5,12 +5,45 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {types as nodeTypes} from 'node:util';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {sourceJsonWireGeometry} from '../../../host-node/installed-source-construction-geometry.mjs';
+// @ts-expect-error TS7016: the original Effect Plan recipe owner is still authored in JavaScript.
 import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
+// @ts-expect-error TS7016: the original Local file writer is still authored in JavaScript.
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
 
-export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile, requestHeaderUnits, grantIssuer, responseProjector}) {
+type Runtime = Readonly<{
+  clientProgramInstalledLocalFileStoreControlWireBound(): number;
+  clientProgramInstalledLocalFileStoreRecipeCapacities(bodyBytes: number, bodyNodes: number, bodyDepth: number,
+    previewBytes: number, previewNodes: number, previewDepth: number, requestBytes: number, recoveryBytes: number,
+    responseBytes: number, storedBytes: number, storedNodes: number, storedDepth: number, nativeOriginalBytes: bigint,
+    pathBytes: number, nameBytes: number, maxComponents: number, nativeDepth: number, readWindowBytes: number,
+    controlWireBytes: number | undefined, controlResponseBytes: number | undefined): unknown;
+  clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation: string, capacities: readonly unknown[]): unknown;
+  clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation: string, capacity: unknown,
+    transfer: bigint, physical: boolean): unknown;
+  clientProgramInstalledOpaqueBoundaryFootprintCapacity(provider: string, resourceKind: string, units: number): unknown;
+  clientProgramInstalledLocalFileStoreInitialConstructorCapacities(): unknown;
+  clientProgramInstalledEffectOperationStagedExtentPrepare(initial: unknown, maximum: unknown): unknown;
+  clientProgramInstalledLocalFileStoreObservedConstructorCapacities(bytes: number, nodes: number,
+    depth: number, requestBytes: number, requestNodes: number, recoveryBytes: number): unknown;
+  clientProgramInstalledLocalFileStoreObservedRecoveryCapacities(bytes: number, nodes: number, depth: number): unknown;
+}>;
+type Input = Readonly<{
+  moon: Runtime;
+  inputLimits: Readonly<{
+    body: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
+    preview: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+  }>;
+  limits: Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxFileBytes: number}>;
+  writerProfile: Readonly<{nativeOriginalBytes: number | bigint; maxRootBytes: number; maxNameBytes: number; maxDepth: number}>;
+  requestHeaderUnits?: number;
+  grantIssuer?: unknown;
+  responseProjector?: unknown;
+}>;
+
+export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile,
+  requestHeaderUnits, grantIssuer, responseProjector}: Input): unknown {
   // recoveryEntry can retain the accepted prefix and the next already-admitted
   // record before its aggregate guard. The joined frame exists only after
   // that guard succeeds. Both peaks use this SAME original member extent.
@@ -19,14 +52,14 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
   }
   const controlEntryBytes = moon.clientProgramInstalledLocalFileStoreControlWireBound();
-  const quote = (controlWireBytes, controlResponseBytes) => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
+  const quote = (controlWireBytes: number | undefined, controlResponseBytes: number | undefined) => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
     inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
     limits.maxRequestBytes, inputLimits.preview.maxWireBytes + limits.maxRequestBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     BigInt(writerProfile.nativeOriginalBytes), writerProfile.maxRootBytes, writerProfile.maxNameBytes,
-    localFileWriteMaxComponents, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes));
+    localFileWriteMaxComponents as number, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes)) as readonly unknown[];
   const quantities = quote(controlEntryBytes, limits.maxResponseBytes), fallback = quote(undefined, undefined);
   if (!Array.isArray(quantities) || ![6, 7, 8].includes(quantities.length)) {
     throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
@@ -75,7 +108,10 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
   }
   const footprint = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write.footprint', footprintCapacity, 0n, false));
-  let warmCapture = capture, coldCapture = capture, warmRequest = request, captureInput, requestInput, recoveryInput;
+  let warmCapture = capture, coldCapture = capture, warmRequest = request,
+    captureInput: ((proposals: unknown) => unknown) | undefined,
+    requestInput: ((proposal: unknown) => unknown) | undefined,
+    recoveryInput: ((previewWire: unknown, recovery: unknown, memberIndex: number) => unknown) | undefined;
   if (requestHeaderUnits !== undefined) {
     if (!Number.isSafeInteger(requestHeaderUnits) || requestHeaderUnits < 1) {
       throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
@@ -89,7 +125,7 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     const requestInitial = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
       'files.write.request', initial[2], 0n, false));
     warmRequest = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(requestInitial, request));
-    const observe = proposals => {
+    const observe = (proposals: unknown) => {
       if (!Array.isArray(proposals)) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
       let units = 0, nodes = 0, requestNodes = 0, requestBytes = 0,
         recoveryBytes = 3 * (requestHeaderUnits + 2);
@@ -129,7 +165,7 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       }
       return checked(moon.clientProgramInstalledLocalFileStoreObservedConstructorCapacities(
         Math.min(3 * units, inputLimits.body.maxBytes), Math.min(nodes, inputLimits.body.maxNodes),
-        inputLimits.body.maxDepth, requestBytes, requestNodes, recoveryBytes));
+        inputLimits.body.maxDepth, requestBytes, requestNodes, recoveryBytes)) as readonly unknown[];
     };
     captureInput = proposals => {
       const actual = observe(proposals);
@@ -144,7 +180,7 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       }
       // SAME original control frame backs this scalar scan. Do not parse or
       // copy the already-admitted whole Preview or another member's wire.
-      let wire;
+      let wire: string | undefined;
       for (const entry of recovery) {
         const index = Object.getOwnPropertyDescriptor(entry, 'memberIndex');
         if (!index || !Object.hasOwn(index, 'value')) throw new TypeError('InvalidLocalFileStoreRecoveryGeometry');
@@ -164,7 +200,7 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       const bytes = Buffer.byteLength(wire);
       const nodes = Number(sourceJsonWireGeometry(wire).retained.nodes);
       const actual = checked(moon.clientProgramInstalledLocalFileStoreObservedRecoveryCapacities(
-        bytes, nodes, inputLimits.preview.maxDepth));
+        bytes, nodes, inputLimits.preview.maxDepth)) as readonly unknown[];
       return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare('files.write.capture',
         [actual[0], actual[1], quantities[2], quantities[3], quantities[4], quantities[5]]));
     };

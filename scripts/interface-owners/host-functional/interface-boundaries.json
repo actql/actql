@@ -140312,7 +140312,7 @@
     {
       "module": "adapters/host-node/effect-ledger-implementation-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a39fbd2d6b50ceec6c3a04cc40aabfe41bf28d8bb2aa7e07144f9fb98705fa54",
+      "sha256": "84b2d6c456c3cd2474a8bc20c986e1a32b684814e020d189141576f47bf92170",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -140336,7 +140336,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-ledger-implementation-bounds.mjs",
+                "path": "adapters/host-node/effect-ledger-implementation-bounds.mts",
                 "anchor": "The actual Effect Ledger"
               }
             ],

@@ -4230,7 +4230,7 @@
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
-      "sha256": "6f1c44f81f2aaa9de086e2d1b98c8f7c811c75e6bb223942e4f51a3cede39c3d",
+      "sha256": "513d127d43cfbca016976a5a4aaa5dc3bca6c26b5487ce99fc117062ac3481de",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4305,7 +4305,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4315,7 +4315,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4325,7 +4325,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4335,7 +4335,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4345,13 +4345,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4364,7 +4364,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4374,7 +4374,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
                 "anchor": "prepareLocalFileStorePlanRecipe"
               },
               {
@@ -4405,56 +4405,56 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
-                "anchor": "const observe = proposals => {"
+                "path": "adapters/connectors/local/host/local-file-store-plan.mts",
+                "anchor": "const observe = (proposals: unknown) => {"
               }
             ],
             "verification": [
