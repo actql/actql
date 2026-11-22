@@ -399,6 +399,70 @@ fn native_mock_effect_lookup_emit_workspace(
 }
 
 ///|
+// The collection backing stays alive through the next emitter/parser. The
+// Map owns its key strings; only distinct input wires need extra backing.
+fn native_mock_effect_lookup_table_workspace(
+  entries : Int,
+  key_units : Int64,
+  wire_units : Int64,
+) -> Int64? {
+  let count = entries.to_int64()
+  guard @shape.collection_construction_extent({
+      records: 2L + 2L * count,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 1L,
+      reference_items: count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: count,
+    })
+    is Some(tables) &&
+    @execution.checked_preparation_add_product(key_units, wire_units, 1L)
+    is Some(text) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: tables.record_headers,
+    reference_slots: tables.reference_slots,
+    scalar_words: tables.scalar_words,
+    owned_utf16_units: text,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// The caller has adopted the same returned Array. Its Map and measuring
+// scopes have returned. Preserve the workspace that preceded the call and
+// the original absolute reservation floor while retaining the Array slots.
+fn LocalNativeMockEffectImportConstruction::retain_lookup_dependency_array(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  slots : Int,
+  previous_workspace : Int64,
+) -> Bool {
+  guard self.source_snapshot is None &&
+    self.source_copy is None &&
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 1L + slots.to_int64(),
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(array) &&
+    @execution.checked_preparation_add_product(self.retained, array, 1L)
+    is Some(retained) else {
+    original.retain_primary(
+      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+    )
+    return false
+  }
+  self.resize(original, self.recipe, retained, previous_workspace)
+}
+
+///|
 // Snapshot emission returns only its row text. The stepper, writer and
 // discarded field vector cannot escape. Keep the entire former constructor
 // peak before entry, and carry only the returned wire into later dependency

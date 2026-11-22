@@ -648,6 +648,7 @@ fn run_original_source_completion(
     assert_true(exact_references > 0)
     let quotes : Array[(Int, Int)] = []
     let emissions : Array[(Int, Int)] = []
+    let tables : Array[(Int, Int64, Int64)] = []
     let collected = client_keyed_lookup_native_dependency_bodies(
       lookup,
       retention,
@@ -668,6 +669,10 @@ fn run_original_source_completion(
         emissions.push((b, n))
         true
       }),
+      before_tables=Some((entries, key_units, wire_units) => {
+        tables.push((entries, key_units, wire_units))
+        true
+      }),
     ).unwrap()
     assert_true(!emissions.is_empty())
     assert_true(quotes.contains((bytes, nodes)))
@@ -679,7 +684,46 @@ fn run_original_source_completion(
       collected.map(@publication.captured_effect_dependency_body_json),
       bodies.map(@publication.captured_effect_dependency_body_json),
     )
+    assert_eq(tables[0], (0, 0L, 0L))
+    let mut key_units = 0L
+    for index, body in collected {
+      key_units += @publication.captured_effect_dependency_body_kind(body)
+        .length()
+        .to_int64() +
+        @publication.captured_effect_dependency_body_cid(body)
+        .length()
+        .to_int64() +
+        1L
+      assert_true(
+        tables.any(quote => quote.0 == index + 1 && quote.1 == key_units),
+      )
+    }
     let before_refusal = @resources.ledger_usage(ledger)
+    let growth_refusals = Ref(0)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_tables=Some((entries, _, _) => {
+          if entries == 0 {
+            return true
+          }
+          growth_refusals.val += 1
+          false
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(growth_refusals.val, 1)
     let attempted_emissions = Ref(0)
     let late_admissions = Ref(0)
     assert_true(

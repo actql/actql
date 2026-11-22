@@ -461,24 +461,58 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           guard physical_source is Some(_) else {
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }
-          let before_body = if measured {
-            let measuring = mock_effect_dependency_measurement_bytes(
+          let previous_workspace = construction.workspace
+          let measuring = if measured {
+            mock_effect_dependency_measurement_bytes(
               wire.max_nodes,
               wire.max_depth,
-            ).bind(bytes => @execution.execution_capacity(0L, bytes))
-            if !construction.prepare_body(self.original, measuring) {
-              stop("LocalOriginalEffectProposalsUnavailable")
-            }
+            )
+          } else {
+            Some(0L)
+          }
+          let mut table_workspace = 0L
+          let before_tables = if measured {
+            Some((entries, keys, wires) => {
+              let tables = native_mock_effect_lookup_table_workspace(
+                entries, keys, wires,
+              )
+              let quote = tables.bind(bytes => {
+                measuring.bind(measure => {
+                  @execution.checked_preparation_add_product(bytes, measure, 1L).bind(peak => {
+                      @execution.execution_capacity(0L, peak)
+                    },
+                  )
+                })
+              })
+              if !construction.prepare_body(self.original, quote) {
+                return false
+              }
+              table_workspace = tables.unwrap()
+              true
+            })
+          } else {
+            None
+          }
+          let prepare = fn(capacity : @execution.ExecutionCapacity?) {
+            let quote = capacity.bind(value => {
+              @execution.execution_capacity(0L, table_workspace).bind(tables => {
+                @execution.add_execution_capacity(value, tables)
+              })
+            })
+            construction.prepare_body(self.original, quote)
+          }
+          let before_body = if measured {
             Some((bytes, nodes, depth) => {
-              construction.prepare_canonical(self.original, bytes, nodes, depth)
+              prepare(
+                native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
+              )
             })
           } else {
             None
           }
           let before_emit = if measured {
             Some((bytes, nodes, depth, digest) => {
-              construction.prepare_body(
-                self.original,
+              prepare(
                 native_mock_effect_lookup_emit_workspace(
                   bytes, nodes, depth, digest,
                 ),
@@ -501,12 +535,21 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
               physical_source~,
               before_body~,
               before_emit~,
+              before_tables~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Dependency(issue)
             })
             .native_effect_proposal(self.original)
           held._retained_lookup_dependencies = dependencies
+          if measured &&
+            !construction.retain_lookup_dependency_array(
+              self.original,
+              dependencies.capacity(),
+              previous_workspace,
+            ) {
+            stop("LocalOriginalEffectProposalsUnavailable")
+          }
         }
       }
       let invocation = held.invocation.unwrap()

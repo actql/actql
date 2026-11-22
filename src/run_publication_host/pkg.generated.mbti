@@ -1071,7 +1071,7 @@ pub fn client_keyed_lookup_left(ClientKeyedLookupInput) -> ClientKeyedLeftRead
 
 pub fn client_keyed_lookup_native_completion(ClientKeyedLookupInput) -> ClientKeyedNativeCompletion?
 
-pub fn client_keyed_lookup_native_dependency_bodies(ClientKeyedLookupInput, @run_publication.PublicationContract, @run_publication.CapturedEffectDependencyLimits, Int, Int, physical_source? : (String, String)?, before_body? : ((Int, Int, Int) -> Bool)?, before_emit? : ((Int, Int, Int, Bool) -> Bool)?) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue]
+pub fn client_keyed_lookup_native_dependency_bodies(ClientKeyedLookupInput, @run_publication.PublicationContract, @run_publication.CapturedEffectDependencyLimits, Int, Int, physical_source? : (String, String)?, before_body? : ((Int, Int, Int) -> Bool)?, before_emit? : ((Int, Int, Int, Bool) -> Bool)?, before_tables? : ((Int, Int64, Int64) -> Bool)?) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue]
 
 pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
 
