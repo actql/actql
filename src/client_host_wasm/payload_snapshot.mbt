@@ -8,6 +8,23 @@ pub fn validate_payload_record_snapshot(
   input : Int,
   current_configuration : Int,
 ) -> Int {
+  validate_original_payload_record_snapshot(
+    nonce,
+    handle,
+    input,
+    current_configuration,
+    same_reader_census=false,
+  )
+}
+
+///|
+fn validate_original_payload_record_snapshot(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  current_configuration : Int,
+  same_reader_census~ : Bool,
+) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_records.get(handle) is Some(record) &&
     record.confirmed &&
@@ -18,7 +35,17 @@ pub fn validate_payload_record_snapshot(
   if value.closing || value.runtime_closing || record.closing {
     return -5
   }
-  if !payload_record_current(value, record, current_configuration) {
+  let current = if record.source is SavedResult(_, _) {
+    saved_payload_record_current(
+      value,
+      record,
+      current_configuration,
+      same_reader_census~,
+    )
+  } else {
+    payload_record_current(value, record, current_configuration)
+  }
+  if !current {
     return -32
   }
   guard input_cursor(value, slot) is Some(cursor) &&

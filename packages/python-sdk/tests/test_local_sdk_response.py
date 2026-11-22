@@ -382,6 +382,54 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(stream, host._response_streams)
             self.assertTrue(holder.close())
 
+    async def test_trapped_saved_input_retires_original_before_returning_payload_loans(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, core, request, first, _, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            original_call = core._call
+            events = []
+
+            def call(family, name, *args):
+                if (family, name) == ('submission', 'reserve'):
+                    return 10001
+                if (family, name) == ('submission', 'close'):
+                    self.assertEqual(args, (source.handle,))
+                    return core._cleanup(source.ticket)
+                if (family, name) == ('publication_commit_export', 'close') and args == (first.handle,):
+                    events.append(('first-output', first))
+                    if ('terminal', source) not in events:
+                        return -33
+                return original_call(family, name, *args)
+
+            def begin(original):
+                self.assertIs(original, source)
+                self.assertIs(core._loans[source.ticket], source)
+                events.append(('terminal', original))
+
+            with patch.object(core, '_call', side_effect=call), patch.object(
+                    core, 'begin_saved_read_cleanup', side_effect=begin):
+                source = core.reserve_submission_projection(31, request, 13, cleanup=lambda: True)
+                saved._source = source
+                host._projections = [source]
+                host._append_sources = {}
+                core._closing = True
+                try:
+                    await stream.aclose()
+                    self.assertEqual(events[:2], [('terminal', source), ('first-output', first)])
+                    self.assertNotIn(first.ticket, core._loans)
+                    self.assertNotIn(source.ticket, core._loans)
+                    self.assertTrue(saved._closed)
+                    self.assertNotIn(stream, host._response_streams)
+                finally:
+                    if not stream._closed:
+                        begin(source)
+                        await stream.aclose()
+                    self.assertTrue(holder.close())
+
     async def test_partial_saved_payload_constructor_keeps_cleanup_when_core_is_closing(self):
         # Exercise the actual partial payload constructor and response carrier;
         # the explicit Core port refuses binding after entering closing state.

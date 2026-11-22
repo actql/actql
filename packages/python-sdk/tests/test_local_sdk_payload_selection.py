@@ -40,6 +40,16 @@ class SDKPayloadSelectionTests(unittest.TestCase):
         core._call = release
         with self.assertRaises(ValueError): core.publication_sdk_payload_ordinal(first, 23, field='result')
 
+    def test_saved_pair_accepts_only_the_existing_two_coordinate_domains(self):
+        core, _, first, calls, status = fixture.SDKReadOriginalTests.bridge(self)
+        status[0] = 63
+        self.assertEqual(core.publication_sdk_payload_ordinal(first, 23, field='saved_pair'), 63)
+        self.assertEqual(calls[-1], ('publication_commit_export', 'sdk_payload_ordinal', (19, 23, 2)))
+        for invalid in (True, 64, 2**31):
+            status[0] = invalid
+            with self.assertRaises(RuntimeError):
+                core.publication_sdk_payload_ordinal(first, 23, field='saved_pair')
+
     def test_same_store_routes_only_complete_original_inventory_without_open_or_write(self):
         files = files_fixture.ReaderFactsTests()
         with files.file() as (_, root, _, final):

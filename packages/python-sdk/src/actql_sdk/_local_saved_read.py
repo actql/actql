@@ -379,17 +379,26 @@ class OriginalSavedResultRead:
         stream._attached = True
         return response
 
+    def _begin_terminal_cleanup(self) -> bool:
+        """Enter original Core retirement before attempting affected child loans."""
+        if self._original is not self:
+            raise ValueError('Copied original saved Result custody')
+        if self._preparing:
+            return False
+        core = self._host._core
+        if self._source is not None and not self._source_closed and core._closing:
+            core.begin_saved_read_cleanup(self._source)
+        return True
+
     def close(self) -> bool:
         if self._original is not self:
             raise ValueError('Copied original saved Result custody')
         if self._closed:
             return True
         self._closing = True
-        if self._preparing:
+        if not self._begin_terminal_cleanup():
             return False
         host, core = self._host, self._host._core
-        if self._source is not None and not self._source_closed and core._closing:
-            core.begin_saved_read_cleanup(self._source)
         # These synchronous output loans belong to the projection. The Store
         # holders deliberately refuse workspace close while any loan remains.
         if self._projection is not None and not self._projection.close():
