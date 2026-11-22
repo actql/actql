@@ -709,20 +709,28 @@ pub fn prepare_relation_target_insert(
       raise RelationDocumentStop(InvalidPage)
     }
     relation_document_work(work, row_wire.length())
+    let wire_bytes = @scalar.admit_utf8_length(row_wire, limits.max_bytes).unwrap_or_else(() => {
+        raise RelationDocumentStop(InvalidPage)
+      },
+    )
+    relation_document_work(work, wire_bytes)
     let wire = @utf8.encode(row_wire)
-    relation_document_work(work, wire.length())
+    // Typed wire can be larger or deeper than physical JSON because it
+    // carries wrappers. Bound its construction by the original request
+    // envelope. The writer checks remaining file room independently.
     let parsed = @source.parse_json_bytes_preserving(wire, {
       max_input_bytes: limits.max_bytes,
-      max_nodes: nodes,
-      max_depth: depth,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
     }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
     let cursor = @decode.admit(parsed, {
-      max_nodes: nodes,
-      max_depth: depth,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,
       max_total_string_bytes: limits.max_bytes,
     }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
-    relation_document_work(work, @decode.admission_usage(cursor).nodes)
+    let wire_nodes = @decode.admission_usage(cursor).nodes
+    relation_document_work(work, wire_nodes)
     let object = @decode.closed_object(cursor, document.columns).unwrap_or_else(() => {
         raise RelationDocumentStop(InvalidPage)
       },
@@ -730,14 +738,14 @@ pub fn prepare_relation_target_insert(
     let writer = @encode.writer(room, nodes, depth)
     @encode.begin_object(writer)
     for index, name in document.columns {
-      relation_document_work(work, nodes)
+      relation_document_work(work, wire_nodes)
       let contract = @schema.field_at(document.schema, index).unwrap().contract
       let checked = @admitted.admit_wire(
         contract,
         relation_document_field(object, name),
         {
-          max_nodes: nodes,
-          max_depth: depth,
+          max_nodes: wire_nodes,
+          max_depth: limits.max_depth,
           max_text_bytes: limits.max_bytes,
         },
       ).unwrap_or_else(() => raise RelationDocumentStop(Value(name)))

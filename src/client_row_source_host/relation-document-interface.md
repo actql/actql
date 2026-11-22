@@ -52,8 +52,10 @@
 - Insertion takes a complete typed storage row with its supplied physical Text
   identity. Common checks the same selected schema and original collection,
   rejects duplicate identities and appends the row within the original byte,
-  node, depth, row and cumulative work bounds. The byte preparation preserves
-  the rest of the file, including other collections. The caller owns physical
+  node, depth, row and cumulative work bounds. The typed input wire uses its
+  own bounded construction workspace. The emitted JSON uses the remaining file
+  room after Common removes typed wrappers. Other file bytes are preserved,
+  including other collections. The caller owns physical
   identity assignment, construction funding, approval and conditional replacement.
 - Extension: physical values follow declared full nested contracts rather than
   inferred row shapes. Int64 accepts canonical decimal Text and exact JSON

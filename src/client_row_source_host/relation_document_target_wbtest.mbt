@@ -451,11 +451,11 @@ test "generic relation document physical int64 codec preserves exact tokens unde
 }
 
 ///|
-test "generic relation document nested physical values keep exact int64 and literal JSON wrappers" {
+fn relation_document_test_nested_declaration() -> RowDeclaration {
   // Independent schema bytes and SHA-256; no product-generated expectation.
   let wire =
     #|{"id":{"nullable":false,"type":"string"},"nested":{"additional_properties":false,"fields":{"counts":{"items":{"nullable":false,"type":"int64"},"nullable":false,"type":"array"},"payload":{"nullable":false,"type":"json"}},"nullable":false,"type":"object"}}
-  let declaration = generate_relation_row_declaration(
+  generate_relation_row_declaration(
     "nested",
     "fixture",
     "fixture/0.1",
@@ -472,6 +472,48 @@ test "generic relation document nested physical values keep exact int64 and lite
     ],
     delete_mapping_limits(),
   ).unwrap()
+}
+
+///|
+test "relation insertion fits physical depth after removing the typed JSON wrapper" {
+  let declaration = relation_document_test_nested_declaration()
+  let path = Array::make(27, "inner")
+  let prefix = "{\"inner\":".repeat(path.length())
+  let suffix = "}".repeat(path.length())
+  let input = @utf8.encode(prefix + "[]" + suffix)
+  let row =
+    #|{"id":"new","nested":{"counts":[],"payload":{"$json":{"$json":"literal"}}}}
+  let physical =
+    #|[{"id":"new","nested":{"counts":[],"payload":{"$json":"literal"}}}]
+  let expected = @utf8.encode(prefix + physical + suffix)
+  for depth in [31, 30] {
+    let limits = { ..relation_document_test_limits(), max_depth: depth, }
+    let backing = admit_relation_document(input, limits, 10000000).unwrap()
+    let prepared = prepare_relation_document_contract(
+      declaration, "records", "id", limits,
+    ).unwrap()
+    let result = prepare_relation_target_insert(
+      backing,
+      prepared,
+      path,
+      None,
+      row,
+    )
+    if depth == 31 {
+      assert_eq(result.unwrap(), expected)
+      assert_true(admit_relation_document(expected, limits, 10000000) is Ok(_))
+    } else {
+      assert_true(result is Err(InvalidPage))
+      assert_true(
+        admit_relation_document(expected, limits, 10000000) is Err(InvalidPage),
+      )
+    }
+  }
+}
+
+///|
+test "generic relation document nested physical values keep exact int64 and literal JSON wrappers" {
+  let declaration = relation_document_test_nested_declaration()
   let original = "[{\"id\":\"row\", \"nested\" : {\"counts\":[9007199254740993,-9223372036854775808],\"payload\":{\"$json\":\"literal\",\"é\":1,\"é\":2}}}]"
   let document = admit_relation_target_document(
     declaration,
