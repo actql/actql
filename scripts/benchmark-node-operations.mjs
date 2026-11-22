@@ -9,34 +9,11 @@ import {pathToFileURL} from 'node:url';
 import {assessLatency, recordOperationMeasurements, calibratedLatencyTarget, collectOperationSamples,
   assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
-import {hash, nodeBenchmarkFailure, verifyNodeBenchmarkPackages} from './node-benchmark-evidence.mjs';
-export {nodeBenchmarkFailure, verifyNodeBenchmarkPackages} from './node-benchmark-evidence.mjs';
+import {hash, nodeBenchmarkFailure, verifyNodeBenchmarkPackages,
+  nodeWarmSmallQueryFixtures} from './node-benchmark-evidence.mjs';
+export {nodeBenchmarkFailure, verifyNodeBenchmarkPackages,
+  nodeWarmSmallQueryFixtures} from './node-benchmark-evidence.mjs';
 
-// Independent literal oracles: JOIN selects the matching id and label; UNION
-// retains both ordered ids; Decimal SUM is (125 + 250 + 25) / 100 = "4.00".
-// No expected value is obtained from a compiler or a previous product result.
-export const nodeWarmSmallQueryFixtures = Object.freeze([
-  {operation: 'warm-join',
-    text: "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
-      + 'SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id MAX_OUTPUT_ROWS 1',
-    expected: [{id: 1, label: 'joined'}]},
-  {operation: 'warm-union',
-    text: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) '
-      + 'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id',
-    expected: [{id: 1}, {id: 2}]},
-  {operation: 'warm-decimal-sum',
-    text: "WITH items AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS amount "
-      + "UNION ALL SELECT CAST('2.50' AS DECIMAL(8,2)) AS amount "
-      + "UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) "
-      + 'SELECT SUM(amount) AS total FROM items',
-    expected: [{total: '4.00'}]},
-  {operation: 'warm-parameters', text: 'SELECT @id AS id',
-    parameters: Object.freeze({id: 7}),
-    options: Object.freeze({
-      parameterDeclarations: Object.freeze({id: Object.freeze({type: 'number'})})}), expected: [{id: 7}]},
-  {operation: 'warm-unicode', text: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
-].map(fixture => Object.freeze({...fixture,
-  expected: Object.freeze(fixture.expected.map(row => Object.freeze(row)))})));
 export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
   nodeOptions = process.env.NODE_OPTIONS ?? '', coverage = process.env.NODE_V8_COVERAGE} = {}) {
   // Known startup instrumentation is evidence against unprofiled acceptance.

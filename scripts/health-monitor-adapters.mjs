@@ -12,7 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {installedModulesPayloadInventory} from './package-inventory.mjs';
 import {inspectInstalledConnectorBins} from './installed-connector-bin.mjs';
 import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
-import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {multipleTargetMockProjectFiles} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
