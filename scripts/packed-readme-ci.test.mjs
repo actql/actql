@@ -256,18 +256,31 @@ test('workflow DATA oracles execute before an installed runtime is available', a
 
 test('record ordinary runner binds the exact selected fixture variant before the existing installed child', () => {
   const application = '/own-fresh-consumer', env = {HARNESS_ONLY: 'true'};
-  for (const [mockVariant, mockCasePath] of [['whole-input'], ['three-source'], ['binary-source'], [''],
+  for (const [mockVariant, authoredCasePath] of [['whole-input'], ['three-source'], ['binary-source'], [''],
     ['', '/own-fresh-consumer/authored-mock-case.json']]) {
     const {files, options} = packedRecordApprovalInvocation({application, approvalConnector: 'hubspot',
-      mockConnector: 'hubspot', mockVariant, mockCasePath, env});
+      mockConnector: 'hubspot', mockVariant, authoredCasePath, env});
     assert.deepEqual(files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
     assert.equal(options.cwd, application);
     assert.equal(options.expectedTests, 1);
     assert.deepEqual(options.env, {...env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: 'hubspot',
       ACTQL_RECORD_APPROVAL_MOCK_VARIANT: mockVariant,
       ...(mockVariant ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-      ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath})});
+      ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: authoredCasePath})});
   }
+});
+
+test('record ordinary runner binds the staged HTTP case and preserves the independent Result scope', () => {
+  const application = '/own-fresh-consumer', authoredCasePath = `${application}/authored-case.json`;
+  const env = {ACTQL_RECORD_APPROVAL_HTTP_CASE: '/author/case.json',
+    ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","authored_updates"]'};
+  const {files, options} = packedRecordApprovalInvocation({application, approvalConnector: 'kintone',
+    authoredCasePath, reject: true, env});
+  assert.deepEqual(files, ['scripts/fixtures/packed-kintone-approval.mjs']);
+  assert.equal(options.expectedTests, 1);
+  assert.deepEqual(options.env, {...env, ACTQL_RECORD_APPROVAL_HTTP_CASE: authoredCasePath,
+    ACTQL_RECORD_APPROVAL_DECISION: 'rejected'});
+  assert.equal(env.ACTQL_RECORD_APPROVAL_HTTP_CASE, '/author/case.json');
 });
 
 test('Whole three-Source and binary JOIN evidence preserves failed commands and requires original nonzero qualification', async t => {

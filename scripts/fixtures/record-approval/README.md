@@ -110,6 +110,13 @@ The standard HubSpot and kintone packed fixtures use their respective
 `case.json` for both HTTP and Mock. Each references that adapter's existing
 `update.aql` and `read.aql` files.
 
+Set `ACTQL_RECORD_APPROVAL_HTTP_CASE` to an absolute case path when using the
+existing packed runner with `--approval` or `--kintone-approval`. The runner
+stages the admitted case and records its digest. To use custom Result names,
+set `ACTQL_RECORD_APPROVAL_RESULT_NAMES` separately to a JSON array of the exact
+names allowed by the test Account. For example, `["main","authored_updates"]`
+selects those two names. The fixture never derives this list from the case.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.
