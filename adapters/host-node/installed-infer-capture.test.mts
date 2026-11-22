@@ -2,15 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readInstalledInferCapture} from './installed-infer-capture.mjs';
 
+type CaptureOptions = Parameters<typeof readInstalledInferCapture<object>>[0];
+type FixtureOptions = Readonly<{
+  missing?: string; rejectReplay?: boolean; attachments?: boolean; rejectAttachment?: boolean; unconfirmed?: string;
+}>;
+type MutableCaptureOptions = {-readonly [Name in keyof CaptureOptions]: CaptureOptions[Name]};
+
 function fixture({missing, rejectReplay = false, attachments = false,
-  rejectAttachment = false, unconfirmed} = {}) {
-  const reads = [];
+  rejectAttachment = false, unconfirmed}: FixtureOptions = {}) {
+  const reads: string[] = [];
   let released = 0;
   const bundle = {};
   const definition = {};
   const compiled = {};
   const verified = {};
-  const control = {
+  const control: CaptureOptions['control'] = {
     modelPrivateHoldingCid(actual, store, role, slot) {
       assert.equal(actual, definition);
       assert.equal(store, 'store');
@@ -31,7 +37,7 @@ function fixture({missing, rejectReplay = false, attachments = false,
       return verified;
     },
   };
-  const store = {
+  const store: CaptureOptions['store'] = {
     async inspectPhysicalHolding(key) {
       reads.push(key);
       return key === missing ? undefined : {manifest_cid: key};
@@ -44,7 +50,7 @@ function fixture({missing, rejectReplay = false, attachments = false,
     },
     async confirmPrivateEvidence({name}) { return name === unconfirmed ? undefined : {}; },
   };
-  const moon = {
+  const moon: CaptureOptions['moon'] = {
     strategyRunEvidenceAdmit: () => ({$tag: 1, _0: {}}),
     clientProgramVerifyInferAttachmentAdmission(capture, authority, admission) {
       assert.ok(capture);
@@ -64,7 +70,7 @@ function fixture({missing, rejectReplay = false, attachments = false,
     },
   };
   return {options: {moon, control, store, compiled, runDefinition: definition,
-    storeAuthorityCid: 'store'}, reads, verified, released: () => released};
+    storeAuthorityCid: 'store'} as MutableCaptureOptions, reads, verified, released: () => released};
 }
 
 test('installed capture read transfers only a common-verified replay owner',

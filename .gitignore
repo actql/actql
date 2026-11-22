@@ -2226,3 +2226,7 @@ target/
 /adapters/host-node/infer-entry-persistence.d.mts
 /adapters/host-node/infer-result-publication.mjs
 /adapters/host-node/infer-result-publication.d.mts
+/adapters/host-node/installed-infer-capture.mjs
+/adapters/host-node/installed-infer-capture.d.mts
+/adapters/host-node/installed-infer-capture.test.mjs
+/adapters/host-node/installed-infer-capture.test.d.mts
