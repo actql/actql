@@ -1886,3 +1886,9 @@ target/
 /adapters/connectors/duckdb/node/test/moonbit-receiving.test.d.mts
 /adapters/connectors/duckdb/node/test/native-capture-custody.test.mjs
 /adapters/connectors/duckdb/node/test/native-capture-custody.test.d.mts
+/adapters/connectors/duckdb/node/examples/task-manifest.mjs
+/adapters/connectors/duckdb/node/examples/task-manifest.d.mts
+/adapters/connectors/duckdb/node/examples/task-manifest-thread.mjs
+/adapters/connectors/duckdb/node/examples/task-manifest-thread.d.mts
+/adapters/connectors/duckdb/node/test/task-manifest-thread.test.mjs
+/adapters/connectors/duckdb/node/test/task-manifest-thread.test.d.mts

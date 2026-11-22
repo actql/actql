@@ -12,8 +12,8 @@ const documents = Object.freeze({
   programText: '{}', environmentText: '{}', environmentCid: 'sha256:0', parameterText: '{}',
 });
 
-function inline(source, spawned) {
-  return payload => {
+function inline(source: string, spawned: Worker[]) {
+  return (payload: unknown) => {
     const worker = new Worker(source, {eval: true, workerData: payload});
     spawned.push(worker);
     return worker;
@@ -21,7 +21,7 @@ function inline(source, spawned) {
 }
 
 // A Worker's threadId becomes -1 once the thread has fully exited.
-const stopped = worker => worker.threadId === -1;
+const stopped = (worker: Worker) => worker.threadId === -1;
 
 test('manifest documents are admitted by type and the existing byte limit before a thread', () => {
   assert.equal(snapshotTaskManifestInput({...documents,
@@ -29,14 +29,14 @@ test('manifest documents are admitted by type and the existing byte limit before
   for (const programText of ['x'.repeat(1000001), 'é'.repeat(500001), 1, undefined]) {
     let spawned = 0;
     assert.throws(() => prepareExampleTaskManifestInThread({...documents, programText},
-      undefined, {spawn: () => { spawned++; }}), {message: 'InvalidTaskManifestDocument'});
+      undefined, {spawn: (() => { spawned++; }) as unknown as RejectedSpawn}), {message: 'InvalidTaskManifestDocument'});
     assert.equal(spawned, 0, 'no thread is created for refused input');
   }
   assert.throws(() => snapshotTaskManifestInput(null), {message: 'InvalidTaskManifestInput'});
 });
 
 test('a completed manifest returns only after its thread has exited', async () => {
-  const spawned = [];
+  const spawned: Worker[] = [];
   const tasks = await prepareExampleTaskManifestInThread(documents, undefined, {
     spawn: inline(`require('node:worker_threads').parentPort.postMessage(
       {ok: true, tasks: [{task: 1}]}); setInterval(() => {}, 1000);`, spawned)});
@@ -48,7 +48,7 @@ test('a checker failure is reported after its real thread has exited', async () 
   const root = new URL('../../../../../', import.meta.url);
   await promisify(execFile)('moon', ['build', '--target', 'js', '--release',
     'src/physical_task_manifest_example'], {cwd: fileURLToPath(root)});
-  const spawned = [];
+  const spawned: Worker[] = [];
   await assert.rejects(prepareExampleTaskManifestInThread(documents, undefined, {
     spawn: payload => {
       const worker = new Worker(new URL('../examples/task-manifest-thread.mjs', import.meta.url),
@@ -60,7 +60,7 @@ test('a checker failure is reported after its real thread has exited', async () 
 });
 
 test('cancellation during derivation keeps its reason and stops the thread', async () => {
-  const spawned = [];
+  const spawned: Worker[] = [];
   const controller = new AbortController();
   const pending = prepareExampleTaskManifestInThread(documents, controller.signal, {
     spawn: inline('setInterval(() => {}, 1000);', spawned)});
@@ -74,7 +74,7 @@ test('cancellation during derivation keeps its reason and stops the thread', asy
 });
 
 test('a thread that exits without a response is a failure, not a manifest', async () => {
-  const spawned = [];
+  const spawned: Worker[] = [];
   await assert.rejects(prepareExampleTaskManifestInThread(documents, undefined, {
     spawn: inline('process.exit(3);', spawned)}), {message: 'ControllerTaskManifestExited:3'});
   assert(stopped(spawned[0]));
@@ -97,8 +97,15 @@ test('racing outcomes settle and stop once, and a stop failure is not dropped', 
   assert.equal(terminations, 1);
 });
 
-function fakeThread(terminate) {
-  const fake = new EventEmitter();
+type FakeThread = EventEmitter & {terminations: number; terminate(): Promise<unknown>};
+type ThreadStopFailure = AggregateError & {cleanupHandle: {
+  status(): {pending: boolean};
+  retry(): Promise<{pending: boolean}>;
+}};
+type RejectedSpawn = NonNullable<NonNullable<Parameters<typeof prepareExampleTaskManifestInThread>[2]>['spawn']>;
+
+function fakeThread(terminate: (thread: FakeThread) => unknown) {
+  const fake = new EventEmitter() as FakeThread;
   fake.terminations = 0;
   fake.terminate = async () => { fake.terminations++; return terminate(fake); };
   return fake;
@@ -115,7 +122,7 @@ test('a failed stop without exit keeps thread ownership in a pending cleanup han
     // Even a successful response is not returned while the thread is unstopped.
     fake.emit('message', {ok: true, tasks: [{task: 1}]});
     const error = await pending.then(() => assert.fail('resolved with an unstopped thread'),
-      value => value);
+      value => value as ThreadStopFailure);
     assert(error instanceof AggregateError);
     assert.equal(error.message, 'ControllerTaskManifestThreadStopFailed');
     assert.equal(error.errors.length, 1);
@@ -133,7 +140,7 @@ test('a late exit after a failed stop releases the pending cleanup without anoth
   const pending = prepareExampleTaskManifestInThread(documents, undefined, {spawn: () => fake});
   const original = new Error('checker failed');
   fake.emit('message', {ok: false, error: original});
-  const error = await pending.then(() => assert.fail('resolved'), value => value);
+  const error = await pending.then(() => assert.fail('resolved'), value => value as ThreadStopFailure);
   assert.equal(error.errors[0].cause, original);
   assert.equal(error.cleanupHandle.status().pending, true);
   fake.emit('exit', 0);

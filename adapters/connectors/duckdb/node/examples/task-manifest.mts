@@ -13,7 +13,24 @@ const threadUrl = new URL('./task-manifest-thread.mjs', import.meta.url);
 // MoonBit source parser use the same bound). Not a new policy value.
 const maxDocumentBytes = 1000000;
 
-function boundedDocument(value) {
+type DataProfile = NonNullable<ReturnType<typeof snapshotDataProfile>>;
+type TaskManifest = readonly unknown[];
+type ManifestRuntime = Readonly<{
+  applicationTaskManifest(program: string, environment: string, cid: string, parameters: string, data: DataProfile): unknown;
+  applicationTaskManifestDefault(program: string, environment: string, cid: string, parameters: string): unknown;
+}>;
+type ManifestInput = ReturnType<typeof snapshotTaskManifestInput>;
+type ThreadReply = Readonly<{ok?: unknown; tasks?: TaskManifest; error?: unknown}>;
+type ThreadOutcome = Readonly<{value: TaskManifest | undefined} | {error: unknown}>;
+type ManifestThread = {
+  once(event: 'message', listener: (value: ThreadReply | null | undefined) => void): unknown;
+  once(event: 'error', listener: (error: unknown) => void): unknown;
+  once(event: 'exit', listener: (code: number) => void): unknown;
+  terminate(): Promise<unknown>;
+};
+type SpawnThread = (payload: ManifestInput) => ManifestThread;
+
+function boundedDocument(value: unknown) {
   // UTF-8 never has fewer bytes than UTF-16 code units, so the length check
   // rejects oversized text before any byte scan or copy.
   if (typeof value !== 'string' || value.length > maxDocumentBytes ||
@@ -26,9 +43,9 @@ function boundedDocument(value) {
 // Type and size admission for the manifest documents. Callers run this before
 // cloning the supplied input or starting a thread; the returned strings are the
 // only document values used afterwards.
-export function snapshotTaskManifestInput(input) {
+export function snapshotTaskManifestInput(input: unknown) {
   if (input === null || typeof input !== 'object') throw new TypeError('InvalidTaskManifestInput');
-  const {programText, environmentText, environmentCid, parameterText, dataProfile} = input;
+  const {programText, environmentText, environmentCid, parameterText, dataProfile} = input as Record<string, unknown>;
   return Object.freeze({
     programText: boundedDocument(programText),
     environmentText: boundedDocument(environmentText),
@@ -38,33 +55,33 @@ export function snapshotTaskManifestInput(input) {
   });
 }
 
-export async function prepareExampleTaskManifest(input) {
+export async function prepareExampleTaskManifest(input: unknown) {
   const {programText, environmentText, environmentCid, parameterText, dataProfile} =
     snapshotTaskManifestInput(input);
-  const app = await import(manifestUrl);
-  const args = [programText, environmentText, environmentCid, parameterText];
+  const app: ManifestRuntime = await import(manifestUrl.href);
+  const args = [programText, environmentText, environmentCid, parameterText] as const;
   return checked(dataProfile ? app.applicationTaskManifest(...args, dataProfile)
-    : app.applicationTaskManifestDefault(...args));
+    : app.applicationTaskManifestDefault(...args)) as TaskManifest;
 }
 
 const manifestKeys = Object.freeze(
   ['programText', 'environmentText', 'environmentCid', 'parameterText', 'dataProfile']);
 
-const spawnThread = payload => new Worker(threadUrl, {workerData: payload});
+const spawnThread = (payload: ManifestInput) => new Worker(threadUrl, {workerData: payload});
 
 // Every supplied property is read exactly once. The manifest documents are
 // admitted before anything is cloned, and the same admitted strings are used by
 // both the controller's manifest and the child's input.
-export function snapshotManagedExampleInput(supplied) {
+export function snapshotManagedExampleInput(supplied: unknown) {
   if (supplied === null || typeof supplied !== 'object') throw new TypeError('InvalidTaskManifestInput');
   // One explicit read per own enumerable property (the properties a structured
   // clone copies). Object rest destructuring can re-read excluded getters.
-  const values = {};
-  for (const key of Object.keys(supplied)) values[key] = supplied[key];
+  const values: Record<string, unknown> = {};
+  for (const key of Object.keys(supplied)) values[key] = (supplied as Record<string, unknown>)[key];
   const manifestInput = snapshotTaskManifestInput(values);
   for (const key of manifestKeys) delete values[key];
   const input = structuredClone(values);
-  for (const key of ['programText', 'environmentText', 'environmentCid', 'parameterText']) {
+  for (const key of ['programText', 'environmentText', 'environmentCid', 'parameterText'] as const) {
     input[key] = manifestInput[key];
   }
   if (manifestInput.dataProfile !== undefined) input.dataProfile = manifestInput.dataProfile;
@@ -78,12 +95,13 @@ export function snapshotManagedExampleInput(supplied) {
 // stopped the outcome is returned as is. When the stop request fails, the
 // outcome is rejected together with that failure and a cleanup handle that
 // keeps ownership of the thread until its exit is observed.
-export function prepareExampleTaskManifestInThread(input, signal, {spawn = spawnThread} = {}) {
+export function prepareExampleTaskManifestInThread(input: unknown, signal?: AbortSignal,
+  {spawn = spawnThread}: {spawn?: SpawnThread} = {}) {
   const payload = snapshotTaskManifestInput(input);
   signal?.throwIfAborted();
   const worker = spawn(payload);
   let exitObserved = false;
-  const exited = new Promise(done => worker.once('exit', () => {
+  const exited = new Promise<void>(done => worker.once('exit', () => {
     exitObserved = true;
     done();
   }));
@@ -97,15 +115,15 @@ export function prepareExampleTaskManifestInThread(input, signal, {spawn = spawn
       return {pending: !exitObserved};
     },
   });
-  return new Promise((resolve, reject) => {
+  return new Promise<TaskManifest | undefined>((resolve, reject) => {
     let settling = false;
-    const abort = () => finish({error: signal.reason});
-    const finish = async outcome => {
+    const abort = () => finish({error: signal!.reason});
+    const finish = async (outcome: ThreadOutcome) => {
       if (settling) return;
       settling = true;
       signal?.removeEventListener('abort', abort);
       let stopFailed = false;
-      let stopFailure;
+      let stopFailure: unknown;
       try {
         await worker.terminate();
       } catch (error) {
