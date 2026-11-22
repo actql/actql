@@ -140,7 +140,8 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
   // The next successor imports the in-tree regex pattern and replacement
   // packages under literal aliases. It retains both workspace target selectors.
-  'src/execution_relation/moon.pkg': Object.freeze({digest: 'ed50ecf39857c24b0f7f166c038131cd92ff32be335497c10bc63d50770fd7eb', rule: 'literal-target-selectors-with-bound-source-membership', revision: '9c50dd42067fb1298123c07e751070cf13222f43'}),
+  // SHA256 moves the existing in-tree test import into the production block.
+  'src/execution_relation/moon.pkg': Object.freeze({digest: '556eb9342ece6dc65924befcc7a96dad9983bc8f2d4b5c6fe9705577dafd6f34', rule: 'literal-target-selectors-with-bound-source-membership', revision: '077d8ba85e6aadc71fec9bce130ce461303042ac'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   // Exact Native-only observation bridge; no Native execution is admitted on JS.
   // See docs/reviews/2026-11-20-session-native-capacity-observation-review.json.
