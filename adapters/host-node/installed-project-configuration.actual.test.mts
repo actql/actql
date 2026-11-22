@@ -7,12 +7,33 @@ import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
+type ProjectCommon = NonNullable<Parameters<typeof admitInstalledProjectConfiguration>[0]> & Readonly<{
+  clientProjectConfigurationStateDirectory(configuration: unknown): string;
+  clientProjectConfigurationConnectorsFile(configuration: unknown): string | null | undefined;
+  clientProjectConfigurationModelTasksFile(configuration: unknown): string | null | undefined;
+  clientProjectConfigurationLockFile(configuration: unknown): string | null | undefined;
+  clientProjectConfigurationSelectedProfile(configuration: unknown): string | null | undefined;
+  clientProjectConfigurationMockDataFile(configuration: unknown): string | null | undefined;
+  clientProjectConfigurationMockAnswerCount(configuration: unknown): number;
+  clientProjectConfigurationMockAnswerTask(configuration: unknown, index: number): string | null | undefined;
+  clientProjectConfigurationMockAnswerFile(configuration: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryOriginalWire(registry: unknown): string;
+  clientProjectModelRegistryTaskCount(registry: unknown): number;
+  clientProjectModelRegistryTaskName(registry: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryTaskFile(registry: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryProviderCount(registry: unknown): number;
+  clientProjectModelRegistryProviderName(registry: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryProviderType(registry: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryProviderKeyEnvironment(registry: unknown, index: number): string | null | undefined;
+  clientProjectModelRegistryDefaultProvider(registry: unknown): string | null | undefined;
+}>;
+
 // The outer source/artifact guard supplies an exact newly built runtime. Never
 // silently fall back to another retained package or count registration as run.
 if (!process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME) {
   throw new Error('MissingActualProjectCommonRuntime');
 }
-const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME).href) as ProjectCommon;
 const config = ' {"version":"actql-config/0.1","state_dir":"./.actql","connectors":"./connectors.json","model_tasks":"./model-tasks.json","lock":"./project.lock","profile":"mock","mock":{"data":"./mock/data.json","answers":{"model-task:risk.v1":"./mock/answers.yaml"}}} ';
 const registry = ' {"version":"actql-model-tasks/0.1","tasks":{"model-task:risk.v1":"./model-tasks/risk.yaml"},"providers":{"original":{"type":"openai","api_key_env":"KEY_NOT_READ"}},"default_provider":"original"} ';
 
@@ -83,7 +104,7 @@ test('actual Common receives one discovered original pair from real bounded file
   const configWire = ' {"version":"actql-config/0.1","state_dir":"./state-e\u0301😀","model_tasks":"./tasks.json"}\n';
   await writeFile(join(directory, 'actql.config.json'), configWire);
   await writeFile(join(directory, 'tasks.json'), registry);
-  const selected = await loadInstalledProjectConfiguration(moon, {directory: child});
+  const selected = (await loadInstalledProjectConfiguration(moon, {directory: child}))!;
   assert.equal(selected.configurationPath, join(directory, 'actql.config.json'));
   assert.equal(selected.directory, directory);
   assert.equal(selected.stateDirectory, join(directory, 'state-e\u0301😀'));

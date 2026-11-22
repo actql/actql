@@ -76782,7 +76782,7 @@
                 "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mts",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
@@ -77389,7 +77389,7 @@
                 "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mts",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
@@ -77546,7 +77546,7 @@
                 "anchor": "fail('InvalidInstalledProjectConnectionsSelection');"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual Common refuses malformed or missing selected connections without a plain fallback'"
               },
               {
@@ -77560,7 +77560,7 @@
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual project connection acquisition refuses currentness loss after its original read'"
               },
               {
@@ -77598,11 +77598,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual Common project connections retain the same project and exact UTF8 entry bytes'"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual project connection acquisition retains a pending original FD and retries only close'"
               },
               {
@@ -77678,7 +77678,7 @@
                 "anchor": "fail('InvalidInstalledProjectConnectionsSelection');"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual Common refuses malformed or missing selected connections without a plain fallback'"
               }
             ],
@@ -77688,7 +77688,7 @@
                 "anchor": "assertCurrent();"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual project connection acquisition refuses currentness loss after its original read'"
               }
             ],
@@ -77714,11 +77714,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual Common project connections retain the same project and exact UTF8 entry bytes'"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-connections.actual.test.mts",
                 "anchor": "test('actual project connection acquisition retains a pending original FD and retries only close'"
               }
             ]
@@ -100229,7 +100229,7 @@
                 "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mts",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
@@ -100847,7 +100847,7 @@
                 "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mts",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {

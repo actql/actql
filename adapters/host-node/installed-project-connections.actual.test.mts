@@ -7,17 +7,33 @@ import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from './installed-project-connections.mjs';
 
-assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the actual matching Common runtime');
-const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+import type {FileHandle} from 'node:fs/promises';
+import type {TestContext} from 'node:test';
 
-async function fixture(t, selected = true) {
+type ProjectCommon = NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]> &
+  NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]> & Readonly<{
+    clientProjectConnectionsOriginalWire(connections: unknown): string;
+    clientProjectConnectionsCount(connections: unknown): number;
+    clientProjectConnectionsName(connections: unknown, index: number): string | null | undefined;
+    clientProjectConnectionsConnector(connections: unknown, index: number): string | null | undefined;
+    clientProjectConnectionsEntryOriginalJson(connections: unknown, index: number): string | null | undefined;
+  }>;
+type ReadArgs = [buffer: Buffer, offset: number, length: number, position: number | null];
+type ReadStatus = Readonly<{pending: boolean}>;
+type RetainedClose = Readonly<{status(): ReadStatus; retry(): Promise<ReadStatus>}>;
+type PendingReadFailure = Error & Readonly<{cleanupPending: boolean; cleanupHandle: RetainedClose}>;
+
+assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the actual matching Common runtime');
+const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME).href) as ProjectCommon;
+
+async function fixture(t: TestContext, selected = true) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-project-connections-'));
   t.after(() => rm(directory, {recursive: true}));
   await writeFile(join(directory, 'actql.config.json'),
     selected ? '{"version":"actql-config/0.1","connectors":"./original/connections.json"}'
       : '{"version":"actql-config/0.1"}');
   await mkdir(join(directory, 'original'));
-  const project = await loadInstalledProjectConfiguration(moon, {directory});
+  const project = (await loadInstalledProjectConfiguration(moon, {directory}))!;
   return {directory, project, path: join(directory, 'original/connections.json')};
 }
 
@@ -87,10 +103,10 @@ test('actual project connection acquisition refuses currentness loss after its o
   const failure = new Error('Original installation changed');
   await assert.rejects(loadInstalledProjectConnections(moon, f.project, {
     assertCurrent() {if (!current) throw failure;},
-    async openFile(path, flags) {
+    async openFile(path: string, flags: string) {
       assert.equal(path, f.path); opens++;
       const handle = await open(path, flags);
-      return {read: (...args) => handle.read(...args), async close() {
+      return {read: (...args: ReadArgs) => handle.read(...args), async close() {
         closes++; await handle.close(); current = false;
       }};
     },
@@ -101,29 +117,29 @@ test('actual project connection acquisition refuses currentness loss after its o
 test('actual project connection acquisition retains a pending original FD and retries only close', async t => {
   const f = await fixture(t);
   await writeFile(f.path, '{"version":"actql-connectors/0.1","connections":{}}');
-  let opens = 0, closes = 0, handle, pending;
+  let opens = 0, closes = 0, handle: FileHandle | undefined, pending: RetainedClose | undefined;
   t.after(async () => {
     if (pending?.status().pending) await pending.retry();
     else if (handle !== undefined && handle.fd !== -1) await handle.close();
   });
   await assert.rejects(loadInstalledProjectConnections(moon, f.project, {
     assertCurrent() {},
-    async openFile(path, flags) {
+    async openFile(path: string, flags: string) {
       opens++; handle = await open(path, flags);
-      return {read: (...args) => handle.read(...args), async close() {
+      return {read: (...args: ReadArgs) => handle!.read(...args), async close() {
         closes++;
         if (closes === 1) return false;
-        await handle.close();
+        await handle!.close();
       }};
     },
   }), error => {
-    assert.equal(error.message, 'InstalledSourceProfileCleanupPending');
-    assert.equal(error.cleanupPending, true); pending = error.cleanupHandle;
+    assert.equal((error as PendingReadFailure).message, 'InstalledSourceProfileCleanupPending');
+    assert.equal((error as PendingReadFailure).cleanupPending, true); pending = (error as PendingReadFailure).cleanupHandle;
     return true;
   });
-  assert.equal(pending.status().pending, true);
+  assert.equal(pending!.status().pending, true);
   assert.equal(opens, 1); assert.equal(closes, 1);
-  assert.equal((await pending.retry()).pending, false);
+  assert.equal((await pending!.retry()).pending, false);
   assert.equal(opens, 1); assert.equal(closes, 2);
-  await assert.rejects(handle.stat(), {code: 'EBADF'});
+  await assert.rejects(handle!.stat(), {code: 'EBADF'});
 });
