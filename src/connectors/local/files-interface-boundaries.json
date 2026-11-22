@@ -2855,7 +2855,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "459556ff0181a2fc6e0f74586c2a66e37f45f8187753e5ff8e0f68034f3f857e",
+      "sha256": "8152645b04c7cf6c3d0ae15fc184a2fc8d24bf2656008e9dd8ae5ca2ddb8cf13",
       "role": "connector-semantics",
       "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
       "exports": [
@@ -2982,7 +2982,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "export function localFileStoreDeclaration("
               },
               {
@@ -2992,7 +2992,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "const outputWires="
               },
               {
@@ -3002,7 +3002,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "const sealed ="
               },
               {
@@ -3012,7 +3012,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "return Object.freeze(outputWires);"
               },
               {
@@ -3025,7 +3025,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "InvalidLocalFileStoreDeclaration"
               },
               {
@@ -3038,7 +3038,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "maxBytes>1048576"
               },
               {
@@ -3048,7 +3048,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "catalog.commands,[command]"
               },
               {
@@ -3072,7 +3072,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "export function localFileStoreDeclaration("
               },
               {
@@ -3082,7 +3082,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "const outputWires="
               },
               {
@@ -3092,7 +3092,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "const sealed ="
               },
               {
@@ -3102,7 +3102,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "return Object.freeze(outputWires);"
               },
               {
@@ -3115,7 +3115,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "InvalidLocalFileStoreDeclaration"
               },
               {
@@ -3128,7 +3128,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "maxBytes>1048576"
               },
               {
@@ -3138,7 +3138,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
                 "anchor": "catalog.commands,[command]"
               },
               {
@@ -3167,7 +3167,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe63f8a74519879ef23f7754dd68f131540f32533e088fbfaf276a23fd5763d5",
+      "sha256": "11509e8d50258d93a49b6ddaffdaa9ffbbd2b8e7c0bef2f45006cb17a4b7c502",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection issuer and nominal checked StoreCommand/Mapping pair",
       "exports": [
@@ -3259,7 +3259,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "export function prepareLocalFileStoreTarget("
               },
               {
@@ -3269,8 +3269,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
-                "anchor": "issueOriginalCollectionReference(pair,maxWork)"
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown,maxWork: number)"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3279,7 +3279,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "'clientProgramEffectStoreCommandSelection'"
               },
               {
@@ -3289,8 +3289,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
-                "anchor": "Reflect.apply(ports[name],moon,args)"
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
+                "anchor": "Reflect.apply(ports[name] as"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3299,7 +3299,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "current();return reference;"
               },
               {
@@ -3309,7 +3309,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "ForeignLocalStoreSelection"
               },
               {
@@ -3319,7 +3319,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "InvalidLocalStoreCurrentFence"
               },
               {
@@ -3329,7 +3329,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "maxBytes,maxNodes,maxDepth"
               },
               {
@@ -3339,7 +3339,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "kind==='file_collection'&&wire===resourceWire"
               },
               {
@@ -3367,7 +3367,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "export function prepareLocalFileStoreTarget("
               },
               {
@@ -3377,8 +3377,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
-                "anchor": "issueOriginalCollectionReference(pair,maxWork)"
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown,maxWork: number)"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3387,7 +3387,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "'clientProgramEffectStoreCommandSelection'"
               },
               {
@@ -3397,8 +3397,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
-                "anchor": "Reflect.apply(ports[name],moon,args)"
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
+                "anchor": "Reflect.apply(ports[name] as"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3407,7 +3407,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "current();return reference;"
               },
               {
@@ -3417,7 +3417,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "ForeignLocalStoreSelection"
               },
               {
@@ -3427,7 +3427,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "InvalidLocalStoreCurrentFence"
               },
               {
@@ -3437,7 +3437,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "maxBytes,maxNodes,maxDepth"
               },
               {
@@ -3447,7 +3447,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.mts",
                 "anchor": "kind==='file_collection'&&wire===resourceWire"
               },
               {

@@ -5,30 +5,36 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 
-const canonical = value => canonicalJson(value,{dataKeys:true});
-const cid = value => 'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
-const fail = () => {throw Object.assign(new Error('InvalidLocalFileStoreDeclaration'),
+type Data = Record<string, unknown>;
+type DeclarationInput = Readonly<{connectorId: unknown; rootPath: unknown; maxBytes: number}>;
+type ContractReference = Readonly<{id: string; version: string; cid: string}>;
+
+const canonical = (value: unknown) => canonicalJson(value,{dataKeys:true});
+const cid = (value: unknown) => 'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
+const fail: () => never = () => {throw Object.assign(new Error('InvalidLocalFileStoreDeclaration'),
   {code:'InvalidLocalFileStoreDeclaration'});};
-const text = (value,max) => typeof value==='string'&&value.length>0&&value.isWellFormed()&&
+const text = (value: unknown,max: number): value is string => typeof value==='string'&&value.length>0&&value.isWellFormed()&&
   !value.includes('\0')&&Buffer.byteLength(value)<=max;
-const sealed = (body,field) => ({...body,[field]:cid(body)});
-const sorted = (members,key) => [...members].sort((a,b)=>a[key]<b[key]?-1:a[key]>b[key]?1:0);
-const keys = (value,names) => value!==null&&typeof value==='object'&&!Array.isArray(value)&&
+const sealed = <Body extends Data, Field extends string>(body: Body,field: Field) =>
+  ({...body,[field]:cid(body)}) as Body & Record<Field,string>;
+const sorted = (members: readonly Data[],key: string) =>
+  [...members].sort((a,b)=>(a[key] as string)<(b[key] as string)?-1:(a[key] as string)>(b[key] as string)?1:0);
+const keys = (value: unknown,names: readonly string[]): value is Data => value!==null&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).sort().join('\0')===[...names].sort().join('\0');
 
-export function localFileStoreDeclaration(declaredWire,{connectorId,rootPath,maxBytes}) {
+export function localFileStoreDeclaration(declaredWire: unknown,{connectorId,rootPath,maxBytes}: DeclarationInput) {
   if(!text(connectorId,128)||!text(rootPath,4096)||!isAbsolute(rootPath)||
       !Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>1048576||
       typeof declaredWire!=='string'||Buffer.byteLength(declaredWire)>maxBytes)fail();
-  const read = wire => {
+  const read = (wire: unknown): unknown => {
     if(typeof wire!=='string'||Buffer.byteLength(wire)>maxBytes)fail();
-    let body;try{body=JSON.parse(wire);}catch{fail();}
+    let body: unknown;try{body=JSON.parse(wire);}catch{fail();}
     // The existing Common declaration wrapper preserves its own field order;
     // it is not required to be canonical text. Catalog/member CIDs below and
     // the eventual Common environment admission check the actual bodies.
     return body;
   };
-  const record = value => value!==null&&typeof value==='object'&&!Array.isArray(value);
+  const record = (value: unknown): value is Data => value!==null&&typeof value==='object'&&!Array.isArray(value);
   const declared=read(declaredWire);
   if(!record(declared))fail();
   const catalog=read(declared.catalog);
@@ -52,11 +58,11 @@ export function localFileStoreDeclaration(declaredWire,{connectorId,rootPath,max
     path:{type:'string',nullable:false}};
   const required=['content','path'];
   const inputBody={additional_properties:false,fields,required_fields:required};
-  const role=(kind,body)=>sealed({schema:'actql.contract/0.1',
+  const role=(kind: string,body: Data)=>sealed({schema:'actql.contract/0.1',
     id:`${connectorId}.local.files.store.${kind}`,version:'local/0.1',kind,body},'cid');
   const input=role('command_input',inputBody);
   const output=role('command_output',{type:'object',nullable:false,additional_properties:false,fields:{}});
-  const reference=({id,version,cid})=>({id,version,cid});
+  const reference=({id,version,cid}: ContractReference)=>({id,version,cid});
   const permissions=['files.write'];
   const command=sealed({schema:'actql.command_contract/0.1',
     command_id:`command:${connectorId}.local.files.store.v1`,connector_id:connectorId,version:'local/0.1',
@@ -64,7 +70,7 @@ export function localFileStoreDeclaration(declaredWire,{connectorId,rootPath,max
     input_contract:inputBody,output_schema:reference(output),permissions,
     preview:{strength:'exact'},outcome:'synchronous',idempotency:{support:'unsupported'},
     reversibility:'unknown',atomicity:'single_target'},'contract_cid');
-  const merge=(original,additional,key,selector)=>{
+  const merge=(original: readonly Data[],additional: readonly Data[],key: string,selector: (member: Data) => unknown)=>{
     const result=[...original];
     for(const member of additional){
       const old=result.find(candidate=>selector(candidate)===selector(member));
