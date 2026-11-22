@@ -11,7 +11,7 @@ const text = value => typeof value === 'string' && value.trim().length > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const maxAuthoredCaseBytes = 1024 * 1024;
 
-async function readAuthoredCase(path) {
+export async function readAuthoredCase(path) {
   const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
   try {
     const info = await file.stat();

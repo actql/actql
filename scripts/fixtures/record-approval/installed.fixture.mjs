@@ -12,6 +12,7 @@ import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
 import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
+import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
 export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
 
@@ -42,6 +43,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   assert(['approved', 'rejected'].includes(decision));
   const rejecting = decision === 'rejected';
   const expected = recordUpdateFixtureState(selection);
+  const authored = fixture.casePath === undefined ? undefined : await readAuthoredCase(fixture.casePath);
   const loss = recordApprovalReplyLossExpectation(fixture.replyLossExpectation);
   assert(!rejecting || (loss === undefined && fixture.faults === undefined), 'The rejection case selects only the ordinary provider');
   if (loss !== undefined) assert.equal(fixture.faults, undefined, 'Select one original reply-loss fault only');
@@ -134,8 +136,11 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: principal,
         publicKey: pem(reviewer.publicKey)}], reviewReaders: [principal], leaseMs: 10000};
     const configuration = join(root, 'configuration.json');
+    const casePath = 'case.json';
+    if (authored !== undefined) await writeFile(join(root, casePath), JSON.stringify(authored), privateFile);
     await writeFile(configuration, JSON.stringify({connect: {mode: 'local', installation: {directory: stateRoot,
-      sourceProfilePath, effectProfilePath, authorization}}, selection, operatorModulePath: 'operator.mjs',
+      sourceProfilePath, effectProfilePath, authorization}},
+      ...(authored === undefined ? {selection} : {casePath}), operatorModulePath: 'operator.mjs',
       ...(rejecting ? {decision} : {}),
       signer: {keyId: 'reviewer', reviewerId: 'reviewer', privateKeyPath: 'reviewer.key'}}), privateFile);
     await writeFile(join(root, 'operator.mjs'),
