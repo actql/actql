@@ -2320,3 +2320,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect-owned-operation.d.mts
 /adapters/host-node/installed-effect-owned-operation.test.mjs
 /adapters/host-node/installed-effect-owned-operation.test.d.mts
+/adapters/host-node/installed-effect-recipe.mjs
+/adapters/host-node/installed-effect-recipe.d.mts

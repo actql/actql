@@ -353,7 +353,7 @@
                 "anchor": "installationInventory.prepareMetadataInput"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe.mts",
                 "anchor": "const fields = Object.getOwnPropertyDescriptors(value);"
               },
               {

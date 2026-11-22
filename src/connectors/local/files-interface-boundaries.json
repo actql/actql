@@ -4421,7 +4421,7 @@
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
-      "sha256": "aa8fe14c4255fe2b3fcd8688a21115b6c00116720f06d24259f26f9192a04601",
+      "sha256": "b70daaa3936229c111219cbfa767f2f6c841e207983efc29407f348b82b58fc4",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4477,7 +4477,7 @@
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/effect-ledger-implementation-bounds.mjs",
-        "../../../host-node/installed-effect-plan.mjs",
+        "../../../host-node/installed-effect-recipe.mjs",
         "../../../host-node/installed-source-construction-geometry.mjs",
         "../../../store-local/publication-store.mjs",
         "../site/root-file-writer.mjs"

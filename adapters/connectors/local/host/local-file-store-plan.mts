@@ -5,12 +5,12 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {types as nodeTypes} from 'node:util';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {sourceJsonWireGeometry} from '../../../host-node/installed-source-construction-geometry.mjs';
-// @ts-expect-error TS7016: the original Effect Plan recipe owner is still authored in JavaScript.
-import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-recipe.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
 import type {captureLocalFileWriteConstructionProfile} from '../site/root-file-writer-profile.mjs';
+import type {InstalledEffectPlanRecipe} from '../../../host-node/installed-effect-recipe.mjs';
 
 type Runtime = Readonly<{
   clientProgramInstalledLocalFileStoreControlWireBound(): number;
@@ -44,7 +44,7 @@ type Input = Readonly<{
 }>;
 
 export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile,
-  requestHeaderUnits, grantIssuer, responseProjector}: Input): unknown {
+  requestHeaderUnits, grantIssuer, responseProjector}: Input): InstalledEffectPlanRecipe {
   // recoveryEntry can retain the accepted prefix and the next already-admitted
   // record before its aggregate guard. The joined frame exists only after
   // that guard succeeds. Both peaks use this SAME original member extent.
