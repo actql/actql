@@ -4581,11 +4581,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mts",
                 "anchor": "test('normal selected Local native image supplies its actual descriptor and writer bounds'"
               },
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mts",
                 "anchor": "test('Local writer refuses missing, accessor, asynchronous and malformed construction DATA'"
               }
             ]
