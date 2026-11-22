@@ -60,10 +60,12 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
       .all().map(row => row.sql).sort(), {maxSourceBytes: options.maxDatabaseBytes});
   assert.equal(actual.length, 32);
   // This fixture intentionally opens without an owned Store. The supported
-  // local execution-owner table is conditional on that original ownership and
-  // must not be manufactured just to make an unowned schema equal the asset.
+  // local execution-owner table is conditional on that original ownership.
+  // Facts and Context tables also require the first Plan admission to carry
+  // their optional originals.
   const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_originals (') &&
+    !sql.startsWith('CREATE TABLE client_run_explanation_context_originals (') &&
     !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
       sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
       sql.includes('retained_bytes <= 67108864')));

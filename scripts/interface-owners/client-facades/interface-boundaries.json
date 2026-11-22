@@ -5747,7 +5747,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "198420765f0189f785b372061999a117662034805f58148549720fef7d115346",
+      "sha256": "62a66c8aac972a26bf520541d04e2e80cc3b78a1057469f239d33af4bf878f26",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6018,6 +6018,14 @@
           "result": "Promise<void>"
         },
         {
+          "name": "Client/explain",
+          "parameters": [
+            "input: string | Record<string, unknown>",
+            "options?: Parameters<Client['plan']>[1]"
+          ],
+          "result": "Promise<WireStaticExplanationView>"
+        },
+        {
           "name": "Client/inspectResource",
           "parameters": [
             "resourceConnection: string",
@@ -6182,6 +6190,13 @@
             "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
           ],
           "result": "Promise<WireRunExplanationView>"
+        },
+        {
+          "name": "Execution/explainContext",
+          "parameters": [
+            "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
+          ],
+          "result": "Promise<WireRunExplanationContextView>"
         },
         {
           "name": "Execution/inspect",
@@ -6698,6 +6713,7 @@
             "Client/newSubmission",
             "Client/peekResource",
             "Client/plan",
+            "Client/explain",
             "Client/recoverRequest",
             "Client/resolveCheckpoints",
             "Client/resources",
@@ -7351,7 +7367,8 @@
         },
         {
           "operations": [
-            "Execution/explain"
+            "Execution/explain",
+            "Execution/explainContext"
           ],
           "exports": [],
           "attributes": {
@@ -7412,7 +7429,11 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
           }
@@ -10068,7 +10089,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a68b8a5dd91e0e74647f45335d02c8f415e4bf96064b8b56fb2a3f97839bc4d9",
+      "sha256": "dba03949624cabafb5816511fd69385bb4573493784b89ef01c1243ab877d7f8",
       "exports": [
         "createPlan"
       ],
@@ -10088,19 +10109,27 @@
           "name": "createPlan/createPlan",
           "parameters": [
             "input",
-            "originalOptions"
+            "options"
           ],
           "async": false
         },
         {
-          "name": "createPlan/createPlan/createPlan",
+          "name": "createPlan/createPlan#2",
+          "parameters": [
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPlan/read/read/read",
           "parameters": [
             "producer"
           ],
           "async": true
         },
         {
-          "name": "createPlan/createPlan/createPlan/snapshot/snapshot",
+          "name": "createPlan/read/read/read/snapshot/snapshot",
           "parameters": [
             "value",
             "observe"
@@ -10125,8 +10154,9 @@
             "<module>",
             "createPlan",
             "createPlan/createPlan",
-            "createPlan/createPlan/createPlan",
-            "createPlan/createPlan/createPlan/snapshot/snapshot"
+            "createPlan/createPlan#2",
+            "createPlan/read/read/read",
+            "createPlan/read/read/read/snapshot/snapshot"
           ],
           "exports": [
             "createPlan"
@@ -10150,6 +10180,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "explain: (input, options) => read('static-explanation', input, options),"
               }
             ],
             "identity": [
@@ -11641,7 +11675,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2557211ad27fcfffb663aee301de59800117f2bb490599e2ecaeeae0b6848541",
+      "sha256": "eb049c2654e93f6ffabe3371b5138d89f8380b01e036495c272a9c8e70f1192b",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11769,6 +11803,16 @@
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#9",
           "parameters": [
             "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:explainContext/init:explainContext",
+          "parameters": [
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
           ],
           "async": true
         },
@@ -12146,7 +12190,8 @@
         },
         {
           "operations": [
-            "createExecutionFactory/createExecutionFactory/handle/handle#9"
+            "createExecutionFactory/createExecutionFactory/handle/handle#9",
+            "createExecutionFactory/createExecutionFactory/handle/init:explainContext/init:explainContext"
           ],
           "exports": [],
           "attributes": {
@@ -12207,7 +12252,11 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
-                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+                "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
           }
