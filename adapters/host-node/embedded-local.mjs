@@ -6121,9 +6121,12 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (unresolved) busy = true;
             continue;
           }
-          let leaseFailure;
+          let leaseFailure, originalCutHeld = false;
           const leaseMs = authorization?.leaseMs ?? 60000;
           const renewal = claim === undefined ? undefined : setInterval(() => {
+            // This claimant must not change its own exact Journal observation
+            // while it is committing the same pre-entry resource cut.
+            if (originalCutHeld) return;
             try { checkpoints.journal.renewResume(claim, leaseMs); }
             catch (error) {
               leaseFailure = error;
@@ -6132,14 +6135,22 @@ async function openInstalledHost(originalInstallation, preparation) {
           }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
           renewal?.unref?.();
           const observeRestoredRun = journal.observeRunCancellation(ref, moon, control);
-          const assertCurrent = () => {
+          const assertCurrent = (cut) => {
+            if (cut === 'end-model-journal-cut') {
+              originalCutHeld = false;
+              return;
+            }
             if (leaseFailure !== undefined) throw leaseFailure;
             if (observeRestoredRun()?.cancellationRequested !== false) {
               throw new Error('ClientRunCancellationRequested');
             }
-            // Ownership only here. Model send permission is checked by its
-            // own activation and per-call entry; Effect approval is separate.
-            if (claim !== undefined) checkpoints.journal.renewResume(claim, leaseMs);
+            // This is the live claim fence. Model and Effect permission stay
+            // with their existing authorization and durable Entry checks.
+            if (claim !== undefined) {
+              if (originalCutHeld) checkpoints.journal.assertResumeClaimCurrent(claim);
+              else checkpoints.journal.renewResume(claim, leaseMs);
+              if (cut === 'begin-model-journal-cut') originalCutHeld = true;
+            }
           };
           let restorationDispatchEntered = false;
           let restorationStopConfirmed = false;
@@ -6222,22 +6233,6 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('ModelResumeRunDefinitionMismatch');
             }
             assertCurrent();
-            // A top-level approved Model with no attempts can refuse a known
-            // replacement before opening a new physical owner. Entered calls
-            // still use their original reconciliation and stop path.
-            if (claim !== undefined && parentCheckpoint === undefined &&
-                calls.slots.every(slot => slot.attempts.length === 0)) {
-              const selection = inferSelections.get(submission.preparedProgram);
-              const isOriginalTask = component =>
-                runtimeField(moon.clientProgramInferPlanBoundary(component.graph), 0) === record.inventory.taskIndex;
-              const selected = selection?.components?.find(isOriginalTask) ??
-                (selection?.components === undefined && selection !== undefined && isOriginalTask(selection)
-                  ? selection : undefined);
-              const binding = selected?.providerBinding;
-              if (binding !== undefined && binding.identity !== record.inventory.providerBindingCid) {
-                throw new Error('ModelProviderBindingChanged');
-              }
-            }
             if (requested.effectful) {
               if (effectRun === undefined) throw new Error('InstalledEffectContinuationUnavailable');
               const accepted = await admitEffectDefinition(submission);
@@ -6260,6 +6255,21 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
+            // A standalone approved Model can refuse a known replacement
+            // before opening a new physical owner. Entered calls still use
+            // their existing reconciliation and stop path.
+            if (claim !== undefined && calls.slots.every(slot => slot.attempts.length === 0)) {
+              const selection = inferSelections.get(submission.preparedProgram);
+              const isOriginalTask = component =>
+                runtimeField(moon.clientProgramInferPlanBoundary(component.graph), 0) === record.inventory.taskIndex;
+              const selected = selection?.components?.find(isOriginalTask) ??
+                (selection?.components === undefined && selection !== undefined && isOriginalTask(selection)
+                  ? selection : undefined);
+              const binding = selected?.providerBinding;
+              if (binding !== undefined && binding.identity !== record.inventory.providerBindingCid) {
+                throw new Error('ModelProviderBindingChanged');
+              }
+            }
             const plan = planFor(submission, current.runDefinition.wire, requested.requested);
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');

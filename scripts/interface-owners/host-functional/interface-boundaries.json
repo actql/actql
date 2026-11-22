@@ -81468,7 +81468,7 @@
     {
       "module": "adapters/host-node/model-resume-state.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4fe29e4bf4423e19272daf6af610c44d9b5e619a762ad74ceaf3c291d7b8b843",
+      "sha256": "ff959caf4103846ad5e5f698a7df70270d3670f84d6ce32a2e70f1d6cf57f86c",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -81507,6 +81507,7 @@
             "fault",
             "admissionLocked",
             "confirmEntryGrant",
+            "fenced",
             "checkpoint",
             "run"
           ],
@@ -81588,7 +81589,8 @@
         {
           "name": "createModelResumeState/init:commitOriginalModelCurrentCut/init:commitOriginalModelCurrentCut",
           "parameters": [
-            "reference"
+            "reference",
+            "claim"
           ],
           "async": false
         },
@@ -93361,7 +93363,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d48aa8479ef4bebc14ae300928db71a8bac9fa06c5b8036acde05f7941541edf",
+      "sha256": "05a6d1aea333cd9e3de88c3f74ec7ae40c95657eb25d581ca75f1fb8c60a8990",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -93502,6 +93504,18 @@
         },
         {
           "name": "openSqliteCheckpointJournal/init:admitResume/init:admitResume/init:admitResume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
           "parameters": [],
           "async": false
         },
@@ -94148,6 +94162,8 @@
             "openSqliteCheckpointJournal/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet",
             "openSqliteCheckpointJournal/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet",
             "openSqliteCheckpointJournal/init:registerResumeCallSet/init:registerResumeCallSet",
+            "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
+            "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
             "openSqliteCheckpointJournal/init:renewResume/init:renewResume",
             "openSqliteCheckpointJournal/init:renewResume/init:renewResume/init:renewResume",
             "openSqliteCheckpointJournal/init:requestPreparationCancellation/init:requestPreparationCancellation",

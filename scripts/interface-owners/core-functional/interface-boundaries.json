@@ -24511,7 +24511,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "63b2bcbacf9976c2a7d7891ed5f253eb5c783194174037cb9e6e0bd02cad59a9",
+      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -25720,7 +25720,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "0c245d4b9a1c0d7aa9a6bd2b1722dab402941ab0ea3696412e15b1acaf75e220",
+      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"

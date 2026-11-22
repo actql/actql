@@ -27133,7 +27133,9 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
+          "parameters": [
+            "cut"
+          ],
           "async": false
         },
         {
@@ -29343,7 +29345,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "612f653e68f789564cb29ba1ce4c93388ec9e998d26855ceffc25cbaa309f14c"
+      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

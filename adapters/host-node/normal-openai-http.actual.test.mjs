@@ -15,6 +15,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
   const count = httpStatus === 200 && !unknown && !alias && !approvedAlias ? 2 : 1;
   const aliasedSelection = alias || approvedAlias ? "modelSelector:'fixture-selector'," : '';
   const rawDenied = approvedAlias === 'raw-denied';
+  const leaseExpired = approvedAlias === 'lease-expired';
   // Canonical normalized Task original for the authored first fixture Task
   // under the shared alias. The Journal independently checks this binding.
   const taskCid = 'sha256:35c61f54ca9853031befb1adb0e5230c14d616d6ba776bdab78a1bd9432177a1';
@@ -38,7 +39,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
   const blockConnections = `Socket.prototype.connect=function(){
     connects++;throw Error('UnexpectedAliasConnection');};`;
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-normal-openai-http-',
-    label: 'Actual normal Model Host HTTP boundary', preserve: unknown || rawDenied});
+    label: 'Actual normal Model Host HTTP boundary', preserve: unknown || rawDenied || leaseExpired});
   const tasks = {
     'model-task:first': {task: 'model-task:first', instructions: 'Return the exact boolean.',
       input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}},
@@ -250,6 +251,8 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       import assert from 'node:assert/strict';
       import {sign} from 'node:crypto';
       import {readFile,access} from 'node:fs/promises';
+      import files from 'node:fs/promises';
+      import {syncBuiltinESMExports} from 'node:module';
       import {Socket} from 'node:net';
       import {createServer} from 'node:https';
       import tls from 'node:tls';
@@ -262,7 +265,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       import {observeOwnScopedStateFds} from ${JSON.stringify(fdObserver)};
       let credentialReads=0,connects=0;
       ${measureCredentialReads}
-      const matching=${approvedAlias === 'matching'},rawDenied=${rawDenied};
+      const matching=${approvedAlias === 'matching'},rawDenied=${rawDenied},leaseExpired=${leaseExpired};
       let server,requests=0;
       const connectTls=tls.connect;
       if(matching) {
@@ -296,23 +299,48 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       } else {${blockConnections}}
       const read=async name=>JSON.parse(await readFile(name,'utf8'));
       const key=await readFile('operator-private.fixture','utf8'),events=[];
+      const journalPath='.state/checkpoints/journal/checkpoint-journal.sqlite3';
+      const realRename=files.rename,realNow=Date.now;
+      let elapsed, observedClaim, dispatchFailure;
+      const failedDispatch=new Promise(resolve=>{dispatchFailure=resolve;});
       const authorization={hostKey:{keyId:'http-host',privateKey:key},
         reviewers:[{keyId:'http-reviewer',reviewerId:'http-reviewer',principalId:userInfo().username,
           publicKey:await readFile('operator-public.fixture','utf8')}],
         accountConfiguration:${JSON.stringify(accountWire)},
-        observe:(name,detail)=>events.push({name,detail})};
+        observe:(name,detail)=>{
+          events.push({name,detail});
+          if(name==='dispatch_failed') dispatchFailure(detail);
+        }};
       const registerModelProviders=createProjectOpenAIChatProvider({
         modelId:${JSON.stringify(approvedAlias === 'changed' ? 'replacement-chat' : 'fixture-chat')},${aliasedSelection}
         generation:{temperature:0,topP:1,maxOutputTokens:100},transportTimeouts:${projectTimeouts},
         budget:{maxCalls:2n,maxRows:2,maxTokens:1000n,maxCostUnits:100000n,maxDurationMs:1000n},
         observeEgress:()=>({classification:'public',region:'global',providerRetention:true,trainingUse:false})});
-      let client,failed=false;
+      let client,failed=false,cleanupCode;
       try {
         client=await connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
           registerModelProviders,authorization}});
         const ref=await read('run-0.json'),checkpoint=await read('checkpoint.json');
         const run=await client.attach(ref);
         assert.deepEqual(run.ref,ref);
+        if(leaseExpired) {
+          const runId=checkpoint.subject.runId;
+          const ledger=resolve('.state/checkpoints/attempts','model-'+runId+'.json');
+          // Advance only this process's Journal clock across the original
+          // expiry after the real parked Store ledger has been renamed.
+          Date.now=()=>elapsed??realNow();
+          files.rename=async(from,to)=>{
+            await realRename(from,to);
+            if(to!==ledger || elapsed!==undefined) return;
+            const database=new DatabaseSync(journalPath,{readOnly:true});
+            try {
+              observedClaim=database.prepare('SELECT generation, lease_expires_ms FROM resume_intents WHERE run_id = ?').get(runId);
+              assert.ok(observedClaim.lease_expires_ms>realNow());
+              elapsed=observedClaim.lease_expires_ms;
+            } finally {database.close();}
+          };
+          syncBuiltinESMExports();
+        }
         const result=await client.resolveCheckpoints([{checkpoint,decision:'approved'}],
           {signer:{keyId:'http-reviewer',reviewerId:'http-reviewer',sign:bytes=>sign(null,bytes,key)}});
         assert.deepEqual(result.results.map(value=>value.status),['committed']);
@@ -327,6 +355,10 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
           assert.equal(state.status,'succeeded',JSON.stringify(events));
           assert.deepEqual(await run.result('answer').all(),[
             {id:'original-text',outcome:'ok',value:{answer:true}}]);
+        } else if(leaseExpired) {
+          const detail=await Promise.race([failedDispatch,pause(10000,undefined,{ref:false})]);
+          assert.ok(observedClaim,JSON.stringify(events));
+          assert.equal(detail?.primaryCode,'ResumeClaimStale',JSON.stringify(events));
         } else if(rawDenied) {
           const failure=()=>events.find(event=>event.name==='dispatch_failed');
           const deadline=Date.now()+10000;
@@ -344,23 +376,30 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
           assert.equal((await run.status()).status,'failed');
         }
         const expected=matching ? 1 : 0;
-        assert.equal(credentialReads,rawDenied ? 1 : expected);
+        assert.equal(credentialReads,rawDenied || leaseExpired ? 1 : expected);
         assert.equal(connects,expected);assert.equal(requests,expected);
       } catch(cause) {failed=true;throw cause;}
       finally {
         try {await client?.close();}
         catch(cause) {
-          if(!failed) throw cause;
-          console.error(cause);
+          if(leaseExpired && !failed && cause.code==='ClientCleanupPending') cleanupCode=cause.code;
+          else {
+            if(!failed) throw cause;
+            console.error(cause);
+          }
         }
         finally {
+          if(leaseExpired) {
+            files.rename=realRename;
+            syncBuiltinESMExports();
+          }
           if(server) {
             tls.connect=connectTls;
             server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
           }
         }
       }
-      const database=new DatabaseSync('.state/checkpoints/journal/checkpoint-journal.sqlite3',{readOnly:true});
+      const database=new DatabaseSync(journalPath,{readOnly:true});
       try {
         const original=database.prepare("SELECT json_extract(originals_json,'$.expectedBoundary.resource') AS task FROM resume_model_scopes").get();
         assert.equal(original.task,${JSON.stringify(taskCid)});
@@ -368,11 +407,21 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
           [matching ? 'SavedSuccess' : 'Unsent']);
         assert.equal(database.prepare('SELECT COUNT(*) AS count FROM resume_model_attempts').get().count,
           matching ? 1 : 0);
+        if(leaseExpired) {
+          assert.deepEqual(database.prepare('SELECT generation, lease_expires_ms FROM resume_intents').get(),observedClaim);
+          assert.equal(database.prepare('SELECT current_cut_link_json FROM resume_model_scopes').get().current_cut_link_json,null);
+        }
       } finally {database.close();}
-      const close=observeOwnScopedStateFds([resolve('.state')]);
-      assert.equal(close.aliveAfterClose,true);
-      assert.equal(close.scopedStateFd0,true);
-      await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
+      if(leaseExpired) {
+        assert.equal(cleanupCode,'ClientCleanupPending');
+        await access('.state/publication/owner/owner.json');
+        Date.now=realNow;
+      } else {
+        const close=observeOwnScopedStateFds([resolve('.state')]);
+        assert.equal(close.aliveAfterClose,true);
+        assert.equal(close.scopedStateFd0,true);
+        await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
+      }
     `;
     const resumed=spawnSync(process.execPath,['--input-type=module','-e',reopen],
       {cwd:scratch.path,encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
@@ -500,3 +549,6 @@ test('an old selector-only Saved result reopens under the current binding withou
 
 test('an approved matching Project alias cannot dispatch under an independent Raw capture denial',
   () => normalHttpFixture({approvedAlias: 'raw-denied'}));
+
+test('an approved original Model claim that expires during the parked Store write cannot enter',
+  () => normalHttpFixture({approvedAlias: 'lease-expired'}));

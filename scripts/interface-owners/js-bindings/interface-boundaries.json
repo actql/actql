@@ -66891,7 +66891,9 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
+          "parameters": [
+            "cut"
+          ],
           "async": false
         },
         {
@@ -69101,7 +69103,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "612f653e68f789564cb29ba1ce4c93388ec9e998d26855ceffc25cbaa309f14c"
+      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -78002,7 +78004,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "63b2bcbacf9976c2a7d7891ed5f253eb5c783194174037cb9e6e0bd02cad59a9",
+      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -79865,7 +79867,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0c245d4b9a1c0d7aa9a6bd2b1722dab402941ab0ea3696412e15b1acaf75e220",
+      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
