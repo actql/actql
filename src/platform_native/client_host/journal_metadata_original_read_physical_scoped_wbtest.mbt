@@ -480,7 +480,7 @@ fn native_model_http_configuration_original_read_refusal(
   }
   if !one_short {
     assert_true(
-      native_model_http_configuration_route(
+      @model.read_portable_model_http_chat_file_route(
         provider_body, "model-test", revision_cid, contract_cid, profile_cid, "some-other.bearer",
         limits,
       )

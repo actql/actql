@@ -107,75 +107,6 @@ pub fn NativeModelHttpConfiguration::provider_defaults(
 }
 
 ///|
-// The original protected provider document selects the route and its adopted
-// files. The Common capability will recheck the same canonical provider wire.
-fn native_model_http_configuration_route(
-  body : Bytes,
-  provider_id : String,
-  revision_cid : String,
-  contract_cid : String,
-  profile_cid : String,
-  credential_file : String,
-  limits : @environment.Limits,
-) -> @model.ResolvedStructuredModel? {
-  guard @source.parse_json_bytes_preserving(body, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-      max_string_bytes: limits.max_bytes,
-      max_total_string_bytes: limits.max_bytes,
-    })
-    is Ok(value) &&
-    @decode.open_object(value) is Ok(object) else {
-    return None
-  }
-  for
-    (field, expected) in [
-      ("installation_revision_cid", revision_cid),
-      ("configuration_contract_cid", contract_cid),
-      ("response_profile_cid", profile_cid),
-      ("credential_ref", "file:" + credential_file),
-      ("provider_id", provider_id),
-      ("adapter_kind", "portable-http"),
-      ("api_mode", "chat-completions"),
-    ] {
-    guard @decode.lookup(object, field) is Some(original) &&
-      @decode.text(original) == Ok(expected) else {
-      return None
-    }
-  }
-  guard @decode.lookup(object, "selector").bind(value => {
-      @decode.text(value).to_option()
-    })
-    is Some(selector) &&
-    !selector.is_empty() &&
-    @decode.lookup(object, "model_id").bind(value => {
-      @decode.text(value).to_option()
-    })
-    is Some(model_id) &&
-    !model_id.is_empty() &&
-    @decode.lookup(object, "endpoint").bind(value => {
-      @decode.text(value).to_option()
-    })
-    is Some(endpoint) &&
-    endpoint.has_prefix("https://") else {
-    return None
-  }
-  Some({
-    selector,
-    model_id,
-    adapter_kind: "portable-http",
-    api_mode: "chat-completions",
-    endpoint,
-  })
-}
-
-///|
 fn NativeLocalJournalCapture::require_model_http_runtime_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
@@ -331,7 +262,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       is Err(issue) {
       return Err(issue)
     }
-    guard native_model_http_configuration_route(
+    guard @model.read_portable_model_http_chat_file_route(
         provider_file.body,
         provider_id,
         revision_file.content_cid,
@@ -499,45 +430,6 @@ pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_rea
 }
 
 ///|
-// The protected bundle only transports the exact Common bodies. It has no
-// independent Model, permission or content-identity semantics.
-fn native_model_http_execution_wires(
-  bytes : Bytes,
-  limits : @environment.Limits,
-) -> (String, String, String, String, String)? {
-  guard @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-      max_string_bytes: limits.max_bytes,
-      max_total_string_bytes: limits.max_bytes,
-    })
-    is Ok(value) &&
-    @decode.closed_object(value, [
-      "contract_cid", "contract", "prompt", "retry_policy", "backoff",
-    ])
-    is Ok(fields) &&
-    @decode.lookup(fields, "contract_cid") is Some(cid) &&
-    @decode.text(cid) is Ok(cid) &&
-    @decode.lookup(fields, "contract") is Some(contract) &&
-    @decode.text(contract) is Ok(contract) &&
-    @decode.lookup(fields, "prompt") is Some(prompt) &&
-    @decode.text(prompt) is Ok(prompt) &&
-    @decode.lookup(fields, "retry_policy") is Some(retry) &&
-    @decode.text(retry) is Ok(retry) &&
-    @decode.lookup(fields, "backoff") is Some(backoff) &&
-    @decode.text(backoff) is Ok(backoff) else {
-    return None
-  }
-  Some((cid, contract, prompt, retry, backoff))
-}
-
-///|
 /// Bind nonsecret material from this same adoption to the checked occurrence.
 /// The existing Common readers own Task identity and dependency verification.
 pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
@@ -585,7 +477,10 @@ pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
       is Err(issue) {
       return Err(issue)
     }
-    guard native_model_http_execution_wires(materials.body, bodies)
+    guard @model.read_portable_model_http_execution_wires(
+        materials.body,
+        bodies,
+      )
       is Some((cid, execution, prompt, retry, backoff)) else {
       return Err(CustodyLost)
     }

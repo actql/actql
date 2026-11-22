@@ -375,6 +375,10 @@ pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publ
 
 pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_environment.ModelExecutionContract, Bytes?, Bytes?, Bytes?, @check_environment.Limits, Int) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
 
+pub fn read_portable_model_http_chat_file_route(Bytes, String, String, String, String, String, @check_environment.Limits) -> ResolvedStructuredModel?
+
+pub fn read_portable_model_http_execution_wires(Bytes, @check_environment.Limits) -> (String, String, String, String, String)?
+
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn register_model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
