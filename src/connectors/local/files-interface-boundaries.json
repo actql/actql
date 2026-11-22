@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ae3e8ad2e902050d3f17cd5307a29aa7e74d01ad118986435139d16d1064b1df",
+      "sha256": "9eb9eaa0ffb93cda324076773e9b4cc6dfbb73028c2c6734ef5234df5d357074",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -437,6 +437,20 @@
       "operations": [
         {
           "name": "acknowledged/acknowledged",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
           "parameters": [
             "value"
           ],
@@ -880,20 +894,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "restoreDeclaration/restoreDeclaration",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/restoreDeclaration#2",
-          "parameters": [
-            "view"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -973,8 +973,8 @@
             "prepareInstalledProjectLocalFiles/init:retire/init:retire",
             "prepareInstalledProjectLocalFiles/ports/ports",
             "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
-            "restoreDeclaration/restoreDeclaration",
-            "restoreDeclaration/restoreDeclaration#2"
+            "canonical/canonical",
+            "cid/cid"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",
@@ -2890,11 +2890,12 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8152645b04c7cf6c3d0ae15fc184a2fc8d24bf2656008e9dd8ae5ca2ddb8cf13",
+      "sha256": "92820ea084dc433a5a5ff7334bd8cc04dfbf17c291d0b7883e911d977b3d3737",
       "role": "connector-semantics",
       "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
       "exports": [
-        "localFileStoreDeclaration"
+        "localFileStoreDeclaration",
+        "restoreDeclaration"
       ],
       "operations": [
         {
@@ -2986,6 +2987,33 @@
           "async": false
         },
         {
+          "name": "restoreDeclaration",
+          "parameters": [
+            "call",
+            "connection",
+            "rootPath",
+            "versionMode",
+            "limits",
+            "canonical",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "sorted/sorted/sorted",
           "parameters": [
             "a",
@@ -3009,10 +3037,14 @@
             "localFileStoreDeclaration/merge/merge/old/old",
             "localFileStoreDeclaration/read/read",
             "localFileStoreDeclaration/record/record",
-            "sorted/sorted/sorted"
+            "sorted/sorted/sorted",
+            "restoreDeclaration",
+            "restoreDeclaration/restoreDeclaration",
+            "restoreDeclaration/restoreDeclaration#2"
           ],
           "exports": [
-            "localFileStoreDeclaration"
+            "localFileStoreDeclaration",
+            "restoreDeclaration"
           ],
           "attributes": {
             "responsibility": [
@@ -3033,6 +3065,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mts",
+                "anchor": "export function restoreDeclaration"
               }
             ],
             "identity": [
@@ -3193,6 +3229,7 @@
       "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
         "node:crypto",
         "node:path"
       ],
