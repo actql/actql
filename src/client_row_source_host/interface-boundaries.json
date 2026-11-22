@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "78bcbb52cfebe2ad08ac312150ef9096ba30905a5bdd812bb9f5968e5899598b",
+      "sha256": "25674ab4f89229b372f7e3e1546216b8a7472e5891ffbcce78c836ca29d04709",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -383,6 +383,7 @@
         "pub fn advance_row_run_keyed_page(RowRun, Int) -> Result[RowKeyedPagePoll, RowHostIssue]",
         "pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]",
         "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
+        "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]",
         "pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_declared_keyed_row_read(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, String, RowDeclaredView, RowPageLimits, Int, @execution_relation.ValueLimits, @sourceview_resolution.RequestLimits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[RowSourceRead, RowSourceIssue]",
@@ -722,6 +723,10 @@
         {
           "name": "advance_row_source_cursor_progress",
           "declaration": "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress_from_provider_page",
+          "declaration": "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]"
         },
         {
           "name": "begin_charged_row_run_keyed_page",
@@ -5404,6 +5409,7 @@
           "operations": [
             "admit_row_source_get_read",
             "advance_row_source_cursor_progress",
+            "advance_row_source_cursor_progress_from_provider_page",
             "bind_installed_row_read_profile",
             "complete_row_run_response_construction_capacity",
             "installed_row_read_profile_construction_inventory",
@@ -5429,6 +5435,7 @@
           "exports": [
             "pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]",
             "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
+            "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]",
             "pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]",
             "pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
             "pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?",
@@ -5566,6 +5573,10 @@
               {
                 "path": "scripts/notion-user-list-read-wire.mjs",
                 "anchor": "generateNotionUserListReadWire"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "provider page facts join the original finite cursor progress"
               }
             ]
           }
