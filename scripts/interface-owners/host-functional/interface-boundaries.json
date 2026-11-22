@@ -102851,9 +102851,230 @@
       ]
     },
     {
+      "module": "adapters/host-node/sqlite-effect-ledger-storage.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1b48fab68ef50049a433431c2bcfea573e4a6acf1b493d0549c7d502b61a1006",
+      "role": "physical-io",
+      "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
+      "exports": [
+        "batchResponseDigest",
+        "cid",
+        "count",
+        "fail",
+        "initializeEffectLedgerStorage",
+        "outcomeDigest",
+        "physicalDigest",
+        "responseDigest",
+        "sha256Hex"
+      ],
+      "operations": [
+        {
+          "name": "batchResponseDigest/batchResponseDigest",
+          "parameters": [
+            "row",
+            "members"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "initializeEffectLedgerStorage",
+          "parameters": [
+            "database",
+            "authorityScopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "outcomeDigest/outcomeDigest",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalDigest/physicalDigest",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerUsage/init:add/init:add",
+          "parameters": [
+            "entries",
+            "bytes",
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerUsage/init:get/init:get",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "responseDigest/responseDigest",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "sha256Hex/sha256Hex",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "batchResponseDigest/batchResponseDigest",
+            "cid/cid",
+            "count/count",
+            "fail/fail",
+            "initializeEffectLedgerStorage",
+            "outcomeDigest/outcomeDigest",
+            "physicalDigest/physicalDigest",
+            "prepareEffectLedgerUsage/init:add/init:add",
+            "prepareEffectLedgerUsage/init:get/init:get",
+            "responseDigest/responseDigest",
+            "sha256Hex/sha256Hex"
+          ],
+          "exports": [
+            "batchResponseDigest",
+            "cid",
+            "count",
+            "fail",
+            "initializeEffectLedgerStorage",
+            "outcomeDigest",
+            "physicalDigest",
+            "responseDigest",
+            "sha256Hex"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export function initializeEffectLedgerStorage("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "function prepareEffectLedgerUsage("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const responseDigest ="
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const batchResponseDigest ="
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const outcomeDigest ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "const version = metadata.get('schema_version');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "// rows share commit/rollback with the business mutation and disappear on close;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect usage read failure retains the database cleanup owner'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect capacity failure keeps its cause through failed close retry'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous initialization, quota statements and hashes do not create an independent task or cleanup handle."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect quota mutations do not reaggregate the whole durable history'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect transactional usage reobserves externally changed UTF8 bytes before a new quota decision'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "// SQLite data_version changes on another connection"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect transactional usage rolls back the external-change stamp with a failed insert'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('response metadata tampering fails physical integrity checks'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('typed outcome custody binds one stored response across restart'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f2d719a163935c537bdaf18711282e7d718dbf95bae11f71629301da54c60e10",
+      "sha256": "d8216c878fc3a741bd24f748e476c1f5a71dcc854082c2f186532dabd697b593",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -103179,20 +103400,6 @@
             "singleOnly"
           ],
           "async": false
-        },
-        {
-          "name": "prepareEffectLedgerUsage/init:add/init:add",
-          "parameters": [
-            "entries",
-            "bytes",
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareEffectLedgerUsage/init:get/init:get",
-          "parameters": [],
-          "async": false
         }
       ],
       "contracts": [
@@ -103239,9 +103446,7 @@
             "openSqliteEffectLedger/openSqliteEffectLedger",
             "openSqliteEffectLedger/outcome/outcome",
             "openSqliteEffectLedger/response/response",
-            "openSqliteEffectLedger/responseForLocator/responseForLocator",
-            "prepareEffectLedgerUsage/init:add/init:add",
-            "prepareEffectLedgerUsage/init:get/init:get"
+            "openSqliteEffectLedger/responseForLocator/responseForLocator"
           ],
           "exports": [
             "openSqliteEffectLedger"
@@ -103281,8 +103486,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const cid = (value: unknown): value is string =>"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103355,8 +103560,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "const physicalDigest = bytes =>"
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const physicalDigest = (bytes: BinaryLike) =>"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103381,7 +103586,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
                 "anchor": "const version = metadata.get('schema_version');"
               },
               {
@@ -103461,8 +103666,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const cid = (value: unknown): value is string =>"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103531,8 +103736,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "const physicalDigest = bytes =>"
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
+                "anchor": "export const physicalDigest = (bytes: BinaryLike) =>"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103549,7 +103754,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger-storage.mts",
                 "anchor": "const version = metadata.get('schema_version');"
               },
               {
@@ -103581,7 +103786,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-transaction.mjs",
-        "node:crypto",
+        "./sqlite-effect-ledger-storage.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"

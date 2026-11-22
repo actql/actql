@@ -2382,3 +2382,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-ledger-open.test.d.mts
 /adapters/host-node/effect-ledger-frames.mjs
 /adapters/host-node/effect-ledger-frames.d.mts
+/adapters/host-node/sqlite-effect-ledger-storage.mjs
+/adapters/host-node/sqlite-effect-ledger-storage.d.mts
