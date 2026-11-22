@@ -22120,7 +22120,6 @@
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
             "openNodeInferOperation/stop/stop",
-            "pending/pending",
             "prepareWithOriginalRawSetter/set/set",
             "retireNodeInferOriginalRead",
             "selectOriginalInferMetadataAcquisition",
@@ -22129,11 +22128,6 @@
             "startCompleteInferObservation",
             "startCompleteInferObservation/active/active",
             "startCompleteInferObservation/funding/funding",
-            "withNodeInferResult",
-            "withNodeInferResult/cancel/cancel",
-            "withNodeInferResult/retained/init:retry/init:retry",
-            "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult",
             "isModelCredentialRefusal",
             "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
             "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
@@ -22372,7 +22366,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-result-custody.mts",
                 "anchor": "const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),"
               },
               {
@@ -22426,7 +22420,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-result-custody.mts",
                 "anchor": "const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),"
               },
               {
@@ -23028,7 +23022,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-result-custody.mts",
                 "anchor": "const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),"
               },
               {
@@ -23042,7 +23036,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-result-custody.mts",
                 "anchor": "const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),"
               },
               {
@@ -24556,11 +24550,6 @@
           "async": false
         },
         {
-          "name": "pending/pending",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareWithOriginalRawSetter/set/set",
           "parameters": [
             "callback",
@@ -24647,38 +24636,6 @@
             "operation"
           ],
           "async": false
-        },
-        {
-          "name": "withNodeInferResult",
-          "parameters": [
-            "moon",
-            "binding",
-            "result",
-            "consume",
-            "signal",
-            "quantum"
-          ],
-          "async": true
-        },
-        {
-          "name": "withNodeInferResult/cancel/cancel",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "withNodeInferResult/retained/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "withNodeInferResult/retained/retained",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "withNodeInferResult/withNodeInferResult",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -24687,12 +24644,13 @@
         "./infer-io-notification.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-capture.mjs",
+        "./infer-result-custody.mjs",
         "node:timers/promises",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "353b51f373852e6c0631057219926346f0c8446307285cd62408d9a046ac5aac"
+      "sha256": "4e13558bf124a8a6b9784397f76d6bb32c780c0798617dc945daaf2643504d3d"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",

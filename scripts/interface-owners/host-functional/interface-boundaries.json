@@ -58437,6 +58437,303 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/infer-result-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "296bcfc03bd61775a6dfb5921d868dc5e4f65dbb646ee617c01fa501e6da849e",
+      "role": "physical-io",
+      "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
+      "exports": [
+        "pending",
+        "withNodeInferResult"
+      ],
+      "operations": [
+        {
+          "name": "pending/pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withNodeInferResult",
+          "parameters": [
+            "moon",
+            "binding",
+            "result",
+            "consume",
+            "signal",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "withNodeInferResult/cancel/cancel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withNodeInferResult/retained/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "withNodeInferResult/retained/retained",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withNodeInferResult/withNodeInferResult",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "withNodeInferResult",
+            "withNodeInferResult/cancel/cancel",
+            "withNodeInferResult/retained/init:retry/init:retry",
+            "withNodeInferResult/retained/retained",
+            "withNodeInferResult/withNodeInferResult"
+          ],
+          "exports": [
+            "withNodeInferResult"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export async function withNodeInferResult"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "scripts/infer-owner-checker.test.mjs",
+                "anchor": "issued Infer Result custody outlives Store cancellation and cleanup retry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "pending/pending"
+          ],
+          "exports": [
+            "pending"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-result-custody.mts",
+                "anchor": "export const pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/infer-result-publication.mjs",
       "responsibilityFacet": "primary",
       "sha256": "875ddef135245d9ff8d5c36a67ae18882022ec7cf316fd5414943ab1f9b6c5c5",

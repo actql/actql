@@ -2246,3 +2246,5 @@ target/
 /adapters/host-node/infer-raw-port-retirement.test.d.mts
 /adapters/host-node/infer-capture-custody.mjs
 /adapters/host-node/infer-capture-custody.d.mts
+/adapters/host-node/infer-result-custody.mjs
+/adapters/host-node/infer-result-custody.d.mts
