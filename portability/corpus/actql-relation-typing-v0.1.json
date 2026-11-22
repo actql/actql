@@ -109,7 +109,8 @@
     {"operation":"select","body":[{"z":"id"},{"a":"id"}],"output":{"z":"string","a":"string"},"order":["z","a"]},
     {"operation":"select","body":[{"from":"id"},{"to":"amount"}],"output":{"from":"string","to":"number"},"order":["from","to"]},
     {"operation":"rename","body":{"amount":"id","id":"amount"},"output":{"amount":"string","id":"number","flag":"boolean?"},"order":["id","flag","amount"]},
-    {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
+    {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]},
+    {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"a":{"fn":"count"}}},"output":{"amount":"number","flag":"boolean?","id":"string","a":"number"}}
   ],
   "rejected": [
     {"operation":"top_k","body":{"k":0,"by":[{"id":"asc"}]},"issue":"InvalidCount"},
@@ -118,7 +119,6 @@
     {"operation":"top_k_by","body":{"k":1,"by":[{"id":"asc"}]},"issue":"InvalidBody"},
     {"operation":"top_k_by","body":{"partition_by":["missing"],"k":1,"by":[{"id":"asc"}]},"issue":"UnknownField"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"r":{"fn":"rank"}},"frame":{"start":"current_row","end":"current_row"}},"issue":"InvalidFrame"},
-    {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"a":{"fn":"count"}}},"issue":"InvalidFrame"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[],"functions":{"r":{"fn":"rank"}}},"issue":"InvalidOrder"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{}},"issue":"EmptyBody"},
     {"operation":"pivot","body":{"index":[],"column":"id","values":[],"value":"amount","aggregate":"count","fill":null},"issue":"InvalidFill"},

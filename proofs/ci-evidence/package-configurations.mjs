@@ -138,7 +138,9 @@ export const currentPackageConfigurations = Object.freeze({
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
-  'src/execution_relation/moon.pkg': Object.freeze({digest: '58e075b724106152e31ae7dfb9c39394b5840e5169d3e4449fe842bc63651f11', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'eb441ff1ed3c42bd243730306d883d1ddee41d45'}),
+  // The next successor imports the in-tree regex pattern and replacement
+  // packages under literal aliases. It retains both workspace target selectors.
+  'src/execution_relation/moon.pkg': Object.freeze({digest: 'ed50ecf39857c24b0f7f166c038131cd92ff32be335497c10bc63d50770fd7eb', rule: 'literal-target-selectors-with-bound-source-membership', revision: '9c50dd42067fb1298123c07e751070cf13222f43'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   // Exact Native-only observation bridge; no Native execution is admitted on JS.
   // See docs/reviews/2026-11-20-session-native-capacity-observation-review.json.

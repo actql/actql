@@ -515,6 +515,19 @@ test "matching OVER windows share one analytic operation" {
     NeedsInputs(_) => fail("rank and navigation need no numeric profile")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  let default_frame_text = "SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS first_amount, LAST_VALUE(amount) OVER (ORDER BY id) AS last_amount, COUNT(*) OVER (ORDER BY id) AS rows_seen, COUNTIF(amount > 0) OVER (ORDER BY id) AS positive_rows FROM orders"
+  let defaults = compile(
+    @query.parse_query(default_frame_text, syntax_limits()).unwrap(),
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  let default_wire = semantic(defaults)
+  assert_eq(default_wire.split("\"analytic\":").length(), 2)
+  assert_false(default_wire.contains("\"frame\":"))
+  assert_true(
+    @check.check_parsed(defaults, check_environment(), None, check_limits())
+    is Checked(_),
+  )
   let count_if = compile(
     @query.parse_query(
       "SELECT COUNTIF(amount > 0) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running FROM orders",
@@ -532,10 +545,7 @@ test "matching OVER windows share one analytic operation" {
     text in [
       "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS pos FROM orders",
       "SELECT LAG(amount, 9007199254740992) OVER (ORDER BY id) AS previous FROM orders",
-      "SELECT LAG(amount, -1) OVER (ORDER BY id) AS previous FROM orders", "SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS first_amount FROM orders",
-      "SELECT LAST_VALUE(amount) OVER (ORDER BY id) AS last_amount FROM orders",
-      "SELECT COUNT(*) OVER (ORDER BY id) AS running FROM orders", "SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS running FROM orders",
-      "SELECT ROW_NUMBER() OVER (PARTITION BY missing ORDER BY id) AS pos FROM orders",
+      "SELECT LAG(amount, -1) OVER (ORDER BY id) AS previous FROM orders", "SELECT ROW_NUMBER() OVER (PARTITION BY missing ORDER BY id) AS pos FROM orders",
       "SELECT ROW_NUMBER() OVER (ORDER BY missing) AS pos FROM orders",
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()

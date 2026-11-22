@@ -15,7 +15,7 @@ priv enum WireFrame {
 ///|
 // Admitted coefficients contain at most 38 digits. This bounded leaf conversion
 // never parses through binary64 or a machine integer.
-fn decimal_wire_text(value : DecimalValue) -> String {
+pub fn decimal_wire_text(value : DecimalValue) -> String {
   if value.scale == 0 {
     return value.coefficient
   }

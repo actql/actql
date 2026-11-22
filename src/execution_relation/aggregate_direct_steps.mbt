@@ -345,6 +345,7 @@ fn[R] aggregate_direct_start_finish(
       Ok(Some(Number(total.to_double())))
     }
     @relation.CountIf => Ok(Some(Number(s.count.to_double())))
+    @relation.AnyValue => Ok(Some(values.get(0).unwrap_or(Null)))
     @relation.Min | @relation.Max => {
       let state = start_aggregate_extremum(
         values,

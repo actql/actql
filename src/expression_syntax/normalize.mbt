@@ -14,6 +14,9 @@ fn finish(
       }
       let tag = fields[0].key
       let body = fields[0].value
+      if tag == "date_literal" && !(body.value is @map.String(_)) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "typed_literal" {
         guard part(body, "type")
           is Some({ value: @map.String("json" | "int64"), .. }) &&
@@ -183,6 +186,41 @@ fn finish(
           invalid(cursor, origin, InvalidArguments)
         }
       }
+      if (tag == "timestamp_diff" || tag == "timestamp_trunc") &&
+        !(literal(args[if tag == "timestamp_trunc" { 1 } else { 2 }])
+        is Some({ value: @map.String("us" | "ms" | "s" | "m" | "h" | "d"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if tag == "extract_timestamp" &&
+        !(literal(args[1])
+        is Some(
+          {
+            value: @map.String(
+              "year"
+              | "quarter"
+              | "month"
+              | "day"
+              | "dayofweek"
+              | "dayofyear"
+              | "hour"
+              | "minute"
+              | "second"
+              | "millisecond"
+              | "microsecond"
+            ),
+            ..
+          }
+        )) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if (tag == "date_interval_add" || tag == "date_boundary_diff") &&
+        !(literal(args[2]) is Some({ value: @map.String("d"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if tag == "date_boundary_trunc" &&
+        !(literal(args[1]) is Some({ value: @map.String("month"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
       if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
         let index = if tag == "date_trunc" { 0 } else { 2 }
         if !(literal(args[index])
@@ -261,6 +299,11 @@ fn finish(
           !(flags.value is @map.String(_)) {
           invalid(cursor, origin, InvalidArguments)
         }
+      }
+      if tag == "regex_replace" &&
+        part(value, "dialect") is Some(dialect) &&
+        !(dialect.value is @map.String("googlesql")) {
+        invalid(cursor, origin, InvalidArguments)
       }
       if tag == "vector_score" &&
         !(part(value, "metric")

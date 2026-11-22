@@ -68,3 +68,21 @@ test "empty window input creates no synthetic window group" {
   assert_eq(table.names, ["n", "window_end", "window_start"])
   assert_eq(table.rows.length(), 0)
 }
+
+///|
+test "window grouping uses the shared any_value aggregate contract" {
+  let table = execute_window_group(
+    (
+      #|[{"values":{"schema":{"at":{"type":"number","nullable":false},"n":{"type":"number","nullable":true}},"rows":[{"at":1,"n":null},{"at":2,"n":7},{"at":11,"n":null}]},"as":"seed"},{"row_window":{"kind":"fixed","time":"at","size":10}},{"window_group":{"by":[],"aggregates":{"chosen":{"fn":"any_value","field":"n"}}}}]
+    ),
+    max_rows=3,
+  )
+  assert_eq(table.names, ["chosen", "window_end", "window_start"])
+  assert_eq(table.rows.length(), 2)
+  assert_true(table.rows[0][0] is Number(7))
+  assert_true(table.rows[0][1] is Number(10))
+  assert_true(table.rows[0][2] is Number(0))
+  assert_true(table.rows[1][0] is Null)
+  assert_true(table.rows[1][1] is Number(20))
+  assert_true(table.rows[1][2] is Number(10))
+}

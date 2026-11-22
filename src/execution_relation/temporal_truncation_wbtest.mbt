@@ -22,20 +22,30 @@ test "date_trunc lowers the existing original checked fixed UTC expression" {
 fn truncation_expression(
   unit : String,
   domain? : String = "timestamp",
+  timestamp_only? : Bool = false,
 ) -> @lower.Expression {
   let seed = if domain == "date" {
     "1970-01-01"
   } else {
     "1970-01-01T00:00:00.000Z"
   }
+  let field = "{\"field\":\"clock\"}"
+  let literal = "{\"literal\":\"" + unit + "\"}"
+  let (operation, operands) = if timestamp_only {
+    ("timestamp_trunc", field + "," + literal)
+  } else {
+    ("date_trunc", literal + "," + field)
+  }
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"clock\":{\"type\":\"" +
     domain +
     "\",\"nullable\":true}},\"rows\":[{\"clock\":\"" +
     seed +
-    "\"}]},\"as\":\"seed\"},{\"derive\":{\"truncated\":{\"date_trunc\":[{\"literal\":\"" +
-    unit +
-    "\"},{\"field\":\"clock\"}]}}}]",
+    "\"}]},\"as\":\"seed\"},{\"derive\":{\"truncated\":{\"" +
+    operation +
+    "\":[" +
+    operands +
+    "]}}}]",
   )
   @lower.lower_expression(owner, 1, 0, {
     max_nodes: 100,
@@ -236,5 +246,46 @@ test "date_trunc executes on the original typed Relation rows without rewriting 
   assert_true(
     table.rows[0][1]
     is Captured(@admitted.Timestamp("1969-12-31T23:59:59.999999999Z")),
+  )
+}
+
+///|
+test "timestamp_trunc preserves Timestamp type and containing UTC buckets" {
+  for
+    (unit, before, expected) in [
+      ("us", "1969-12-31T23:59:59.999999999Z", "1969-12-31T23:59:59.999999Z"),
+      ("us", "1970-01-01T00:00:00.000000001Z", "1970-01-01T00:00:00.000Z"),
+      ("d", "1969-12-31T23:59:59.999999999Z", "1969-12-31T00:00:00.000Z"),
+      ("d", "2000-02-29T23:59:59.999999999Z", "2000-02-29T00:00:00.000Z"),
+    ] {
+    let expression = truncation_expression(unit, timestamp_only=true)
+    let workspace = row_workspace(100)
+    let actual = evaluate_expression_with_workspace(
+      expression,
+      Map([("clock", difference_value("timestamp", before))]),
+      [],
+      { remaining: 1000, max_frames: 10, },
+      workspace,
+    ).unwrap()
+    assert_true(
+      actual is Captured(@admitted.Timestamp(value)) && value == expected,
+    )
+    assert_eq(workspace.live, 0)
+    assert_true(
+      evaluate_expression(expression, Map([("clock", Null)]), [], {
+        remaining: 1000,
+        max_frames: 10,
+      }).unwrap()
+      is Null,
+    )
+  }
+  let writer = @encode.writer(10000, 100, 20)
+  @lower.emit_expression(
+    truncation_expression("d", timestamp_only=true),
+    writer,
+  )
+  assert_eq(
+    @encode.finish(writer),
+    "{\"body\":[{\"body\":\"clock\",\"op\":\"field\"},{\"body\":\"d\",\"op\":\"literal\"}],\"op\":\"timestamp_trunc\"}",
   )
 }

@@ -139,6 +139,8 @@ Use the calendar profile for months and time zones.
 | `case` / `CASE WHEN … END` | First true branch; `NULL` when none and no `ELSE`. |
 | `coalesce(…)` / `COALESCE`, `IFNULL` | First non-null argument. |
 | `nullif(a, b)` / `NULLIF` | `NULL` when equal. |
+| `UNIX_SECONDS(timestamp)` | Exact `INT64` Unix seconds rounded down. NULL input returns NULL. |
+| `ARRAY_LENGTH(array)` | Exact `INT64` count including NULL and duplicate entries. NULL input returns NULL. |
 | `in`, `not_in` / `IN (…)`, `IN UNNEST(…)` | Membership with GoogleSQL's NULL rules: a `NULL` element makes a non-match `NULL` (`1 IN (NULL)` is `NULL`), while a `NULL` or empty array under `UNNEST` is the empty set (`1 IN UNNEST(CAST(NULL AS ARRAY<INT64>))` is `FALSE`). |
 
 ## Objects, arrays and JSON

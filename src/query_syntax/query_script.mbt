@@ -116,7 +116,8 @@ fn parse_selected_query_script_owned(
       index += 1
     }
     let head = source.tokens[index]
-    if !(sql_head(head) && (index == 0 || !keyword(head, "CREATE"))) {
+    if !sql_unnest_route(source) &&
+      !(sql_head(head) && (index == 0 || !keyword(head, "CREATE"))) {
       return Ok(None)
     }
   }

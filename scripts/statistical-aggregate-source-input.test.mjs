@@ -4,22 +4,27 @@ import test from 'node:test';
 import {checkedRequestProgramPreparation} from '../adapters/host-node/client-program-preparation.mjs';
 import {statisticalAggregateProgram, statisticalAliasProgram, statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures} from './fixtures/statistical-aggregate-source-input.mjs';
 
-test('default analytic frames retain the explicit implementation-limit refusal', () => {
+test('default statistical frames include all peers and exclude NULL observations', () => {
   const text = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
-  const defaultFrame = statisticalAggregateRefusals.filter(x => x.text === text);
-  assert.equal(defaultFrame.length, 1);
-  assert.equal(defaultFrame[0].expectedCode, 'ClientProgramImplementationLimit');
+  const fixtures = statisticalAggregateSuccesses.filter(x => x.text === text);
+  assert.equal(fixtures.length, 1);
+  assert.equal(fixtures[0].sourceReadSessionCount, 1);
+  assert.deepEqual(fixtures[0].results, {main: {
+    rows: [{v: null}, {v: 0}, {v: 2}, {v: 2}, {v: 2}],
+    columns: [{name: 'v', contract: {type: 'number', nullable: true}}], unordered: true}});
+  assert.equal(statisticalAggregateRefusals.some(x => x.text === text), false);
+  assert.deepEqual(statisticalAggregateRefusals.map(x => x.name),
+    [0, 1, 2, 4, 5, 6, 7, 8, 9].map(id => `statistical-aggregate-refuse-${id}`));
   assert.deepEqual(statisticalAggregateRefusals.filter(x => x.expectedCode !== undefined)
     .map(x => [x.text, x.expectedCode]), [
-    [text, 'ClientProgramImplementationLimit'],
     ['SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)', 'ClientProgramInvalidInput'],
     ['SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)', 'ClientProgramInvalidInput'],
   ]);
   assert.ok(statisticalAggregateRefusals.some(x =>
     x.text === 'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records' &&
     x.expectedCode === undefined));
-  assert.equal(statisticalAggregateRefusals.length, 10);
-  assert.equal(statisticalAggregateSuccesses.length, 20);
+  assert.equal(statisticalAggregateRefusals.length, 9);
+  assert.equal(statisticalAggregateSuccesses.length, 21);
   assert.equal(statisticalAggregateExecutionFailures.length, 1);
   assert.deepEqual(statisticalAggregateSuccesses.find(x =>
     x.name === 'statistical-aggregate-analytic-prefix').expected,
@@ -28,8 +33,8 @@ test('default analytic frames retain the explicit implementation-limit refusal',
 
 test('unselected DISTINCT statistical ordering retains the original invalid-input projection', () => {
   for (const index of [8, 9]) {
-    const fixture = statisticalAggregateRefusals[index];
-    assert.equal(fixture.name, 'statistical-aggregate-refuse-' + index);
+    const fixture = statisticalAggregateRefusals.find(x => x.name === 'statistical-aggregate-refuse-' + index);
+    assert.ok(fixture);
     const issue = {original:fixture.text}, result = {$tag:0, _0:issue};
     let projections = 0;
     const moon = {clientProgramRequestPreparationIssueCode(original) {

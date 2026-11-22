@@ -839,6 +839,22 @@ test "original scalar implementation refusal uses only its same Source-independe
 }
 
 ///|
+test "original ROLLUP prefix construction is additive and checked before multiplication" {
+  // 8 headers, 24 references, 8 words and 64 UTF16 units cost 512 bytes.
+  assert_eq(request_rollup_construction_bytes(23L, 7L, 0L), Some(23L))
+  assert_eq(request_rollup_construction_bytes(23L, 7L, 2L), Some(7191L))
+  assert_eq(request_rollup_construction_bytes(23L, 7L, -1L), None)
+  assert_eq(
+    request_rollup_construction_bytes(23L, 7L, 9223372036854775807L),
+    None,
+  )
+  assert_eq(
+    request_rollup_construction_bytes(9223372036854775807L, 7L, 1L),
+    None,
+  )
+}
+
+///|
 test "original integer context has an independent incremental representation bound" {
   // Existing tariff: H = 16 bytes; R/W = 8 bytes and a UTF16 code unit = 2 bytes.
   assert_eq(request_integer_context_data_bytes(1L), Some(1472L))

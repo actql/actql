@@ -531,3 +531,104 @@ test "analytic array aggregate covers every constructible value domain" {
     }
   }
 }
+
+///|
+test "navigation default preserves NULL in an existing row and ignores undemanded defaults" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let value = @contract.with_nullability(number, true)
+  let owner = analytic_domain_owner(
+    number,
+    number,
+    value,
+    (
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"previous":{"fn":"lag","expr":{"field":"value"},"offset":1,"default":{"literal":0}},"following":{"fn":"lead","expr":{"field":"value"},"offset":1,"default":{"literal":9}},"same":{"fn":"lag","expr":{"field":"value"},"offset":0,"default":{"divide":[{"literal":1},{"literal":0}]}},"explicit_null":{"fn":"lead","expr":{"field":"value"},"offset":2,"default":{"literal":null}}}}
+    ),
+  )
+  let table = run_analytic_domain(owner, [
+    analytic_domain_row(1, Number(1), Number(1), Number(10)),
+    analytic_domain_row(2, Number(1), Number(2), Null),
+    analytic_domain_row(3, Number(1), Number(3), Number(30)),
+    analytic_domain_row(4, Number(2), Number(1), Number(40)),
+  ])
+  for
+    (name, expected) in [
+      ("previous", [Number(0), Number(10), Null, Number(0)]),
+      ("following", [Null, Number(30), Number(9), Number(9)]),
+      ("same", [Number(10), Null, Number(30), Number(40)]),
+      ("explicit_null", [Number(30), Null, Null, Null]),
+    ] {
+    let column = analytic_domain_column(table, name)
+    assert_eq(
+      table.rows.map(row => object_result_wire(row[column])),
+      expected.map(object_result_wire),
+      msg=name,
+    )
+  }
+}
+
+///|
+test "NTILE uses complete positions and PERCENT_RANK keeps authored peers" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let owner = analytic_domain_owner(
+    number,
+    number,
+    number,
+    (
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"bucket":{"fn":"ntile","buckets":3},"large":{"fn":"ntile","buckets":9007199254740991},"percent":{"fn":"percent_rank"}}}
+    ),
+  )
+  let table = run_analytic_domain(owner, [
+    analytic_domain_row(5, Number(1), Number(3), Number(50)),
+    analytic_domain_row(2, Number(1), Number(1), Number(20)),
+    analytic_domain_row(3, Number(1), Number(2), Number(30)),
+    analytic_domain_row(6, Number(2), Number(1), Number(60)),
+    analytic_domain_row(1, Number(1), Number(1), Number(10)),
+    analytic_domain_row(4, Number(1), Number(2), Number(40)),
+  ])
+  for
+    (name, expected) in [
+      ("bucket", ["\"3\"", "\"1\"", "\"2\"", "\"1\"", "\"1\"", "\"2\""]),
+      ("large", ["\"5\"", "\"2\"", "\"3\"", "\"1\"", "\"1\"", "\"4\""]),
+      ("percent", ["1", "0", "0.5", "0", "0", "0.5"]),
+    ] {
+    let column = analytic_domain_column(table, name)
+    assert_eq(
+      table.rows.map(row => object_result_wire(row[column])),
+      expected,
+      msg=name,
+    )
+  }
+}
+
+///|
+test "ordered navigation default frames include the last original peer" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let owner = analytic_domain_owner(
+    number,
+    number,
+    @contract.with_nullability(number, true),
+    (
+      #|"analytic":{"partition_by":["key"],"order_by":[{"ordered":"asc"}],"functions":{"first":{"fn":"first_value","expr":{"field":"value"}},"last":{"fn":"last_value","expr":{"field":"value"}},"rank":{"fn":"rank"}}}
+    ),
+  )
+  let table = run_analytic_domain(owner, [
+    analytic_domain_row(3, Number(1), Number(2), Number(30)),
+    analytic_domain_row(2, Number(1), Number(1), Number(20)),
+    analytic_domain_row(1, Number(1), Number(1), Number(10)),
+    analytic_domain_row(5, Number(2), Number(1), Number(50)),
+    analytic_domain_row(4, Number(1), Number(2), Null),
+  ])
+  for
+    (name, expected) in [
+      ("first", ["10", "10", "10", "50", "10"]),
+      ("last", ["null", "20", "20", "50", "null"]),
+      ("rank", ["3", "1", "1", "1", "3"]),
+    ] {
+    let column = analytic_domain_column(table, name)
+    assert_eq(
+      table.rows.map(row => object_result_wire(row[column])),
+      expected,
+      msg=name,
+    )
+  }
+}

@@ -354,9 +354,21 @@ fn prepare_root_range(
                 Added
               }
               match call.function {
-                PreparedLag(expression, _)
-                | PreparedLead(expression, _)
-                | PreparedFirstValue(expression)
+                PreparedLag(expression, _) | PreparedLead(expression, _) => {
+                  match add("expr", expression) {
+                    Added => ()
+                    IndexLimit => return Err(RootLimit)
+                    WorkLimit => return Err(RootWorkLimit)
+                  }
+                  if call.fallback is Some((fallback, _)) {
+                    match add("default", fallback) {
+                      Added => ()
+                      IndexLimit => return Err(RootLimit)
+                      WorkLimit => return Err(RootWorkLimit)
+                    }
+                  }
+                }
+                PreparedFirstValue(expression)
                 | PreparedLastValue(expression) =>
                   match add("expr", expression) {
                     Added => ()
@@ -379,7 +391,11 @@ fn prepare_root_range(
                     }
                   }
                 }
-                PreparedRowNumber | PreparedRank | PreparedDenseRank => ()
+                PreparedRowNumber
+                | PreparedRank
+                | PreparedDenseRank
+                | PreparedPercentRank
+                | PreparedNtile(_) => ()
               }
             }
             continue

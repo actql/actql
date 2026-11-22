@@ -1450,9 +1450,9 @@ fn order_aggregate_calls(
 }
 
 ///|
-// Public aliases and lowering share this closed operation-name mapping.
-// COUNTIF's DISTINCT rewrite remains a separate argument/filter contract.
-fn aggregate_common_function(name : String) -> String? {
+// Calls with different checked argument domains retain distinct identities
+// when comparing authored aggregates, even when they share a Common fold.
+fn aggregate_function_key(name : String) -> String? {
   match name {
     "COUNT" => Some("count")
     "COUNTIF" => Some("count_if")
@@ -1460,6 +1460,9 @@ fn aggregate_common_function(name : String) -> String? {
     "AVG" => Some("avg")
     "MIN" => Some("min")
     "MAX" => Some("max")
+    "LOGICAL_AND" => Some("logical_and")
+    "LOGICAL_OR" => Some("logical_or")
+    "ANY_VALUE" => Some("any_value")
     "VAR_POP" => Some("var_pop")
     "VAR_SAMP" | "VARIANCE" => Some("var_samp")
     "STDDEV_POP" => Some("stddev_pop")
@@ -1477,8 +1480,8 @@ fn same_aggregate_call(
   left_resolve : (Array[@query.NamePart]) -> String?,
   right_resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  guard aggregate_common_function(left.function_name) is Some(left_function) &&
-    aggregate_common_function(right.function_name) is Some(right_function) else {
+  guard aggregate_function_key(left.function_name) is Some(left_function) &&
+    aggregate_function_key(right.function_name) is Some(right_function) else {
     return false
   }
   if left_function != right_function ||
@@ -1588,9 +1591,17 @@ fn lower_aggregate_resolved(
   let conditional_count = call.function_name == "COUNTIF" &&
     call.distinct &&
     !analytic
-  let name = match aggregate_common_function(call.function_name) {
-    Some(name) => if conditional_count { "count" } else { name }
-    None => raise Abort(UnsupportedAggregate)
+  guard aggregate_function_key(call.function_name) is Some(function) else {
+    raise Abort(UnsupportedAggregate)
+  }
+  let logical = function == "logical_and" || function == "logical_or"
+  if logical && (analytic || call.distinct) {
+    raise Abort(UnsupportedAggregate)
+  }
+  let name = match function {
+    "logical_and" => "min"
+    "logical_or" => "max"
+    _ => if conditional_count { "count" } else { function }
   }
   let argument_view = aggregate_namespace_inputs(
     call,
@@ -1617,7 +1628,7 @@ fn lower_aggregate_resolved(
         root_index = child
       }
       let root = @query.expression_node(argument, root_index).unwrap()
-      let field = if conditional_count {
+      let field = if conditional_count || logical {
         None
       } else {
         match root.kind {
@@ -1659,6 +1670,19 @@ fn lower_aggregate_resolved(
                           ("literal", construction.add(Null)),
                         ]),
                       ]),
+                    ),
+                  ])
+                } else if logical {
+                  // A single-operand Boolean connective checks the original
+                  // domain and preserves the value, including NULL.
+                  construction.object([
+                    (
+                      if function == "logical_and" {
+                        "and"
+                      } else {
+                        "or"
+                      },
+                      construction.array([argument]),
                     ),
                   ])
                 } else {
@@ -1876,9 +1900,6 @@ fn lower_analytic_call(
       if aggregate.distinct {
         raise Abort(UnsupportedAnalytic)
       }
-      if call.window.frame is None {
-        raise Abort(UnsupportedAnalytic)
-      }
       if ![
           "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
           "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV", "STRING_AGG",
@@ -1915,14 +1936,16 @@ fn lower_analytic_call(
         raise Abort(UnsupportedAnalytic)
       }
       let name = ascii_upper(path[0].value)
-      let needs_frame = name == "FIRST_VALUE" || name == "LAST_VALUE"
-      if needs_frame != (call.window.frame is Some(_)) {
+      let value_function = name == "FIRST_VALUE" || name == "LAST_VALUE"
+      if !value_function && call.window.frame is Some(_) {
         raise Abort(UnsupportedAnalytic)
       }
       let wire_name = match name {
         "ROW_NUMBER" => "row_number"
         "RANK" => "rank"
         "DENSE_RANK" => "dense_rank"
+        "PERCENT_RANK" => "percent_rank"
+        "NTILE" => "ntile"
         "LAG" => "lag"
         "LEAD" => "lead"
         "FIRST_VALUE" => "first_value"
@@ -1931,7 +1954,22 @@ fn lower_analytic_call(
       }
       let entries = [("fn", construction.text(wire_name))]
       let mut argument_view : NamespaceView? = None
-      if name == "ROW_NUMBER" || name == "RANK" || name == "DENSE_RANK" {
+      if name == "NTILE" {
+        guard arguments.length() == 1 else { raise Abort(UnsupportedAnalytic) }
+        entries.push(
+          (
+            "buckets",
+            lower_analytic_count(
+              construction,
+              expression,
+              arguments[0],
+              max_work,
+            ),
+          ),
+        )
+      } else if ["ROW_NUMBER", "RANK", "DENSE_RANK", "PERCENT_RANK"].contains(
+          name,
+        ) {
         if !arguments.is_empty() {
           raise Abort(
             Expression({
@@ -1946,7 +1984,7 @@ fn lower_analytic_call(
       } else {
         if arguments.is_empty() ||
           arguments.length() >
-          (if name == "LAG" || name == "LEAD" { 2 } else { 1 }) {
+          (if name == "LAG" || name == "LEAD" { 3 } else { 1 }) {
           raise Abort(UnsupportedAnalytic)
         }
         let argument = @query.expression_child(expression, arguments[0]).unwrap()
@@ -1967,11 +2005,11 @@ fn lower_analytic_call(
             },
           ),
         )
-        if arguments.length() == 2 {
+        if arguments.length() >= 2 {
           entries.push(
             (
               "offset",
-              lower_analytic_offset(
+              lower_analytic_count(
                 construction,
                 expression,
                 arguments[1],
@@ -1979,6 +2017,21 @@ fn lower_analytic_call(
               ),
             ),
           )
+        }
+        if arguments.length() == 3 {
+          let default_value = @query.expression_child(expression, arguments[2]).unwrap()
+          let lowered = match
+            @expression.append_with_properties(
+              default_value,
+              _ => None,
+              construction.builder,
+              max_work,
+              resolve_parameter=construction.parameter_resolver(),
+            ) {
+            Ok(node) => node
+            Err(error) => raise Abort(Expression(error))
+          }
+          entries.push(("default", lowered))
         }
       }
       if namespace_out is Some(output) {
@@ -3037,6 +3090,7 @@ fn compile_steps(
           query_limits,
           max_work,
           construction.parameter_resolver(),
+          correlated~,
         )
         let requires_element_scope = preserved_scope is Some(_) ||
           value_table_scope is Some(_) ||
@@ -4304,8 +4358,12 @@ fn compile_steps(
         let projections = expand_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        sql_group_projection = grouping_scope == @query.SqlSelect ||
-          grouping_scope == @query.SqlSelectAll
+        let rollup = match grouping_scope {
+          SqlRollup(ends) => Some(ends)
+          _ => None
+        }
+        sql_group_projection = grouping_scope
+          is (SqlSelect | SqlSelectAll | SqlRollup(_))
         let all = grouping_scope == @query.SqlSelectAll
         let all_keys = if all {
           Some(
@@ -4465,14 +4523,15 @@ fn compile_steps(
           None
         }
         let key_aliases = match grouping_scope {
-          SqlSelect | SqlSelectAll => []
+          SqlSelect | SqlSelectAll | SqlRollup(_) => []
           PipeAggregate(names, _) => names
         }
         let pipe_embedded = match grouping_scope {
-          SqlSelect | SqlSelectAll => []
+          SqlSelect | SqlSelectAll | SqlRollup(_) => []
           PipeAggregate(_, names) => names
         }
         let by : Array[@builder.Node] = []
+        let key_introductions = rollup.map(_ => ([] : Array[Int]))
         let mut key_reuse_work = max_work
         let resolve_key_input = path => {
           if scoped {
@@ -4518,6 +4577,9 @@ fn compile_steps(
                 continue
               }
               key_names.push(column.1)
+              if key_introductions is Some(indices) {
+                indices.push(index)
+              }
               key_display_names.push(column.0)
               by.push(construction.text(column.1))
               // A positional reference is not the literal expression at that
@@ -4716,6 +4778,9 @@ fn compile_steps(
             }
           }
           key_names.push(name)
+          if key_introductions is Some(indices) {
+            indices.push(index)
+          }
           if key_public_names is Some(names) {
             names.push(
               match key_aliases.get(index).bind(value => value) {
@@ -5307,15 +5372,28 @@ fn compile_steps(
           derive_step.push(("derive", construction.object(fields)))
           step_entries.push(derive_step)
         }
-        entries.push(
-          (
-            "group",
-            construction.object([
-              ("by", construction.array(by)),
-              ("aggregates", construction.object(aggregates)),
-            ]),
-          ),
-        )
+        if rollup is Some(ends) && key_introductions is Some(indices) {
+          let names = reserved_bindings +
+            nearest_inputs.map(input => input.name) +
+            [input.name, input_from, final_alias]
+          if retained is Some(results) {
+            names.append(results.map(result => result.from))
+          }
+          append_rollup_groups(
+            construction, step_entries, entries, input_from, names, reserved_bindings,
+            ends, indices, key_names, by, aggregates, key_reuse_work,
+          )
+        } else {
+          entries.push(
+            (
+              "group",
+              construction.object([
+                ("by", construction.array(by)),
+                ("aggregates", construction.object(aggregates)),
+              ]),
+            ),
+          )
+        }
         active_fields = result_fields.copy()
         output = result_fields
         if sql_group_projection &&

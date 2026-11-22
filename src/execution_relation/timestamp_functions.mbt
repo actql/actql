@@ -102,6 +102,21 @@ fn advance_timestamp_pattern_position(
 }
 
 ///|
+fn timestamp_rejected_input(
+  state : TextFunctionState,
+) -> Result[Value?, EvalIssue] {
+  if state.kind != TextTryPatternedTimestamp {
+    return Err({ kind: Scalar(InvalidOperand), expression: state.expression, })
+  }
+  // Retire the provisional String root. The ordinary Return path accounts
+  // for the successful NULL result with its own measurement.
+  expression_event_release(state.output_root, state.expression).map(_ => {
+    state.output_root = None
+    Some(Null)
+  })
+}
+
+///|
 /// One input scalar, pattern unit or emitted output unit per poll. The caller
 /// retains operand roots and applies its existing current/work/cancel fences.
 fn advance_timestamp_function(
@@ -148,7 +163,20 @@ fn advance_timestamp_function(
     match @timestamp.component_at(timestamp.pattern, timestamp.component) {
       None => {
         if timestamp.offset != state.input.length() {
-          return Err({ kind: Scalar(InvalidOperand), expression, })
+          return timestamp_rejected_input(state)
+        }
+        // An invalid calendar cannot produce a timestamp. For TRY, classify
+        // it before sizing or allocating a fictitious successful result.
+        if state.kind == TextTryPatternedTimestamp &&
+          !@admitted.timestamp_components_valid(
+            timestamp.parts[0],
+            timestamp.parts[1],
+            timestamp.parts[2],
+            timestamp.parts[3],
+            timestamp.parts[4],
+            timestamp.parts[5],
+          ) {
+          return timestamp_rejected_input(state)
         }
         timestamp.phase = 2
         timestamp.component = 0
@@ -157,18 +185,21 @@ fn advance_timestamp_function(
       }
       Some(component) => {
         if timestamp.offset >= state.input.length() {
-          return Err({ kind: Scalar(InvalidOperand), expression, })
+          return timestamp_rejected_input(state)
         }
         let unit = state.input[timestamp.offset]
         match component {
           @timestamp.Literal(text) =>
             if unit != text[timestamp.digit] {
-              return Err({ kind: Scalar(InvalidOperand), expression, })
+              return timestamp_rejected_input(state)
             }
           @timestamp.Token(token) => {
             let part = timestamp_token_index(token)
-            if part < 0 || unit < '0' || unit > '9' {
+            if part < 0 {
               return Err({ kind: Scalar(InvalidOperand), expression, })
+            }
+            if unit < '0' || unit > '9' {
+              return timestamp_rejected_input(state)
             }
             timestamp.parts[part] = timestamp.parts[part] * 10 +
               unit.to_int() -
@@ -181,7 +212,7 @@ fn advance_timestamp_function(
       }
     }
   }
-  let character = if state.kind == TextParseTimestamp {
+  let character = if state.kind != TextFormatTimestamp {
     if state.position < 24 {
       Some(timestamp_canonical_character(timestamp.parts, state.position))
     } else {
@@ -224,10 +255,6 @@ fn advance_timestamp_function(
   }
   let result = builder.to_string()
   state.builder = None
-  if state.kind == TextParseTimestamp &&
-    @admitted.timestamp_instant(result) is None {
-    return Err({ kind: Scalar(InvalidOperand), expression, })
-  }
   if state.output_root is Some(root) {
     root.root.measurement = Some({
       wire_bytes: state.bytes,
@@ -236,7 +263,7 @@ fn advance_timestamp_function(
   }
   Ok(
     Some(
-      if state.kind == TextParseTimestamp {
+      if state.kind != TextFormatTimestamp {
         match
           @admitted.checked_timestamp_value(
             result,
