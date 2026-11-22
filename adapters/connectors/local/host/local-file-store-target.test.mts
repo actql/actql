@@ -7,10 +7,15 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
 import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';
 
-const wire=value=>canonicalJson(value,{dataKeys:true});
-const hash=bytes=>'sha256:'+createHash('sha256').update(bytes).digest('hex');
-const cid=value=>hash(wire(value));
-const ok=value=>({$tag:1,_0:value});
+type CapturedRuntime = Required<NonNullable<Parameters<typeof prepareLocalFileStoreTarget>[0]>>;
+type Runtime = {-readonly [Name in keyof CapturedRuntime]: CapturedRuntime[Name]};
+type Catalog = Readonly<{catalog: string; catalog_cid: string}>;
+type Mapping = Readonly<{target_ref: string; mapping_ref: string; mapping_contract_cid: string}>;
+type Command = Readonly<{command_id: string; contract_cid: string}>;
+const wire=(value: unknown)=>canonicalJson(value,{dataKeys:true});
+const hash=(bytes: string)=>'sha256:'+createHash('sha256').update(bytes).digest('hex');
+const cid=(value: unknown)=>hash(wire(value));
+const ok=<T,>(value: T)=>({$tag:1,_0:value});
 const fixture=()=>{
   const manifest={connector:'local',connector_id:'local',connector_version:'local/0.1'};
   const body={schema:'actql.connector_catalog/0.1',connector_id:'local',
@@ -24,16 +29,16 @@ const fixture=()=>{
     maxNodes:16384,maxDepth:64};
   // The fixture supplies an independently hashed complete installed member,
   // matching the existing bridge's member_cid projection, not its self-CID.
-  const data=localFileStoreDeclaration(declaredWire,options),declared=JSON.parse(data.declarationWire);
-  const mapping=JSON.parse(data.mappingWire),command=JSON.parse(data.commandWire);
+  const data=localFileStoreDeclaration(declaredWire,options),declared=JSON.parse(data.declarationWire) as Catalog;
+  const mapping=JSON.parse(data.mappingWire) as Mapping,command=JSON.parse(data.commandWire) as Command;
   const memberCid=hash(declared.catalog),semanticCid=declared.catalog_cid;
   assert.notEqual(memberCid,semanticCid);
   const selection=[mapping.target_ref,mapping.mapping_ref,mapping.mapping_contract_cid,
     command.command_id,command.contract_cid,memberCid,'file_collection',cid(JSON.parse(data.identityWire))];
   const pair=Object.freeze({explicitPortPair:true}),issuer=Object.freeze({explicitPortIssuer:true});
   const reference=Object.freeze({explicitPortReference:true}),foreign=new Error('OriginalPairRefused'),retired=new Error('OriginalInstallationRetired');
-  let live=true,retireDuringSelection=false,reads=0,issues=0,selected=selection,resourceWire;
-  const moon={
+  let live=true,retireDuringSelection=false,reads=0,issues=0,selected=selection,resourceWire: string | undefined;
+  const moon: Runtime={
     clientProgramResourceReferenceIssuer(admit,current){
       assert.strictEqual(this,moon);assert.equal(typeof admit,'function');assert.equal(typeof current,'function');return issuer;
     },
@@ -52,8 +57,8 @@ const fixture=()=>{
   const target=prepareLocalFileStoreTarget(moon,{...options,declaredWire,
     assertCurrent(){if(!live)throw retired;}});
   return{moon,target,pair,reference,selection,memberCid,semanticCid,foreign,retired,
-    select(value){selected=value;},retireDuringSelection(){retireDuringSelection=true;},
-    reads:()=>reads,issues:()=>issues,resource:()=>JSON.parse(resourceWire)};
+    select(value: string[]){selected=value;},retireDuringSelection(){retireDuringSelection=true;},
+    reads:()=>reads,issues:()=>issues,resource:()=>JSON.parse(resourceWire!) as Readonly<{boundary_cid: string}>};
 };
 
 test('Local collection Reference binds the full installed Catalog member identity',()=>{
@@ -73,7 +78,7 @@ test('Local collection Reference still refuses every changed tuple and foreign o
   }
   f.select([...f.selection.slice(0,5),f.semanticCid,...f.selection.slice(6)]);
   assert.throws(()=>f.target.issueOriginalCollectionReference(f.pair,1000),{code:'ForeignLocalStoreSelection'});
-  assert.throws(()=>f.target.issueOriginalCollectionReference({...f.pair},1000),error=>error.cause===f.foreign);
+  assert.throws(()=>f.target.issueOriginalCollectionReference({...f.pair},1000),error=>(error as Error).cause===f.foreign);
   assert.equal(f.issues(),0);
 });
 

@@ -3353,7 +3353,7 @@
                 "anchor": "test "
               },
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.test.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.test.mts",
                 "anchor": "test('Local collection Reference binds the full installed Catalog member identity'"
               }
             ]
@@ -3461,7 +3461,7 @@
                 "anchor": "test "
               },
               {
-                "path": "adapters/connectors/local/host/local-file-store-target.test.mjs",
+                "path": "adapters/connectors/local/host/local-file-store-target.test.mts",
                 "anchor": "test('Local collection Reference binds the full installed Catalog member identity'"
               }
             ]

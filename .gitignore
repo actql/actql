@@ -1137,6 +1137,8 @@ target/
 /adapters/connectors/local/host/local-file-store-declaration.d.mts
 /adapters/connectors/local/host/local-file-store-target.mjs
 /adapters/connectors/local/host/local-file-store-target.d.mts
+/adapters/connectors/local/host/local-file-store-target.test.mjs
+/adapters/connectors/local/host/local-file-store-target.test.d.mts
 /adapters/connectors/local/host/local-file-store-plan.mjs
 /adapters/connectors/local/host/local-file-store-plan.d.mts
 /adapters/host-node/effect-ledger-implementation-bounds.mjs
