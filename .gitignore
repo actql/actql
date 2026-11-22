@@ -2376,3 +2376,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect.d.mts
 /adapters/host-node/installed-runtime-bundle.test.mjs
 /adapters/host-node/installed-runtime-bundle.test.d.mts
+/adapters/host-node/installed-effect-ledger-open.mjs
+/adapters/host-node/installed-effect-ledger-open.d.mts
+/adapters/host-node/installed-row-effect-ledger-open.test.mjs
+/adapters/host-node/installed-row-effect-ledger-open.test.d.mts

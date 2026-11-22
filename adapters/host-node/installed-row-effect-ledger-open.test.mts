@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 
+type LedgerConstruction = NonNullable<Parameters<typeof openInstalledEffectLedger>[5]>;
+
 test('installed Ledger open retains the original request, receiver bounds and control frame', () => {
   const root = '/original/ledger', identity = {}, ledger = {}, authority = 'sha256:' + 'a'.repeat(64);
   let opened = 0, selected = 0, active = false;
   const moon = {
-    clientRequestAuthorityScopeCid(value) {assert.strictEqual(value, identity); return authority;},
-    clientRequestCallerId(value) {assert.strictEqual(value, identity); return 'original';},
+    clientRequestAuthorityScopeCid(value: typeof identity) {assert.strictEqual(value, identity); return authority;},
+    clientRequestCallerId(value: typeof identity) {assert.strictEqual(value, identity); return 'original';},
   };
-  const work = () => assert.fail('full generic used for supported Ledger-open frame');
+  const work: LedgerConstruction = () => assert.fail('full generic used for supported Ledger-open frame');
   work.ledgerOpen = (actual, receiver, method, args) => {
     assert.equal(actual, root); assert.equal(receiver, undefined);
     selected++; active = true;
@@ -38,7 +40,7 @@ test('installed Ledger open keeps legacy construction and its primary failure', 
   const open = () => {calls++; throw primary;};
   assert.throws(() => openInstalledEffectLedger(moon, root, identity, 4096, 8192, undefined, open),
     cause => cause === primary);
-  const work = (receiver, method, args) => Reflect.apply(method, receiver, args);
+  const work: LedgerConstruction = (receiver, method, args) => Reflect.apply(method, receiver, args);
   assert.throws(() => openInstalledEffectLedger(moon, root, identity, 4096, 8192, work, open),
     cause => cause === primary);
   assert.equal(calls, 2);

@@ -46138,7 +46138,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-ledger-open.mjs",
-      "sha256": "5349bac0dab6b7644da7db2863dfeff8db60e6ee7e09654b8f65b17990e2d22d",
+      "sha256": "d9401c3b91e45d1e40bc5eb3a91bb03e20c32be608a239dcb404d32cad41a735",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
@@ -46182,17 +46182,17 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-ledger-open.mjs",
-                "anchor": "export function openInstalledEffectLedger(moon, root, identity, maxEntryBytes,"
+                "path": "adapters/host-node/installed-effect-ledger-open.mts",
+                "anchor": "  open: LedgerOpen<Runtime, LedgerOwner> = openEffectLedger): LedgerOwner {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-ledger-open.mjs",
-                "anchor": "export function openInstalledEffectLedger(moon, root, identity, maxEntryBytes,"
+                "path": "adapters/host-node/installed-effect-ledger-open.mts",
+                "anchor": "  open: LedgerOpen<Runtime, LedgerOwner> = openEffectLedger): LedgerOwner {"
               },
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
               }
             ],
@@ -46202,7 +46202,7 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
               }
             ],
@@ -46212,7 +46212,7 @@
                 "anchor": "## Composition and Host lifetime"
               },
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
               }
             ],
@@ -46222,13 +46222,13 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
               },
               {
@@ -46261,11 +46261,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
               },
               {
-                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mts",
                 "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
               },
               {
