@@ -676,3 +676,89 @@ pub fn relation_document_prepared_contract(
 ) -> @contract.Contract {
   original.contract
 }
+
+///|
+/// Additional workspace for an insertion. The same physical child already
+/// funds the original document and its selected projection. The retained
+/// request String is borrowed. The file size comes from the original physical
+/// observation, and the caller still funds transport buffers separately.
+pub fn relation_target_insert_workspace_inventory(
+  prepared : RelationDocumentPreparedContract,
+  items_path_depth : Int,
+  original_bytes : Int,
+  row_wire_utf16 : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let limits = prepared.limits
+  guard relation_document_construction_limits_valid(limits) &&
+    limits.max_rows > 0 &&
+    items_path_depth >= 0 &&
+    items_path_depth < limits.max_depth - 1 &&
+    original_bytes > 0 &&
+    original_bytes < limits.max_bytes &&
+    row_wire_utf16 > 0 &&
+    row_wire_utf16 <= limits.max_bytes else {
+    return None
+  }
+  // Three UTF-8 bytes per UTF-16 unit bounds the verified request before
+  // encoding; every potential decoded node consumes at least one input byte.
+  let input_bytes = Int64::min(
+    3L * row_wire_utf16.to_int64(),
+    limits.max_bytes.to_int64(),
+  ).to_int()
+  let nodes = Int::min(input_bytes, limits.max_nodes)
+  let input_depth = Int::min(nodes, limits.max_depth)
+  let row_limits = {
+    max_bytes: input_bytes,
+    max_nodes: nodes,
+    max_depth: input_depth,
+    max_rows: 1,
+  }
+  let room = limits.max_bytes - original_bytes
+  let output_depth = Int::min(
+    input_depth,
+    limits.max_depth - items_path_depth - 1,
+  )
+  guard relation_document_raw_construction_inventory(row_limits)
+    is Some(decoded) &&
+    relation_document_projection_construction_inventory(
+      {
+        original: prepared.contract,
+        items_path_depth: 0,
+        key_path_depth: None,
+        writable_fields: 0,
+      },
+      row_limits,
+    )
+    is Some(values) &&
+    relation_construction_writer_units(room, nodes, output_depth)
+    is Some(writer) &&
+    @admitted.wire_emit_workspace_construction_inventory(1) is Some(emit) &&
+    relation_document_construction_scale(
+      {
+        record_headers: emit.record_headers,
+        reference_slots: emit.reference_slots,
+        scalar_words: emit.scalar_words,
+        owned_utf16_units: emit.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      nodes.to_int64(),
+    )
+    is Some(emitters) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    decoded,
+    values,
+    writer,
+    emitters,
+    // The encoded physical row and complete replacement Bytes coexist with
+    // the writer and original reference. Include spans and output closures.
+    {
+      record_headers: 8L,
+      reference_slots: 12L,
+      scalar_words: 16L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: room.to_int64() + limits.max_bytes.to_int64(),
+    },
+  ])
+}

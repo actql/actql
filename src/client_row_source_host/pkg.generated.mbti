@@ -315,6 +315,8 @@ pub fn relation_restore_construction_inventory(String, String, String, String, A
 
 pub fn relation_target_before(RelationTargetRow) -> String?
 
+pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn relation_target_row_count(RelationTargetDocument) -> Int?
 
 pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?

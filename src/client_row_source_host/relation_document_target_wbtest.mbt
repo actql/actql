@@ -160,6 +160,73 @@ test "relation insertion refuses malformed identity row limits and retired backi
 }
 
 ///|
+test "relation insertion workspace includes decoded input row output and full replacement" {
+  let limits = relation_document_test_limits()
+  let source = @utf8.encode("{\"collection\":{\"records\":[]}}")
+  let wire = "{\"id\":\"new🌱\",\"label\":\"é\",\"amount\":\"1.000\",\"choices\":[]}"
+  let prepared = prepare_relation_document_contract(
+    relation_mapping_declaration(),
+    "records",
+    "id",
+    limits,
+  ).unwrap()
+  let workspace = relation_target_insert_workspace_inventory(
+    prepared,
+    2,
+    source.length(),
+    wire.length(),
+  ).unwrap()
+  // Borrowed input file backing is separate. Encoded input at 3B per UTF-16
+  // unit, encoded output row with all remaining room, and full replacement
+  // coexist. None of the three can be netted against a previously held input.
+  assert_eq(
+    workspace.owned_wire_bytes,
+    (3 * wire.length() + 2 * limits.max_bytes - source.length()).to_int64(),
+  )
+  assert_true(workspace.owned_utf16_units > 0L)
+  assert_true(@execution.preparation_representation_cost(workspace) is Some(_))
+  let original = admit_relation_document(source, limits, 10000000).unwrap()
+  let bytes = prepare_relation_target_insert(
+    original,
+    prepared,
+    ["collection", "records"],
+    None,
+    wire,
+  ).unwrap()
+  assert_eq(
+    @utf8.decode(bytes),
+    "{\"collection\":{\"records\":[{\"amount\":\"1.000\",\"choices\":[],\"id\":\"new🌱\",\"label\":\"é\"}]}}",
+  )
+  assert_true(
+    relation_target_insert_workspace_inventory(
+      prepared,
+      limits.max_depth - 1,
+      source.length(),
+      wire.length(),
+    )
+    is None,
+  )
+  assert_true(
+    relation_target_insert_workspace_inventory(
+      prepared,
+      2,
+      limits.max_bytes,
+      wire.length(),
+    )
+    is None,
+  )
+  assert_true(
+    relation_target_insert_workspace_inventory(
+      prepared,
+      2,
+      source.length(),
+      limits.max_bytes + 1,
+    )
+    is None,
+  )
+}
+
+///|
 test "relation target deletion preserves rows whitespace and another collection" {
   let declaration = relation_mapping_declaration()
   let first = "{\"id\":\"first\",\"label\":\"before🌱\",\"choices\":[\",\"],\"amount\":null}"

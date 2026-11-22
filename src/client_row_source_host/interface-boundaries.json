@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ee924e4974c4459dd8473de5f4280e3424f45889c9c5b5e5c36ef2ea60007c7d",
+      "sha256": "d0472fc2b63598c0a6ab64d262d87f2799d9c501fd388ae1f8dcbb55d6a1f61f",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -507,6 +507,7 @@
         "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
+        "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
         "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
         "pub fn relation_target_text(RelationTargetRow, String) -> String?",
@@ -1222,6 +1223,10 @@
         {
           "name": "relation_target_before",
           "declaration": "pub fn relation_target_before(RelationTargetRow) -> String?"
+        },
+        {
+          "name": "relation_target_insert_workspace_inventory",
+          "declaration": "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_target_row_count",
@@ -4113,7 +4118,8 @@
             "relation_document_projection_contract",
             "relation_document_raw_construction_inventory",
             "prepare_relation_document_contract",
-            "relation_document_prepared_contract"
+            "relation_document_prepared_contract",
+            "relation_target_insert_workspace_inventory"
           ],
           "exports": [
             "pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?",
@@ -4122,7 +4128,8 @@
             "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
             "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
             "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
-            "pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract"
+            "pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract",
+            "pub fn relation_target_insert_workspace_inventory(RelationDocumentPreparedContract, Int, Int, Int) -> @execution_relation.PreparationRepresentationUnits?"
           ],
           "attributes": {
             "responsibility": [
@@ -4183,6 +4190,10 @@
               {
                 "path": "src/client_row_source_host/relation-document-construction-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation insertion workspace includes decoded input row output and full replacement"
               }
             ]
           }
