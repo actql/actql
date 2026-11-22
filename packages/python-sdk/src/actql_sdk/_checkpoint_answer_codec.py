@@ -172,6 +172,14 @@ def _document(fields, context):
 
 _SIGNATURE_ENCODING = _CONTRACT['signatureEncoding']
 _SIGNATURE_PATTERN = re.compile(_SIGNATURE_ENCODING['pattern'])
+_SIGNER = _CONTRACT['recipe']['signer']
+_SIGNER_TOKEN_PATTERN = re.compile(
+    r'[A-Za-z0-9._:-]{' + str(_SIGNER['token_min_length']) + ',' + str(_SIGNER['token_max_length']) + '}')
+
+
+def _valid_signer_ids(key_id, reviewer_id):
+    return all(type(value) is str and _SIGNER_TOKEN_PATTERN.fullmatch(value) is not None
+               for value in (key_id, reviewer_id))
 
 
 def _signature(value):
@@ -194,7 +202,7 @@ class _Stage:
 
 _Codec = namedtuple('_Codec', ('prepare_answer_candidate', 'answer_candidate_approval_preimage',
                               'prepare_answer_resolution', 'answer_resolution_preimage', 'finish_answer_candidate',
-                              'review_bytes_match_cid', 'encode_signer_signature'))
+                              'review_bytes_match_cid', 'encode_signer_signature', 'valid_signer_ids'))
 
 
 def create_checkpoint_answer_codec(canonical_bytes, bytes_cid):
@@ -226,9 +234,7 @@ def create_checkpoint_answer_codec(canonical_bytes, bytes_cid):
             _refuse('InvalidField', 'decision')
         _shape(actor, ('keyId', 'reviewerId'), ('authorityScopeCid',))
         actor = {key: actor.get(key) for key in ('keyId', 'reviewerId', 'authorityScopeCid')}
-        signer = _CONTRACT['recipe']['signer']
-        token = r'[A-Za-z0-9._:-]{' + str(signer['token_min_length']) + ',' + str(signer['token_max_length']) + '}'
-        if any(type(actor[key]) is not str or re.fullmatch(token, actor[key]) is None for key in ('keyId', 'reviewerId')):
+        if not _valid_signer_ids(actor['keyId'], actor['reviewerId']):
             _refuse('InvalidField', 'signer')
         summary = _capture(summary, limits)
         if not valid(summary, _CONTRACT['summary']):
@@ -318,4 +324,4 @@ def create_checkpoint_answer_codec(canonical_bytes, bytes_cid):
 
     return _Codec(prepare_answer_candidate, answer_candidate_approval_preimage,
                   prepare_answer_resolution, answer_resolution_preimage, finish_answer_candidate,
-                  review_bytes_match_cid, _encode_signer_signature)
+                  review_bytes_match_cid, _encode_signer_signature, _valid_signer_ids)

@@ -92,9 +92,8 @@ export async function reviewBytesMatchCid(bytes, artifactCid) {
 // unsigned artifact CID (the pinned Ed25519 preimage). The Client never sees
 // the private key.
 export function checkedSigner(signer) {
-  const name = /^[A-Za-z0-9._:-]{1,128}$/u;
   if (signer === null || typeof signer !== 'object' ||
-      !name.test(signer.keyId ?? '') || !name.test(signer.reviewerId ?? '') ||
+      !answerCodec.validSignerIds(signer.keyId, signer.reviewerId) ||
       typeof signer.sign !== 'function') {
     throw new TypeError('InvalidCheckpointSigner');
   }
