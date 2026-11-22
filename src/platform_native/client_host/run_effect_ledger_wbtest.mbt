@@ -602,13 +602,17 @@ test "Native missing or rewritten row history is refused against independent ori
         ..record,
         checkpoint: Some({ ..record.checkpoint.unwrap(), effect_ledger: [], }),
       }
+      assert_true(record.checkpoint_companion)
+      assert_true(run_record_body(corrupt) is Err(Encoding))
+      // The companion writer rejects empty history before touching SQLite.
+      // Persist a readable legacy inline row so the independent witness must
+      // detect the erased history.
+      let body = run_record_body({ ..corrupt, checkpoint_companion: false, }).unwrap()
+      let inline = read_run_record({ body, revision: record.revision, }).unwrap()
+      assert_false(inline.checkpoint_companion)
+      assert_true(inline.checkpoint.unwrap().effect_ledger.is_empty())
       database
-      .compare_exchange(
-        "client_runs",
-        scope,
-        record.revision,
-        run_record_body(corrupt).unwrap(),
-      )
+      .compare_exchange("client_runs", scope, record.revision, body)
       .unwrap()
       |> ignore
     } else {
