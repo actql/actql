@@ -145,7 +145,9 @@ test "Native Model evidence preserves ciphertext and quota across reopen and fai
     encrypted.body,
   )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, baseline + reserved)
-  store.close().unwrap() |> ignore
+  assert_false(custody.reconcile_original_store_return().unwrap())
+  assert_true(store.close().unwrap())
+  assert_true(custody.reconcile_original_store_return().unwrap())
   let reopened = open_store(library, root, authority, 65536L, 8L, 65536L).unwrap()
   let restored = reopened
     .restore_model_evidence_custody(

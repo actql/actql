@@ -243,7 +243,36 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         })
       }
       @infer.Complete(_, ..) => complete = true
-      @infer.Continue(..) | @infer.AwaitIo(..) | @infer.Waiting(..) => ()
+      @infer.AwaitIo(..) =>
+        match work.entered_model_http_call(self.original.runtime) {
+          Ok(None) => ()
+          Err(issue) => {
+            self.original.retain_primary(CommandBusinessModel(issue))
+            stop("LocalOriginalModelTransportUnavailable")
+          }
+          Ok(Some(call)) =>
+            match work.drive_http_in_original_read(call) {
+              Ok(false) => ()
+              Ok(true) => {
+                let raw = match
+                  work.prepare_http_raw_in_original_read(call, store) {
+                  Ok(value) => value
+                  Err(issue) => {
+                    self.original.retain_primary(CommandBusinessModel(issue))
+                    stop("LocalOriginalModelRawUnavailable")
+                  }
+                }
+                // The Call already retains the original child, including when
+                // its Store scope failed to return. This step never reacquires it.
+                require_model(work.save_http_raw_in_original_read(call, raw))
+              }
+              Err(issue) => {
+                self.original.retain_primary(CommandBusinessModel(issue))
+                stop("LocalOriginalModelTransportUnavailable")
+              }
+            }
+        }
+      @infer.Continue(..) | @infer.Waiting(..) => ()
       @infer.Failed(issue, ..) => {
         self.original.retain_primary(
           CommandBusinessModel(@local_host.Model(issue)),

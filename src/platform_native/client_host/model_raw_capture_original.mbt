@@ -25,7 +25,7 @@ struct NativeClientModelRawCapture {
   definition : @publication.PublicationContract
   binding : String
   view : @model.ModelRawCaptureSave
-  child : @publication_store.ModelEvidenceCustody
+  mut child : @publication_store.ModelEvidenceCustody?
   mut phase : NativeModelRawCapturePhase
 }
 
@@ -93,8 +93,13 @@ fn NativeLocalJournalCapture::prepare_model_raw_capture_in_original_read(
   store : @publication_store.Store,
   view : @model.ModelRawCaptureSave,
   bytes : Bytes,
+  call : NativeClientModelHttpCall,
 ) -> Result[NativeClientModelRawCapture, NativeClientModelRawIssue] {
-  guard @model.model_raw_capture_save_matches_run(view, compiled, definition) else {
+  guard physical_equal(call.capture, self) &&
+    call.raw is Some(original) &&
+    physical_equal(view, original) &&
+    call.raw_store is None &&
+    @model.model_raw_capture_save_matches_run(view, compiled, definition) else {
     return Err(ForeignOriginal)
   }
   match self.check_original_read_lifetime() {
@@ -113,8 +118,10 @@ fn NativeLocalJournalCapture::prepare_model_raw_capture_in_original_read(
       depth=key_depth,
       additional=Some((32, 1, 1)),
       additional_controls=Some({
-        record_headers: 2L,
-        reference_slots: 8L,
+        // The receiver, retain closure (code plus two captures) and the two
+        // optional aliases stay live through the original Store return.
+        record_headers: 4L,
+        reference_slots: 13L,
         scalar_words: 1L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -166,18 +173,22 @@ fn NativeLocalJournalCapture::prepare_model_raw_capture_in_original_read(
     Ok(_) => ()
     Err(issue) => return Err(Capture(issue))
   }
-  store
-  .prepare_model_raw_evidence_custody(original, bytes, self.crypto, key)
-  .map(child => {
+  let raw : NativeClientModelRawCapture = {
     capture: self,
     request,
     definition,
     binding,
     view,
-    child,
+    child: None,
     phase: Prepared,
+  }
+  store
+  .prepare_model_raw_evidence_custody(original, bytes, self.crypto, key, retain=child => {
+    raw.child = Some(child)
+    call.raw_store = Some(raw)
   })
-  .map_err(issue => Store(issue))
+  .map_err(issue => NativeClientModelRawIssue::Store(issue))
+  .map(_ => raw)
 }
 
 ///|
@@ -213,7 +224,7 @@ fn NativeClientModelRawCapture::require_current_in_original_read(
 fn NativeClientModelRawCapture::persist_in_original_read(
   self : NativeClientModelRawCapture,
 ) -> Result[Unit, NativeClientModelRawIssue] {
-  if self.phase != Prepared {
+  guard self.phase is Prepared && self.child is Some(child) else {
     return Err(ForeignOriginal)
   }
   // Current checks may invoke trusted installed callbacks. Refuse reentry
@@ -224,11 +235,11 @@ fn NativeClientModelRawCapture::persist_in_original_read(
     Err(issue) => return Err(issue)
   }
   self.phase = StoreAttempted
-  match self.child.persist() {
+  match child.persist() {
     Ok(_) => ()
     Err(issue) => return Err(Store(issue))
   }
-  let confirmed = match self.child.confirm() {
+  let confirmed = match child.confirm() {
     Ok(value) => value
     Err(issue) => return Err(Store(issue))
   }

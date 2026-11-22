@@ -99,6 +99,7 @@ pub fn Store::prepare_model_raw_evidence_custody(
   bytes : Bytes,
   crypto : @signature.Library,
   key : Bytes,
+  retain? : (ModelEvidenceCustody) -> Unit = _ => (),
 ) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
     match require_store_open(self) {
@@ -122,10 +123,26 @@ pub fn Store::prepare_model_raw_evidence_custody(
       key,
     )
     .map(private_custody => {
-      private_custody,
-      original: @publication.model_raw_response_value(original),
+      let child = {
+        private_custody,
+        original: @publication.model_raw_response_value(original),
+      }
+      // Custody must be reachable even if leaving the Store scope fails.
+      retain(child)
+      child
     })
   })
+}
+
+///|
+/// Finish only the existing Store scope return. True means that the actual
+/// parent Store has already closed, so the failed caller may drop this alias.
+/// No SQL, evidence retirement, tombstone or confirmation is attempted here.
+pub fn ModelEvidenceCustody::reconcile_original_store_return(
+  self : ModelEvidenceCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  let store = self.private_custody.store
+  store.reconcile_original_return().map(_ => store.closed)
 }
 
 ///|

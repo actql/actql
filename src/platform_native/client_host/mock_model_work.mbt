@@ -808,6 +808,39 @@ fn[T] NativeClientMockModelWork::with_observed_http_step(
 }
 
 ///|
+/// Preserve other Model waits. A portable response wait must find the
+/// retained transport for this exact consumed Entry before advancing again.
+pub fn NativeClientMockModelWork::entered_model_http_call(
+  self : Self,
+  runtime : NativeLocalPackagedRuntime?,
+) -> Result[NativeClientModelHttpCall?, NativeClientMockModelIssue] {
+  guard self.prepared is Some(prepared) &&
+    @model.prepared_model_awaits_portable_http(prepared) else {
+    return Ok(None)
+  }
+  guard !self.closing &&
+    !self.closed &&
+    self.entry_recorded &&
+    self.entry is Some(entry) &&
+    runtime is Some(runtime) &&
+    runtime.model_http_load is Some(Ok(loaded)) &&
+    !loaded.stopping else {
+    return Err(ForeignOriginal)
+  }
+  let mut pending = loaded.calls
+  while pending is Some(call) {
+    if physical_equal(call.capture, self.capture) &&
+      call.original is Some(original) &&
+      original.entry is Some(entered) &&
+      physical_equal(entry, entered) {
+      return Ok(pending)
+    }
+    pending = call.next_in_runtime
+  }
+  Err(ForeignOriginal)
+}
+
+///|
 /// One bounded readiness step on the exact consumed Entry, after its durable
 /// acknowledgement. True means that this Call has a complete HTTP response
 /// and its Client has returned. Store confirmation is a separate step.
@@ -856,6 +889,8 @@ pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
   self.with_observed_http_step(call, () => {
     guard !call.cancelled &&
       call.raw is Some(original) &&
+      call.raw_store is Some(child) &&
+      physical_equal(raw, child) &&
       physical_equal(raw.capture, self.capture) &&
       physical_equal(raw.view, original) else {
       return Err(NativeClientModelHttpIssue::ForeignOriginal)
@@ -864,6 +899,7 @@ pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
     .persist_in_original_read()
     .map_err(issue => NativeClientModelHttpIssue::RawStore(issue))
     .bind(_ => call.adopt_saved_chat(raw))
+    .map(_ => call.raw_store = None)
   })
 }
 

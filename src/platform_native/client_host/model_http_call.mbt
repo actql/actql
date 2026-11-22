@@ -33,6 +33,7 @@ struct NativeClientModelHttpCall {
   mut stop_scope_pending : Bool
   mut response : @http.NativeHttpResponse?
   mut raw : @model.ModelRawCaptureSave?
+  mut raw_store : NativeClientModelRawCapture?
   mut decode_attempted : Bool
   mut outcome : @model.ModelPhysicalCallPoll?
 }
@@ -193,7 +194,7 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   guard header > 0L &&
     @execution.preparation_representation_cost({
       record_headers: 13L,
-      reference_slots: 33L,
+      reference_slots: 34L,
       scalar_words: 13L,
       owned_utf16_units: 0L,
       owned_wire_bytes: maximum_body + 1L + 2L * ca_bytes,
@@ -227,6 +228,7 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
       stop_scope_pending: false,
       response: None,
       raw: None,
+      raw_store: None,
       decode_attempted: false,
       outcome: None,
     }
@@ -489,6 +491,7 @@ fn NativeLocalLoadedModelHttp::retire_settled_call_aliases(
       original.settlement_acknowledged &&
       original.retired &&
       call.client is None &&
+      call.raw_store is None &&
       !call.stop_scope_pending {
       match previous {
         Some(older) => older.next_in_runtime = next
@@ -507,21 +510,41 @@ fn NativeLocalLoadedModelHttp::retire_settled_call_aliases(
 }
 
 ///|
-/// Retire HTTP children before returning to the business execution's Core
-/// cleanup. A failed return retains the same head and all remaining children.
+/// Retire physical HTTP clients before the business execution's Core cleanup.
+/// A failed Raw Store child stays linked until its separate Store has closed.
 pub fn NativeLocalPackagedRuntime::close_model_http_calls(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeClientModelHttpIssue] {
   guard self.model_http_load is Some(Ok(loaded)) else { return Ok(()) }
   loaded.stopping = true
-  while loaded.calls is Some(call) {
-    match call.close_in_original_cleanup() {
-      Err(issue) => return Err(issue)
-      Ok(_) => {
-        loaded.calls = call.next_in_runtime
-        call.next_in_runtime = None
+  let mut previous : NativeClientModelHttpCall? = None
+  let mut pending = loaded.calls
+  while pending is Some(call) {
+    let next = call.next_in_runtime
+    if call.raw_store is Some(raw) {
+      guard raw.child is Some(child) else { return Err(ForeignOriginal) }
+      match child.reconcile_original_store_return() {
+        Ok(true) => call.raw_store = None
+        Ok(false) => ()
+        Err(issue) => return Err(RawStore(Store(issue)))
       }
     }
+    match call.close_in_original_cleanup() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    // A failed Store child has its own transaction and return obligations.
+    // The original command closes that Store after physical and Core cleanup.
+    if call.raw_store is Some(_) {
+      previous = pending
+    } else {
+      match previous {
+        Some(older) => older.next_in_runtime = next
+        None => loaded.calls = next
+      }
+      call.next_in_runtime = None
+    }
+    pending = next
   }
   Ok(())
 }
@@ -606,6 +629,7 @@ fn NativeClientModelHttpCall::prepare_raw_save_in_original_read(
     store,
     raw,
     response.body,
+    self,
   )
   .map_err(issue => RawStore(issue))
 }

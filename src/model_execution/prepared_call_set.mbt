@@ -104,6 +104,21 @@ pub fn prepared_model_request(
 }
 
 ///|
+/// A portable HTTP Client is required only after Core has entered the
+/// selected physical response phase. Entry persistence and other provider
+/// waits retain their separate ownership and must not select this port.
+pub fn prepared_model_awaits_portable_http(
+  value : ModelPreparedCallSet,
+) -> Bool {
+  let state = value.owner.state
+  prepared_model_current(value) &&
+  state.progress.phase is AwaitPhysicalResponse &&
+  !(state.progress.call is Some(call) && call.settlement_acknowledged) &&
+  state.physical_plans.get(state.progress.slot) is Some(plan) &&
+  plan.invocation is AsynchronousHttpChat(_, _)
+}
+
+///|
 /// Retained provider-port originals after no-I/O preparation. Callers must
 /// reserve copy custody and authorize capture before saving these strings.
 pub fn prepared_model_physical_request(
