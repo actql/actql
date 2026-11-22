@@ -1,14 +1,22 @@
 // Connector-private transport batching, not value admission or completion.
 import {DuckDBTransportError} from './configuration.mjs';
 import {setImmediate as yieldToHost} from 'node:timers/promises';
+import type {PhysicalParameter, PhysicalType} from './physical-values.mjs';
+import type {ValidatedLimits} from './session.mjs';
+
+type BatchLimits = Pick<ValidatedLimits, 'maxParameters' | 'maxSqlBytes'> &
+  Required<Pick<ValidatedLimits, 'maxChunkRows' | 'maxChunkBytes'>>;
+type CompileBatch = (rows: number) => Readonly<{rows: number; sql: string}>;
+type WriteBatch = (sql: string, parameters: readonly PhysicalParameter[]) => unknown;
 
 const emptyFrameBytes = Buffer.byteLength('{"parameters":[]}\n', 'utf8');
 
-export function createImportBatch(columns, rows, limits, sqlForRows, write, signal) {
+export function createImportBatch(columns: number, rows: number, limits: BatchLimits,
+  sqlForRows: CompileBatch, write: WriteBatch, signal?: AbortSignal) {
   if (!Number.isSafeInteger(columns) || columns < 1 ||
       !Number.isSafeInteger(rows) || rows < 1 || rows > limits.maxChunkRows ||
       rows > Math.floor(limits.maxParameters / columns)) throw new DuckDBTransportError('InvalidImportBatch');
-  let parameters = [], count = 0, bytes = emptyFrameBytes, live = true;
+  let parameters: PhysicalParameter[] = [], count = 0, bytes = emptyFrameBytes, live = true;
   const flush = async () => {
     signal?.throwIfAborted();
     if (!count) return;
@@ -29,19 +37,19 @@ export function createImportBatch(columns, rows, limits, sqlForRows, write, sign
     signal?.throwIfAborted();
   };
   return Object.freeze({
-    async append(row) {
+    async append(row: readonly PhysicalParameter[]) {
       if (!live) throw new DuckDBTransportError('ImportBatchUnavailable');
       try {
         signal?.throwIfAborted();
         if (!Array.isArray(row) || row.length !== columns) throw new DuckDBTransportError('InvalidImportStream');
-        const copied = [];
+        const copied: PhysicalParameter[] = [];
         let rowBytes = 0;
         for (const parameter of row) {
-          const {type, value} = parameter ?? {};
+          const {type, value} = (parameter as Partial<PhysicalParameter> | null | undefined) ?? {};
           if ((value !== null && typeof value !== 'string' && typeof value !== 'boolean') ||
               !type || typeof type.id !== 'string' || type.id.length > 32 ||
               Object.keys(type).some(key => !['id', 'precision', 'scale'].includes(key)) ||
-              ['precision', 'scale'].some(key => type[key] !== undefined && !Number.isSafeInteger(type[key]))) {
+              ['precision', 'scale'].some(key => type[key as keyof PhysicalType] !== undefined && !Number.isSafeInteger(type[key as keyof PhysicalType]))) {
             throw new DuckDBTransportError('Parameters');
           }
           if (typeof value === 'string' && Buffer.byteLength(value, 'utf8') > limits.maxChunkBytes) {

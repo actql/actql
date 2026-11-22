@@ -35,7 +35,7 @@ type SourceGrant = Readonly<{
   sourceRef?: string;
 }>;
 type Limits = Parameters<typeof validateLimits>[0];
-type ValidatedLimits = Limits & Parameters<typeof boundedTransport>[0] & Readonly<Record<'maxRows' | 'maxCells' | 'maxTransportBytes' |
+export type ValidatedLimits = Limits & Parameters<typeof boundedTransport>[0] & Readonly<Record<'maxRows' | 'maxCells' | 'maxTransportBytes' |
   'maxSqlBytes' | 'maxParameters' | 'maxColumns' | 'memoryBytes' | 'threads', number>>;
 type Settlement = {settled(confirmed: boolean): void};
 type Accounting = Settlement & {started(): void; chargeTransfer(bytes: number): void};

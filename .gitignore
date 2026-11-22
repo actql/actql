@@ -1788,3 +1788,7 @@ target/
 /adapters/connectors/duckdb/node/physical-appender.d.mts
 /adapters/connectors/duckdb/node/bounded-vector.mjs
 /adapters/connectors/duckdb/node/bounded-vector.d.mts
+/adapters/connectors/duckdb/node/import-batch.mjs
+/adapters/connectors/duckdb/node/import-batch.d.mts
+/adapters/connectors/duckdb/node/fixed-compute.mjs
+/adapters/connectors/duckdb/node/fixed-compute.d.mts

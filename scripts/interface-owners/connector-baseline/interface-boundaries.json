@@ -936,43 +936,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "runFixedCompute"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "matchesFixedCompute"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "releaseFixedCompute"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "Validate every port before creating a DB"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "InvalidImportStream"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/fixed-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/fixed-compute.mts",
                 "anchor": "importLimits.maxCells"
               }
             ],
@@ -1061,55 +1061,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "not value admission or completion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "createImportBatch"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "compiled.rows !== count"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "snapshotted before"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "await write"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "live = false; parameters = []"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "await yieldToHost"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "limits.maxChunkBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/import-batch.mjs",
+                "path": "adapters/connectors/duckdb/node/import-batch.mts",
                 "anchor": "trusted MoonBit compiler"
               }
             ],
