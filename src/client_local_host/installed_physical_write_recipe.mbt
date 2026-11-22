@@ -40,22 +40,6 @@ pub fn installed_physical_write_recipe_capacities(
     is Some(input) &&
     local_file_store_json_capacity(request_bytes, body_nodes, body_depth)
     is Some(immutable_request) &&
-    standard_create_sum_capacities(
-      [input, preview, immutable_request],
-      sequential_workspace=true,
-    )
-    is Some(request_envelope) &&
-    // The original member capture owns the whole Preview before row requests
-    // start, through their alias retirement. A returned request contains only
-    // its row input and bounded immutable record. Preserve the full old peak
-    // for construction and failed prefixes; do not retain a second Preview
-    // for every successful row on top of that same live capture original.
-    @execution.execution_capacity(
-      @execution.execution_capacity_retained_bytes(request_envelope) -
-      @execution.execution_capacity_retained_bytes(preview),
-      @execution.execution_capacity_execution_bytes(request_envelope),
-    )
-    is Some(request) &&
     standard_create_saved_control_capacity(
       control_bytes, stored_nodes, stored_depth,
     )
@@ -77,12 +61,35 @@ pub fn installed_physical_write_recipe_capacities(
   }
   let no_additional_effect_id = @execution.execution_capacity(0L, 0L).unwrap()
   let request = match request_construction {
-    None => request
-    Some(original) =>
-      match @execution.add_execution_capacity(request, original) {
-        Some(combined) => combined
-        None => return Err(Unsupported)
+    Some(original) => {
+      // The installed file child reads the selected row and detaches its
+      // bounded record. The member capture owns Preview decoding and saved
+      // material through cleanup; this row child never parses a Preview.
+      guard standard_create_sequence_pair_capacity(input, immutable_request)
+        is Some(row) &&
+        @execution.add_execution_capacity(row, original) is Some(combined) else {
+        return Err(Unsupported)
       }
+      combined
+    }
+    None => {
+      // Keep the original complete request envelope for existing callers.
+      // Only the member capture retains the whole Preview after construction.
+      guard standard_create_sum_capacities(
+          [input, preview, immutable_request],
+          sequential_workspace=true,
+        )
+        is Some(envelope) &&
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(envelope) -
+          @execution.execution_capacity_retained_bytes(preview),
+          @execution.execution_capacity_execution_bytes(envelope),
+        )
+        is Some(capacity) else {
+        return Err(Unsupported)
+      }
+      capacity
+    }
   }
   Ok([
     capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
