@@ -2,17 +2,26 @@ import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createHash} from 'node:crypto';
+import {createHash, type BinaryLike} from 'node:crypto';
+import type {TestContext} from 'node:test';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 
-const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+type FixtureOptions = Readonly<{
+  bytes?: Uint8Array;
+  releaseFailure?: boolean;
+  refuseCommit?: boolean;
+  revokeAfterCommit?: boolean;
+}>;
+type DecodedResponse = Readonly<{actual: unknown; body: string; metadata: unknown}>;
+
+const digest = (bytes: BinaryLike) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const authority = digest('raw Store authority');
 
 // Shared physical Store fixture only. These independent contract/grant/Entry
 // doubles cannot establish canonical admission, original funding or a Run.
-export async function rawCaptureStoreFixture(t, options = {}) {
+export async function rawCaptureStoreFixture(t: Pick<TestContext, 'after'>, options: FixtureOptions = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-original-raw-port-'));
   const storeOptions = {directory,
     storeAuthorityCid: authority, capacityBytes: 1024 * 1024,
@@ -42,30 +51,30 @@ export async function rawCaptureStoreFixture(t, options = {}) {
     byteCount: bytes.byteLength};
   const view = Object.freeze({original: Symbol('original Model view double')});
   const receipt = Object.freeze({view});
-  const state = {allowed: true, writes: 0, acknowledgements: 0, decoded: [],
+  const state = {allowed: true, writes: 0, acknowledgements: 0, decoded: [] as DecodedResponse[],
     commits: 0, releases: 0};
   const moon = {
-    clientProgramInferRawCaptureSaveCurrent(actual) {
+    clientProgramInferRawCaptureSaveCurrent(actual: unknown) {
       assert.equal(actual, view);
       return state.allowed ? {$tag: 1, _0: undefined}
         : {$tag: 0, _0: {kind: 'OriginalCaptureRevoked'}};
     },
-    clientProgramInferRawCaptureSaveBinding(actual) {
+    clientProgramInferRawCaptureSaveBinding(actual: unknown) {
       assert.equal(actual, view);
       return [binding.semanticCid, binding.holdingCid, binding.wire,
         binding.contentCid, binding.byteCount];
     },
-    clientProgramInferRawCaptureSaveOriginals(actual) {
+    clientProgramInferRawCaptureSaveOriginals(actual: unknown) {
       assert.equal(actual, view);
       return originals.map(value => [value.kind, value.cid, value.wire]);
     },
-    clientProgramAcknowledgeSavedInferRawCapture(actual) {
+    clientProgramAcknowledgeSavedInferRawCapture(actual: unknown) {
       assert.equal(actual, view);
       assert.equal(state.allowed, true);
       state.acknowledgements++;
       return {$tag: 1, _0: receipt};
     },
-    clientProgramInferSavedRawChatResponse(actual, body, metadata) {
+    clientProgramInferSavedRawChatResponse(actual: unknown, body: string, metadata: unknown) {
       assert.equal(actual, receipt);
       const response = Object.freeze({actual, body, metadata});
       state.decoded.push(response);
@@ -73,7 +82,7 @@ export async function rawCaptureStoreFixture(t, options = {}) {
     },
   };
   const physical = {...store,
-    async prepareModelRawEvidence(...args) {
+    async prepareModelRawEvidence(...args: Parameters<typeof store.prepareModelRawEvidence>) {
       state.writes++;
       const originals = await store.prepareModelRawEvidence(...args);
       if (!options.releaseFailure) return originals;
@@ -85,7 +94,7 @@ export async function rawCaptureStoreFixture(t, options = {}) {
         },
       }}));
     },
-    async commitPhysicalHolding(...args) {
+    async commitPhysicalHolding(...args: Parameters<typeof store.commitPhysicalHolding>) {
       state.commits++;
       if (options.refuseCommit) throw new Error('BeforeOriginalHoldingCommit');
       await store.commitPhysicalHolding(...args);

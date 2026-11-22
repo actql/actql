@@ -2240,3 +2240,5 @@ target/
 /adapters/host-node/infer-trusted-store-dimensions.test.d.mts
 /adapters/host-node/infer-raw-capture.mjs
 /adapters/host-node/infer-raw-capture.d.mts
+/adapters/host-node/infer-raw-capture.fixture.mjs
+/adapters/host-node/infer-raw-capture.fixture.d.mts
