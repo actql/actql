@@ -78,6 +78,7 @@ fn compatible(a : Contract, b : Contract, relation : Relation) -> Bool {
         Join => true
       }
     (Signed64, Signed64)
+    | (Bytes, Bytes)
     | (Number, Number)
     | (Boolean, Boolean)
     | (Timestamp, Timestamp)

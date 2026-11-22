@@ -1111,6 +1111,8 @@ pub fn client_program_installed_json_cursor_source_reader_capacity(Array[Int], I
 
 pub fn client_program_installed_json_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_json_identity_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
@@ -2010,6 +2012,8 @@ pub fn client_program_prepare_request_model_whole_inputs_component_capture_modul
 pub fn client_program_prepare_request_models_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Array[@run_publication_host.ClientInferPlanGraph], @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_models_read_scopes(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_request_models_read_scopes_with_planned_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_request_models_read_scopes_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan, Int64, Int64, Int64) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
 

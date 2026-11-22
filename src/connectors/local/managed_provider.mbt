@@ -94,6 +94,7 @@ pub(all) enum ManagedProviderWorkIssue {
 ///|
 pub enum ManagedProviderPoll {
   Continue(progress~ : Int64, work~ : Int64)
+  AwaitIo(progress~ : Int64, work~ : Int64)
   Waiting(progress~ : Int64, work~ : Int64)
   Settling(Int, progress~ : Int64, work~ : Int64)
   Complete(@execution.CompletedOutput, progress~ : Int64, work~ : Int64)
@@ -117,6 +118,15 @@ pub fn managed_provider_continue(
   work : Int64,
 ) -> ManagedProviderPoll {
   Continue(progress~, work~)
+}
+
+///|
+/// Physical readiness belongs to the same installed operation's wake port.
+pub fn managed_provider_await_io(
+  progress : Int64,
+  work : Int64,
+) -> ManagedProviderPoll {
+  AwaitIo(progress~, work~)
 }
 
 ///|
@@ -427,6 +437,7 @@ pub fn advance_managed_provider(
   if result is Ok(poll) {
     let (progress, work) = match poll {
       Continue(progress~, work~)
+      | AwaitIo(progress~, work~)
       | Waiting(progress~, work~)
       | Settling(_, progress~, work~)
       | Complete(_, progress~, work~)

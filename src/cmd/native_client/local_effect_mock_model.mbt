@@ -115,11 +115,18 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         stop("LocalOriginalModelKeyedObservationUnavailable")
       })
     })
+    let input_originals = []
+    for input in state.input_originals {
+      guard input is WholeEffectInput(original, _) else {
+        stop("LocalOriginalModelSourcesUnavailable")
+      }
+      input_originals.push(original)
+    }
     let sources = @run_host.admit_client_infer_composed_whole_sources(
       state.model_graph().occurrence,
       captured_sources,
       held.identities,
-      state.input_originals.map(pair => pair.0),
+      input_originals,
       held.logicals,
       held.observations,
       authority,

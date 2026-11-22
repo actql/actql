@@ -18,8 +18,8 @@ def check_report(*, kind='text', byte_length=10, pointer='', start=0, end=4):
     location = ({'kind': 'text', 'document_id': 'source', 'revision': REVISION, 'precision': 'exact', 'start_byte': start, 'end_byte': end}
                 if kind == 'text' else {'kind': 'structured', 'document_id': 'program', 'revision': REVISION, 'pointer': pointer})
     return {'version': 'actql-check-outcome/0.1',
-            'reason_schema_cid': 'sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511',
-            'outcome_schema_cid': 'sha256:ce7df95dc9d069472f6dd61273acb6e5d09aba605347cddda5c4a23c6e5e52f6',
+            'reason_schema_cid': 'sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652',
+            'outcome_schema_cid': 'sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf',
             'outcome': 'completed', 'report': {'context_ref': 'ctx:independent-python', 'scope': {'kind': 'bound_input'},
                 'verdict': 'invalid', 'runnable': {'verdict': 'no', 'reasons': [{'code': 'query_lexical_invalid' if kind == 'text' else 'program_structure_invalid'}]}, 'inputs': [{'document_id': location['document_id'], 'revision': REVISION,
                     'kind': location['kind'], 'byte_length': byte_length}],

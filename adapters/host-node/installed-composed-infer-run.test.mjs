@@ -172,6 +172,69 @@ test('composed driver cleanup recovers without awaiting its rejected close again
   assert.equal(child.status, 0, child.stdout + child.stderr);
 });
 
+test('composed dispatch preserves its first driver failure while an original child refuses stop', () => {
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {registerHooks} from 'node:module';
+    const primary = Object.assign(new Error('Physical preflight refused'), {code: 'OriginalPhysicalContextUnavailable'});
+    const stopFailure = new Error('Original child stop pending');
+    const componentProjection = new Error('Later component projection');
+    const driver = {status: 'host-tasks-failed', failure: primary,
+      async close() {}, async cleanup() {return true;}, cleanupPending() {return false;}};
+    globalThis.composedTestExecution = driver;
+    const entry = new URL('./adapters/host-node/entry.mjs', 'file://' + process.cwd() + '/').href;
+    const hook = registerHooks({load(url, context, next) {
+      if (url === entry) return {format: 'module', shortCircuit: true,
+        source: 'export async function runCapturedInternalStrategy() {return globalThis.composedTestExecution;}'};
+      return next(url, context);
+    }});
+    const {runInstalledComposedInfers} = await import('./adapters/host-node/installed-composed-infer-run.mjs');
+    hook.deregister();
+    let owner, firstStopped = false;
+    const stops = [], reclaimed = [];
+    const selections = [{graph: {}}, {graph: {}}];
+    const originals = selections.map((selection, index) => ({selection, component: {
+      provider: {}, hasFailure: () => index === 0, failure: () => index === 0 ? componentProjection : undefined,
+      bindOriginal(context) {
+        context.retainOperation({
+          physicalStopped: () => index === 0 ? firstStopped : stops.includes(index),
+          async stop() {
+            stops.push(index);
+            if (index === 0) throw stopFailure;
+          },
+          stoppedAttemptCount: () => 0,
+          cleanup() {reclaimed.push(index); return true;},
+        });
+      },
+    }}));
+    const moon = {clientProgramResultCount: () => 0, clientProgramAcquisitionCount: () => 0,
+      clientProgramInferPlanBoundary: graph => ({_0: selections.findIndex(value => value.graph === graph)})};
+    await assert.rejects(runInstalledComposedInfers({
+      moon, selected: {components: selections}, preparedProgram: {},
+      plan: {runDefinition: {wire: '{"run_id":"original-run"}'}},
+      modelController: {discover: () => [], unresolved: () => false},
+      computeConfigurations: {}, signal: new AbortController().signal,
+      retainExecution(value) {owner = value;}, beginPhysicalWork() {},
+      originalPreparation: {components: originals, retain() {}, openSourceFreeHost: () => ({}),
+        async retire() {return true;}},
+    }), error => error === primary);
+    assert.deepEqual(stops, [0, 1]);
+    assert.deepEqual(reclaimed, []);
+    assert.equal(owner.cleanupPending(), true);
+    // The same physical child reports its stop refusal separately at close.
+    await assert.rejects(owner.close(), error => error === stopFailure);
+    assert.equal(owner.cleanupPending(), true);
+    assert.deepEqual(reclaimed, []);
+    assert.equal(await owner.cleanup(), false);
+    assert.deepEqual(reclaimed, [1]);
+    firstStopped = true;
+    assert.equal(await owner.cleanup(), true);
+    assert.deepEqual(reclaimed, [1, 0]);
+    assert.equal(owner.cleanupPending(), false);
+  `], {cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8', timeout: 30000});
+  assert.equal(child.status, 0, child.stdout + child.stderr);
+});
+
 
 // Execute the original coordinators with explicit nominal/physical ports.
 // These controls qualify the JS handoff, not Common execution or a close ACK.

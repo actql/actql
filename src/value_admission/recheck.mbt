@@ -56,6 +56,7 @@ fn recheck_json(value : Value, budget : RecheckBudget, depth : Int) -> Bool {
     | Timestamp(_)
     | Decimal(_)
     | Signed64(_)
+    | Binary(_)
     | Vector(_)
     | Reference(_)
     | JsonData(_) => false
@@ -79,6 +80,15 @@ fn recheck_value(
   match (value, contract.shape) {
     (Boolean(_), @contract.Boolean) => true
     (Signed64(_), @contract.Signed64) => true
+    (Binary(bytes), @contract.Bytes) => {
+      // The immutable handle was validated by the Value owner already.
+      let size = bytes.wire.length()
+      if size > budget.text {
+        return false
+      }
+      budget.text -= size
+      true
+    }
     (Number(number), @contract.Number) =>
       !number.is_nan() &&
       !number.is_inf() &&

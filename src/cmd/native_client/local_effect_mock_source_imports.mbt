@@ -108,7 +108,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
         read.identities.get(source_index) is Some(identity) &&
         read.logicals.get(source_index) is Some(logical) &&
         read.observations.get(source_index) is Some(observed) &&
-        state.input_originals.get(source_index) is Some((acquisition, _)) else {
+        state.input_originals.get(source_index)
+        is Some(WholeEffectInput(acquisition, _)) else {
         stop("LocalOriginalEffectImportsUnavailable")
       }
       @run_host.issue_client_whole_native_effect_source_unit(

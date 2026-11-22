@@ -881,6 +881,7 @@ fn collect_managed_references(
       | @admitted.Timestamp(_)
       | @admitted.Decimal(_)
       | @admitted.Signed64(_)
+      | @admitted.Binary(_)
       | @admitted.Vector(_) => ()
       @admitted.JsonData(_) => ()
     }

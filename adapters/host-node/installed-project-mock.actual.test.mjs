@@ -25,13 +25,12 @@ import {projectTemplateFiles} from '../../packages/native-cli/lib/project-templa
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
 
-async function withMockCatalog(action) {
+async function withMockCatalog(action, files = multipleTargetMockProjectFiles()) {
   const runtimeUrl = pathToFileURL(realpathSync(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
   const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(new URL(
     '../../../../../adapters/local-node/request-preparation-adapter.mjs', runtimeUrl));
   await mkdir('_build', {recursive: true});
   const directory = await mkdtemp(join(process.cwd(), '_build/mock-footprint-originals-'));
-  const files = multipleTargetMockProjectFiles();
   for (const [name, wire] of Object.entries(files)) {
     await mkdir(dirname(join(directory, name)), {recursive: true});
     await writeFile(join(directory, name), wire);
@@ -59,6 +58,22 @@ async function withMockCatalog(action) {
     current = false;
   }
 }
+
+test('installed Mock mapping retains only the declared nullable write policy', async () => {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const {views, writes} = catalog.connections.salesforce;
+  views[0].schema.value.nullable = true;
+  writes[0].write_null_fields = ['value'];
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await withMockCatalog(({bundle}) => {
+    const [account, contact] = bundle.writables;
+    assert.equal(account.write.resource, 'Account');
+    assert.deepEqual(JSON.parse(account.mapping.body).row_mapping, {value: {field: 'value', null_behavior: 'write_null'}});
+    assert.equal(contact.write.resource, 'Contact');
+    assert.deepEqual(JSON.parse(contact.mapping.body).row_mapping, {value: {field: 'value', null_behavior: 'reject'}});
+  }, files);
+});
 
 test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates', async () => {
   await withMockCatalog(async ({bundle}) => {

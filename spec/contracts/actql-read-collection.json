@@ -2337,6 +2337,22 @@
                   "type": "boolean"
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -3420,6 +3436,22 @@
                   "type": "boolean"
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -3525,8 +3557,8 @@
     "collection_execution": "sha256:ecec7bddd86ceddbcae23bec38f4ed2b2bc556c6b5a2b03367ac3a918a2c717e",
     "collection_execution_state": "sha256:06233f48ac77835af9d446ec3027958d5a2b2b411403fa06074a90b01ce6f412",
     "collection_execution_evidence": "sha256:fffc7a866c73f77a5d1bbe1cacef1f01fe7eb937bb2480e3c233259c10c7d87a",
-    "collection_union_contract": "sha256:67a7c6aa3920e6a8b329762babc3c90c7749cf4ba995e0e916d6853a0f040cb1",
-    "collection_integration_binding": "sha256:be6d881566eb00618ca7ee840ce0e203870a3a4f71aa06f50dbdd0d0ee77b82e",
+    "collection_union_contract": "sha256:fc68ff6a56501415e38cd47186ac2e3759b5662239e50878caee1da75e7f9251",
+    "collection_integration_binding": "sha256:7c0139c6059ea8be355058a85621931d7d21e30d84c7e23f44667ab46e42fcd4",
     "collection_inputs": "sha256:1a17c5a8795ecada711e9fbee0ca4b5b159c10cf6b5a005965af705e67c5c9ae"
   },
   "laws": [
@@ -3547,5 +3579,5 @@
     "homogeneous-union-with-explicit-coverage",
     "integration-admission-effect-free"
   ],
-  "contract_cid": "sha256:12de72486cec73b16469d643c30bddf88c8950842d8de089ba64f54a01287927"
+  "contract_cid": "sha256:d194026d35da5e065dc077e38cb802f9379aa5cf729c3b4695966d9655e46349"
 }

@@ -104,14 +104,22 @@ class CheckpointConvenienceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(peer.signatures, [])
 
     async def test_invalid_configured_signer_has_no_transport_or_local_host(self):
-        with patch('actql_sdk._async.httpx.AsyncHTTPTransport', side_effect=AssertionError('No transport')):
-            with self.assertRaises(ClientError) as failure:
-                await AsyncClient.connect('https://host.invalid/', 'token', signer=True)
-        self.assertEqual(failure.exception.code, 'InvalidCheckpointSigner')
-        with patch('actql_sdk._local_product.InstalledLocalHost.installed', side_effect=AssertionError('No Host')):
-            with self.assertRaises(ClientError) as failure:
-                await AsyncClient.open(signer=True)
-        self.assertEqual(failure.exception.code, 'InvalidCheckpointSigner')
+        peer = Peer()
+        good = peer.signer()
+        invalid = [True, Signer(7, good.reviewer_id, good.sign),
+                   Signer(good.key_id, 'invalid\n', good.sign),
+                   Signer(good.key_id, 'x' * 129, good.sign)]
+        for signer in invalid:
+            with self.subTest(signer=signer):
+                with patch('actql_sdk._async.httpx.AsyncHTTPTransport', side_effect=AssertionError('No transport')):
+                    with self.assertRaises(ClientError) as failure:
+                        await AsyncClient.connect('https://host.invalid/', 'token', signer=signer)
+                self.assertEqual(failure.exception.code, 'InvalidCheckpointSigner')
+                with patch('actql_sdk._local_product.InstalledLocalHost.installed', side_effect=AssertionError('No Host')):
+                    with self.assertRaises(ClientError) as failure:
+                        await AsyncClient.open(signer=signer)
+                self.assertEqual(failure.exception.code, 'InvalidCheckpointSigner')
+        self.assertEqual(peer.signatures, [])
 
     async def test_absent_and_uncorrelated_lookup_never_signs_or_resolves(self):
         peer = Peer()

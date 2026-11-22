@@ -1,6 +1,6 @@
 {
   "version": "actql-grammar-manifest/0.1",
-  "source_grammar_cid": "sha256:0cae914984b86d4ab4f5abb9e41b8009aad051ffdacd607d204f7c1889d7d466",
+  "source_grammar_cid": "sha256:b3c84ea61a8fe3836ab6dbe62489efce4de35c5450cfa247fa1947ca0b70678f",
   "operations": [
     "analytic",
     "append",
@@ -75,12 +75,12 @@
     "window_events",
     "window_group"
   ],
-  "expression_contract_cid": "sha256:6cd16dcf9c63afc1b6a882fe960b87e19156d7cdb0b2c48fc3133c66fb98291e",
-  "expression_text_grammar_sha256": "7171a41b02e62763eff42f6896ad9c13c75617aed1ebbe95d98915b8cb2c9cc7",
+  "expression_contract_cid": "sha256:a069a6f15af6839329f64987bc41308ede21a8fee9a8c23dbfb6e4b6d082260f",
+  "expression_text_grammar_sha256": "a0ab33c71da1647032fcc751e2bbb4d15e3c5f5a3a03fc3d49697a2bfe3c4fd8",
   "expression_text_rules_sha256": "1656fb90fc607479737553b5973e05728e50f3061d1e6e248556460268425f5e",
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
-  "query_text_grammar_sha256": "b1c12a28864e16c97aa1cdd9e09ddd7221475623d88f945666b70b4c91236ea7",
-  "query_text_rules_sha256": "838d1bc4a6fe916155ac2d295b059bef029f80c4260be1298484b2ea066bbd0d",
-  "grammar_manifest_cid": "sha256:305446ed48f72df7edf30291272e572a25a7205712ab3dce5bc8a68eb75eba8d"
+  "query_text_grammar_sha256": "bd2d02730f6d59950f7f4651121ee4c00fbd3451395190e5a4fb62c2aa608024",
+  "query_text_rules_sha256": "e2c7fc68180418795834f57000c7d46b669dc73bd07e883cb49286a01cf0fdee",
+  "grammar_manifest_cid": "sha256:8fd1356fb5f722d37e1ad17de0b92a41077c668b80c6c08b7571547c32b12018"
 }

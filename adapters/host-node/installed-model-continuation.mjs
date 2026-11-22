@@ -580,8 +580,13 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         ioNotification: operation.ioNotification,
         settled(entry, receipt) {
           if (owner.pending?.entry !== entry) return;
-          if (receipt !== undefined) owner.entries.set(owner.pending.slot, receipt);
           owner.pending = undefined;
+          if (receipt === undefined) return;
+          owner.entries.set(receipt.ordinal, receipt);
+          diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
+            runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
+            slot: receipt.ordinal, attempt: receipt.attemptIndex,
+            attemptCid: receipt.attemptCid, outcome: 'running'});
         }});
     if (observation?.canMeasure('infer')) {
       const installed = operation.bindModelObservation(preparedCallSet,

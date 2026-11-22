@@ -294,6 +294,8 @@ pub fn bounded_independent_row_copy_stopped(BoundedIndependentRowCopy) -> Bool
 
 pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bool
 
+pub fn bounded_join_borrows_input(@lowering_relation.PreparedJoinKernel) -> Bool
+
 pub fn bounded_join_cleanup_pending(BoundedJoinExecution) -> Bool
 
 pub fn bounded_literal_string_group_chain(GeneratedSequence) -> Bool

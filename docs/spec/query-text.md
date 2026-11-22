@@ -434,6 +434,10 @@ only integral day amounts. No frontend temporal evaluator or decimal spelling
 reinterpretation is introduced. Existing structured Program and expression-text
 forms retain their bytes and meanings.
 
+`SHA256(value)` selects the Common `sha256` expression with one original
+String or BYTES operand. It returns a 32-byte BYTES digest with the
+operand's nullability. String input uses its unchanged UTF-8 bytes.
+
 `FARM_FINGERPRINT(value)` selects `farm_fingerprint` for one original
 String operand. The result is INT64 with the operand's nullability.
 The checked Common operation consumes the original UTF-8 bytes.
@@ -1506,6 +1510,38 @@ query parentheses preserve that same scope; set operands still close their input
 ranges. Generated producer identifiers do not become authored range aliases.
 Subquery ordering is not an outer SQL order promise: keep explicit ORDER BY and
 LIMIT placement, and compare an unordered outer Relation as a multiset.
+
+A SELECT can project a single uncorrelated scalar subquery, such as
+`SELECT (SELECT MAX(v) FROM t) AS x`. The child starts with SELECT or WITH and
+uses its own scope plus the enclosing WITH bindings. Its checked Relation
+must have exactly one column. The result keeps that column's value type with
+a nullable contract. An empty child gives one NULL, and a one-row child gives
+its original value, including NULL. Multiple child rows fail execution before
+publication, even when all values are equal. An output alias follows the
+ordinary SELECT naming rules.
+
+A SELECT with FROM can filter its input with `WHERE value IN (SELECT …)`.
+The subquery starts with SELECT or WITH, uses its own row scope and enclosing
+WITH declarations, and projects exactly one column comparable to `value`.
+An input row survives when a non-null member equals its non-null value.
+Duplicate member values leave left multiplicity unchanged. NULL and missing
+matches produce no output row in this WHERE position. Lowering uses the
+existing left-only semi join and retains the original left columns and scope.
+
+A single `SELECT EXISTS (SELECT …)` projection returns one non-null Boolean.
+Its independently scoped Relation can return any number of columns. An empty
+Relation returns false, and any row witnesses true regardless of its values.
+An enclosing SELECT with FROM can use the same row-presence test as its WHERE
+predicate. Every left row survives when the independently scoped subquery
+has a row, and none survives when it is empty.
+
+The qualified correlated WHERE form accepts a comparison between one inner
+column and one outer column with equality. The subquery selects that same
+inner column under its original name, with one inner named input and no
+additional row operator. Both names must resolve in their original scopes.
+The existing bounded semi join checks the comparable values and leaves
+left multiplicity unchanged even when many inner rows match. A comparison
+with NULL does not match. The inner columns and range name remain private.
 
 Recursive declarations,
 forward references and references to a displaced range variable remain

@@ -675,6 +675,8 @@ pub fn installed_json_effect_request_construction_capacity(@execution_relation.E
 
 pub fn installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_json_identity_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
@@ -963,7 +965,7 @@ pub fn prepare_installed_effect_capture_recipe_extent(String, Array[@execution_r
 
 pub fn prepare_installed_effect_capture_recovery(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientInstalledEffectCaptureRecovery, ClientInstalledManagedRunIssue]
 
-pub fn prepare_installed_effect_combined_source_result_artifact(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectUnitPreparationIssue]
+pub fn prepare_installed_effect_combined_source_result_artifact(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int, imported? : (@run_publication_host.ClientEffectImportedEvidence, @run_publication.PublicationContract)?) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectUnitPreparationIssue]
 
 pub fn prepare_installed_effect_combined_source_unit(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, ClientEffectUnitPreparationIssue]
 
@@ -1177,9 +1179,9 @@ pub fn[I] prepare_request_models_capture_plan(ClientRequestPreparation[I], I, Cl
 
 pub fn[I] prepare_request_models_compilation(ClientRequestPreparation[I], I, Array[@run_publication_host.ClientInferPlanGraph], ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramPlanIssue]
 
-pub fn[I] prepare_request_models_read_scopes(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[Array[@run_publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue]
+pub fn[I] prepare_request_models_read_scopes(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan, quantity_limits? : @physical_resources.QuantityAmounts?, require_planned_quantities? : Bool) -> Result[Array[@run_publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue]
 
-pub fn[I] prepare_request_models_source_free_plan(ClientRequestPreparation[I], I, ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@run_publication_host.ClientInferOccurrence], Array[@run_publication_host.ClientInferPlanGraph], Array[@physical_resources.LedgerLimits], Array[Int64], Array[Int64], Int, Int, Int, bootstrap? : (Int64, Int64)?) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue]
+pub fn[I] prepare_request_models_source_free_plan(ClientRequestPreparation[I], I, ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@run_publication_host.ClientInferOccurrence], Array[@run_publication_host.ClientInferPlanGraph], Array[@physical_resources.LedgerLimits], Array[Int64], Array[Int64], Int, Int, Int, bootstrap? : (Int64, Int64)?, node_quantities? : Array[@physical_resources.QuantityAmounts]?) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue]
 
 pub fn[I, T] prepare_request_native_computation(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
 
@@ -1475,7 +1477,7 @@ pub fn[I] reserve_request_http_input(ClientRequestPreparation[I], I, Int, Int, I
 
 pub fn[I] reserve_request_model_recovery_materials(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
-pub fn[I] reserve_request_models_plan_projection(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
+pub fn[I] reserve_request_models_plan_projection(ClientRequestPreparation[I], I, Int, node_physical? : Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn[I] reserve_request_native_intake_wire(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
 

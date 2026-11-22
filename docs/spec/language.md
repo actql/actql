@@ -729,7 +729,7 @@ every field name and recursive value contract; knowing some names is not complet
 
 ### Closed value contracts
 
-The closed value type names are `string`, `number`, `int64`, `decimal`, `boolean`, `timestamp`,
+The closed value type names are `string`, `bytes`, `number`, `int64`, `decimal`, `boolean`, `timestamp`,
 `date`, `json`, `object`, `array`, `vector`, `resource_ref`, and `content_ref`.
 The primitive value domains are:
 
@@ -737,6 +737,7 @@ The primitive value domains are:
 | Type | Value domain |
 | --- | --- |
 | `string` | Well-formed Unicode scalar sequences, preserved without implicit normalization or line-break conversion. |
+| `bytes` | Exact sequence of octets, including the empty sequence. |
 | `number` | Finite IEEE-754 binary64; negative zero is invalid in canonical source. |
 | `int64` | Exact signed 64-bit integers ([Exact signed integers](#signed64-values)). |
 | `boolean` | `true` or `false`. |
@@ -1059,6 +1060,23 @@ MUST retain their separate original millisecond operational contracts; a finer
 Timestamp Value supplies neither a trusted observation nor authority. A
 millisecond-only projection refuses a nonrepresentable fraction without rounding
 or truncation.
+
+<a id="byte-values"></a>
+
+### Byte values
+
+<!-- requirement-block: byte-values.canonical-wire -->
+The closed BYTES contract is `{type: bytes, nullable: boolean}`. A non-null
+value MUST use padded standard Base64 in schema-directed JSON and JSONL.
+Admission requires the standard alphabet, final padding and zero unused
+bits. It preserves all original octets and accepts the empty sequence.
+The encoded wire counts against the existing value byte ceiling.
+Null remains governed by `nullable`.
+
+<!-- requirement-block: byte-values.distinct-identity -->
+Typed identity MUST preserve the BYTES domain. The transport String does
+not imply UTF-8 validity of the octets or admit a Text conversion. A
+String with the same characters remains a different type and value.
 
 <a id="signed64-values"></a>
 
@@ -2565,6 +2583,16 @@ and machine bodies retain the original two or three operands. Both passes
 retain the original operands and admit the complete result before constructing
 the immutable String. Preserve original scalar content, child failure, lazy
 demand and cancellation.
+
+### SHA-256 digests
+
+<!-- requirement-block: scalar-expressions.sha256 -->
+The Common `sha256` expression MUST evaluate one original String or BYTES
+operand and return a 32-byte BYTES value. NULL returns NULL, and untyped NULL
+uses the String operand contract. Hash the original UTF-8 bytes of a String
+without normalization, or the original octets of BYTES. Preserve enclosing
+demand, operand failure, current work and cancellation. Hold the original
+operand and reserve fixed hash workspace in the existing execution owner.
 
 ### FarmHash fingerprints
 
@@ -5333,8 +5361,8 @@ process heap ceiling; additional backend resource limits remain separate.
 Work MUST accumulate one unit per row, binding and demanded expression entry,
 plus value weight for input admission, each consumed operand, each produced
 value and the retained output. Value weight is one per scalar/container plus
-raw UTF-8 octets of string values and object keys, counting every logical
-occurrence. Caching and short-circuit scalar comparisons do not discount this
+raw UTF-8 octets of string values and object keys plus canonical Base64 octets
+of BYTES values, counting every logical occurrence. Caching and short-circuit scalar comparisons do not discount this
 weight; unselected lazy expressions incur no evaluation work. Logical work is
 not an instruction count. Charges precede traversal/construction, check
 arithmetic overflow, accept exact caps and never reset per row or slot.
@@ -11823,23 +11851,23 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:7924a22bf2e96ec0aa936663e02047c2f3c10e5e48965c075a1821148846cac3
+../../spec/contracts/actql-aoa.json# sha256:e18127ed4aa31d226bc9723f254dde57b645005eea0b1503bc99126783487335
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
-../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7
-../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1
+../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:502f08bf06bd233f24118d3b956868589f7952df82003a4da0adffd7c297764b
+../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:8e83c5ec9efaad835157dd477af858cbba98d1ca5384bc3edd3bb124b65bf275
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/sql_regex_replacement_ast sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:6cd16dcf9c63afc1b6a882fe960b87e19156d7cdb0b2c48fc3133c66fb98291e
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:90dafb680321a4e683f6922bd75dd3ac3ad6e884891c6d1aafb55e6690052284
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:38fb94645563a627cf15a1fa24ce194829ef56507221d95ee9fecaf1299e213c
+../../spec/contracts/actql-expressions.json# sha256:a069a6f15af6839329f64987bc41308ede21a8fee9a8c23dbfb6e4b6d082260f
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:eb77a52be62e26460ad624a0a036cb9d10365e2d8e88e664ea2bff8c181a526d
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:bba27e3b1c711ae0fbc5f5fee735ae19381d20d1e4492ccce2482dfd12f1c35c
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:00274988e734dc6773c0d87ec2cc5cba740c2d45a2b1077bde86c2e0a2ae4a6c
-../../spec/contracts/actql-expressions.json#/laws sha256:216d6a4f9e91f2e7575c2f60f0dad474319e0b1170bf9ba9003596cb40ca3ffd
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6be8f6f4ded0788739c331053546f129cd35a8e831862f163fb22ab4ba594d2f
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b54f888c59be0834929e292eb34d52322de851aae24355a02b664c6163caab17
+../../spec/contracts/actql-expressions.json#/laws sha256:1b6f922fa1b6c982ab86dd0b42779c22e8bc7947c0275c7d117123024776333c
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e8b5df8e6c297319cb4fb667a7674e9dd39cff339b3717921d0086af862ea929
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:13fb606e7c9ec65ac8dc1497df6559ac36c3a0b372a952ab6e920769f6fa32e7
 ```
 
 <!-- stage-contract-pins:start -->

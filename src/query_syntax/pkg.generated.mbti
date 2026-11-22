@@ -78,6 +78,8 @@ pub fn integer_context_original_column(Query, String) -> String?
 
 pub fn integer_function_context_required(Query) -> Bool
 
+pub fn is_single_extremum_projection(Query) -> Bool
+
 pub fn is_source_free_scalar_projection(Query) -> Bool
 
 pub fn is_standalone_reference_projection(Query) -> Bool
@@ -129,6 +131,8 @@ pub fn relation_alias(Query) -> NamePart?
 pub fn rollup_item_count(Query) -> Int
 
 pub fn same_relation_name(NamePart, NamePart) -> Bool
+
+pub fn scalar_projection_count(Query) -> Int
 
 pub fn script_document(QueryScript) -> @frontend_source_map.Document
 
@@ -538,6 +542,8 @@ pub(all) struct QueryBinding {
 pub(all) enum QueryBindingOrigin {
   AuthoredWith(NamePart, Int, Int)
   RelationalContinuation
+  ScalarSubquery(NamePart?)
+  ExistsSubquery(NamePart?)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum QueryInteger {

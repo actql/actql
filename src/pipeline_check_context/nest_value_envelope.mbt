@@ -247,6 +247,7 @@ pub fn prepare_nest_value_envelope(
           Text(_)
           | Number
           | Signed64
+          | Bytes
           | Boolean
           | Timestamp
           | Date
