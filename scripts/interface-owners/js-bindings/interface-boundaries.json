@@ -53120,8 +53120,8 @@
                 "anchor": "### Project Task Host assembly"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -53154,12 +53154,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mts",
@@ -53192,11 +53192,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -53242,7 +53242,7 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -53284,15 +53284,15 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
@@ -53326,7 +53326,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -53410,8 +53410,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -56536,8 +56536,8 @@
                 "anchor": "### Project Task Host assembly"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,"
               }
             ],
             "inputsOutputs": [
@@ -56554,12 +56554,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               }
             ],
             "identity": [
@@ -56576,11 +56576,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -56602,7 +56602,7 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -56628,15 +56628,15 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               }
             ],
@@ -56654,7 +56654,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -56706,8 +56706,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -57150,8 +57150,8 @@
                 "anchor": "### Project Task Host assembly"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -57248,12 +57248,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mts",
@@ -57342,11 +57342,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -57456,7 +57456,7 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -57566,15 +57566,15 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
@@ -57668,7 +57668,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -57868,8 +57868,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -58278,27 +58278,27 @@
                 "anchor": "### Project Task Host assembly"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -58308,7 +58308,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -58322,21 +58322,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -58364,8 +58364,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -63207,8 +63207,8 @@
                 "anchor": "### Project Task Host assembly"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -63249,12 +63249,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mts",
@@ -63295,11 +63295,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -63353,7 +63353,7 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -63403,15 +63403,15 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
@@ -63453,7 +63453,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -63553,8 +63553,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -64361,8 +64361,8 @@
                 "path": "docs/design/model-provider-registration.md"
               },
               {
-                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,",
-                "path": "adapters/host-node/installed-project-model-tasks.mjs"
+                "anchor": "export async function loadInstalledProjectModelTasks(moon: ModelTaskRuntime, project: Project, providers: ReadonlyMap<string, TaskProvider>,",
+                "path": "adapters/host-node/installed-project-model-tasks.mts"
               },
               {
                 "anchor": "### Original project profile choice",
@@ -64467,12 +64467,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "projectEnvironmentForRuntime(runtime: unknown, wire: string, evidenceCid: string, environmentBody?: unknown) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mts",
@@ -64569,11 +64569,11 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
@@ -64696,7 +64696,7 @@
               },
               {
                 "anchor": "const retained = Object.freeze(tasks);",
-                "path": "adapters/host-node/installed-project-model-tasks.mjs"
+                "path": "adapters/host-node/installed-project-model-tasks.mts"
               },
               {
                 "anchor": "projectTasks = undefined;",
@@ -64813,15 +64813,15 @@
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const call = <Name extends keyof typeof callbacks>(name: Name, ...args: Parameters<(typeof callbacks)[Name]>) =>"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
@@ -64923,7 +64923,7 @@
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
@@ -65139,8 +65139,8 @@
                 "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
+                "anchor": "const tasks = construct<(CandidateTask | InstalledTask)[]>(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -86961,7 +86961,7 @@
                 "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "export async function prepareInstalledProjectModelTasks("
               },
               {
@@ -86979,7 +86979,7 @@
                 "anchor": "if (installedDefaults.get(provider) !== view) {"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
               },
               {
@@ -86993,7 +86993,7 @@
                 "anchor": "const defaultsPreparations = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -87011,11 +87011,11 @@
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertOriginals(runtime);"
               },
               {
@@ -87043,7 +87043,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertCurrent();"
               },
               {
@@ -87065,7 +87065,7 @@
                 "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
@@ -87079,7 +87079,7 @@
                 "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
               },
               {

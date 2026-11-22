@@ -29284,7 +29284,7 @@
                 "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "export async function prepareInstalledProjectModelTasks("
               },
               {
@@ -29302,7 +29302,7 @@
                 "anchor": "if (installedDefaults.get(provider) !== view) {"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
               },
               {
@@ -29316,7 +29316,7 @@
                 "anchor": "const defaultsPreparations = new WeakMap();"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const retained = Object.freeze(tasks);"
               },
               {
@@ -29334,11 +29334,11 @@
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const wire = construction === undefined"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertOriginals(runtime);"
               },
               {
@@ -29366,7 +29366,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "assertCurrent();"
               },
               {
@@ -29388,7 +29388,7 @@
                 "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
@@ -29402,7 +29402,7 @@
                 "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.mts",
                 "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
               },
               {
