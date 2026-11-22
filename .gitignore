@@ -2048,3 +2048,5 @@ target/
 /adapters/host-node/fixtures/mock-project-terminal-public.d.mts
 /scripts/fixtures/external-rest/timed-installed-context.fixture.mjs
 /scripts/fixtures/external-rest/timed-installed-context.fixture.d.mts
+/scripts/health-monitor-adapters.mjs
+/scripts/health-monitor-adapters.d.mts

@@ -3142,13 +3142,13 @@
             },
             "resources": [
               {
-                "path": "scripts/health-monitor-adapters.mjs",
+                "path": "scripts/health-monitor-adapters.mts",
                 "anchor": "installed.reduce((sum, row) => sum + row.bytes, 0)"
               }
             ],
             "extension": [
               {
-                "path": "scripts/health-monitor-adapters.mjs",
+                "path": "scripts/health-monitor-adapters.mts",
                 "anchor": "await inspectInstalledConnectorBins(modules, manifest)"
               }
             ],

@@ -20,6 +20,79 @@ import {terminalMockScenario, assertTerminalMockObservation}
   from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
+import type {Metafile} from 'esbuild';
+import type {BenchmarkPackageManifest} from './node-benchmark-evidence.mjs';
+import type {HealthMetric} from './health-monitor-report.mjs';
+import type {PublicLatencySample} from './operation-performance-sample-summary.mjs';
+import type {LocalSession} from '../packages/node/index.d.ts';
+import type {runTerminalMockWorkflow} from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
+
+type Source = {sha: string; dirty: boolean};
+type CommandOptions = {cwd?: string; raw?: string; name?: string; timeout?: number;
+  env?: NodeJS.ProcessEnv; observeFirstResult?: boolean};
+type ChildExit = {code: number | null; signal: NodeJS.Signals | null};
+type CommandResult = ChildExit & {
+  pid?: number;
+  wallNs: number;
+  firstResultNs?: number | null;
+  firstResultNotifications?: number;
+  timedOut: boolean;
+  overflow: boolean;
+  stdout: string;
+  stderr: string;
+};
+type Command = (command: string, args: readonly string[], options: CommandOptions) => Promise<CommandResult>;
+type CommandError = {commandResult?: CommandResult} | null | undefined;
+
+type PackageFact = BenchmarkPackageManifest['packages'][number] & {version: string; path?: string};
+type Manifest = {sourceSha: string; packages: PackageFact[]; source?: Source;
+  originalManifestSha256?: string; optionalManifestSha256?: string};
+type RetainedSource = {revision: string; tarballs: Record<string, string>};
+type PackOptions = {repository: string; root: string; source: Source; retained?: string;
+  command: Command; normalLifecycle?: boolean; optionalProvider?: string};
+type Prepared = Awaited<ReturnType<typeof prepareHealthPackages>>;
+type InstalledRow = Awaited<ReturnType<typeof installedModulesPayloadInventory>>[number];
+type PackagingMetadata = {name: string; version: string};
+
+type SampleKind = 'warm' | 'prepare-existing-state' | 'cold-existing-state' | 'cold-new-state';
+type SampleConfig = {kind: SampleKind; stateDir: string; output: string; consumer: string;
+  iteration?: number; seedRunSha256?: string; count?: number; notifyFirstResult?: boolean};
+type ClockSpan = {name: string; clock: string; parent: string; startNs: number;
+  endNs: number | null; completed: boolean};
+type Failure = ReturnType<typeof nodeBenchmarkFailure>;
+type ObservedSample = PublicLatencySample & Record<string, unknown>;
+type WarmMetric = {id: string; samples: ObservedSample[]};
+type SampleReport = {pid: number; kind: SampleKind; stateDir: string; metrics: WarmMetric[];
+  cleanup: {closed: boolean; failure?: Failure}; phaseSpans: ClockSpan[]; unobservedHostPhases: string[];
+  phaseScope: string; importAndOpenNs?: number; originalRunSha256?: string;
+  publicTiming?: PublicLatencySample['publicTiming']; firstQueryNs?: number;
+  firstQueryTiming?: {clock: string; parent: string; startNs: number; endNs?: number};
+  closeNs?: number; failure?: Failure};
+type SavedSample = SampleReport & ReturnType<typeof usage> & {processCpu: NodeJS.CpuUsage};
+type Metric = HealthMetric & Record<string, unknown>;
+type WorkflowOptions = {prepared: Pick<Prepared, 'consumer'>; root: string; repository: string;
+  command: Command; counts: {warmSamples: number; coldSamples: number};
+  onMetric: (metric: Metric) => unknown};
+type TerminalVariant = Parameters<typeof terminalMockScenario>[0];
+type TerminalPhase = Parameters<typeof assertTerminalMockObservation>[1]['phase'];
+type AccountScenario = 'default' | 'explicit-operator-content';
+type MockOptions = {template?: string; variant?: string; accountScenario?: AccountScenario};
+type TerminalOptions = WorkflowOptions & {
+  template: string; variant: TerminalVariant; accountScenario: AccountScenario;
+};
+type PhaseReport<T> = {phase: string; command: string; args: readonly string[]; cwd: string;
+  completed: boolean; summary?: T; pid?: number | null; endedAt?: string;
+  operations?: OperationRow[]; inputRemoval?: {completed: boolean; paths: string[]};
+  [key: string]: unknown};
+type OperationRow = {step?: string; status?: string; timing?: {wallNs: number; cpuUserUs: number;
+  cpuSystemUs: number; startedAt: string; endedAt: string}};
+type WorkflowSummary = {status: string; firstFailedStep: unknown; firstClose: unknown;
+  workObservation?: {complete: boolean; sourceAcquisitionStarts: number; modelCallStarts: number;
+    effectReplacementReturns: number}; modelInputObservation?: unknown};
+type TerminalSummary = Awaited<ReturnType<typeof runTerminalMockWorkflow>> & {
+  accountScenario?: AccountScenario;
+};
+
 const self = fileURLToPath(import.meta.url);
 export const healthFixtures = Object.freeze({
   select: {text: 'SELECT 1 AS id', expected: [{id: 1}]},
@@ -31,26 +104,27 @@ export const healthFixtures = Object.freeze({
   workflowProtocol: 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
 });
 
-export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
+export async function execute(command: string, args: readonly string[],
+  {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false}: CommandOptions = {}): Promise<CommandResult & {pid: number}> {
   const start = process.hrtime.bigint();
   let stdout = '', stderr = '', overflow = false;
-  const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe',...(observeFirstResult?['ipc']:[])]});
-  const firstResults=[];
-  if(observeFirstResult)child.on('message',value=>{
+  const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe',...(observeFirstResult?['ipc' as const]:[])]});
+  const firstResults:number[]=[];
+  if(observeFirstResult)child.on('message',(value: {event?: string; pid?: number} | null)=>{
     if(value?.event==='first-result'&&value.pid===child.pid)firstResults.push(Number(process.hrtime.bigint()-start));
   });
-  const collect = key => chunk => {
+  const collect = (key: 'stdout' | 'stderr') => (chunk: Buffer) => {
     if (Buffer.byteLength(stdout) + Buffer.byteLength(stderr) + chunk.length > 8 * 1024 ** 2) overflow = true;
     else if (key === 'stdout') stdout += chunk.toString(); else stderr += chunk.toString();
   };
-  child.stdout.on('data', collect('stdout')); child.stderr.on('data', collect('stderr'));
+  child.stdout!.on('data', collect('stdout')); child.stderr!.on('data', collect('stderr'));
   // The existing outer supervisor owns process-tree cancellation and deadlines.
   // A selected workflow phase keeps its existing 30s whole-child timer below.
   let timedOut = false;
   const timer = timeout ? setTimeout(() => {timedOut = true; child.kill('SIGTERM');}, timeout) : null;
   let terminal;
   try {
-    terminal = await new Promise((accept, reject) => {
+    terminal = await new Promise<ChildExit>((accept, reject) => {
       child.once('error', reject); child.once('close', (code, signal) => accept({code, signal}));
     });
   } finally {if (timer) clearTimeout(timer);}
@@ -66,34 +140,34 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
   if (terminal.code !== 0 || terminal.signal || timedOut || overflow) {
     throw Object.assign(new Error(`${name ?? command}: ${timedOut ? 'whole-child timeout' : overflow ? 'output limit' : `exit ${terminal.code}/${terminal.signal}`}\n${stderr.slice(-4096)}`), {commandResult: result});
   }
-  return result;
+  return result as CommandResult & {pid: number};
 }
 
 export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false,
-  optionalProvider}) {
+  optionalProvider}: PackOptions) {
   assert.equal(typeof normalLifecycle, 'boolean');
   const destination = join(root, 'packages'); await mkdir(destination);
-  let manifest;
+  let manifest: Manifest & Partial<RetainedSource>;
   if (retained) {
     // The ordinary collector's manifest contains actual filenames and complete
     // installed inventories. A retained source mismatch never triggers rebuild.
     if ((await lstat(retained)).isDirectory()) retained = join(retained, 'packed-client-packages.json');
-    manifest = JSON.parse(await readFile(retained));
+    manifest = JSON.parse(await readFile(retained) as unknown as string);
     if (manifest.revision) {
       assert.equal(manifest.revision, source.sha, 'Original normal package source differs');
-      assert.deepEqual(Object.keys(manifest.tarballs).sort(), [...CLIENT_PACKAGES].sort());
+      assert.deepEqual(Object.keys(manifest.tarballs!).sort(), [...CLIENT_PACKAGES].sort());
       const original = manifest, directory = dirname(retained), entries = await readdir(directory);
-      manifest = {sourceSha: original.revision, originalManifestSha256: digest(await readFile(retained)), packages: []};
+      manifest = {sourceSha: original.revision!, originalManifestSha256: digest(await readFile(retained)), packages: []};
       for (const name of CLIENT_PACKAGES) {
         const matching = [];
         for (const file of entries.filter(file => file.endsWith('.tgz'))) {
-          if (digest(await readFile(join(directory, file))) === original.tarballs[name]) matching.push(file);
+          if (digest(await readFile(join(directory, file))) === original.tarballs![name]) matching.push(file);
         }
         assert.equal(matching.length, 1, `Exactly one original ${name} tarball required`);
         const file = matching[0], bytes = await readFile(join(directory, file));
         await copyFile(join(directory, file), join(destination, file));
         const unpacked = await unpack(join(destination, file), join(root, 'unpacked-' + name));
-        const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')));
+        const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')) as unknown as string) as PackagingMetadata;
         assert.equal(metadata.name, '@actql/' + name);
         manifest.packages.push({name: metadata.name, version: metadata.version, file, bytes: bytes.length,
           sha256: digest(bytes), integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'), files: await inventory(unpacked)});
@@ -118,7 +192,7 @@ export async function prepareHealthPackages({repository, root, source, retained,
   if (optionalProvider !== undefined) {
     assert(retained && normalLifecycle, 'Optional provider requires original normal packages and lifecycle');
     const originalBytes = await readFile(join(optionalProvider, 'packed-client-packages.json'));
-    const original = JSON.parse(originalBytes);
+    const original = JSON.parse(originalBytes as unknown as string) as RetainedSource;
     assert.deepEqual(Object.keys(original).sort(), ['revision', 'tarballs']);
     assert.equal(original.revision, source.sha, 'Optional provider source differs');
     assert.deepEqual(Object.keys(original.tarballs), ['provider-ai-sdk']);
@@ -128,7 +202,7 @@ export async function prepareHealthPackages({repository, root, source, retained,
     const file = 'actql-provider-ai-sdk-0.0.0-development.tgz';
     const bytes = await readFile(join(destination, file));
     const unpacked = await unpack(join(destination, file), join(root, 'unpacked-provider-ai-sdk'));
-    const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')));
+    const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')) as unknown as string) as PackagingMetadata;
     assert.equal(metadata.name, '@actql/provider-ai-sdk');
     assert.equal(metadata.version, '0.0.0-development');
     manifest = {...manifest, optionalManifestSha256: digest(originalBytes), packages: [...manifest.packages,
@@ -144,14 +218,14 @@ export async function prepareHealthPackages({repository, root, source, retained,
     normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
     '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
-      assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained), row.file);
+      assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained!), row.file);
     })], {cwd: consumer, name: 'install-node'});
   await verifyNodeBenchmarkPackages(manifest, retained, consumer);
   return {manifest, manifestPath: retained, consumer};
 }
 let packagesCounter = 0;
 
-export async function observeInstalledHealthNodeModules(consumer) {
+export async function observeInstalledHealthNodeModules(consumer: string) {
   const modules = join(consumer, 'node_modules');
   const files = await installedModulesPayloadInventory(modules);
   const localManifest = '@actql/local-node/package.json';
@@ -161,8 +235,15 @@ export async function observeInstalledHealthNodeModules(consumer) {
   return {files, binLinks};
 }
 
-export async function distributionMetrics({repository, prepared, root, command, source, installedInventory}) {
-  const artifacts = [], metrics = [];
+export async function distributionMetrics({repository, prepared, root, command, source, installedInventory}: {
+  repository: string; prepared: Prepared; root: string; command: Command; source: Pick<Source, 'sha'>;
+  installedInventory?: readonly InstalledRow[];
+}) {
+  const artifacts: {
+    name: string; artifactKind: string; version: string; sourceSha: string;
+    sha256: string; acquisitionBytes: number; file?: string;
+    installedBytes?: number; bundled?: PackageFact['files']; gzipBytes?: number;
+  }[] = [], metrics: HealthMetric[] = [];
   for (const pkg of prepared.manifest.packages) {
     const installed = pkg.files.reduce((sum, row) => sum + row.bytes, 0);
     artifacts.push({name: pkg.name, version: pkg.version, artifactKind: 'npm', sourceSha: source.sha,
@@ -172,9 +253,9 @@ export async function distributionMetrics({repository, prepared, root, command, 
       value: pkg.bytes, unit: 'bytes', required: true, fixtureSha256: jsonDigest({kind: 'npm', name: pkg.name}), evidence: prepared.manifestPath});
   }
   const installed = installedInventory ?? (await observeInstalledHealthNodeModules(prepared.consumer)).files;
-  for (const [target, names] of [['node-local', CLIENT_PACKAGES], ['remote-sdk', ['sdk', 'client-wire']]]) {
+  for (const [target, names] of [['node-local', CLIENT_PACKAGES], ['remote-sdk', ['sdk', 'client-wire']]] as const) {
     const value = target === 'node-local' ? installed.reduce((sum, row) => sum + row.bytes, 0)
-      : prepared.manifest.packages.filter(row => names.includes(row.name.slice(7))).flatMap(row => row.files).reduce((sum, row) => sum + row.bytes, 0);
+      : prepared.manifest.packages.filter(row => (names as readonly string[]).includes(row.name.slice(7))).flatMap(row => row.files).reduce((sum, row) => sum + row.bytes, 0);
     metrics.push({id: 'installed:' + target, kind: 'size', artifactKind: 'installed', target, value,
       required: true, unit: 'bytes', fixtureSha256: jsonDigest(names), evidence: prepared.manifestPath});
   }
@@ -182,13 +263,13 @@ export async function distributionMetrics({repository, prepared, root, command, 
   await command(join(repository, 'node_modules/esbuild/bin/esbuild'), [
     join(prepared.consumer, 'node_modules/@actql/sdk/index.mjs'), '--bundle', '--platform=browser',
     '--format=esm', '--target=es2022', '--outfile=' + browser, '--metafile=' + meta], {cwd: repository, name: 'browser-bundle'});
-  const metadata = JSON.parse(await readFile(meta));
+  const metadata = JSON.parse(await readFile(meta) as unknown as string) as Metafile;
   assert(Object.keys(metadata.inputs).every(path => /node_modules\/@actql\/(?:sdk|client-wire)\//u.test(path)));
   assert(Object.values(metadata.outputs).every(row => row.imports.length === 0));
   const bytes = await readFile(browser);
   artifacts.push({name: 'remote-browser', artifactKind: 'browser', version: 'consumer-esm', sourceSha: source.sha,
     sha256: digest(bytes), acquisitionBytes: bytes.length, gzipBytes: gzipSync(bytes).length});
-  for (const [id, kind, value] of [['browser-raw', 'browser', bytes.length], ['browser-gzip', 'browser-gzip', gzipSync(bytes).length]]) {
+  for (const [id, kind, value] of [['browser-raw', 'browser', bytes.length], ['browser-gzip', 'browser-gzip', gzipSync(bytes).length]] as const) {
     metrics.push({id, kind: 'size', artifactKind: kind, target: 'remote-sdk', value, unit: 'bytes', required: true,
       fixtureSha256: jsonDigest({bundle: 'browser-esm-es2022', entry: '@actql/sdk'}), evidence: meta});
   }
@@ -197,14 +278,14 @@ export async function distributionMetrics({repository, prepared, root, command, 
 
 const usage = () => ({peakRssBytes: process.resourceUsage().maxRSS * 1024,
   rssScope: 'Node resourceUsage.maxRSS high-water mark of this actual Node process; KiB converted to bytes; children excluded'});
-export async function publicNodeSample(config) {
-  let client, primary;
+export async function publicNodeSample(config: SampleConfig) {
+  let client: LocalSession | undefined, primary: unknown;
   assert(['warm','prepare-existing-state',...nodeColdStateKinds].includes(config.kind));
-  const report = {pid: process.pid, kind: config.kind, stateDir:config.stateDir, metrics: [], cleanup: {closed: false},
+  const report: SampleReport = {pid: process.pid, kind: config.kind, stateDir:config.stateDir, metrics: [], cleanup: {closed: false},
     phaseSpans:[],unobservedHostPhases:['initial activation','Request prepare/check/compile/Plan','execution','durable publication'],
     phaseScope:'Public boundaries; activation/preparation inside submission, execution/publication inside wait/all-rows are unresolved, never exclusive sums'};
-  const begin=name=>{const span={name,clock:'child-monotonic',parent:['product-import','public-open','first-close'].includes(name)?'public-lifecycle':'first-new-query',startNs:Number(process.hrtime.bigint()),endNs:null,completed:false};report.phaseSpans.push(span);return span;};
-  const end=span=>{span.endNs=Number(process.hrtime.bigint());span.completed=true;};
+  const begin=(name:string)=>{const span:ClockSpan={name,clock:'child-monotonic',parent:['product-import','public-open','first-close'].includes(name)?'public-lifecycle':'first-new-query',startNs:Number(process.hrtime.bigint()),endNs:null,completed:false};report.phaseSpans.push(span);return span;};
+  const end=(span:ClockSpan)=>{span.endNs=Number(process.hrtime.bigint());span.completed=true;};
   const save = () => writeFile(config.output, JSON.stringify({...report, ...usage(),
     processCpu: process.cpuUsage()}, null, 2) + '\n', {mode: 0o600});
   // Every state is created by the actual public Host, never seeded from an old Run.
@@ -212,7 +293,8 @@ export async function publicNodeSample(config) {
   const started = process.hrtime.bigint();
   try {
     const importing=begin('product-import');
-    const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href);end(importing);
+    const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href) as
+      Pick<typeof import('../packages/node/index.mjs'), 'open'>;end(importing);
     const opening=begin('public-open');client = await open({stateDir: config.stateDir});end(opening);
     report.importAndOpenNs = Number(process.hrtime.bigint() - started);
     const first = process.hrtime.bigint(),submitting=begin('new-run-submission');
@@ -220,7 +302,7 @@ export async function publicNodeSample(config) {
       requestId:`health-${config.kind}-${config.iteration??0}`});end(submitting);
     report.originalRunSha256 = jsonDigest(original.ref); // Actual original before wait.
     if(config.kind==='cold-existing-state') {
-      assert.match(config.seedRunSha256,/^[0-9a-f]{64}$/u);
+      assert.match(config.seedRunSha256!,/^[0-9a-f]{64}$/u);
       assert.notEqual(report.originalRunSha256,config.seedRunSha256,'Cold-existing must submit a NEW query');
     }
     const waiting=begin('wait-execution-publication');
@@ -238,9 +320,9 @@ export async function publicNodeSample(config) {
     if (config.kind === 'warm') {
       const state = await original.status();
       for (const [id, fixture] of [['warm-select', healthFixtures.select], ['warm-join', healthFixtures.join],
-        ['warm-aggregate', healthFixtures.aggregate], ['warm-saved', healthFixtures.select], ['warm-status', healthFixtures.status]]) {
-        const metric = {id, samples: []}; report.metrics.push(metric);
-        for (let iteration = 0; iteration < config.count; iteration++) {
+        ['warm-aggregate', healthFixtures.aggregate], ['warm-saved', healthFixtures.select], ['warm-status', healthFixtures.status]] as const) {
+        const metric: WarmMetric = {id, samples: []}; report.metrics.push(metric);
+        for (let iteration = 0; iteration < config.count!; iteration++) {
           const cpu = process.cpuUsage(), start = process.hrtime.bigint();
           let error;
           try {
@@ -249,8 +331,8 @@ export async function publicNodeSample(config) {
               assert.deepEqual({status: observed.status, revision: observed.revision}, {status: 'succeeded', revision: state.revision});
             } else if (id === 'warm-saved') assert.deepEqual(await original.result('main').all(), fixture.expected);
             else {
-              const text = id === 'warm-select' ? `SELECT ${iteration + 2} AS id` : fixture.text;
-              assert.deepEqual(await client.sql(text).all(), id === 'warm-select' ? [{id: iteration + 2}] : fixture.expected);
+              const text = id === 'warm-select' ? `SELECT ${iteration + 2} AS id` : fixture!.text;
+              assert.deepEqual(await client.sql(text).all(), id === 'warm-select' ? [{id: iteration + 2}] : fixture!.expected);
             }
           } catch (cause) {error = cause;}
           const used = process.cpuUsage(cpu);
@@ -284,20 +366,20 @@ export async function publicNodeSample(config) {
   return report;
 }
 
-export async function quickNodeMetrics({prepared, root, repository, command, counts, onMetric}) {
+export async function quickNodeMetrics({prepared, root, repository, command, counts, onMetric}: WorkflowOptions) {
   const warmOutput = join(root, 'warm-observation.json');
-  let originalFailure;
+  let originalFailure: unknown;
   try {
     await command(process.execPath, [self, '--sample', JSON.stringify({kind: 'warm', count: counts.warmSamples,
       consumer: prepared.consumer, stateDir: join(root, 'warm-state'), output: warmOutput})], {cwd: root, name: 'node-warm'});
   } catch (error) {originalFailure = error;}
   // The child saves its original partial/failed samples before exiting. Publish
   // those observations too; never discard them behind the command exit error.
-  let warm;
-  try {warm = JSON.parse(await readFile(warmOutput));}
+  let warm: SavedSample;
+  try {warm = JSON.parse(await readFile(warmOutput) as unknown as string);}
   catch (error) {throw originalFailure ?? error;}
   for (const metric of warm.metrics) {
-    const fixture = healthFixtures[metric.id.slice(5)] ?? healthFixtures.select;
+    const fixture = healthFixtures[metric.id.slice(5) as keyof typeof healthFixtures] ?? healthFixtures.select;
     await onMetric({...metric, kind: 'latency', target: 'node-local', temperature: 'warm', required: true, unit: 'ms',
       requiredSamples: counts.warmSamples, fixtureSha256: jsonDigest({fixture, count: counts.warmSamples}), evidence: warmOutput});
   }
@@ -308,11 +390,11 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
   // installed candidate and its public open/query/all-rows/first-close path.
   // Cold-new below independently retains normal first initialization cost.
   const existingState=join(root,'cold-existing-state'),seedOutput=join(root,'cold-existing-preparation.json');
-  let seedFailure,seedCommand;
+  let seedFailure: unknown,seedCommand: CommandResult | undefined;
   try {seedCommand=await command(process.execPath,[self,'--sample',JSON.stringify({kind:'prepare-existing-state',
     consumer:prepared.consumer,stateDir:existingState,output:seedOutput})],{cwd:root,name:'node-cold-existing-preparation'});}
-  catch(error) {seedFailure=error;seedCommand=error.commandResult;}
-  let seed;try {seed=JSON.parse(await readFile(seedOutput));}catch(error) {throw seedFailure??error;}
+  catch(error) {seedFailure=error;seedCommand=(error as CommandError)!.commandResult;}
+  let seed:SavedSample;try {seed=JSON.parse(await readFile(seedOutput) as unknown as string);}catch(error) {throw seedFailure??error;}
   await onMetric({id:'cold-existing-state-preparation',kind:'reference',target:'node-local',required:false,
     value:seedCommand?.wallNs===undefined?null:seedCommand.wallNs/1e6,unit:'ms',fixtureSha256:jsonDigest(healthFixtures.select),evidence:seedOutput,
     scope:'Same-candidate public preparation/close; excluded only from existing-state population, not from cold-new',
@@ -324,27 +406,27 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
   for(const kind of nodeColdStateKinds) {
     const base={kind:'latency',target:'node-local',temperature:'cold',stateKind:kind,required:true,unit:'ms',
       requiredSamples:counts.coldSamples,fixtureSha256:jsonDigest({fixture:healthFixtures.select,stateKind:kind}),evidence:root};
-    const cold={...base,id:`${kind}-process-first-result-close`,samples:[],
+    const cold: Metric & {samples: ObservedSample[]}={...base,id:`${kind}-process-first-result-close`,samples:[],
       scope:'Parent launch -> natural child exit, including public all rows and first close; collector setup/IPC/report overhead retained'};
-    const firstResult={...base,id:`${kind}-process-first-result`,samples:[],
+    const firstResult: Metric & {samples: ObservedSample[]}={...base,id:`${kind}-process-first-result`,samples:[],
       scope:'Parent launch -> received actual all-rows notification; IPC delivery is included, not subtracted'};
-    const phases=nodeColdPublicPhases.map(phase=>({...base,id:`${kind}-${phase}`,samples:[],
+    const phases=nodeColdPublicPhases.map((phase): Metric & {samples: ObservedSample[]}=>({...base,id:`${kind}-${phase}`,samples:[],
       scope:`Child public ${phase}; nested in parent whole-process time, not an exclusive CPU/work partition`}));
     for(let iteration=0;iteration<counts.coldSamples;iteration++) {
       const output=join(root,`${kind}-${iteration}.json`);
-      let commandFailure,observation;
+      let commandFailure: unknown,observation: CommandResult | undefined;
       try {observation=await command(process.execPath,[self,'--sample',JSON.stringify({kind,iteration,
         consumer:prepared.consumer,stateDir:kind==='cold-existing-state'?existingState:join(root,`cold-new-state-${iteration}`),
         ...(kind==='cold-existing-state'?{seedRunSha256:seed.originalRunSha256}:{}),notifyFirstResult:true,output})],
         {cwd:root,name:`node-${kind}-${iteration}`,observeFirstResult:true});}
-      catch(error) {commandFailure=error;observation=error.commandResult;}
-      let child;try {child=JSON.parse(await readFile(output));}catch(error) {throw commandFailure??error;}
+      catch(error) {commandFailure=error;observation=(error as CommandError)!.commandResult;}
+      let child:SavedSample;try {child=JSON.parse(await readFile(output) as unknown as string);}catch(error) {throw commandFailure??error;}
       const valid=!commandFailure&&child.cleanup.closed&&child.pid===observation?.pid&&!pids.has(child.pid)&&
-        child.kind===kind&&Number.isSafeInteger(observation.firstResultNs)&&observation.firstResultNs>=0&&
-        observation.firstResultNs<=observation.wallNs&&observation.firstResultNotifications===1;
+        child.kind===kind&&Number.isSafeInteger(observation!.firstResultNs)&&observation!.firstResultNs!>=0&&
+        observation!.firstResultNs!<=observation!.wallNs&&observation!.firstResultNotifications===1;
       pids.add(child.pid);
       assert(Number.isSafeInteger(observation?.wallNs),'Original parent process clock unavailable; raw child report retained');
-      const sample={iteration,pid:child.pid,wallNs:observation.wallNs,
+      const sample={iteration,pid:child.pid,wallNs:observation!.wallNs,
         cpuUserUs:child.processCpu.user,cpuSystemUs:child.processCpu.system,
         cpuScope:'Actual Node child through public close; final report write/exit excluded',
         peakRssBytes:child.peakRssBytes,rssScope:child.rssScope,publicTiming:child.publicTiming,
@@ -355,14 +437,14 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
         ...(!valid?{error:child.failure??nodeBenchmarkFailure(commandFailure??new Error('Incomplete original child observation'))}:{})};
       cold.samples.push(sample);await onMetric(cold);peaks.push(child.peakRssBytes);
       if(Number.isSafeInteger(observation?.firstResultNs)) {
-        firstResult.samples.push({...sample,wallNs:observation.firstResultNs,
-          publicTiming:valid?{kind:'process-first-result',startNs:0,observedNs:observation.firstResultNs,endNs:observation.firstResultNs}:undefined});
+        firstResult.samples.push({...sample,wallNs:observation!.firstResultNs!,
+          publicTiming:valid?{kind:'process-first-result',startNs:0,observedNs:observation!.firstResultNs!,endNs:observation!.firstResultNs!}:undefined});
       }else {firstResult.status='incomplete';firstResult.reason='No original all-rows notification; first Result unobserved';}
       await onMetric(firstResult);
       for(const [index,name] of nodeColdPublicPhases.entries()) {
         const span=child.phaseSpans?.find(span=>span.name===name);
         if(span?.completed===true)phases[index].samples.push({iteration,pid:child.pid,
-          wallNs:span.endNs-span.startNs,completed:true,verified:true,cpuAvailable:false,observation:output});
+          wallNs:span.endNs!-span.startNs,completed:true,verified:true,cpuAvailable:false,observation:output});
         else {phases[index].status=span?'error':'incomplete';
           phases[index].reason=span?'Original phase did not complete':'Phase unexecuted after earlier original failure';}
         await onMetric(phases[index]);
@@ -377,12 +459,12 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 }
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
-  template = 'churn-risk-mock', variant = 'readme', accountScenario = 'default'}) {
+  template = 'churn-risk-mock', variant = 'readme', accountScenario = 'default'}: WorkflowOptions & MockOptions) {
   assert(['default', 'explicit-operator-content'].includes(accountScenario));
   if (accountScenario !== 'default') assert.equal(variant, 'terminal-content');
   if (['terminal-infer', 'terminal-content'].includes(variant)) {
     assert.equal(template, 'churn-risk-mock');
-    return terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant, accountScenario});
+    return terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant: variant as TerminalVariant, accountScenario});
   }
   const multipleTargets = variant === 'multiple-targets';
   assert.ok(variant === 'readme' || multipleTargets && template === 'churn-risk-mock' ||
@@ -392,20 +474,20 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   const protocolFixture = await readFile(join(repository, healthFixtures.workflowProtocol));
   const multipleTargetFixture = multipleTargets ? await readFile(join(repository,
     'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs')) : undefined;
-  const files = multipleTargets ? multipleTargetMockProjectFiles()
+  const files: Readonly<Record<string, string>> = multipleTargets ? multipleTargetMockProjectFiles()
     : variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
     : variant === 'two-models-joined-whole' ? twoModelJoinedWholeDealReviewFiles()
     : variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
     : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
   const program = multipleTargets ? 'multiple-targets.program.json' : variant !== 'readme' ? 'deal-review.program.json'
     : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
-  const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
+  const answers = Object.values((JSON.parse(files['actql.config.json']) as {mock: {answers: Record<string, string>}}).mock.answers)
     .map(path => path.replace(/^\.\//u, ''));
   const recoveryInputs = [program, ...answers];
   assert.equal(new Set(recoveryInputs).size, recoveryInputs.length);
   assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
-  const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
+  const metric: Metric & {samples: ObservedSample[]} = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), workflowProtocol: digest(protocolFixture),
       ...(multipleTargetFixture === undefined ? {} : {multipleTargetFixture: digest(multipleTargetFixture)}), files}),
     template, variant, samples: [], evidence: root};
@@ -417,7 +499,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     const originals = new Map(await Promise.all(recoveryInputs.map(async path => {
       const info = await lstat(join(project, path));
       assert(info.isFile() && info.nlink === 1);
-      return [path, {dev: info.dev, ino: info.ino}];
+      return [path, {dev: info.dev, ino: info.ino}] as const;
     })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
@@ -426,18 +508,18 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
       await writeFile(join(project, 'mock-multiple-targets.fixture.mjs'), multipleTargetFixture, {flag: 'wx'});
     }
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
-    const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
+    const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases: PhaseReport<WorkflowSummary>[] = [];
     try {
-      for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]]) {
+      for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]] as const) {
         const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
           ...(template === 'churn-risk-mock' && variant === 'readme' ? [] : [template]),
           ...(variant === 'readme' ? [] : [variant])];
-        const record = {phase, command: process.execPath, args, cwd: project,
+        const record: PhaseReport<WorkflowSummary> = {phase, command: process.execPath, args, cwd: project,
           expectedAssertions: expected, completed: false, startedAt: new Date().toISOString()};
         phases.push(record);
         const path = join(project, `${phase}.observation.json`);
         await writeFile(path, JSON.stringify(record, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
-        let observation, phaseFailed = false, primary;
+        let observation: CommandResult | undefined, phaseFailed = false, primary: unknown;
         try {
           if (phase !== 'capture') {
             for (const input of recoveryInputs) {
@@ -449,7 +531,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
             {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
           Object.assign(record, {pid: observation.pid, wallNs: observation.wallNs,
             exitCode: observation.code, signal: observation.signal ?? null});
-          const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+          const rows = observation!.stdout.trim().split('\n').map(line => JSON.parse(line) as OperationRow & WorkflowSummary);
           record.summary = rows.at(-1);
           record.operations = rows.filter(row => typeof row.step === 'string');
           // The command and its original outcome exist before fixture assertions.
@@ -457,20 +539,20 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
           for (const row of record.operations) {
             const timing = row.timing;
-            assert(timing && ['wallNs', 'cpuUserUs', 'cpuSystemUs'].every(name =>
+            assert(timing && (['wallNs', 'cpuUserUs', 'cpuSystemUs'] as const).every(name =>
               Number.isSafeInteger(timing[name]) && timing[name] >= 0));
             assert(timing.wallNs > 0 && Date.parse(timing.endedAt) >= Date.parse(timing.startedAt));
           }
-          assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
-          assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
-          const work = record.summary.workObservation;
+          assert.equal(record.summary!.status, 'passed'); assert.equal(record.summary!.firstFailedStep, null);
+          assert.deepEqual(record.summary!.firstClose, {attempted: true, returned: true});
+          const work = record.summary!.workObservation;
           assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
           if (phase === 'capture') {
             assert.equal(work.sourceAcquisitionStarts, 2);
             assert.equal(work.modelCallStarts, multipleTargets ? 0 : variant === 'readme' ? 2 : 4);
             assert.equal(work.effectReplacementReturns, 0);
             if (['two-models-joined-inputs', 'two-models-joined-whole'].includes(variant)) {
-              assert.deepEqual(record.summary.modelInputObservation,
+              assert.deepEqual(record.summary!.modelInputObservation,
                 {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2});
             }
           } else {
@@ -488,11 +570,11 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
               const selected = join(project, input), info = await lstat(selected);
               const original = originals.get(input);
               assert(info.isFile() && info.nlink === 1);
-              assert.equal(info.dev, original.dev); assert.equal(info.ino, original.ino);
+              assert.equal(info.dev, original!.dev); assert.equal(info.ino, original!.ino);
               assert.equal(await readFile(selected, 'utf8'), files[input]);
             }
             for (const input of recoveryInputs) {
-              await unlink(join(project, input)); record.inputRemoval.paths.push(input);
+              await unlink(join(project, input)); record.inputRemoval!.paths.push(input);
             }
             record.inputRemoval.completed = true;
           }
@@ -505,19 +587,19 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           record.assertions = expected; record.completed = true;
         } catch (error) {
           phaseFailed = true; primary = error;
-          observation ??= error?.commandResult;
+          observation ??= (error as CommandError)?.commandResult;
           // A nonzero child can still have reported its original primary and
           // first-close outcome. Preserve those DATA without replacing it.
           try {
-            const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+            const rows = observation!.stdout.trim().split('\n').map(line => JSON.parse(line) as OperationRow & WorkflowSummary);
             record.operations = rows.filter(row => typeof row.step === 'string');
-            if (Object.hasOwn(rows.at(-1), 'firstClose')) record.summary = rows.at(-1);
+            if (Object.hasOwn(rows.at(-1)!, 'firstClose')) record.summary = rows.at(-1);
           } catch {}
           try {
             const partial = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));
             assert.equal(partial.phase, phase);
-            assert(Number.isSafeInteger(observation?.pid) && observation.pid > 0);
-            assert.equal(partial.pid, observation.pid);
+            assert(Number.isSafeInteger(observation?.pid) && observation!.pid! > 0);
+            assert.equal(partial.pid, observation!.pid);
             record.partialObservation = partial;
           } catch (diagnosticError) {
             record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
@@ -553,15 +635,15 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
 // Same normal installation, command supervisor and functional report as the
 // existing workflow. These terminal Programs have no approval phase; they do
 // not weaken any Effect fixture's original phase/count/cleanup assertions.
-async function terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant, accountScenario}) {
+async function terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant, accountScenario}: TerminalOptions) {
   const selected = terminalMockScenario(variant), files = {...projectTemplateFiles(template), [selected.path]: selected.source};
   const members = ['adapters/host-node/fixtures/mock-project-terminal-public.mjs',
     'adapters/host-node/fixtures/work-observation.fixture.mjs',
     'adapters/host-node/fixtures/installed-family-content.fixture.mjs',
     'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
     'scripts/fixtures/external-rest/timed-installed-context.fixture.mjs'];
-  const fixtures = new Map(await Promise.all(members.map(async path => [path, await readFile(join(repository, path))])));
-  const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
+  const fixtures = new Map(await Promise.all(members.map(async path => [path, await readFile(join(repository, path))] as const)));
+  const metric: Metric & {samples: ObservedSample[]} = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, template, variant, samples: [], evidence: root,
     performanceAcceptance: false,
     qualification: 'Functional terminal public Result/Saved only; Content byte-derived envelope, not Store payload read',
@@ -577,20 +659,20 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
     const inputs = [selected.path, 'mock/churn-risk.v1.answers.yaml'];
     const originals = new Map(await Promise.all(inputs.map(async path => {
       const info = await lstat(join(project, path));assert(info.isFile() && info.nlink === 1);
-      return [path, {dev: info.dev, ino: info.ino}];
+      return [path, {dev: info.dev, ino: info.ino}] as const;
     })));
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
-    const started = process.hrtime.bigint(), phases = [];
-    let capturedPid, failed = false, primary;
+    const started = process.hrtime.bigint(), phases: PhaseReport<TerminalSummary>[] = [];
+    let capturedPid: number | undefined, failed = false, primary: unknown;
     try {
-      for (const phase of ['capture', 'recover']) {
+      for (const phase of ['capture', 'recover'] as const satisfies readonly TerminalPhase[]) {
         const args = [join(project, members[0]), phase, variant, join(project, 'handoff.json')];
         if (accountScenario !== 'default') args.push(accountScenario);
-        const record = {phase, command: process.execPath, args, cwd: project, status: 'running', completed: false};
+        const record: PhaseReport<TerminalSummary> = {phase, command: process.execPath, args, cwd: project, status: 'running', completed: false};
         phases.push(record);
         const path = join(project, `${phase}.observation.json`);
         await writeFile(path, JSON.stringify(record, null, 2) + '\n', {flag: 'wx', mode: 0o600});
-        let observed, failed = false;
+        let observed: CommandResult | undefined, failed = false;
         try {
           assert.equal(await readlink(join(project, 'node_modules')), join(prepared.consumer, 'node_modules'));
           if (phase === 'recover') for (const input of inputs) {
@@ -598,12 +680,12 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
           }
           observed = await command(process.execPath, args,
             {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
-          record.pid = observed.pid;record.summary = JSON.parse(observed.stdout.trim());
-          assertTerminalMockObservation(record.summary, {variant, phase, pid: observed.pid, capturedPid});
-          if (accountScenario === 'default') assert.equal(Object.hasOwn(record.summary, 'accountScenario'), false);
+          record.pid = observed.pid;record.summary = JSON.parse(observed!.stdout.trim()) as TerminalSummary;
+          assertTerminalMockObservation(record.summary, {variant, phase, pid: observed.pid!, capturedPid});
+          if (accountScenario === 'default') assert.equal(Object.hasOwn(record.summary!, 'accountScenario'), false);
           else {
-            assert.equal(Object.hasOwn(record.summary, 'accountScenario'), true);
-            assert.equal(record.summary.accountScenario, accountScenario);
+            assert.equal(Object.hasOwn(record.summary!, 'accountScenario'), true);
+            assert.equal(record.summary!.accountScenario, accountScenario);
           }
           if (phase === 'capture') {
             capturedPid = observed.pid;
@@ -612,7 +694,7 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
             // checks. Their original Run/DB/key/Store and fixture config stay.
             for (const input of inputs) {
               const info = await lstat(join(project, input));assert(info.isFile() && info.nlink === 1);
-              assert.equal(info.dev, originals.get(input).dev);assert.equal(info.ino, originals.get(input).ino);
+              assert.equal(info.dev, originals.get(input)!.dev);assert.equal(info.ino, originals.get(input)!.ino);
               assert.equal(await readFile(join(project, input), 'utf8'), files[input]);
             }
             for (const input of inputs) await unlink(join(project, input));
@@ -621,8 +703,8 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
           record.status = 'passed';record.completed = true;
         } catch (cause) {
           failed = true;record.status = 'failed';record.error = nodeBenchmarkFailure(cause);
-          observed ??= cause?.commandResult;
-          try {record.summary = JSON.parse(observed.stdout.trim());} catch {}
+          observed ??= (cause as CommandError)?.commandResult;
+          try {record.summary = JSON.parse(observed!.stdout.trim()) as TerminalSummary;} catch {}
           try {record.partialObservation = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));}
           catch (error) {record.partialObservationUnavailable = nodeBenchmarkFailure(error);}
           throw cause;
