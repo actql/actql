@@ -73,7 +73,7 @@ class _NamespaceReader:
     # it never refreshes the original snapshot or returns a currentness token.
     _invocation_candidate: Callable[['_NamespaceReader', Callable[[], object], object], bool] | None = None
 
-    # Only a Store-owned terminal projection supplies this prewrite lifetime.
+    # A Store-owned Saved projection can supply this prewrite lifetime.
     _projected_prewrite: Callable[[], bool] | None = None
 
 
@@ -1757,7 +1757,7 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
         """Borrow this same write transaction for the existing current Owner.
 
         The trusted Host enters its original Core/File locks first and wraps
@@ -1772,7 +1772,8 @@ class LocalByteStore:
         self._validate_metadata_fences(fences, ())
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
-            reuse_identical=True, fences=fences, inspect=inspect, current=current)
+            reuse_identical=True, fences=fences, inspect=inspect, current=current,
+            _sdk_delivery_prewrite=_sdk_delivery_prewrite)
 
     def _projected_attached(
             self, count: int,

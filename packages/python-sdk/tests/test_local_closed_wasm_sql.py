@@ -282,7 +282,10 @@ class ClosedWasmSqlTests(unittest.TestCase):
     def test_saved_first_delivery_proof_closes_before_writing(self):
         self._check_proposal_read('produce_sdk_read_delivery_storage')
 
-    def _check_proposal_read(self, export):
+    def test_saved_evidence_proposal_closes_proof_before_writing(self):
+        self._check_proposal_read('produce_sdk_read_evidence_decision', insert_only=True)
+
+    def _check_proposal_read(self, export, *, insert_only=False):
         for enabled, effect, legacy, expected in (
                 (True, 0, False, [11, 0]), (False, 0, False, [0, 0]),
                 (True, 1, False, [10, 0]), (True, 0, True, [0, 0])):
@@ -309,7 +312,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
                     observe()
                 with binding.fenced() as fences:
                     changes = store._connection.total_changes
-                    self.assertEqual(store.compare_exchange_projected_inspected(
+                    project = (store.store_publication_projected_inspected if insert_only
+                               else store.compare_exchange_projected_inspected)
+                    self.assertEqual(project(
                         1, lambda _, consume: consume(write), originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
                         _sdk_delivery_prewrite=enabled), (0,))
@@ -326,7 +331,10 @@ class ClosedWasmSqlTests(unittest.TestCase):
     def test_saved_first_delivery_cannot_write_during_original_wasm_callback(self):
         self._reject_write_during_proposal('produce_sdk_read_delivery_storage')
 
-    def _reject_write_during_proposal(self, export):
+    def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback(self):
+        self._reject_write_during_proposal('produce_sdk_read_evidence_decision', insert_only=True)
+
+    def _reject_write_during_proposal(self, export, *, insert_only=False):
         consumers = []
         def effect():
             consumers[0]()
@@ -340,8 +348,10 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 core, 'publication_commit_export', export, 1, 1))
         with binding.fenced() as fences:
             changes = store._connection.total_changes
+            project = (store.store_publication_projected_inspected if insert_only
+                       else store.compare_exchange_projected_inspected)
             with self.assertRaisesRegex(LocalStorageError, 'prewrite invocation'):
-                store.compare_exchange_projected_inspected(
+                project(
                     1, lambda _, consume: consume(ByteWrite(key, None, b'bytes')), originals, fences,
                     inspect=inspect, current=binding._current_observer,
                     before_commit=lambda: None, _sdk_delivery_prewrite=True)

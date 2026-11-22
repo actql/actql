@@ -28737,7 +28737,7 @@
           ]
         }
       ],
-      "sha256": "a78d96936412fb5579278d7c0c980a5fde84343a4aacf0490a708d115d2581dd",
+      "sha256": "ee5836716d033ee48c62ecce180bd38a20b98b69a0897555a661aa19f8424798",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29297,6 +29297,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
               }
             ]
           }
@@ -62220,7 +62228,7 @@
           ]
         }
       ],
-      "sha256": "01579866f79df5d0ee4882feaebfaa4de700f8f19e744d2de5945ea1099c8d88",
+      "sha256": "f3fd96f8b773ca0e9b0dd6ac0cee53dd9d216cebb8c8baa65b3c6363d92962ce",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -65693,7 +65701,8 @@
             "fences",
             "inspect",
             "current",
-            "before_commit"
+            "before_commit",
+            "_sdk_delivery_prewrite"
           ]
         },
         {
@@ -65743,7 +65752,7 @@
           "parameters": []
         }
       ],
-      "sha256": "6b0df1f8a897d4645760f11b509e8cf6e95d78baa73eec84db5057c56f17b201",
+      "sha256": "e3e109a4d36947b558f8c7d4f07c9a381678a11cb18d681736bd5a34eefb5dab",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66884,6 +66893,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
               }
             ]
           }
