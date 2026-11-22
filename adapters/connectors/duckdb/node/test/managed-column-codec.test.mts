@@ -4,11 +4,16 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DuckDBInstance} from '@duckdb/node-api';
+import type {DuckDBConnection, DuckDBPreparedStatement} from '@duckdb/node-api';
 import {encodeManagedColumnFrame,
   managedColumnCodecContractCid,
   managedColumnRowProvider} from '../managed-column-codec.mjs';
 
-const double = value => {
+type Encode = typeof encodeManagedColumnFrame;
+type OmittedOrdinal = (fields: Parameters<Encode>[0], columns: Parameters<Encode>[1],
+  rowCount: number, firstRow?: number) => ReturnType<Encode>;
+
+const double = (value: number) => {
   const bytes = Buffer.alloc(8);
   bytes.writeDoubleBE(value);
   return bytes.toString('hex');
@@ -26,7 +31,7 @@ test('managed column frames preserve bounded heterogeneous column occurrences', 
     '{"c0":[1,null,2],"c1":["x",null,"雪"],"o":[4,5,6]}\n');
   assert.throws(() => encodeManagedColumnFrame(fields,
     [[double(1)], ['x', 'y']], 1, 0), {code: 'UnsupportedManagedColumnFrame'});
-  assert.throws(() => encodeManagedColumnFrame(fields,
+  assert.throws(() => (encodeManagedColumnFrame as OmittedOrdinal)(fields,
     [[double(1)], ['x']], 1), {code: 'UnsupportedManagedColumnFrame'});
   assert.throws(() => encodeManagedColumnFrame(
     [{name: 'flag', type: {id: 'BOOLEAN'}}], [[true]], 1, 0),
@@ -34,7 +39,8 @@ test('managed column frames preserve bounded heterogeneous column occurrences', 
 
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-column-'));
   const path = join(directory, 'body.ndjson');
-  let instance, connection, prepared;
+  let instance: DuckDBInstance | undefined, connection: DuckDBConnection | undefined,
+    prepared: DuckDBPreparedStatement | undefined;
   try {
     await writeFile(path, frame);
     instance = await DuckDBInstance.create(':memory:');

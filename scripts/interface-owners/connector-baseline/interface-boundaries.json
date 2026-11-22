@@ -1327,7 +1327,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/managed-column-codec.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/managed-column-codec.test.mts",
                 "anchor": "managed row provider stops its real file read before returning"
               }
             ]

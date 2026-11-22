@@ -1,4 +1,4 @@
-// Compile-time subset of the optional, lockfile-pinned Neo SDK used by Session and its physical transport.
+// Compile-time subset of the optional, lockfile-pinned Neo SDK used by Session, its physical transport and focused fixtures.
 // When installed, the SDK declarations take precedence. Runtime uses the
 // same original package import in both cases.
 export declare const StatementType: {
@@ -20,6 +20,7 @@ export interface DuckDBConnection {
   closeSync(): void;
   interrupt(): void;
   run(sql: string): Promise<unknown>;
+  prepare(sql: string): Promise<DuckDBPreparedStatement>;
   createAppender(table: string, schema?: string): Promise<DuckDBAppender>;
   extractStatements(sql: string): Promise<{
     readonly count: number;
@@ -85,6 +86,7 @@ export interface DuckDBPreparedStatement {
   bindTimestampMilliseconds(parameterIndex: number, value: {readonly millis: bigint}): void;
   bindTimestampNanoseconds(parameterIndex: number, value: {readonly nanos: bigint}): void;
   bindNull(parameterIndex: number): void;
+  runAndReadAll(): Promise<{getRows(): DuckDBValue[][]}>;
   stream(): Promise<{
     readonly columnCount: number;
     columnName(index: number): string;

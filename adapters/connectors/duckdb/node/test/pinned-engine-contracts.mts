@@ -19,17 +19,17 @@ const names = Object.freeze({
   }),
 });
 
-const canonical = value => Array.isArray(value)
+const canonical = (value: unknown): string => Array.isArray(value)
   ? `[${value.map(canonical).join(',')}]`
   : value !== null && typeof value === 'object'
     ? `{${Object.keys(value).sort().map(key =>
-      `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+      `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`
     : JSON.stringify(value);
 
-const cid = value => `sha256:${createHash('sha256')
+const cid = (value: unknown) => `sha256:${createHash('sha256')
   .update(canonical(value)).digest('hex')}`;
 
-const fail = (code, fixture, cause) => {
+const fail: (code: string, fixture: string, cause?: unknown) => never = (code, fixture, cause) => {
   const error = Object.assign(new Error(`${code}: ${fixture}`), {
     code,
     fixture,
@@ -38,7 +38,7 @@ const fail = (code, fixture, cause) => {
   throw error;
 };
 
-function namedFixture(source, name) {
+function namedFixture(source: string, name: string) {
   if (!Object.hasOwn(names, name)) fail('UnknownPinnedEngineFixture', name);
   const marker = `fn ${name}()`;
   const start = source.indexOf(marker);
@@ -48,17 +48,29 @@ function namedFixture(source, name) {
   const match = body.match(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/);
   if (!match) fail('MissingPinnedEngineFixtureJSON', name);
   try {
-    const encoded = JSON.parse(match[1]);
-    return Object.freeze({encoded, value: JSON.parse(encoded)});
+    const encoded = JSON.parse(match[1]) as string;
+    return Object.freeze({encoded, value: JSON.parse(encoded) as Readonly<{version?: unknown; operation?: unknown}>});
   } catch (cause) {
     fail('InvalidPinnedEngineFixtureJSON', name, cause);
   }
 }
 
-export const pinnedEngineFixture = (source, name) =>
+export const pinnedEngineFixture = (source: string, name: string) =>
   namedFixture(source, name).encoded;
 
-export async function pinnedEngineContracts(root, requested = [
+type FixtureName = keyof typeof names;
+type ContractPins = Readonly<{
+  pipeline_registry_file: string;
+  pipeline_registry_cid: string;
+  execution_contracts: Readonly<Record<string, unknown>>;
+  target_registry_requirements: Readonly<Record<'REL.values', {execution_contract: {cid: string}}>>;
+}>;
+type Registry = Readonly<{
+  'REL.derive': {execution_extensions: {ordered_bindings: {cid: string}}};
+  'ACTQL.expression_fragment/0.1': {execution_contract: {cid: string}};
+}>;
+
+export async function pinnedEngineContracts(root: string, requested: readonly FixtureName[] = [
   'registered_body',
   'registered_values',
   'registered_fragment',
@@ -71,9 +83,9 @@ export async function pinnedEngineContracts(root, requested = [
       'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8'),
     readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'),
   ]);
-  const aoa = JSON.parse(aoaText);
+  const aoa = JSON.parse(aoaText) as ContractPins;
   const registry = JSON.parse(await readFile(
-    join(root, aoa.pipeline_registry_file), 'utf8'));
+    join(root, aoa.pipeline_registry_file), 'utf8')) as Registry;
   const expected = Object.freeze({
     registered_body: Object.freeze({
       value: registry,
@@ -92,7 +104,7 @@ export async function pinnedEngineContracts(root, requested = [
       cid: registry['ACTQL.expression_fragment/0.1'].execution_contract.cid,
     }),
   });
-  return requested.map(name => {
+  return requested.map((name: FixtureName) => {
     const fixture = namedFixture(source, name);
     if (!isDeepStrictEqual(fixture.value, expected[name].value)) {
       fail('PinnedEngineContractMismatch', name);

@@ -1830,3 +1830,11 @@ target/
 /adapters/connectors/duckdb/node/host.d.mts
 /adapters/connectors/duckdb/node/strategy-bundle.mjs
 /adapters/connectors/duckdb/node/strategy-bundle.d.mts
+/adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs
+/adapters/connectors/duckdb/node/test/pinned-engine-contracts.d.mts
+/adapters/connectors/duckdb/node/test/pinned-engine-contracts.test.mjs
+/adapters/connectors/duckdb/node/test/pinned-engine-contracts.test.d.mts
+/adapters/connectors/duckdb/node/test/typed-catalog.mjs
+/adapters/connectors/duckdb/node/test/typed-catalog.d.mts
+/adapters/connectors/duckdb/node/test/managed-column-codec.test.mjs
+/adapters/connectors/duckdb/node/test/managed-column-codec.test.d.mts
