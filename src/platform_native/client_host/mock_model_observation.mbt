@@ -539,6 +539,7 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports? : @host.ClientEffectImportedEvidence? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   @host.ClientEffectModelAcquiredEvidence,
   @host.ClientEffectAcquiredEvidenceIssue,
@@ -560,6 +561,7 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
     max_nodes,
     max_depth,
     imports~,
+    before_body~,
   )
   if self.closing ||
     self.closed ||
