@@ -4871,6 +4871,316 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-construction.mjs",
+      "sha256": "568fce846298deec781321bbe6d81237f09557b1c749d12facbf37bb2496f6af",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectConstruction"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectConstruction",
+          "parameters": [
+            "fail",
+            "text",
+            "optionalFunction",
+            "cid",
+            "cidPattern",
+            "defaultProfile",
+            "defaultLimits",
+            "localContractLimits",
+            "installedRowEffectConstructionLimits",
+            "managedTargetPlanOriginals",
+            "createRowEffectStage",
+            "captureEffectResources",
+            "checkDriver",
+            "captureBeforeSendCheck",
+            "captureResponseConfirmation",
+            "captureManagedPlanDefinition",
+            "captureManagedPlanRecipes",
+            "captureManagedDriverConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "mappings",
+            "commands",
+            "environmentWire",
+            "sourceInitialization",
+            "declaration",
+            "declared",
+            "environment",
+            "connectorId",
+            "connectorRegistration",
+            "connectorRevision",
+            "connection",
+            "site",
+            "authorization",
+            "runtimeBundleCid",
+            "bindingCid",
+            "driver",
+            "write",
+            "ledgerRoot",
+            "installation",
+            "continuationBinding",
+            "suppliedLimits",
+            "effectResources",
+            "issueOriginalCollectionReference",
+            "managedPlanDefinition",
+            "managedPlanRecipe",
+            "managedPlanRecipes",
+            "managedTargetPlanRecipes",
+            "managedPlanConstruction"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/installedCommands/installedCommands",
+          "parameters": [
+            "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
+          "parameters": [
+            "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
+          "parameters": [
+            "catalog"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+          "parameters": [
+            "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings#2",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/installedRowEffectDescriptors",
+          "parameters": [
+            "moon",
+            "prepared",
+            "compilation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/installedRowEffectDescriptors/installedRowEffectDescriptors",
+          "parameters": [
+            "effectId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/installedRowEffectUnit",
+          "parameters": [
+            "moon",
+            "compilation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units",
+          "parameters": [
+            "stage",
+            "stageIndex"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectConstruction",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#2",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/installed/installed",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/installedCommands/installedCommands",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/storeMappings/storeMappings#2",
+            "createInstalledRowEffectConstruction/installedRowEffectDescriptors",
+            "createInstalledRowEffectConstruction/installedRowEffectDescriptors/installedRowEffectDescriptors",
+            "createInstalledRowEffectConstruction/installedRowEffectUnit",
+            "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units"
+          ],
+          "exports": [
+            "createInstalledRowEffectConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Standard CREATE declaration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function installedRowEffectUnit"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function installedRowEffectDescriptors"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "assertInstalledSourceConstruction(sourceInitialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "const adapter = createRowEffectStage"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect construction retains original Mapping Environment and adapter until the same Site cleanup"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "await mkdir(ledgerRoot"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "retainInstalledSourceConstruction(sourceInitialization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "reject('InvalidInstalledEffectPlanRecipe')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect construction refuses copied context or changed original Environment without another constructor"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This installation binds the existing stage; later dispatch, cancellation and cleanup stay with that same stage."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "const resources = captureEffectResources"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect construction retains original Mapping Environment and adapter until the same Site cleanup"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "prepareInstalledDeclaredUpdatePlanRecipe({moon"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "prepareInstalledStandardCreatePlanRecipe({moon"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "actual Row Effect constructor consumes the declaration"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect construction retains original Mapping Environment and adapter until the same Site cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-content-command-plan.test.mjs",
+                "anchor": "checked Content COMMAND physical factory retains its original contract and requires recovery hooks"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect construction refuses copied context or changed original Environment without another constructor"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../connectors-builtin/installations.generated.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-connectors.mjs",
+        "./installed-effect-plan.mjs",
+        "./installed-host-services.mjs",
+        "./installed-row-effect-standard-write.mjs",
+        "./installed-row-source.mjs",
+        "./table-write-binding.mjs",
+        "node:fs/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-driver.mjs",
       "sha256": "2e29fa2153b733e17017dd993d53451b512fa34b8a56eb01a99538071d936941",
       "responsibilityFacet": "primary",
@@ -6892,7 +7202,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "1250217b15b133801abd31ae2816c7adf281a7e965ea6f17e57109e8841e3fc3",
+      "sha256": "5d041cbfe35176f92e62269e77274004a9fb2a13a7fbe3642bd2b5c68ee3d287",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6913,6 +7223,13 @@
         "validateInstalledUpdateOwnerSelections"
       ],
       "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "commandContentBorrower/init:borrow/init:borrow",
           "parameters": [
@@ -7044,101 +7361,12 @@
           "async": false
         },
         {
-          "name": "createInstalledRowEffect",
+          "name": "createRowEffectStage",
           "parameters": [
-            "moon",
-            "providerMoon",
-            "mappings",
-            "commands",
+            "owners",
             "environmentWire",
-            "sourceInitialization",
-            "declaration",
-            "declared",
-            "environment",
-            "connectorId",
-            "connectorRegistration",
-            "connectorRevision",
-            "connection",
-            "site",
-            "authorization",
-            "runtimeBundleCid",
-            "bindingCid",
-            "driver",
-            "write",
-            "ledgerRoot",
-            "installation",
-            "continuationBinding",
-            "suppliedLimits",
-            "effectResources",
-            "issueOriginalCollectionReference",
-            "managedPlanDefinition",
-            "managedPlanRecipe",
-            "managedPlanRecipes",
-            "managedTargetPlanRecipes",
-            "managedPlanConstruction"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowEffect/createInstalledRowEffect",
-          "parameters": [
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/createInstalledRowEffect#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/installed/installed",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/installedCommands/installedCommands",
-          "parameters": [
-            "command"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/storeMappings/storeMappings",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
-          "parameters": [
-            "command"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-          "parameters": [
-            "catalog"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
-          "parameters": [
-            "command"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowEffect/storeMappings/storeMappings#2",
-          "parameters": [
-            "mapping"
+            "routes",
+            "retainedLimits"
           ],
           "async": false
         },
@@ -8506,38 +8734,6 @@
           "async": false
         },
         {
-          "name": "installedRowEffectDescriptors",
-          "parameters": [
-            "moon",
-            "prepared",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectDescriptors/installedRowEffectDescriptors",
-          "parameters": [
-            "effectId"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectUnit",
-          "parameters": [
-            "moon",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedRowEffectUnit/units/units",
-          "parameters": [
-            "stage",
-            "stageIndex"
-          ],
-          "async": false
-        },
-        {
           "name": "optionalFunction/optionalFunction",
           "parameters": [
             "value"
@@ -8617,16 +8813,6 @@
             "composeInstalledRowEffectOwners/owners/owners",
             "composeInstalledRowEffectOwners/routes/routes",
             "contractCidOf/contractCidOf",
-            "createInstalledRowEffect",
-            "createInstalledRowEffect/createInstalledRowEffect",
-            "createInstalledRowEffect/createInstalledRowEffect#2",
-            "createInstalledRowEffect/installed/installed",
-            "createInstalledRowEffect/installedCommands/installedCommands",
-            "createInstalledRowEffect/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings#2",
-            "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
             "createRowEffectStage/adapter/adapter",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
@@ -8750,16 +8936,14 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
             "guarded/guarded",
-            "installedRowEffectDescriptors",
-            "installedRowEffectDescriptors/installedRowEffectDescriptors",
-            "installedRowEffectUnit",
-            "installedRowEffectUnit/units/units",
             "optionalFunction/optionalFunction",
             "prepareInstalledCreateRows/createRows/createRows",
             "prepareInstalledCreateRows/prepareInstalledCreateRows",
             "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
             "prepareInstalledCreateRows/wires/wires",
-            "retainInstalledRowEffectAdapter"
+            "retainInstalledRowEffectAdapter",
+            "cid/cid",
+            "createRowEffectStage"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -8813,8 +8997,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createInstalledRowEffect"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -8859,8 +9043,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "profileOf"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -9656,8 +9840,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('InvalidInstalledEffectPlanRecipe')"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "reject('InvalidInstalledEffectPlanRecipe')"
               },
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
@@ -9958,8 +10142,8 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createInstalledRowEffect"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -10012,8 +10196,8 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "profileOf"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -10954,8 +11138,8 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createInstalledRowEffect"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -11008,8 +11192,8 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "profileOf"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -11629,8 +11813,8 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createInstalledRowEffect"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -11679,8 +11863,8 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "profileOf"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -12284,8 +12468,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createInstalledRowEffect"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "async function createInstalledRowEffect"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -12326,8 +12510,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "profileOf"
+                "path": "adapters/host-node/installed-row-effect-construction.mts",
+                "anchor": "function profileOf"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -13554,7 +13738,6 @@
       ],
       "imports": [
         "../../packages/sdk/host-port.mjs",
-        "../connectors-builtin/installations.generated.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
@@ -13568,23 +13751,20 @@
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./effect-result-work.mjs",
-        "./installed-connectors.mjs",
         "./installed-effect-ledger-open.mjs",
         "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
+        "./installed-row-effect-construction.mjs",
         "./installed-row-effect-driver.mjs",
         "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-plan-capture.mjs",
-        "./installed-row-effect-standard-write.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
-        "./table-write-binding.mjs",
         "./update-target-original-shape.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:util"
       ],
       "compilerFields": [],

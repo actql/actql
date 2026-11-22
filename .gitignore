@@ -2320,6 +2320,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-driver.d.mts
 /adapters/host-node/installed-row-effect-owner-projection.mjs
 /adapters/host-node/installed-row-effect-owner-projection.d.mts
+/adapters/host-node/installed-row-effect-construction.mjs
+/adapters/host-node/installed-row-effect-construction.d.mts
 /adapters/host-node/installed-effect-definition-data.test.mjs
 /adapters/host-node/installed-effect-definition-data.test.d.mts
 /adapters/host-node/installed-effect-owned-operation.mjs

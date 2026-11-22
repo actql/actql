@@ -95,16 +95,14 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
-import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
+import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
 import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
-import {checkedTableWriteBinding} from './table-write-binding.mjs';
-import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {refusedEffectPreparation} from
   '../host-common/effect-preparation-result.mjs';
@@ -112,9 +110,6 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
-import {installedConnectors} from
-  '../connectors-builtin/installations.generated.mjs';
-import {isInstalledConnectorTableEntry} from './installed-connectors.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
@@ -129,8 +124,7 @@ import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
-import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
-  closeInstalledSourceConstruction} from './installed-host-services.mjs';
+import {closeInstalledSourceConstruction} from './installed-host-services.mjs';
 
 // Private provenance: copies of an adapter cannot introduce an installation.
 const rowInstallations = new WeakMap();
@@ -334,243 +328,15 @@ function prepareInstalledCreateRows(moon, proposals, limits) {
   return {rows: createRows.map(item => item.entry), createRows};
 }
 
-// The identity profile of an installation: the one its connector registered
-// in the installed connector table, or the common default. Only an entry of
-// the generated table or a snapshot admitted by the table owner is accepted.
-function profileOf(installation) {
-  if (installation === undefined) return defaultProfile;
-  if ((!installedConnectors.includes(installation) &&
-      !isInstalledConnectorTableEntry(installation)) ||
-      installation.effect === undefined) {
-    fail('InvalidInstalledRowEffectInstallation');
-  }
-  return installation.effect.identityProfile ?? defaultProfile;
-}
+const {installedRowEffectUnit, installedRowEffectDescriptors, createInstalledRowEffect} =
+  createInstalledRowEffectConstruction({
+    fail, text, optionalFunction, cid, cidPattern, defaultProfile, defaultLimits, localContractLimits,
+    installedRowEffectConstructionLimits, managedTargetPlanOriginals, createRowEffectStage,
+    captureEffectResources, checkDriver, captureBeforeSendCheck, captureResponseConfirmation,
+    captureManagedPlanDefinition, captureManagedPlanRecipes, captureManagedDriverConstruction,
+  });
 
-// The one Effect Unit of a compiled Program: its Program id, the stage id and
-// index, and its Effect ids in declaration order. A Program with Effects in
-// more than one stage is not this scope.
-export function installedRowEffectUnit(moon, compilation) {
-  let program;
-  try {
-    program = JSON.parse(moon.clientProgramEffectCompilationPlanWire(
-      compilation)).execution_material?.program;
-  } catch (error) { fail('InstalledRowEffectUnitUnsupported', error); }
-  const stages = Array.isArray(program?.stages) ? program.stages : [];
-  const units = stages.flatMap((stage, stageIndex) =>
-    stage?.effects === undefined ? [] : [{stage, stageIndex}]);
-  if (!text(program?.id) || units.length !== 1 || !text(units[0].stage.id)) {
-    fail('InstalledRowEffectUnitUnsupported');
-  }
-  const {stage, stageIndex} = units[0];
-  return Object.freeze({programId: program.id, stageId: stage.id, stageIndex,
-    effectIds: Object.freeze(Object.keys(stage.effects))});
-}
-
-// Host installation selection consumes the already checked member descriptor.
-// It does not prepare provider requests or widen the existing plan-work bound.
-export function installedRowEffectDescriptors(moon, prepared, compilation) {
-  const unit = installedRowEffectUnit(moon, compilation);
-  return Object.freeze(unit.effectIds.map(effectId => {
-    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-      prepared, unit.stageIndex, effectId, defaultLimits.planWork));
-    const tableBinding = checkedTableWriteBinding(moon, prepared,
-      unit.stageIndex, effectId, defaultLimits.planWork);
-    if (runtimeField(descriptor, 2) === 'command') {
-      return Object.freeze({effectId: runtimeField(descriptor, 1), kind: 'command',
-        target: runtimeField(descriptor, 3), commandRef: runtimeField(descriptor, 4), commandCid: runtimeField(descriptor, 5)});
-    }
-    return Object.freeze({effectId: runtimeField(descriptor, 1), kind: runtimeField(descriptor, 2),
-      target: runtimeField(descriptor, 3), mappingRef: runtimeField(descriptor, 4), mappingCid: runtimeField(descriptor, 5),
-      ...(tableBinding === undefined ? {} : {capabilityCid: runtimeField(tableBinding, 4)})});
-  }));
-}
-
-// The installed Effect over `mappings` (each `{resource, mappingRef,
-// mappingCid, body}`, checked by the Check Environment it is installed in)
-// on the credential `site` and installation gate `authorization`.
-// `installation` is the connector's installed table entry, whose registered
-// identity profile names the identities issued here; `continuationBinding`
-// is the value the continuation binds the installation by.
-export async function createInstalledRowEffect({moon, providerMoon, mappings = [], commands = [],
-  environmentWire, sourceInitialization, declaration, declared, environment,
-  connectorId, connectorRegistration, connectorRevision,
-  connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
-  ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition, managedPlanRecipe, managedPlanRecipes,
-  managedTargetPlanRecipes, managedPlanConstruction}) {
-  if (sourceInitialization !== undefined) {
-    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
-    if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
-  }
-  const resources = captureEffectResources(effectResources);
-  const limits = installedRowEffectConstructionLimits(suppliedLimits);
-  const configuredMaxRows = Object.hasOwn(suppliedLimits ?? {}, 'maxRows') ? limits.maxRows : undefined;
-  const configuredMaxMembers = Object.hasOwn(suppliedLimits ?? {}, 'maxMembers') ? limits.maxMembers : undefined;
-  if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
-  // The installed UPDATE declaration borrows the same provider codec and
-  // managed plan. In the shared stage only the Host invokes the write.
-  const declaredUpdate = write !== null && typeof write === 'object' && !nodeTypes.isProxy(write) &&
-    Object.getOwnPropertyDescriptor(write, 'kind')?.value === 'update';
-  const standard = write === undefined || declaredUpdate ? undefined
-    : deriveInstalledRowWrite(write, connectorRegistration);
-  const owned = checkDriver(write === undefined ? driver : standard?.driver ?? write, declaredUpdate);
-  if (declaredUpdate && (managedPlanDefinition !== undefined ||
-      managedTargetPlanRecipes !== undefined || owned.check !== undefined || owned.confirmResponse !== undefined)) {
-    fail('InvalidInstalledEffectPlanRecipe');
-  }
-  const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
-  const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
-  const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned,
-    localContractLimits.maxNodes, declaredUpdate);
-  if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
-  const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
-  if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
-      owned.finalizeRequest !== undefined || managedPlanConstruction !== undefined)) {
-    fail('InvalidInstalledEffectPlanRecipe');
-  }
-  const checkedUpdateWrite = recipe => {
-    const slot = selectInstalledEffectCredentialOperation(recipe, 'write');
-    if (slot?.maxTargetBytes === undefined || recipe.physicalWrite !== undefined ||
-        recipe.rowOperations[slot.operationIndex]?.operation !== owned.operation) fail('InvalidInstalledEffectPlanRecipe');
-    return slot;
-  };
-  const suppliedUpdateWrite = declaredUpdate && !automaticUpdate
-    ? checkedUpdateWrite(suppliedRecipes?.update ?? suppliedRecipe) : undefined;
-  if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
-      suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
-      managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-      owned.kinds.length !== 1 || owned.kinds[0] !== 'update' ||
-      owned.check !== undefined || owned.confirmResponse !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
-  if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
-    fail('InvalidInstalledEffectDriverConstruction');
-  }
-  const construction = standard?.construction ?? captureManagedDriverConstruction(
-    managedPlanConstruction, planDefinition, owned, providerMoon);
-  const automatic = suppliedRecipe === undefined && suppliedRecipes === undefined && construction !== undefined && providerMoon !== undefined &&
-    construction.check !== null;
-  // Preserve the existing explicit/legacy refusal order. The new automatic
-  // path waits only for its same validated installation resource names.
-  const suppliedBeforeSendCheck = automatic ? undefined : captureBeforeSendCheck(owned, suppliedRecipe);
-  const profile = profileOf(installation);
-  if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
-      mappings.length + commands.length === 0 ||
-      !text(environmentWire) || !text(connectorId) ||
-      !text(connectorRegistration) || !text(connectorRevision) ||
-      (installation !== undefined &&
-        (installation.registration !== connectorRegistration ||
-          installation.revision !== connectorRevision)) ||
-      !text(connection) || typeof site?.issueEffectGrant !== 'function' ||
-      typeof site.issueReadGrant !== 'function' ||
-      typeof authorization?.authorize !== 'function' ||
-      !optionalFunction(issueOriginalCollectionReference) ||
-      !cidPattern.test(runtimeBundleCid ?? '') ||
-      !text(bindingCid) || !text(continuationBinding) || !text(ledgerRoot)) {
-    fail('InvalidInstalledRowEffect');
-  }
-  const installed = Object.freeze(mappings.map(mapping => {
-    const body = JSON.parse(mapping.body);
-    if (!text(mapping.resource) || !text(mapping.mappingRef) ||
-        !text(mapping.mappingCid) || body.mapping_contract_cid !==
-          mapping.mappingCid ||
-        !['required', 'none'].includes(body.minimum_approval)) {
-      fail('InvalidInstalledRowEffect');
-    }
-    return Object.freeze({...mapping, target: body.target_ref,
-      primaryIdentity: body.primary_identity,
-      rules: Object.freeze(body.permission_rules ?? []),
-      ...(body.store_command === undefined ? {} : {
-        storeCommand: Object.freeze({...body.store_command})}),
-      approval: body.minimum_approval});
-  }));
-  if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
-    const operation = managedTargetPlanRecipes.byMapping[mapping.mappingCid]?.writeOperation;
-    if (operation === undefined ||
-        !mapping.rules.some(rule => rule.effect_kind === 'update' && rule.permissions?.includes(operation))) {
-      fail('InvalidInstalledEffectPlanRecipe');
-    }
-  }
-  const installedCommands = Object.freeze(commands.map(command => {
-    const body = JSON.parse(command.body);
-    const {contract_cid: selfCid, ...preimage} = body;
-    if (!text(command.resource) || !text(command.commandRef) ||
-        !cidPattern.test(command.commandCid ?? '') ||
-        body.command_id !== command.commandRef || selfCid !== command.commandCid ||
-        cid(preimage) !== selfCid || body.connector_id !== connectorId ||
-        !text(body.target?.resource_kind) ||
-        !Array.isArray(body.permissions) ||
-        Object.hasOwn(body, 'minimum_approval')) {
-      fail('InvalidInstalledRowEffectCommand');
-    }
-    return Object.freeze({...command, target: body.target.resource_kind,
-      permissions: Object.freeze([...body.permissions])});
-  }));
-  if (new Set(installedCommands.map(item => item.commandRef)).size !==
-      installedCommands.length) fail('InvalidInstalledRowEffectCommand');
-  // STORE's checked Mapping resolves to a Command, but it remains a distinct
-  // original selection purpose. Retain the exact published pair beside its
-  // actual Command driver; a generic command or UPDATE flag is not STORE.
-  const storeMappings = Object.freeze(declaredUpdate || !owned.kinds.includes('command') ? [] :
-    installed.filter(mapping => mapping.storeCommand !== undefined).map(mapping => {
-      const pair = mapping.storeCommand;
-      const catalogs = JSON.parse(environmentWire).connector_catalogs;
-      const commands = installedCommands.filter(command => command.commandRef === pair.command_ref &&
-        command.commandCid === pair.command_contract_cid && command.resource === mapping.resource);
-      const {mapping_contract_cid: self, ...body} = JSON.parse(mapping.body);
-      if (Object.keys(pair).sort().join('\0') !==
-          ['catalog_cid', 'command_contract_cid', 'command_ref'].join('\0') ||
-          self !== mapping.mappingCid || cid(body) !== self || commands.length !== 1 ||
-          !Array.isArray(catalogs) || catalogs.filter(catalog => catalog.catalog_cid === pair.catalog_cid &&
-            catalog.commands.some(command => command.command_id === pair.command_ref &&
-              command.contract_cid === pair.command_contract_cid)).length !== 1) {
-        fail('InvalidInstalledRowEffectStoreMapping');
-      }
-      return mapping;
-    }));
-  let resourceTextUnits = 0;
-  if (automatic || automaticUpdate) {
-    for (const selected of installed) resourceTextUnits += selected.resource.length;
-    for (const selected of installedCommands) resourceTextUnits += selected.resource.length;
-  }
-  const planRecipe = automaticUpdate ? prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon,
-    write: owned, credentialSite: installedRowCredentialOperationSite(site.credential),
-    limits, resourceTextUnits, connectorRegistration})
-    : automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
-      construction, credentialSite: installedRowCredentialOperationSite(site.credential),
-      limits: limits.preview, resourceTextUnits,
-      requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
-        maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})}) : suppliedRecipe;
-  const updateWriteSlot = automaticUpdate ? checkedUpdateWrite(planRecipe) : suppliedUpdateWrite;
-  // The driver hook applies to each checked kind. A kind-specific recipe is
-  // not the absent legacy recipe: require its own distinct finalization slot.
-  for (const recipe of suppliedRecipes === undefined ? [planRecipe] : Object.values(suppliedRecipes)) {
-    if (owned.finalizeRequest !== undefined &&
-        (recipe?.requestFinalization === undefined ||
-          recipe.requestFinalization.operationIndex === recipe.requestConstruction?.operationIndex)) {
-      fail('InstalledEffectRequestFinalizationPlanUnavailable');
-    }
-  }
-  const beforeSendCheck = automatic ? captureBeforeSendCheck(owned, planRecipe) : suppliedBeforeSendCheck;
-  const responseConfirmation = captureResponseConfirmation(owned, planRecipe);
-  await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
-  if (sourceInitialization !== undefined) {
-    // The await may retire the installer. This local association check does
-    // not invoke current or repeat Mapping/Environment admission.
-    assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
-  }
-  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile, updateWriteSlot,
-    configuredMaxRows, configuredMaxMembers,
-    installed, installedCommands, storeMappings, environmentWire, connectorId,
-    connectorRegistration, connectorRevision, connection, site, authorization,
-    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
-    managedPlanDefinition: planDefinition, managedPlanRecipe: planRecipe, managedPlanRecipes: suppliedRecipes,
-    managedTargetPlanRecipes, beforeSendCheck, responseConfirmation,
-    issueOriginalCollectionReference, sourceInitialization})], environmentWire);
-  if (sourceInitialization !== undefined) {
-    retainInstalledSourceConstruction(sourceInitialization, adapter, declaration, declared, environment);
-  }
-  return adapter;
-}
+export {installedRowEffectUnit, installedRowEffectDescriptors, createInstalledRowEffect};
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
 // Preview, claims and publication remain the existing stage's responsibility.

@@ -10,6 +10,7 @@ type DriverCandidate = Readonly<{
   writeOperation?: unknown;
   send?: unknown;
   prepareUpdateWrite?: unknown;
+  operation?: unknown;
   project?: unknown;
   footprint?: unknown;
   describe?: unknown;
