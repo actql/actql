@@ -290,7 +290,7 @@ test "captured Mapping funds original changes and selector before their writers"
     inputs, 0, 10, 10000,
   ).unwrap()
   let seen = []
-  let fenced = Ref(false)
+  let fenced = Ref(true)
   let rendered = @strategy.project_captured_effect_proposal_row(
     exact,
     row,
@@ -303,7 +303,8 @@ test "captured Mapping funds original changes and selector before their writers"
     before_encode=Some(fn(bytes, nodes, depth, prior_units) {
       let call = seen.length()
       seen.push((bytes, nodes, depth, prior_units))
-      fenced.val = @strategy.finish_captured_effect_proposal_plan(exact, 0)
+      fenced.val = fenced.val &&
+        @strategy.finish_captured_effect_proposal_plan(exact, 0)
         is Err(@strategy.CapturedEffectProposalIssue::NotReady) &&
         @strategy.project_captured_effect_proposal_row(
           exact, row, index, 10, 10000, 1000, 1000, 20,
@@ -360,6 +361,36 @@ test "captured Mapping funds original changes and selector before their writers"
     )
     is Err(@strategy.CapturedEffectProposalIssue::NotReady),
   )
+  let explicitly_cancelled = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  @strategy.cancel_captured_effect_proposal_plan(explicitly_cancelled)
+  // The original export and inputs are still live. Probe the exact index
+  // each terminal plan would otherwise consume, including after finish.
+  let (next_index, _, next_row) = @execution.next_completed_output_export_canonical_row(
+      stream, 1000, 20, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(next_index, index + 1)
+  for
+    (closed, source, ordinal) in [
+      (short, row, index),
+      (cancelled, row, index),
+      (explicitly_cancelled, row, index),
+      (exact, next_row, next_index),
+    ] {
+    assert_true(
+      @strategy.project_captured_effect_proposal_row(
+        closed, source, ordinal, 10, 10000, 1000, 1000, 20,
+      )
+      is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+    )
+    assert_true(
+      @strategy.finish_captured_effect_proposal_plan(closed, ordinal)
+      is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+    )
+  }
   @execution.cancel_completed_output_export(stream)
   owner.close()
   values_effect_export_test_close(captured, inputs, execution)

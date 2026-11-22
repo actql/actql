@@ -227,7 +227,7 @@ pub fn project_captured_effect_proposal_row(
   max_depth : Int,
   before_encode? : ((Int, Int, Int, Int) -> Bool)? = None,
 ) -> Result[(String, String), CapturedEffectProposalIssue] {
-  if value.phase is Projecting {
+  if !(value.phase is Ready) {
     return Err(NotReady)
   }
   // This is the existing liveness slot, including in the no-callback callers.
@@ -365,7 +365,7 @@ pub fn finish_captured_effect_proposal_plan(
   value : CapturedEffectProposalPlan,
   row_count : Int,
 ) -> Result[Unit, CapturedEffectProposalIssue] {
-  if value.phase is Projecting {
+  if !(value.phase is Ready) {
     return Err(NotReady)
   }
   if !captured_effect_proposal_plan_current(value) {
