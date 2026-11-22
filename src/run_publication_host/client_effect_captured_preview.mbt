@@ -46,8 +46,8 @@ pub fn bind_captured_client_effect_preview(
     !physical_equal(materials.compilation.owner, owner) {
     return Err(ForeignInput)
   }
-  match
-    check_source_free_client_effect_preview_identities(
+  let preview = match
+    admit_source_free_client_effect_preview_identities(
       owner,
       inputs,
       preview_wire,
@@ -58,20 +58,8 @@ pub fn bind_captured_client_effect_preview(
       limits.max_nodes,
       limits.max_depth,
     ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Identity(issue))
-  }
-  let preview = match
-    @publication.admit_effect_preview_identity(
-      preview_wire,
-      run_cid,
-      authoring_context_cid,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
     Ok(value) => value
-    Err(issue) => return Err(Preview(issue))
+    Err(issue) => return Err(Identity(issue))
   }
   let checked = match
     @effect_binding.bind_effect_program_run_preview(

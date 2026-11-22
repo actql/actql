@@ -222,6 +222,26 @@ pub fn check_source_free_client_effect_preview_identities(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, ClientEffectLocalIdentityIssue] {
+  admit_source_free_client_effect_preview_identities(
+    owner, inputs, preview_wire, run_identity_cid, authoring_context_cid, identities,
+    max_wire_bytes, max_nodes, max_depth,
+  ).map(_ => ())
+}
+
+///|
+// Keep the same wire-admitted identity after checking its issued local
+// members. Binding the original Run can consume it without another decode.
+fn admit_source_free_client_effect_preview_identities(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  identities : Array[ClientEffectLocalIdentity],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.EffectPreviewIdentity, ClientEffectLocalIdentityIssue] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
     return Err(ForeignInput)
   }
@@ -307,5 +327,5 @@ pub fn check_source_free_client_effect_preview_identities(
   if source_count != identities.length() {
     return Err(MissingIdentity)
   }
-  Ok(())
+  Ok(preview)
 }
