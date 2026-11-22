@@ -112,6 +112,7 @@ pub fn effect_plan_row_intended_changes_wire(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_encode? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[String, EffectPlanChangeIssue] {
   if max_fields < 0 ||
     max_work < 0 ||
@@ -175,33 +176,55 @@ pub fn effect_plan_row_intended_changes_wire(
     }
   }
   let output = try {
-    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    @encode.key(writer, "state")
-    @encode.string_value(
-      writer,
-      if terminal.operation == "delete" {
-        "not_applicable"
-      } else {
-        "present"
-      },
-    )
-    if terminal.operation != "delete" {
-      @encode.key(writer, "value")
-      @encode.begin_object(writer)
-      for (target, value) in changes {
-        @encode.key(writer, target)
-        match value {
-          Projected(value) => @json.emit_value(value, writer)
-          Admitted(value) => @value.emit_checked_wire_value(value, writer)
-        }
+    if before_encode is Some(fund) {
+      let measured = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
+      defer @encode.cancel_writer(measured)
+      emit_effect_plan_row_intended_changes(
+        measured,
+        terminal.operation,
+        changes,
+      )
+      let (bytes, nodes, depth) = @encode.finish_measurement_usage(measured)
+      if !fund(bytes, nodes, depth) {
+        return Err(OutputLimit)
       }
-      @encode.end_object(writer)
     }
-    @encode.end_object(writer)
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    emit_effect_plan_row_intended_changes(writer, terminal.operation, changes)
     @encode.finish(writer)
   } catch {
     _ => return Err(OutputLimit)
   }
   Ok(output)
+}
+
+///|
+fn emit_effect_plan_row_intended_changes(
+  writer : @encode.Writer,
+  operation : String,
+  changes : Array[(String, EffectPlanChangeValue)],
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "state")
+  @encode.string_value(
+    writer,
+    if operation == "delete" {
+      "not_applicable"
+    } else {
+      "present"
+    },
+  )
+  if operation != "delete" {
+    @encode.key(writer, "value")
+    @encode.begin_object(writer)
+    for (target, value) in changes {
+      @encode.key(writer, target)
+      match value {
+        Projected(value) => @json.emit_value(value, writer)
+        Admitted(value) => @value.emit_checked_wire_value(value, writer)
+      }
+    }
+    @encode.end_object(writer)
+  }
+  @encode.end_object(writer)
 }

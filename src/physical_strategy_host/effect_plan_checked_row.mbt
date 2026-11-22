@@ -25,7 +25,7 @@ pub(all) enum CapturedEffectCheckedProposalIssue {
 fn captured_effect_checked_proposal_plan_retained(
   plan : CapturedEffectProposalPlan,
 ) -> Bool {
-  plan.live &&
+  !(plan.phase is Closed) &&
   !plan.inputs.run.captured.stopped &&
   captured_effect_input_retained(plan.inputs, plan.member_index, plan.input) &&
   captured_effect_optional_command_key_retained(plan.input_key, plan.inputs)
@@ -111,23 +111,26 @@ pub fn project_captured_effect_checked_proposal_row(
   CapturedEffectCheckedProposalRow,
   CapturedEffectCheckedProposalIssue,
 ] {
+  if plan.phase is Projecting {
+    return Err(NotReady)
+  }
   if !captured_effect_checked_proposal_plan_current(plan) {
-    plan.live = false
+    plan.phase = Closed
     return Err(NotReady)
   }
   if !captured_effect_checked_proposal_export_matches(plan, exported, original) {
-    plan.live = false
+    plan.phase = Closed
     return Err(ForeignExport)
   }
   let index = @execution.completed_output_export_original_row_index(original)
   if index != plan.next_row {
-    plan.live = false
+    plan.phase = Closed
     return Err(RowOrder)
   }
   guard plan.terminal is Some(terminal) && plan.command is None else {
     // Other existing proposal paths retain their own behavior. A Command or
     // create row has not acquired this direct field projection by shape.
-    plan.live = false
+    plan.phase = Closed
     return Err(ProjectionUnavailable)
   }
   let rule = @results.effect_plan_terminal_rule(terminal)
@@ -136,7 +139,7 @@ pub fn project_captured_effect_checked_proposal_row(
     ) !=
     0 {
     // A declared conversion law is not an installed converter implementation.
-    plan.live = false
+    plan.phase = Closed
     return Err(ConversionUnavailable)
   }
   let read_issue : Ref[@execution.CompletedExportOriginalRowIssue?] = Ref(None)
@@ -163,7 +166,7 @@ pub fn project_captured_effect_checked_proposal_row(
     ) {
     Ok(value) => value
     Err(issue) => {
-      plan.live = false
+      plan.phase = Closed
       return Err(
         match read_issue.val {
           Some(issue) => OriginalRow(issue)
@@ -174,11 +177,11 @@ pub fn project_captured_effect_checked_proposal_row(
   }
   if !captured_effect_checked_proposal_plan_current(plan) ||
     !captured_effect_checked_proposal_export_matches(plan, exported, original) {
-    plan.live = false
+    plan.phase = Closed
     return Err(NotReady)
   }
   if plan.next_row != index {
-    plan.live = false
+    plan.phase = Closed
     return Err(RowOrder)
   }
   plan.next_row += 1

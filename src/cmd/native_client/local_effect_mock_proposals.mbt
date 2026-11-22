@@ -474,19 +474,44 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.stream = Some(stream)
-      let before_decode = if entry == 0 && held.imports is Some(_) {
-        let construction = held.construction.unwrap()
-        Some(fn(bytes, nodes, depth) {
-          construction.prepare_body(
-            self.original,
-            @local_values.installed_effect_capture_row_decode_workspace(
-              bytes, nodes, depth,
-            ),
-          )
-        })
+      let construction = if entry == 0 && held.imports is Some(_) {
+        held.construction
       } else {
         None
       }
+      let row_decode_workspace = Ref(0L)
+      let before_decode = construction.map(construction => {
+        fn(bytes, nodes, depth) {
+          let capacity = @local_values.installed_effect_capture_row_decode_workspace(
+            bytes, nodes, depth,
+          )
+          guard capacity is Some(quote) &&
+            construction.prepare_body(self.original, capacity) else {
+            return false
+          }
+          row_decode_workspace.val = @execution.execution_capacity_execution_bytes(
+            quote,
+          )
+          true
+        }
+      })
+      let before_encode = construction.map(construction => {
+        fn(bytes, nodes, depth, prior_text_units) {
+          // The exported bytes and decoded row are still held here. Keep
+          // their conservative decoder envelope beside the next writer and
+          // the changes String when constructing the selector.
+          construction.prepare_body(
+            self.original,
+            native_mock_effect_proposal_write_workspace(
+              row_decode_workspace.val,
+              bytes,
+              nodes,
+              depth,
+              prior_text_units,
+            ),
+          )
+        }
+      })
       while @execution.next_completed_output_export_canonical_row(
               stream,
               wire.max_nodes,
@@ -508,6 +533,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             wire.max_bytes,
             wire.max_nodes,
             wire.max_depth,
+            before_encode~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
           .native_effect_proposal(self.original)
@@ -726,4 +752,34 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   }
   self.construction = None
   @strategy.release_captured_effect_inputs(self.inputs)
+}
+
+///|
+// The existing warm recipe still funds projected fields, change ordering and
+// the measuring pass. This is the separately observed output writer peak;
+// prior_text_units is the actual UTF-16 length of a co-held returned wire.
+fn native_mock_effect_proposal_write_workspace(
+  row_decode_workspace : Int64,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  prior_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @encode.text_writer_construction_inventory(bytes, nodes, depth)
+    is Some(writer) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: writer.record_headers + 3L,
+    reference_slots: writer.reference_slots + 2L,
+    scalar_words: writer.scalar_words + 6L,
+    owned_utf16_units: writer.owned_utf16_units + prior_text_units.to_int64(),
+    owned_wire_bytes: 0L,
+  })
+  .bind(workspace => {
+    @execution.checked_preparation_add_product(
+      row_decode_workspace, workspace, 1L,
+    )
+  })
+  .bind(workspace => @execution.execution_capacity(0L, workspace))
 }

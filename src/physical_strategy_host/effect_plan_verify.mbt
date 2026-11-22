@@ -26,6 +26,13 @@ struct CapturedEffectPlanProof {
 }
 
 ///|
+priv enum CapturedEffectProposalPhase {
+  Ready
+  Projecting
+  Closed
+}
+
+///|
 /// One checked Mapping selected before the private Preview is authored.
 /// This owner advances with the exact bounded Result export but does not
 /// retain row payloads or authorize a physical Effect dispatch.
@@ -40,7 +47,7 @@ struct CapturedEffectProposalPlan {
   input_key : CapturedEffectCommandKeyValidation?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
-  mut live : Bool
+  mut phase : CapturedEffectProposalPhase
 }
 
 ///|
@@ -176,13 +183,39 @@ pub fn prepare_captured_effect_proposal_plan(
     input_key,
     literals: @results.effect_static_candidate_mapping_literals(effects),
     next_row: 0,
-    live: true,
+    phase: Ready,
   })
+}
+
+///|
+fn captured_effect_proposal_plan_current(
+  value : CapturedEffectProposalPlan,
+) -> Bool {
+  (value.phase is Ready || value.phase is Projecting) &&
+  captured_effect_optional_command_target_current(
+    value.published_target,
+    value.inputs,
+    value.member_index,
+    value.command,
+  ) &&
+  captured_effect_optional_command_key_current(
+    value.input_key,
+    value.inputs,
+    value.member_index,
+    value.command,
+  ) &&
+  captured_effect_input_at(value.inputs, value.member_index).map(input => {
+    physical_equal(input, value.input)
+  }) ==
+  Some(true) &&
+  !(value.phase is Closed)
 }
 
 ///|
 /// Project one checked Result row. This proposal is not a payload proof or
 /// apply permit; the later Preview binding verifies the same captured input.
+/// For a checked mapping, before_encode receives the measured next writer
+/// geometry and the UTF-16 length of any already returned changes String.
 pub fn project_captured_effect_proposal_row(
   value : CapturedEffectProposalPlan,
   source_row : @identity.CanonicalValue,
@@ -192,29 +225,20 @@ pub fn project_captured_effect_proposal_row(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_encode? : ((Int, Int, Int, Int) -> Bool)? = None,
 ) -> Result[(String, String), CapturedEffectProposalIssue] {
-  if !value.live ||
-    !captured_effect_optional_command_target_current(
-      value.published_target,
-      value.inputs,
-      value.member_index,
-      value.command,
-    ) ||
-    !captured_effect_optional_command_key_current(
-      value.input_key,
-      value.inputs,
-      value.member_index,
-      value.command,
-    ) ||
-    captured_effect_input_at(value.inputs, value.member_index).map(input => {
-      physical_equal(input, value.input)
-    }) !=
-    Some(true) {
-    value.live = false
+  if value.phase is Projecting {
+    return Err(NotReady)
+  }
+  // This is the existing liveness slot, including in the no-callback callers.
+  value.phase = Projecting
+  defer (if value.phase is Projecting { value.phase = Ready })
+  if !captured_effect_proposal_plan_current(value) {
+    value.phase = Closed
     return Err(NotReady)
   }
   if source_row_index != value.next_row {
-    value.live = false
+    value.phase = Closed
     return Err(RowOrder)
   }
   let (selector, changes) = if value.command is Some(command) {
@@ -231,7 +255,7 @@ pub fn project_captured_effect_proposal_row(
       ) {
       Ok(projected) => projected
       Err(issue) => {
-        value.live = false
+        value.phase = Closed
         return Err(Command(issue))
       }
     }
@@ -244,10 +268,16 @@ pub fn project_captured_effect_proposal_row(
           ) {
           Ok(value) => value
           Err(issue) => {
-            value.live = false
+            value.phase = Closed
             return Err(Row(issue))
           }
         }
+        let fund_changes = before_encode.map(fund => {
+          fn(bytes, nodes, depth) {
+            fund(bytes, nodes, depth, 0) &&
+            captured_effect_proposal_plan_current(value)
+          }
+        })
         let changes = match
           @results.effect_plan_row_intended_changes_wire(
             row,
@@ -257,21 +287,41 @@ pub fn project_captured_effect_proposal_row(
             max_bytes,
             max_nodes,
             max_depth,
+            before_encode=fund_changes,
           ) {
           Ok(value) => value
           Err(issue) => {
-            value.live = false
-            return Err(Changes(issue))
+            let current = before_encode is None ||
+              captured_effect_proposal_plan_current(value)
+            value.phase = Closed
+            return Err(if current { Changes(issue) } else { NotReady })
           }
         }
-        let selector = @identity.stringify_value(
-          @results.effect_plan_row_selector(row),
-          max_bytes,
-          max_nodes,
-          max_depth,
-        ) catch {
+        let selected = @results.effect_plan_row_selector(row)
+        let selector = try {
+          if before_encode is Some(fund) {
+            let measured = @encode.measuring_writer(
+              max_bytes, max_nodes, max_depth,
+            )
+            defer @encode.cancel_writer(measured)
+            @identity.emit_value(selected, measured)
+            let (bytes, nodes, depth) = @encode.finish_measurement_usage(
+              measured,
+            )
+            let funded = fund(bytes, nodes, depth, changes.length())
+            if !captured_effect_proposal_plan_current(value) {
+              value.phase = Closed
+              return Err(NotReady)
+            }
+            if !funded {
+              value.phase = Closed
+              return Err(SelectorEncoding)
+            }
+          }
+          @identity.stringify_value(selected, max_bytes, max_nodes, max_depth)
+        } catch {
           _ => {
-            value.live = false
+            value.phase = Closed
             return Err(SelectorEncoding)
           }
         }
@@ -291,7 +341,7 @@ pub fn project_captured_effect_proposal_row(
           ) {
           Ok(value) => value
           Err(issue) => {
-            value.live = false
+            value.phase = Closed
             return Err(Create(issue))
           }
         }
@@ -303,7 +353,7 @@ pub fn project_captured_effect_proposal_row(
       value.input_key,
       value.inputs,
     ) {
-    value.live = false
+    value.phase = Closed
     return Err(NotReady)
   }
   value.next_row += 1
@@ -315,27 +365,14 @@ pub fn finish_captured_effect_proposal_plan(
   value : CapturedEffectProposalPlan,
   row_count : Int,
 ) -> Result[Unit, CapturedEffectProposalIssue] {
-  if !value.live ||
-    !captured_effect_optional_command_target_current(
-      value.published_target,
-      value.inputs,
-      value.member_index,
-      value.command,
-    ) ||
-    !captured_effect_optional_command_key_current(
-      value.input_key,
-      value.inputs,
-      value.member_index,
-      value.command,
-    ) ||
-    captured_effect_input_at(value.inputs, value.member_index).map(input => {
-      physical_equal(input, value.input)
-    }) !=
-    Some(true) {
-    value.live = false
+  if value.phase is Projecting {
     return Err(NotReady)
   }
-  value.live = false
+  if !captured_effect_proposal_plan_current(value) {
+    value.phase = Closed
+    return Err(NotReady)
+  }
+  value.phase = Closed
   if row_count != value.next_row {
     return Err(RowCountMismatch)
   }
@@ -346,7 +383,7 @@ pub fn finish_captured_effect_proposal_plan(
 pub fn cancel_captured_effect_proposal_plan(
   value : CapturedEffectProposalPlan,
 ) -> Unit {
-  value.live = false
+  value.phase = Closed
 }
 
 ///|
