@@ -2032,3 +2032,5 @@ target/
 /scripts/verification-actions.d.mts
 /scripts/verification-actions.test.mjs
 /scripts/verification-actions.test.d.mts
+/scripts/native-core-test-selection.mjs
+/scripts/native-core-test-selection.d.mts
