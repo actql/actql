@@ -103573,7 +103573,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "2683f5434a19a94c9a3c94960d3e929d8278f3086f7d90e290b3f93b6de8e78f",
+      "sha256": "bf1c2421c792b2fa1e0c4938836153e83927cd6c01a4838e2a38167bc81a07db",
       "exports": [],
       "operations": [
         {
@@ -103595,6 +103595,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
             "LocalCommandPreparationOriginal::select_business_file_source"
@@ -105075,7 +105076,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "376f0146de470ddd460f0134d19165130861c0776bcf362745a0c9b4e8b91ca2",
+      "sha256": "ccdce529383ecfa90b0ac3cce3f706d19d5fc84259a552d1c02e560a5d46c9dd",
       "exports": [],
       "operations": [
         {
@@ -105104,7 +105105,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_business_request",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , intent : @ run_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > ( @ local_host . NativeClientSubmittedPreparation , @ run_host . ClientLocalNormalization ? , ) raise ClientStop"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , intent : @ run_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > ( @ local_host . NativeClientSubmittedPreparation , @ run_host . ClientLocalNormalization ? , @ run_host . ClientAuthoringContextPreparation ? , ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -105113,6 +105114,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "[I]prepare_local_native_whole_file_request_module",
             "[T]LocalCommandPreparationOriginal::with_business_request",
             "LocalCommandBusinessPreparation::adopt_request_run",
@@ -105286,9 +105288,13 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "56d75e2e4b27de899eafec685090ac7ab2cdafe8960d82cd4c15e44be9669710",
+      "sha256": "3a83c80c83786c8264c47b8a4c99503b6808a1993cf96f043a717f67f8536146",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]borrow_native_client_request_plan_input",
+          "declaration": "[ I ] borrow_native_client_request_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , NativeClientSubmittedPreparationIssue , ]"
+        },
         {
           "name": "[I]check_native_client_submitted_request_input",
           "declaration": "[ I ] check_native_client_submitted_request_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , verify_request_value_policy ? : ( ( String ) - > String ? ) ?"
@@ -105313,6 +105319,7 @@
         {
           "operations": [
             "<module>",
+            "[I]borrow_native_client_request_plan_input",
             "[I]check_native_client_submitted_request_input",
             "[I]prepare_native_client_submitted_request_input",
             "prepare_native_client_submitted_request",
@@ -105342,6 +105349,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/platform_native/client_host/submitted_request_preparation.mbt",
+                "anchor": "borrow_native_client_request_plan_input"
               }
             ],
             "synchronization": [
