@@ -163,6 +163,13 @@ pub fn Client::start_projected_bearer_post(
 }
 
 ///|
+pub fn Client::close_bearer_post_in_original_scope(
+  _self : Client,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::poll_bearer_post(
   _self : Client,
   wait_milliseconds? : Int = 0,

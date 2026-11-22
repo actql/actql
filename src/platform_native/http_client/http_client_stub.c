@@ -2157,6 +2157,30 @@ moonbit_bytes_t actql_native_http_client_body(actql_native_http_client *client) 
   return result;
 }
 
+// Original physical cleanup may run in the captured Read's cleanup frame.
+// It discards the transport without performing I/O or returning response data.
+int32_t actql_native_http_client_stop_bearer_post(actql_native_http_client *client) {
+  if (!client || !client->library || client->library->original_process != getpid() ||
+      client->constructor_failed || !actql_http_read_current(client->library) ||
+      atomic_flag_test_and_set_explicit(&client->lifecycle, memory_order_acquire))
+    return -1;
+  int32_t status = 0;
+  actql_native_http_transfer *transfer = client->transfer;
+  if (transfer && (!pthread_equal(transfer->thread, pthread_self()) ||
+                   transfer->retirement_unknown)) {
+    status = -1;
+  } else {
+    atomic_store_explicit(&client->cancelled, true, memory_order_relaxed);
+    if (transfer) {
+      transfer->done = true;
+      transfer->result = 2;
+      if (!actql_http_retire_transfer(client)) status = -1;
+    }
+  }
+  actql_http_end_request(client);
+  return status;
+}
+
 int32_t actql_native_http_client_cancel(actql_native_http_client *client) {
   if (client == NULL || client->closed) return false;
   return !atomic_exchange_explicit(

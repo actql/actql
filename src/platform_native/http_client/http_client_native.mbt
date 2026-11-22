@@ -895,6 +895,22 @@ pub fn Library::close_checked(self : Library) -> Result[Unit, NativeHttpIssue] {
 
 ///|
 #borrow(client)
+extern "C" fn stop_http_client_bearer_post_ffi(client : Client) -> Int = "actql_native_http_client_stop_bearer_post"
+
+///|
+/// Cancel and close this original Client in its owning Read cleanup frame.
+/// The transport is discarded without a response poll, even if it was ready.
+pub fn Client::close_bearer_post_in_original_scope(
+  self : Client,
+) -> Result[Unit, NativeHttpIssue] {
+  if stop_http_client_bearer_post_ffi(self) != 0 {
+    return Err(Transport("original HTTP transfer retirement unconfirmed"))
+  }
+  self.close_checked()
+}
+
+///|
+#borrow(client)
 extern "C" fn close_http_client_checked_ffi(client : Client) -> Int = "actql_native_http_client_close_checked"
 
 ///|

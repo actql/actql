@@ -197,7 +197,8 @@ test "incremental bearer POST retains the original client until completion or ph
     is Err(CredentialUnavailable),
   )
   assert_true(refused.poll_bearer_post() is Err(Closed))
-  refused.close_checked().unwrap()
+  refused.close_bearer_post_in_original_scope().unwrap()
+  refused.close_bearer_post_in_original_scope().unwrap()
   original
   .start_projected_bearer_post(
     url + "/incremental-complete",
@@ -242,10 +243,10 @@ test "incremental bearer POST retains the original client until completion or ph
   }
   assert_true(fixture.observe_file("incremental-entered") is Ok(_))
   fixture.close().unwrap()
-  assert_true(interrupted.cancel())
   assert_true(interrupted.close_checked() is Err(Transport(_)))
-  assert_true(interrupted.poll_bearer_post() is Err(Cancelled))
-  interrupted.close_checked().unwrap()
+  interrupted.close_bearer_post_in_original_scope().unwrap()
+  interrupted.close_bearer_post_in_original_scope().unwrap()
+  assert_true(interrupted.poll_bearer_post() is Err(Closed))
   assert_true(start(interrupted, "/incremental-stop") is Err(Closed))
   let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
   assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
