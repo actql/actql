@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
@@ -24,18 +25,26 @@ function originalFunction<Callable extends (...args: never[]) => unknown>(
 }
 
 function dispatchCleanup(values: readonly bigint[]) {
-  const setup = {}, entry = {pendingSetup: setup};
+  const setup = {}, entry = {ref: {runDefinitionCid: 'original'}, pendingSetup: setup};
   const calls: string[] = [];
-  const moon = {strategyHostStop(actual: object) {assert.equal(actual, setup); calls.push('stop');},
-    strategyHostCloseOutputs(actual: object) {assert.equal(actual, setup); calls.push('outputs');},
-    strategyHostUsage(actual: object) {assert.equal(actual, setup); calls.push('usage'); return values;}};
-  const cleanup = originalFunction<(entry: object) => Promise<unknown>>('client-dispatch-owner.mjs', 'settleCleanup', {
-    moon, ledgerUsageHasPendingResources: core.ledgerUsageHasPendingResources,
-    settleCleanupHandle: async (actual: object) => assert.equal(actual, entry),
-    observeStop() {assert.fail('no physical stop observation in this component');},
-    observation: undefined,
+  const moon = {strategyHostStop(actual: unknown) {assert.equal(actual, setup); calls.push('stop');},
+    strategyHostCloseOutputs(actual: unknown) {assert.equal(actual, setup); calls.push('outputs');},
+    strategyHostUsage(actual: unknown) {assert.equal(actual, setup); calls.push('usage'); return values;}};
+  const {settleCleanup} = createClientDispatchCleanup({
+    moon: {...moon, strategyHostRun() {assert.fail('no isolated preparation in this component');},
+      clientProgramIssueControlledUnpublishedRunState() {assert.fail('no terminal state in this component');}},
+    control: {runDefinitionRunId() {assert.fail('no run definition in this component');}},
+    now() {assert.fail('no terminal timestamp in this component');},
+    entries: new Map(),
+    keyOf: (ref: typeof entry.ref) => ref.runDefinitionCid,
+    journal: {markPreDispatchFailure() {assert.fail('no dispatch failure in this component');},
+      lookupRunDefinition() {assert.fail('no run lookup in this component');},
+      publishRunState() {assert.fail('no terminal publication in this component');}},
+    async observeStop() {assert.fail('no physical stop observation in this component');},
+    resourceUsage() {assert.fail('no diagnostic usage in this component');},
+    diagnostic() {assert.fail('no cleanup observer in this component');},
   });
-  return {entry, calls, cleanup: () => cleanup(entry)};
+  return {entry, calls, cleanup: () => settleCleanup(entry)};
 }
 
 test('actual dispatch cleanup retains zero-byte reserved attempts and holdings', async () => {

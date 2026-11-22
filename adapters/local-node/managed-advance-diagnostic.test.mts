@@ -1,23 +1,14 @@
+import {createClientDispatchCleanup} from '../host-node/client-dispatch-cleanup.mjs';
 import {runtimeFailure} from '../host-common/compiler-binding.generated.mjs';
 import {dispatchFailureSnapshot as snapshot, publicBudgetFailureMessage as publicBudgetMessage, retainedBudgetFailureMessage as retainedBudgetMessage} from '../host-node/client-dispatch-diagnostic.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import type {AnyNode, CallExpression, ClassDeclaration, ExportNamedDeclaration, FunctionDeclaration, Identifier, VariableDeclarator} from 'acorn';
+import type {AnyNode, CallExpression, ClassDeclaration, ExportNamedDeclaration, Identifier, VariableDeclarator} from 'acorn';
 import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 
 type OriginalFailure = Error & {primaryDiagnostic?: unknown};
-type Ref = Readonly<{runDefinitionCid: string}>;
-type RetirementEntry = {
-  ref: Ref;
-  settled: boolean;
-  physicalStarted: boolean;
-  stopObserved: boolean;
-  primaryFailure?: object;
-  cleanupOwner?: object;
-  retirePreparation(): void;
-};
 type PublishedFailure = Readonly<{status: string; terminal_error: Readonly<{code: string; message: string}>}>;
 
 type Projector = NonNullable<Parameters<typeof checkedLocalManagedAdvance>[0]['strategyModule_local_ManagedAdvanceCause']>;
@@ -27,8 +18,6 @@ type Assert<Condition extends true> = Condition;
 type _RejectAsyncProjector = Assert<Reject<(result: unknown) => Promise<string>, Projector>>;
 type _RejectAsyncDescription = Assert<Reject<(cause: string) => PromiseLike<string>, CauseDescription>>;
 
-const source = readFileSync(new URL('../host-node/client-dispatch-owner.mjs', import.meta.url), 'utf8');
-const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 
 
 test('managed advance resource diagnosis comes only from the original typed projector', () => {
@@ -295,38 +284,43 @@ test('same failed Run and exact control frame retain the first budget message wi
   assert.equal(retainedBudgetMessage('not json', state, 'original-run', control), undefined);
 });
 
-const installerNode = (tree.body.find(value => value.type === 'ExportNamedDeclaration' && (value.declaration as FunctionDeclaration | undefined)?.id?.name === 'installNodeClientDispatchOwner') as ExportNamedDeclaration).declaration as FunctionDeclaration;
-const retirementSource = ['retirementReady', 'retainBudgetFailureObservation', 'retire'].map(name => {
-  const value = installerNode.body.body.find(value => value.type === 'FunctionDeclaration' && value.id!.name === name);
-  assert(value, name); return source.slice(value.start, value.end);
-}).join('\n');
-
 test('original failed retirement publishes only after cleanup and fences callback reentry before returning the parent', () => {
   for (const callback of ['reenter', 'new-pending', 'replace-entry']) {
-    let parentReturns = 0, publications = 0, retire!: (entry: RetirementEntry) => unknown;
+    let parentReturns = 0, publications = 0;
     const ref = {runDefinitionCid: 'original'};
-    const entry: RetirementEntry = {ref, settled: true, physicalStarted: true, stopObserved: true,
+    const frame = {physicalCloseConfirmed: true, observedTerminalOutcome: 'failed',
+      runDefinition: {}, resultNames: ['answer'], dispatchReserved: true, preDispatchFailureConfirmed: false};
+    type Entry = Parameters<ReturnType<typeof createClientDispatchCleanup<typeof ref, typeof frame>>['retire']>[0];
+    const entry: Entry = {ref, settled: true, physicalStarted: true, stopObserved: true,
       primaryFailure: {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
         kind: 'resource', task: 4, dimension: 'retained_bytes'}},
       retirePreparation() {parentReturns++;}};
-    const entries = new Map<string, object>([['original', entry]]);
-    const frame = {physicalCloseConfirmed: true, observedTerminalOutcome: 'failed',
-      runDefinition: {}, resultNames: ['answer'], dispatchReserved: true, preDispatchFailureConfirmed: false};
-    const journal = {lookupRunDefinition(value: unknown) {assert.strictEqual(value, ref); return frame;},
-      publishRunState(original: unknown, state: PublishedFailure) {
-        publications++; assert.strictEqual(original, frame);
-        assert.equal(state.status, 'failed'); assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
-        assert(state.terminal_error.message.includes('dimension=retained_bytes'));
-        retire(entry); assert.equal(parentReturns, 0, 'No parent return inside the diagnostic callback');
-        if (callback === 'new-pending') entry.cleanupOwner = {};
-        if (callback === 'replace-entry') entries.set('original', {});
-      }};
-    retire = Function('publicBudgetFailureMessage', 'journal', 'moon', 'control', 'now',
-      'issueInstalledUnpublishedRunState', 'entries', 'keyOf', 'diagnostic', 'resourceUsage',
-      retirementSource + '\nreturn retire;')(publicBudgetMessage, journal, {},
-      {runDefinitionRunId: () => 'original-run'}, () => '2026-11-14T00:00:00.000Z',
-      () => ({status: 'failed', terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'Run ended before publication'}}),
-      entries, (value: Ref) => value.runDefinitionCid, () => {}, () => {});
+    const entries = new Map<string, Entry>([['original', entry]]);
+    const unused = () => assert.fail('Retirement cannot perform new physical work');
+    const {retire} = createClientDispatchCleanup({
+      entries, keyOf: value => value.runDefinitionCid,
+      control: {runDefinitionRunId: () => 'original-run'},
+      now: () => '2026-11-14T00:00:00.000Z',
+      moon: {strategyHostStop: unused, strategyHostCloseOutputs: unused,
+        strategyHostUsage: unused, strategyHostRun: unused,
+        clientProgramIssueControlledUnpublishedRunState: () => ({
+          $tag: 1, _0: JSON.stringify({status: 'failed',
+            terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'Run ended before publication'}}),
+        })},
+      journal: {markPreDispatchFailure: unused,
+        lookupRunDefinition(value) {assert.strictEqual(value, ref); return frame;},
+        publishRunState(original, state) {
+          publications++; assert.strictEqual(original, frame);
+          assert.equal(state.status, 'failed'); assert.equal(state.terminal_error?.code, 'ACTQL_E_UNPUBLISHED_RUN');
+          assert(typeof state.terminal_error?.message === 'string');
+          assert(state.terminal_error.message.includes('dimension=retained_bytes'));
+          retire(entry); assert.equal(parentReturns, 0, 'No parent return inside the diagnostic callback');
+          if (callback === 'new-pending') entry.cleanupOwner = {close: unused, cleanup: unused, cleanupPending: unused};
+          if (callback === 'replace-entry') entries.set('original', {ref});
+        }},
+      async observeStop() {unused();},
+      diagnostic: unused, resourceUsage: unused,
+    });
     retire(entry);
     assert.equal(publications, 1);
     if (callback === 'reenter') {

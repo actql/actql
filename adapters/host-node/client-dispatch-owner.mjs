@@ -16,9 +16,9 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
 import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
-import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
-import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
+import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {isModelCredentialRefusal} from './infer-operation.mjs';
+import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
 import {confirmNodeRunCancellation, observeNodeRunStop, recordNodeRunPhysicalStop}
   from './client-dispatch-stop.mjs';
 export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestoredLocalStop,
@@ -286,71 +286,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return {plan, setup};
   }
 
-  function retirementReady(entry) {
-    return entry.settled && entry.cleanupOwner === undefined &&
-        entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
-        entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
-        entry.pendingSetup === undefined &&
-        !entry.stopObservationPending &&
-        !entry.failureObservationPending && !entry.finishPending &&
-        !entry.releasePending &&
-        (!entry.physicalStarted || entry.stopObserved ||
-          !entry.physicalWorkMayHaveStarted);
-  }
-
-  function retainBudgetFailureObservation(entry) {
-    const message = publicBudgetFailureMessage(entry.primaryFailure,
-      control?.executionFailureExplanation);
-    if (message === undefined || !entry.stopObserved) return;
-    const frame = journal.lookupRunDefinition(entry.ref, moon, control);
-    if (frame?.physicalCloseConfirmed !== true || frame.observedTerminalOutcome !== 'failed') return;
-    const state = issueInstalledUnpublishedRunState(moon, {
-      runId: control.runDefinitionRunId(frame.runDefinition),
-      observedAt: now(), resultNames: frame.resultNames,
-      dispatchReserved: frame.dispatchReserved,
-      preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
-      cancelledBeforeStart: false, observedTerminalOutcome: 'failed',
-      executionUnknown: false,
-    });
-    if (state.status !== 'failed' || state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN') return;
-    state.terminal_error = {...state.terminal_error, message};
-    // The original journal's exact frame and CAS still own this observation.
-    // No successful/pending/Unknown state or cleanup fact is issued here.
-    journal.publishRunState(frame, state, moon, control);
-  }
-
-  function retire(entry) {
-    if (retirementReady(entry) && !entry.publishingBudgetDiagnostic) {
-      if (!entry.budgetDiagnosticAttempted && entry.primaryFailure !== undefined) {
-        entry.budgetDiagnosticAttempted = true;
-        entry.publishingBudgetDiagnostic = true;
-        try { retainBudgetFailureObservation(entry); }
-        catch { /* Optional diagnosis cannot mask the primary or block cleanup. */ }
-        finally { entry.publishingBudgetDiagnostic = false; }
-        if (!retirementReady(entry) || entries.get(keyOf(entry.ref)) !== entry) return;
-      }
-      try {
-        entry.retirePreparation?.();
-      } catch (failure) {
-        // Keep the original retirement capability and identity for drain.
-        // A settled operation alone does not release preparation custody.
-        entry.preparationRetirementFailure = failure;
-        return;
-      }
-      entry.retirePreparation = undefined;
-      entry.preparationRetirementFailure = undefined;
-      const removed = entries.delete(keyOf(entry.ref));
-      // This diagnostic describes the complete original owner, not just its
-      // physical children. Preparation/finished and acquisition release have
-      // now completed under the unchanged retirement predicate above.
-      if (removed && entry.acquisitionLedger !== undefined) {
-        try {diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
-          resourceUsage: resourceUsage(entry.acquisitionLedger)});}
-        catch { /* Optional observation cannot restore or prevent retirement. */ }
-      }
-    }
-  }
-
   async function observeStop(entry) {
     if (entry.terminalOutcome === 'cancelled' &&
         !await confirmNodeRunCancellation({ref: entry.ref, journal, store,
@@ -373,110 +308,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.stopObserved = true;
   }
 
-  async function settleCleanupHandle(entry) {
-    if (entry.cleanupHandle === undefined) return;
-    const handle = entry.cleanupHandle;
-    if (handle.status()?.pending === true) await handle.retry();
-    if (handle.status()?.pending !== false) {
-      throw new Error('ClientDispatchCleanupPending');
-    }
-    entry.cleanupHandle = undefined;
-  }
-
-  async function settleCleanup(entry) {
-    const execution = entry.cleanupOwner;
-    if (entry.borrowedSources && entry.sourceCapture !== undefined) {
-      // Stop Compute before closing any borrowed native input. The same
-      // NativePhysical issuer must confirm close before the DAG can release
-      // its transferred holding. A failed close retains these exact owners.
-      if (execution !== undefined) {
-        try { await execution.close(); } catch (failure) { entry.closeFailure ??= failure; }
-      }
-      if (entry.pendingSetup !== undefined) moon.strategyHostStop(entry.pendingSetup);
-      await entry.sourceCapture.close();
-      entry.sourceCapture = undefined;
-      if (!entry.computeStartAttempted && !entry.unresolvedCleanup) entry.stopObservationPending = true;
-    }
-    if (entry.pendingSetup !== undefined) {
-      moon.strategyHostStop(entry.pendingSetup);
-      moon.strategyHostCloseOutputs(entry.pendingSetup);
-      if (ledgerUsageHasPendingResources(moon.strategyHostUsage(entry.pendingSetup)) &&
-          !(entry.preparationHostBorrow !== undefined &&
-            typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
-            moon.clientProgramPreparationBorrowUsageIsolated(entry.preparationHostBorrow, moon.strategyHostRun(entry.pendingSetup)) === true)) {
-        throw new Error('ClientDispatchCleanupPending');
-      }
-      entry.pendingSetup = undefined;
-      // This exact setup has stopped and returned its temporary resources.
-      // An unentered Compute needs no execution-owner handoff; the existing
-      // Run owner still decides the outcome from current durable facts.
-      if (entry.physicalStarted && !entry.computeStartAttempted) {
-        entry.stopObservationPending = true;
-      }
-    }
-    if (execution !== undefined) {
-      if (typeof execution.close !== 'function' ||
-          typeof execution.cleanup !== 'function' ||
-          typeof execution.cleanupPending !== 'function') {
-        throw new Error('ClientDispatchCleanupOwnerInvalid');
-      }
-      // close may permanently retain its first rejected Promise. Recovery is
-      // owned by cleanup, not by invoking close again or repeating Compute.
-      try { await execution.close(); }
-      catch (failure) { entry.closeFailure ??= failure; }
-      // A failed Store consumer can still pin the completed output. Ask the
-      // retained Store owner to settle before retrying the execution's
-      // reclamation; cancellation alone still grants neither release.
-      await settleCleanupHandle(entry);
-      const recovered = await execution.cleanup();
-      if (recovered === false || execution.cleanupPending() !== false) {
-        throw new Error('ClientDispatchCleanupPending');
-      }
-      entry.cleanupOwner = undefined;
-      entry.stopObservationPending = true;
-    }
-    if (entry.sourceCapture !== undefined) {
-      await entry.sourceCapture.close();
-      entry.sourceCapture = undefined;
-      // Acquisition returned successfully, but evidence/plan preparation can
-      // fail before Compute has an owner. Closing that exact capture confirms
-      // this physical end; it does not confirm an unowned Compute attempt.
-      if (!entry.computeStartAttempted) entry.stopObservationPending = true;
-    }
-    await settleCleanupHandle(entry);
-    if (entry.unresolvedCleanup) {
-      throw new Error('ClientDispatchCleanupOwnerMissing');
-    }
-    if (entry.sourcePreparations !== undefined) {
-      for (const {source, prepared, retire} of entry.sourcePreparations) {
-        Reflect.apply(retire, source, [prepared]);
-      }
-      entry.sourcePreparations = undefined;
-    }
-    if (entry.stopObservationPending) await observeStop(entry);
-    if (entry.failureObservationPending) {
-      journal.markPreDispatchFailure(entry.ref);
-      entry.failureObservationPending = false;
-    }
-    if (entry.physicalStarted && !entry.stopObserved &&
-        entry.physicalWorkMayHaveStarted) {
-      throw new Error('ClientDispatchStopUnknown');
-    }
-    observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
-      physicalStop: entry.stopObserved ? 'confirmed' : undefined});
-  }
-
-  async function finishRun(entry) {
-    if (!entry.finishPending) return;
-    await entry.finished?.();
-    entry.finishPending = false;
-  }
-
-  function releaseAcquisition(entry) {
-    if (!entry.releasePending) return;
-    checkpoints.releaseAcquisition(entry.requestId);
-    entry.releasePending = false;
-  }
+  const {retire, settleCleanup, finishRun, releaseAcquisition, settleRetainedEntry} = createClientDispatchCleanup({
+    entries, keyOf, moon, journal, control, now, checkpoints, observation, observeStop,
+    resourceUsage, diagnostic,
+  });
 
   const start = (submission, requested, accepted, held, finished, gate) => {
     const {principalId: actual, connection} = submission;
@@ -1401,18 +1236,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return entry.promise;
   };
 
-  function settleRetainedEntry(entry) {
-    if (entry.retainedCleanup !== undefined) return entry.retainedCleanup;
-    entry.retainedCleanup = Promise.resolve().then(async () => {
-      try {
-        await settleCleanup(entry);
-        await finishRun(entry);
-        releaseAcquisition(entry);
-      } catch (failure) { entry.cleanupFailure = failure; }
-      retire(entry);
-    }).finally(() => {entry.retainedCleanup = undefined;});
-    return entry.retainedCleanup;
-  }
   // The accepted initial Run retained a physical preparation, but the nominal
   // credential refusal proves this Model never reached Entry. A wait can help
   // settle that exact stopped owner. It cannot restart dispatch or confirm stop.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
 import {readFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
@@ -574,22 +575,12 @@ test('explicit Effect Host selects the same installed Site for its existing mana
 });
 
 test('dispatch retains an unreturned original Source preparation after physical cleanup', () => {
-  const text = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
-  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const functions = [];
-  visit(syntax, node => {
-    if (node.type === 'FunctionDeclaration' && ['retirementReady', 'retire'].includes(node.id.name)) functions.push(node);
-  });
-  assert.deepEqual(functions.map(node => node.id.name).sort(), ['retire', 'retirementReady']);
-  // Keep the actual readiness predicate in the same scope as its caller.
-  const declarations = functions.map(node => text.slice(node.start, node.end)).join('\n');
   let returns = 0;
-  const entry = {settled: true, physicalStarted: false,
+  const entry = {ref: 'original', settled: true, physicalStarted: false,
     sourcePreparations: [{original: 'same unreturned preparation'}],
     retirePreparation() {returns++;}};
   const entries = new Map([['original', entry]]);
-  const retire = new Function('entries', 'keyOf',
-    declarations + ';return retire;')(entries, () => 'original');
+  const {retire} = createClientDispatchCleanup({entries, keyOf: ref => ref});
   retire(entry);
   assert.equal(returns, 0);
   assert.equal(entries.get('original'), entry);

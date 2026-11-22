@@ -1,23 +1,22 @@
 import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
+import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
-import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 import {fileURLToPath} from 'node:url';
-import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
-import {dispatchFailureSnapshot} from './client-dispatch-diagnostic.mjs';
+import {installNodeClientDispatchOwner,
+  observeNodeRestoredLocalStop as observeRestoredLocal} from './client-dispatch-owner.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {types as nodeTypes} from 'node:util';
 import {CapturedRunPublicationError} from './entry.mjs';
 
 // This boundary uses the actual owner and Result guard, not a copied catch.
 async function observeActualDispatchFailure(failure, {afterInstall, observerThrows = false, closeFailure} = {}) {
   const records = [], stopped = [];
   let closes = 0, cleanups = 0;
-  const owner = installActualDispatchOwner({observed(name, detail) {
+  const owner = installNodeClientDispatchOwner({observed(name, detail) {
     if (name === 'dispatch_failed') records.push(detail);
     if (observerThrows) throw new Error('OptionalObserverRefusal');
   }});
@@ -118,7 +117,7 @@ async function observeActualStartDispatchFailure(failure) {
   const ref = {runDefinitionCid: 'actual-start-fieldless-diagnostic'};
   const definition = {wire: 'same-original-definition'};
   const row = {cancellationRequested: false, revision: 1, runDefinition: definition};
-  const owner = installActualDispatchOwner({moon: {},
+  const owner = installNodeClientDispatchOwner({moon: {},
     observed(name, detail) {if (name === 'dispatch_failed') records.push(detail);},
     control: {runDefinitionRunId: () => 'same-run', runCancellationConfirmed: () => false},
     journal: {reservePhysicalStart: () => true, lookupRunDefinition: () => row,
@@ -274,24 +273,8 @@ const commonRuntimePath=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME ??
     '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
     import.meta.url));
 
-// Execute the original declarations with explicit ports. No runtime, Model
-// permission, Store commit or physical capacity is issued by these fixtures.
 const source = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const declarations = ast.body.flatMap(node => {
-  const value = node.type === 'ExportNamedDeclaration' ? node.declaration : node;
-  // Retirement's diagnostic-only field inventory is an actual module-level
-  // dependency. Keep its original declaration, not a fixture-maintained copy.
-  const retirementInventory = value?.type === 'VariableDeclaration' &&
-    value.declarations.some(entry => entry.id.type === 'Identifier' && entry.id.name === 'dispatchFailureFields');
-  return value?.type === 'FunctionDeclaration' || retirementInventory
-    ? [source.slice(value.start, value.end)] : [];
-});
-const installNodeClientDispatchOwner = compileFunction(
-  declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
-  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes', 'dispatchFailureSnapshot'])(
-  diagnosticObserver, class ExplicitPublicationError extends Error {}, () => undefined,
-  () => assert.fail('No fixture Relation execution'), nodeTypes, dispatchFailureSnapshot);
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
 // This distinct component uses the selected original Common namespace and real
@@ -782,9 +765,6 @@ test('single Source publication missing or refused checked Result policy never f
   assert.deepEqual(refused.counts,{policy:1,owner:0,source:0,invocation:0});
 });
 
-const observeRestoredLocal = compileFunction(declarations.join('\n') +
-  '\nreturn observeNodeRestoredLocalStop;')();
-
 test('restored local stop separates proven failure from pending cleanup and rechecks original custody', async () => {
   for (const mode of ['pending-cleanup','later-owner','none','committed','cancel-requested','publication-unknown']) {
     const ref={}, frame={runDefinition:{},physicalCloseConfirmed:false,cancellationRequested:mode==='cancel-requested'};
@@ -932,19 +912,13 @@ test('required installed preparation forwards only its same funded callback with
 });
 
 test('dispatch final usage observes the same ledger only after original preparation retirement', () => {
-  const install = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
-    node.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
-  const declarations = ['retirementReady', 'retire'].map(name => {
-    const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-    assert(declaration, `Missing original retirement declaration: ${name}`);
-    return source.slice(declaration.start, declaration.end);
-  }).join('\n');
   const entries = new Map(), events = [], ledger = {retained: 7}, ref = {runDefinitionCid: 'original-retirement'};
-  const retire = compileFunction(declarations + '\nreturn retire;',
-    ['entries','keyOf','diagnostic','resourceUsage'])(entries, value => value.runDefinitionCid,
-    (name, detail) => events.push({name, detail}), value => {
+  const keyOf = value => value.runDefinitionCid;
+  const {retire} = createClientDispatchCleanup({entries, keyOf,
+    diagnostic: (name, detail) => events.push({name, detail}),
+    resourceUsage(value) {
       assert.equal(value, ledger); return {reservedRetentionBytes: String(value.retained)};
-    });
+    }});
   let attempts = 0, allow = false;
   const entry = {ref, acquisitionLedger: ledger, settled: true, finishPending: true,
     retirePreparation() {attempts++; if (!allow) throw new Error('OriginalPreparationPending'); ledger.retained = 0;}};
@@ -961,12 +935,12 @@ test('dispatch final usage observes the same ledger only after original preparat
   for (const failureAt of ['usage', 'observer']) {
     const retained = new Map(), selected = {ref, acquisitionLedger: ledger, settled: true};
     retained.set(ref.runDefinitionCid, selected);
-    const observeRetirement = compileFunction(declarations + '\nreturn retire;',
-      ['entries','keyOf','diagnostic','resourceUsage'])(retained, value => value.runDefinitionCid,
-      () => {throw new Error('ObserverUnavailable');}, () => {
+    const {retire: observeRetirement} = createClientDispatchCleanup({entries: retained, keyOf,
+      diagnostic() {throw new Error('ObserverUnavailable');},
+      resourceUsage() {
         if (failureAt === 'usage') throw new Error('ObservationUnavailable');
         return {reservedRetentionBytes: '0'};
-      });
+      }});
     assert.doesNotThrow(() => observeRetirement(selected));
     assert.equal(retained.size, 0, 'optional diagnostic failure cannot resurrect original custody');
     assert.doesNotThrow(() => observeRetirement(selected));

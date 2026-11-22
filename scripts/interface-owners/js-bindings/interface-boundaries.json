@@ -42175,6 +42175,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/keyOf/keyOf",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/live/live",
           "parameters": [
             "ref"
@@ -42182,16 +42189,16 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/observeStop",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeClientDispatchOwner/operation/operation",
           "parameters": [
             "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/releaseAcquisition",
-          "parameters": [
-            "entry"
           ],
           "async": false
         },
@@ -42203,27 +42210,10 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/retire",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
           "parameters": [
             "ref"
           ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -43170,6 +43160,8 @@
         {
           "operations": [
             "installNodeClientDispatchOwner",
+            "installNodeClientDispatchOwner/keyOf/keyOf",
+            "installNodeClientDispatchOwner/observeStop",
             "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
             "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
             "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
@@ -43183,9 +43175,7 @@
             "installNodeClientDispatchOwner/drain/drain/running/running",
             "installNodeClientDispatchOwner/live/live",
             "installNodeClientDispatchOwner/operation/operation",
-            "installNodeClientDispatchOwner/releaseAcquisition",
             "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
-            "installNodeClientDispatchOwner/retire",
             "installNodeClientDispatchOwner/start/start",
             "installNodeClientDispatchOwner/start/start/physical/physical",
             "installNodeClientDispatchOwner/start/start/start",
@@ -43231,9 +43221,7 @@
             "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
-            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
-            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
-            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2"
+            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal"
           ],
           "exports": [
             "installNodeClientDispatchOwner"
@@ -43249,8 +43237,8 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               },
               {
                 "path": "docs/design/source-input-acquisition.md",
@@ -43267,8 +43255,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               }
             ],
             "identity": [
@@ -43289,8 +43277,8 @@
                 "anchor": "## Source observation and Result publication policies"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               },
               {
                 "path": "docs/design/source-input-acquisition.md",
@@ -43311,8 +43299,8 @@
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               },
               {
                 "path": "docs/design/source-input-acquisition.md",
@@ -43329,8 +43317,8 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               }
             ],
             "failure": [
@@ -43343,8 +43331,8 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               }
             ],
             "cancellation": [
@@ -43357,8 +43345,8 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               }
             ],
             "resources": [
@@ -43375,15 +43363,15 @@
                 "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               },
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "## Mixed installed capture originals"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
                 "anchor": "entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&"
               }
             ],
@@ -43401,8 +43389,8 @@
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
               },
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retire(entry) {"
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
               }
             ],
             "verification": [
@@ -44763,10 +44751,10 @@
         "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
-        "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../host-common/task-observation.mjs",
+        "./client-dispatch-cleanup.mjs",
         "./client-dispatch-diagnostic.mjs",
         "./client-dispatch-stop.mjs",
         "./client-source-operation.mjs",
@@ -44781,8 +44769,330 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "c2cda837d014c0e06a64c110cb66ea7d7e652dfa1f8924fd9c0d671b52c7384a",
+      "sha256": "7c0eea5af6d68d84785cee3bdfc4272187b0f03f88d0c3625e6458c2f0b51970",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-cleanup.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createClientDispatchCleanup"
+      ],
+      "operations": [
+        {
+          "name": "createClientDispatchCleanup",
+          "parameters": [
+            "entries",
+            "keyOf",
+            "moon",
+            "journal",
+            "control",
+            "now",
+            "checkpoints",
+            "observation",
+            "observeStop",
+            "resourceUsage",
+            "diagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchCleanup/finishRun",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchCleanup/releaseAcquisition",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchCleanup/retire",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchCleanup/settleCleanup",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchCleanup/settleRetainedEntry",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchCleanup/settleRetainedEntry/settleRetainedEntry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchCleanup/settleRetainedEntry/settleRetainedEntry#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createClientDispatchCleanup",
+            "createClientDispatchCleanup/finishRun",
+            "createClientDispatchCleanup/releaseAcquisition",
+            "createClientDispatchCleanup/retire",
+            "createClientDispatchCleanup/settleCleanup",
+            "createClientDispatchCleanup/settleRetainedEntry",
+            "createClientDispatchCleanup/settleRetainedEntry/settleRetainedEntry",
+            "createClientDispatchCleanup/settleRetainedEntry/settleRetainedEntry#2"
+          ],
+          "exports": [
+            "createClientDispatchCleanup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "capacities.some(value => value.managedRun !== managedRun)"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Source observation and Result publication policies"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "clientProgramInstalledManagedRunPrepareLedger("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "export function createClientDispatchCleanup<Ref, Frame extends BudgetFrame>"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retire(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mts",
+                "anchor": "ordinary Source managed Run foreign reference refuses without consuming the original claim"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('a demanded expression failure retains its original typed dispatch cause'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication selects checked Result policy and retains original Source policy evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('dispatch retains an unreturned original Source preparation after physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch forwards the same request into its original timed-plan validator'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch cannot substitute a copied request for the timed-plan original'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/ledger-usage.mjs",
+        "../host-common/run-state-observation.mjs",
+        "./client-dispatch-diagnostic.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current emitted syntax and existing physical dispatch ownership with the original settlement and retry ports.",
+      "sha256": "8e37abe45c68aca65228bb3e90e670ad5367499c5a182499443a4df6b217eb7a"
     },
     {
       "module": "adapters/host-node/client-dispatch-stop.mjs",
