@@ -69014,7 +69014,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "7fcacb3a9f6b32588dfb6dd9abbd49a6e9daa91f229ff870705acf59167e75d2",
+      "sha256": "92ae482ee822cdaa56faecff7ecc006a27c608d374d84c2c9be517cc09ca5500",
       "exports": [],
       "operations": [
         {
@@ -70874,6 +70874,10 @@
           "declaration": "client_program_row_source_prepare_delete_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , ) - > String"
         },
         {
+          "name": "client_program_row_source_prepare_file_create_mapping",
+          "declaration": "client_program_row_source_prepare_file_create_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
+        },
+        {
           "name": "client_program_row_source_prepare_mapping",
           "declaration": "client_program_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
         },
@@ -71131,7 +71135,7 @@
         },
         {
           "name": "client_row_source_prepare_mapping",
-          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , update : Bool , ) - > String"
+          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , guarded : Bool , prepare : ( @ client_row_source_host . RowDeclaration , String , String , Array [ @ client_row_source_host . RowMappingSource ] , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , ) - > String"
         },
         {
           "name": "client_run_control_observation",
@@ -71702,7 +71706,8 @@
             "client_program_effect_compilation_infer_originals",
             "client_program_effect_infer_occurrences",
             "client_program_row_source_prepare_delete_mapping",
-            "client_row_mapping_result_json"
+            "client_row_mapping_result_json",
+            "client_program_row_source_prepare_file_create_mapping"
           ],
           "exports": [],
           "attributes": {
@@ -71780,6 +71785,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_relation_update_mapping_wbtest.mbt",
+                "anchor": "installed file CREATE bridge binds typed fields and approval"
               }
             ]
           }

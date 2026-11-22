@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_update_mapping.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "62ba9ead2fe6c6f6fafa411fa20f05a041522481901a5b0b072c3d99bb6112d2",
+      "sha256": "6819d96d4b5a08008f9108cd4a46e0bd44f7aa81a2f5aba83889e7c84413d4e5",
       "role": "common-semantics",
       "owner": "Existing Common original Relation Mapping and installed SourceInitialization continuation owners",
       "exports": [],
@@ -14,8 +14,12 @@
           "declaration": "prepare_row_delete_mapping_from_writes ( declaration : RowDeclaration , writes_json : String , resource : String , ) - > Result [ RowMapping , RowMappingIssue ]"
         },
         {
+          "name": "prepare_row_file_create_mapping",
+          "declaration": "prepare_row_file_create_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , ) - > Result [ RowMapping , RowMappingIssue ]"
+        },
+        {
           "name": "prepare_row_guarded_mapping",
-          "declaration": "prepare_row_guarded_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , deleting : Bool , ) - > Result [ RowMapping , RowMappingIssue ]"
+          "declaration": "prepare_row_guarded_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , expected : FileMappingKind , ) - > Result [ RowMapping , RowMappingIssue ]"
         },
         {
           "name": "prepare_row_update_mapping",
@@ -28,7 +32,8 @@
             "<module>",
             "prepare_row_update_mapping",
             "prepare_row_delete_mapping_from_writes",
-            "prepare_row_guarded_mapping"
+            "prepare_row_guarded_mapping",
+            "prepare_row_file_create_mapping"
           ],
           "exports": [],
           "attributes": {
@@ -94,6 +99,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "src/client_row_source_host/relation_update_mapping_wbtest.mbt",
+                "anchor": "file CREATE mapping requires all storage fields"
               }
             ]
           }

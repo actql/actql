@@ -9,7 +9,30 @@ pub fn prepare_row_update_mapping(
   sources : Array[RowMappingSource],
 ) -> Result[RowMapping, RowMappingIssue] {
   prepare_row_guarded_mapping(
-    declaration, writes_json, resource, sources, false,
+    declaration,
+    writes_json,
+    resource,
+    sources,
+    FileUpdate,
+  )
+}
+
+///|
+/// Admit the file Mock CREATE profile against its original storage schema.
+/// The separately assigned Text key is never a mapped field. Every other
+/// storage field must be supplied, including explicitly nullable fields.
+pub fn prepare_row_file_create_mapping(
+  declaration : RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources : Array[RowMappingSource],
+) -> Result[RowMapping, RowMappingIssue] {
+  prepare_row_guarded_mapping(
+    declaration,
+    writes_json,
+    resource,
+    sources,
+    FileCreate,
   )
 }
 
@@ -21,8 +44,21 @@ pub fn prepare_row_delete_mapping_from_writes(
   writes_json : String,
   resource : String,
 ) -> Result[RowMapping, RowMappingIssue] {
-  prepare_row_guarded_mapping(declaration, writes_json, resource, [], true)
+  prepare_row_guarded_mapping(
+    declaration,
+    writes_json,
+    resource,
+    [],
+    FileDelete,
+  )
 }
+
+///|
+priv enum FileMappingKind {
+  FileCreate
+  FileUpdate
+  FileDelete
+} derive(Eq)
 
 ///|
 fn prepare_row_guarded_mapping(
@@ -30,7 +66,7 @@ fn prepare_row_guarded_mapping(
   writes_json : String,
   resource : String,
   sources : Array[RowMappingSource],
-  deleting : Bool,
+  expected : FileMappingKind,
 ) -> Result[RowMapping, RowMappingIssue] {
   let limits : RowDeclarationLimits = {
     ..declaration_limits,
@@ -57,7 +93,7 @@ fn prepare_row_guarded_mapping(
   let mut selected : (String, RowRelationWriteSpec)? = None
   for write in writes {
     guard @decode.closed_object(write, [
-        "resource", "primary_identity", "update", "delete",
+        "resource", "primary_identity", "create", "update", "delete",
       ])
       is Ok(fields) &&
       @decode.lookup(fields, "resource").map(@decode.text) is Some(Ok(name)) &&
@@ -65,13 +101,18 @@ fn prepare_row_guarded_mapping(
       is Some(Ok(identity)) else {
       return Err(InvalidSpecification)
     }
-    let (delete, operation) = match
-      (@decode.lookup(fields, "update"), @decode.lookup(fields, "delete")) {
-      (Some(update), None) => (false, update)
-      (None, Some(delete)) => (true, delete)
+    let (kind, operation) = match
+      (
+        @decode.lookup(fields, "create"),
+        @decode.lookup(fields, "update"),
+        @decode.lookup(fields, "delete"),
+      ) {
+      (Some(create), None, None) => (FileCreate, create)
+      (None, Some(update), None) => (FileUpdate, update)
+      (None, None, Some(delete)) => (FileDelete, delete)
       _ => return Err(InvalidSpecification)
     }
-    let keys = if delete {
+    let keys = if kind is FileDelete {
       ["permission", "approval"]
     } else {
       ["fields", "permission", "approval"]
@@ -83,7 +124,7 @@ fn prepare_row_guarded_mapping(
       is Some(Ok(approval)) else {
       return Err(InvalidSpecification)
     }
-    let names = if delete {
+    let names = if kind is FileDelete {
       []
     } else {
       guard @decode.lookup(operation, "fields").map(@decode.elements)
@@ -122,19 +163,43 @@ fn prepare_row_guarded_mapping(
     guard @schema.from_object(contract) is Ok(schema) else {
       return Err(InvalidSpecification)
     }
+    if kind is FileCreate {
+      // The selected file profile assigns a 64-character lowercase SHA-256
+      // key. An enum or narrower Text contract cannot accept the key space.
+      guard approval == "required" &&
+        contract.shape is @contract.Object(fields) &&
+        @contract.field_count(fields) == writable_fields.length() + 1 &&
+        @schema.lookup_reference(schema, identity) is Some(primary) &&
+        !primary.contract.nullable &&
+        primary.contract.shape is @contract.Text(bounds) &&
+        bounds.enumeration is None &&
+        bounds.min_length.unwrap_or(0L) <= 64L &&
+        bounds.max_codepoints.unwrap_or(64L) >= 64L &&
+        bounds.max_utf8_bytes.unwrap_or(64L) >= 64L else {
+        return Err(InvalidSpecification)
+      }
+    }
     for field in writable_fields {
       if @schema.lookup_reference(schema, field) is None {
         return Err(FieldNotWritable(field))
       }
     }
-    if name == resource && delete == deleting {
+    if name == resource && kind == expected {
       selected = Some(
         (
           identity,
           {
-            kind: RelationUpdate,
+            kind: if kind is FileCreate {
+              RelationCreate
+            } else {
+              RelationUpdate
+            },
             writable_fields,
-            required_fields: [],
+            required_fields: if kind is FileCreate {
+              writable_fields
+            } else {
+              []
+            },
             permission,
             approval,
           },
@@ -145,7 +210,7 @@ fn prepare_row_guarded_mapping(
   guard selected is Some((identity, spec)) else {
     return Err(NotWritable(resource))
   }
-  if deleting {
+  if expected is FileDelete {
     prepare_row_delete_mapping(
       declaration,
       resource,

@@ -4456,6 +4456,8 @@ pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> 
 
 pub fn client_program_row_source_prepare_delete_mapping(@client_row_source_host.RowDeclaration, String, String) -> String
 
+pub fn client_program_row_source_prepare_file_create_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String

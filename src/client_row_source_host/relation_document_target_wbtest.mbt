@@ -186,10 +186,10 @@ test "relation insertion refuses malformed identity row limits and retired backi
 }
 
 ///|
-test "relation insertion checks the supplied storage key against the original Text bound" {
+fn relation_document_test_short_key_declaration() -> RowDeclaration {
   let schema =
     #|{"id":{"max_utf8_bytes":4,"nullable":false,"type":"string"},"value":{"nullable":true,"type":"string"}}
-  let declaration = generate_relation_row_declaration(
+  generate_relation_row_declaration(
     "bounded-key",
     "fixture",
     "fixture/0.1",
@@ -206,6 +206,11 @@ test "relation insertion checks the supplied storage key against the original Te
     ],
     delete_mapping_limits(),
   ).unwrap()
+}
+
+///|
+test "relation insertion checks the supplied storage key against the original Text bound" {
+  let declaration = relation_document_test_short_key_declaration()
   let limits = relation_document_test_limits()
   let prepared = prepare_relation_document_contract(
     declaration, "records", "id", limits,
