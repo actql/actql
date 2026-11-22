@@ -653,7 +653,7 @@ export async function installConfiguredModelProviders({moon, register, project,
     const install = () => installModelProviders(moon, () => entries, assertHostRuntime,
       assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability);
     let registeredTaskNodes = 0n;
-    if (preparedSdkRegistrations !== undefined) {
+    if (preparedSdkRegistrations !== undefined && taskOriginals !== undefined) {
       for (const task of taskOriginals) {
         if (preparedSdkRegistrations.has(task.providerId)) registeredTaskNodes += 24n;
       }
