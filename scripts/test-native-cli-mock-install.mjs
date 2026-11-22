@@ -17,7 +17,8 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
-import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
+import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeNullableMockScenarios,
+  runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {inventory, verifyPackageRelease} from './package-release.mjs';
@@ -194,9 +195,15 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     env.ACTQL_NATIVE_TIMINGS = '1';
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
     const runScenarioCommand = (args, cwd) => run(process.execPath, [launcher, ...args], cwd);
+    let nullableUpdate;
     if (sharedFileMock) {
       scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
         launcherTimings: 'required', run: runScenarioCommand})));
+      nullableUpdate = await observe('nullable-update-scenarios', async () => ({
+        caseSha256: createHash('sha256').update(await readFile(new URL(
+          '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs', import.meta.url))).digest('hex'),
+        decisions: await runNativeNullableMockScenarios({root, launcherTimings: 'required', run: runScenarioCommand}),
+      }));
     } else {
       for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
         root, template, launcherTimings: 'required', run: runScenarioCommand}), template));
@@ -266,6 +273,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       publicRegistryPublication: 'not-tested', harnessPhases, scenarios, records,
+      ...(nullableUpdate === undefined ? {} : {nullableUpdate}),
       ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest.sourceSha,
         nodePackages: nodeManifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,

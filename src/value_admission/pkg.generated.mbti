@@ -66,6 +66,14 @@ pub fn bind_reference_reissuer((@value_contract.Contract, String) -> ReferenceVa
 
 pub fn boolean_value(Bool) -> Value
 
+pub fn bytes_at(BinaryValue, Int) -> Byte?
+
+pub fn bytes_count(BinaryValue) -> Int
+
+pub fn bytes_value(Bytes, Int) -> Value?
+
+pub fn bytes_wire_text(BinaryValue) -> String
+
 pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
@@ -279,6 +287,10 @@ pub fn wire_emit_start_construction_inventory() -> WireEmitConstructionInventory
 // Types and methods
 type ArrayBuilder
 
+pub struct BinaryValue {
+  wire : String
+}
+
 type BoundedKeyComparison
 
 pub enum BoundedKeyComparisonPoll {
@@ -368,6 +380,7 @@ pub(all) enum IssueKind {
   UnauthorizedReference
   BudgetExceeded
   InvalidSigned64
+  InvalidBytes
 } derive(Eq, @debug.Debug)
 
 type JsonAdmission
@@ -507,6 +520,7 @@ pub enum Value {
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
   Signed64(Int64)
+  Binary(BinaryValue)
 }
 
 type VectorBuilder

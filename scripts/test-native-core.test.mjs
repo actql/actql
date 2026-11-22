@@ -1098,10 +1098,11 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   }
   copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
     join(checkout, 'proofs/relation-pipeline/proof-parts.mjs'));
-  // Keep both authored Project inputs at their original relative paths in
+  // Keep the authored Project inputs at their original relative paths in
   // the isolated wrapper checkout.
   for (const path of ['packages/native-cli/lib/project-template.mjs',
-    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs']) {
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs',
+    'adapters/host-node/fixtures/mock-nullable-update.fixture.mjs']) {
     const target = join(checkout, path);
     mkdirSync(dirname(target), {recursive: true});
     copyFileSync(new URL('../' + path, import.meta.url), target);

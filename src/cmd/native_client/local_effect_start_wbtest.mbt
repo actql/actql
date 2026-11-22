@@ -50,9 +50,9 @@ fn local_effect_prefix_fixture_original(
 }
 
 ///|
-fn native_shared_file_effect_input(
+fn native_shared_file_effect_environment(
   project : LocalProjectMockDeclarations,
-) -> (@checked.CheckEnvironment, @run_host.ClientSubmittedIntent) raise {
+) -> @checked.CheckEnvironment {
   project
   .prepare_models(
     local_project_mock_task_limits(),
@@ -63,7 +63,14 @@ fn native_shared_file_effect_input(
   let source = project
     .prepare_source_environment(explain_fixture_environment())
     .unwrap()
-  let environment = project.prepare_model_environment(source).unwrap()
+  project.prepare_model_environment(source).unwrap()
+}
+
+///|
+fn native_shared_file_effect_input(
+  project : LocalProjectMockDeclarations,
+) -> (@checked.CheckEnvironment, @run_host.ClientSubmittedIntent) raise {
+  let environment = native_shared_file_effect_environment(project)
   let document = local_input_text_file(
     project._retained_project.directory,
     "multiple-targets.program.json",

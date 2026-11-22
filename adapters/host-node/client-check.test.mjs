@@ -78,7 +78,7 @@ const query = 'SELECT id FROM records WHERE amount >= @minimum';
 const unsupportedSourceQuery = 'SELECT CUME_DIST() OVER (ORDER BY id) AS n FROM records';
 const declarations = Object.freeze({minimum: {type: 'number'}});
 const expectedNumberAdmission = Object.freeze({kind: 'parameter_declaration',
-  contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
+  contract_schema_cid: 'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1',
   contract: {nullable: false, type: 'number'},
   constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'});
 const requests = Object.freeze({
@@ -475,7 +475,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       [{parameter: 'b', expected_type: 'string', admission: {
         kind: 'parameter_declaration', supplier: 'caller',
         contract: {type: 'string', nullable: false}, constraints: [],
-        contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}}]);
+        contract_schema_cid: 'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1'}}]);
     assert.notEqual(changed.report.context_ref, first.report.context_ref);
     assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
     const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
@@ -1009,7 +1009,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         facts: {parameter: 'missing', expected_type: 'string', admission: {
           kind: 'parameter_declaration', supplier: 'caller',
           contract: {type: 'string', nullable: false}, constraints: [],
-          contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}},
+          contract_schema_cid: 'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1'}},
         location: {document_id: 'parameter_declarations', revision: declared.revision,
           kind: 'structured', pointer: '/missing'}}], '[check-mutation:nested-missing-requirement]');
       assert.deepEqual(original.value, parameters);
@@ -5190,7 +5190,7 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: missing parameter Requirements expose admitted recursive declaration conditions`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const contractSchemaCid = 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1';
+    const contractSchemaCid = 'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1';
     const cases = [
       [{type: 'number', nullable: true, integer: true, minimum: -2.5, maximum: 4.5,
         meta: {note: 'private-admission-note', instruction: 'private-admission-instruction'}},

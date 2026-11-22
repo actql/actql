@@ -724,7 +724,7 @@ CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2PathItem1 = TypedDi
 
 CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2 = TypedDict("CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2", {"kind": Required["Literal[\"array_length\"]"], "path": Required["list[CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2PathItem0 | CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2PathItem1]"], "length": Required["int"]}, total=False)
 
-CheckOutcome0ReportReasonsItemFacts2Admission = TypedDict("CheckOutcome0ReportReasonsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0 | CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem1 | CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
+CheckOutcome0ReportReasonsItemFacts2Admission = TypedDict("CheckOutcome0ReportReasonsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0 | CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem1 | CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
 
 CheckOutcome0ReportReasonsItemFacts2 = TypedDict("CheckOutcome0ReportReasonsItemFacts2", {"parameter": Required["str"], "expected_type": Required["Literal[\"null\", \"boolean\", \"number\", \"string\", \"array\", \"object\", \"date\", \"timestamp\", \"decimal\", \"json\", \"vector\", \"resource_ref\", \"content_ref\", \"int64\"]"], "admission": NotRequired["CheckOutcome0ReportReasonsItemFacts2Admission"]}, total=False)
 
@@ -792,7 +792,7 @@ CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2PathItem1 = Ty
 
 CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2 = TypedDict("CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2", {"kind": Required["Literal[\"array_length\"]"], "path": Required["list[CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2PathItem0 | CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2PathItem1]"], "length": Required["int"]}, total=False)
 
-CheckOutcome0ReportRequirementsItemFacts2Admission = TypedDict("CheckOutcome0ReportRequirementsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0 | CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem1 | CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
+CheckOutcome0ReportRequirementsItemFacts2Admission = TypedDict("CheckOutcome0ReportRequirementsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0 | CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem1 | CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
 
 CheckOutcome0ReportRequirementsItemFacts2 = TypedDict("CheckOutcome0ReportRequirementsItemFacts2", {"parameter": Required["str"], "expected_type": Required["Literal[\"null\", \"boolean\", \"number\", \"string\", \"array\", \"object\", \"date\", \"timestamp\", \"decimal\", \"json\", \"vector\", \"resource_ref\", \"content_ref\", \"int64\"]"], "admission": NotRequired["CheckOutcome0ReportRequirementsItemFacts2Admission"]}, total=False)
 
@@ -832,7 +832,7 @@ CheckOutcome0ReportScope = TypedDict("CheckOutcome0ReportScope", {"kind": Requir
 
 CheckOutcome0Report = TypedDict("CheckOutcome0Report", {"runnable": Required["CheckOutcome0ReportRunnable"], "context_ref": Required["str"], "omissions": NotRequired["CheckOutcome0ReportOmissions"], "inputs": Required["list[CheckOutcome0ReportInputsItem]"], "coverage": Required["CheckOutcome0ReportCoverage"], "reasons": Required["list[CheckOutcome0ReportReasonsItem]"], "requirements": Required["list[CheckOutcome0ReportRequirementsItem]"], "scope": Required["CheckOutcome0ReportScope"], "verdict": Required["Literal[\"invalid\", \"undetermined\", \"verified\"]"]}, total=False)
 
-CheckOutcome0 = TypedDict("CheckOutcome0", {"outcome": Required["Literal[\"completed\"]"], "report": Required["CheckOutcome0Report"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
+CheckOutcome0 = TypedDict("CheckOutcome0", {"outcome": Required["Literal[\"completed\"]"], "report": Required["CheckOutcome0Report"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
 
 CheckOutcome1PartialReportRunnableReasonsItem = TypedDict("CheckOutcome1PartialReportRunnableReasonsItem", {"code": Required["str"]}, total=False)
 
@@ -890,7 +890,7 @@ CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2PathItem1 = 
 
 CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2 = TypedDict("CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2", {"kind": Required["Literal[\"array_length\"]"], "path": Required["list[CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2PathItem0 | CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2PathItem1]"], "length": Required["int"]}, total=False)
 
-CheckOutcome1PartialReportReasonsItemFacts2Admission = TypedDict("CheckOutcome1PartialReportReasonsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0 | CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem1 | CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
+CheckOutcome1PartialReportReasonsItemFacts2Admission = TypedDict("CheckOutcome1PartialReportReasonsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0 | CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem1 | CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
 
 CheckOutcome1PartialReportReasonsItemFacts2 = TypedDict("CheckOutcome1PartialReportReasonsItemFacts2", {"parameter": Required["str"], "expected_type": Required["Literal[\"null\", \"boolean\", \"number\", \"string\", \"array\", \"object\", \"date\", \"timestamp\", \"decimal\", \"json\", \"vector\", \"resource_ref\", \"content_ref\", \"int64\"]"], "admission": NotRequired["CheckOutcome1PartialReportReasonsItemFacts2Admission"]}, total=False)
 
@@ -958,7 +958,7 @@ CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2PathIte
 
 CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2 = TypedDict("CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2", {"kind": Required["Literal[\"array_length\"]"], "path": Required["list[CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2PathItem0 | CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2PathItem1]"], "length": Required["int"]}, total=False)
 
-CheckOutcome1PartialReportRequirementsItemFacts2Admission = TypedDict("CheckOutcome1PartialReportRequirementsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0 | CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem1 | CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
+CheckOutcome1PartialReportRequirementsItemFacts2Admission = TypedDict("CheckOutcome1PartialReportRequirementsItemFacts2Admission", {"contract_schema_cid": Required["Literal[\"sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1\"]"], "kind": Required["Literal[\"parameter_declaration\"]"], "contract": Required["ValueContract"], "supplier": Required["Literal[\"caller\"]"], "constraints": Required["list[CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0 | CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem1 | CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem2]"]}, total=False)
 
 CheckOutcome1PartialReportRequirementsItemFacts2 = TypedDict("CheckOutcome1PartialReportRequirementsItemFacts2", {"parameter": Required["str"], "expected_type": Required["Literal[\"null\", \"boolean\", \"number\", \"string\", \"array\", \"object\", \"date\", \"timestamp\", \"decimal\", \"json\", \"vector\", \"resource_ref\", \"content_ref\", \"int64\"]"], "admission": NotRequired["CheckOutcome1PartialReportRequirementsItemFacts2Admission"]}, total=False)
 
@@ -1000,11 +1000,11 @@ CheckOutcome1PartialReport = TypedDict("CheckOutcome1PartialReport", {"runnable"
 
 CheckOutcome1Problem = TypedDict("CheckOutcome1Problem", {"code": Required["str"]}, total=False)
 
-CheckOutcome1 = TypedDict("CheckOutcome1", {"outcome": Required["Literal[\"failed\"]"], "partial_report": NotRequired["CheckOutcome1PartialReport"], "problem": Required["CheckOutcome1Problem"], "correlation_ref": Required["str"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
+CheckOutcome1 = TypedDict("CheckOutcome1", {"outcome": Required["Literal[\"failed\"]"], "partial_report": NotRequired["CheckOutcome1PartialReport"], "problem": Required["CheckOutcome1Problem"], "correlation_ref": Required["str"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
 
 CheckOutcome2Problem = TypedDict("CheckOutcome2Problem", {"code": Required["str"]}, total=False)
 
-CheckOutcome2 = TypedDict("CheckOutcome2", {"correlation_ref": Required["str"], "outcome": Required["Literal[\"unavailable\"]"], "problem": Required["CheckOutcome2Problem"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
+CheckOutcome2 = TypedDict("CheckOutcome2", {"correlation_ref": Required["str"], "outcome": Required["Literal[\"unavailable\"]"], "problem": Required["CheckOutcome2Problem"], "outcome_schema_cid": Required["str"], "reason_schema_cid": Required["Literal[\"sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652\"]"], "version": Required["Literal[\"actql-check-outcome/0.1\"]"]}, total=False)
 
 CheckOutcome = CheckOutcome0 | CheckOutcome1 | CheckOutcome2
 
@@ -1026,7 +1026,9 @@ ValueContract7 = TypedDict("ValueContract7", {"type": Required["Literal[\"conten
 
 ValueContract8 = TypedDict("ValueContract8", {"type": Required["Literal[\"int64\"]"], "nullable": Required["bool"]}, total=False)
 
-ValueContract = ValueContract0 | ValueContract1 | ValueContract2 | ValueContract3 | ValueContract4 | ValueContract5 | ValueContract6 | ValueContract7 | ValueContract8
+ValueContract9 = TypedDict("ValueContract9", {"type": Required["Literal[\"bytes\"]"], "nullable": Required["bool"]}, total=False)
+
+ValueContract = ValueContract0 | ValueContract1 | ValueContract2 | ValueContract3 | ValueContract4 | ValueContract5 | ValueContract6 | ValueContract7 | ValueContract8 | ValueContract9
 
 DeliveryAttempt = TypedDict("DeliveryAttempt", {"version": Required["Literal[\"actql-delivery-attempt/0.1\"]"], "attempt_id": Required["str"], "result_read_grant_cid": Required["str"], "run_definition_cid": Required["str"], "result_manifest_cid": Required["str"], "result_name": Required["str"], "result_artifact_cid": Required["str"], "serialization_contract_cid": Required["str"], "requested_at": Required["str"], "delivery_attempt_cid": Required["str"]}, total=False)
 

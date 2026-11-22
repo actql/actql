@@ -340,7 +340,7 @@ need no Reviewer signature.
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:7040850e41fcc7d77ccea1afdad1f5a3e7be55e27b7efe89df3f14ad473b87c3 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:e4455df28905345fac2e853a84fc24bc3289b189ee97cb160acc287737fcc100 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
@@ -729,7 +729,7 @@ Successful retained upstream observations survive a downstream failure; failure
 does not authorize a replacement read.
 
 The closed machine contract is
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:160f77d834848dcfe4249f6b204d915ce21275c78b7f7042edba8d0b4bd2156f -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:c8a3d1463c416bb75820bd6d83fcd2d79e6537efb651a107d117257752ea9433 -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:a1845bdcf3241fa1811784e3d5e6df4b38473db19f847fa9d820f76ec51204fe -->
 [`actql-query-acquisition.json`](../../spec/contracts/actql-query-acquisition.json):
@@ -849,7 +849,7 @@ selected common contract. The initial scan/filter/select profile has no ordered
 derive step: `request.row_kernel_limits` is absent, not an invented set of
 filter/select limits or a zero-valued exemption.
 
-<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:32c140b04b1f4e93a52141b90f1c440e71753eed70dcde3c6dc8b1dd4796b70a -->
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:daac233383a5d8bcc35ebc9cd7208d7e6a2f455b8e22a03bb3c335b669e30521 -->
 The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
 counts complete select-output occurrences, not scanned or received rows.
@@ -917,7 +917,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:e6d7781d31e659c03ad6aeba3c362bf16e7680ca02bdf8f64ecfcb5b3797b903 -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:5cf3f83d2de292d095653714cb8816192d3e49f3bd726cafbd58bc61bc96e35a -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes
@@ -989,7 +989,7 @@ result test faulty output, not an additional admitted operation.
 
 #### Process-retained query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf -->
 <!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
 The initial process-evidence profile specializes the acquisition contract without
 changing its requirement or observation shapes. Its closed record schema is
@@ -1130,7 +1130,7 @@ failure rules. Validation ordering never supplies missing source-order evidence.
 
 #### Host-local two-receipt query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929 -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807 -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/receipt sha256:d3994a9a48aab18e3d0c75e2ef2d549c6c6227536313c3d66c53b543f2868b6a -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/record sha256:cd3c30fbe01c375642b42f7dac2391a5ea008d117a2489c8c646d78745f86334 -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/completed_observation sha256:e79e4ca5c8d35693b4cac789e872b10a23da8c749513186ffa7630a6570012af -->

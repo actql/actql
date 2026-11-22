@@ -675,6 +675,8 @@ pub fn installed_json_effect_request_construction_capacity(@execution_relation.E
 
 pub fn installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_json_identity_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
@@ -963,7 +965,7 @@ pub fn prepare_installed_effect_capture_recipe_extent(String, Array[@execution_r
 
 pub fn prepare_installed_effect_capture_recovery(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientInstalledEffectCaptureRecovery, ClientInstalledManagedRunIssue]
 
-pub fn prepare_installed_effect_combined_source_result_artifact(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectUnitPreparationIssue]
+pub fn prepare_installed_effect_combined_source_result_artifact(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int, imported? : (@run_publication_host.ClientEffectImportedEvidence, @run_publication.PublicationContract)?) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectUnitPreparationIssue]
 
 pub fn prepare_installed_effect_combined_source_unit(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, ClientEffectUnitPreparationIssue]
 

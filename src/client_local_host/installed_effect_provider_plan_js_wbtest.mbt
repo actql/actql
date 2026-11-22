@@ -296,6 +296,45 @@ fn effect_native_source_plan_fixture(
 }
 
 ///|
+test "Managed row Effect Query requires the original acquisition and evidence contracts" {
+  let base = effect_operation_source_plan_fixture()
+  let declaration = base.declarations[0]
+  let requirement = base.captures[0].requirement
+  assert_true(
+    @row_source_host.prepare_row_acquisition(declaration, requirement, "", "")
+    is Err(InvalidContracts),
+  )
+  let input = prepare_installed_effect_row_source_input(declaration, None).unwrap()
+  let prepare = (query, evidence) => {
+    prepare_installed_effect_managed_source_plan(
+      base.prepared,
+      base.request,
+      [input],
+      query,
+      evidence,
+      base.transport_bytes,
+      base.transport_execution_bytes,
+      base.installed_contracts,
+      base.values_body,
+      base.fragment_body,
+      base.ordered_body,
+      base.operations,
+      provider_factory=_ => [],
+    )
+  }
+  assert_true(prepare("", "") is Err(Unsupported))
+  let plan = prepare(
+    original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+  ).unwrap()
+  let (source, _, acquisition, _) = prepared_installed_effect_managed_source(
+    plan, 0,
+  ).unwrap()
+  assert_true(physical_equal(source, declaration))
+  assert_true(physical_equal(acquisition, plan.acquisitions[0]))
+  assert_true(plan.whole_sources[0] is None)
+}
+
+///|
 test "Effect native capture retains same Plan requirement capacity and Ledger without a Row read" {
   let base = effect_operation_source_plan_fixture()
   let plan = effect_native_source_plan_fixture(base).unwrap()

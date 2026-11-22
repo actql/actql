@@ -14,6 +14,7 @@ import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson as canonical} from './local-account-config.mjs';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
 
 const root = new URL('../../', import.meta.url).pathname;
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -66,8 +67,10 @@ async function fixture(t, transport, item, cancel) {
   const base = JSON.parse(await readFile(join(root, 'spec/local-check-environment.json'), 'utf8'));
   const hostCapacityPolicy = base.host_policy_profile.capacity;
   environment.host_policy_profile = base.host_policy_profile;
+  const processEvidence = await readFile(new URL(
+    '../../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8');
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
+    machineCid(JSON.parse(processEvidence)));
   environment.connector_capabilities[0].capability_contract_cids.sort();
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')

@@ -8740,6 +8740,7 @@
         "ValueContract6",
         "ValueContract7",
         "ValueContract8",
+        "ValueContract9",
         "annotations"
       ],
       "imports": [
@@ -8749,7 +8750,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "215ea06b446c5bc16b1e90da35d8bcd5916e1938d01397c38a89c1d747410197",
+      "sha256": "145db6b500cf06c5449f4efa3733508992e0f3f918537d31b672a929dce77187",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9229,6 +9230,7 @@
             "ValueContract6",
             "ValueContract7",
             "ValueContract8",
+            "ValueContract9",
             "annotations"
           ],
           "attributes": {
@@ -9282,6 +9284,10 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "Requirement for an original Take Parameter demand."
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "<!-- requirement-block: byte-values.canonical-wire -->"
               }
             ],
             "identity": [
@@ -9312,6 +9318,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "Program, declaration and operation obligation."
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "<!-- requirement-block: byte-values.distinct-identity -->"
               }
             ],
             "ownership": [
@@ -10323,7 +10333,7 @@
           ]
         }
       ],
-      "sha256": "b0f50927a24d685b59c80c322744c3bc9517163688c0b6ccd988f33735869ab0",
+      "sha256": "0ba560f486028524c3d7edae8b82651690695b76963333a1989b92b8c5feed19",
       "responsibilityFacet": "primary",
       "role": "public-wire-codec",
       "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",

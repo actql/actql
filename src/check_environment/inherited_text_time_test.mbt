@@ -1,7 +1,7 @@
 ///|
 test "inherited text-time pins resolve a closed graph with explicit leaves" {
   let root = inherited_text_time_contract(
-    "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
+    "sha256:71d09bd1bfdf5da93ba04629cb21a50e6c6e075bb9c1a7e100c8bdea8e867ae6",
   ).unwrap()
   assert_eq(root, Base)
   let pending = [root]

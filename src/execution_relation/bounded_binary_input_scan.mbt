@@ -180,6 +180,11 @@ fn binary_input_scan_frame(
             Err(issue) => return Err(issue)
             Ok(_) => ()
           }
+        @admitted.Binary(bytes) =>
+          match binary_input_push_text(scan, @admitted.bytes_wire_text(bytes)) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
         @admitted.Decimal(decimal) =>
           match binary_input_push_text(scan, decimal.coefficient) {
             Err(issue) => return Err(issue)

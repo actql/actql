@@ -6,8 +6,8 @@ const declarationRevision = 'rev:' + '6'.repeat(64);
 const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511',
-  outcome_schema_cid: 'sha256:ce7df95dc9d069472f6dd61273acb6e5d09aba605347cddda5c4a23c6e5e52f6',
+  reason_schema_cid: 'sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652',
+  outcome_schema_cid: 'sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     runnable: {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],

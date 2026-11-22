@@ -697,8 +697,8 @@ fn native_mock_readme_content_join_adopt(
         }
         Query(acquisition) => {
           let requirement = @row_host.row_acquisition_requirement(acquisition)
-          let sequence = @test_planning.query_material_owner(
-            @test_planning.query_requirement_material(requirement),
+          let sequence = @planning.query_material_owner(
+            @planning.query_requirement_material(requirement),
           )
           let coordinates = input._retained_coordinates
           assert_true(
@@ -713,7 +713,7 @@ fn native_mock_readme_content_join_adopt(
           let program = @checked.source_identity(@strategy.graph_program(dag))
           assert_true(
             physical_equal(
-              @test_planning.query_requirement_program(requirement),
+              @planning.query_requirement_program(requirement),
               program,
             ),
           )
@@ -735,7 +735,7 @@ fn native_mock_readme_content_join_adopt(
             requirement,
             task=input._retained_coordinates.2,
           ).native_source_logical_stage("actual Query Source logical")
-          let facts = @test_planning.query_requirement_source_evidence_facts(
+          let facts = @planning.query_requirement_source_evidence_facts(
             requirement,
           ).unwrap()
           let observation = (if @row_host.row_acquisition_is_listing(

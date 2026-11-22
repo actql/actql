@@ -6,6 +6,10 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 const definitions = [
   {
+    "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+    "original_cid": "sha256:aeb50e7260b47a2a152ee593bac2956835f53570c6c5fc68b5caf39c1da3959e"
+  },
+  {
     "path": "src/run_publication_host/client_effect_program_test.mbt",
     "original_cid": "sha256:7d396c299e58a85fec0efdfecd0801c94a4cded4b29215a75291428a32aee0aa"
   },
@@ -92,7 +96,13 @@ const oldProcess = 'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a
 const oldReceipt = 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a';
 const processCid = machineCid(JSON.parse(readFileSync('spec/contracts/actql-query-process-evidence.json', 'utf8')));
 const receiptCid = machineCid(JSON.parse(readFileSync('spec/contracts/actql-query-two-receipt.json', 'utf8')));
-const pins = new Map([[oldProcess, processCid], [processCid, processCid], [oldReceipt, receiptCid], [receiptCid, receiptCid]]);
+// Also accept the exact pre-Bytes identities in the same two roles.
+const previousProcess = 'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d';
+const previousReceipt = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
+const pins = new Map([
+  [oldProcess, processCid], [previousProcess, processCid], [processCid, processCid],
+  [oldReceipt, receiptCid], [previousReceipt, receiptCid], [receiptCid, receiptCid],
+]);
 const namedBindings = [{
   "owner": "src/run_publication_host/client_local_normalization_wbtest.mbt",
   "name": "local_normalization_environment_wire",
@@ -102,8 +112,31 @@ const namedBindings = [{
     "src/run_publication_host/client_effect_run_materials_wbtest.mbt",
     "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
     "src/run_publication_host/client_serialization_effect_branch_wbtest.mbt",
-    "src/run_publication_host/client_serialization_retained_task_wbtest.mbt"
+    "src/run_publication_host/client_serialization_retained_task_wbtest.mbt",
+    "src/run_publication_host/client_serialization_whole_captured_input_wbtest.mbt"
   ]
+}, {
+  owner: 'src/run_publication_host/client_effect_source_request_binding_wbtest.mbt',
+  name: 'bound_effect_source_environment',
+  consumers: [
+    'client_effect_source_request_binding_wbtest.mbt',
+    'client_effect_combined_source_unit_wbtest.mbt',
+    'client_effect_mixed_direct_invocation_wbtest.mbt',
+    'client_effect_model_mixed_sources_wbtest.mbt',
+    'client_effect_saved_model_imports_wbtest.mbt',
+    'client_source_acquisition_wbtest.mbt',
+  ].map(name => 'src/run_publication_host/' + name),
+}, {
+  owner: 'src/run_publication_host/client_effect_local_update_source_normalization_wbtest.mbt',
+  name: 'local_update_source_environment',
+  consumers: [
+    'src/run_publication_host/client_effect_local_update_source_normalization_wbtest.mbt',
+    'src/run_publication_host/client_source_preparation_input_wbtest.mbt',
+  ],
+}, {
+  owner: 'src/client_local_host/preparation_request_source_input_wbtest.mbt',
+  name: 'funded_request_source_environment_wire',
+  consumers: ['src/client_local_host/preparation_request_source_input_wbtest.mbt'],
 }, {
   owner: 'src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt',
   name: 'resident_effect_source_environment',
@@ -153,10 +186,13 @@ function refresh(environment, original) {
     } else assert.deepEqual(body.host_policy_profile.text_time_evaluation, policy);
   }
   for (const capability of body.connector_capabilities) {
-    capability.capability_contract_cids = capability.capability_contract_cids.map(pin => {
+    const contracts = capability.capability_contract_cids.map(pin => {
       assert(pins.has(pin), 'review unrecognized query capability instead of guessing its role');
       return pins.get(pin);
     });
+    assert.equal(new Set(contracts).size, contracts.length, 'one current identity per capability role');
+    // The admitted member requires its current CIDs in strict lexical order.
+    capability.capability_contract_cids = contracts.sort();
   }
   body.connector_capabilities.sort((a,b) => machineCid(a) < machineCid(b) ? -1 : machineCid(a) > machineCid(b) ? 1 : 0);
   const after = machineCid(body);
@@ -192,10 +228,10 @@ for (const binding of namedBindings) {
   const cid = JSON.parse(wire).evidence_bundle_cid;
   for (const path of binding.consumers) {
     let text = texts.get(path);
-    const pattern = new RegExp('(admit_client_check_environment\\(\\s*' + binding.name + ',\\s*")([^"]+)(")', 'g');
+    const pattern = new RegExp('((?:@publication_host\\.)?admit_client_check_environment\\(\\s*' + binding.name + ',\\s*")([^"]+)(")', 'g');
     const matches = [...text.matchAll(pattern)];
     assert(matches.length > 0, path + ': exact environment argument');
-    for (const match of matches) text = text.replaceAll(match[2], cid);
+    text = text.replace(pattern, (_, prefix, _prior, suffix) => prefix + cid + suffix);
     texts.set(path, text);
   }
   for (const path of binding.selectorConsumers ?? []) {
