@@ -110,6 +110,23 @@ test('missing signer, invalid IDs and already-aborted calls do no lookup or sign
   assert.equal(signatures, 0); assert.equal(calls.length, 1);
 });
 
+test('signer identifiers are never coerced or sent to Lookup', async t => {
+  const {client, calls} = await fixture(t);
+  let coercions = 0;
+  const nonText = {toString() { coercions++; return 'valid-looking'; }};
+  for (const field of ['keyId', 'reviewerId']) {
+    for (const value of [nonText, 7, 'invalid\n', 'x'.repeat(129)]) {
+      const invalid = {...signer, [field]: value, sign() { assert.fail('Unexpected signature'); }};
+      await assert.rejects(client.approve(original.checkpointId, {signer: invalid}),
+        {code: 'InvalidCheckpointSigner'});
+      await assert.rejects(signedAnswer(original, 'approved', invalid, original.createdAt),
+        {message: 'InvalidCheckpointSigner'});
+    }
+  }
+  assert.equal(coercions, 0);
+  assert.deepEqual(calls.map(call => call.operation), ['connect']);
+});
+
 test('empty, foreign, paginated or duplicate lookup responses never reach signing', async t => {
   let signatures = 0;
   for (const page of [{items: []}, {items: [{...original, checkpointId: 'foreign'}]},
