@@ -46,7 +46,7 @@ function checkInitialEffectPreparation(value, prepared, identity, compilation, r
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  prepareDefinition, assertRequestedStopAvailable, requestIdentityFor,
+  prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable, requestIdentityFor,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
@@ -54,6 +54,7 @@ export function installNodeClientEffectRun({moon,
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
       (prepareDefinition !== undefined && typeof prepareDefinition !== 'function') ||
+      (captureDefinitionExplanation !== undefined && typeof captureDefinitionExplanation !== 'function') ||
       (requestIdentityFor !== undefined && typeof requestIdentityFor !== 'function') ||
       (assertRequestedStopAvailable !== undefined &&
         typeof assertRequestedStopAvailable !== 'function') ||
@@ -327,6 +328,23 @@ export function installNodeClientEffectRun({moon,
           const definitionFacts = Object.freeze({prepared,
             compilation: compiled(), allowed, definition, identity, runDefinition,
             modelCompiled, resultPolicyOriginal, queryTimePreparation});
+          const evidence = maxOptionalBytes => {
+            const modelOriginal = modelCompiled === undefined ? undefined :
+              originalModelRunWire(modelCompiled, runDefinition, maxOptionalBytes);
+            if (modelCompiled !== undefined && modelOriginal === undefined) return undefined;
+            return Object.freeze({
+              prepared: moon.strategyRunEvidenceJson(
+                moon.clientProgramAllowedEffectRunPrepared(allowed)),
+              authorization: moon.strategyRunEvidenceJson(
+                moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+              ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
+              ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
+              ...(resultPolicyOriginal === undefined ? {} : {resultPolicyOriginal}),
+              ...(modelOriginal === undefined ? {} : {modelOriginalRunWire: modelOriginal}),
+            });
+          };
+          const selectedExplanation = captureDefinitionExplanation?.(definitionFacts, evidence,
+            submission?.intentCid !== undefined);
           const originalPreparation = prepareDefinition?.(definitionFacts);
           const preparationThen = originalPreparation?.then;
           if (typeof preparationThen === 'function') {
@@ -347,19 +365,10 @@ export function installNodeClientEffectRun({moon,
             resultNames: moon.clientProgramEffectCompilationResultNames(
               compiled()),
             runDefinition,
-            runAdmissionEvidence: {
-              prepared: moon.strategyRunEvidenceJson(
-                moon.clientProgramAllowedEffectRunPrepared(allowed)),
-              authorization: moon.strategyRunEvidenceJson(
-                moon.clientProgramAllowedEffectRunAuthorization(allowed)),
-              ...(updateTargetRunOriginal === undefined ? {} : {updateTargetRunOriginal}),
-              ...(effectOriginalRunWire === undefined ? {} : {effectOriginalRunWire}),
-              ...(resultPolicyOriginal === undefined ? {} :
-                {resultPolicyOriginal}),
-              ...(modelCompiled === undefined ? {} : {
-                modelOriginalRunWire: originalModelRunWire(modelCompiled, runDefinition),
-              }),
-            },
+            runAdmissionEvidence: selectedExplanation === undefined ? evidence() : selectedExplanation.evidence,
+            ...(selectedExplanation === undefined ? {} : {
+              originalPlan: selectedExplanation.ticket, originalExplanation: selectedExplanation.ticket,
+            }),
           };
         },
       }, moon, control);

@@ -1,5 +1,5 @@
 import type {Client, Execution} from './index.js';
-import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView} from '@actql/client-wire';
+import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
 
 declare const client: Client;
 declare const run: Execution;
@@ -27,7 +27,15 @@ if (plan.version === "actql-effectful-static-plan-view/0.1") {
 const facts: WireRunExplanationView = await run.explain({signal: AbortSignal.timeout(1000),
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
 void facts.run_ref; void facts.explanation;
-// @ts-expect-error Explanation is an Execution read, not a pre-execution Client alias.
-await client.explain('SELECT 1');
 // @ts-expect-error Structural explanation does not accept disclosure or Sample options.
 await run.explain({rawLiterals: true, sampleItems: 1});
+
+const savedContext: WireRunExplanationContextView = await run.explainContext({maxWireBytes: 65536});
+if (savedContext.explanation.state === 'projected') {
+  const originalPlan: WirePlanView = savedContext.explanation.view.plan;
+  void originalPlan;
+}
+// @ts-expect-error Saved Context belongs to an attached Execution.
+await client.explainContext();
+// @ts-expect-error A Context read cannot reacquire or execute a Source.
+await run.explainContext({reconstruct: true});

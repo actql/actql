@@ -95,3 +95,12 @@ test "saved original descriptor exported validation reaches its existing origina
   assert_eq(direct, -42)
   assert_eq(exported, -42)
 }
+
+///|
+test "incremental Saved Result exported validation reaches its typed retained original guard" {
+  let (direct, exported) = saved_lookup_validation_dispatch_case(
+    INCREMENTAL_SAVED_RESULT_KIND,
+  )
+  assert_eq(direct, -32)
+  assert_eq(exported, direct)
+}

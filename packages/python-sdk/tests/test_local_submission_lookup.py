@@ -96,7 +96,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
 
     def test_public_saved_lookup_refusal_does_not_fall_through_to_preparation(self):
         with TemporaryDirectory(prefix='actql-submit-lookup-refusal-') as directory:
-            host, core, _, _, reference = self.fixture(directory, {'kind': 'missing'})
+            host, core, _, _, reference = self.fixture(directory, {'kind': 'missing',
+                'expectedIntentCid': self.submit_body({})['intentCid']})
             with (patch.object(core, 'validate_submission_lookup',
                                side_effect=LocalCoreError('validate_submission_lookup', -32)),
                   patch.object(host, '_accept_original', side_effect=AssertionError('Refused lookup prepared'))):
@@ -205,7 +206,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             self.assertFalse(host._run_loans)
             self.assertTrue(host.close())
 
-    def fixture(self, directory, observed, *, run_reference=None, result_name=None, saved_state=False, restoration=False):
+    def fixture(self, directory, observed, *, run_reference=None, result_name=None, saved_state=False,
+                restoration=False, pending_saved_result=None):
         fixture = append_fixture.LocalSubmissionAppendTests()
         host, core, calls, _ = fixture.host(Path(directory))
         if result_name is not None or saved_state or restoration:
@@ -226,12 +228,15 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             return callbacks
 
         def call(family, name, *args):
-            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6, 7, 8):
+            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6, 7, 8, 13):
                 # Reserve output custody before entering its physical Read.
                 callbacks = core._journal_callbacks(host._installation.binding._current.ticket)
                 self.assertIsNone(callbacks.reader)
                 handle = 100 + args[3]
-                self.assertEqual(args[2], 8 if restoration else 7 if saved_state else 6 if result_name is not None else 4 if run_reference is None else 5)
+                expected_kind = (13 if pending_saved_result is not None else
+                                 8 if restoration else 7 if saved_state else
+                                 6 if result_name is not None else 4 if run_reference is None else 5)
+                self.assertEqual(args[2], expected_kind)
                 sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'produce' and args[0] in sources:
@@ -249,6 +254,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                     self.assertEqual(json.loads(transported['intent']),
                         {key: submitted[key] for key in ('kind', 'input', 'parameters')})
                 self.assertEqual(json.loads(source), expected)
+                if pending_saved_result is not None and counters['produce'] <= pending_saved_result:
+                    return 1
                 outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
                 return 0
             if family == 'submission' and name == 'validate_append' and args[0] in sources:

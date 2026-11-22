@@ -18,13 +18,14 @@ export function createLocalReadAuthorizations({moon, authorization,
   }
   const observeCallbacks = observation?.applicationCallbackState.bind(observation);
   const connection = authorization?.siteKey ?? 'actql-remote-host';
+  const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});
   let retainedAccount = observeInstalledAccount(moon, authorization);
   let identity = JSON.parse(moon.executionAuthorizationAccountJson(retainedAccount));
   const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;
   // The existing owned public request is the lifetime of this memo. No
   // outcome survives into another operation, even for identical wire/tuples.
   const operations = new WeakMap();
-  const authorize = (facts, operation, resource, interactive = true) => {
+  const authorize = (facts, operation, resource, interactive = true, reobserve = false) => {
     if (facts.principalId !== principalId || facts.indexKey?.namespaceId !== namespaceId ||
         facts.indexKey?.authorityScopeCid !== authorityScopeCid ||
         resource === undefined) return false;
@@ -47,7 +48,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     // owned operation memo even when a caller presents the same operation.
     const candidate = sameOperation ? operations.get(operation) : undefined;
     const retained = candidate?.resource === resource ? candidate : undefined;
-    if (retained !== undefined && retained.account === retainedAccount &&
+    if (!reobserve && retained !== undefined && retained.account === retainedAccount &&
         callbackState?.active !== true && retained.callbackState === callbackState &&
         retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;
     const account = observeInstalledAccount(moon, authorization);
@@ -74,7 +75,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     // Optional task metadata may consume only an immediate original decision.
     // Delegate remains unavailable; this path cannot ask an application or
     // pause Compute while waiting for a metadata-only authorization answer.
-    if (!interactive) return undefined;
+    if (!interactive || reobserve) return undefined;
     return authorizeDelegated(facts, operation, scope, sameOperation, account,
       resource, sinkCallbackCount, callbackState);
   };
@@ -108,7 +109,15 @@ export function createLocalReadAuthorizations({moon, authorization,
       return promised(facts, operation, resource);
     },
     run(facts, operation) {return promised(facts, operation, 'run');},
+    // A completed delegated decision survives only on the same current
+    // Account and operation. The synchronous check never starts a callback.
+    runCurrent(facts, operation) {return authorize(facts, operation, 'run', true, true);},
     // Internal installed metadata consumer, never a public permission field.
     runImmediate(facts, operation) {return authorize(facts, operation, 'run', false);},
+    // Static metadata has the installed scope and no Run reference. Check the
+    // current Account at every boundary, including immediately before egress.
+    staticPlanImmediate({principalId: actual}) {
+      return authorize({principalId: actual, indexKey: staticPlanScope}, undefined, 'run', false);
+    },
   });
 }

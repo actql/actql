@@ -1653,15 +1653,8 @@ test('installed Effect allow publishes without a commit Checkpoint',
       .checkpoints()).items, []);
     try { await first.close(); }
     catch (error) {
-      try {
-        const label = value => typeof value === 'string' &&
-          /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value) ? value : undefined;
-        t.diagnostic(JSON.stringify({phase: 'first_effect_host_close', code: label(error?.code),
-          owners: Array.isArray(error?.cleanupErrors) ? error.cleanupErrors.slice(0, 12)
-            .map(item => ({owner: label(item.owner), code: label(item.error?.code),
-              name: label(item.error?.name), cleanupPending: item.error?.cleanupPending === true,
-              storeCleanupPending: item.error?.storeCleanupPending === true})) : undefined}));
-      } catch {
+      try { t.diagnostic(JSON.stringify(firstHostCloseFailureDiagnostic(error))); }
+      catch {
         // Diagnostics must not replace the original cleanup failure.
       }
       throw error;

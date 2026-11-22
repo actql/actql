@@ -21595,6 +21595,15 @@ const operationKeys = {
     "maxNodes",
     "maxDepth"
   ],
+  "static-explanation": [
+    "connection",
+    "kind",
+    "input",
+    "parameters",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
   "inspect-run": [
     "connection",
     "ref",
@@ -21713,6 +21722,13 @@ const operationKeys = {
     "maxDepth"
   ],
   "run-explanation": [
+    "connection",
+    "ref",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
+  "run-explanation-context": [
     "connection",
     "ref",
     "maxWireBytes",

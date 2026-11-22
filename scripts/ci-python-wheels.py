@@ -272,11 +272,14 @@ def require_installed_repeated_host(events, phase: str, previous_pid: int | None
             or 'primary-failure' in names or 'first-close-failed' in names
             or names[-1] != 'first-close-returned'):
         raise ValueError('Incomplete ordinary Run/Result or original first close')
-    checkpoints = [event.get('ordinal') for event in current
-                   if event.get('phase') == 'checkpoint-complete']
-    if phase == 'warm' and (any(type(ordinal) is not int for ordinal in checkpoints)
-                            or checkpoints != [1, 3, 10]):
-        raise ValueError('Missing original ordinary reread/attach checkpoints')
+    checkpoints = [event for event in current if event.get('phase') == 'checkpoint-complete']
+    if phase == 'warm':
+        if ([event.get('ordinal') for event in checkpoints] != [1, 3, 10]
+                or any(type(event.get('ordinal')) is not int
+                       or event.get('retirement_checked') is not True for event in checkpoints)):
+            raise ValueError('Missing original ordinary reread/attach and retirement checkpoints')
+    elif complete[0].get('retirement_checked') is not True:
+        raise ValueError('Missing original Saved reader retirement checkpoint')
     return pid
 
 
@@ -302,6 +305,8 @@ def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: 
             [json.loads(line) for line in events.read_bytes().splitlines()], phase, previous_pid)
         pids.append(previous_pid)
     return {'runs': 10, 'warm_pid': pids[0], 'saved_pid': pids[1],
+            'successful_retirement_checkpoints': [1, 3, 10],
+            'closed_saved_read_retirement_checked': True,
             'original_first_closes_returned': True}
 
 

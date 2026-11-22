@@ -3,8 +3,10 @@ import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
+import {canonicalJson} from '@actql/sdk/host-port';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
-  readExistingRunExplanation, readExistingRunPresentation, readStaticPlan} from '@actql/explorer-ui/read-model';
+  readExistingRunExplanation, readExistingRunPresentation, readExistingRunContext, readStaticPlan,
+  readStaticExplanation} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
 import {readRunObservation} from '@actql/explorer-ui/run-observation';
@@ -24,6 +26,12 @@ const exact = (value, required, optional = []) => value !== null &&
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => [...required, ...optional].includes(key));
 const fail = (code, status = 400) => {throw Object.assign(new Error(code), {code, status});};
+async function loadExplanationRenderer(ticket) {
+  const {renderStaticExplanationNarrative} = await import('@actql/local-node/_internal/explanation-narrative');
+  ticket.assertCurrent();
+  return (view, locale) => renderStaticExplanationNarrative(canonicalJson(view, {dataKeys: true}), locale);
+}
+
 function jsonShape(value) {
   const pending = [[value, 0]]; let count = 0;
   while (pending.length) {
@@ -74,10 +82,11 @@ function copiedAssets(assets) {
   if (!(assets instanceof Map) || assets.size > gatewayLimits.assets) fail('ExplorerInvalidAssets');
   const result = new Map(); let size = 0;
   for (const [path, asset] of assets) {
-    if (!/^\/(?:index\.html|assets\/[a-zA-Z0-9_-]+\.(?:js|css|svg))$/u.test(path) ||
+    if (!/^\/(?:index\.html|assets\/[a-zA-Z0-9_-]+\.(?:js|css|svg|woff2))$/u.test(path) ||
         !exact(asset, ['body', 'contentType']) || !(asset.body instanceof Uint8Array) ||
         !['text/html; charset=utf-8', 'text/javascript; charset=utf-8',
-          'text/css; charset=utf-8', 'image/svg+xml'].includes(asset.contentType)) {
+          'text/css; charset=utf-8', 'image/svg+xml', 'font/woff2'].includes(asset.contentType) ||
+        path.endsWith('.woff2') !== (asset.contentType === 'font/woff2')) {
       fail('ExplorerInvalidAssets');
     }
     size += asset.body.byteLength;
@@ -87,15 +96,18 @@ function copiedAssets(assets) {
   return result;
 }
 function safeReadError(error) {
+  if (error?.code === 'InvalidStaticExplanationNarrative') return {code: 'ExplorerInvalidExplanation', status: 409};
+  if (error?.code === 'StaticExplanationNarrativeLimit') return {code: 'ExplorerExplanationLimit', status: 409};
   if (['ExplorerBodyLimit', 'ExplorerContentType', 'ExplorerInvalidRequest',
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
-    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
+    'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit', 'ExplorerExplanationLimit', 'ExplorerUnsupportedLocale',
     'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
   if (error?.code === 'AuthorizationDenied' || error?.code === 'ClientUnauthorized' ||
+      error?.code === 'StaticExplanationAccessDenied' ||
       error?.status === 401 || error?.status === 403) {
     return {code: 'ExplorerReadRefused', status: 403};
   }
@@ -130,7 +142,7 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
     c.header('Referrer-Policy', 'no-referrer');
-    c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     if (closed) return c.json({error: 'ExplorerClosed'}, 503);
     // Host is checked independently from the URL parsed by the Node adapter.
     if (c.req.header('host') !== address.host || c.req.url.length > 1024 ||
@@ -221,14 +233,23 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           }
           break;
         case 'plan':
-          if (!exact(body, ['input'], ['options']) ||
+        case 'static-explanation':
+          if (!exact(body, ['input'], kind === 'plan' ? ['options'] : ['options', 'locale']) ||
               !(typeof body.input === 'string' || body.input !== null &&
                 typeof body.input === 'object' && !Array.isArray(body.input)) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale) ||
               (body.options !== undefined && !exact(body.options, [],
                 ['format', 'parameters', 'parameterDeclarations', 'maxWireBytes', 'maxNodes', 'maxDepth']))) {
             fail('ExplorerInvalidRequest');
           }
-          data = await readStaticPlan(client, body.input, body.options ?? {}, ticket);
+          if (kind === 'plan') {
+            data = await readStaticPlan(client, body.input, body.options ?? {}, ticket);
+          } else {
+            if (typeof client.explain !== 'function') fail('ExplorerCapabilityUnavailable', 404);
+            const render = await loadExplanationRenderer(ticket);
+            data = await readStaticExplanation(client, body.input, body.options ?? {},
+              {locale: body.locale, render}, ticket);
+          }
           break;
         case 'run':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
@@ -246,6 +267,13 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunExplanation(client, body.ref, ticket);
           break;
+        case 'run-explanation-context': {
+          if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunContext(client, body.ref, {locale: body.locale, render}, ticket);
+          break;
+        }
         case 'run-presentation':
           if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
               body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');
