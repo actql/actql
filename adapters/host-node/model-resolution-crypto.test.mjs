@@ -191,6 +191,13 @@ const flipped = signature => {const bytes = Buffer.from(signature, 'base64'); by
 test('real SDK Model signatures commit exact inventory through compiled Core and recorded approval provenance', async t => {
   const {journal, summary, counts} = setup(t);
   const answer = await signedAnswer(summary, 'approved', signer, decidedAt);
+  const approvalArtifact = JSON.parse(answer.approvalEvidenceWire).compatibility_approval;
+  const input = admitted(runtime.approvalVerificationInput(answer.approvalEvidenceWire));
+  assert.equal(input.preimage, cidOf(without(approvalArtifact, 'proof', 'run_scope_approval_cid')));
+  assert.equal(input.key_id, signer.keyId);
+  assert.equal(input.approver, signer.reviewerId);
+  assert.equal(input.authority_scope_cid, null);
+  assert.equal(input.signature, approvalArtifact.proof.signature);
   const committed = await journal.submitResolution(answer);
   assert.equal(committed.outcome, 'committed');
   assert.deepEqual(counts, {resolution: 1, approval: 1, attestation: 1});

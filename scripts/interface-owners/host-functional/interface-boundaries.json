@@ -19343,7 +19343,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f2abe04468ac1beb48c40f1b7db231d0bbbe8e0b940da0d81809e69be245f54",
+      "sha256": "2932d8bff1a620cbac42a51a67e340ceb52d315b9f9932e4fcb7fde0ddc7873f",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -20481,13 +20481,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -20639,8 +20632,7 @@
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
-            "principals/principals",
-            "without/without/without"
+            "principals/principals"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",
