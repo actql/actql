@@ -102,6 +102,7 @@ import {createInstalledRowEffectDriverControls} from './installed-row-effect-dri
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectRecoveredMembers, createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreview,
   createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
 import {approvalOf, approvedValue, createInstalledRowEffectApproval, createInstalledRowEffectCommit} from './installed-row-effect-commit.mjs';
@@ -112,7 +113,6 @@ import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision
 import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
-import {invokeDeclaredRowUpdate} from '../host-common/owned-invocation-context.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
@@ -126,8 +126,6 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
-import {captureClaimedEffectResponse} from
-  './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
@@ -528,278 +526,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   });
   const requireApproval = createInstalledRowEffectApproval(text);
 
-  // Current use and physical dispatch over one set of members. `entries`
-  // and `previewRows` are each member's rows in the approved Preview's order.
-  const physicalRoute = ({members, entries, previewRows, runInvocationCid,
-    dispatches, subjectCid, applyPreview, ledger, targetReads, assertCurrent,
-    dispatchIndexes, physicalOperations, controlConstruction, operationPhase = 'apply'}) => {
-    // A saved route cannot borrow the fresh capture's parent merely from its
-    // recipe or CID. The recovery owner must supply its actual retainer first.
-    if (typeof physicalOperations !== 'function' && members.some(member =>
-      (recipeOf(member)?.credentialOperations !== undefined ||
-        recipeOf(member)?.physicalWrite !== undefined))) {
-      fail('InstalledEffectPhysicalPlanUnavailable');
-    }
-    // Once the durable claim exists, selection drift does not establish an
-    // unsent outcome. Preserve the claim and any retained response for recovery.
-    const assertClaimedCurrent = () => {
-      try { assertCurrent?.(); }
-      catch (error) { fail('InstalledRowEffectSelectionChangedAfterClaim', error); }
-    };
-    // Every apply carries its exact returned refresh into dispatch. A later
-    // refresh may finish before this one is sent; equal capability DATA does
-    // not substitute that later Catalog for this original current observation.
-    let currentsByPreflight = new WeakMap();
-    let hasRefreshed = false, closing = false, active = 0;
-    const requireOpen = () => { if (closing) fail('InstalledRowEffectRouteRetired'); };
-    const retire = () => {
-      closing = true;
-      if (active !== 0) return false;
-      // SAME route/closure inventory. A fulfilled prepare did not sever these
-      // aliases, and an active refresh/send still owns its original locals.
-      currentsByPreflight = new WeakMap();
-      entries = undefined;
-      previewRows = undefined;
-      return true;
-    };
-    const current = async ({signal, preflight}) => {
-      requireOpen();
-      active++;
-      try {
-        assertCurrent?.();
-        if (preflight === null || typeof preflight !== 'object') {
-          fail('InvalidInstalledRowEffectRoute');
-        }
-        for (const member of members) {
-          const {installed, installedCommands} = ownerOf(member);
-          const available = member.kind === 'command'
-            ? installedCommands.includes(member.command) : installed.includes(member.mapping);
-          if (!available) {
-            fail('InstalledRowEffectMappingNotInstalled');
-          }
-        }
-        // Every read is decided before this refresh's provider I/O.
-        const reads = [];
-        for (const [index, member] of members.entries()) {
-          reads.push(!guarded(member.kind) ? undefined :
-            await decideTargetRead({member, runInvocationCid,
-              dispatchRequestCid: dispatches[index], subjectCid, signal,
-              targetReads, assertCurrent, controlConstruction}));
-          assertCurrent?.();
-        }
-        const fresh = [];
-        for (const [index, member] of members.entries()) {
-          const {owned} = ownerOf(member);
-          assertCurrent?.();
-          const description = await describeMember({member, maxRows: entries[index].length, runInvocationCid,
-            dispatchRequestCid: dispatches[index], label: `apply-${index}`,
-            approval: reads[index]?.approval, signal, assertCurrent, physicalOperations, operationPhase, controlConstruction});
-          assertCurrent?.();
-          await owned.recheckRequests?.({member, entries: entries[index],
-            current: description, controlConstruction, ...resourceFields(member)});
-          assertCurrent?.();
-          fresh.push(description);
-        }
-        await checkRows({members, entries, runInvocationCid, dispatches,
-          subjectOf: () => subjectCid, signal, assertCurrent, physicalOperations, controlConstruction, operationPhase});
-        assertCurrent?.();
-        const currentVersions = new Map();
-        for (const [index, member] of members.entries()) {
-          if (!guarded(member.kind)) continue;
-          const observed = await observeRows({member, entries: entries[index],
-            current: fresh[index], read: reads[index], signal, assertCurrent, physicalOperations, operationPhase,
-            runInvocationCid, dispatchRequestCid: dispatches[index]});
-          assertCurrent?.();
-          for (const [rowIndex, row] of observed.entries()) {
-            const original = previewRows[index][rowIndex];
-            if ((row.state === 'absent') !== (original.before.state === 'absent')) {
-              // A fresh read cannot switch a sealed creation into an update, or
-              // a sealed update into creation. Nothing has been claimed/sent.
-              fail('InstalledRowEffectTargetPresenceChanged');
-            }
-            if (row.state !== 'absent') currentVersions.set(original.row_preview_cid, row.versionCid);
-          }
-        }
-        const capabilities = members.map((member, index) => admitCapability(
-          member, entries[index], fresh[index], runInvocationCid,
-          dispatches[index], controlConstruction));
-        signal?.throwIfAborted();
-        assertCurrent?.();
-        if (currentVersions.size !== preflight.observedRows.length) fail('ForeignInstalledRowEffectObservation');
-        const refreshed = Object.freeze({...preflight,
-          guardVersions: Object.freeze(preflight.observedRows.map(row => {
-            if (!currentVersions.has(row)) fail('ForeignInstalledRowEffectObservation');
-            return currentVersions.get(row);
-          })),
-          capabilities: Object.freeze(capabilities.map(value => value.identity)),
-          routes: Object.freeze(capabilities.map(routeOf))});
-        currentsByPreflight.set(refreshed, Object.freeze(fresh));
-        hasRefreshed = true;
-        return refreshed;
-      } finally { active--; }
-    };
-    const confirmResponse = async ({memberIndex, rowIndex, projected, current: description, signal}) => {
-      const member = members[memberIndex];
-      if (member === undefined) fail('InvalidInstalledRowEffectConfirmation');
-      const {site, responseConfirmation} = ownerOf(member);
-      if (responseConfirmation === undefined || projected?.kind !== 'provider-response' ||
-          projected.providerEvidence === undefined) return projected;
-      requireOpen();
-      active++;
-      try {
-        const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
-        const entry = entries[memberIndex]?.[sourceIndex];
-        if (entry === undefined || !['apply', 'resume'].includes(operationPhase) ||
-            typeof physicalOperations !== 'function') fail('InstalledEffectConfirmationPlanUnavailable');
-        signal?.throwIfAborted();
-        assertClaimedCurrent();
-        // Effect approval/current cannot stand in for this separately scoped
-        // read. Keep the original request/dispatch and already captured reply.
-        const decision = await readDecision(member, responseConfirmation.resource,
-          subjectCid, signal, assertClaimedCurrent);
-        assertClaimedCurrent();
-        const facts = {operation: responseConfirmation.operation, decision,
-          resource: responseConfirmation.resource, runInvocationCid,
-          dispatchRequestCid: dispatches[memberIndex], maxUses: 1};
-        const originalAuthorization = controlConstruction === undefined ? site.issueReadGrant(facts)
-          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [facts]);
-        assertClaimedCurrent();
-        const confirmed = await physicalOperations({member, rowIndex: sourceIndex,
-          phase: `${operationPhase}-confirm`, operation: responseConfirmation.operation,
-          site, originalAuthorization,
-          useId: `${dispatches[memberIndex]}-${operationPhase}-confirm-${subjectCid}-${rowIndex}`,
-          resource: responseConfirmation.resource, purpose: 'read', runInvocationCid,
-          dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
-          invoke: context => Reflect.apply(responseConfirmation.request, responseConfirmation.receiver,
-            [{member, request: entry.request, current: description, ...context,
-              providerEvidence: projected.providerEvidence, signal, controlConstruction}])});
-        assertClaimedCurrent();
-        signal?.throwIfAborted();
-        return confirmed === undefined ? projected : confirmed;
-      } finally {active--;}
-    };
-    const bindDispatch = ({members: claims, subjectCid: activeSubject, signal,
-      decisions}) => {
-      requireOpen();
-      assertCurrent?.();
-      if (activeSubject !== subjectCid || !hasRefreshed) {
-        fail('InvalidInstalledRowEffectRoute');
-      }
-      const commits = commitDecisions(decisions, subjectCid, members);
-      return async ({memberIndex, rowIndex, claim, currentPreflight}) => {
-        requireOpen();
-        active++;
-        try {
-          assertCurrent?.();
-          const now = currentsByPreflight.get(currentPreflight);
-          if (now === undefined) fail('InvalidInstalledRowEffectRoute');
-          const member = members[memberIndex];
-          const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
-          const entry = entries[memberIndex]?.[sourceIndex];
-          const expected = claims[memberIndex]?.claims[rowIndex];
-          if (member === undefined || entry === undefined || !claim ||
-              !expected || ['scope', 'locator', 'key', 'basis',
-                'intentFingerprintCid', 'canonicalRequestCid'].some(field =>
-                expected[field] === undefined ||
-                expected[field] !== claim[field])) {
-            fail('InvalidInstalledRowEffectDispatch');
-          }
-          const {owned, site, beforeSendCheck, updateWriteSlot} = ownerOf(member);
-          const managedPlanRecipe = recipeOf(member);
-          signal?.throwIfAborted();
-          requireApproval(member, commits.get(scopeKey(member)));
-          const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
-            claim, member, entry,
-            previewRow: previewRows[memberIndex][sourceIndex]});
-          await owned.recheckRequests?.({member, entries: [entry],
-            current: now[memberIndex], controlConstruction, ...resourceFields(member)});
-          assertCurrent?.();
-          const grantFacts = {operation: installedEffectWriteOperation(owned, member, updateWriteSlot),
-            decision: commits.get(scopeKey(member)), resource: member.resource,
-            runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
-          const grantConstructor = managedPlanRecipe?.grantConstruction;
-          const grant = controlConstruction === undefined ? site.issueEffectGrant(grantFacts)
-            : grantConstructor !== undefined && grantConstructor.receiver === site &&
-                grantConstructor.method === site.issueEffectGrant
-              ? controlConstruction(site, grantConstructor.method, [grantFacts], grantConstructor.capacity)
-              : (controlConstruction.grant ?? controlConstruction)(site, site.issueEffectGrant, [grantFacts]);
-          const captured = await captureClaimedEffectResponse({ledger,
-            claim: ownedClaim, requestCid: entry.requestCid,
-            execute: () => {
-              assertClaimedCurrent();
-              const useId = `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`;
-              if (managedPlanRecipe?.physicalWrite !== undefined) {
-                if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-                return physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot), assertCurrent: assertClaimedCurrent, signal,
-                  invoke: physicalOperation => owned.send({member, request: entry.request, current: now[memberIndex],
-                    authorization: {...grant, useId}, credential: site.credential, signal, physicalOperation,
-                    ...resourceFields(member)})});
-              }
-              if (managedPlanRecipe?.credentialOperations !== undefined) {
-                if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-                const send = () => physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot), site, originalAuthorization: grant, useId,
-                  resource: member.resource, purpose: 'effect', runInvocationCid,
-                  dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
-                  invoke: ({authorization, credential, callResource}) => {
-                    const invocation = {member, request: entry.request, current: now[memberIndex],
-                      authorization, credential, callResource, signal, ...resourceFields(member)};
-                    return updateWriteSlot === undefined ? owned.send(invocation)
-                      : invokeDeclaredRowUpdate(owned, invocation,
-                        managedPlanRecipe.rowOperations[updateWriteSlot.operationIndex].operation, updateWriteSlot);
-                  }});
-                if (beforeSendCheck === undefined) return send();
-                return (async () => {
-                  // The SAME durable dispatch already owns this possible send.
-                  // A fresh acquisition decision is still required for Form
-                  // access; effect commit cannot stand in for a read grant.
-                  const decision = await readDecision(member, beforeSendCheck.resource,
-                    subjectCid, signal, assertClaimedCurrent);
-                  assertClaimedCurrent();
-                  const checkGrantFacts = {operation: beforeSendCheck.operation,
-                    decision, resource: beforeSendCheck.resource, runInvocationCid,
-                    dispatchRequestCid: dispatches[memberIndex], maxUses: 1};
-                  const originalAuthorization = controlConstruction === undefined ? site.issueReadGrant(checkGrantFacts)
-                    : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [checkGrantFacts]);
-                  await physicalOperations({member, rowIndex: sourceIndex, phase: 'write-check',
-                    operation: beforeSendCheck.operation, site, originalAuthorization,
-                    useId: `${dispatches[memberIndex]}-write-check-${subjectCid}-${rowIndex}`,
-                    resource: beforeSendCheck.resource, purpose: 'read', runInvocationCid,
-                    dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
-                    invoke: context => Reflect.apply(beforeSendCheck.request, beforeSendCheck.receiver,
-                      [{member, request: entry.request, ...context, signal, controlConstruction}])});
-                  assertClaimedCurrent();
-                  return send();
-                })();
-              }
-              return owned.send({member, request: entry.request, current: now[memberIndex],
-                authorization: {...grant, useId}, credential: site.credential,
-                callResource: site.callResource, signal, ...resourceFields(member)});
-            }});
-          assertClaimedCurrent();
-          if (!captured.claimed) {
-            return Object.freeze({claimed: false,
-              ownership: Object.freeze({action: captured.ownership.action})});
-          }
-          const projectionFacts = {member, memberIndex, rowIndex,
-            preview: applyPreview, request: entry.request, current: now[memberIndex],
-            observation: captured.physical.observation, headers: captured.physical.headers};
-          let projected = projectOwnedResponse(member, projectionFacts, controlConstruction);
-          if (ownerOf(member).responseConfirmation !== undefined && projected?.kind === 'provider-response' &&
-              projected.providerEvidence !== undefined) {
-            projected = await confirmResponse({memberIndex, rowIndex, projected,
-              current: now[memberIndex], signal});
-          }
-          const settled = settle({ledger, claim: ownedClaim, applyPreview,
-            memberIndex, rowIndex, projected});
-          return Object.freeze({claimed: true, physical: projected,
-            ...(settled ?? {})});
-        } finally { active--; }
-      };
-    };
-    return {current, bindDispatch, confirmResponse, assertClaimedCurrent, retire};
-  };
+  const physicalRoute = createInstalledRowEffectPhysicalRoute({
+    recipeOf, ownerOf, fail, guarded, decideTargetRead, describeMember, resourceFields, checkRows,
+    observeRows, admitCapability, routeOf, readDecision, commitDecisions, requireApproval, scopeKey,
+    admitRow, installedEffectWriteOperation, projectOwnedResponse, settle,
+  });
 
   const {basePreflight, continuationOf} = createInstalledRowEffectPreviewContext({
     moon, contractCidOf, guarded, singular, ROUTING_VERSION, ownerOf, installationFacts,

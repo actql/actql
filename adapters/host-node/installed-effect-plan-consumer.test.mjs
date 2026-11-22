@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -526,16 +527,9 @@ test('an original planned Resource read never substitutes for the provider Crede
 // guard/retirement. Credential/Core/provider ports are explicit, never a new
 // Common Plan, Resource grant or ordinary Saved acceptance.
 const recoveryRowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-const recoveryRowNodes = [];
-(function walk(node) {
-  if (!node || typeof node !== 'object') return;
-  if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && node.id.name === 'physicalRoute') recoveryRowNodes.push(node);
-  for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
-  else if (child && typeof child === 'object') walk(child);
-})(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
-const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
-const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
+const recoveryNode = parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage').body.body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered');
 const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
@@ -612,8 +606,7 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const ownerOf = original => {assert.strictEqual(original, member); return owner;};
   const recipeOf = original => ownerOf(original).managedPlanRecipe;
-  const realRoute = new Function('ownerOf', 'recipeOf', 'fail', 'return (' +
-    recoveryRowSource.slice(recoveryRouteNode.start, recoveryRouteNode.end) + ');')(ownerOf, recipeOf, fail);
+  const realRoute = createInstalledRowEffectPhysicalRoute({ownerOf, recipeOf, fail});
   const control = {effectComputationPreviewWire: () => previewWire,
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};

@@ -12,7 +12,7 @@ import * as provider from '../connectors/github/site/github-comment-create.mjs';
 import {captureInstalledStandardCreateLimits, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
-import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 
 function parsed(source) {
   const nodes = [];
@@ -40,7 +40,7 @@ const tag = 'sha256:' + 'a'.repeat(64);
 const limits = captureInstalledStandardCreateLimits(providerMoon);
 const repository = {nodeId: 'R_original', databaseId: 13, nameWithOwner: 'o/r'};
 const value = {subject_id: 'I_original', body: ' e\u0301\r\n東京 '};
-const member = {memberIndex: 0, kind: 'create', resource: 'issue_comments'};
+const member = {memberIndex: 0, kind: 'create', resource: 'issue_comments', mapping: Object.freeze({})};
 const evidence = Object.freeze({kind: 'CreatedComment', comment_id: 7, node_id: 'IC_original'});
 const pending = Object.freeze({kind: 'provider-response', providerEvidence: evidence});
 const writeNode = installed.nodes.filter(n => n.type === 'Property' && n.key.name === 'write' && n.value.type === 'ObjectExpression');
@@ -121,6 +121,7 @@ function fixture(options = {}) {
     assert.equal(facts.maxUses, 1); grantCount++; events.push('grant'); options.onGrant?.(() => {current = false;}); return grant;
   }, issueEffectGrant() {assert.fail('Confirmation never obtains a mutation grant');}};
   const owner = {owned: driver, responseConfirmation, managedPlanRecipe: plan, site,
+    installed: [member.mapping], installedCommands: [],
     connection: 'original connection', authorization: {async authorize(kind, target, context) {
       assert.equal(kind, 'acquisition'); assert.deepEqual(target, {connection: 'original connection', resource: 'issue_comments', operation: 'read'});
       assert.equal(context.subjectCid, 'original subject'); events.push('decision');
@@ -129,7 +130,8 @@ function fixture(options = {}) {
     }}};
   const ownerOf = original => {assert.strictEqual(original, member); return owner;};
   const readDecision = createInstalledRowEffectReadDecision({ownerOf});
-  const route = source.variable('physicalRoute', {ownerOf, fail, readDecision})({
+  const routeControls = {ownerOf, fail, readDecision};
+  const routeInput = {
     members: [member], entries: [[{request: originalRequest, requestCid: originalRequest.requestCid, value}]],
     previewRows: [[{}]], runInvocationCid: 'original invocation', dispatches: ['original dispatch'],
     subjectCid: 'original subject', dispatchIndexes: [[0]], operationPhase: options.phase ?? 'apply',
@@ -147,8 +149,9 @@ function fixture(options = {}) {
       events.push('child'); facts.assertCurrent();
       return facts.invoke({authorization: grant, credential, callResource});
     },
-  });
-  return {route, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource,
+  };
+  const route = createInstalledRowEffectPhysicalRoute(routeControls)(routeInput);
+  return {route, routeControls, routeInput, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource,
     projectOwnedResponse, writeAuthorization,
     grantCount: () => grantCount, revoke: () => {current = false;},
     confirm: projected => route.confirmResponse({memberIndex: 0, rowIndex: 0, projected, current: {}, signal: undefined})};
@@ -318,7 +321,7 @@ test('actual fresh dispatch stores the original mutation response before indepen
   const h = fixture({mutation: () => ({accepted: true, useCid: tag, statusCode: 200, body: originalResponse, headers: []})});
   const claim = Object.freeze({scope: {}, locator: {}, key: {}, basis: {},
     intentFingerprintCid: tag, canonicalRequestCid: h.originalRequest.requestCid});
-  const preview = {}, preflight = {}, decision = {}, current = {};
+  const preview = {}, decision = {}, current = {};
   const entry = {request: h.originalRequest, requestCid: claim.canonicalRequestCid, value};
   const ledger = {claimDispatch(original) {
     assert.strictEqual(original.key, claim.key); assert.strictEqual(original.basis, claim.basis);
@@ -333,12 +336,11 @@ test('actual fresh dispatch stores the original mutation response before indepen
   h.owner.site.issueEffectGrant = function(facts) {
     assert.strictEqual(this, h.owner.site); assert.strictEqual(facts.decision, decision); return h.writeAuthorization;
   };
-  const ports = {fail, subjectCid: 'original subject', hasRefreshed: true, members: [member],
-    requireOpen() {}, assertCurrent: h.route.assertClaimedCurrent, assertClaimedCurrent: h.route.assertClaimedCurrent,
+  const route = createInstalledRowEffectPhysicalRoute({
+    ...h.routeControls, guarded: () => false, resourceFields: () => ({}),
+    describeMember: () => current, checkRows: () => undefined,
+    admitCapability: () => ({identity: 'original capability'}), routeOf: () => 'single_serial',
     commitDecisions: () => new Map([['original', decision]]), scopeKey: () => 'original',
-    currentsByPreflight: new WeakMap([[preflight, [current]]]), dispatchIndexes: [[0]], entries: [[entry]],
-    ownerOf: () => h.owner, resourceFields: () => ({}), dispatches: ['original dispatch'],
-    runInvocationCid: 'original invocation', applyPreview: preview, previewRows: [[{}]], ledger,
     requireApproval(_member, original) {assert.strictEqual(original, decision);},
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return claim;},
     recipeOf(original) {
@@ -354,21 +356,22 @@ test('actual fresh dispatch stores the original mutation response before indepen
       return driver.writeOperation(original);
     },
     projectOwnedResponse: h.projectOwnedResponse,
-    captureClaimedEffectResponse, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
-    async physicalOperations(facts) {
-      assert.equal(facts.phase, 'write'); assert.equal(facts.purpose, 'effect');
-      assert.strictEqual(facts.originalAuthorization, h.writeAuthorization);
-      return facts.invoke({authorization: h.writeAuthorization, credential: h.credential, callResource: h.callResource});
-    }, confirmResponse: h.route.confirmResponse,
     settle(facts) {
       assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.applyPreview, preview);
       applied(facts.projected); h.events.push('settle'); return {};
-    }};
-  const node = source.nodes.find(n => n.type === 'VariableDeclarator' && n.id.name === 'bindDispatch');
-  const bind = Function(...Object.keys(ports), `let active=0;
-    return (${sourceText.slice(node.init.start, node.init.end)});`)(...Object.values(ports));
-  const dispatch = bind({members: [{claims: [claim]}], subjectCid: 'original subject', decisions: []});
-  const result = await dispatch({memberIndex: 0, rowIndex: 0, claim, currentPreflight: preflight});
+    },
+  })({
+    ...h.routeInput, entries: [[entry]], applyPreview: preview, ledger,
+    async physicalOperations(facts) {
+      if (facts.phase !== 'write') return h.routeInput.physicalOperations(facts);
+      assert.equal(facts.purpose, 'effect');
+      assert.strictEqual(facts.originalAuthorization, h.writeAuthorization);
+      return facts.invoke({authorization: h.writeAuthorization, credential: h.credential, callResource: h.callResource});
+    },
+  });
+  const currentPreflight = await route.current({preflight: {observedRows: []}});
+  const dispatch = route.bindDispatch({members: [{claims: [claim]}], subjectCid: 'original subject', decisions: []});
+  const result = await dispatch({memberIndex: 0, rowIndex: 0, claim, currentPreflight});
   applied(result.physical); assert.equal(result.claimed, true);
   assert.equal(h.events.filter(event => event === 'write').length, 1);
   assert(h.events.indexOf('claim') < h.events.indexOf('write'));

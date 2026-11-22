@@ -374,11 +374,11 @@ export function createInstalledRowEffectReadOperations<Member extends StageMembe
         if (member.kind !== 'upsert' || versionCid !== undefined || before !== undefined) {
           reject('ForeignInstalledRowEffectObservation');
         }
-        return Object.freeze({identity, state: 'absent'});
+        return Object.freeze({identity, state: 'absent' as const});
       }
       if ((state !== undefined && state !== 'present') || !cidPattern.test(versionCid ?? '') ||
           before === null || typeof before !== 'object') reject('ForeignInstalledRowEffectObservation');
-      return Object.freeze({identity, state: 'present', versionCid, before});
+      return Object.freeze({identity, state: 'present' as const, versionCid, before});
     }));
   };
 

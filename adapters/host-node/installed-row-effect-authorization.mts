@@ -43,7 +43,7 @@ type ReadOwner = Readonly<{
   connection: string;
   authorization: Readonly<{authorize(kind: 'acquisition', tuple: ReadTuple, context: ReadContext): ReadDecision}>;
 }>;
-type ReadGrant = Readonly<Record<string, unknown> & {then?: never}>;
+type ReadGrant = Readonly<Record<string, unknown> & {grant: unknown; then?: never}>;
 type TargetGrantFacts = Readonly<{
   operation: string; decision: unknown; resource: string; runInvocationCid: string; dispatchRequestCid: string; maxUses: number;
 }>;

@@ -11,6 +11,7 @@ import {createInstalledRowEffectRunControls} from './installed-row-effect-run-co
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -55,14 +56,15 @@ const checkRowsFixture = ({ownerOf, readDecision}) => createInstalledRowEffectRe
   ownerOf, recipeOf: recipePort(ownerOf), readDecision, fail, managedReadChild: unusedReadPort,
   resourceFields: unusedReadPort, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
 }).checkRows;
+const routeFixture = ports => {
+  const recipeOf = recipePort(ports.ownerOf);
+  return createInstalledRowEffectPhysicalRoute({
+    ...readPorts(ports.ownerOf, ports.resourceFields, recipeOf), ...ports,
+  });
+};
 const expression=(name,ports)=>{
   if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
-  }
-  if (name === 'physicalRoute' &&
-      ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
-  if (name === 'physicalRoute' && ports.describeMember === undefined) {
-    ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
   }
   return Function(...Object.keys(ports),`return (${source.slice(variable(name).start,variable(name).end)});`)(...Object.values(ports));
 };
@@ -353,7 +355,7 @@ test('actual route retirement waits for its active refresh before severing reque
   const gate=new Promise(resolve=>{proceed=resolve;});
   // All admission/grant/provider ports are explicit. No member or physical
   // operation is fabricated to exercise the real enclosing async borrow fence.
-  const route=expression('physicalRoute',{fail,guarded:()=>false,
+  const route=routeFixture({fail,guarded:()=>false,
     checkRows:async()=>{entered();await gate;},ownerOf:()=>assert.fail('No member'),
     admitCapability:()=>assert.fail('No capability'),routeOf:()=>assert.fail('No route')})({
       members:[],entries:[[{}]],previewRows:[],dispatches:[],subjectCid:'subject'});
@@ -468,7 +470,7 @@ test('managed create checks and cold routes refuse missing original parent reten
   const checkRows=checkRowsFixture({ownerOf:()=>owner,readDecision:async()=>{entered++;}});
   await assert.rejects(checkRows({members:[selected],entries:[[]],dispatches:[],subjectOf:()=> 'subject'}),
     {code:'InstalledEffectPhysicalPlanUnavailable'});
-  const physicalRoute=expression('physicalRoute',{ownerOf:()=>owner,fail});
+  const physicalRoute=routeFixture({ownerOf:()=>owner,fail});
   assert.throws(()=>physicalRoute({members:[selected],operationPhase:'resume'}),{code:'InstalledEffectPhysicalPlanUnavailable'});
   assert.equal(entered,0);
 });
@@ -501,9 +503,9 @@ test('a failed original pre-write Form check retains the claim without entering 
   let retainedClaim;
   const ledger={claimDispatch(original){retainedClaim=original;events.push('claim');return {claimed:true,dispatching:{}};},
     beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){assert.fail('No mutation response exists');}};
-  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
+  const route=routeFixture({ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
     admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
-    admitRow:()=>claim,captureClaimedEffectResponse,
+    admitRow:()=>claim,
     installedEffectWriteOperation(driver,member,updateWriteSlot){
       assert.strictEqual(driver,owned);assert.strictEqual(member,selected);assert.equal(updateWriteSlot,undefined);
       return driver.writeOperation(member);

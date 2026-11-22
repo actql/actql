@@ -91152,6 +91152,309 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-physical-route.mjs",
+      "sha256": "2a26ed6f3d391e5e924988d992f9037ccba5d1814525603cbf6b5274f2a2b307",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowEffectPhysicalRoute"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectPhysicalRoute",
+          "parameters": [
+            "recipeOf",
+            "ownerOf",
+            "fail",
+            "guarded",
+            "decideTargetRead",
+            "describeMember",
+            "resourceFields",
+            "checkRows",
+            "observeRows",
+            "admitCapability",
+            "routeOf",
+            "readDecision",
+            "commitDecisions",
+            "requireApproval",
+            "scopeKey",
+            "admitRow",
+            "installedEffectWriteOperation",
+            "projectOwnedResponse",
+            "settle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute",
+          "parameters": [
+            "members",
+            "entries",
+            "previewRows",
+            "runInvocationCid",
+            "dispatches",
+            "subjectCid",
+            "applyPreview",
+            "ledger",
+            "targetReads",
+            "assertCurrent",
+            "dispatchIndexes",
+            "physicalOperations",
+            "controlConstruction",
+            "operationPhase"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
+          "parameters": [
+            "claims",
+            "activeSubject",
+            "signal",
+            "decisions"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "claim",
+            "currentPreflight"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
+          "parameters": [
+            "physicalOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "projected",
+            "description",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current",
+          "parameters": [
+            "signal",
+            "preflight"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/physicalRoute",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/retire/retire",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectPhysicalRoute",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/current",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/physicalRoute",
+            "createInstalledRowEffectPhysicalRoute/physicalRoute/physicalRoute/retire/retire"
+          ],
+          "exports": [
+            "createInstalledRowEffectPhysicalRoute"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "const physicalRoute = "
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "const bindDispatch = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "return {current, bindDispatch, confirmResponse, assertClaimedCurrent, retire}"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "currentsByPreflight.get(currentPreflight)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "captureClaimedEffectResponse<Physical,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "if (active !== 0) return false"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "reject('InstalledRowEffectSelectionChangedAfterClaim'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "const confirmResponse = async"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "actual fresh dispatch stores the original mutation response"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "actual route retirement waits for its active refresh"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "a failed original pre-write Form check retains the claim"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/owned-invocation-context.mjs",
+        "./effect-physical-dispatch.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
@@ -93340,7 +93643,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "fcbbc3244a4c1a0814680332f92f8f1bfc045ea661c0e474fc4136c4bed1a920",
+      "sha256": "ba64272da93a735b34deb8aa08c5ad14fef96fd6a49b3acc4e1a461df17ba166",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -93922,141 +94225,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
-          "parameters": [
-            "claims",
-            "activeSubject",
-            "signal",
-            "decisions"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
-          "parameters": [
-            "memberIndex",
-            "rowIndex",
-            "claim",
-            "currentPreflight"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
-          "parameters": [
-            "physicalOperation"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
-          "parameters": [
-            "authorization",
-            "credential",
-            "callResource"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
-          "parameters": [
-            "memberIndex",
-            "rowIndex",
-            "projected",
-            "description",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current",
-          "parameters": [
-            "signal",
-            "preflight"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareCaptured",
           "parameters": [
             "facts"
@@ -94268,6 +94436,15 @@
         {
           "name": "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/projectOwnedResponse/projectOwnedResponse",
+          "parameters": [
+            "member",
+            "facts",
+            "construction"
+          ],
           "async": false
         },
         {
@@ -94807,13 +94984,7 @@
           "operations": [
             "createRowEffectStage/captureStage/physicalOperations/physicalOperations",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
-            "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
-            "createRowEffectStage/physicalRoute/physicalRoute/retire/retire"
+            "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases"
           ],
           "exports": [],
           "attributes": {
@@ -95707,7 +95878,8 @@
             "sameValue/sameValue",
             "targeted/targeted",
             "createRowEffectStage/targetPlanOf/targetPlanOf",
-            "createRowEffectStage/recoveryCid/recoveryCid"
+            "createRowEffectStage/recoveryCid/recoveryCid",
+            "createRowEffectStage/projectOwnedResponse/projectOwnedResponse"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -95861,15 +96033,6 @@
             "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/verified/verified",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/current",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
             "createRowEffectStage/prepareCaptured",
             "createRowEffectStage/prepareCaptured/dispatches/dispatches",
             "createRowEffectStage/prepareCaptured/prepareCaptured",
@@ -96019,7 +96182,7 @@
                 "anchor": "- Identity: original request target and observation identity must match; the"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.get(currentPreflight)"
               },
               {
@@ -96269,7 +96432,7 @@
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               },
               {
@@ -96661,7 +96824,7 @@
                 "anchor": "- Identity: original request target and observation identity must match; the"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.get(currentPreflight)"
               },
               {
@@ -96963,7 +97126,7 @@
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               },
               {
@@ -97431,9 +97594,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent"
-          ],
+          "operations": [],
           "exports": [
             "collectInstalledRowEffectUpdateObservations",
             "installedRowEffectOwnerBinding",
@@ -97704,7 +97865,7 @@
                 "anchor": "- Identity: original request target and observation identity must match; the"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.get(currentPreflight)"
               },
               {
@@ -97986,7 +98147,7 @@
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               },
               {
@@ -98379,7 +98540,7 @@
                 "anchor": "- Identity: original request target and observation identity must match; the"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.get(currentPreflight)"
               },
               {
@@ -98637,7 +98798,7 @@
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
                 "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               },
               {
@@ -100367,7 +100528,6 @@
         {
           "operations": [
             "createRowEffectStage/controlRecipes/controlRecipes",
-            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
             "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits"
           ],
           "exports": [
@@ -100518,8 +100678,6 @@
         },
         {
           "operations": [
-            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
-            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
             "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered"
           ],
@@ -101066,12 +101224,10 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
-        "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mts",
         "./effect-input-export.mjs",
-        "./effect-physical-dispatch.mjs",
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./effect-result-work.mjs",
@@ -101087,6 +101243,7 @@
         "./installed-row-effect-members.mjs",
         "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-physical-read.mjs",
+        "./installed-row-effect-physical-route.mjs",
         "./installed-row-effect-plan-capture.mjs",
         "./installed-row-effect-preview.mjs",
         "./installed-row-effect-recovery-backing.mjs",
