@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "127d7f18bb7ce57123e4f4071d385255597d8c46376c7c48847b49ecf523d23e",
+      "sha256": "9afd57382e978ffb08a8a83218696f4b412595ea0b0ccce032ed085ab052f3f6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134891,74 +134891,8 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContext/prepareProviderConstruction",
-          "parameters": [
-            "projection",
-            "role",
-            "withMappings"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/construct/construct/construct",
+          "name": "createInstalledSourceContext/createInstalledSourceContext",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment",
-          "parameters": [
-            "value",
-            "document",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#2",
-          "parameters": [
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#3",
-          "parameters": [
-            "values",
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#4",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#5",
-          "parameters": [
-            "body",
-            "project"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#6",
-          "parameters": [
-            "document",
-            "project"
-          ],
           "async": false
         },
         {
@@ -135001,6 +134935,7 @@
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-construction-geometry.mjs",
+        "./installed-source-context-construction.mjs",
         "./installed-source-context-custody.mjs",
         "./installed-source-material-accounting.mjs",
         "./installed-source-physical-construction.mjs",
@@ -135651,18 +135586,9 @@
             "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
             "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
             "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
-            "createInstalledSourceContext/prepareProviderConstruction",
-            "createInstalledSourceContext/prepareSourceEnvironment/construct/construct/construct",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#2",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#3",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#4",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#5",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#6",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
-            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
             "fail/fail",
-            "createInstalledSourceContext"
+            "createInstalledSourceContext",
+            "createInstalledSourceContext/createInstalledSourceContext"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -136647,6 +136573,268 @@
         }
       ],
       "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
+    },
+    {
+      "module": "adapters/host-node/installed-source-context-construction.mjs",
+      "sha256": "61fcd1bc5fc76201b58b925f4164a6d53867c879695ffb762671a23839d3e31f",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "createInstalledSourceContextConstruction"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledSourceContextConstruction",
+          "parameters": [
+            "reject",
+            "original",
+            "material",
+            "services",
+            "scope",
+            "currentContext",
+            "installedSourceConfigurationReader",
+            "reserveSource",
+            "reconcileSource",
+            "freezeSourceProjection",
+            "sourceProjectionMethods",
+            "requireSynchronousSourceConstruction",
+            "rowSourceCheckEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/captureDeclarationViews",
+          "parameters": [
+            "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareInitialNativeConstruction",
+          "parameters": [
+            "projection",
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareOriginalDeclaration",
+          "parameters": [
+            "restore",
+            "originalInput",
+            "basis",
+            "makeWire",
+            "expectedCatalogCid",
+            "finish"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareProviderConstruction",
+          "parameters": [
+            "projection",
+            "role",
+            "withMappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment",
+          "parameters": [
+            "declared",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/construct/construct/construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment",
+          "parameters": [
+            "value",
+            "document",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#2",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#3",
+          "parameters": [
+            "values",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#4",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#5",
+          "parameters": [
+            "body",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#6",
+          "parameters": [
+            "document",
+            "project"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-check-environment-construction.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledSourceContextConstruction",
+            "createInstalledSourceContextConstruction/captureDeclarationViews",
+            "createInstalledSourceContextConstruction/prepareInitialNativeConstruction",
+            "createInstalledSourceContextConstruction/prepareOriginalDeclaration",
+            "createInstalledSourceContextConstruction/prepareProviderConstruction",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/construct/construct/construct",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#2",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#3",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#4",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#5",
+            "createInstalledSourceContextConstruction/prepareSourceEnvironment/prepareSourceEnvironment#6"
+          ],
+          "exports": [
+            "createInstalledSourceContextConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "createInstalledSourceContextConstruction({fail, original, material, services, scope,"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "export function createInstalledSourceContextConstruction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function prepareSourceEnvironment"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function prepareOriginalDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function captureDeclarationViews"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "this !== currentContext() || scope.role !== role"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "scope.prepared !== expectedPrepared"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "material.inputs.push(originalInput, wire, declaration, declaredWire, declared);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function prepareInitialNativeConstruction"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function prepareProviderConstruction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "fail('InvalidInstalledSourceDeclarationViews')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "fail('InvalidInstalledSourceNativeMappings')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The existing Source initialization retains these synchronous construction originals until their own lifecycle releases them."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "reserveSource(original, material, 4n * basis, 8n * basis, 8n * basis);"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "material.providers.push(quantity);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-source-context-construction.mts",
+                "anchor": "function prepareProviderConstruction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Source read target is constructed only after SAME parent funds its retained original native peak"
+              },
+              {
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "Local table129 target inventory uses the same real initial constructor before any Python read"
+              }
+            ]
+          }
+        }
+      ],
+      "rationale": "Declaration capture, native Environment construction and provider preparation use the existing installed Source material and its original context."
     },
     {
       "module": "adapters/host-node/installed-source-context-custody.mjs",

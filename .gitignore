@@ -1207,6 +1207,8 @@ target/
 /adapters/host-node/installed-source-material-accounting.d.mts
 /adapters/host-node/installed-source-context-custody.mjs
 /adapters/host-node/installed-source-context-custody.d.mts
+/adapters/host-node/installed-source-context-construction.mjs
+/adapters/host-node/installed-source-context-construction.d.mts
 /adapters/host-node/installed-source-service-capture.test.mjs
 /adapters/host-node/installed-source-service-capture.test.d.mts
 /adapters/host-node/installed-model-task-construction.test.mjs
