@@ -45213,7 +45213,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('Effect ledger rejects altered intent before CAS and preserves head'"
               }
             ],
@@ -45222,7 +45222,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
               }
             ],
@@ -45234,11 +45234,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('one owned batch response fact issues distinct row Receipts'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('saved response issues one exact terminal row Receipt before Ledger head'"
               }
             ]
@@ -45435,7 +45435,7 @@
                 "anchor": "test('standard Ledger family selects same original owner and nested codec coordinates without JS quantities'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
               },
               {
@@ -45443,7 +45443,7 @@
                 "anchor": "test('History growth extends only a live original frame and cannot hide its first refusal'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test(`installed Ledger selects real row and Receipt constructors before their work:"
               }
             ]
@@ -45555,7 +45555,7 @@
                 "anchor": "test('Receipt codecs retain their original row frame and preserve an entry refusal before body work'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test(`installed Ledger selects real row and Receipt constructors before their work:"
               }
             ]
@@ -46203,7 +46203,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
               },
               {
@@ -46347,7 +46347,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
               },
               {
@@ -46455,7 +46455,7 @@
                 "anchor": "test('standard Ledger family selects same original owner and nested codec coordinates without JS quantities'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
               },
               {
@@ -46463,7 +46463,7 @@
                 "anchor": "test('History growth extends only a live original frame and cannot hide its first refusal'"
               },
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test(`installed Ledger selects real row and Receipt constructors before their work:"
               }
             ]
@@ -73809,7 +73809,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
               },
               {
@@ -73997,7 +73997,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
               },
               {
@@ -74169,7 +74169,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "path": "adapters/host-node/effect-ledger.test.mts",
                 "anchor": "test('bounded formal history replay reuses admitted original transitions after restart', async t => {"
               },
               {
