@@ -3,13 +3,41 @@ import {mkdtemp, mkdir, open, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {inspectDeclaredProjectCatalog} from './declared-project-catalog.mjs';
 
+type CatalogResult = Awaited<ReturnType<typeof inspectDeclaredProjectCatalog>>;
+type ActualRuntime = Required<Parameters<typeof inspectDeclaredProjectCatalog>[0]> & Readonly<{
+  clientProjectConnectionsAdmit(wire: string): unknown;
+  clientProjectCatalogOriginalWire(original: unknown): string;
+  clientProgramRelationAdmitDocument(bytes: Uint8Array, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxRows: number, maxWork: number): unknown;
+  clientProgramRelationProjectTargetDocument(document: unknown, declaration: unknown, resource: string,
+    itemsPath: readonly string[], keyPath: readonly string[], primaryIdentity: string, writableFields: readonly string[]): unknown;
+  clientProgramRelationObserveTarget(document: unknown, declaration: unknown, identity: string): unknown;
+  clientProgramRelationTargetBefore(row: unknown): string | undefined;
+  clientProgramRelationTargetVersion(row: unknown): string | undefined;
+}>;
+type RecordInput = Record<string, unknown>;
+type FixtureEntry = RecordInput & {
+  views: (RecordInput & {resource: string; schema: Record<string, RecordInput>})[];
+  data: (RecordInput & {resource: string; schema: Record<string, RecordInput>;
+    items_path: unknown; key_path: unknown; primary_identity: string})[];
+  query_aliases: (RecordInput & {name: string; resource: string; request?: unknown})[];
+  writes: (RecordInput & {resource: string; primary_identity: string; aliases: string[];
+    writable_fields: unknown; permission: unknown; observe_permission: unknown; approval: unknown})[];
+  file_bindings: RecordInput[];
+};
+type CatalogInput = RecordInput & {connections: Record<string, FixtureEntry>};
+type Configuration = {mock: {catalog: string; data: string}};
+type Mutate = (catalog: CatalogInput) => void;
+type Select = (catalog: CatalogInput) => RecordInput;
+
 assert.ok(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, 'Select the actual matching builtin Common runtime');
-const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME));
+const moon: ActualRuntime = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME).href);
 const templates = ['churn-risk-mock', 'deal-review-mock'];
 const invalid = {code: 'InvalidInstalledMockCatalog'};
 const commonRefusal = {code: 'MoonBitHostFailure'};
@@ -17,9 +45,9 @@ const commonRefusal = {code: 'MoonBitHostFailure'};
 // The exact generated declaration is the input. Only its catalog is written:
 // the data, answers and model task files deliberately do not exist here.
 // This boundary proves declaration admission, not a fixture read or execution.
-async function fixture(t, template = templates[0]) {
+async function fixture(t: TestContext, template = templates[0]) {
   const files = projectTemplateFiles(template);
-  const configuration = JSON.parse(files['actql.config.json']);
+  const configuration: Configuration = JSON.parse(files['actql.config.json']);
   const directory = await mkdtemp(join(tmpdir(), 'actql-declared-catalog-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const catalogFile = configuration.mock.catalog;
@@ -27,8 +55,8 @@ async function fixture(t, template = templates[0]) {
   await mkdir(dirname(catalogPath), {recursive: true});
   const connectionsWire = files['connectors.json'];
   const catalogWire = files['mock/catalog.json'];
-  const state = {opens: [], currentChecks: 0};
-  async function load({catalog = catalogWire, connections = connectionsWire} = {}) {
+  const state: {opens: string[]; currentChecks: number} = {opens: [], currentChecks: 0};
+  async function load({catalog = catalogWire, connections = connectionsWire}: {catalog?: unknown; connections?: unknown} = {}) {
     const originalWire = typeof catalog === 'string' ? catalog : JSON.stringify(catalog);
     const originalConnections = checked(moon.clientProjectConnectionsAdmit(
       typeof connections === 'string' ? connections : JSON.stringify(connections)));
@@ -37,7 +65,7 @@ async function fixture(t, template = templates[0]) {
     const result = await inspectDeclaredProjectCatalog(moon, {
       directory, catalogFile, dataFile: configuration.mock.data, connections: originalConnections,
       assertCurrent() {state.currentChecks++;},
-      openFile(path, ...args) {
+      openFile(path: string, ...args: [flags: string, mode?: number]) {
         state.opens.push(path);
         assert.equal(path, catalogPath, 'catalog admission must not open fixture data or any other file');
         return open(path, ...args);
@@ -48,7 +76,7 @@ async function fixture(t, template = templates[0]) {
     assert.deepEqual(state.opens, [catalogPath]);
     return result;
   }
-  async function rejects(mutate, expected = invalid) {
+  async function rejects(mutate: Mutate, expected = invalid) {
     const catalog = JSON.parse(catalogWire);
     mutate(catalog);
     await assert.rejects(load({catalog}), expected);
@@ -57,7 +85,7 @@ async function fixture(t, template = templates[0]) {
   return {files, configuration, directory, catalogWire, connectionsWire, catalogPath, state, load, rejects};
 }
 
-function writableTarget(result) {
+function writableTarget(result: CatalogResult) {
   const owners = result.sources.filter(source => source.writes.length !== 0);
   assert.equal(owners.length, 1);
   const source = owners[0];
@@ -70,12 +98,13 @@ function writableTarget(result) {
 for (const template of templates) {
   test(`actual catalog admits the exact ${template} declarations without fixture data`, async t => {
     const f = await fixture(t, template), result = await f.load();
-    const declared = JSON.parse(f.catalogWire).connections;
+    const declared = JSON.parse(f.catalogWire).connections as CatalogInput['connections'];
     assert.equal(result.sources.length, Object.keys(declared).length);
     assert.ok(Object.isFrozen(result) && Object.isFrozen(result.sources));
     for (const source of result.sources) {
       const entry = declared[source.catalogue.connection];
-      const restored = JSON.parse(moon.clientProgramRowSourceDeclarationJson(source.declaration));
+      const restored: {connector_id: string; catalog_cid: string; views: {resource: string}[]} =
+        JSON.parse(moon.clientProgramRowSourceDeclarationJson(source.declaration)!);
       assert.equal(source.wire, moon.clientProgramRowSourceDeclarationJson(source.declaration));
       assert.equal(restored.connector_id, source.catalogue.connectorId);
       assert.match(restored.catalog_cid, /^sha256:[0-9a-f]{64}$/u);
@@ -92,7 +121,7 @@ for (const template of templates) {
     assert.equal(target.connection, 'salesforce');
     assert.equal(target.mapping.target_ref, 'connector://salesforce/' + expected.resource);
     assert.equal(target.mapping.primary_identity, expected.primary_identity);
-    assert.deepEqual(target.mapping.writable_fields, [...expected.writable_fields].sort());
+    assert.deepEqual(target.mapping.writable_fields, [...expected.writable_fields as string[]].sort());
     assert.equal(target.mapping.minimum_approval, 'required');
     assert.deepEqual(target.mapping.permission_rules[0].permissions, [expected.permission]);
     assert.equal(target.spec.observe_permission, expected.observe_permission);
@@ -102,7 +131,7 @@ for (const template of templates) {
   test(`actual ${template} writable target is independent of connection and catalog order`, async t => {
     const f = await fixture(t, template), original = writableTarget(await f.load());
     const catalog = JSON.parse(f.catalogWire), connections = JSON.parse(f.connectionsWire);
-    const reverse = value => Object.fromEntries(Object.entries(value).reverse());
+    const reverse = <Value,>(value: Record<string, Value>) => Object.fromEntries(Object.entries(value).reverse());
     catalog.connections = reverse(catalog.connections);
     assert.deepEqual(writableTarget(await f.load({catalog})), original);
     connections.connections = reverse(connections.connections);
@@ -113,21 +142,21 @@ for (const template of templates) {
 
 test('actual file declarations preserve separate physical strings and logical keyed Content views', async t => {
   const f = await fixture(t, 'deal-review-mock'), result = await f.load();
-  const source = result.sources.find(value => value.catalogue.connection === 'drive');
+  const source = result.sources.find(value => value.catalogue.connection === 'drive')!;
   const entry = JSON.parse(f.catalogWire).connections.drive;
   assert.deepEqual(source.fileBindings, entry.file_bindings);
   assert.equal(source.physical.length, 1);
   assert.deepEqual(source.physical[0].schema, entry.data[0].schema);
   assert.notStrictEqual(source.physical[0].declaration, source.declaration);
-  const physical = JSON.parse(moon.clientProgramRowSourceDeclarationJson(source.physical[0].declaration));
+  const physical = JSON.parse(moon.clientProgramRowSourceDeclarationJson(source.physical[0].declaration)!);
   assert.deepEqual(physical.views[0].fields.slice().sort(), Object.keys(entry.data[0].schema).sort());
-  const listing = source.catalogue.views.find(view => view.resource === 'files');
-  const content = source.catalogue.views.find(view => view.resource === 'contents');
+  const listing = source.catalogue.views.find(view => view.resource === 'files')!;
+  const content = source.catalogue.views.find(view => view.resource === 'contents')!;
   assert.deepEqual(JSON.parse(listing.schema_wire), entry.views[0].schema);
   assert.deepEqual(JSON.parse(content.schema_wire), entry.views[1].schema);
-  assert.deepEqual(JSON.parse(content.request_schema_wire), entry.views[1].request_schema);
-  assert.deepEqual(JSON.parse(content.acquisition_wire), entry.views[1].acquisition);
-  const listingFacts = JSON.parse(listing.facts_wire), contentFacts = JSON.parse(content.facts_wire);
+  assert.deepEqual(JSON.parse(content.request_schema_wire!), entry.views[1].request_schema);
+  assert.deepEqual(JSON.parse(content.acquisition_wire!), entry.views[1].acquisition);
+  const listingFacts = JSON.parse(listing.facts_wire!), contentFacts = JSON.parse(content.facts_wire!);
   assert.equal(listingFacts.file_listing.admitted_scope_contract_cid, source.scopeCid);
   assert.equal(contentFacts.file_content.admitted_scope_contract_cid, source.scopeCid);
   assert.equal(contentFacts.file_content.representation, 'exact_stored_bytes');
@@ -157,7 +186,7 @@ test('actual catalog refuses missing duplicate and foreign resource bindings bef
     catalog => {catalog.connections.salesforce.query_aliases[0].resource = 'usage_30d';},
     catalog => {catalog.connections.salesforce.writes[0].resource = 'usage_30d';},
     catalog => {catalog.connections.snowflake.query_aliases[0].name = 'salesforce.accounts';},
-  ]) await f.rejects(mutate);
+  ] as readonly Mutate[]) await f.rejects(mutate);
   await f.rejects(catalog => {
     const writes = catalog.connections.salesforce.writes;
     writes.push({...writes[0], aliases: ['other.Account']});
@@ -168,7 +197,7 @@ test('actual catalog refuses missing duplicate and foreign resource bindings bef
     catalog => {catalog.connections.drive.file_bindings[0].content_resource = 'missing';},
     catalog => {catalog.connections.drive.file_bindings[0].data_resource = 'contents';},
     catalog => {catalog.connections.drive.file_bindings.push(structuredClone(catalog.connections.drive.file_bindings[0]));},
-  ]) await files.rejects(mutate);
+  ] as readonly Mutate[]) await files.rejects(mutate);
 });
 
 test('actual catalog closes every declaration and binding object before fixture I/O', async t => {
@@ -180,7 +209,7 @@ test('actual catalog closes every declaration and binding object before fixture 
     catalog => catalog.connections.salesforce.data[0],
     catalog => catalog.connections.salesforce.writes[0],
     catalog => catalog.connections.drive.file_bindings[0],
-  ]) await f.rejects(catalog => {select(catalog).undeclared = true;});
+  ] as readonly Select[]) await f.rejects(catalog => {select(catalog).undeclared = true;});
   await f.rejects(catalog => {catalog.undeclared = true;}, commonRefusal);
 });
 
@@ -198,7 +227,7 @@ test('actual catalog rejects invalid primary identities and malformed declared p
   const declared = JSON.parse(f.catalogWire);
   declared.connections.salesforce.data[0].key_path = ['renamed', 'key'];
   const result = await f.load({catalog: declared});
-  assert.deepEqual(result.sources.find(source => source.catalogue.connection === 'salesforce').physical[0].keyPath,
+  assert.deepEqual(result.sources.find(source => source.catalogue.connection === 'salesforce')!.physical[0].keyPath,
     ['renamed', 'key']);
 });
 
@@ -211,8 +240,8 @@ test('actual Common rejects unknown writable columns and invalid declared schema
   for (const fields of [null, 'Churn_Risk__c', [], [false], ['Churn_Risk__c', 'Churn_Risk__c']]) {
     await f.rejects(catalog => {catalog.connections.salesforce.writes[0].writable_fields = fields;});
   }
-  for (const [field, value] of [['permission', false], ['observe_permission', ''], ['approval', 'none'], ['aliases', []]]) {
-    await f.rejects(catalog => {catalog.connections.salesforce.writes[0][field] = value;});
+  for (const [field, value] of [['permission', false], ['observe_permission', ''], ['approval', 'none'], ['aliases', []]] as const) {
+    await f.rejects(catalog => {(catalog.connections.salesforce.writes[0] as RecordInput)[field] = value;});
   }
 });
 
@@ -246,8 +275,8 @@ test('actual Common rejects duplicate catalog keys including nested unused value
 // or installed Source/Run acceptance. The end-to-end reconnect test is separate.
 for (const template of templates) test(`actual ${template} model admits replacement file data without changing declarations`, async t => {
   const f = await fixture(t, template), catalog = await f.load();
-  const source = catalog.sources.find(value => value.writes.length === 1);
-  const physical = source.physical.find(value => value.resource === source.writes[0].resource);
+  const source = catalog.sources.find(value => value.writes.length === 1)!;
+  const physical = source.physical.find(value => value.resource === source.writes[0].resource)!;
   const path = resolve(f.directory, f.configuration.mock.data);
   const initial = JSON.parse(f.files['mock/data.json']);
   const first = initial[source.catalogue.connection][physical.resource].rows[0];
@@ -271,8 +300,8 @@ for (const template of templates) test(`actual ${template} model admits replacem
   const replaced = await observeFile();
   assert.notEqual(replaced.before, original.before);
   assert.notEqual(replaced.version, original.version);
-  assert.equal(JSON.parse(replaced.before).name, first.name);
-  assert.equal(JSON.parse(original.before).name.includes('Replacement'), false, 'old original was not mutated or rebound');
+  assert.equal(JSON.parse(replaced.before!).name, first.name);
+  assert.equal(JSON.parse(original.before!).name.includes('Replacement'), false, 'old original was not mutated or rebound');
   const fresh = await f.load();
   assert.deepEqual(fresh.sources.map(value => value.wire), catalog.sources.map(value => value.wire),
     'the same model declarations do not depend on sample rows');
@@ -288,16 +317,16 @@ for (const template of templates) test(`actual ${template} model admits replacem
 test('actual catalog preserves explicit alias request data without filling omitted requests', async t => {
   const f = await fixture(t, 'deal-review-mock');
   const result = await f.load();
-  const drive = result.sources.find(source => source.catalogue.connection === 'drive');
-  const files = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.files');
-  const contents = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.contents');
+  const drive = result.sources.find(source => source.catalogue.connection === 'drive')!;
+  const files = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.files')!;
+  const contents = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.contents')!;
   assert.deepEqual(files.request, {paths: null, glob: null});
   assert.ok(Object.isFrozen(files.request));
   assert.equal(Object.hasOwn(contents, 'request'), false);
   const catalog = JSON.parse(f.catalogWire);
   catalog.connections.drive.query_aliases[0].request = {};
   const empty = await f.load({catalog});
-  assert.deepEqual(empty.sources.find(source => source.catalogue.connection === 'drive')
+  assert.deepEqual(empty.sources.find(source => source.catalogue.connection === 'drive')!
     .catalogue.queryAliases[0].request, {});
 });
 

@@ -2190,3 +2190,5 @@ target/
 /adapters/host-node/declared-project-catalog-construction.d.mts
 /adapters/host-node/declared-project-catalog-construction.test.mjs
 /adapters/host-node/declared-project-catalog-construction.test.d.mts
+/adapters/local-node/declared-project-catalog.actual.test.mjs
+/adapters/local-node/declared-project-catalog.actual.test.d.mts

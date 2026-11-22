@@ -749,7 +749,7 @@
                 "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
               }
             ]
@@ -989,7 +989,7 @@
                 "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
               },
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
               }
             ]
