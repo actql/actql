@@ -3,14 +3,14 @@
 // fixture-only and loads no Host, Common or installed product.
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir, mkdtemp} from 'node:fs/promises';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {userInfo} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {generateKeyPairSync} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
-import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
+import {recordApprovalFixtureResultNames, recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
 import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
 import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
@@ -20,6 +20,20 @@ export function installedRecordDecision(env = process.env) {
   const decision = env.ACTQL_RECORD_APPROVAL_DECISION ?? 'approved';
   assert(['approved', 'rejected'].includes(decision), 'Invalid installed record fixture decision');
   return decision;
+}
+
+export function installedRecordHttpCase(defaultCasePath, env = process.env) {
+  const path = env.ACTQL_RECORD_APPROVAL_HTTP_CASE;
+  assert(path === undefined || typeof path === 'string' && isAbsolute(path), 'Use an absolute authored HTTP case path');
+  const wire = env.ACTQL_RECORD_APPROVAL_RESULT_NAMES;
+  if (wire === undefined) return {casePath: path ?? defaultCasePath};
+  assert(path !== undefined, 'Explicit fixture Result names require an authored HTTP case');
+  try {
+    assert(typeof wire === 'string' && wire.length <= 4096);
+    return {casePath: path, authorizedResultNames: recordApprovalFixtureResultNames(JSON.parse(wire))};
+  } catch {
+    throw new TypeError('InvalidRecordApprovalFixtureResultNames');
+  }
 }
 
 const execute = promisify(execFile);
