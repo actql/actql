@@ -1928,3 +1928,5 @@ target/
 /adapters/host-node/update-target-original-shape.d.mts
 /adapters/host-node/update-target-original-owner.test.mjs
 /adapters/host-node/update-target-original-owner.test.d.mts
+/adapters/host-node/installed-update-originals.mjs
+/adapters/host-node/installed-update-originals.d.mts

@@ -727,7 +727,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -745,7 +745,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -785,7 +785,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -803,7 +803,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -821,7 +821,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -839,7 +839,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -857,7 +857,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -879,7 +879,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
