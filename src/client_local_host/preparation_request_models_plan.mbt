@@ -4,6 +4,7 @@
 // This is neither a Scope, physical holding, retry grant nor cleanup owner.
 priv struct ClientInstalledModelReadPartition {
   graph : @publication_host.ClientInferPlanGraph
+  model_limits : @resources.LedgerLimits
   retained_bytes : Int64
   execution_bytes : Int64
 }
@@ -196,7 +197,7 @@ fn[I] prepare_request_models_plan_owned(
     @execution.preparation_representation_cost({
       ..array,
       record_headers: array.record_headers + count.to_int64() + 1L,
-      reference_slots: array.reference_slots + count.to_int64() + 1L,
+      reference_slots: array.reference_slots + 2L * count.to_int64() + 1L,
       scalar_words: array.scalar_words + 2L * count.to_int64() + 1L,
     })
     is Some(bytes) else {
@@ -356,6 +357,7 @@ fn[I] prepare_request_models_plan_owned(
   for index, graph in retained_graphs {
     partitions.push({
       graph,
+      model_limits: model_limits[index],
       retained_bytes: read_retained_bytes[index],
       execution_bytes: read_execution_bytes[index],
     })
@@ -499,9 +501,11 @@ fn bind_request_multiple_model_read_scopes(
   }
   let retained : Array[Int64] = []
   let execution : Array[Int64] = []
+  let limits : Array[@resources.LedgerLimits] = []
   for selected in models {
     retained.push(selected.retained_bytes)
     execution.push(selected.execution_bytes)
+    limits.push(selected.model_limits)
   }
   @publication_host.bind_client_model_read_scopes(
     plan.compiled,
@@ -511,6 +515,7 @@ fn bind_request_multiple_model_read_scopes(
     identity,
     retained,
     execution,
+    model_limits=Some(limits),
   )
 }
 

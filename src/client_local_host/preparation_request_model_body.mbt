@@ -631,6 +631,7 @@ fn[I, T] prepare_request_model_read_scopes_owned(
           None => 1
           Some(models) => models.length()
         },
+        retain_model_limits=plan.models is Some(_),
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value

@@ -2981,6 +2981,9 @@ test "two Model Request adopts one module and all original scopes with one aggre
     module_entries,
   } = f
   let ledger = parent.ledger
+  // Use distinct original limits while preserving the previous aggregate.
+  let first_limits = { ..effect_model_plan_limits, retained_bytes: 1100L, }
+  let second_limits = { ..effect_model_plan_limits, retained_bytes: 900L, }
   let before_plan = @resources.preparation_capacity_working_extents(
     parent.program_capacity.unwrap(),
     input,
@@ -2994,7 +2997,7 @@ test "two Model Request adopts one module and all original scopes with one aggre
     definition,
     occurrences,
     graphs,
-    [effect_model_plan_limits, effect_model_plan_limits],
+    [first_limits, second_limits],
     [7L, 9L],
     [5L, 6L],
     40,
@@ -3074,6 +3077,51 @@ test "two Model Request adopts one module and all original scopes with one aggre
   assert_true(physical_equal(run.ledger.unwrap(), ledger))
   let second = @publication_host.prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
   let first = @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  let first_consumer = @publication_host.claim_client_model_read_preparation(
+    first,
+    compiled,
+    definition,
+    graphs[0],
+    7L,
+    5L,
+  ).unwrap()
+  let second_consumer = @publication_host.claim_client_model_read_preparation(
+    second,
+    compiled,
+    definition,
+    graphs[1],
+    9L,
+    6L,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      first_consumer,
+      compiled,
+      definition,
+      graphs[0],
+    )
+    is Ok(Some(limits)) &&
+    physical_equal(limits, first_limits),
+  )
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      second_consumer,
+      compiled,
+      definition,
+      graphs[1],
+    )
+    is Ok(Some(limits)) &&
+    physical_equal(limits, second_limits),
+  )
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      first_consumer,
+      compiled,
+      definition,
+      graphs[1],
+    )
+    is Err(@publication_host.ForeignRun),
+  )
   @publication_host.settle_client_model_read(first, true).unwrap()
   assert_false(
     @publication_host.finish_client_model_read_scope(

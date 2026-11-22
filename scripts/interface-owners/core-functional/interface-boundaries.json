@@ -49066,7 +49066,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "f3fe003a7452d0709dfe9d2ac4f2877163a52d6c7b92f04075c9a15876fecbab"
+      "sha256": "4b534fc590a633ac5967747360ed7c96054ef6475abfe3b7792e69288762faef"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -49357,7 +49357,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "4aa1dfdc5d31bcf730d7fb8338e4ea7a2d7df33ae0fd5a9b01c2879302d40519"
+      "sha256": "370792cdfe2d1ef09542a0ddcf132aa043f20db91014143251635eb4ac3ca728"
     },
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
@@ -96583,7 +96583,7 @@
       "operations": [
         {
           "name": "bind_client_model_read_scopes",
-          "declaration": "bind_client_model_read_scopes ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plans : Array [ ClientInferPlanGraph ] , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , ) - > Result [ Array [ ClientModelReadScope ] , ClientModelReadPreparationIssue ]"
+          "declaration": "bind_client_model_read_scopes ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plans : Array [ ClientInferPlanGraph ] , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , model_limits ? : Array [ @ resources . LedgerLimits ] ?"
         },
         {
           "name": "client_model_read_scopes_construction_inventory",
@@ -96763,7 +96763,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "0ea63fbea7542778f713d81cec680225fc42545ede5dab1b6773a82bd2955610"
+      "sha256": "7d87e3d4648f4f1d76fe2440fb1371ac52a61c923124585000c7c0ada4776cfd"
     },
     {
       "module": "src/client_local_host/preparation_request_models_plan.mbt",
@@ -97188,7 +97188,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "c04ecc086e371eb28380590f09db908fd91d722c09587ac13cf5dea2150ea717"
+      "sha256": "e2030f339226a8d729dc018b1cc24a76f5b76e15d4e01e3fa9405ddee9f47381"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",
