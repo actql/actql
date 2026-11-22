@@ -257,6 +257,14 @@ test "Native installation restore never bootstraps a missing original or reserva
       _ => ()
     }
     let before = host.database.capacity_usage("client_local_settings").unwrap()
+    if damage == "reservation" {
+      // A trusted enclosing transaction can handle the refusal and still
+      // commit unrelated work. The observation itself must never repair it.
+      let missing = host.journal
+        .transaction(() => Ok(host.installation_custody() is Err(CustodyLost)))
+        .unwrap()
+      assert_true(missing)
+    }
     assert_true(
       local_installation_test_original(host, file, provider, selection, false)
       is Err(CustodyLost),

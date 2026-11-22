@@ -654,8 +654,8 @@ fn NativeLocalHostConnection::require_original_legacy_policy(
 
 ///|
 // Join only this physical journal's existing transaction. Outside it, the same
-// Owner opens the bounded transaction; missing reservations roll back instead
-// of being silently retained. No caller-supplied flag permits a join.
+// Owner opens the bounded transaction. Missing reservations refuse without
+// mutation. No caller-supplied flag permits a join.
 fn[T] NativeLocalHostConnection::with_installation_custody(
   self : NativeLocalHostConnection,
   work : () -> Result[T, NativeClientRunJournalIssue],

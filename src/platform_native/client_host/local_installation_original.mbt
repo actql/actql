@@ -387,21 +387,18 @@ fn NativeLocalHostConnection::installation_custody(
         .map_err(issue => LocalInstallationAdoptionStop(issue))
         .unwrap_or_error()
       guard row.revision == 0L else { return Err(CustodyLost) }
-      // A new reservation during lookup is custody loss; the enclosing journal
-      // transaction rolls back instead of repairing the original budget.
-      guard self.database
-        .reserve_capacity_in_transaction(
+      // A custody observation may run inside another original transaction.
+      // Check the exact key without creating a reservation on refusal.
+      let capacity = match
+        self.database.read_capacity(
           "client_local_settings",
           "installation:" + row.key,
-          8192L,
-          1L,
-          65536L,
-          8L,
-        )
-        .map_err(issue => NativeLocalAdoptionIssue::Physical(issue))
-        .map_err(issue => LocalInstallationAdoptionStop(issue))
-        .unwrap_or_error() ==
-        false else {
+        ) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Err(CustodyLost)
+        Err(issue) => return Err(Physical(issue))
+      }
+      guard capacity.reserved_bytes == 8192L && capacity.reserved_objects == 1L else {
         return Err(CustodyLost)
       }
       if row.key == local_policy_upgrade_key {
