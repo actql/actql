@@ -2192,3 +2192,5 @@ target/
 /adapters/host-node/declared-project-catalog-construction.test.d.mts
 /adapters/local-node/declared-project-catalog.actual.test.mjs
 /adapters/local-node/declared-project-catalog.actual.test.d.mts
+/adapters/host-node/fixtures/installed-loader-parent.fixture.mjs
+/adapters/host-node/fixtures/installed-loader-parent.fixture.d.mts

@@ -6,18 +6,32 @@ import {pathToFileURL} from 'node:url';
 import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 
+type Preparation = Pick<typeof import('../../local-node/request-preparation-adapter.mjs'),
+  'openHostInitializationPreparation' | 'closeHostInitializationPreparation'>;
+type Services = ReturnType<typeof createInstalledHostServices>;
+type Runtime = Parameters<typeof createInstalledHostServices>[0]['moon'] &
+  Parameters<Preparation['openHostInitializationPreparation']>[1];
+type InitializationState = Parameters<Preparation['openHostInitializationPreparation']>[0];
+type ParentInput = Readonly<{root: string; principalId?: string; moon: Runtime; assertCurrent?: () => unknown}>;
+type Adapter = Readonly<{close(): unknown}>;
+type CleanupFailure = Readonly<{cleanupHandle?: {
+  status(): Readonly<{pending?: boolean}>;
+  retry(): Promise<Readonly<{pending: boolean}>> | Readonly<{pending: boolean}>;
+}}>;
+type FailureData = Readonly<{code?: unknown; primaryFailure?: unknown; cause?: unknown}>;
+
 // A retained normal runtime has its own physical Resource module instance.
 // Equal source-side bytes cannot open that runtime's original parent ports.
 const preparationUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
   ? new URL('../../local-node/request-preparation-adapter.mjs', import.meta.url)
   : new URL('../../../../../adapters/local-node/request-preparation-adapter.mjs',
     pathToFileURL(realpathSync(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME)));
-const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(preparationUrl.href);
+const {openHostInitializationPreparation, closeHostInitializationPreparation}: Preparation = await import(preparationUrl.href);
 
-export function createInstalledLoaderParent({root, principalId = 'operator', moon, assertCurrent}) {
-  const state = {}, sources = new Set(), failures = new Set();
-  let services, active = true, childrenPending = false, opened = false, closed = false;
-  const current = () => {
+export function createInstalledLoaderParent({root, principalId = 'operator', moon, assertCurrent}: ParentInput) {
+  const state: InitializationState = {}, sources = new Set<Adapter>(), failures = new Set<CleanupFailure>();
+  let services: Services | undefined, active = true, childrenPending = false, opened = false, closed = false;
+  const current = (): undefined => {
     assert.equal(active, true, 'original installation parent remains current');
     assertCurrent?.();
   };
@@ -33,7 +47,10 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
         initialPreparation, assertCurrent: current, accountCurrent: current});
       childrenPending = true;
     },
-    async load(factory, path, options) {
+    async load<Path, Options extends object, Loaded extends Adapter>(
+      factory: (path: Path, options: Options & {installationServices: Services}) => Loaded | undefined | PromiseLike<Loaded | undefined>,
+      path: Path, options: Options,
+    ) {
       assert.ok(services);
       assert.equal(closed, false);
       try {
@@ -41,11 +58,11 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
         if (adapter !== undefined) sources.add(adapter);
         return adapter;
       } catch (failure) {
-        failures.add(failure);
+        failures.add(failure as CleanupFailure);
         throw failure;
       }
     },
-    retain(adapter) {sources.add(adapter); return adapter;},
+    retain<Loaded extends Adapter>(adapter: Loaded) {sources.add(adapter); return adapter;},
     async close() {
       if (closed) return;
       const errors = [];
@@ -74,15 +91,15 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
 
 // A common failure wrapper must preserve, not replace, the specific original
 // refusal. Inspect only error identities/codes, never retained input or secrets.
-export function installedFailureCode(code) {
-  return failure => {
-    const pending = [failure], seen = new Set();
+export function installedFailureCode(code: string) {
+  return (failure: unknown) => {
+    const pending = [failure], seen = new Set<object>();
     while (pending.length && seen.size < 12) {
       const value = pending.shift();
       if (!value || typeof value !== 'object' || seen.has(value)) continue;
       seen.add(value);
-      if (value.code === code) return true;
-      pending.push(value.primaryFailure, value.cause);
+      if ((value as FailureData).code === code) return true;
+      pending.push((value as FailureData).primaryFailure, (value as FailureData).cause);
     }
     return false;
   };

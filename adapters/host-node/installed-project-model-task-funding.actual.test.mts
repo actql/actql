@@ -11,13 +11,14 @@ import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mj
 import {readInstalledHostEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 // @ts-expect-error TS7016: the installed Model provider Owner is still authored in JavaScript.
 import {installModelProviders} from './installed-model.mjs';
-// @ts-expect-error TS7016: the original installed-loader parent fixture is still authored in JavaScript.
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
 type Runtime = Parameters<typeof loadInstalledProjectModelTasks>[0] &
   NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]> &
-  Parameters<typeof readInstalledHostEnvironment>[1];
+  Parameters<typeof readInstalledHostEnvironment>[1] &
+  Parameters<typeof createInstalledLoaderParent>[0]['moon'];
+type InstrumentedRuntime = {-readonly [Name in keyof Runtime]: Runtime[Name]};
 type Counters = {read: number; normalize: number; defaults: number; reserve: number;
   sends: number; wire: number; final: number};
 type FixtureOptions = {count?: number; small?: boolean; observeCounters?: (counters: Counters) => void};
@@ -48,7 +49,7 @@ async function fixture(t: TestContext, {count = 129, small = false, observeCount
   observeCounters?.(counters);
   let current = true;
   const assertCurrent = () => {if (!current) throw Object.assign(new Error('OriginalProjectLost'), {code: 'OriginalProjectLost'});};
-  const moon = {...native} as Runtime & Record<string, (...args: unknown[]) => unknown>;
+  const moon = {...native} as InstrumentedRuntime & Record<string, (...args: unknown[]) => unknown>;
   for (const [method, counter] of [['ReadPublicModelTask', 'read'],
     ['NormalizeProjectModelTask', 'normalize'], ['ReadInstalledModelDefaults', 'defaults'],
     ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentModelFromWireWithGraphProfile', 'final']] as const) {
@@ -108,7 +109,7 @@ test('actual same-parent loader registers 129 original Tasks once and funds comp
   }
   const projection = view.projectEnvironmentForRuntime(f.moon, baseWire,
     JSON.parse(baseWire).evidence_bundle_cid, JSON.parse(baseWire));
-  const final = readInstalledHostEnvironment(f.parent.services, f.moon, projection.environmentWire,
+  const final = readInstalledHostEnvironment(f.parent.services!, f.moon, projection.environmentWire,
     {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
   assert.ok(final.admitted && final.raw);
   assert.equal((final.body!.model_task_contracts as readonly unknown[]).length, 129);
@@ -116,12 +117,12 @@ test('actual same-parent loader registers 129 original Tasks once and funds comp
     'An empty-only construction recipe must refuse this populated original');
   assert.equal(native.clientProgramCheckEnvironmentFromWireWithGraphProfile(final.raw,
     false, true, true, true, true, false, false, original(numeric).cid, original(graph).cid), undefined);
-  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(f.parent.services, f.moon,
+  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(f.parent.services!, f.moon,
     {...final}, undefined, final.wire), {code: 'ForeignInstalledEnvironmentOriginal'});
   const other = await fixture(t, {count: 0});
-  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(other.parent.services, other.moon,
+  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(other.parent.services!, other.moon,
     final, undefined, final.wire), {code: 'ForeignInstalledEnvironmentOriginal'});
-  assert.throws(() => readInstalledHostEnvironment({...f.parent.services}, f.moon, final.wire,
+  assert.throws(() => readInstalledHostEnvironment({...f.parent.services!}, f.moon, final.wire,
     {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid}),
   {code: 'ForeignInstalledHostServices'});
   assert.equal(f.counters.read, 129);
@@ -156,7 +157,7 @@ test('actual smaller original Host Resource refuses before Task construction and
 
 test('actual populated constructor domain refuses an empty admitted original', async t => {
   const f = await fixture(t, {count: 0});
-  const final = readInstalledHostEnvironment(f.parent.services, f.moon, baseWire,
+  const final = readInstalledHostEnvironment(f.parent.services!, f.moon, baseWire,
     {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
   assert.ok(final.admitted);
   assert.equal(native.clientProgramCheckEnvironmentModelFromWireConstructionCapacity(final.raw), undefined);
