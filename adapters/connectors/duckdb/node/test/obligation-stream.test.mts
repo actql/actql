@@ -5,13 +5,52 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {checked} from '../runtime-result.mjs';
 
-let moon;
+type PhysicalResultLimits = Readonly<{max_rows: number; max_cells: number; max_nodes: number; max_text_bytes: number}>;
+type RowWireLimits = Readonly<{max_columns: number; max_order_work: number; max_bytes: number; max_nodes: number; max_depth: number}>;
+type TransportColumnLimits = Readonly<{max_bytes: number; max_nodes: number; max_columns: number; max_rows: number; max_text_bytes: number}>;
+type GuardMeasureLimits = Readonly<{max_work: number; max_bytes: number; max_nodes: number; max_depth: number}>;
+type LedgerUsage = Readonly<{held_bytes: bigint; reserved_retention_bytes: bigint; reserved_execution_bytes: bigint}>;
+type DemandUsage = Readonly<{rows: number; field_bytes: bigint; predicate_bytes: bigint; physical_work: number; physical_bytes: number}>;
+type FinishReceipt = Readonly<{_0: string; _1: string | undefined; _4: number; _5: unknown}>;
+type ObligationRuntime = Readonly<{
+  obligationRetention(bytes: bigint): unknown;
+  obligationReserveOutput(owner: unknown, bytes: number, metadata: number): unknown;
+  obligationHoldOutput(reservation: unknown, bytes: number, metadata: number): unknown;
+  obligationRetentionUsage(owner: unknown): LedgerUsage;
+  obligationRetentionReleased(owner: unknown): unknown;
+  obligationExecution(bytes: bigint, database: bigint, scratch: bigint, tasks: number): unknown;
+  obligationExecutionUsage(owner: unknown): LedgerUsage;
+  obligationExecutionReleased(owner: unknown): unknown;
+  obligationBegin(names: string[], kinds: number[], nullable: boolean[], physical: PhysicalResultLimits,
+    canonical: RowWireLimits, transport: TransportColumnLimits, budget: unknown, records: boolean,
+    retain: boolean, identity: boolean, metadataBytes: number): unknown;
+  obligationBudget(work: number, bytes: number, nodes: number, rows: number, ceiling: number): unknown;
+  obligationAppend(stream: unknown, rows: number, columns: string): unknown;
+  obligationFinish(stream: unknown): unknown;
+  obligationReuseMeasurement(summary: unknown, budget: unknown): boolean;
+  obligationComparison(stream: unknown, column: string, rhs: string, ceiling: number, limits: GuardMeasureLimits,
+    resolve: boolean): unknown;
+  obligationComparisonFinish(comparison: unknown, column: number): unknown;
+}>;
+type BeginOptions = Readonly<{
+  work?: number;
+  ceiling?: number;
+  retain?: boolean;
+  identity?: boolean;
+  budget?: unknown;
+  records?: boolean;
+  names?: string[];
+  kinds?: number[];
+  nullable?: boolean[];
+}>;
+
+let moon: ObligationRuntime;
 test.before(async () => {
   await promisify(execFile)('moon', ['build', 'src/benchmark_obligations', '--target', 'js', '--release'],
     {cwd: new URL('../../../../../', import.meta.url)});
-  moon = await import('../../../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js');
+  moon = await import(new URL('../../../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js', import.meta.url).href);
 });
-const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
+const hash = (text: string) => 'sha256:' + createHash('sha256').update(text).digest('hex');
 test('retention reserves metadata and retains uncertain allocations until confirmed cleanup', () => {
   const owner = checked(moon.obligationRetention(100n));
   const first = checked(moon.obligationReserveOutput(owner, 80, 10));
@@ -43,7 +82,7 @@ test('execution admission combines database and simultaneous scratch', () => {
   assert.throws(() => checked(moon.obligationExecutionReleased(owner)));
 });
 function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget, records = false,
-  names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]} = {}) {
+  names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]}: BeginOptions = {}) {
   return checked(moon.obligationBegin(names, kinds, nullable,
     {max_rows: 10, max_cells: 30, max_nodes: 1000, max_text_bytes: 10000},
     {max_columns: 3, max_order_work: 1000, max_bytes: 10000, max_nodes: 1000, max_depth: 10},
@@ -55,8 +94,8 @@ function begin({work = 1000, ceiling = 1000, retain = true, identity = true, bud
 test('shared canonical encoding retains order duplicates NULL and Unicode independently of column order', () => {
   const stream = begin();
   const text = checked(moon.obligationAppend(stream, 3,
-    '[["4000000000000000","3ff0000000000000","4000000000000000"],["é",null,"é"]]'));
-  const result = checked(moon.obligationFinish(stream));
+    '[["4000000000000000","3ff0000000000000","4000000000000000"],["é",null,"é"]]')) as string;
+  const result = checked(moon.obligationFinish(stream)) as FinishReceipt;
   const expected = '[{"a":"é","z":2},{"a":null,"z":1},{"a":"é","z":2}]';
   assert.equal(text + result._0, expected);
   assert.equal(result._1, hash(expected)); assert.equal(result._4, 3);
@@ -70,7 +109,7 @@ test('physical invalidity, missing cells and guard exhaustion poison the stream'
     [{}, '[[],["x"]]'],
     [{work: 1}, '[["3ff0000000000000"],["x"]]'],
     [{ceiling: 2}, '[["3ff0000000000000"],["long"]]'],
-  ]) {
+  ] as [BeginOptions, string][]) {
     const stream = begin(options);
     assert.throws(() => checked(moon.obligationAppend(stream, 1, columns)));
     assert.throws(() => checked(moon.obligationFinish(stream)));
@@ -82,7 +121,7 @@ test('consumer measurement shares cumulative budget without inventing a content 
   const columns = '[["3ff0000000000000"],["x"]]';
   const first = begin({budget, retain: false, identity: false});
   assert.equal(checked(moon.obligationAppend(first, 1, columns)), '');
-  assert.equal(checked(moon.obligationFinish(first))._1, undefined);
+  assert.equal((checked(moon.obligationFinish(first)) as FinishReceipt)._1, undefined);
   const second = begin({budget, retain: false, identity: false});
   assert.throws(() => checked(moon.obligationAppend(second, 1, columns)));
 });
@@ -90,7 +129,7 @@ test('consumer measurement shares cumulative budget without inventing a content 
 test('owned completed measurement can be charged again but never waives a consumer budget', () => {
   const stream = begin();
   checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"],["x"]]'));
-  const summary = checked(moon.obligationFinish(stream))._5;
+  const summary = (checked(moon.obligationFinish(stream)) as FinishReceipt)._5;
   const budget = checked(moon.obligationBudget(3, 10000, 1000, 10, 1000));
   assert.equal(moon.obligationReuseMeasurement(summary, budget), true);
   assert.equal(moon.obligationReuseMeasurement(summary, budget), false);
@@ -113,13 +152,13 @@ test('comparison demand is bound to a finished scan and discharges each consumer
   assert.throws(() => checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
     {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1}, false)));
   checked(moon.obligationFinish(stream));
-  const usage = checked(moon.obligationComparisonFinish(demand, 1));
+  const usage = checked(moon.obligationComparisonFinish(demand, 1)) as DemandUsage;
   assert.equal(usage.rows, 3);
   assert.equal(usage.field_bytes, 7n);
   assert.equal(usage.predicate_bytes, 13n);
   assert.equal(usage.physical_work, 4);
   assert.equal(usage.physical_bytes, 8);
-  assert.equal(checked(moon.obligationComparisonFinish(resolved, 1)).physical_work, 8);
+  assert.equal((checked(moon.obligationComparisonFinish(resolved, 1)) as DemandUsage).physical_work, 8);
   assert.throws(() => checked(moon.obligationComparisonFinish(demand, 1)));
 });
 
@@ -128,8 +167,8 @@ test('future consumer demand failure does not retroactively fail its producer', 
     const stream = begin({names: ['id'], kinds: [0], nullable: [false]});
     const demand = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 4,
       {max_work: work, max_bytes: 100, max_nodes: 100, max_depth: 1}, false));
-    const text = checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"]]'));
-    const receipt = checked(moon.obligationFinish(stream));
+    const text = checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"]]')) as string;
+    const receipt = checked(moon.obligationFinish(stream)) as FinishReceipt;
     assert.equal(text + receipt._0, '[{"id":1}]');
     assert.equal(receipt._1, hash('[{"id":1}]'));
     // With work=1 RHS measurement failed; otherwise a false predicate needs

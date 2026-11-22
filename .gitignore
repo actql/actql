@@ -1844,5 +1844,7 @@ target/
 /adapters/connectors/duckdb/node/test/managed-fixture-cleanup.test.d.mts
 /adapters/connectors/duckdb/node/test/managed-manifest.test.mjs
 /adapters/connectors/duckdb/node/test/managed-manifest.test.d.mts
+/adapters/connectors/duckdb/node/test/obligation-stream.test.mjs
+/adapters/connectors/duckdb/node/test/obligation-stream.test.d.mts
 /adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mjs
 /adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.d.mts
