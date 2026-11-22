@@ -7970,6 +7970,403 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-preview.mjs",
+      "sha256": "593d22f51a7512295f462cc6ca62745c88ac23dfefce3234d66c44ff5a68b9d6",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectFootprint",
+        "createInstalledRowEffectPreview",
+        "createInstalledRowEffectPreviewContext"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectFootprint",
+          "parameters": [
+            "ownerOf",
+            "recipeOf",
+            "footprintKinds",
+            "cidPattern",
+            "text",
+            "cid",
+            "contractCidOf",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectFootprint/footprintOf/footprintOf",
+          "parameters": [
+            "member",
+            "entries",
+            "controlConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreview",
+          "parameters": [
+            "moon",
+            "permissionsOf",
+            "pendingCid",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreview/authorPreview",
+          "parameters": [
+            "control",
+            "prepared",
+            "inputs",
+            "context",
+            "requestScope",
+            "limits",
+            "managedEffect",
+            "members",
+            "rowsOf",
+            "capabilities",
+            "footprints",
+            "payloads"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreview/authorPreview/effects/effects",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreview/authorPreview/effects/effects/effects",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext",
+          "parameters": [
+            "moon",
+            "contractCidOf",
+            "guarded",
+            "singular",
+            "ROUTING_VERSION",
+            "ownerOf",
+            "installationFacts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight",
+          "parameters": [
+            "effects",
+            "members",
+            "requestScope",
+            "keys",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/basePreflight",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/versioned/versioned",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/versioned/versioned#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/continuationOf/continuationOf",
+          "parameters": [
+            "plan",
+            "unit",
+            "members",
+            "dispatches",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPreviewContext/continuationOf/continuationOf/continuationOf",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectFootprint",
+            "createInstalledRowEffectFootprint/footprintOf/footprintOf"
+          ],
+          "exports": [
+            "createInstalledRowEffectFootprint"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "const footprintOf = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "const facts = {member, entries}"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "provider_object_identity_cids: []"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "const {owned, connectorRegistration} = ownerOf(member)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "controlConstruction.footprint(member.memberIndex, constructor.operationIndex,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "reject('InvalidInstalledRowEffectDriver')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The existing footprint projection finishes synchronously in its control frame."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "recipeOf(member)?.footprintConstruction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "return {kind: 'opaque'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-footprint.test.mjs",
+                "anchor": "actual opaque footprint keeps original mapping CID"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectPreview",
+            "createInstalledRowEffectPreview/authorPreview",
+            "createInstalledRowEffectPreview/authorPreview/effects/effects",
+            "createInstalledRowEffectPreview/authorPreview/effects/effects/effects"
+          ],
+          "exports": [
+            "createInstalledRowEffectPreview"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "function authorPreview("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "return Object.freeze({wire: runtimeField(authored, 0)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "effect_identity_cid: identity.identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "control.issueSourceFreeLocalEffectIdentity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "managedEffect.controlConstruction(moon, moon.clientProgramAuthorInstalledEffectPreview"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "fail('InstalledRowEffectPreviewByteLimit')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Preview construction completes synchronously under the original managed operation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "rowCount > limits.maxRows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "member.kind === 'command' ? {} : {approval: approvalOf(member)}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "Command Preview omits contract approval DATA while Mapping carriage stays exact"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectPreviewContext",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/basePreflight",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/versioned/versioned",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight/versioned/versioned#2",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#2",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#3",
+            "createInstalledRowEffectPreviewContext/basePreflight/basePreflight/basePreflight#4",
+            "createInstalledRowEffectPreviewContext/continuationOf/continuationOf",
+            "createInstalledRowEffectPreviewContext/continuationOf/continuationOf/continuationOf"
+          ],
+          "exports": [
+            "createInstalledRowEffectPreviewContext"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "const basePreflight = "
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "const continuationOf = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "request: plan.request, attempt: plan.attempt"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "dispatch_request_cid: dispatches[index]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "installationFacts(ownerOf(member))"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "row.target_guard.state === 'version'"
+              }
+            ],
+            "failure": {
+              "notApplicable": "These synchronous projections extend the original Preview inputs; caller admission and canonical encoding retain their refusals."
+            },
+            "cancellation": {
+              "notApplicable": "Preflight context and continuation serialization are synchronous."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "maxFootprintWork: limits.maxRows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-preview.mts",
+                "anchor": "...(selected ? {stage_index: unit.stageIndex} : {})"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "CREATE continuation namespace follows its original Mapping selection"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-effect-commit.mjs",
+        "./local-account-config.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-run-controls.mjs",
       "sha256": "cd256bbdfa7b321e0561dd0aa9bff327b9339e02079b61e39c8895865af64140",
       "responsibilityFacet": "primary",
@@ -9092,7 +9489,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "84d3a43a41757e701534b423613a6c26d316334a12b32a40ddd5c5736e011aef",
+      "sha256": "31c3c509ee0c6846fc49664c169d4089b18f6dc349448f2f0fac909e8224435c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -9348,68 +9745,6 @@
           "name": "createRowEffectStage/assertPrepared/assertPrepared/update/update",
           "parameters": [
             "route"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/authorPreview/effects/effects",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/authorPreview/effects/effects/effects",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight#2",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
-          "parameters": [
-            "member"
           ],
           "async": false
         },
@@ -9734,14 +10069,6 @@
           "name": "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
           "parameters": [
             "rowIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/continuationOf/continuationOf/continuationOf",
-          "parameters": [
-            "member",
-            "index"
           ],
           "async": false
         },
@@ -10480,12 +10807,6 @@
             "createRowEffectStage/adapter/init:close/init:close/init:close",
             "createRowEffectStage/assertPrepared/assertPrepared",
             "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
-            "createRowEffectStage/authorPreview/effects/effects",
-            "createRowEffectStage/authorPreview/effects/effects/effects",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight#2",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight#3",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/captureStage#11",
@@ -10517,7 +10838,6 @@
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
-            "createRowEffectStage/continuationOf/continuationOf/continuationOf",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
@@ -11570,11 +11890,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
-            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -15317,6 +15633,7 @@
         "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-physical-read.mjs",
         "./installed-row-effect-plan-capture.mjs",
+        "./installed-row-effect-preview.mjs",
         "./installed-row-effect-run-controls.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",

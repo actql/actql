@@ -11,7 +11,9 @@ import test from 'node:test';
 import {createInstalledRowEffect, composeInstalledRowEffectOwners,
   retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {installedEffectFor} from './installed-effect-inventory.mjs';
-import {approvalOf, createInstalledRowEffectApproval} from './installed-row-effect-commit.mjs';
+import {createInstalledRowEffectApproval} from './installed-row-effect-commit.mjs';
+import {createInstalledRowEffectPreview} from './installed-row-effect-preview.mjs';
+import {runtimePair, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 
 // Admission/provenance tests only. Core issuance and physical dispatch are not
@@ -289,33 +291,29 @@ test('Command dispatch adds no contract floor to the original Account allow or i
     checkpointCid: cid('a'), resolutionCid: cid('b')}));
 });
 
-test('Command Preview omits contract approval DATA while Mapping carriage stays exact', async () => {
+test('Command Preview omits contract approval DATA while Mapping carriage stays exact', () => {
   // Execute the complete original builder with explicit descriptor, identity,
   // source-binding and canonicalization ports. This does not issue Core facts.
-  const source = await readFile(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const stage = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage');
-  const node = stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'authorPreview');
+  const ok = value => ({$tag: 1, _0: value});
   const moon = {
     clientProgramEffectRequestAuthority: () => cid('a'), clientProgramEffectDefinitionCid: () => cid('b'),
-    strategyRunEvidenceSeal: (_kind, wire) => JSON.parse(wire), strategyRunEvidenceJson: value => JSON.stringify(value),
+    strategyRunEvidenceSeal: (_kind, wire) => ok(JSON.parse(wire)), strategyRunEvidenceJson: value => JSON.stringify(value),
     clientProgramEffectMemberDescriptor: (_prepared, _stage, effect) =>
-      [0, effect, effect === 'command' ? 'command' : 'update', 'target', 'contract:fixture', cid('c'), 'rows', 'halt'],
-    strategyPublicationContractIdentity: () => cid('d'), clientProgramEffectPlanCid: () => undefined,
+      ok(runtimeTupleFromFields([0, effect, effect === 'command' ? 'command' : 'update',
+        'target', 'contract:fixture', cid('c'), 'rows', 'halt'])),
+    strategyPublicationContractIdentity: () => cid('d'), clientProgramEffectPlanCid: () => ok(undefined),
     clientProgramEffectSemanticsCid: () => cid('e'), clientProgramEffectEnvironmentCid: () => cid('f'),
-    clientProgramCanonicalEffectPreviewDraft: wire => wire,
-    clientProgramAuthorEffectPreview: wire => [wire, []],
+    clientProgramCanonicalEffectPreviewDraft: ok,
+    clientProgramAuthorEffectPreview: wire => ok(runtimePair(wire, [])),
   };
-  const control = {effectSourceArtifactPreviewBinding: () => [null, cid('1')],
+  const control = {effectSourceArtifactPreviewBinding: () => runtimePair(null, cid('1')),
     issueSourceFreeLocalEffectIdentity: () => ({identity: cid('2')}),
     checkSourceFreeLocalEffectPreviewIdentities() {}};
   const limits = {preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32},
     maxRows: 10, maxRowsPerMember: 10, planWork: 100, maxFields: 10,
     key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}};
-  const build = new Function('limits', 'moon', 'checked', 'runtimeField', 'approvalOf',
-    'permissionsOf', 'pendingCid', 'fail', `return (${source.slice(node.start, node.end)});`)(
-    limits, moon, value => value,
-    (value, index) => value[index], approvalOf, () => ['scope'], cid('0'), () => assert.fail('Unexpected builder refusal'));
+  const build = createInstalledRowEffectPreview({moon, permissionsOf: () => ['scope'],
+    pendingCid: cid('0'), fail: () => assert.fail('Unexpected builder refusal')});
   const members = [{kind: 'command', effectId: 'command', stageIndex: 0, command: {approval: 'required'}},
     {kind: 'update', effectId: 'mapping', stageIndex: 0, mapping: {approval: 'required'}}];
   const result = build({control, prepared: {}, inputs: {}, context: {}, requestScope: {}, limits, members,

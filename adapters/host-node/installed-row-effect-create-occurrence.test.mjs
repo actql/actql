@@ -8,6 +8,7 @@ import {createInstalledRowEffectDriverControls} from './installed-row-effect-dri
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
+import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -57,7 +58,7 @@ const expression=(name,ports)=>{
   if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
   }
-  if (['footprintOf', 'physicalRoute'].includes(name) &&
+  if (name === 'physicalRoute' &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {
     ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
@@ -119,7 +120,8 @@ test('managed footprint uses the same original control frame and original reques
     return {kind: 'exact_targets', provider_boundary_cid: cid('1'), provider_namespace: 'original',
       resource_kind: 'Account', resource_identity_scheme_cid: cid('2'), provider_object_identity_cids: [cid('3')]};
   };
-  const actual = expression('footprintOf', {ownerOf: () => ({owned: receiver}),
+  const ownerOf = () => ({owned: receiver});
+  const actual = createInstalledRowEffectFootprint({ownerOf, recipeOf: recipePort(ownerOf),
     footprintKinds: ['exact_targets'], cidPattern: /^sha256:[0-9a-f]{64}$/,
     text: value => typeof value === 'string' && value.length > 0, fail});
   const result = actual(member, entries, (original, method, args) => {
@@ -715,7 +717,7 @@ test('CREATE continuation namespace follows its original Mapping selection rathe
   const selected=calls[0].node.arguments.at(-1);
   const choose=Function('assertCurrent','updateTargetSelections',`return (${source.slice(selected.start,selected.end)});`);
   const owner={},installation={binding:'original'};
-  const wire=expression('continuationOf',{canonicalJson:JSON.stringify,
+  const {continuationOf: wire}=createInstalledRowEffectPreviewContext({
     singular:{profile:{continuation:'legacy',continuationBinding:'binding'},continuationBinding:'original'},
     contractCidOf:()=>cid('a'),ownerOf:()=>owner,installationFacts:actual=>{assert.equal(actual,owner);return installation;}});
   const serialize=selections=>JSON.parse(wire({request:'request',attempt:'attempt'},
