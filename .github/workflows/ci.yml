@@ -1605,9 +1605,18 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+      - name: Retain the ordinary compatibility executable for this platform
+        run: |
+          printf 'ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE=%s\n' \
+            "$(node -p 'require("node:fs").realpathSync(process.execPath)')" >> "$GITHUB_ENV"
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Prepare the locked optional SDK image for the ordinary producer
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
       - name: Pack the Client packages once for these jobs
         run: node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
       - name: Pack the optional provider from the same original source
@@ -1646,7 +1655,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['22.22.0', '24']
+        node: ['22.22.0', '24.21.0']
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1679,6 +1688,9 @@ jobs:
         run: |
           command -v lsof
           node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/optional-provider"
+      - name: Test registered SDK Providers through the same installed packages
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/registered-provider" --registered-only
       - name: Test direct and CTE UNION budgets through original Results and cold Saved
         id: packed-union-budget
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
@@ -1703,6 +1715,9 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/optional-provider/cases/usage-*/consumer/usage-receipt.json
             ${{ runner.temp }}/client-readme-packed/optional-provider/cases/project-key/consumer/usage-original.json
             ${{ runner.temp }}/client-readme-packed/optional-provider/cases/project-key/consumer/usage-receipt.json
+            ${{ runner.temp }}/client-readme-packed/registered-provider/summary.json
+            ${{ runner.temp }}/client-readme-packed/registered-provider/cases/*/packages/*packages.json
+            ${{ runner.temp }}/client-readme-packed/registered-provider/raw/*/*
             ${{ runner.temp }}/client-readme-packed/packages/*packages.json
             ${{ runner.temp }}/client-readme-packed/*-mock-*.json
             ${{ runner.temp }}/client-readme-packed/raw/*

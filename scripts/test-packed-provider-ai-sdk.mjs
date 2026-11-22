@@ -11,6 +11,8 @@ import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestinat
 import {nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
+const registeredProviderCases = Object.freeze(['registered-project', 'registered-anthropic', 'registered-google']);
+
 // Assertions over the original child report only; this issues no Run authority
 // or substitute provider result. The caller still owns actual process/state
 // selection, same-source software verification and independent installations.
@@ -32,7 +34,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
-  const registered = ['registered-project', 'registered-anthropic', 'registered-google'].includes(caseId);
+  const registered = registeredProviderCases.includes(caseId);
   const project = caseId === 'project-key' || registered;
   if (caseId === 'usage-reported' || project) {
     assert.equal(value.maxCalls, 1);
@@ -102,7 +104,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ['registered-project', 'cold'], ['registered-anthropic', 'cold'], ['registered-google', 'cold'],
+    ...registeredProviderCases.map(id => [id, 'cold']),
     ['registered-too-late'], ['registered-invalid'],
     ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
@@ -200,11 +202,14 @@ async function installRelease(root, release, manifest, manifestPath, run, public
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  assert.equal(process.argv.length, 3, 'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT');
+  const [root, selection, ...extra] = process.argv.slice(2);
+  assert(root !== undefined && (selection === undefined || selection === '--registered-only') && extra.length === 0,
+    'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT [--registered-only]');
+  const cases = selection === '--registered-only' ? registeredProviderCases : undefined;
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
     steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,
       args: ['--input-type=module', '-e',
-        "import {runPackedProviderAI} from './scripts/test-packed-provider-ai-sdk.mjs'; await runPackedProviderAI(process.argv[1]);",
-        process.argv[2]]}]});
+        "import {runPackedProviderAI} from './scripts/test-packed-provider-ai-sdk.mjs'; await runPackedProviderAI(process.argv[1], JSON.parse(process.argv[2]));",
+        root, JSON.stringify({cases})]}]});
 }
