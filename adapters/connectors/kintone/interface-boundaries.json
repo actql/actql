@@ -9167,7 +9167,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "15a138edc077b23b9870ad6f513ba0e23f13378e2287e3b912ba2c09a471ac5f",
+      "sha256": "cfe0ddea9229cf0e52451a126343014e13b2a2b401a3c942af103318e4b5e861",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -9201,7 +9201,8 @@
             "guestSpaceId",
             "limits",
             "maxMembers",
-            "maxRecoveryBytes"
+            "maxRecoveryBytes",
+            "kind"
           ],
           "async": false
         },
@@ -9287,6 +9288,24 @@
           "async": false
         },
         {
+          "name": "kintoneUpdateDriver/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/init:writeOperation/init:writeOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "kintoneUpdateDriver/kintoneUpdateDriver",
           "parameters": [
             "name",
@@ -9325,6 +9344,25 @@
         },
         {
           "name": "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/recheckForm/recheckForm",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/recheckForm/recheckForm/recheckForm",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/recheckForm/recheckForm#2",
           "parameters": [],
           "async": false
         },
@@ -9391,9 +9429,11 @@
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/http-exchange.mjs",
         "../../../host-common/installed-row-update-recovery.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
         "../site/kintone-record-delete.mjs",
         "../site/kintone-record-read.mjs",
         "../site/kintone-record-write.mjs",
+        "./kintone-key-upsert-request.mjs",
         "./kintone-update-request.mjs",
         "node:crypto",
         "node:util"
@@ -9404,7 +9444,6 @@
         {
           "operations": [
             "<module>",
-            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "capture/capture/capture",
             "kintoneUpdateDriver",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
@@ -9417,15 +9456,21 @@
             "kintoneUpdateDriver/init:project/init:project",
             "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
             "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+            "kintoneUpdateDriver/init:send/init:send",
+            "kintoneUpdateDriver/init:writeOperation/init:writeOperation",
             "kintoneUpdateDriver/kintoneUpdateDriver",
             "kintoneUpdateDriver/readScope/readScope/decision/decision",
             "kintoneUpdateDriver/readScope/readScope/readScope",
             "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",
             "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
             "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
+            "kintoneUpdateDriver/recheckForm/recheckForm",
+            "kintoneUpdateDriver/recheckForm/recheckForm/recheckForm",
+            "kintoneUpdateDriver/recheckForm/recheckForm#2",
             "kintoneUpdateDriver/restore/restore",
             "kintoneUpdateDriver/restore/restore/restore",
-            "kintoneUpdateDriver/restore/restore/restore/restore"
+            "kintoneUpdateDriver/restore/restore/restore/restore",
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "KINTONE_UPDATE_TARGET_VERSION",
@@ -9491,6 +9536,10 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "UPDATE verification:"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-key-upsert-request.test.mjs",
+                "anchor": "keyed UPSERT driver uses only the original scoped"
               }
             ]
           }

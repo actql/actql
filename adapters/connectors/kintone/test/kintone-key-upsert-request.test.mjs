@@ -6,6 +6,7 @@ import test from 'node:test';
 import * as common from '../../../../_build/js/debug/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {createKintoneKeyUpsertRequestAdapter} from '../host/kintone-key-upsert-request.mjs';
+import {kintoneUpdateDriver} from '../host/kintone-update-driver.mjs';
 import {form, cid, encode, bytes, identity as nativeId, revision, policy} from './kintone-update.fixture.mjs';
 
 const key = 'Key 東京';
@@ -133,3 +134,79 @@ test('keyed UPSERT refuses unstable Form, incomplete absence and a rehashed oppo
   assert.throws(() => cold.restore({wire: encode({...forged, requestCid: 'sha256:' + hash}), requestTag: cid('c')}),
     {code: 'MoonBitHostFailure'});
 });
+
+for (const [kind, row, opposite] of [['create', absent, 'update'], ['update', present, 'create']]) {
+  test('keyed UPSERT driver uses only the original scoped ' + kind + ' operation', async () => {
+    const {adapter, options} = fixture(), reads = [], writes = [], forms = new WeakSet();
+    const site = {
+      issueReadGrant(facts) {
+        assert.equal(facts.operation, 'kintone:form:read');
+        assert.equal(facts.resource, 'inquiries-form');
+        const original = Object.freeze({grant: {}});
+        forms.add(original);
+        return original;
+      },
+      admitCheckpointEffectTargetRead() {assert.fail('the component does not submit a Checkpoint');},
+    };
+    const authorization = {async authorize(boundary, subject) {
+      assert.equal(boundary, 'acquisition');
+      assert.deepEqual(subject, {connection: 'kintone:kintone', resource: 'inquiries-form', operation: 'read'});
+      return {action: 'dispatch'};
+    }};
+    const config = {...options, site, authorization, connection: 'kintone:kintone', formResource: 'inquiries-form',
+      fields: ['Computed', 'CustomerKey', 'Subject', 'Tags'], maxMembers: 1, maxRecoveryBytes: 65536, kind: 'upsert'};
+    const driver = kintoneUpdateDriver(config);
+    const member = {kind: 'upsert', effectId: 'upsert-inquiry', memberIndex: 0, resource: options.resource,
+      mapping: {mappingRef: adapter.mappingRef, mappingCid: adapter.mappingCid}};
+    const targetGrant = Object.freeze({grant: {}, useId: 'original-target'});
+    const original = {member, maxRows: 1, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
+      authorizationForRow: () => targetGrant,
+      async readChild(grant, invocation, rowIndex, slot, project) {
+        await invocation.currentBeforeSend();
+        assert.equal(rowIndex, 0);
+        assert.strictEqual(invocation.grant, grant.grant);
+        if (slot === 'target') assert.strictEqual(grant, targetGrant);
+        else assert(forms.has(grant));
+        reads.push(slot);
+        return project({...observation(slot === 'target' ? row : keyedForm), accepted: true});
+      },
+    };
+    assert.deepEqual(driver.kinds, ['upsert']);
+    assert.throws(() => driver.writeOperation(member), {code: 'KintoneKeyUpsertWriteBranchUnavailable'});
+    const current = await driver.describe(original);
+    const planned = driver.prepareRequest({member, current, value: input, selector: key});
+    const [target] = await driver.observeTargets({...original, current, entries: [planned]});
+    assert.equal(target.state, kind === 'create' ? 'absent' : 'present');
+    assert.deepEqual(reads, ['schema-before', 'target', 'schema-after']);
+    assert.deepEqual(writes, []);
+    const requestTag = cid('c');
+    const final = driver.finalizeRequest({request: planned.request, requestTag});
+    const entry = driver.recoveryEntry({member, current, entries: [final]});
+    const cold = kintoneUpdateDriver(config);
+    const restored = cold.recoverRequests({maxRows: 1, members: [member],
+      durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
+      recorded: {members: [{claims: [{canonicalRequestCid: final.requestCid}]}]},
+      body: {effects: [{changes: [{target_row_identity: key, after: {value: input}}]}]}, requestTags: [[requestTag]]});
+    assert.equal(cold.requestCid(restored.requests[0][0]), final.requestCid);
+    assert.equal(reads.length, 3, 'restoration performs no physical reads');
+    assert.equal(writes.length, 0, 'restoration performs no physical writes');
+    const reply = {...observation(kind === 'create' ? {ids: [nativeId], revisions: [revision]}
+      : {records: [{id: nativeId, revision}]}), useCid: cid('f')};
+    const invoke = (operation, resourceOrigin = options.origin) => driver.send({member, current,
+      request: final.request, authorization: {scope: {resourceOrigin, connectorRegistration: 'kintone',
+        operation: 'kintone:records:' + operation}, grant: {}, useId: 'original-write'}, credential: {binding: {}},
+      async callResource(value) {writes.push(value.operations); return reply;},
+    });
+    await assert.rejects(invoke(opposite), {code: 'ForeignKintoneKeyUpsertWriteScope'});
+    await assert.rejects(invoke(kind, 'https://other.example.test'), {code: 'ForeignKintoneKeyUpsertWriteScope'});
+    assert.deepEqual(writes, []);
+    const result = await invoke(kind);
+    assert.equal(writes.length, 1);
+    assert.deepEqual([...writes[0].keys()], ['kintone:records:' + kind]);
+    assert.equal([...writes[0].values()][0].method, kind === 'create' ? 'POST' : 'PUT');
+    assert.equal(result.observation.useCid, reply.useCid);
+    assert.strictEqual(result.observation.body, reply.body);
+    assert.equal(driver.project({request: final.request, ...result}).outcome.action,
+      kind === 'create' ? 'created' : 'updated');
+  });
+}

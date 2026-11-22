@@ -7,14 +7,15 @@ import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-appro
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
+import {invocationScopeFields, invokeScopedCredentialOperation,
+  rowUpdateTransportObservation} from '../../../host-common/owned-invocation-context.mjs';
+import {createKintoneKeyUpsertRequestAdapter} from './kintone-key-upsert-request.mjs';
 import {createKintoneUpdateRequestAdapter} from './kintone-update-request.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 import {KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
 
 export const KINTONE_UPDATE_TARGET_VERSION = 'actql-installed-kintone-effect-target-read/0.1';
-const recoveryKind = 'kintone-update-requests';
-const recoveryVersion = 'actql-installed-kintone-update-recovery/0.1';
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const encode = value => canonicalJson(value, {dataKeys: true});
 const wireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
@@ -50,15 +51,23 @@ export class KintoneUpdateObservationFailure extends Error {
 
 export function kintoneUpdateDriver({moon, site, authorization, connection, origin, appId, connectorId,
   resource, formResource, fields, mapping, declaration, siteBindingCid, generationCid, guestSpaceId,
-  limits, maxMembers, maxRecoveryBytes}) {
-  if (typeof connection !== 'string' || !connection || typeof formResource !== 'string' || !formResource ||
+  limits, maxMembers, maxRecoveryBytes, kind = 'update'}) {
+  if (!['update', 'upsert'].includes(kind) || typeof connection !== 'string' || !connection ||
+      typeof formResource !== 'string' || !formResource ||
       formResource === resource || !positive(maxMembers) ||
       !positive(maxRecoveryBytes) || !Array.isArray(fields) || nodeTypes.isProxy(fields) || fields.length < 1 ||
       fields.some((name, index) => typeof name !== 'string' || !name || name === '$id' || name === '$revision' ||
         index > 0 && name <= fields[index - 1])) fail('InvalidKintoneUpdateDriver');
   const beforeFields = Object.freeze(fields.slice());
-  const requests = createKintoneUpdateRequestAdapter({moon, mapping, declaration, origin, appId, connectorId,
+  const upsert = kind === 'upsert';
+  const createRequests = upsert ? createKintoneKeyUpsertRequestAdapter : createKintoneUpdateRequestAdapter;
+  const recoveryKind = upsert ? 'kintone-key-upsert-requests' : 'kintone-update-requests';
+  const recoveryVersion = upsert ? 'actql-installed-kintone-key-upsert-recovery/0.1'
+    : 'actql-installed-kintone-update-recovery/0.1';
+  const requests = createRequests({moon, mapping, declaration, origin, appId, connectorId,
     resource, siteBindingCid, generationCid, guestSpaceId, limits});
+  const recheckForm = upsert ? request => response => requests.recheckForm(request, response)
+    : () => requests.recheckForm;
   // These are immutable DATA bounds, not a borrowed mutable policy object.
   const maxRequestBytes = limits.maxRequestBytes, maxResponseBytes = limits.maxResponseBytes;
   const issueReadGrant = capture(site, 'issueReadGrant'),
@@ -68,7 +77,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
   const currentFrames = new WeakMap();
   let occurrence = 0;
   const selected = member => {
-    if (member?.kind !== 'update' || member.resource !== resource ||
+    if (member?.kind !== kind || member.resource !== resource ||
         member.mapping?.mappingRef !== requests.mappingRef || member.mapping?.mappingCid !== requests.mappingCid) {
       fail('ForeignKintoneUpdateMapping');
     }
@@ -173,8 +182,23 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
   };
 
   return Object.freeze({
-    kind: 'update', targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
-    operation: KINTONE_RECORD_UPDATE_OPERATION,
+    kind, targetRead: Object.freeze({operation: KINTONE_TARGET_READ_OPERATION}),
+    ...(upsert ? {
+      kinds: Object.freeze(['upsert']),
+      writeOperation() {fail('KintoneKeyUpsertWriteBranchUnavailable');},
+      async send({member, request, current, authorization, credential, callResource, signal}) {
+        frame(member, current);
+        const scope = invocationScopeFields(authorization?.scope, credential?.control);
+        const write = requests.writeRequest(request);
+        if (scope?.resourceOrigin !== origin || scope.connectorRegistration !== 'kintone' ||
+            scope.operation !== write.operation) fail('ForeignKintoneKeyUpsertWriteScope');
+        signal?.throwIfAborted();
+        return rowUpdateTransportObservation(await invokeScopedCredentialOperation({
+          ...write, authorization, credential, callResource, signal, maxRequestBytes, maxResponseBytes,
+          headers: [['accept', 'application/json']], responseHeaders: [],
+        }));
+      },
+    } : {operation: KINTONE_RECORD_UPDATE_OPERATION}),
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
     async describe(options) {
@@ -183,7 +207,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 0 || options.maxRows > 2147483647) {
           fail('InvalidKintoneUpdateRequests');
         }
-        await readScope(options, observations)('schema', requests.formBody, 0, requests.recheckForm);
+        const read = readScope(options, observations);
+        if (!upsert) await read('schema', requests.formBody, 0, requests.recheckForm);
         const current = Object.freeze({});
         currentFrames.set(current, {member: options.member, runInvocationCid: options.runInvocationCid,
           dispatchRequestCid: options.dispatchRequestCid, controlConstruction: options.controlConstruction, maxRows: options.maxRows});
@@ -196,7 +221,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       if (!Array.isArray(entries) || entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       for (const entry of entries) {
         if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');
-        requests.nativeRequest(entry.request);
+        if (!upsert) requests.nativeRequest(entry.request);
       }
     },
     async observeTargets(options) {
@@ -207,13 +232,15 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
           targetAuthorization: options.authorizationForRow}, observations), rows = [];
         for (const [row, entry] of options.entries.entries()) {
           if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');
-          await read('schema-before', requests.formBody, row, requests.recheckForm);
+          const verifyForm = recheckForm(entry.request);
+          await read('schema-before', requests.formBody, row, verifyForm);
           const observed = await read('target', requests.targetReadBody(entry.request), row,
             response => requests.projectTarget(entry.request, response));
           // The existing checked-page projection includes the exact API id
           // beside every declared before field. Keep it in the Preview.
-          if (encode(Object.keys(observed.before).sort()) !== encode(['$id', ...beforeFields])) fail('ForeignKintoneBeforeFields');
-          await read('schema-after', requests.formBody, row, requests.recheckForm);
+          if (observed.state !== 'absent' &&
+              encode(Object.keys(observed.before).sort()) !== encode(['$id', ...beforeFields])) fail('ForeignKintoneBeforeFields');
+          await read('schema-after', requests.formBody, row, verifyForm);
           rows.push(observed);
         }
         return Object.freeze(rows);
@@ -223,8 +250,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       selected(member);
       const expected = {version: KINTONE_UPDATE_TARGET_VERSION, site_binding_cid: siteBindingCid,
         generation_cid: generationCid, effect_id: member.effectId, member_index: member.memberIndex,
-        mapping_ref: requests.mappingRef, mapping_cid: requests.mappingCid, resource, effect_kind: 'update',
-        key: '$id', fields: beforeFields};
+        mapping_ref: requests.mappingRef, mapping_cid: requests.mappingCid, resource, effect_kind: kind,
+        key: upsert ? requests.key : '$id', fields: beforeFields};
       return admitCheckpointPhysicalRead(decision, expected, KINTONE_TARGET_READ_OPERATION,
         admitTarget, 'KintoneTargetReadApprovalNotAdmitted');
     },
@@ -241,14 +268,14 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'KintoneUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    prepareUpdateWrite(member, request, current, resourceOrigin, registration, signal) {
+    ...(!upsert && {prepareUpdateWrite(member, request, current, resourceOrigin, registration, signal) {
       frame(member, current);
       if (resourceOrigin !== origin || registration !== 'kintone') fail('ForeignKintoneUpdateOrigin');
       const body = requests.requestBody(request);
       signal?.throwIfAborted();
       return {method: 'PUT', path: prefix + 'records.json', query: [],
         headers: [['accept', 'application/json']], body, responseHeaders: []};
-    },
+    }}),
     project({request, observation}) {return requests.projectResponse(request, observation);},
   });
 }
