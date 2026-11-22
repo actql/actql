@@ -197,10 +197,10 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   } else {
     construction.recipe
   }
-  if !construction
+  let funded = construction
     .resize_result(recipe, construction.retained, construction.workspace)
     .retain_mock_effect_proposal_issue(report)
-  {
+  if !funded {
     stop("LocalOriginalEffectPreviewUnavailable")
   }
   construction.recipe = recipe
