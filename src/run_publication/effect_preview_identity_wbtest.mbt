@@ -404,6 +404,81 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
 }
 
 ///|
+test "Authored Preview dispatch preserves a nontrivial original row order" {
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let original_key = preview_identity_test_cid("4")
+  let template = preview_identity_test_wire(
+    run,
+    authoring,
+    original_key,
+    "001000000000002",
+    preview_identity_test_cid("a"),
+    preview_identity_test_cid("a"),
+  )
+  guard @json.object_field(
+      parse_effect_preview_shape(template, 8192, 256, 12).unwrap(),
+      "effects",
+    )
+    is Some(@json.Array(members)) &&
+    @json.object_field(@json.array_at(members, 0).unwrap(), "changes")
+    is Some(@json.Array(rows)) else {
+    abort("Expected an update with one original row")
+  }
+  let first = @json.stringify_value(
+    @json.array_at(rows, 0).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  let second = first.replace_all(old="001000000000002", new="001000000000001")
+  let template = template
+    .replace_all(old=first, new=first + "," + second)
+    .replace_all(old="\"count\":1", new="\"count\":2")
+    .replace_all(old="\"max_items\":1", new="\"max_items\":2")
+    .replace_all(old="\"kind\":\"exact_targets\"", new="\"kind\":\"opaque\"")
+    .replace_all(old="[\"" + preview_identity_test_cid("1") + "\"]", new="[]")
+  let authored = prepare_authored_effect_preview(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  let semantic = authored_effect_preview_identity(authored)
+  let second_key = preview_identity_test_cid("5")
+  let keys = [[original_key, second_key]]
+  let (wire, completed) = complete_authored_effect_preview_dispatch_keys(
+    authored, keys,
+  ).unwrap()
+  assert_eq(
+    wire,
+    complete_effect_preview_dispatch_keys(
+      authored.wire,
+      keys,
+      run,
+      authoring,
+      8192,
+      256,
+      12,
+    ).unwrap(),
+  )
+  // Source rows are [002, 001], but dispatch order is [001, 002].
+  assert_eq(
+    effect_preview_ordered_row_identity(completed, 0, 0),
+    effect_preview_row_identity(semantic, 0, 1),
+  )
+  assert_eq(
+    effect_preview_ordered_row_identity(completed, 0, 1),
+    effect_preview_row_identity(semantic, 0, 0),
+  )
+  assert_eq(effect_preview_row_key(completed, 0, 0), Some(original_key))
+  assert_eq(effect_preview_row_key(completed, 0, 1), Some(second_key))
+  assert_true(
+    complete_authored_effect_preview_dispatch_keys(authored, [
+      [original_key, original_key],
+    ])
+    is Err(RowInventoryMismatch(0)),
+  )
+}
+
+///|
 test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" {
   let a = preview_identity_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"

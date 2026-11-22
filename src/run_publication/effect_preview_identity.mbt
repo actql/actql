@@ -436,51 +436,55 @@ fn emit_authored_effect_preview(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  reuse_row_order? : Bool = false,
 ) -> Result[String, EffectPreviewIdentityIssue] {
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
+  defer @encode.cancel_writer(writer)
   try {
-    @encode.begin_object(writer)
+    @encode.begin_ordered_object(writer)
     for (name, child) in @json.object_fields(preview).unwrap() {
-      @encode.key(writer, name)
+      @encode.ordered_key(writer, name)
       if name == "effect_preview_cid" && preview_cid is Some(cid) {
         @encode.string_value(writer, cid)
       } else if name == "effects" {
         let members = match child {
-          @json.Array(items) => @json.array_values(items)
+          @json.Array(items) => items
           _ => return Err(InvalidMember)
         }
-        if members.length() != rows.length() ||
+        let member_count = @json.array_count(members)
+        if member_count != rows.length() ||
           member_cids
-          .map(values => values.length() != members.length())
+          .map(values => values.length() != member_count)
           .unwrap_or(false) ||
           key_cids
-          .map(values => values.length() != members.length())
+          .map(values => values.length() != member_count)
           .unwrap_or(false) {
           return Err(InvalidMember)
         }
         @encode.begin_array(writer)
-        for member_index in 0..<members.length() {
-          let effect = members[member_index]
+        for member_index in 0..<member_count {
+          let effect = @json.array_at(members, member_index).unwrap()
           let changes = match @json.object_field(effect, "changes") {
-            Some(@json.Array(items)) => @json.array_values(items)
+            Some(@json.Array(items)) => items
             _ => return Err(InvalidMember)
           }
-          if changes.length() != rows[member_index].length() ||
+          let row_count = @json.array_count(changes)
+          if row_count != rows[member_index].length() ||
             key_cids
-            .map(values => values[member_index].length() != changes.length())
+            .map(values => values[member_index].length() != row_count)
             .unwrap_or(false) {
             return Err(InvalidMember)
           }
-          @encode.begin_object(writer)
+          @encode.begin_ordered_object(writer)
           for
             (member_name, member_child) in @json.object_fields(effect).unwrap() {
-            @encode.key(writer, member_name)
+            @encode.ordered_key(writer, member_name)
             if member_name == "effect_member_preview_cid" &&
               member_cids is Some(cids) {
               @encode.string_value(writer, cids[member_index])
-            } else if member_name == "row_order" {
+            } else if member_name == "row_order" && !reuse_row_order {
               // Changes retain source/Plan enumeration. Dispatch order is a
               // separate canonical inventory of the same original rows.
               let kind = @json.object_field(effect, "effect_kind")
@@ -488,7 +492,8 @@ fn emit_authored_effect_preview(
                 kind is Some(@json.String("upsert")) ||
                 kind is Some(@json.String("delete")) {
                 let targets : Array[String] = []
-                for change in changes {
+                for index in 0..<row_count {
+                  let change = @json.array_at(changes, index).unwrap()
                   guard @json.object_field(change, "target_row_identity")
                     is Some(target) else {
                     return Err(InvalidMember)
@@ -501,11 +506,7 @@ fn emit_authored_effect_preview(
                 }
                 match
                   derive_effect_target_row_inventory(
-                    targets,
-                    changes.length(),
-                    max_wire_bytes,
-                    max_nodes,
-                    max_depth,
+                    targets, row_count, max_wire_bytes, max_nodes, max_depth,
                   ) {
                   Ok(order) => Some(order)
                   Err(issue) => return Err(issue)
@@ -530,13 +531,13 @@ fn emit_authored_effect_preview(
               @encode.end_array(writer)
             } else if member_name == "changes" {
               @encode.begin_array(writer)
-              for row_index in 0..<changes.length() {
-                @encode.begin_object(writer)
+              for row_index in 0..<row_count {
+                @encode.begin_ordered_object(writer)
                 for
                   (change_name, change_child) in @json.object_fields(
-                    changes[row_index],
+                    @json.array_at(changes, row_index).unwrap(),
                   ).unwrap() {
-                  @encode.key(writer, change_name)
+                  @encode.ordered_key(writer, change_name)
                   if change_name == "row_preview_cid" {
                     @encode.string_value(writer, rows[member_index][row_index])
                   } else if change_name == "row_idempotency_key" {
@@ -681,7 +682,8 @@ pub fn authored_effect_preview_identity(
 
 ///|
 /// Complete the same immutable authored original under its original codec.
-/// The final wire is still admitted by the full Preview/identity validator.
+/// Only dispatch keys change. Borrow the row order fixed by the original
+/// author and still admit the final wire with the full Preview validator.
 pub fn complete_authored_effect_preview_dispatch_keys(
   value : AuthoredEffectPreview,
   key_cids : Array[Array[String]],
@@ -704,6 +706,7 @@ pub fn complete_authored_effect_preview_dispatch_keys(
     value.max_wire_bytes,
     value.max_nodes,
     value.max_depth,
+    reuse_row_order=true,
   )
 }
 
@@ -765,32 +768,19 @@ fn complete_effect_preview_dispatch_keys_original(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  reuse_row_order? : Bool = false,
 ) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
-  let rows : Array[Array[String]] = []
-  let members : Array[String] = []
-  for member_index in 0..<effect_preview_member_count(identity) {
-    let member_rows : Array[String] = []
-    for
-      row_index in 0..<effect_preview_row_count(identity, member_index).unwrap() {
-      member_rows.push(
-        effect_preview_row_identity(identity, member_index, row_index).unwrap(),
-      )
-    }
-    rows.push(member_rows)
-    members.push(
-      effect_preview_member_identity(identity, member_index).unwrap(),
-    )
-  }
   let wire = match
     emit_authored_effect_preview(
       semantic,
-      rows,
-      Some(members),
+      identity.row_cids,
+      Some(identity.member_cids),
       Some(effect_preview_semantic_identity(identity)),
       Some(key_cids),
       max_wire_bytes,
       max_nodes,
       max_depth,
+      reuse_row_order~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
