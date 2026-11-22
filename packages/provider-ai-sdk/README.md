@@ -36,6 +36,11 @@ The pinned Anthropic Messages adapter selects `claude-sonnet-4-6` with
 temperature, requires neutral `topP: 1`, and refuses a seed. Put only the
 credential reference `ANTHROPIC_API_KEY` in the deployment configuration.
 
+The pinned Google GenerateContent adapter selects `gemini-2.5-flash` with
+`structuredOutputs: true`. Its serial text profile sends temperature and
+`topP`, refuses a seed, and uses the deployment credential reference
+`GOOGLE_GENERATIVE_AI_API_KEY`.
+
 ## Configure a Host from project Tasks
 
 `createOpenAIChatProvider` returns one asynchronous `registerModelProviders`

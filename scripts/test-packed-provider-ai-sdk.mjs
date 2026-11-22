@@ -32,7 +32,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
-  const registered = caseId === 'registered-project' || caseId === 'registered-anthropic';
+  const registered = ['registered-project', 'registered-anthropic', 'registered-google'].includes(caseId);
   const project = caseId === 'project-key' || registered;
   if (caseId === 'usage-reported' || project) {
     assert.equal(value.maxCalls, 1);
@@ -102,7 +102,8 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ['registered-project', 'cold'], ['registered-anthropic', 'cold'], ['registered-too-late'], ['registered-invalid'],
+    ['registered-project', 'cold'], ['registered-anthropic', 'cold'], ['registered-google', 'cold'],
+    ['registered-too-late'], ['registered-invalid'],
     ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');

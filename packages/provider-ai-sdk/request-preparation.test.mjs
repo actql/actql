@@ -5,8 +5,10 @@ import {readFileSync} from 'node:fs';
 import {isDeepStrictEqual} from 'node:util';
 import {createOpenAI} from '@ai-sdk/openai';
 import {createAnthropic} from '@ai-sdk/anthropic';
+import {createGoogle} from '@ai-sdk/google';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
 import * as anthropic from './_internal/anthropic-messages.mjs';
+import * as google from './_internal/google-generate-content.mjs';
 import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
   deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
@@ -87,6 +89,45 @@ test('registered Anthropic preserves the selected Messages body and refuses non-
       assert.equal(anthropic.readReportedUsage({}), undefined);
     } finally {await release(handle);}
   }
+});
+
+test('registered Google preserves the selected GenerateContent body and reported usage', async () => {
+  const modelId = 'gemini-2.5-flash', selector = 'fixture-gemini', apiMode = 'generate_content';
+  const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  const route = {modelId, selector, apiMode, endpoint}, admission = {};
+  const moon = {clientProgramAdmittedStructuredSdkRouteMatches: (...actual) =>
+    isDeepStrictEqual(actual, [admission, selector, modelId, apiMode, endpoint])};
+  const prompt = [{role: 'system', content: 'Return a typed assessment.'},
+    {role: 'user', content: [{type: 'text', text}]}];
+  const providerOptions = {google: {structuredOutputs: true}};
+  const options = {prompt, responseFormat: {type: 'json', schema, name: 'assessment'},
+    providerOptions, temperature: 0, topP: 1, maxOutputTokens: 16};
+  const handle = prepareRegisteredSdkLanguageModel({moon, admission, ...route,
+    sdkProvider: google.sdkProvider, createLanguageModel: fetch => google.createLanguageModel(createGoogle, modelId, fetch, route),
+    options, verifyRequest: body => google.verifyRequest(body, options, route, providerOptions),
+    maxRequestBytes: 8192, maxHeaderBytes: 8192, maxHeaders: 16, notify() {}});
+  try {
+    await eventually(() => pollSdkPreparation(handle), 'ready');
+    const request = sdkPreparedRequest(handle);
+    assert.equal(request.url, endpoint);
+    assert.deepEqual(JSON.parse(request.body), {
+      generationConfig: {maxOutputTokens: 16, temperature: 0, topP: 1,
+        responseMimeType: 'application/json', responseJsonSchema: schema},
+      contents: [{role: 'user', parts: [{text}]}],
+      systemInstruction: {parts: [{text: 'Return a typed assessment.'}]},
+    });
+    assert.equal(google.verifyRequest(request.body, {...options, seed: 1}, route, providerOptions), false);
+    assert.equal(google.verifyRequest(request.body, options, route, {google: {structuredOutputs: false}}), false);
+    const reply = {modelVersion: modelId, candidates: [{index: 0, finishReason: 'STOP',
+      content: {role: 'model', parts: [{text: '{"assessment":"ok"}'}]}}],
+    usageMetadata: {promptTokenCount: 0, candidatesTokenCount: 4, thoughtsTokenCount: 2}};
+    deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+    await eventually(() => pollSdkDecode(handle), 'ready');
+    assert.equal(takeSdkDecodedResult(handle).content[0].text, '{"assessment":"ok"}');
+    assert.deepEqual(google.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 6n});
+    assert.deepEqual(google.readReportedUsage({usageMetadata: {thoughtsTokenCount: 2}}),
+      {inputTokens: undefined, outputTokens: undefined});
+  } finally {await release(handle);}
 });
 
 test('real pinned SDK captures one exact original request with no ambient network', async t => {

@@ -46,6 +46,7 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   assert.deepEqual(shrinkwrap, original);
   const lock = JSON.parse(original);
   assert.equal(lock.packages['node_modules/@ai-sdk/openai'].version, '4.0.91');
+  assert.equal(lock.packages['node_modules/@ai-sdk/google'].version, '4.0.124');
   assert.equal(lock.packages['node_modules/@ai-sdk/typesafe-ai'].version, '3.0.13');
   assert.equal(lock.packages['node_modules/undici'].version, '7.30.0');
   assert.equal(lock.packages[''].dependencies.undici, '7.30.0');
@@ -57,6 +58,7 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   assert.equal(manifest.dependencies['@ai-sdk/provider'], '4.0.26');
   assert.equal(lock.packages[''].dependencies['@ai-sdk/provider'], '4.0.26');
   assert.equal(lock.packages['node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider'].version, '4.0.39');
+  assert.equal(lock.packages['node_modules/@ai-sdk/google/node_modules/@ai-sdk/provider'].version, '4.0.39');
   assert.equal(lock.packages[''].dependencies['@ai-sdk/provider-utils'], '5.0.58');
   assert.equal(lock.packages['node_modules/@ai-sdk/provider-utils'].version, '5.0.58');
   assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});

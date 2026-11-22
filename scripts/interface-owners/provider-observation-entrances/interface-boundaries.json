@@ -2100,6 +2100,172 @@
       ]
     },
     {
+      "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2def9d9e6fe7a8ba45895cd0c0b78fb10be67f8c62200a56881a5992bcc96cf9",
+      "exports": [
+        "createLanguageModel",
+        "credentialBinding",
+        "optionNamespace",
+        "optionSchema",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
+      ],
+      "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "body",
+            "options",
+            "_route",
+            "providerOptions"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLanguageModel",
+            "readReportedUsage",
+            "verifyRequest"
+          ],
+          "exports": [
+            "createLanguageModel",
+            "credentialBinding",
+            "optionNamespace",
+            "optionSchema",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "export function verifyRequest"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "export function readReportedUsage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "factory !== createGoogle"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "route.apiMode !== 'generate_content'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "anchor": "readVerifiedSdkImage"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "credentialBinding.placeholder"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "prepareRegisteredSdkLanguageModel"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "anchor": "SdkAdditionalRequestRefused"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "InvalidRegisteredGoogleGenerateContent"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "seed !== undefined"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "anchor": "optionSchema"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/model-port.mjs",
+                "anchor": "createAdmittedRegisteredSdkPreflight"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "anchor": "registered Google preserves the selected GenerateContent body"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "@ai-sdk/google",
+        "node:util"
+      ]
+    },
+    {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
       "sha256": "4bb5bba1cb4e3f806d2dfe62b8054c152a486e445d0f218a0a00e3420344af65",
