@@ -260,3 +260,53 @@ test "original LocalContracts funds the same 2791 bytes with 40 nodes and depth 
   assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
   assert_eq(@publication.captured_effect_dependency_body_cid(body), cid)
 }
+
+///|
+test "funded Relation dependency includes the wrapper before construction" {
+  let rows = "[{\"id\":\"雪\"}]"
+  let wire = "{\"sort\":\"relation\",\"value\":[{\"id\":\"雪\"}]}"
+  let cid = "sha256:ad23cae212b01f4bc53937fc70023b972788c8145a35df63cd0ecd3f2e2f8540"
+  let calls : Array[(Int, Int, Int)] = []
+  let original_checks = Ref(0)
+  let current = Ref(true)
+  let limit = Ref(42)
+  let before = (bytes, nodes, depth) => {
+    calls.push((bytes, nodes, depth))
+    bytes <= limit.val
+  }
+  let original = () => {
+    original_checks.val += 1
+    current.val
+  }
+  let admit = budget => {
+    admit_client_effect_dependency_capture_body(
+      "relation_value",
+      Some(cid),
+      rows,
+      budget,
+      5,
+      3,
+      Some(before),
+      original,
+      wire_extent=Some((42, 5)),
+      wire_depth=Some(3),
+      enforce_extent=true,
+      wrap_relation_rows=true,
+    )
+  }
+  assert_true(admit(41) is Err(Dependency(@publication.ByteLimit)))
+  assert_eq(calls.length(), 0)
+  limit.val = 41
+  assert_true(admit(42) is Err(ConstructionRefused))
+  assert_eq(original_checks.val, 0)
+  limit.val = 42
+  current.val = false
+  assert_true(admit(42) is Err(ForeignInput))
+  current.val = true
+  let (body, bytes) = admit(42).unwrap()
+  assert_eq(calls, [(42, 5, 3), (42, 5, 3), (42, 5, 3)])
+  assert_eq(original_checks.val, 2)
+  assert_eq(bytes, 42)
+  assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
+  assert_eq(@publication.captured_effect_dependency_body_cid(body), cid)
+}

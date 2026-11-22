@@ -133,6 +133,7 @@ pub fn admit_client_effect_dependency_capture(
     wire : String,
     measured : (Int, Int)?,
     measured_depth : Int?,
+    wrap_relation_rows : Bool,
   ) -> Result[Unit, ClientEffectDependencyCaptureIssue] {
     let measured = if before_body is Some(_) { measured } else { None }
     let (body, bytes) = match
@@ -148,6 +149,7 @@ pub fn admit_client_effect_dependency_capture(
         wire_extent=measured,
         wire_depth=measured_depth,
         enforce_extent=true,
+        wrap_relation_rows~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -173,9 +175,10 @@ pub fn admit_client_effect_dependency_capture(
     append(
       "relation_value",
       Some(@execution.logical_relation_cid(relation)),
-      "{\"sort\":\"relation\",\"value\":" + rows_wire + "}",
+      rows_wire,
       Some((relation_bytes, relation_nodes)),
       None,
+      true,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -187,6 +190,7 @@ pub fn admit_client_effect_dependency_capture(
       @execution.relation_schema_wire(schema),
       Some((schema_bytes, schema_nodes)),
       None,
+      false,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -196,7 +200,7 @@ pub fn admit_client_effect_dependency_capture(
       ("local_result_definition", definition.wire),
       ("local_computation", artifact.invocation.wire),
     ] {
-    match append(kind, None, wire, None, None) {
+    match append(kind, None, wire, None, None, false) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -251,6 +255,7 @@ pub fn admit_client_effect_dependency_capture(
         @checked.checked_local_dependency_body_json(body),
         Some((bytes, nodes)),
         Some(depth),
+        false,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -323,22 +328,41 @@ fn admit_client_effect_dependency_capture_body(
   wire_extent? : (Int, Int)? = None,
   wire_depth? : Int? = None,
   enforce_extent? : Bool = false,
+  wrap_relation_rows? : Bool = false,
 ) -> Result[
   (@publication.CapturedEffectDependencyBody, Int),
   ClientEffectDependencyCaptureIssue,
 ] {
-  let bytes = match before_body {
+  let relation_prefix = "{\"sort\":\"relation\",\"value\":"
+  let deferred_relation = wrap_relation_rows && before_body is Some(_)
+  let wire = if wrap_relation_rows && !deferred_relation {
+    relation_prefix + wire + "}"
+  } else {
+    wire
+  }
+  // The snapshot wire already belongs to the caller. Include the ASCII
+  // wrapper in the same body quote before allocating its new text.
+  let wrapper_bytes = if deferred_relation {
+    relation_prefix.length() + 1
+  } else {
+    0
+  }
+  if remaining < wrapper_bytes {
+    return Err(Dependency(ByteLimit))
+  }
+  let payload_bytes = match before_body {
     // Preserve the existing uninstrumented entrance, including its UTF8
     // encoder's handling of invalid caller text. The funded Native entrance
     // below only consumes original generated immutable contract wires.
     None => @utf8.encode(wire).length()
     Some(_) =>
-      match @scalar.admit_utf8_length(wire, remaining) {
+      match @scalar.admit_utf8_length(wire, remaining - wrapper_bytes) {
         Ok(value) => value
         Err(@scalar.LimitExceeded) => return Err(Dependency(ByteLimit))
         Err(_) => return Err(Dependency(InvalidBody))
       }
   }
+  let bytes = payload_bytes + wrapper_bytes
   if bytes > remaining {
     return Err(Dependency(ByteLimit))
   }
@@ -374,6 +398,7 @@ fn admit_client_effect_dependency_capture_body(
       return Err(ForeignInput)
     }
   }
+  let wire = if deferred_relation { relation_prefix + wire + "}" } else { wire }
   let (parse_bytes, parse_nodes, parse_depth) = if enforce_extent &&
     wire_extent is Some(_) {
     (bytes, nodes, depth)
