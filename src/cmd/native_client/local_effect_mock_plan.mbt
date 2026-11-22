@@ -525,9 +525,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       guard self.original.runtime is Some(runtime) else {
         stop("PackagedLocalRuntimeChanged")
       }
-      let query_contracts = runtime
-        .query_contract_assets()
-        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+      let query_contracts = match runtime.query_contract_assets() {
+        Ok(contracts) => contracts
+        Err(issue) => {
+          self.original.retain_primary(CommandRuntime(issue))
+          stop("PackagedLocalRuntimeChanged")
+        }
+      }
       native_mock_effect_source_plan(
         prepared,
         first,

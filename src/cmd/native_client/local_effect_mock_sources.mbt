@@ -364,7 +364,8 @@ fn LocalNativeMockEffectPlan::prepare_mock_effect_source_capture(
         prepared_provider=Some(binding.provider),
       )
     }
-    _ => return Err(Route)
+    Ok(_) => return Err(Route)
+    Err(issue) => return Err(Read(issue))
   }
   match prepared {
     Err(issue) => {
