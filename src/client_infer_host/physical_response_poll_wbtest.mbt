@@ -103,6 +103,12 @@ fn async_response_fixture(
     66L, 1000L,
   ),
   profile? : @environment.ModelResponseProfile = async_response_profile(),
+  provider_original? : (@publication.RunEvidenceValue, String, String, String),
+  structured_plan? : (
+    Execution,
+    @model.ModelRequest,
+    (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
+  ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue],
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
@@ -115,6 +121,7 @@ fn async_response_fixture(
     asynchronous=true,
     slots~,
     start_original~,
+    provider_original?,
     configure=active => {
       bind_quantity_capacity(active, capacity).unwrap()
       if prepare_original is Some(prepare) {
@@ -123,45 +130,51 @@ fn async_response_fixture(
       bind_physical_preflight(active, request => {
         Ok({
           advance: () => {
-            @model.model_async_physical_request_plan(
-              request,
-              1000L,
-              capacity.per_attempt,
-              profile,
-              async_response_installation(),
-              entry => {
-                let owned : Ref[@model.ModelPhysicalCall?] = Ref(None)
-                let call = @model.model_physical_call(
-                  entry,
-                  holder.val.unwrap(),
-                  () => {
-                    polls.val += 1
-                    if ready.val {
-                      if observe_response_call is Some(read) {
-                        return read(request.slot, owned.val.unwrap())
-                      }
-                      match observe_response {
-                        Some(read) => read()
-                        None => observed
-                      }
-                    } else {
-                      @model.PhysicalPending
+            let start = entry => {
+              let owned : Ref[@model.ModelPhysicalCall?] = Ref(None)
+              let call = @model.model_physical_call(
+                entry,
+                holder.val.unwrap(),
+                () => {
+                  polls.val += 1
+                  if ready.val {
+                    if observe_response_call is Some(read) {
+                      return read(request.slot, owned.val.unwrap())
                     }
-                  },
-                  () => cancels.val += 1,
-                  acknowledged => {
-                    cleanup_calls.push(acknowledged)
-                    release.val
-                  },
+                    match observe_response {
+                      Some(read) => read()
+                      None => observed
+                    }
+                  } else {
+                    @model.PhysicalPending
+                  }
+                },
+                () => cancels.val += 1,
+                acknowledged => {
+                  cleanup_calls.push(acknowledged)
+                  release.val
+                },
+              )
+              owned.val = call
+              if call is Some(original) {
+                calls.val += 1
+                observe_call(original)
+              }
+              call
+            }
+            let plan = match structured_plan {
+              Some(prepare) => prepare(active, request, start)
+              None =>
+                @model.model_async_physical_request_plan(
+                  request,
+                  1000L,
+                  capacity.per_attempt,
+                  profile,
+                  async_response_installation(),
+                  start,
                 )
-                owned.val = call
-                if call is Some(original) {
-                  calls.val += 1
-                  observe_call(original)
-                }
-                call
-              },
-            ).map(value => Some(value))
+            }
+            plan.map(value => Some(value))
           },
           cleanup: () => true,
         })

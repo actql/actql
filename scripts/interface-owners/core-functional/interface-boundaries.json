@@ -21794,7 +21794,9 @@
         },
         {
           "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
-          "parameters": [],
+          "parameters": [
+            "code"
+          ],
           "async": false
         },
         {
@@ -22986,7 +22988,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
+      "sha256": "353b51f373852e6c0631057219926346f0c8446307285cd62408d9a046ac5aac"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -26736,7 +26738,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
+      "sha256": "45ef03ddf9ba5e3f3a63bb497f3431b2617557565cbef89f441da9b0ea495f51",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -26838,7 +26840,8 @@
             "assertHostRuntime",
             "assertNewHostRuntime",
             "bindSdkStaticOriginals",
-            "taskOriginals"
+            "taskOriginals",
+            "prepareSdkCapability"
           ],
           "async": false
         },
