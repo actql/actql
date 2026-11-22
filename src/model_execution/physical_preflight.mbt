@@ -41,6 +41,11 @@ pub struct ModelPhysicalRequestPlan {
 enum ModelPhysicalInvocation {
   Synchronous(() -> Result[ModelResponse, ModelProviderFailure])
   Asynchronous((ModelCallEntry) -> ModelPhysicalCall?)
+  AsynchronousSavedStructured(
+    StructuredModelCapability,
+    (ModelCallEntry) -> ModelPhysicalCall?,
+    (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?
+  )
 }
 
 ///|
@@ -87,6 +92,29 @@ pub fn model_async_physical_request_plan(
   evidence? : ModelPhysicalRequestEvidence,
   attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  prepare_structured_model_physical_plan(
+    request,
+    wire_bytes,
+    quantities,
+    profile,
+    installation,
+    Asynchronous(start),
+    evidence,
+    attachments,
+  )
+}
+
+///|
+fn prepare_structured_model_physical_plan(
+  request : ModelRequest,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  invocation : ModelPhysicalInvocation,
+  evidence : ModelPhysicalRequestEvidence?,
+  attachments : Array[ModelContentAdmission],
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if @environment.model_task_kind(request.task) !=
     @environment.StructuredGenerate ||
     @environment.check_model_response_profile_binding(
@@ -106,7 +134,7 @@ pub fn model_async_physical_request_plan(
     request,
     wire_bytes,
     quantities,
-    Asynchronous(start),
+    invocation,
     Some(profile),
     evidence,
     attachments,
@@ -364,6 +392,12 @@ fn advance_model_physical_preflight(
         (SynchronousFixture(_), Synchronous(_)) => ()
         (AsynchronousPhysical, Asynchronous(_)) =>
           if !state.durable_calls || plan.response_profile is None {
+            return @bounded.Failed(InvalidProvider, 1, 1)
+          }
+        (AsynchronousPhysical, AsynchronousSavedStructured(capability, _, _)) =>
+          if !physical_equal(provider, capability.provider) ||
+            !state.durable_calls ||
+            plan.response_profile is None {
             return @bounded.Failed(InvalidProvider, 1, 1)
           }
         _ => return @bounded.Failed(InvalidProvider, 1, 1)

@@ -132,6 +132,12 @@ fn advance_encoded_model_response(
       @environment.model_task_output(state.task),
       state.limits.value_limits,
     ) {
+    Err(OutputValue) if state.progress.call is Some(call) &&
+      call.terminal is Some(PhysicalSavedStructuredResponse(saved)) &&
+      model_saved_structured_response_original(saved, call) => {
+      cancel_model_response_decode(cursor)
+      accept_structured_model_failure(state, SchemaInvalid)
+    }
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => @bounded.Continue(1, 1)
     Ok(Some(checked)) => {
@@ -142,6 +148,11 @@ fn advance_encoded_model_response(
         (Some(PhysicalEncodedResponse(original)), None) if physical_equal(
             original, physical,
           ) => physical.observation
+        (Some(PhysicalSavedStructuredResponse(saved)), None) if saved.result
+          is Ok(encoded) &&
+          physical_equal(encoded, physical) &&
+          model_saved_structured_response_original(saved, call) =>
+          physical.observation
         (Some(PhysicalChatResponse(original)), Some(raw)) if physical_equal(
             original, raw,
           ) => {

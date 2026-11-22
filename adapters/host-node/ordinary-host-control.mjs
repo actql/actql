@@ -1,6 +1,7 @@
 import {openSync, fstatSync, readSync, closeSync} from 'node:fs';
 import {resolve, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import packageCustody from './initial-control-package-custody.cjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory}
   from './installed-host-policy.mjs';
 
@@ -91,7 +92,7 @@ async function close(state) {
       }
       if (!child.released || !child.acknowledged) return observation(state);
     }
-    state.children.clear(); state.assets.clear(); state.input = undefined;
+    state.children.clear(); state.assets.clear(); state.input = state.modelSdk = undefined;
     state.closed = true; state.originals = undefined;
     return observation(state);
   });
@@ -104,7 +105,9 @@ export function beginOrdinaryHostControl(originals, input) {
     fail('InstalledHostPreparationChanged');
   }
   const held = Object.freeze(Object.fromEntries(names.map(name => [name, originals[name]])));
-  const state = {originals: held, input: snapshot(input), children: new Map(), assets: new Map(),
+  const packet = snapshot(input);
+  const state = {originals: held, input: packet, modelSdk: packageCustody.ordinaryModelSdkInstallation(packet.installation?.modelSdkRegistrations),
+    children: new Map(), assets: new Map(),
     assetCodeUnits: 0, closing: false, closed: false, flight: undefined, fileCloseUnknown: false};
   const scope = Object.freeze({
     retainPreparation(record, cleanupHandle) {
@@ -141,6 +144,9 @@ export function beginOrdinaryHostControl(originals, input) {
 export function isOrdinaryHostControl(scope) {return scopes.has(scope);}
 export function assertOrdinaryHostControlCurrent(scope, originals) {stateFor(scope, originals);}
 export function ordinaryHostControlInput(scope, originals) {return stateFor(scope, originals).input;}
+export function ordinaryHostControlModelSdk(scope, originals) {
+  return stateFor(scope, originals).modelSdk;
+}
 
 export function readOrdinaryHostAsset(scope, originals, path) {
   const state = stateFor(scope, originals);

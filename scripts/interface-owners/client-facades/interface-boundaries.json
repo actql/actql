@@ -2173,6 +2173,8 @@
           ],
           "exports": [
             "CalendarArtifactInstallation",
+            "connect",
+            "createInstalledConnectorTable",
             "EffectProfilePaths",
             "HostCapacityPolicy",
             "HostInstallation",
@@ -2182,11 +2184,9 @@
             "HostRequestValuePolicyVerifier",
             "InstalledConnectorEntry",
             "InstalledConnectorTable",
-            "SourceProfilePaths",
-            "connect",
-            "createInstalledConnectorTable",
             "publishEffect",
-            "publishSource"
+            "publishSource",
+            "SourceProfilePaths"
           ],
           "attributes": {
             "responsibility": [
@@ -2549,8 +2549,9 @@
     },
     {
       "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "bfc268cb88703ab4415088065b61a66b416ab5e58c9fed61bd39591e91d68d0d",
+      "sha256": "03f1d42e59f3ccaae42cd948667384e04030b537dfee6c7f88d40cab8420bdab",
       "exports": [
+        "commonjs:prepareOrdinaryModelSdkInstallation",
         "commonjs:selectedInitialControlHostPreparation"
       ],
       "operations": [
@@ -2569,9 +2570,17 @@
             "raw"
           ],
           "async": false
+        },
+        {
+          "name": "init:prepareOrdinaryModelSdkInstallation/init:prepareOrdinaryModelSdkInstallation",
+          "parameters": [
+            "source"
+          ],
+          "async": false
         }
       ],
       "imports": [
+        "./adapters/host-node/initial-control-package-custody.cjs",
         "./adapters/host-node/node-public-initial-control-bootstrap.cjs",
         "node:module",
         "node:path",
@@ -2587,11 +2596,13 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "<anonymous>",
-            "forwardOrdinary"
+            "<module>",
+            "forwardOrdinary",
+            "init:prepareOrdinaryModelSdkInstallation/init:prepareOrdinaryModelSdkInstallation"
           ],
           "exports": [
+            "commonjs:prepareOrdinaryModelSdkInstallation",
             "commonjs:selectedInitialControlHostPreparation"
           ],
           "attributes": {
@@ -3058,7 +3069,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1d89786a05e258be87f1786d3dc460d90ad82a5307e508f46adab9c25c01e88c",
+      "sha256": "a7e32bfafbc807f54f640a2d1e1dbcad31024ed189482552d7070ec13bf2e190",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -3074,6 +3085,7 @@
         "HostCapacityPolicy",
         "HostLookupExecutionPolicy",
         "InstalledConnectorTable",
+        "InstalledModelSdkRegistration",
         "LocalSession",
         "NodeConnectionOptions",
         "OpenOptions",
@@ -3155,6 +3167,7 @@
             "Client",
             "ClientError",
             "ConfirmedProfile",
+            "connect",
             "DeliveryAttemptLookup",
             "DynamicRow",
             "EffectProfilePaths",
@@ -3165,13 +3178,15 @@
             "HostCapacityPolicy",
             "HostLookupExecutionPolicy",
             "InstalledConnectorTable",
+            "InstalledModelSdkRegistration",
             "LocalSession",
             "NodeConnectionOptions",
+            "open",
             "OpenOptions",
             "QueryOptions",
             "QueryParameters",
-            "ReadOptions",
             "Reader",
+            "ReadOptions",
             "RequestHeld",
             "RequestLookup",
             "RequestLookupTarget",
@@ -3181,9 +3196,7 @@
             "ResultReference",
             "RunReference",
             "SourceProfilePaths",
-            "StandardSchemaV1",
-            "connect",
-            "open"
+            "StandardSchemaV1"
           ],
           "attributes": {
             "responsibility": [
@@ -3445,7 +3458,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3680d9985709d3045264972b71e1716ca3cf4e6e933697600ce5a8906496f0c2",
+      "sha256": "b03aba3564372e3495c7c1764d9901c29839aa25ebbc36a1bc6207cd2f72e7d0",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -3478,6 +3491,7 @@
       ],
       "imports": [
         "@actql/local-node/_internal/compile-cache",
+        "@actql/local-node/_internal/initial-control-public-dispatch",
         "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"
