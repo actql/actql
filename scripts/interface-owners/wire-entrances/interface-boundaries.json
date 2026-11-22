@@ -17387,7 +17387,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire-js.mjs",
-      "sha256": "0586d583edfefde71529698b75601673be8392d633cfd1e124bd140253397597",
+      "sha256": "14ba2b13fdfccbff8ecbdcbef09c12f97387fcc0466581cb38f4aa50d28aade5",
       "exports": [
         "checkpointAnswerJavaScriptSource"
       ],

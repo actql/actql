@@ -1,7 +1,7 @@
 import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
-import {createPrivateKey, generateKeyPairSync, sign, verify} from
+import {createHash, createPrivateKey, generateKeyPairSync, sign, verify} from
   'node:crypto';
 import {readFileSync} from 'node:fs';
 import {connect, ClientError, RequestHeld, getSubmissionInput, explainSubmission} from './index.mjs';
@@ -307,6 +307,36 @@ test('listing and review are bounded and the review bytes are verified',
     await assert.rejects(client.reviewCheckpoint(summary.checkpointCid),
       {code: 'CheckpointReviewDenied'});
   });
+
+test('review content requires canonical Base64 at the existing byte limit', async t => {
+  let response;
+  const requests = host(t, {'checkpoint-review': () => Response.json(response)});
+  const client = await connect(options);
+  try {
+    for (const [text, canonical, alias] of [
+      ['x', 'eA==', 'eB=='], ['xy', 'eHk=', 'eHl='], ['xyz', 'eHl6', undefined],
+    ]) {
+      const content = Buffer.from(text);
+      const artifactCid = 'sha256:' + createHash('sha256').update(content).digest('hex');
+      response = {kind: 'review', checkpointCid: summary.checkpointCid, artifactCid,
+        byteLength: content.length, contentBase64: canonical};
+      const original = {...summary, reviewProjectionCid: artifactCid};
+      const accepted = await client.reviewCheckpoint(original, {maxBytes: content.length});
+      assert.deepEqual(Buffer.from(accepted.bytes), content);
+      assert.equal(accepted.artifactCid, artifactCid);
+      if (alias !== undefined) {
+        assert.deepEqual(Buffer.from(alias, 'base64'), content);
+        response = {...response, contentBase64: alias};
+        await assert.rejects(client.reviewCheckpoint(original, {maxBytes: content.length}),
+          {code: 'ReviewIntegrityFailed'});
+      }
+    }
+    assert.deepEqual(requests.map(request => request.operation),
+      ['connect', ...Array(5).fill('checkpoint-review')]);
+  } finally {
+    await client.close();
+  }
+});
 
 test('answers are per item and a lost reply returns the exact signed items',
   async t => {
